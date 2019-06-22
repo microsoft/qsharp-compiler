@@ -1,0 +1,1 @@
+This is a valid Q# console app with dependencies on test3

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Microsoft.Quantum.Compiler</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>Microsoft</authors>
+    <owners>QuantumEngineering, Microsoft</owners>
+
+    <licenseUrl>https://docs.microsoft.com/en-us/quantum/license</licenseUrl>
+    <projectUrl>https://docs.microsoft.com/en-us/quantum</projectUrl>
+    <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
+
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>The Q# compiler.</description>
+
+    <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
+
+    <copyright>$copyright$</copyright>
+    <tags>Quantum Q# Qsharp </tags>
+  </metadata>
+</package>

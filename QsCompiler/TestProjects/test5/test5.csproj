@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <IsPackable>false</IsPackable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <QsharpCompile Remove="Operation5.qs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Quantum.Canon" Version="0.3.1810.303-preview" />
+    <PackageReference Include="Microsoft.Quantum.Development.Kit" Version="0.3.1810.303-preview" />
+    <PackageReference Include="Microsoft.Quantum.xUnit" Version="0.3.1810.303-preview" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
+    <PackageReference Include="xunit" Version="2.4.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Operation5.qs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\test3\test3.csproj" />
+    <ProjectReference Include="..\test4\test4.csproj" />
+  </ItemGroup>
+</Project>

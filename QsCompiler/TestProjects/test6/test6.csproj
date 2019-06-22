@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net461;netstandard2.0</TargetFrameworks>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Quantum.Canon" Version="0.3.1810.303-preview" />
+    <PackageReference Include="Microsoft.Quantum.Development.Kit" Version="0.3.1810.303-preview" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\test3\test3.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <QsharpCompile Include="..\test7\Operation.qs">
+      <Link>Operation.qs</Link>
+    </QsharpCompile>
+  </ItemGroup>
+</Project>
