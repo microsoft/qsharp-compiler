@@ -1,0 +1,102 @@
+{
+    "name": "quantum-devkit-vscode",
+    "version": "#SEMVER_VERSION#",
+    "displayName": "Microsoft Quantum Development Kit for Visual Studio Code",
+    "description": "Microsoft Quantum Development Kit for Visual Studio Code provides support for developing quantum algorithms in the Q# programming language.",
+    "publisher": "quantum",
+    "author": "Microsoft DevLabs",
+    "homepage": "http://docs.microsoft.com/quantum/",
+    "icon": "mobius_strip_preview.png",
+    "engines": {
+        "vscode": "^1.26.0"
+    },
+    "license": "See license in LICENSE",
+    "categories": [
+        "Languages"
+    ],
+    "keywords": [
+        "Q#",
+        "qsharp",
+        "quantum"
+    ],
+    "qna": "https://quantum.uservoice.com/",
+    "activationEvents": [
+        "onLanguage:qsharp"
+    ],
+    "main": "./out/extension",
+    "contributes": {
+        "languages": [
+            {
+                "id": "qsharp",
+                "aliases": [
+                    "Q#"
+                ],
+                "extensions": [
+                    "qs"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "Q# language server configuration",
+            "properties": {
+                "quantumDevKit.languageServerPath": {
+                    "scope": "resource",
+                    "type": "string",
+                    "description": "Path to the language server assembly for Q#.",
+                    "default": "bin/Microsoft.Quantum.QsLanguageServer.dll"
+                }
+            }
+        },
+        "grammars": [
+            {
+                "language": "qsharp",
+                "scopeName": "source.qsharp",
+                "path": "./syntaxes/qsharp.tmLanguage.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "qsharp",
+                "path": "./snippets/qsharp.json"
+            },
+            {
+                "language": "csharp",
+                "path": "./snippets/csharp.json"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm install && npm run compile && npm run builddeps",
+        "builddeps": "powershell -NoProfile ./Build-Dependencies.ps1",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "npm run compile && node ./node_modules/vscode/bin/test"
+    },
+    "dependencies": {
+        "vscode-languageclient": "5.1.0",
+        "portfinder": "1.0.13",
+        "which": "1.3.1",
+        "opn": "5.1.0",
+        "vscode-extension-telemetry": "0.0.18",
+        "tmp": "0.0.33",
+        "semver": "^6.0.0"
+    },
+    "devDependencies": {
+        "vscode": "^1.1.34",
+        "typescript": "^2.6.1",
+        "tslint": "^5.8.0",
+        "mocha": "^5.2.0",
+        "@types/node": "^9.6.5",
+        "@types/mocha": "^5.2.0",
+        "@types/which": "1.3.1",
+        "@types/opn": "5.1.0",
+        "@types/tmp": "0.0.33",
+        "@types/semver": "^6.0.0"
+    },
+    "repository": {},
+    "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",
+    "requiredDotNetCoreSDK": "2.1.0"
+}

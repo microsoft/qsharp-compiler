@@ -1,0 +1,11 @@
+{
+    "Using QuantumSimulator": {
+        "prefix": "using",
+        "body": [
+            "using (var ${1:qsim} = new QuantumSimulator())",
+            "{",
+            "    var result = await ${2:Operation}.Run($1, ${3:args});",
+            "}"
+        ]
+    }
+}

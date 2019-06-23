@@ -1,0 +1,7 @@
+﻿[$RootKey$\TextMate\Repositories]
+"Qsharp"="$PackageFolder$\Grammars"
+
+[$RootKey$\InstalledProducts\MicrosoftQuantumDevelopmentKit]
+@="Microsoft Quantum Development Kit"
+"ProductDetails"="Microsoft Quantum Development Kit provides support for developing quantum algorithms in the Q# programming language."
+"PID"="0 and 1"
