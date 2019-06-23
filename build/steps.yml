@@ -16,4 +16,4 @@ steps:
 # Wrap-up
 ##
 - template: sdl-tools.yml
-- template: step-wrap-up.yml
+- template: wrap-up.yml
