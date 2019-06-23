@@ -1,0 +1,25 @@
+steps:
+
+##
+# Pre-reqs
+##
+- task: Npm@1
+  displayName: 'npm install -g vsce'
+  inputs:
+    command: custom
+    verbose: false
+    customCommand: 'install -g vsce'
+
+- task: NuGetToolInstaller@0
+  displayName: 'Use NuGet 4.9.3'
+  inputs:
+    versionSpec: '4.9.3'
+ 
+##
+# Bootstrap
+##
+- task: BatchScript@1
+  displayName: 'Run bootstrap.cmd'
+  inputs:
+    filename: bootstrap.cmd
+    modifyEnvironment: true

@@ -1,10 +1,10 @@
 ##
-# Build, test and pack the compiler
+# Build and pack the Visual Studio extension
 ##
 steps:
 
 - task: NuGetCommand@2
-  displayName: 'NuGet restore VisualStudioExtension'
+  displayName: 'Restore VisualStudioExtension'
   inputs:
     restoreSolution: '$(VSExtensionSrcDir)/../VisualStudioExtension.sln'
 

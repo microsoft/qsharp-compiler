@@ -1,0 +1,19 @@
+steps:
+- template: init.yml
+
+##
+# Build the compiler, language server and VS extension
+##
+- template: ../src/QsCompiler/build-steps.yml
+- template: ../src/VisualStudioExtension/build-steps.yml
+
+##
+# Create the corresponding packages and extensions
+##
+- template: pack.yml  
+
+##
+# Wrap-up
+##
+- template: sdl-tools.yml
+- template: step-wrap-up.yml

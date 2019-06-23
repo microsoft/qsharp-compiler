@@ -9,18 +9,6 @@ steps:
     command: test
     arguments: '-c $(BuildConfiguration) -v $(Build.Verbosity)  /p:DefineConstants=$(Assembly.Constants) /p:Version=$(Assembly.Version)'
     projects: '$(CompilerSrcDir)/../QsCompiler.sln'
-
-
-- task: NuGetCommand@2
-  displayName: 'Pack Q# compiler'
-  inputs:
-    command: pack
-    packagesToPack: >
-      src\QsCompiler\Compiler\QsCompiler.csproj;
-    versioningScheme: byEnvVar
-    versionEnvVar: NUGET_VERSION
-    packDestination: '$(System.DefaultWorkingDirectory)'
-    includeReferencedProjects: true
     
 
 - task: DotNetCoreCLI@2
