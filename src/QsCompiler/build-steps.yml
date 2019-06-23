@@ -4,7 +4,7 @@
 steps:
 
 - task: DotNetCoreCLI@2
-  displayName: 'Build and test Q# compiler'
+  displayName: 'Build and test Q# compiler and language server'
   inputs:
     command: test
     arguments: '-c $(BuildConfiguration) -v $(Build.Verbosity)  /p:DefineConstants=$(Assembly.Constants) /p:Version=$(Assembly.Version)'
