@@ -6,7 +6,7 @@ dotnet  --info || GOTO missingDotnet
 git --version  || GOTO missingGit
 
 :: Set Build number on all files that uses it
-CALL setVersionNumber.cmd
+CALL build\setVersionNumber.cmd
 
 :: Initialize the compiler's nuspec file
 CALL :nuspecBootstrap
