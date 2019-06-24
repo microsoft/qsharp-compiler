@@ -1,7 +1,7 @@
 # Privacy
 
 The code in this repository contains features that may enable you and Microsoft to collect data from users of the applications.
-The data collection is disabled by default but can be enabled by setting the corresponding flag upon compilation. 
+With the exception of the VS Code extension, data collection is disabled by default but can be enabled by setting the corresponding flag upon compilation. For the VS Code extension, the privacy settings for VS Code set by the application user determine whether any data is collected. 
 
 ## Data Collection
 
