@@ -36,11 +36,14 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             return $"{PUBLISHER}.{EXTENSION}.{propName?.ToLowerInvariant()}";
         }
 
-        /// Sends the telemetry event for the event with the given name and properties.
+        /// Does nothing unless the corresponding flag is defined upon compilation.
+        /// If the telemetry flag is defined upon compilation, 
+        /// sends the telemetry event for the event with the given name and properties.
         /// Ignores any properties where the key is null or "version" (case insensitive).
         /// Adds the version of the extension assembly as version. 
         public static void SendEvent(string name, IEnumerable<KeyValuePair<string, object>> props = null)
         {
+#if TELEMETRY
             props = props ?? Enumerable.Empty<KeyValuePair<string, object>>();
             var evt = new TelemetryEvent(PrefixEventName(name));
             foreach (var entry in props.Where(p => !string.IsNullOrEmpty(p.Key)))
@@ -52,6 +55,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             try { TelemetryService.DefaultSession.PostEvent(evt); }
             catch (Exception ex)
             { Debug.Assert(false, $"error sending telemetry: \n{ex}"); }
+#endif
         }
 
         public static void SendEvent(ExtensionEvent id, params (string, object)[] props) =>
