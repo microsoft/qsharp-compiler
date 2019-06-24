@@ -5,6 +5,10 @@ import * as vscode from 'vscode';
 import { getPackageInfo } from './packageInfo';
 import TelemetryReporter from 'vscode-extension-telemetry';
 
+export class Settings {
+    static enableTelemetry = true; // TODO: make this a command line flag and disable by default
+};
+
 export type TelemetryData<T> = { [key: string]: T } | undefined;
 
 export var reporter: TelemetryReporter;
@@ -13,7 +17,7 @@ export class Reporter extends vscode.Disposable {
     constructor(ctx: vscode.ExtensionContext) {
         super(() => reporter.dispose());
         let packageInfo = getPackageInfo(ctx);
-        if (packageInfo !== undefined) {
+        if (packageInfo !== undefined && Settings.enableTelemetry) {
             reporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
         }
     }
@@ -41,7 +45,7 @@ export function startTelemetry(context: vscode.ExtensionContext) {
     context.subscriptions.push(new Reporter(context));
 
     // Send initial events.
-    reporter.sendTelemetryEvent(EventNames.activate, {}, {});
+    if (reporter) reporter.sendTelemetryEvent(EventNames.activate, {}, {});
 }
 
 export function sendTelemetryTiming<T>(
@@ -60,7 +64,7 @@ export function sendTelemetryTiming<T>(
 
         measurements["elapsedTime"] = elapsedTime;
 
-        reporter.sendTelemetryEvent(eventName, properties, measurements);
+        if (reporter) reporter.sendTelemetryEvent(eventName, properties, measurements);
 
         return returnValue;
 
@@ -157,5 +161,5 @@ export function forwardServerTelemetry(telemetryRequest : any) {
     }
 
     // TODO: pass more than just the event name.
-    sendTelemetryEvent(name, properties, measurements);
+    sendTelemetryEvent(name, properties, measurements); 
 }
