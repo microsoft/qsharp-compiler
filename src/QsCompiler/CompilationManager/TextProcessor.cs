@@ -11,15 +11,19 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
+    /// <summary>
     /// handles all communication with the Q# parser
+    /// </summary>
     internal static class TextProcessor
     {
         // routines used for a first round of checking for syntactic errors related to how statements can be formatted (e.g. a non-empty statement ending in '}' is certainly incorrect)
 
+        /// <summary>
         /// For any fragment where the code only consistes of whitespace, 
         /// adds a warning to the returned diagnostics if such a fragment terminates in a semicolon,
         /// adds an error to the returned diagnostics if it ends in and opening bracket.
         /// Throws an ArgumentNullException if the given diagnostics or fragments are null.
+        /// </summary>
         private static IEnumerable<Diagnostic> CheckForEmptyFragments(this IEnumerable<CodeFragment> fragments, string filename)
         {
             if (fragments == null) throw new ArgumentNullException(nameof(fragments));
@@ -31,10 +35,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return diagnostics.ToList(); // in case fragments change
         }
 
+        /// <summary>
         /// Compares the saved fragment ending of the given fragment against the expected continuation and
         /// adds the corresponding error to the returned diagnostics if they don't match.
         /// Throws an ArgumentException if the code fragment kind of the given fragment is unspecified (i.e. null).
         /// Throws an ArgumentNullException if the diagnostics are null.
+        /// </summary>
         private static IEnumerable<Diagnostic> CheckFragmentDelimiters (this CodeFragment fragment, string filename)
         {
             if (fragment?.Kind == null) throw new ArgumentException("missing specification of the fragment kind");
@@ -43,11 +49,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             { yield return Errors.InvalidFragmentEnding(filename, code, fragment.GetRange().End); }
         }
 
+        /// <summary>
         /// Calls the Q# parser on each fragment, splitting one fragment into several if necessary 
         /// (i.e. modifies the list of given fragments!).
         /// Fragments for which the code only consists of whitespace are left unchanged (i.e. the Kind remains set to null).
         /// Adds a suitable error to the returned diagnostics for each fragment that cannot be processed.
         /// Raises an ArgumentNullException if the given diagnostics or fragments are null.
+        /// </summary>
         private static IEnumerable<Diagnostic> ParseCode(ref List<CodeFragment> fragments, string filename)
         {
             if (fragments == null) throw new ArgumentNullException(nameof(fragments));
@@ -88,9 +96,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // private utils related to extracting file content
 
+        /// <summary>
         /// checks that the given range is a valid range in file, and returns the text in the given range in concatenated form
         /// stripping (only) end of line comments (and not removing excess brackets)
         /// Note: the End position of the given range is *not* part of the returned string.
+        /// </summary>
         private static string GetCodeSnippet(this FileContentManager file, Range range)
         {
             if (!Utils.IsValidRange(range, file))
@@ -121,33 +131,49 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static readonly Func<string, int> StatementStartDelimiters =
             code => code.IndexOfAny(CodeFragment.DelimitingChars.ToArray());
 
-        /// finds the position of the statement end closest to the end of the line, ignoring strings and comments, but not excess brackets
+        /// <summary>
+        /// finds the position of the statement end closest to the end of the line, 
+        /// ignoring strings and comments, but not excess brackets
+        /// </summary>
         private static int StatementEnd(this CodeLine line)
         { return line.FindInCode(StatementEndDelimiters, false); }
 
-        /// finds the position of the statement start closest to the beginning of the line, ignoring strings and comments, but not excess brackets
+        /// <summary>
+        /// finds the position of the statement start closest to the beginning of the line, 
+        /// ignoring strings and comments, but not excess brackets
+        /// </summary>
         private static int StatementStart(this CodeLine line)
         { return line.FindInCode(StatementStartDelimiters, false); }
 
-        /// finds the position of the statement end closest to the end of the line fragment defined by start and count, ignoring strings and comments, but not excess brackets
+        /// <summary>
+        /// finds the position of the statement end closest to the end of the line fragment defined by start and count, 
+        /// ignoring strings and comments, but not excess brackets
+        /// </summary>
         private static int StatementEnd(this CodeLine line, int start, int count)
         { return line.FindInCode(StatementEndDelimiters, start, count, false); }
 
-        /// finds the position of the statement start closest to the beginning of the line fragment after start, ignoring strings and comments, but not excess brackets
+        /// <summary>
+        /// finds the position of the statement start closest to the beginning of the line fragment after start, 
+        /// ignoring strings and comments, but not excess brackets
+        /// </summary>
         private static int StatementStart(this CodeLine line, int start)
         { return line.FindInCode(StatementStartDelimiters, start, line.WithoutEnding.Length - start, false); }
 
+        /// <summary>
         /// returns the Position after the last character in the file (including comments)
         /// throws an ArgumentNullException is file is null or does not have any content
+        /// </summary>
         public static Position End(this FileContentManager file)
         {
             if (file == null || file.NrLines() == 0) throw new ArgumentNullException(nameof(file), "file is null or empty");
             return new Position(file.NrLines() - 1, file.GetLine(file.NrLines() - 1).Text.Length);
         }
 
+        /// <summary>
         /// Returns the Position right after where the last relevant (i.e. non-comment) code in the file ends, 
         /// or the position (0,0) if no such line exists.
         /// Raises an ArgumentNullException if file is null or does not contain any lines.
+        /// </summary>
         private static Position LastInFile(FileContentManager file)
         {
             if (file == null || file.NrLines() == 0) throw new ArgumentNullException(nameof(file), "file is null or missing content");
@@ -156,12 +182,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return endIndex < 0 ? new Position(0,0) : new Position(endIndex, file.GetLine(endIndex).WithoutEnding.Length);
         }
 
+        /// <summary>
         /// Returns the position right after where the fragment containing the given position ends.
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
         /// Updates the given position to point to the first character in the fragment that contains code.
         /// Throws an ArgumentException if the given position is not smaller than the position after the last piece of code in the file (given by LastInFile). 
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// Throws an ArgumentException if the given position is not within file.
+        /// </summary>
         private static Position FragmentEnd(this FileContentManager file, ref Position current)
         {
             var lastInFile = LastInFile(file);
@@ -188,11 +216,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return endIndex < file.NrLines() ? new Position(endIndex, endChar + 1) : lastInFile;
         }
 
+        /// <summary>
         /// Returns the position right after where the fragment before the one containing the given position ends.
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
         /// If there is no such fragment, returns the position (0,0).
         /// Raises an ArgumentNullException if any of the arguments is null.
         /// Raises an ArgumentException if the given position is not within file.
+        /// </summary>
         private static Position PositionAfterPrevious(this FileContentManager file, Position current)
         {
             if (!Utils.IsValidPosition(current, file)) throw new ArgumentException("given position is not within file");
@@ -203,10 +233,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return startIndex < 0 ? new Position(0, 0) : new Position(startIndex, startChar + 1);
         }
 
+        /// <summary>
         /// Extracts the code fragments based on the current file content that need to be re-processed due to content changes on the given lines.
         /// Ignores any whitespace or comments at the beginning of the file (whether they have changed or not).
         /// Ignores any whitespace or comments that occur after the last piece of code in the file.
         /// Throws an ArgumentNullException if any of the arguments is null.
+        /// </summary>
         private static IEnumerable<CodeFragment> FragmentsToProcess(this FileContentManager file, SortedSet<int> changedLines)
         {
             // NOTE: I suggest not to touch this routine unless absolutely necessary...(things *will* break)
@@ -254,10 +286,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // routines called by the file content manager upon updating a file
 
+        /// <summary>
         /// Given the start line of a change, and how many lines have been updated from there, 
         /// computes the position where the syntax check will start and end.
         /// Throws an ArgumentNullException if file is null.
         /// Throws an ArgumentOutOfRangeException if the range [start, start + count) is not a valid range within the current file content.
+        /// </summary>
         internal static Range GetSyntaxCheckDelimiters(this FileContentManager file, int start, int count)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
@@ -275,11 +309,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return new Range { Start = syntaxCheckStart, End = lastInFile.IsSmallerThanOrEqualTo(syntaxCheckEnd) ? file.End() : syntaxCheckEnd};
         }
 
+        /// <summary>
         /// Dequeues all lines whose content has changed and extracts the code fragments overlapping with those lines that need to be reprocessed.
         /// Does nothing if no lines have been modified. 
         /// Recomputes and pushes the syntax diagnostics for the extracted fragments and all end-of-file diagnostics otherwise.
         /// Processes the extracted fragment and inserts the processed fragments into the corresponding data structure 
         /// Throws an ArgumentNullException if file is null. 
+        /// </summary>
         internal static void UpdateLanguageProcessing(this FileContentManager file) 
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
