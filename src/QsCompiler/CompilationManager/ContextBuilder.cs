@@ -19,9 +19,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // utils for managing syntax tokens
 
         /// <summary>
-        /// verifies that all tokens are ordered according to their range
-        /// throws an ArgumentNullException if the given tokens are null, or if any of the contained elements are
-        /// throws an ArgumentException if this is not the case
+        /// Verifies that all tokens are ordered according to their range.
+        /// Throws an ArgumentNullException if the given tokens are null, or if any of the contained elements are.
+        /// Throws an ArgumentException if this is not the case.
         /// </summary>
         internal static void VerifyTokenOrdering(IEnumerable<CodeFragment> tokens)
         {
@@ -41,8 +41,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns the TokenIndex for the first token in the given file, or null if no such token exists
-        /// throws an ArgumentNullException if file is null
+        /// Returns the TokenIndex for the first token in the given file, or null if no such token exists.
+        /// Throws an ArgumentNullException if file is null.
         /// </summary>
         internal static CodeFragment.TokenIndex FirstToken(this FileContentManager file)
         {
@@ -55,8 +55,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns the TokenIndex for the last token in the given file, or null if no such token exists
-        /// throws an ArgumentNullException if file is null
+        /// Returns the TokenIndex for the last token in the given file, or null if no such token exists.
+        /// Throws an ArgumentNullException if file is null.
         /// </summary>
         internal static CodeFragment.TokenIndex LastToken(this FileContentManager file)
         {
@@ -69,9 +69,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns true if the given token is fully included in the given range
-        /// throws an ArgumentNullException if token or the range delimiters are null
-        /// throws an ArgumentException if the given range is not valid
+        /// Returns true if the given token is fully included in the given range.
+        /// Throws an ArgumentNullException if token or the range delimiters are null.
+        /// Throws an ArgumentException if the given range is not valid.
         /// </summary>
         internal static bool IsWithinRange(this CodeFragment token, Range range)
         {
@@ -82,25 +82,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns a function that returns true if a given fragment ends at or before the given position
+        /// Returns a function that returns true if a given fragment ends at or before the given position.
         /// </summary>
         internal static Func<CodeFragment, bool> TokensUpTo(Position pos) =>
             (CodeFragment token) => token.GetRange().End.IsSmallerThanOrEqualTo(pos);
 
         /// <summary>
-        /// returns a function that returns true if a given fragment starts (strictly) before the given position
+        /// Returns a function that returns true if a given fragment starts (strictly) before the given position.
         /// </summary>
         internal static Func<CodeFragment, bool> TokensStartingBefore(Position pos) =>
             (CodeFragment token) => token.GetRange().Start.IsSmallerThan(pos);
 
         /// <summary>
-        /// returns a function that returns true if a given fragment starts at or after the given position
+        /// Returns a function that returns true if a given fragment starts at or after the given position.
         /// </summary>
         internal static Func<CodeFragment, bool> TokensAfter(Position pos) =>
             (CodeFragment token) => pos.IsSmallerThanOrEqualTo(token.GetRange().Start);
 
         /// <summary>
-        /// returns a function that returns true if a given fragment does not overlap with the specified range
+        /// Returns a function that returns true if a given fragment does not overlap with the specified range.
         /// </summary>
         internal static Func<CodeFragment, bool> NotOverlappingWith(Range relRange) =>
             token =>
@@ -187,11 +187,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns true if the given file contains any tokens overlapping with the given fragment
-        /// the range of the tokens in the file is assumed to be relative to their start line (the index at which they are listed),
-        /// whereas the range of the given fragment is assumed to be the absolute range
-        /// throws an ArgumentNullException if the given file or range is null
-        /// throws an ArgumentOutOfRangeException if the given range is not a valid range within file
+        /// Returns true if the given file contains any tokens overlapping with the given fragment.
+        /// The range of the tokens in the file is assumed to be relative to their start line (the index at which they are listed),
+        /// whereas the range of the given fragment is assumed to be the absolute range.
+        /// Throws an ArgumentNullException if the given file or range is null.
+        /// Throws an ArgumentOutOfRangeException if the given range is not a valid range within file.
         /// </summary>
         internal static bool ContainsTokensOverlappingWith(this FileContentManager file, Range range)
         {
@@ -219,10 +219,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// assuming both the current tokens and the tokens to update are sorted according to their range,
-        /// merges the current and updated tokens such that the merged collection is sorted as well
-        /// throws an ArgumentNullException if either current or updated, or any of their elements are null
-        /// throws an ArgumentException if the token verification for the merged collection fails
+        /// Assuming both the current tokens and the tokens to update are sorted according to their range,
+        /// merges the current and updated tokens such that the merged collection is sorted as well.
+        /// Throws an ArgumentNullException if either current or updated, or any of their elements are null.
+        /// Throws an ArgumentException if the token verification for the merged collection fails.
         /// </summary>
         internal static List<CodeFragment> MergeTokens(IEnumerable<CodeFragment> current, IEnumerable<CodeFragment> updated)
         {

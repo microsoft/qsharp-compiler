@@ -49,31 +49,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             private bool IsLoaded;
 
             /// <summary>
-            /// the path of all specified source files, 
+            /// contains the path of all specified source files, 
             /// regardless of whether or not the path is valid, the file exists and could be loaded
             /// </summary>
             private ImmutableHashSet<Uri> SpecifiedSourceFiles;
             /// <summary>
-            /// the path to the dlls of all specified references, 
+            /// contains the path to the dlls of all specified references, 
             /// regardless of whether or not the path is valid, the file exists and could be loaded
             /// </summary>
             private ImmutableHashSet<Uri> SpecifiedReferences;
             /// <summary>
-            /// the path to the *project* file of all specified project references, 
+            /// contains the path to the *project* file of all specified project references, 
             /// regardless of whether or not the path is valid, and a project with the corresponding uri exists
             /// </summary>
             private ImmutableHashSet<Uri> SpecifiedProjectReferences;
 
             /// <summary>
-            /// the uris to all source files that have been successfully loaded and are incorporated into the compilation
+            /// contains the uris to all source files that have been successfully loaded and are incorporated into the compilation
             /// </summary>
             private ImmutableHashSet<Uri> LoadedSourceFiles;
             /// <summary>
-            /// the keys are the uris to all referenced dlls that have been successfully loaded and are incorporated into the compilation
+            /// contains the keys are the uris to all referenced dlls that have been successfully loaded and are incorporated into the compilation
             /// </summary>
             private References LoadedReferences;
             /// <summary>
-            /// the keys are the uris to the *project file* of all project references that have been successfully loaded and are incorporated into the compilation
+            /// contains the keys are the uris to the *project file* of all project references that have been successfully loaded and are incorporated into the compilation
             /// </summary>
             private References LoadedProjectReferences;
 
@@ -906,7 +906,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // -> these routines will wait for any processing to finish before executing the query
 
         /// <summary>
-        /// returns a copy of the current diagnostics generated upon loading 
+        /// Returns a copy of the current diagnostics generated upon loading.
         /// Note: this method waits for all currently running or queued tasks to finish 
         /// before getting the project loading diagnostics by calling FlushAndExecute.
         /// </summary>

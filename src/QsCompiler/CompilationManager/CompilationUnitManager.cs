@@ -19,8 +19,8 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     /// <summary>
-    /// NOTE: this class intentionally does not give access to any FileContentManager that it manages,
-    /// since it is responsible for coordinating access to (any routine of) the FileContentManager
+    /// NOTE: This class intentionally does not give access to any FileContentManager that it manages,
+    /// since it is responsible for coordinating access to (any routine of) the FileContentManager.
     /// </summary>
     public class CompilationUnitManager : IDisposable
     {

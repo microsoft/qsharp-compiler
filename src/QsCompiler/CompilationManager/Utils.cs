@@ -115,9 +115,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // general purpose type extensions
 
         /// <summary>
-        /// partitions the given IEnumerable into the elements for which predicate returns true and those for which it returns false
-        /// return (null, null) if the given IEnumerable is null
-        /// throws an ArgumentNullException if predicate is null
+        /// Partitions the given IEnumerable into the elements for which predicate returns true and those for which it returns false.
+        /// Returns (null, null) if the given IEnumerable is null.
+        /// Throws an ArgumentNullException if predicate is null.
         /// </summary>
         public static (List<T>, List<T>) Partition<T>(this IEnumerable<T> collection, Func<T, bool> predicate) 
         {
@@ -126,8 +126,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns true if the given lock is either ReadLockHeld, or is UpgradeableReadLockHeld, or isWriteLockHeld
-        /// throws an ArgumentNullException if the given lock is null
+        /// Returns true if the given lock is either ReadLockHeld, or is UpgradeableReadLockHeld, or isWriteLockHeld.
+        /// Throws an ArgumentNullException if the given lock is null.
         /// </summary>
         public static bool IsAtLeastReadLockHeld(this ReaderWriterLockSlim syncRoot)
         {
@@ -139,8 +139,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // utils for verifying arguments 
 
         /// <summary>
-        /// returns true if the given position is valid, i.e. if both the line and character are positive
-        /// throws an ArgumentNullException is an argument is null
+        /// Returns true if the given position is valid, i.e. if both the line and character are positive.
+        /// Throws an ArgumentNullException is an argument is null.
         /// </summary>
         public static bool IsValidPosition(Position pos)
         {
@@ -149,8 +149,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns true if the given position is valid, i.e. if the line is within the given file, and the character is within the text on that line (including text.Length)
-        /// throws an ArgumentNullException is an argument is null
+        /// Returns true if the given position is valid, i.e. if the line is within the given file, 
+        /// and the character is within the text on that line (including text.Length).
+        /// Throws an ArgumentNullException is an argument is null.
         /// </summary>
         internal static bool IsValidPosition(Position pos, FileContentManager file)
         {
@@ -159,9 +160,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// verifies both positions, and returns true if the first position comes strictly before the second position
-        /// throws an ArgumentNullException if a given position is null
-        /// throws an ArgumentException if a given position is not valid
+        /// Verifies both positions, and returns true if the first position comes strictly before the second position.
+        /// Throws an ArgumentNullException if a given position is null.
+        /// Throws an ArgumentException if a given position is not valid.
         /// </summary>
         internal static bool IsSmallerThan(this Position first, Position second)
         {
@@ -170,9 +171,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// verifies both positions, and returns true if the first position comes before the second position, or if both positions are the same
-        /// throws an ArgumentNullException if a given position is null
-        /// throws an ArgumentException if a given position is not valid
+        /// Verifies both positions, and returns true if the first position comes before the second position, or if both positions are the same.
+        /// Throws an ArgumentNullException if a given position is null.
+        /// Throws an ArgumentException if a given position is not valid.
         /// </summary>
         internal static bool IsSmallerThanOrEqualTo(this Position first, Position second)
         { return !second.IsSmallerThan(first); }
@@ -191,23 +192,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns true if the given range is valid, i.e. if both start and end are valid positions, and start is smaller than or equal to end
-        /// throws an ArgumentNullException if an argument is null
+        /// Returns true if the given range is valid, i.e. if both start and end are valid positions, and start is smaller than or equal to end.
+        /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
         public static bool IsValidRange(Range range)
         { return IsValidPosition(range?.Start) && IsValidPosition(range.End) && range.Start.IsSmallerThanOrEqualTo(range.End); }
 
         /// <summary>
-        /// returns true if the given range is valid, i.e. if both start and end are valid positions within the given file, and start is smaller than or equal to end
-        /// throws an ArgumentNullException if an argument is null
+        /// Returns true if the given range is valid, 
+        /// i.e. if both start and end are valid positions within the given file, and start is smaller than or equal to end.
+        /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
         internal static bool IsValidRange(Range range, FileContentManager file)
         { return IsValidPosition(range?.Start, file) && IsValidPosition(range.End, file) && range.Start.IsSmallerThanOrEqualTo(range.End); }
 
         /// <summary>
-        /// returns the absolute position under the assumption that snd is relative to fst and both positions are zero-based
-        /// throws an ArgumentNullException if a given position is null
-        /// throws an ArgumentException if a given position is not valid
+        /// Returns the absolute position under the assumption that snd is relative to fst and both positions are zero-based.
+        /// Throws an ArgumentNullException if a given position is null.
+        /// Throws an ArgumentException if a given position is not valid.
         /// </summary>
         internal static Position Add(this Position fst, Position snd)
         {
@@ -217,9 +219,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns the position of fst relative to snd under the assumption that both positions are zero-based
-        /// throws an ArgumentNullException if a given position is null
-        /// throws an ArgumentException if a given position is not valid, or if fst is smaller than snd
+        /// Returns the position of fst relative to snd under the assumption that both positions are zero-based.
+        /// Throws an ArgumentNullException if a given position is null.
+        /// Throws an ArgumentException if a given position is not valid, or if fst is smaller than snd.
         /// </summary>
         internal static Position Subtract(this Position fst, Position snd)
         {

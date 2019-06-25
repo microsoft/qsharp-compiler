@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // utils for getting the necessary information for editor commands
 
         /// <summary>
-        /// throws an ArgumentNullException if the given offset or relative range is null
+        /// Throws an ArgumentNullException if the given offset or relative range is null.
         /// </summary>
         private static Location AsLocation(NonNullable<string> source,
             Tuple<int, int> offset, Tuple<QsPositionInfo, QsPositionInfo> relRange) =>
@@ -35,13 +35,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             };
 
         /// <summary>
-        /// throws an ArgumentNullException if the given reference location is null
+        /// Throws an ArgumentNullException if the given reference location is null.
         /// </summary>
         private static Location AsLocation(IdentifierReferences.Location loc) =>
             AsLocation(loc.SourceFile, DiagnosticTools.StatementPosition(loc.RootNode, loc.StatementOffset), loc.SymbolRange);
 
         /// <summary>
-        /// returns the SymbolInformation for all namespace declarations in the file
+        /// Returns the SymbolInformation for all namespace declarations in the file.
         /// </summary>
         public static IEnumerable<SymbolInformation> NamespaceDeclarationsSymbolInfo(this FileContentManager file) =>
             file.GetNamespaceDeclarations().Select(tuple => new SymbolInformation
@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
 
         /// <summary>
-        /// returns the SymbolInformation for all type declarations in the file
+        /// Returns the SymbolInformation for all type declarations in the file.
         /// </summary>
         public static IEnumerable<SymbolInformation> TypeDeclarationsSymbolInfo(this FileContentManager file) =>
             file.GetTypeDeclarations().Select(tuple => new SymbolInformation
@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
 
         /// <summary>
-        /// returns the SymbolInformation for all method declarations in the file
+        /// Returns the SymbolInformation for all method declarations in the file.
         /// </summary>
         public static IEnumerable<SymbolInformation> CallableDeclarationsSymbolInfo(this FileContentManager file) =>
             file.GetCallableDeclarations().Select(tuple => new SymbolInformation

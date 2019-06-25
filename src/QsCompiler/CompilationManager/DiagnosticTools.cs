@@ -15,8 +15,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     public static class DiagnosticTools
     {
         /// <summary>
-        /// returns the line and character of the given position as tuple without verifying them
-        /// throws an ArgumentNullException if the given position is null
+        /// Returns the line and character of the given position as tuple without verifying them.
+        /// Throws an ArgumentNullException if the given position is null.
         /// </summary>
         internal static Tuple<int, int> AsTuple(Position position) => 
             position != null 
@@ -24,8 +24,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             : throw new ArgumentNullException(nameof(position));
 
         /// <summary>
-        /// returns a Position with the line and character given as tuple (inverse function for AsTuple)
-        /// throws an ArgumentNullException if the given tuple is null
+        /// Returns a Position with the line and character given as tuple (inverse function for AsTuple).
+        /// Throws an ArgumentNullException if the given tuple is null.
         /// </summary>
         internal static Position AsPosition(Tuple<int, int> position) =>
             position != null
@@ -103,8 +103,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static Tuple<int, int> DeclarationPosition(Position position) => new Tuple<int, int>(position.Line, position.Character);
 
         /// <summary>
-        /// returns a new Position with the line number and character of the given Position
-        /// or null in case the given Position is null
+        /// Returns a new Position with the line number and character of the given Position
+        /// or null in case the given Position is null.
         /// </summary>
         public static Position Copy(this Position pos)
         {
@@ -114,10 +114,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// verifies the given Position, and returns a *new* Position with updated line number
-        /// throws an ArgumentNullException if the given Position is null
-        /// throws an ArgumentException if the given Position is invalid
-        /// throws and ArgumentOutOfRangeException if the updated line number is negative
+        /// Verifies the given Position, and returns a *new* Position with updated line number.
+        /// Throws an ArgumentNullException if the given Position is null.
+        /// Throws an ArgumentException if the given Position is invalid.
+        /// Throws and ArgumentOutOfRangeException if the updated line number is negative.
         /// </summary>
         public static Position WithUpdatedLineNumber(this Position pos, int lineNrChange)
         {
@@ -129,9 +129,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// for a given Range, returns a new Range with its starting and ending position a copy of the start and end of the given Range 
-        /// (i.e. does a deep copy)
-        /// or null in case the given Range is null
+        /// For a given Range, returns a new Range with its starting and ending position a copy of the start and end of the given Range 
+        /// (i.e. does a deep copy) or null in case the given Range is null.
         /// </summary>
         public static Range Copy(this Range r)
         {
@@ -141,10 +140,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// verifies the given Range, and returns a *new* Range with updated line numbers
-        /// throws an ArgumentNullException if the given Range is null
-        /// throws an ArgumentException if the given Range is invalid
-        /// throws and ArgumentOutOfRangeException if the updated line number is negative
+        /// Verifies the given Range, and returns a *new* Range with updated line numbers.
+        /// Throws an ArgumentNullException if the given Range is null.
+        /// Throws an ArgumentException if the given Range is invalid.
+        /// Throws and ArgumentOutOfRangeException if the updated line number is negative.
         /// </summary>
         public static Range WithUpdatedLineNumber(this Range range, int lineNrChange)
         {
@@ -158,8 +157,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns a new Diagnostic, making a deep copy of the given one (in particular a deep copy of it's Range)
-        /// or null if the given Diagnostic is null
+        /// Returns a new Diagnostic, making a deep copy of the given one (in particular a deep copy of it's Range)
+        /// or null if the given Diagnostic is null.
         /// </summary>
         public static Diagnostic Copy(this Diagnostic message)
         {
@@ -175,10 +174,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// for a given Diagnostic, verifies its range and returns a *new* Diagnostic with updated line numbers
-        /// throws an ArgumentNullException if the given Diagnostic is null
-        /// throws an ArgumentException if the Range of the given Diagnostic is invalid
-        /// throws and ArgumentOutOfRangeException if the updated line number is negative
+        /// For a given Diagnostic, verifies its range and returns a *new* Diagnostic with updated line numbers.
+        /// Throws an ArgumentNullException if the given Diagnostic is null.
+        /// Throws an ArgumentException if the Range of the given Diagnostic is invalid.
+        /// Throws and ArgumentOutOfRangeException if the updated line number is negative.
         /// </summary>
         public static Diagnostic WithUpdatedLineNumber(this Diagnostic diagnostic, int lineNrChange)
         {
@@ -190,7 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns true if the ErrorType of the given Diagnostic is one of the given types
+        /// Returns true if the ErrorType of the given Diagnostic is one of the given types.
         /// </summary>
         internal static Func<Diagnostic, bool> ErrorType(params ErrorCode[] types)
         {
@@ -199,26 +198,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns true if the given diagnostics is an error
+        /// Returns true if the given diagnostics is an error.
         /// </summary>
         public static bool IsError(this Diagnostic m) =>
             m.Severity == DiagnosticSeverity.Error;
 
         /// <summary>
-        /// returns true if the given diagnostics is a warning
+        /// Returns true if the given diagnostics is a warning.
         /// </summary>
         public static bool IsWarning(this Diagnostic m) =>
             m.Severity == DiagnosticSeverity.Warning;
 
         /// <summary>
-        /// returns true if the given diagnostics is an information
+        /// Returns true if the given diagnostics is an information.
         /// </summary>
         public static bool IsInformation(this Diagnostic m) =>
             m.Severity == DiagnosticSeverity.Information;
 
         /// <summary>
-        /// extracts all elements satisfying the given condition and which start at a line that is larger or equal to lowerBound
-        /// throws an ArgumentNullException if the given condition is null
+        /// Extracts all elements satisfying the given condition and which start at a line that is larger or equal to lowerBound.
+        /// Throws an ArgumentNullException if the given condition is null.
         /// </summary>
         public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound)
         {
@@ -227,8 +226,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// extracts all elements satisfying the given condition and which start at a line that is larger or equal to lowerBound and smaller than upperBound
-        /// throws an ArgumentNullException if the given condition is null
+        /// Extracts all elements satisfying the given condition and which start at a line that is larger or equal to lowerBound and smaller than upperBound.
+        /// Throws an ArgumentNullException if the given condition is null.
         /// </summary>
         public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound, int upperBound)
         {
@@ -237,63 +236,63 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// extracts all elements which start at a line that is larger or equal to lowerBound
+        /// Extracts all elements which start at a line that is larger or equal to lowerBound.
         /// </summary>
         public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, int lowerBound)
         { return orig?.Filter(m => true, lowerBound); }
 
         /// <summary>
-        /// extracts all elements which start at a line that is larger or equal to lowerBound and smaller than upperBound
+        /// Extracts all elements which start at a line that is larger or equal to lowerBound and smaller than upperBound.
         /// </summary>
         public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, int lowerBound, int upperBound)
         { return orig?.Filter(m => true, lowerBound, upperBound); }
 
 
         /// <summary>
-        /// returns true if the start line of the given diagnostic is larger or equal to lowerBound
+        /// Returns true if the start line of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
         internal static bool SelectByStartLine(this Diagnostic m, int lowerBound)
         { return m?.Range?.Start?.Line == null ? false : lowerBound <= m.Range.Start.Line; }
 
         /// <summary>
-        /// returns true if the start line of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound
+        /// Returns true if the start line of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
         internal static bool SelectByStartLine(this Diagnostic m, int lowerBound, int upperBound)
         { return m?.Range?.Start?.Line == null ? false : lowerBound <= m.Range.Start.Line && m.Range.Start.Line < upperBound; }
 
         /// <summary>
-        /// returns true if the end line of the given diagnostic is larger or equal to lowerBound
+        /// Returns true if the end line of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
         internal static bool SelectByEndLine(this Diagnostic m, int lowerBound)
         { return m?.Range?.End?.Line == null ? false : lowerBound <= m.Range.End.Line; }
 
         /// <summary>
-        /// returns true if the end line of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound
+        /// Returns true if the end line of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
         internal static bool SelectByEndLine(this Diagnostic m, int lowerBound, int upperBound)
         { return m?.Range?.End?.Line == null ? false : lowerBound <= m.Range.End.Line && m.Range.End.Line < upperBound; }
 
 
         /// <summary>
-        /// returns true if the start position of the given diagnostic is larger or equal to lowerBound
+        /// Returns true if the start position of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
         internal static bool SelectByStart(this Diagnostic m, Position lowerBound)
         { return m?.Range?.Start?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.Start); }
 
         /// <summary>
-        /// returns true if the start position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound
+        /// Returns true if the start position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
         internal static bool SelectByStart(this Diagnostic m, Position lowerBound, Position upperBound)
         { return m?.Range?.Start?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.Start) && m.Range.Start.IsSmallerThan(upperBound); }
 
         /// <summary>
-        /// returns true if the end position of the given diagnostic is larger or equal to lowerBound
+        /// Returns true if the end position of the given diagnostic is larger or equal to lowerBound.
         /// </summary>
         internal static bool SelectByEnd(this Diagnostic m, Position lowerBound)
         { return m?.Range?.End?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.End); }
 
         /// <summary>
-        /// returns true if the end position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound
+        /// Returns true if the end position of the given diagnostic is larger or equal to lowerBound, and smaller than upperBound.
         /// </summary>
         internal static bool SelectByEnd(this Diagnostic m, Position lowerBound, Position upperBound)
         { return m?.Range?.End?.Line == null ? false : lowerBound.IsSmallerThanOrEqualTo(m.Range.End) && m.Range.End.IsSmallerThan(upperBound); }

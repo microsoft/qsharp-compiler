@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// -> deregisters the sync root of this FileContentManager as a dependent lock for compilation unit associated with this file
+        /// De-registers the sync root of this FileContentManager as a dependent lock for compilation unit associated with this file.
         /// </summary>
         public void Dispose()
         {
@@ -136,31 +136,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // diagnostics access and management
 
         /// <summary>
-        /// returns a copy of the current scope diagnostics 
+        /// Returns a copy of the current scope diagnostics.
         /// </summary>
         internal ImmutableArray<Diagnostic> CurrentScopeDiagnostics() =>
             this.ScopeDiagnostics.Get().Select(m => m.Copy()).ToImmutableArray();
 
         /// <summary>
-        /// returns a copy of the current syntax diagnostics 
+        /// Returns a copy of the current syntax diagnostics.
         /// </summary>
         internal ImmutableArray<Diagnostic> CurrentSyntaxDiagnostics() =>
             this.SyntaxDiagnostics.Get().Select(m => m.Copy()).ToImmutableArray();
 
         /// <summary>
-        /// returns a copy of the current context diagnostics 
+        /// Returns a copy of the current context diagnostics.
         /// </summary>
         internal ImmutableArray<Diagnostic> CurrentContextDiagnostics() =>
             this.ContextDiagnostics.Get().Select(m => m.Copy()).ToImmutableArray();
 
         /// <summary>
-        /// returns a copy of the current header diagnostics 
+        /// Returns a copy of the current header diagnostics.
         /// </summary>
         internal ImmutableArray<Diagnostic> CurrentHeaderDiagnostics() =>
             this.HeaderDiagnostics.Get().Select(m => m.Copy()).ToImmutableArray();
 
         /// <summary>
-        /// returns a copy of the current semantic diagnostics
+        /// Returns a copy of the current semantic diagnostics.
         /// </summary>
         internal ImmutableArray<Diagnostic> CurrentSemanticDiagnostics() =>
             this.SemanticDiagnostics.Get().Select(m => m.Copy()).ToImmutableArray();
@@ -192,7 +192,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
 
         /// <summary>
-        /// adds the given sequence of scope diagnostics to the current list
+        /// Adds the given sequence of scope diagnostics to the current list.
         /// </summary>
         internal void AddScopeDiagnostics(IEnumerable<Diagnostic> updates) =>
             this.ScopeDiagnostics.AddRange(updates);
@@ -227,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
 
         /// <summary>
-        /// adds the given sequence of syntax diagnostics to the current list
+        /// Adds the given sequence of syntax diagnostics to the current list.
         /// </summary>
         internal void AddSyntaxDiagnostics(IEnumerable<Diagnostic> updates) =>
             this.SyntaxDiagnostics.AddRange(updates);
@@ -292,7 +292,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
 
         /// <summary>
-        /// replaces the current header diagnostics with the given sequence
+        /// Replaces the current header diagnostics with the given sequence.
         /// </summary>
         internal void ReplaceHeaderDiagnostics(IEnumerable<Diagnostic> updates) =>
             this.HeaderDiagnostics.ReplaceAll(updates);
@@ -309,13 +309,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
 
         /// <summary>
-        /// replaces the current semantic diagnostics with the given sequence
+        /// Replaces the current semantic diagnostics with the given sequence.
         /// </summary>
         internal void ReplaceSemanticDiagnostics(IEnumerable<Diagnostic> updates) =>
             this.SemanticDiagnostics.ReplaceAll(updates);
 
         /// <summary>
-        /// adds the given sequence of semantic diagnostics to the current list
+        /// Adds the given sequence of semantic diagnostics to the current list.
         /// </summary>
         internal void AddSemanticDiagnostics(IEnumerable<Diagnostic> updates) =>
             this.SemanticDiagnostics.AddRange(updates);
@@ -332,7 +332,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
 
         /// <summary>
-        /// returns all current diagnostic as PublishDiagnosticParams
+        /// Returns all current diagnostic as PublishDiagnosticParams.
         /// </summary>
         public PublishDiagnosticParams Diagnostics()
         {
@@ -359,7 +359,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // external access to content & routines related to content updates
 
         /// <summary>
-        /// any modification to the returned elements will not be reflected in file
+        /// Any modification to the returned elements will not be reflected in file.
         /// </summary>
         internal IEnumerable<CodeLine> GetLines(int index, int count) => this.Content.GetRange(index, count);
         internal IEnumerable<CodeLine> GetLines() => this.Content.Get();
@@ -399,10 +399,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// updates the file content in the range [start, start + count) with the given replacements for that range
-        /// removes all diagnostics that is no longer valid (i.e. any diagnostics that overlaps with that interval), and any end-of-file diagnostics,
-        /// and updates the line numbers of the remaining diagnostics
-        /// marks all lines that need to be re-examined by the language processor as edited (i.e. adds them to EditedLines)
+        /// Updates the file content in the range [start, start + count) with the given replacements for that range.
+        /// Removes all diagnostics that is no longer valid (i.e. any diagnostics that overlaps with that interval), and any end-of-file diagnostics,
+        /// and updates the line numbers of the remaining diagnostics.
+        /// Marks all lines that need to be re-examined by the language processor as edited (i.e. adds them to EditedLines).
         /// </summary>
         internal void ContentUpdate(int start, int count, IReadOnlyList<CodeLine> replacements)
         {
@@ -452,8 +452,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns all lines that have been modified since the last call to DequeueChanges
-        /// NOTE: the changed lines are guaranteed to be returned in ascending order
+        /// Returns all lines that have been modified since the last call to DequeueChanges.
+        /// NOTE: The changed lines are guaranteed to be returned in ascending order.
         /// </summary>
         internal SortedSet<int> DequeueContentChanges() =>
             this.EditedContent.Clear();
@@ -462,7 +462,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // external access to tokens & routines related to tokens updates
 
         /// <summary>
-        /// any modification to the returned elements will not be reflected in file
+        /// Any modification to the returned elements will not be reflected in file.
         /// </summary>
         internal IEnumerable<ImmutableArray<CodeFragment>> GetTokenizedLines(int index, int count) => this.Tokens.GetRange(index, count);
         internal IEnumerable<ImmutableArray<CodeFragment>> GetTokenizedLines() => this.Tokens.Get();
@@ -470,10 +470,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal int NrTokenizedLines() => this.Tokens.Count();
 
         /// <summary>
-        /// for each CodeFragment in the given collection, verifies its range against the current Content, 
+        /// For each CodeFragment in the given collection, verifies its range against the current Content, 
         /// verifies that all fragments are ordered according to their range, and
-        /// verifies that none of the fragments overlap with existing tokens 
-        /// throws an ArgumentException if the verification fails
+        /// verifies that none of the fragments overlap with existing tokens. 
+        /// Throws an ArgumentException if the verification fails.
         /// </summary>
         private void VerifyTokenUpdate(IReadOnlyList<CodeFragment> fragments)
         {
@@ -549,13 +549,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// given a Range, removes all tokens currently safed in file that overlap with that range, and
-        /// marks the lines with the removed tokens as well as any lines that contain connected tokens as edited
-        /// tokens starting at range.End or ending at range.Start are *not* considered to be overlapping
-        /// puts a write-lock on the Tokens during the entire routine
-        /// throws an ArgumentNullException if the given range or it start or end position is null
-        /// throws an ArgumentException if the given range is not a valid range
-        /// throws an ArgumentOutOfRangeException if the line number of the range end is larger than the number of currently saved tokens
+        /// Given a Range, removes all tokens currently safed in file that overlap with that range, and
+        /// marks the lines with the removed tokens as well as any lines that contain connected tokens as edited.
+        /// Tokens starting at range.End or ending at range.Start are *not* considered to be overlapping.
+        /// Futs a write-lock on the Tokens during the entire routine.
+        /// Throws an ArgumentNullException if the given range or it start or end position is null.
+        /// Throws an ArgumentException if the given range is not a valid range.
+        /// Throws an ArgumentOutOfRangeException if the line number of the range end is larger than the number of currently saved tokens.
         /// </summary>
         private void RemoveTokensInRange(Range range)
         {
@@ -719,9 +719,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // methods for tracking and processing file changes
 
         /// <summary>
-        /// merges all unprocessed changes computing the new text that is to replace a (single!) line based on the current line content
-        /// returns that line number and the text to replace that line with as out parameters
-        /// returns true if there is anything to replace, and false if the queue was empty
+        /// Merges all unprocessed changes computing the new text that is to replace a (single!) line based on the current line content.
+        /// Returns that line number and the text to replace that line with as out parameters.
+        /// Returns true if there is anything to replace, and false if the queue was empty.
         /// </summary>
         internal bool DequeueUnprocessedChanges(out int lineNr, out string textToInsert)
         {
@@ -897,31 +897,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns a list with all token indices corresponding to namespace declarations
+        /// Returns a list with all token indices corresponding to namespace declarations.
         /// </summary>
         internal List<CodeFragment.TokenIndex> NamespaceDeclarationTokens() =>
             this.FilterTokenIndices(this.Header.GetNamespaceDeclarations, FileHeader.IsNamespaceDeclaration);
 
         /// <summary>
-        /// returns a list with all token indices corresponding to open directives
+        /// Returns a list with all token indices corresponding to open directives.
         /// </summary>
         internal List<CodeFragment.TokenIndex> OpenDirectiveTokens() =>
             this.FilterTokenIndices(this.Header.GetOpenDirectives, FileHeader.IsOpenDirective);
 
         /// <summary>
-        /// returns a list with all token indices corresponding to type declarations
+        /// Returns a list with all token indices corresponding to type declarations.
         /// </summary>
         internal List<CodeFragment.TokenIndex> TypeDeclarationTokens() =>
             this.FilterTokenIndices(this.Header.GetTypeDeclarations, FileHeader.IsTypeDeclaration);
 
         /// <summary>
-        /// returns a list with all token indices corresponding to operation or function declarations
+        /// Returns a list with all token indices corresponding to operation or function declarations.
         /// </summary>
         internal List<CodeFragment.TokenIndex> CallableDeclarationTokens() =>
             this.FilterTokenIndices(this.Header.GetCallableDeclarations, FileHeader.IsCallableDeclaration);
 
         /// <summary>
-        /// returns all namespace declarations in the file sorted by the line number they are declared on
+        /// Returns all namespace declarations in the file sorted by the line number they are declared on.
         /// </summary>
         internal IEnumerable<(NonNullable<string>, Range)> GetNamespaceDeclarations()
         {
@@ -932,7 +932,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns all type declarations in the file sorted by the line number they are declared on
+        /// Returns all type declarations in the file sorted by the line number they are declared on.
         /// </summary>
         internal IEnumerable<(NonNullable<string>, Range)> GetTypeDeclarations()
         {
@@ -943,7 +943,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns all callable declarations in the file sorted by the line number they are declared on
+        /// Returns all callable declarations in the file sorted by the line number they are declared on.
         /// </summary>
         internal IEnumerable<(NonNullable<string>, Range)> GetCallableDeclarations()
         {

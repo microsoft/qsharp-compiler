@@ -17,8 +17,8 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 {
     /// <summary>
-    /// contains all information managed by the ScopeTracking
-    /// all properties are readonly, and any modification leads to the creation of a new instance
+    /// Contains all information managed by the ScopeTracking.
+    /// All properties are readonly, and any modification leads to the creation of a new instance.
     /// </summary>
     internal class CodeLine 
     {
@@ -228,8 +228,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
 
             /// <summary>
-            /// marks the token returned by GetToken for the associated file as excluded from the compilation 
-            /// throws an InvalidOperationException if Line and Index are no longer within the associated file
+            /// Marks the token returned by GetToken for the associated file as excluded from the compilation.
+            /// Throws an InvalidOperationException if Line and Index are no longer within the associated file.
             /// </summary>
             internal void MarkAsExcluded()
             {
@@ -238,8 +238,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// marks the token returned by GetToken for the associated file as included in the compilation 
-            /// throws an InvalidOperationException if Line and Index are no longer within the associated file
+            /// Marks the token returned by GetToken for the associated file as included in the compilation.
+            /// Throws an InvalidOperationException if Line and Index are no longer within the associated file.
             /// </summary>
             internal void MarkAsIncluded()
             {
@@ -248,9 +248,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// returns the corresponding fragment for the token at the saved TokenIndex - 
-            /// i.e. a copy of the token where its range denotes the absolute range within the file
-            /// throws an InvalidOperationException if the token is no longer within the file associated with it
+            /// Returns the corresponding fragment for the token at the saved TokenIndex - 
+            /// i.e. a copy of the token where its range denotes the absolute range within the file.
+            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
             internal CodeFragment GetFragment()
             {
@@ -259,9 +259,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// returns the corresponding fragment for the token at the saved TokenIndex including any closing comments for that fragment - 
-            /// i.e. a copy of the token where its range denotes the absolute range within the file
-            /// throws an InvalidOperationException if the token is no longer within the file associated with it
+            /// Returns the corresponding fragment for the token at the saved TokenIndex including any closing comments for that fragment - 
+            /// i.e. a copy of the token where its range denotes the absolute range within the file.
+            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
             internal CodeFragment GetFragmentWithClosingComments()
             {
@@ -279,9 +279,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// returns the TokenIndex of the next token in File or null if no such token exists
-            /// throws an ArgumentNullException if the TokenIndex to increment is null
-            /// throws an InvalidOperationException if the token is no longer within the file associated with it
+            /// Returns the TokenIndex of the next token in File or null if no such token exists.
+            /// Throws an ArgumentNullException if the TokenIndex to increment is null.
+            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
             public static TokenIndex operator ++(TokenIndex tIndex)
             {
@@ -295,9 +295,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// returns the TokenIndex of the previous token in File or null if no such token exists
-            /// throws an ArgumentNullException if the TokenIndex to decrement is null
-            /// throws an InvalidOperationException if the token is no longer within the file associated with it
+            /// Returns the TokenIndex of the previous token in File or null if no such token exists.
+            /// Throws an ArgumentNullException if the TokenIndex to decrement is null.
+            /// Throws an InvalidOperationException if the token is no longer within the file associated with it.
             /// </summary>
             public static TokenIndex operator --(TokenIndex tIndex)
             {
@@ -449,9 +449,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         }
 
         /// <summary>
-        /// invalidates (i.e. removes) all elements in the range [start, start + count), and 
-        /// updates all elements that are larger than or equal to start + count with the given lineNrChange
-        /// throws an ArgumentOutOfRange exception if start or count are negative, or if lineNrChange is smaller than -count
+        /// Invalidates (i.e. removes) all elements in the range [start, start + count), and 
+        /// updates all elements that are larger than or equal to start + count with the given lineNrChange.
+        /// Throws an ArgumentOutOfRange exception if start or count are negative, or if lineNrChange is smaller than -count.
         /// </summary>
         public void InvalidateOrUpdate(int start, int count, int lineNrChange)
         {
@@ -462,25 +462,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         }
 
         /// <summary>
-        /// returns an array with the *sorted* line numbers containing namespace declarations 
+        /// Returns an array with the *sorted* line numbers containing namespace declarations.
         /// </summary>
         public int[] GetNamespaceDeclarations()
         { return this.NamespaceDeclarations.ToArray(); }
 
         /// <summary>
-        /// returns an array with the *sorted* line numbers containing open directives 
+        /// Returns an array with the *sorted* line numbers containing open directives. 
         /// </summary>
         public int[] GetOpenDirectives()
         { return this.OpenDirectives.ToArray(); }
 
         /// <summary>
-        /// returns an array with the *sorted* line numbers containing type declarations 
+        /// Returns an array with the *sorted* line numbers containing type declarations. 
         /// </summary>
         public int[] GetTypeDeclarations()
         { return this.TypeDeclarations.ToArray(); }
 
         /// <summary>
-        /// returns an array with the *sorted* line numbers containing callable declarations 
+        /// Returns an array with the *sorted* line numbers containing callable declarations. 
         /// </summary>
         public int[] GetCallableDeclarations()
         { return this.CallableDeclarations.ToArray(); }
@@ -573,7 +573,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         { this.Add((IEnumerable<int>)items); }
 
         /// <summary>
-        /// clears all elements from the set and returned the removed elements
+        /// Clears all elements from the set and returned the removed elements.
         /// </summary>
         public SortedSet<int> Clear()
         {
@@ -587,10 +587,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         }
 
         /// <summary>
-        /// removes all elements in the range [start, start + count) from the set, and
-        /// updates all elements that are larger than or equal to start + count with lineNr => lineNr + lineNrChange
-        /// returns the number of removed elements
-        /// throws an ArgumentOutOfRange exception if start or count are negative, or if lineNrChange is smaller than -count
+        /// Removes all elements in the range [start, start + count) from the set, and
+        /// updates all elements that are larger than or equal to start + count with lineNr => lineNr + lineNrChange.
+        /// Returns the number of removed elements.
+        /// Throws an ArgumentOutOfRange exception if start or count are negative, or if lineNrChange is smaller than -count.
         /// </summary>
         public int InvalidateOrUpdate(int start, int count, int lineNrChange)
         {

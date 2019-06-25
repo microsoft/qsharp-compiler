@@ -97,8 +97,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // private utils related to extracting file content
 
         /// <summary>
-        /// checks that the given range is a valid range in file, and returns the text in the given range in concatenated form
-        /// stripping (only) end of line comments (and not removing excess brackets)
+        /// Checks that the given range is a valid range in file, and returns the text in the given range in concatenated form
+        /// stripping (only) end of line comments (and not removing excess brackets).
         /// Note: the End position of the given range is *not* part of the returned string.
         /// </summary>
         private static string GetCodeSnippet(this FileContentManager file, Range range)
@@ -132,36 +132,36 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             code => code.IndexOfAny(CodeFragment.DelimitingChars.ToArray());
 
         /// <summary>
-        /// finds the position of the statement end closest to the end of the line, 
-        /// ignoring strings and comments, but not excess brackets
+        /// Finds the position of the statement end closest to the end of the line, 
+        /// ignoring strings and comments, but not excess brackets.
         /// </summary>
         private static int StatementEnd(this CodeLine line)
         { return line.FindInCode(StatementEndDelimiters, false); }
 
         /// <summary>
-        /// finds the position of the statement start closest to the beginning of the line, 
-        /// ignoring strings and comments, but not excess brackets
+        /// Finds the position of the statement start closest to the beginning of the line, 
+        /// ignoring strings and comments, but not excess brackets.
         /// </summary>
         private static int StatementStart(this CodeLine line)
         { return line.FindInCode(StatementStartDelimiters, false); }
 
         /// <summary>
-        /// finds the position of the statement end closest to the end of the line fragment defined by start and count, 
-        /// ignoring strings and comments, but not excess brackets
+        /// Finds the position of the statement end closest to the end of the line fragment defined by start and count, 
+        /// ignoring strings and comments, but not excess brackets.
         /// </summary>
         private static int StatementEnd(this CodeLine line, int start, int count)
         { return line.FindInCode(StatementEndDelimiters, start, count, false); }
 
         /// <summary>
-        /// finds the position of the statement start closest to the beginning of the line fragment after start, 
-        /// ignoring strings and comments, but not excess brackets
+        /// Finds the position of the statement start closest to the beginning of the line fragment after start, 
+        /// ignoring strings and comments, but not excess brackets.
         /// </summary>
         private static int StatementStart(this CodeLine line, int start)
         { return line.FindInCode(StatementStartDelimiters, start, line.WithoutEnding.Length - start, false); }
 
         /// <summary>
-        /// returns the Position after the last character in the file (including comments)
-        /// throws an ArgumentNullException is file is null or does not have any content
+        /// Returns the Position after the last character in the file (including comments).
+        /// Throws an ArgumentNullException is file is null or does not have any content.
         /// </summary>
         public static Position End(this FileContentManager file)
         {
@@ -172,7 +172,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the Position right after where the last relevant (i.e. non-comment) code in the file ends, 
         /// or the position (0,0) if no such line exists.
-        /// Raises an ArgumentNullException if file is null or does not contain any lines.
+        /// Throws an ArgumentNullException if file is null or does not contain any lines.
         /// </summary>
         private static Position LastInFile(FileContentManager file)
         {
@@ -220,8 +220,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the position right after where the fragment before the one containing the given position ends.
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
         /// If there is no such fragment, returns the position (0,0).
-        /// Raises an ArgumentNullException if any of the arguments is null.
-        /// Raises an ArgumentException if the given position is not within file.
+        /// Throws an ArgumentNullException if any of the arguments is null.
+        /// Throws an ArgumentException if the given position is not within file.
         /// </summary>
         private static Position PositionAfterPrevious(this FileContentManager file, Position current)
         {

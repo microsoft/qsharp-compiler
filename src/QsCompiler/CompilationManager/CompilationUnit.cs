@@ -286,8 +286,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // methods related to accessing and managing information about the compilation
 
         /// <summary>
-        /// returns all currently compiled Q# callables as ReadOnlyDictionary 
-        /// -> note that the wrapped dictionary may change!
+        /// Returns all currently compiled Q# callables as ReadOnlyDictionary.
+        /// -> Note that the wrapped dictionary may change!
         /// </summary>
         internal IReadOnlyDictionary<QsQualifiedName, QsCallable> GetCallables()
         {
@@ -297,8 +297,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// returns all currently compiled Q# types as ReadOnlyDictionary 
-        /// -> note that the wrapped dictionary may change!
+        /// Returns all currently compiled Q# types as ReadOnlyDictionary.
+        /// -> Note that the wrapped dictionary may change!
         /// </summary>
         internal IReadOnlyDictionary<QsQualifiedName, QsCustomType> GetTypes()
         {
