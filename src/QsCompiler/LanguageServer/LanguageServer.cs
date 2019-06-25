@@ -168,6 +168,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.DocumentHighlightProvider = true;
             capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "," };
             capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities 
+            capabilities.CompletionProvider = new CompletionOptions { ResolveProvider = false, TriggerCharacters = new[] { "." } };
 
             this.WaitForInit = null;
             return new InitializeResult { Capabilities = capabilities };
@@ -445,6 +446,21 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             foreach (var fileEvent in changes.Where(IsDll))
             { _ = this.EditorState.AssemblyDidChangeOnDiskAsync(fileEvent.Uri); }
+        }
+
+        [JsonRpcMethod(Methods.TextDocumentCompletionName)]
+        public CompletionList OnTextDocumentCompletion(JToken arg)
+        {
+            // For now, this is a very simple kind of completion that just returns all of the symbols in the document
+            // every time a completion request is made.
+            var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
+            var symbolParams = new DocumentSymbolParams() { TextDocument = param.TextDocument };
+            var symbols = EditorState.DocumentSymbols(symbolParams);
+            return new CompletionList()
+            {
+                IsIncomplete = false,
+                Items = symbols.Select(info => new CompletionItem() { Label = info.Name }).ToArray()
+            };
         }
     }
 }
