@@ -54,12 +54,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         // publicly accessible routines 
 
+        /// <summary>
         /// Builds the compilation for the Q# code or Q# snippet and referenced assemblies defined by the given options.
         /// Invokes all specified targets (dotnet core apps) with suitable TargetOptions,
         /// that in particular specify the path to the compiled binary as input and the same output folder, verbosity, and suppressed warnings as the given options.
         /// The output folder is set to the current directory if one or more targets have been specified but the output folder was left unspecified.
         /// Returns a suitable error code if one of the compilation or generation steps fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
+        /// </summary>
         public static int Run(BuildOptions options, ConsoleLogger logger)
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
