@@ -60,7 +60,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         // routines related to logging 
 
+        /// <summary>
         /// If a logger is given, logs the options as CommandLineArguments Information before returning the printed string. 
+        /// </summary>
         public string[] Print(ILogger logger = null)
         {
             string value(PropertyInfo p)
@@ -77,7 +79,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             return msg;
         }
 
+        /// <summary>
         /// Given a LogFormat, returns a suitable routing for formatting diagnostics.
+        /// </summary>
         internal static Func<Diagnostic, string> LoggingFormat(LogFormat format)
         {
             switch (format)
@@ -88,8 +92,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
         }
 
+        /// <summary>
         /// Creates a suitable logger for the given command line options, 
         /// logging the given arguments if the verbosity is high enough.
+        /// </summary>
         public ConsoleLogger GetLogger(DiagnosticSeverity minimumVerbosity = DiagnosticSeverity.Warning)
         {
             var logger = new ConsoleLogger(
@@ -104,7 +110,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         // routines related to processing snippets
 
+        /// <summary>
         /// text document identifier used to identify the code snippet in diagnostic mode
+        /// </summary>
         private static readonly Uri SNIPPET_FILE_URI = new Uri(Path.GetFullPath("__CODE_SNIPPET__.qs"));
         private static NonNullable<string> SNIPPET_FILE_ID
         {
@@ -117,12 +125,18 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
         }
 
+        /// <summary>
         /// name of the namespace within which code snippets are compiled
+        /// </summary>
         private const string SNIPPET_NAMESPACE = "_CODE_SNIPPET_NS_";
+        /// <summary>
         /// name of the callable within which code snippets are compiled
+        /// </summary>
         private const string SNIPPET_CALLABLE = "_CODE_SNIPPET_CALLABLE_";
 
+        /// <summary>
         /// wraps the given content into a namespace and callable that maps Unit to Unit
+        /// </summary>
         public static string AsSnippet(string content, bool inFunction = false) =>
             $"{Declarations.Namespace} {SNIPPET_NAMESPACE} {{ \n " +
             $"{(inFunction ? Declarations.Function : Declarations.Operation)} {SNIPPET_CALLABLE} () : {Types.Unit} {{ \n" +
@@ -130,16 +144,20 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             $"}} \n" +
             $"}}";
 
+        /// <summary>
         /// helper function that returns true if the given file id is the one a compilation unit manager would assign to the code snipped 
+        /// </summary>
         public static bool IsCodeSnippet(NonNullable<string> fileId) =>
             fileId.Value == SNIPPET_FILE_ID.Value;
 
 
+        /// <summary>
         /// Returns a function that given a routine for loading files from disk, 
         /// return an enumerable with all text document identifiers and the corresponding file content 
         /// for the source code or Q# snippet specified by the given options. 
         /// If both the Input and the CodeSnippet property are set, or none of these properties is set in the given options, 
         /// logs a suitable error and returns and empty dictionary.
+        /// </summary>
         internal CompilationLoader.SourceLoader LoadSourcesOrSnippet (ILogger logger) => loadFromDisk =>
         {
             bool inputIsEmptyOrNull = this.Input == null || !this.Input.Any();

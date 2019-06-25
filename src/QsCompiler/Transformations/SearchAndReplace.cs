@@ -13,19 +13,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 {
     using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
+    /// <summary>
     /// Class that allows to walk the syntax tree and find all locations where a certain identifier occurs.
     /// If a set of source file names is given on initialization, the search is limited to callables and specializations in those files. 
+    /// </summary>
     public class IdentifierReferences :
         SyntaxTreeTransformation<IdentifierLocation>
     {
         public class Location : IEquatable<Location>
         {
             public readonly NonNullable<string> SourceFile;
+            /// <summary>
             /// contains the location of the root node relative to which the statement location is given
+            /// </summary>
             public readonly QsLocation RootNode;
+            /// <summary>
             /// contains the location of the statement containing the symbol relative to the root node
+            /// </summary>
             public readonly QsLocation StatementOffset;
+            /// <summary>
             /// contains the range of the symbol relative to the statement position
+            /// </summary>
             public readonly Tuple<QsPositionInfo, QsPositionInfo> SymbolRange;
 
             public Location(NonNullable<string> source, QsLocation rootLoc, QsLocation stmLoc, Tuple<QsPositionInfo, QsPositionInfo> range)
@@ -122,10 +130,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
     }
 
+    /// <summary>
     /// Class that allows to walk a scope and find all locations where a certain identifier occurs within an expression.
     /// If no source file is specified prior to transformation, its name is set to the empty string. 
     /// The RootLocation needs to be set prior to transformation, and in particular after defining a source file.
     /// If no DefaultOffset is set on initialization then only the locations of occurrences within statements are logged. 
+    /// </summary>
     public class IdentifierLocation :
         ScopeTransformation<Core.StatementKindTransformation, OnTypedExpression<IdentifierLocation.TypeLocation>>
     {
@@ -178,7 +188,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         private QsLocation CurrentLocation;
         private readonly Func<Identifier, bool> TrackIdentifier;
 
+        /// <summary>
         /// whenever RootLocation is set, the current statement offset is set to this default value
+        /// </summary>
         public readonly QsLocation DefaultOffset;
         public ImmutableList<IdentifierReferences.Location> Locations { get; private set; }
 
@@ -233,8 +245,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
     // general purpose helpers
 
+    /// <summary>
     /// Recursively applies the specified action OnExpression to each identifier expression upon transformation. 
     /// Does nothing upon transformation if no action is specified. 
+    /// </summary>
     public class OnTypedExpression<T> :
         ExpressionTransformation<ExpressionKindTransformation<OnTypedExpression<T>>, T>
         where T : Core.ExpressionTypeTransformation

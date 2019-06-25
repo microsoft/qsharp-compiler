@@ -9,9 +9,11 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Microsoft.Quantum.QsLanguageServer
 {
+    /// <summary>
     /// Used to enforce in-order processing of the communication with the Q# language server. 
     /// Such a synchronization context is needed since the Q# language server 
     /// processes changes incrementally rather than reprocessing entire files each time.
+    /// </summary>
     public class QsSynchronizationContext : SynchronizationContext
     {
         private readonly AsyncQueue<(SendOrPostCallback, object)> queued = new AsyncQueue<(SendOrPostCallback, object)>();

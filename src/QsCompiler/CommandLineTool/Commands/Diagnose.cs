@@ -58,11 +58,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public bool PrintCompiledCode { get; set; }
         }
 
-
+        /// <summary>
         /// Logs the content of each file in the given compilation as Information using the given logger. 
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
         /// Throws an ArgumentNullException if the given compilation is null.
+        /// </summary>
         private static void PrintFileContentInMemory(Compilation compilation, ILogger logger)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
@@ -83,10 +84,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
         }
 
+        /// <summary>
         /// Logs the tokenization of each file in the given compilation as Information using the given logger. 
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the tokens that correspond to the wrapping defined by WrapSnippet.
         /// Throws an ArgumentNullException if the given compilation is null.
+        /// </summary>
         private static void PrintContentTokenization(Compilation compilation, ILogger logger)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
@@ -113,6 +116,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
         }
 
+        /// <summary>
         /// Logs the part of the given evaluated syntax tree that corresponds to each file 
         /// in the given compilation as Information using the given logger. 
         /// If the given evaluated tree is null, queries the tree contained in the given compilation instead.
@@ -120,6 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
         /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.  
         /// Throws an ArgumentNullException if the given compilation is null.
+        /// </summary>
         private static void PrintSyntaxTree(IEnumerable<QsNamespace> evaluatedTree, Compilation compilation, ILogger logger)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
@@ -141,6 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
         }
 
+        /// <summary>
         /// Logs the generated Q# code for the part of the given evaluated syntax tree that corresponds to each file 
         /// in the given compilation as Information using the given logger. 
         /// If the given evaluated tree is null, queries the tree contained in the given compilation instead.
@@ -148,6 +154,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet.
         /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.  
         /// Throws an ArgumentNullException if the given compilation is null.
+        /// </summary>
         private static void PrintGeneratedQs(IEnumerable<QsNamespace> evaluatedTree, Compilation compilation, ILogger logger)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
@@ -174,9 +181,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         // publicly accessible methods
 
+        /// <summary>
         /// Strips the namespace and callable declaration that is consistent with the wrapping defined by WrapSnippet. 
         /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.
         /// Throws an ArgumentNullException if the given syntaxTree is null. 
+        /// </summary>
         public static IEnumerable<QsStatement> StripSnippetWrapping(IEnumerable<QsNamespace> syntaxTree)
         {
             if (syntaxTree == null) throw new ArgumentNullException(nameof(syntaxTree));
@@ -189,10 +198,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             else throw incorrectWrapperException;
         }
 
+        /// <summary>
         /// Builds the compilation for the Q# code or Q# snippet and referenced assemblies defined by the given options.
         /// Prints the data structures requested by the given options using the given logger.
         /// Returns a suitable error code if one of the compilation or generation steps fails.
         /// Throws an ArgumentNullException if any of the given arguments is null.
+        /// </summary>
         public static int Run(DiagnoseOptions options, ConsoleLogger logger)
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
