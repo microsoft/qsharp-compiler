@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     // scope transformations
 
     /// <summary>
-    /// Base class for all StatementKindTransformations
+    /// Base class for all StatementKindTransformations.
     /// </summary>
     public class StatementKindTransformation<S> :
         Core.StatementKindTransformation
@@ -105,7 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     // expression transformations
 
     /// <summary>
-    /// Base class for all ExpressionTypeTransformations
+    /// Base class for all ExpressionTypeTransformations.
     /// </summary>
     public class ExpressionTypeTransformation<E> :
         Core.ExpressionTypeTransformation
@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     }
 
     /// <summary>
-    /// Base class for all ExpressionKindTransformations
+    /// Base class for all ExpressionKindTransformations.
     /// </summary>
     public class ExpressionKindTransformation<E> :
         Core.ExpressionKindTransformation

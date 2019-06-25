@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             new string[] { "QsharpLangVersion" };
 
         /// <summary>
-        /// returns true if the package with the given name should be tracked
+        /// Returns true if the package with the given name should be tracked.
         /// </summary>
         private static bool GeneratePackageInfo(string packageName) =>
             packageName.StartsWith("microsoft.quantum.", StringComparison.InvariantCultureIgnoreCase);
@@ -189,7 +189,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Loads the project for the given project file, restores all packages, 
         /// and builds the target ResolveAssemblyReferencesDesignTime, logging suitable errors in the process. 
         /// If the built project instance is recognized as a valid Q# project by the server, returns the built project instance.
-        /// Return null if this is not the case, or if the given project file is null or does not exist. 
+        /// Returns null if this is not the case, or if the given project file is null or does not exist. 
         /// Returns a dictionary with additional project information (e.g. for telemetry) as out parameter. 
         /// </summary>
         private ProjectInstance QsProjectInstance(string projectFile, out Dictionary<string, string> metadata)

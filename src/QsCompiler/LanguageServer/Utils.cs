@@ -26,8 +26,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             text == null ? null : new ShowMessageParams { Message = text, MessageType = severity };
 
         /// <summary>
-        /// shows the given text in the editor
-        /// throws an ArgumentNullException if either the server or the text to display is null
+        /// Shows the given text in the editor.
+        /// Throws an ArgumentNullException if either the server or the text to display is null.
         /// </summary>
         internal static void ShowInWindow(this QsLanguageServer server, string text, MessageType severity)
         {
@@ -39,8 +39,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         /// <summary>
-        /// logs the given text in the editor
-        /// throws an ArgumentNullException if either the server or the text to display is null
+        /// Logs the given text in the editor.
+        /// Throws an ArgumentNullException if either the server or the text to display is null.
         /// </summary>
         internal static void LogToWindow(this QsLanguageServer server, string text, MessageType severity)
         {
@@ -99,8 +99,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             source.TryEnumerate(element => element, out enumerated);
 
         /// <summary>
-        /// the given log function is applied to all errors and warning 
-        /// raised by the ms build routine an instance of this class is given to
+        /// The given log function is applied to all errors and warning 
+        /// raised by the ms build routine an instance of this class is given to.
         /// </summary>
         internal class MSBuildLogger : Logger
         {

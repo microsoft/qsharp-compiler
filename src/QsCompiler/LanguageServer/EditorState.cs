@@ -16,8 +16,8 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 namespace Microsoft.Quantum.QsLanguageServer
 {
     /// <summary>
-    /// NOTE: this class currently intentionally does not give access to any FileContentManager that it manages,
-    /// since it is/may become responsible for coording access to (any routine of) the FileContentManager
+    /// NOTE: This class intentionally does not give access to any FileContentManager that it manages,
+    /// since it is responsible for coording access to (any routine of) the FileContentManager.
     /// </summary>
     internal class EditorState : IDisposable
     {
@@ -45,9 +45,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         private bool IgnoreFile(Uri file) => file == null || this.IgnoreEditorUpdatesForFiles.ContainsKey(file) || file.LocalPath.ToLowerInvariant().Contains("vctmp");
 
         /// <summary>
-        /// calls the given publishDiagnostics Action with the changed diagnostics whenever they have changed, 
+        /// Calls the given publishDiagnostics Action with the changed diagnostics whenever they have changed, 
         /// calls the given onException Action whenever the compiler encounters an internal error, and
-        /// does nothing if the a given action is null
+        /// does nothing if the a given action is null.
         /// </summary>
         internal EditorState(ProjectLoader projectLoader, 
             Action<PublishDiagnosticParams> publishDiagnostics, Action<string, Dictionary<string, string>, Dictionary<string, int>> sendTelemetry,
