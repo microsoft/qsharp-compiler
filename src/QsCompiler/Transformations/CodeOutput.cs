@@ -23,9 +23,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
     // Q# type to Code
 
+    /// <summary>
     /// Class used to generate Q# code for Q# types. 
     /// Adds an Output string property to ExpressionTypeTransformation, 
     /// that upon calling Transform on a Q# type is set to the Q# code corresponding to that type. 
+    /// </summary>
     public class ExpressionTypeToQs :
         ExpressionTypeTransformation<ExpressionToQs>
     {
@@ -209,8 +211,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     }
 
 
+    /// <summary>
     /// Class used to generate Q# code for Q# expressions. 
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to an expression of the given kind. 
+    /// </summary>
     public class ExpressionKindToQs :
         ExpressionKindTransformation<ExpressionToQs>
     {
@@ -222,7 +226,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public Action beforeInvalidIdentifier;
         public Action beforeInvalidExpression;
 
+        /// <summary>
         /// allows to omit unnecessary parentheses
+        /// </summary>
         private int CurrentPrecedence = 0;
 
         public string Apply(QsExpressionKind k)
@@ -617,7 +623,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     }
 
 
+    /// <summary>
     /// used to pass contextual information for expression transformations
+    /// </summary>
     public class TransformationContext
     {
         public string CurrentNamespace;
@@ -637,8 +645,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     }
 
 
+    /// <summary>
     /// Class used to generate Q# code for Q# expressions. 
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given expression. 
+    /// </summary>
     public class ExpressionToQs :
         ExpressionTransformation<ExpressionKindToQs, ExpressionTypeToQs>
     {
@@ -650,9 +660,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     }
 
 
+    /// <summary>
     /// Class used to generate Q# code for Q# statements. 
     /// Upon calling Transform, the _Output property of the scope transformation given on initialization
     /// is set to the Q# code corresponding to a statement of the given kind. 
+    /// </summary>
     public class StatementKindToQs :
         StatementKindTransformation<ScopeToQs>
     {
@@ -842,8 +854,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     }
 
 
+    /// <summary>
     /// Class used to generate Q# code for Q# statements. 
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given statement block.
+    /// </summary>
     public class ScopeToQs :
         ScopeTransformation<StatementKindToQs, ExpressionToQs>
     {
@@ -866,8 +880,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     }
 
 
+    /// <summary>
     /// Class used to generate Q# code for compiled Q# namespaces. 
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given namespace.
+    /// </summary>
     public class SyntaxTreeToQs :
         SyntaxTreeTransformation<ScopeToQs>
     {
@@ -913,12 +929,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             this._Scope._Expression._Type.beforeInvalidSet = other._Scope._Expression._Type.beforeInvalidSet; 
         }
 
+        /// <summary>
         /// For each file in the given parameter array of open directives, 
         /// generates a dictionary that maps (the name of) each partial namespace contained in the file 
         /// to a string containing the formatted Q# code for the part of the namespace. 
         /// Qualified or unqualified names for types and identifiers are generated based on the given namespace and open directives. 
         /// Throws an ArgumentNullException if the given namespace is null. 
         /// -> IMPORTANT: The given namespace is expected to contain *all* elements in that namespace for the *entire* compilation unit!
+        /// </summary>
         public static bool Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generatedCode,
             IEnumerable<QsNamespace> namespaces, 
             params (NonNullable<string>, ImmutableDictionary<NonNullable<string>, ImmutableArray<(NonNullable<string>, string)>>)[] openDirectives)

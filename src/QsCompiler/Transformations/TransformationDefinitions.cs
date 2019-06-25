@@ -25,7 +25,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
     // scope transformations
 
+    /// <summary>
     /// Base class for all StatementKindTransformations
+    /// </summary>
     public class StatementKindTransformation<S> :
         Core.StatementKindTransformation
         where S : Core.ScopeTransformation
@@ -49,7 +51,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             this._Scope.onLocation(value);
     }
 
+    /// <summary>
     /// Base class for all ScopeTransformations.
+    /// </summary>
     public class ScopeTransformation<K, E> : 
         Core.ScopeTransformation
         where K : Core.StatementKindTransformation
@@ -74,7 +78,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         }
     }
 
+    /// <summary>
     /// Given an expression transformation, Transform applies the given transformation to all expressions in a scope. 
+    /// </summary>
     public class ScopeTransformation<E> : 
         ScopeTransformation<Core.StatementKindTransformation, E>
         where E : Core.ExpressionTransformation
@@ -83,7 +89,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             base(null, expression) { }
     }
 
+    /// <summary>
     /// Does not do any transformations, and can be use as no-op if a ScopeTransformation is required as argument. 
+    /// </summary>
     public class NoScopeTransformations : 
         ScopeTransformation<Core.ExpressionTransformation>
     {
@@ -96,7 +104,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
     // expression transformations
 
+    /// <summary>
     /// Base class for all ExpressionTypeTransformations
+    /// </summary>
     public class ExpressionTypeTransformation<E> :
         Core.ExpressionTypeTransformation
         where E : Core.ExpressionTransformation
@@ -108,7 +118,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             this._Expression = expression ?? throw new ArgumentNullException(nameof(expression));
     }
 
+    /// <summary>
     /// Base class for all ExpressionKindTransformations
+    /// </summary>
     public class ExpressionKindTransformation<E> :
         Core.ExpressionKindTransformation
         where E : Core.ExpressionTransformation
@@ -126,7 +138,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             this._Expression.Type.Transform(value);
     }
 
+    /// <summary>
     /// Base class for all ExpressionTransformations.
+    /// </summary>
     public class ExpressionTransformation<K, T> : 
         Core.ExpressionTransformation
         where K : Core.ExpressionKindTransformation
@@ -151,7 +165,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         }
     }
 
+    /// <summary>
     /// Given an expression kind transformation, Transform applies the given transformation to the Kind of every expression. 
+    /// </summary>
     public class ExpressionTransformation<K> :
         ExpressionTransformation<K, Core.ExpressionTypeTransformation>
         where K : Core.ExpressionKindTransformation
@@ -160,8 +176,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             base(kind, null) { }
     }
 
+    /// <summary>
     /// ExpressionTransformation where expression kind transformations are set to their default -
     /// i.e. subexpressions are walked, but no transformation is done on the kind itself.
+    /// </summary>
     public class DefaultExpressionTransformation :
         ExpressionTransformation<ExpressionKindTransformation<DefaultExpressionTransformation>>
     {
@@ -170,7 +188,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         { }
     }
 
-    /// Disables all expression transformations, and can be use as no-op if an ExpressionTransformation is required as argument. 
+    /// <summary>
+    /// Disables all expression transformations, and can be use as no-op if an ExpressionTransformation is required as argument.
+    /// </summary>
     public class NoExpressionTransformations : 
         ExpressionTransformation<Core.ExpressionKindTransformation>
     {

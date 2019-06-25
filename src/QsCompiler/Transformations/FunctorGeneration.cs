@@ -14,9 +14,11 @@ using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 {
+    /// <summary>
     /// Scope transformation that replaces each operation call within a given scope
     /// with a call to the operation after application of the functor given on initialization. 
     /// The default values used for auto-generation will be used for the additional functor arguments.  
+    /// </summary>
     public class ApplyFunctorToOperationCalls : 
         ScopeTransformation<ExpressionTransformation <ApplyFunctorToOperationCalls.ApplyToExpressionKind>>
     {
@@ -29,8 +31,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         // helper classes
 
+        /// <summary>
         /// Replaces each operation call with a call to the operation after application of the given functor. 
         /// The default values used for auto-generation will be used for the additional functor arguments.  
+        /// </summary>
         public class ApplyToExpressionKind : 
             ExpressionKindTransformation<Core.ExpressionTransformation> 
         {
@@ -57,10 +61,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     }
 
 
+    /// <summary>
     /// Scope transformation that reverses the order of execution for operation calls within a given scope.
     /// Note that the transformed scope is only guaranteed to be valid if operation calls only occur within expression statements! 
     /// Otherwise the transformation will succeed, but the generated scope is not necessarily valid. 
     /// Throws an InvalidOperationException if the scope to transform contains while-loops. 
+    /// </summary>
     public class ReverseOrderOfOperationCalls :
         SelectByAllContainedExpressions<ReverseOrderOfOperationCalls.ReverseLoops>
     {
@@ -88,8 +94,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         // helper classes
 
+        /// <summary>
         /// Helper class for the scope transformation that reverses the order of all operation calls.
         /// Throws an InvalidOperationException upon while-loops. 
+        /// </summary>
         public class ReverseLoops : 
             StatementKindTransformation<ReverseOrderOfOperationCalls>
         {
@@ -109,7 +117,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     }
 
 
+    /// <summary>
     /// Applying the transformation sets all location information to Null.
+    /// </summary>
     public class StripLocationInformation :
         ScopeTransformation<StatementKindTransformation<StripLocationInformation>,NoExpressionTransformations>
     {
