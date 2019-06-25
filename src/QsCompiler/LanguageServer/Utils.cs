@@ -25,8 +25,10 @@ namespace Microsoft.Quantum.QsLanguageServer
         private static ShowMessageParams AsMessageParams(string text, MessageType severity) =>
             text == null ? null : new ShowMessageParams { Message = text, MessageType = severity };
 
+        /// <summary>
         /// shows the given text in the editor
         /// throws an ArgumentNullException if either the server or the text to display is null
+        /// </summary>
         internal static void ShowInWindow(this QsLanguageServer server, string text, MessageType severity)
         {
             var message = AsMessageParams(text, severity);
@@ -36,8 +38,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             _ = server.NotifyClientAsync(Methods.WindowShowMessageName, message);
         }
 
+        /// <summary>
         /// logs the given text in the editor
         /// throws an ArgumentNullException if either the server or the text to display is null
+        /// </summary>
         internal static void LogToWindow(this QsLanguageServer server, string text, MessageType severity)
         {
             var message = AsMessageParams(text, severity);
@@ -50,10 +54,12 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         // tools related to project loading and file watching
 
+        /// <summary>
         /// Attempts to apply the given mapper to each element in the given sequence. 
         /// Returns a new sequence consisting of all mapped elements for which the mapping succeeded as out parameter, 
         /// as well as a bool indicating whether the mapping succeeded for all elements.
         /// The returned out parameter is non-null even if the mapping failed on some elements. 
+        /// </summary>
         internal static bool TryEnumerate<TSource, TResult>(this IEnumerable<TSource> source, 
             Func<TSource, TResult> mapper, out ImmutableArray<TResult> mapped)
         {
@@ -83,15 +89,19 @@ namespace Microsoft.Quantum.QsLanguageServer
             return succeeded;
         }
 
+        /// <summary>
         /// Attempts to enumerate the given sequence. 
         /// Returns a new sequence consisting of all elements which could be accessed, 
         /// as well as a bool indicating whether the enumeration succeeded for all elements.
         /// The returned out parameter is non-null even if access failed on some elements. 
+        /// </summary>
         internal static bool TryEnumerate<TSource>(this IEnumerable<TSource> source, out ImmutableArray<TSource> enumerated) =>
             source.TryEnumerate(element => element, out enumerated);
 
+        /// <summary>
         /// the given log function is applied to all errors and warning 
         /// raised by the ms build routine an instance of this class is given to
+        /// </summary>
         internal class MSBuildLogger : Logger
         {
             private readonly Action<string, MessageType> logToWindow;

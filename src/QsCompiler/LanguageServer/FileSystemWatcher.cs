@@ -16,6 +16,7 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsLanguageServer
 {
+    /// <summary>
     /// This class provides a basic file watcher for the LSP that sends notifications on watched files 
     /// when they change on disk (i.e. are added, removed, or edited).
     /// The implemeneted mechanism is far from perfect and will fail in some cases -
@@ -24,6 +25,7 @@ namespace Microsoft.Quantum.QsLanguageServer
     /// However, all in all splitting out the logic to generate notifications for individual files here (even if it is less than perfect), 
     /// seems better and overall less error prone than having to deal with less abstraction on the server side. 
     /// I am fully aware that this mechanism is not a neat solution, and it should probably be revised at some point in the future. 
+    /// </summary>
     internal class FileWatcher
     {
         private readonly ConcurrentBag<System.IO.FileSystemWatcher> Watchers;
@@ -35,7 +37,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             catch (Exception ex) { this.OnException(ex); }
         }
 
+        /// <summary>
         /// the keys contain the *absolute* uri to a folder, and the values are the set of the *relative* names of all contained files and folders
+        /// </summary>
         private readonly Dictionary<Uri, ImmutableHashSet<string>> WatchedDirectories;
         private readonly ConcurrentDictionary<Uri, IEnumerable<string>> GlobPatterns;
         private readonly ProcessingQueue Processing; 
@@ -54,8 +58,10 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
 
+        /// <summary>
         /// Returns a file system watcher for the given folder and pattern, with the proper event handlers added. 
         /// IMPORTANT: The returned watcher is disabled and needs to be enabled by setting EnableRaisingEvents to true. 
+        /// </summary>
         private System.IO.FileSystemWatcher GetWatcher(string folder, string pattern, NotifyFilters notifyOn)
         {
             var watcher = new System.IO.FileSystemWatcher
@@ -76,9 +82,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             return watcher;
         }
 
+        /// <summary>
         /// Initializes the given dictionary with the structure of the given directory as it is currently on disk for the given glob pattern.
         /// Returns true if the routine succeeded without throwing an exception and false otherwise. 
         /// Returns true without doing anything if no directory exists at the given (absolute!) path. 
+        /// </summary>
         private static bool GlobDirectoryStructure(Dictionary<Uri, ImmutableHashSet<string>> directories, string path, IEnumerable<string> globPatterns)
         {
             if (!Directory.Exists(path)) return true; // successfully completed, but nothing to be done
@@ -96,9 +104,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             return success;
         }
 
+        /// <summary>
         /// Adds suitable listeners to capture all given glob patterns for the given folder, 
         /// and - if subfolders is set to true - all its subfolders.
         /// Does nothing if no folder with the give path exists. 
+        /// </summary>
         public Task ListenAsync(string folder, bool subfolders, Action<ImmutableDictionary<Uri, ImmutableHashSet<string>>> onInitialState, params string[] globPatterns) 
         {
             if (!Directory.Exists(folder)) return Task.CompletedTask;
