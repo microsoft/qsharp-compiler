@@ -23,7 +23,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         // utils for getting the necessary information for editor commands
 
-        /// throws an ArgumentNullException if the given offset or relative range is null
+        /// <summary>
+        /// Throws an ArgumentNullException if the given offset or relative range is null.
+        /// </summary>
         private static Location AsLocation(NonNullable<string> source,
             Tuple<int, int> offset, Tuple<QsPositionInfo, QsPositionInfo> relRange) =>
             new Location
@@ -32,11 +34,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Range = DiagnosticTools.GetAbsoluteRange(DiagnosticTools.AsPosition(offset), relRange)
             };
 
-        /// throws an ArgumentNullException if the given reference location is null
+        /// <summary>
+        /// Throws an ArgumentNullException if the given reference location is null.
+        /// </summary>
         private static Location AsLocation(IdentifierReferences.Location loc) =>
             AsLocation(loc.SourceFile, DiagnosticTools.StatementPosition(loc.RootNode, loc.StatementOffset), loc.SymbolRange);
 
-        /// returns the SymbolInformation for all namespace declarations in the file
+        /// <summary>
+        /// Returns the SymbolInformation for all namespace declarations in the file.
+        /// </summary>
         public static IEnumerable<SymbolInformation> NamespaceDeclarationsSymbolInfo(this FileContentManager file) =>
             file.GetNamespaceDeclarations().Select(tuple => new SymbolInformation
             {
@@ -46,7 +52,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Location = new Location { Uri = file.Uri, Range = tuple.Item2 }
             });
 
-        /// returns the SymbolInformation for all type declarations in the file
+        /// <summary>
+        /// Returns the SymbolInformation for all type declarations in the file.
+        /// </summary>
         public static IEnumerable<SymbolInformation> TypeDeclarationsSymbolInfo(this FileContentManager file) =>
             file.GetTypeDeclarations().Select(tuple => new SymbolInformation
             {
@@ -56,7 +64,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Location = new Location { Uri = file.Uri, Range = tuple.Item2 }
             });
 
-        /// returns the SymbolInformation for all method declarations in the file
+        /// <summary>
+        /// Returns the SymbolInformation for all method declarations in the file.
+        /// </summary>
         public static IEnumerable<SymbolInformation> CallableDeclarationsSymbolInfo(this FileContentManager file) =>
             file.GetCallableDeclarations().Select(tuple => new SymbolInformation
             {
@@ -66,9 +76,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Location = new Location { Uri = file.Uri, Range = tuple.Item2 }
             });
 
+        /// <summary>
         /// Returns all namespaces in which a callable with the name of the symbol at the given position in the given file belongs to.
         /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location. 
         /// Returns the name of the identifier as out parameter if an unqualified symbol exists at that location.
+        /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForIdAtPosition
             (this FileContentManager file, Position pos, CompilationUnit compilation, out string idName)
         {
@@ -79,9 +91,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
 
+        /// <summary>
         /// Returns all namespaces in which a type with the name of the symbol at the given position in the given file belongs to.
         /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location. 
         /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
+        /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForTypeAtPosition
             (this FileContentManager file, Position pos, CompilationUnit compilation, out string typeName)
         {
@@ -94,11 +108,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
 
+        /// <summary>
         /// Sets the out parameter to the code fragment that overlaps with the given position in the given file
         /// if such a fragment exists, or to null otherwise. 
         /// If an overlapping code fragment exists, returns all symbol declarations, variable, Q# types, and Q# literals 
         /// that *overlap* with the given position as Q# SymbolInformation.
         /// Returns null if no such fragment exists, or the given file and/or position is null, or the position is invalid. 
+        /// </summary>
         internal static QsSymbolInfo TryGetQsSymbolInfo(this FileContentManager file,
             Position position, bool includeEnd, out CodeFragment fragment)
         {
@@ -131,6 +147,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 usedLiterals: overlappingLiterals.ToImmutableHashSet());
         }
 
+        /// <summary>
         /// Searches the given compilation for all references to a globally defined type or callable with the given name, 
         /// and returns their locations as out parameter. 
         /// If a set of source files is specified, then the search is limited to the specified files. 
@@ -138,6 +155,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or null if the declaration is not within this compilation unit and the files to which the search has been limited. 
         /// Returns true if the search completed successfully, and false otherwise. 
         /// If the given compilation unit or qualified name is null, returns false without raising an exception.
+        /// </summary>
         internal static bool TryGetReferences(this CompilationUnit compilation, QsQualifiedName fullName,
             out Location declarationLocation, out IEnumerable<Location> referenceLocations,
             IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
@@ -163,6 +181,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return true;
         }
 
+        /// <summary>
         /// Searches the given compilation for all references to the identifier or type at the given position in the given file, 
         /// and returns their locations as out parameter. 
         /// If a set of source files is specified, then the search is limited to the specified files. 
@@ -170,6 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or null if the declaration is not within this compilation unit and the files to which the search has been limited. 
         /// Returns true if the search completed successfully, and false otherwise. 
         /// If the given file, compilation unit, or position is null, returns false without raising an exception. 
+        /// </summary>
         internal static bool TryGetReferences(
             this FileContentManager file, CompilationUnit compilation, Position position,
             out Location declarationLocation, out IEnumerable<Location> referenceLocations,
@@ -242,8 +262,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // editor commands
 
+        /// <summary>
         /// Returns an array with completion suggestions for the given file and position.
         /// Returns null if the given uri is null or if the specified file is not listed as source file.
+        /// </summary>
         public static SymbolInformation[] DocumentSymbols(this FileContentManager file)
         {
             if (file == null) return null;
@@ -253,8 +275,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return namespaceDeclarations.Concat(typeDeclarations).Concat(callableDeclarations).ToArray();
         }
 
+        /// <summary>
         /// Returns the source file and position where the item at the given position is declared at,
         /// if such a declaration exists, and returns null otherwise.
+        /// </summary>
         public static Location DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Position position)
         {
             var symbolInfo = file?.TryGetQsSymbolInfo(position, true, out CodeFragment _); // includes the end position 
@@ -277,10 +301,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : null;
         }
 
+        /// <summary>
         /// Returns an array with all locations where the symbol at the given position - if any - is referenced. 
         /// Returns null if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no symbol exists at the specified position at this time.
+        /// </summary>
         public static Location[] SymbolReferences(this FileContentManager file, CompilationUnit compilation, Position position, ReferenceContext context)
         {
             if (file == null) return null;
@@ -290,10 +316,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : locations.ToArray();
         }
 
+        /// <summary>
         /// Returns the workspace edit that describes the changes to be done if the symbol at the given position - if any - is renamed to the given name. 
         /// Returns null if no symbol exists at the specified position,
         /// or if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the file.
+        /// </summary>
         public static WorkspaceEdit Rename(this FileContentManager file, CompilationUnit compilation, Position position, string newName)
         {
             if (newName == null || file == null) return null; 
@@ -318,9 +346,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             };
         }
 
+        /// <summary>
         /// Returns a dictionary of workspace edits suggested by the compiler for the given location and context.
         /// The keys of the dictionary are suitable titles for each edit that can be presented to the user. 
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
+        /// </summary>
         public static ImmutableDictionary<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
         {
             if (range?.Start == null || range.End == null || file == null || !Utils.IsValidRange(range, file)) return null;
@@ -391,10 +421,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .ToImmutableDictionary(s => s.Item1, s => s.Item2);
         }
 
+        /// <summary>
         /// Returns an array with all usages of the identifier at the given position (if any) as DocumentHighlights.
         /// Returns null if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no identifier exists at the specified position at this time.
+        /// </summary>
         public static DocumentHighlight[] DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Position position)
         {
             DocumentHighlight AsHighlight(Range range) =>
@@ -418,10 +450,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : highlights.ToArray();
         }
 
+        /// <summary>
         /// Returns information about the item at the specified position as Hover information.
         /// Returns null if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no token exists at the specified position.
+        /// </summary>
         public static Hover HoverInformation(this FileContentManager file, CompilationUnit compilation, Position position,
             MarkupKind format = MarkupKind.PlainText)
         {
@@ -453,11 +487,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : null);
         }
 
+        /// <summary>
         /// Returns the signature help information for a call expression if there is such an expression at the specified position.
         /// Returns null if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no call expression exists at the specified position at this time,
         /// or if no signature help information can be provided for the call expression at the specified position.
+        /// </summary>
         public static SignatureHelp SignatureHelp(this FileContentManager file, CompilationUnit compilation, Position position,
             MarkupKind format = MarkupKind.PlainText)
         {
