@@ -26,7 +26,7 @@ if ("$AssemblyVersion".Trim().Length -eq 0) {
 
 if ("$SemverVersion".Trim().Length -eq 0) {
     $pieces = "$AssemblyVersion".split(".");
-    $SemverVersion = "$pieces[0].$pieces[1].$pieces[2]$pieces[3]";
+    $SemverVersion = "$($pieces[0]).$($pieces[1]).$($pieces[2])$($pieces[3])";
 }
 
 if ("$NuGetVersion".Trim().Length -eq 0) {
