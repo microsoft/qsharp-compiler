@@ -3,7 +3,10 @@ param(
     $AssemblyVersion = $Env:ASSEMBLY_VERSION,
 
     [string]
-    $NuGetVersion = $Env:NUGET_VERSION
+    $NuGetVersion = $Env:NUGET_VERSION,
+
+    [string]
+    $VsixVersion = $Env:VSIX_VERSION
 );
 
 if ("$AssemblyVersion".Trim().Length -eq 0) {
@@ -19,6 +22,10 @@ if ("$NuGetVersion".Trim().Length -eq 0) {
     $NuGetVersion = "$AssemblyVersion-alpha";
 }
 
+if ("$VsixVersion".Trim().Length -eq 0) {
+    $VsixVersion = "$AssemblyVersion";
+}
+
 Get-ChildItem -Recurse *.v.template `
     | ForEach-Object {
         $Source = $_.FullName;
@@ -29,6 +36,7 @@ Get-ChildItem -Recurse *.v.template `
                 $_.
                     Replace("#ASSEMBLY_VERSION#", $AssemblyVersion).
                     Replace("#NUGET_VERSION#", $NuGetVersion)
+                    Replace("#VSIX_VERSION#", $VsixVersion)
             } `
             | Set-Content $Target -NoNewline
     }
