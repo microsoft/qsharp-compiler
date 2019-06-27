@@ -595,6 +595,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static CompletionList Completions(
             this FileContentManager file, CompilationUnit compilation, Position position)
         {
+            // Make sure the character position is valid for the given line.
+            int lineLength = file.GetLine(position.Line).WithoutEnding.Length;
+            position = new Position(position.Line, Math.Min(position.Character, lineLength));
+
             var locals = compilation
                 .TryGetLocalDeclarations(file, position, out var name)
                 .Variables
@@ -609,6 +613,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // TODO: Probably not every document symbol is a function/operation.
                 Kind = CompletionItemKind.Function
             });
+
             return new CompletionList()
             {
                 IsIncomplete = false,

@@ -727,8 +727,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (change.Text == String.Empty || 
                     trimmedText == "{" || trimmedText == "\"" || // let's not immediately trigger an update for these, hoping the matching one will come right after
                     trimmedText == "\\" || trimmedText == "/" || // ... and the same here
-                    (Utils.ValidAsSymbol.IsMatch(trimmedText) && // Defer updates while the user is typing a symbol ...
-                     !Char.IsWhiteSpace(change.Text, 0)))        // ... unless the update came with new indentation (needed for completion)
+                    Utils.ValidAsSymbol.IsMatch(trimmedText))
                 {
                     this.Timer.Start(); // we can simply queue this update - no need to actually execute it
                     queuedChange = true;
