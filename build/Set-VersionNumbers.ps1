@@ -10,6 +10,9 @@ param(
 
     [string]
     $VsixVersion = $Env:VSIX_VERSION
+
+    [switch]
+    $EnableTelemetry
 );
 
 if ("$AssemblyVersion".Trim().Length -eq 0) {
@@ -45,7 +48,8 @@ Get-ChildItem -Recurse *.v.template `
                     Replace("#ASSEMBLY_VERSION#", $AssemblyVersion).
                     Replace("#NUGET_VERSION#", $NuGetVersion).
                     Replace("#VSIX_VERSION#", $VsixVersion).
-                    Replace("#SEMVER_VERSION#", $SemverVersion)
+                    Replace("#SEMVER_VERSION#", $SemverVersion).
+                    Replace("#ENABLE_TELEMETRY#", $EnableTelemetry.IsPresent.ToString().ToLower())
             } `
             | Set-Content $Target -NoNewline
     }

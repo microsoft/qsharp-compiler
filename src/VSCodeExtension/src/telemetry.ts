@@ -5,10 +5,6 @@ import * as vscode from 'vscode';
 import { getPackageInfo } from './packageInfo';
 import TelemetryReporter from 'vscode-extension-telemetry';
 
-export class Settings {
-    static enableTelemetry = true; // TODO: make this a command line flag and disable by default
-};
-
 export type TelemetryData<T> = { [key: string]: T } | undefined;
 
 export var reporter: TelemetryReporter;
@@ -17,7 +13,7 @@ export class Reporter extends vscode.Disposable {
     constructor(ctx: vscode.ExtensionContext) {
         super(() => reporter.dispose());
         let packageInfo = getPackageInfo(ctx);
-        if (packageInfo !== undefined && Settings.enableTelemetry) {
+        if (packageInfo !== undefined && packageInfo.enableTelemetry) {
             reporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
         }
     }
