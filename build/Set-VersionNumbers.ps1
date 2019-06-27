@@ -9,7 +9,7 @@ param(
     $NuGetVersion = $Env:NUGET_VERSION,
 
     [string]
-    $VsixVersion = $Env:VSIX_VERSION
+    $VsixVersion = $Env:VSIX_VERSION,
 
     [switch]
     $EnableTelemetry
