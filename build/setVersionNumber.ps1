@@ -3,6 +3,9 @@ param(
     $AssemblyVersion = $Env:ASSEMBLY_VERSION,
 
     [string]
+    $SemverVersion = $Env:SEMVER_VERSION,
+
+    [string]
     $NuGetVersion = $Env:NUGET_VERSION,
 
     [string]
@@ -16,6 +19,11 @@ if ("$AssemblyVersion".Trim().Length -eq 0) {
     $Hour   = (Get-Date).Hour.ToString().PadLeft(2, "0");
     $Minute   = (Get-Date).Minute.ToString().PadLeft(2, "0");
     $AssemblyVersion = "0.0.$Year$Month.$Hour$Minute";
+}
+
+if ("$SemverVersion".Trim().Length -eq 0) {
+    $split = AssemblyVersion.split(".")
+    $SemverVersion = "$split[0].$split[1].$split[2]$split[3]"
 }
 
 if ("$NuGetVersion".Trim().Length -eq 0) {
@@ -37,6 +45,7 @@ Get-ChildItem -Recurse *.v.template `
                     Replace("#ASSEMBLY_VERSION#", $AssemblyVersion).
                     Replace("#NUGET_VERSION#", $NuGetVersion)
                     Replace("#VSIX_VERSION#", $VsixVersion)
+                    Replace("#SEMVER_VERSION#", $SemverVersion)
             } `
             | Set-Content $Target -NoNewline
     }

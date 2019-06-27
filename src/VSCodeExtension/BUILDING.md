@@ -66,7 +66,7 @@ Change back to the "Extension" debugger and resume.
 
 ## Common Problems ##
 
-### semver Issues ###
+### Semver Issues ###
 
 You may see an error when packaging or debugging the VS Code extension indicating that the package is not semver compatible.
 This indicates that the build script `setVersionNumber.ps1` did not produce a SemVer 2.0–compatible version number when writing `package.json` from `package.json.v.template`, typically due to a mis-set environment variable.
