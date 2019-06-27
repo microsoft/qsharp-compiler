@@ -589,6 +589,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             };
         }
 
+        /// <summary>
+        /// Returns a list of suggested completion items for the given location.
+        /// </summary>
         public static CompletionList Completions(
             this FileContentManager file, CompilationUnit compilation, Position position)
         {
