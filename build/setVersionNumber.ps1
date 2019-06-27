@@ -22,8 +22,8 @@ if ("$AssemblyVersion".Trim().Length -eq 0) {
 }
 
 if ("$SemverVersion".Trim().Length -eq 0) {
-    $split = AssemblyVersion.split(".")
-    $SemverVersion = "$split[0].$split[1].$split[2]$split[3]"
+    $pieces = "$AssemblyVersion".split(".");
+    $SemverVersion = "$pieces[0].$pieces[1].$pieces[2]$pieces[3]";
 }
 
 if ("$NuGetVersion".Trim().Length -eq 0) {
@@ -43,8 +43,8 @@ Get-ChildItem -Recurse *.v.template `
             | ForEach-Object {
                 $_.
                     Replace("#ASSEMBLY_VERSION#", $AssemblyVersion).
-                    Replace("#NUGET_VERSION#", $NuGetVersion)
-                    Replace("#VSIX_VERSION#", $VsixVersion)
+                    Replace("#NUGET_VERSION#", $NuGetVersion).
+                    Replace("#VSIX_VERSION#", $VsixVersion).
                     Replace("#SEMVER_VERSION#", $SemverVersion)
             } `
             | Set-Content $Target -NoNewline
