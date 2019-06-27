@@ -588,5 +588,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ActiveParameter = precedingArgs.Count() 
             };
         }
+
+        public static CompletionList Completions(
+            this FileContentManager file, CompilationUnit compilation, Position position)
+        {
+            var locals = compilation
+                .TryGetLocalDeclarations(file, position, out var name)
+                .Variables
+                .Select(variable => new CompletionItem()
+                {
+                    Label = variable.VariableName.Value,
+                    Kind = CompletionItemKind.Variable
+                });
+            var symbols = file.DocumentSymbols().Select(symbol => new CompletionItem()
+            {
+                Label = symbol.Name,
+                // TODO: Probably not every document symbol is a function/operation.
+                Kind = CompletionItemKind.Function
+            });
+            return new CompletionList()
+            {
+                IsIncomplete = false,
+                Items = locals.Concat(symbols).ToArray()
+            };
+        }
     }
 }

@@ -812,6 +812,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.Manager(param?.TextDocument?.Uri)?.FileQuery
                 (param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range, param.Context), suppressExceptionLogging: true);
 
+        /// <summary>
+        /// Returns a list of suggested completion items for the given location.
+        /// <para/>
+        /// Returns null if given uri is null or if the specified file is not listed as source file. Fails silently
+        /// without logging anything if an exception occurs upon evaluating the query (occasional failures are to be
+        /// expected as the evaluation is a readonly query running in parallel to the ongoing processing).
+        /// </summary>
+        public CompletionList Completions(TextDocumentPositionParams param) =>
+            this.Manager(param?.TextDocument?.Uri)?.FileQuery
+                (param?.TextDocument, (file, c) => file.Completions(c, param?.Position), suppressExceptionLogging: true);
+
 
         // routines related to querying the state of the project manager
         // -> these routines will wait for any processing to finish before executing the query

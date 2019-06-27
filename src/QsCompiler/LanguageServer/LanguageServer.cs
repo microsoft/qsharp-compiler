@@ -451,16 +451,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
         public CompletionList OnTextDocumentCompletion(JToken arg)
         {
-            // For now, this is a very simple kind of completion that just returns all of the symbols in the document
-            // every time a completion request is made.
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
-            var symbolParams = new DocumentSymbolParams() { TextDocument = param.TextDocument };
-            var symbols = EditorState.DocumentSymbols(symbolParams);
-            return new CompletionList()
-            {
-                IsIncomplete = false,
-                Items = symbols.Select(info => new CompletionItem() { Label = info.Name }).ToArray()
-            };
+            return EditorState.Completions(param);
         }
     }
 }
