@@ -15,13 +15,24 @@ using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions.SymbolInformation;
-
+using SymbolKind = Microsoft.VisualStudio.LanguageServer.Protocol.SymbolKind;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     internal static class EditorSupport
     {
         // utils for getting the necessary information for editor commands
+
+        /// <summary>
+        /// Maps supported SymbolKind values to CompletionItemKind values.
+        /// </summary>
+        private static readonly IImmutableDictionary<SymbolKind, CompletionItemKind> completionKinds =
+            new Dictionary<SymbolKind, CompletionItemKind>
+            {
+                { SymbolKind.Namespace, CompletionItemKind.Module },
+                { SymbolKind.Struct, CompletionItemKind.Struct },
+                { SymbolKind.Method, CompletionItemKind.Method }
+            }.ToImmutableDictionary();
 
         /// throws an ArgumentNullException if the given offset or relative range is null
         private static Location AsLocation(NonNullable<string> source,
@@ -614,8 +625,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var symbols = file.DocumentSymbols().Select(symbol => new CompletionItem()
             {
                 Label = symbol.Name,
-                // TODO: Probably not every document symbol is a function/operation.
-                Kind = CompletionItemKind.Function
+                Kind = completionKinds.GetValueOrDefault(symbol.Kind)
             });
 
             return new CompletionList()
