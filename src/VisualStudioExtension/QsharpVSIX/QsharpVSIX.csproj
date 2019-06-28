@@ -19,8 +19,8 @@
     <RootNamespace>Microsoft.Quantum.VisualStudio</RootNamespace>
     <AssemblyName>Microsoft.Quantum.VisualStudio.Extension</AssemblyName>
     <TargetVsixContainerName>Microsoft.Quantum.Development.Kit-$(AssemblyVersion).vsix</TargetVsixContainerName>
-    <LanguageServerPath>..\..\QsCompiler\LanguageServer\bin\$(Configuration)\netcoreapp2.1\publish\</LanguageServerPath>
-    <LanguageServerPath Condition=" '$(AGENT_ID)' == '' ">..\..\QsCompiler\LanguageServer\bin\$(Configuration)\netcoreapp2.1\</LanguageServerPath>
+    <LanguageServerPath>..\..\QsCompiler\LanguageServer\bin\$(Configuration)\netcoreapp2.2\publish\</LanguageServerPath>
+    <LanguageServerPath Condition=" '$(AGENT_ID)' == '' ">..\..\QsCompiler\LanguageServer\bin\$(Configuration)\netcoreapp2.2\</LanguageServerPath>
     <VsixType>v3</VsixType>
     <!-- Flag which deploys VSIX to experimental instance of VS; must be true for local development -->
     <DeployExtension Condition=" '$(DeployExtension)' == '' ">true</DeployExtension>
