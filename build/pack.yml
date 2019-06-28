@@ -21,19 +21,9 @@ steps:
 - task: MSBuild@1
   displayName: 'Pack Visual Studio extension'
   inputs:
-    solution: '$(VSExtensionSrcDir)/../VisualStudioExtension.sln'
+    solution: '$(VSExtensionSrcDir)/../../VisualStudioExtension.sln'
     configuration: '$(BuildConfiguration)'
     msbuildArguments: >
       /t:CreateVsixContainer 
       /p:AssemblyVersion=$(Assembly.Version)
 
-- task: NuGetCommand@2
-  displayName: 'Pack project templates'
-  inputs:
-    command: pack
-    packagesToPack: >
-      src\Nuspecs\Microsoft.Quantum.ProjectTemplates.nuspec;
-    versioningScheme: byEnvVar
-    versionEnvVar: NUGET_VERSION
-    packDestination: '$(System.DefaultWorkingDirectory)'
-    includeReferencedProjects: false

@@ -6,13 +6,13 @@ steps:
 - task: NuGetCommand@2
   displayName: 'Restore VisualStudioExtension'
   inputs:
-    restoreSolution: '$(VSExtensionSrcDir)/../VisualStudioExtension.sln'
+    restoreSolution: '$(VSExtensionSrcDir)/../../VisualStudioExtension.sln'
 
 
 - task: VSBuild@1
   displayName: 'Build VisualStudioExtension'
   inputs:
-    solution: '$(VSExtensionSrcDir)/../VisualStudioExtension.sln'
+    solution: '$(VSExtensionSrcDir)/../../VisualStudioExtension.sln'
     msbuildArgs: '/p:DefineConstants=$(Assembly.Constants) /p:AssemblyVersion=$(Assembly.Version)'
     configuration: '$(BuildConfiguration)'
 
