@@ -1,7 +1,6 @@
 # Privacy
 
-The code in this repository contains features that may enable you and Microsoft to collect data from users of the applications.
-The data collection is disabled by default but can be enabled by setting the corresponding flag upon compilation. 
+The code in this repository contains features that may enable you and Microsoft to collect data from users of the applications. Data collection is disabled by default but can be enabled by setting the corresponding flag upon compilation. 
 
 ## Data Collection
 
