@@ -3,7 +3,7 @@
 
   <PropertyGroup>
     <AssemblyName>Microsoft.Quantum.QsLanguageServer</AssemblyName>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <PropertyGroup>
