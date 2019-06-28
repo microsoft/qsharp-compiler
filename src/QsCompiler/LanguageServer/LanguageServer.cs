@@ -168,7 +168,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.DocumentHighlightProvider = true;
             capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "," };
             capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities 
-            capabilities.CompletionProvider = new CompletionOptions { ResolveProvider = false, TriggerCharacters = new[] { "." } };
+            capabilities.CompletionProvider = new CompletionOptions
+            {
+                ResolveProvider = false,
+                TriggerCharacters = Array.Empty<string>()
+            };
 
             this.WaitForInit = null;
             return new InitializeResult { Capabilities = capabilities };
