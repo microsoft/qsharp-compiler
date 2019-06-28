@@ -16,8 +16,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     public class GetSourceFiles :
         SyntaxTreeTransformation<NoScopeTransformations>
     {
+        /// <summary>
         /// Returns a hash set containing all source files in the given namespace(s).
         /// Throws an ArgumentNullException if any of the given namespaces is null. 
+        /// </summary>
         public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces)
         {
             if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
@@ -44,10 +46,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         }
     }
 
+    /// <summary>
     /// Calling Transform on a syntax tree returns a new tree that only contains the type and callable declarations
     /// that are defined in the source file with the identifier given upon initialization. 
     /// The transformation also ensures that the elements in each namespace are ordered according to 
     /// the location at which they are defined in the file. 
+    /// </summary>
     public class FilterBySourceFile :
         SyntaxTreeTransformation<NoScopeTransformations>
     {
@@ -98,10 +102,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
     // scope transformations
 
+    /// <summary>
     /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion. 
     /// Calling Transform will build a new Scope that contains only the statements for which the fold of a given condition 
     /// over all contained expressions evaluates to true. 
-    /// If evaluateOnSubexpressions is set to true, the fold is evaluated on all subexpressions as well.  
+    /// If evaluateOnSubexpressions is set to true, the fold is evaluated on all subexpressions as well. 
+    /// </summary>
     public class SelectByFoldingOverExpressions<K> :
         ScopeTransformation<K, FoldOverExpressions<bool>>
         where K : Core.StatementKindTransformation
@@ -157,10 +163,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         }
     }
 
+    /// <summary>
     /// Class that allows to transform scopes by keeping only statements that contain certain expressions. 
     /// Calling Transform will build a new Scope that contains only the statements 
     /// which contain an expression or subexpression (only if evaluateOnSubexpressions is set to true) 
     /// that satisfies the condition given on initialization. 
+    /// </summary>
     public class SelectByAnyContainedExpression<K> :
         SelectByFoldingOverExpressions<K>
         where K : Core.StatementKindTransformation
@@ -176,10 +184,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 this.GetStatementKind = statementKind;
     }
 
+    /// <summary>
     /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion. 
     /// Calling Transform will build a new Scope that contains only the statements 
     /// for which all contained expressions or subexpressions satisfy the condition given on initialization.
     /// Note that subexpressions will only be verified if evaluateOnSubexpressions is set to true (default value).
+    /// </summary>
     public class SelectByAllContainedExpressions<K> :
         SelectByFoldingOverExpressions<K>
         where K : Core.StatementKindTransformation
@@ -198,12 +208,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
     // expression transformations
 
+    /// <summary>
     /// Class that evaluates a fold on Transform. 
     /// If recur is set to true on initialization (default value), 
     /// the fold function given on initialization is applied to all subexpressions as well as the expression itself -
     /// i.e. the fold it take starting on inner expressions (from the inside out). 
     /// Otherwise the set Action is only applied to the expression itself. 
     /// The result of the fold is accessible via the Result property. 
+    /// </summary>
     public class FoldOverExpressions<T> :
         ExpressionTransformation<ExpressionKindTransformation<FoldOverExpressions<T>>>
     {

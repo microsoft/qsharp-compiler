@@ -13,16 +13,20 @@ using System.Reflection.PortableExecutable;
 
 namespace Microsoft.Quantum.QsCompiler
 {
+    /// <summary>
     /// This class relies on the ECMA-335 standard to extract information contained in compiled binaries. 
     /// The standard can be found here: https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-335.pdf,
     /// and the section on custom attributes starts on page 267. 
+    /// </summary>
     public static class AttributeReader
     {
+        /// <summary>
         /// There are two possible handle kinds in use for the constructor of a custom attribute, 
         /// one pointing to the MethodDef table and one to the MemberRef table, see p.216 in the ECMA standard linked above and 
         /// https://github.com/dotnet/corefx/blob/master/src/System.Reflection.Metadata/src/System/Reflection/Metadata/TypeSystem/CustomAttribute.cs#L42
         /// This routine extracts the namespace and type name of the given attribute and returns the corresponding string handles. 
         /// Returns null if the constructor handle is not a MethodDefinition or a MemberDefinition. 
+        /// </summary>
         private static (StringHandle, StringHandle)? GetAttributeType(MetadataReader metadataReader, CustomAttribute attribute)
         {
             if (attribute.Constructor.Kind == HandleKind.MethodDefinition)
@@ -64,11 +68,13 @@ namespace Microsoft.Quantum.QsCompiler
             return null;
         }
 
+        /// <summary>
         /// Given a stream with the bytes of an assembly, read its custom attributes and
         /// returns a tuple containing the name of the attribute and the constructor argument 
         /// for all attributes defined in a Microsoft.Quantum* namespace.  
         /// Throws an ArgumentNullException if the given stream is null. 
         /// Throws the corresponding exceptions if the information cannot be extracted.
+        /// </summary>
         public static IEnumerable<(string, string)> GetQsCompilerAttributes(Stream stream)
         {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -83,12 +89,14 @@ namespace Microsoft.Quantum.QsCompiler
             }
         }
 
+        /// <summary>
         /// Given the full name of an assembly, opens the file and reads its custom attributes and
         /// returns a tuple containing the name of the attribute and the constructor argument 
         /// for all attributes defined in the Microsoft.Quantum* namespace.  
         /// Throws an ArgumentNullException if the given uri is null. 
         /// Throws a FileNotFoundException if no file with the given name exists. 
         /// Throws the corresponding exceptions if the information cannot be extracted.
+        /// </summary>
         public static IEnumerable<(string, string)> GetQsCompilerAttributes(Uri asm)
         {
             if (asm == null) throw new ArgumentNullException(nameof(asm));

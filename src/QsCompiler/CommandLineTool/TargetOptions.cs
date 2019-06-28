@@ -7,7 +7,9 @@ using CommandLine;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
+    /// <summary>
     /// command line options for Q# build targets
+    /// </summary>
     public class TargetOptions
     {
         [Option('v', "verbose", Required = false, Default = false,

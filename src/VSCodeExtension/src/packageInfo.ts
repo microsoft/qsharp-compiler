@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 'use strict';
 
 // IMPORTS /////////////////////////////////////////////////////////////////////
@@ -11,6 +14,7 @@ export interface IPackageInfo {
     version: string;
     aiKey: string;
     requiredDotNetCoreSDK: string;
+    enableTelemetry: string;
 }
 
 export function getPackageInfo(context: vscode.ExtensionContext): IPackageInfo | undefined {
@@ -20,7 +24,8 @@ export function getPackageInfo(context: vscode.ExtensionContext): IPackageInfo |
             name: extensionPackage.name,
             version: extensionPackage.version,
             aiKey: extensionPackage.aiKey,
-            requiredDotNetCoreSDK: extensionPackage.requiredDotNetCoreSDK
+            requiredDotNetCoreSDK: extensionPackage.requiredDotNetCoreSDK,
+            enableTelemetry: extensionPackage.enableTelemetry
         };
     }
     return;

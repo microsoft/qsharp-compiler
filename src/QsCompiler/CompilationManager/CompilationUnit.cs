@@ -16,7 +16,9 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
+    /// <summary>
     /// this representation will change depending on the binary format in which we ship compiled Q# code
+    /// </summary>
     public class References
     {
         public class Headers
@@ -36,14 +38,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
+        /// <summary>
         /// the keys are the file ids (location of the dll file) and the values are the headers defined in that file
+        /// </summary>
         public readonly ImmutableDictionary<NonNullable<string>, Headers> Declarations; 
 
         public static References Empty = 
             new References(Enumerable.Empty<KeyValuePair<NonNullable<string>, ImmutableArray<(string, string)>>>(), out var _);
 
+        /// <summary>
         /// Throws an ArgumentNullException if the given argument is null. 
         /// Throws an ArgumentException if the given set shares references with the current one. 
+        /// </summary>
         internal References CombineWith(References other)
         {
             if (other == null) throw new ArgumentNullException(nameof(other));
@@ -51,18 +57,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return new References (this.Declarations.AddRange(other.Declarations)); 
         }
 
+        /// <summary>
         /// Returns a new collection with the given reference and all its entries removed. 
+        /// </summary>
         internal References Remove(NonNullable<string> source) =>
-            new References(this.Declarations.Remove(source)); 
+            new References(this.Declarations.Remove(source));
 
+        /// <summary>
         /// NOTE: Does not do any verification of the arguments whatsoever and hence needs to remain private!
         /// IMPORTANT: this class relies on the fact tha the corresponding references need to be listed for all declaration headers!
+        /// </summary>
         private References(ImmutableDictionary<NonNullable<string>, Headers> refs) =>
             this.Declarations = refs;
 
+        /// <summary>
         /// NOTE: Does not do any verification of the arguments and hence needs to remain private!
         /// Throws an ArgumentException if the absolute file path for a given Uri cannot be determined. 
         /// Throws the corresponding exception if the given argument are null or cannot be processed. 
+        /// </summary>
         private References(IEnumerable<KeyValuePair<NonNullable<string>, ImmutableArray<(string, string)>>> attributes, 
             out ImmutableHashSet<NonNullable<string>> serializationErrors)
         {
@@ -102,8 +114,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ); 
         }
 
+        /// <summary>
         /// Returns the built references as well as the ids of all files with attributes that could not be deserialized as out parameter. 
         /// Throws an ArgumentNullException if the given attributes are null. 
+        /// </summary>
         internal static bool TryInitializeFrom(
             IEnumerable<KeyValuePair<Uri, ImmutableArray<(string, string)>>> attributes,
             out References references, out IEnumerable<Uri> serializationErrors)
@@ -125,10 +139,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     }
 
 
+    /// <summary>
     /// Class representing a compilation; 
     /// apart from storing and providing the means to update the compilation itself, 
     /// it stores referenced content and provides the infrastructure to track global symbols.
     /// IMPORTANT: The responsiblity to update the compilation to match changes to the GlobalSymbols lays within the the managing entity. 
+    /// </summary>
     public class CompilationUnit : IReaderWriterLock, IDisposable
     {
         internal References Externals { get; private set; }
@@ -141,9 +157,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public void Dispose()
         { this.SyncRoot.Dispose(); }
 
+        /// <summary>
         /// Returns a new CompilationUnit to store and update a compilation referencing the given content (if any),
         /// with the given sequence of locks registered as dependent locks if the sequence is not null.
         /// Throws an ArgumentNullException if any of the given locks is.
+        /// </summary>
         internal CompilationUnit(References externals = null, IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
         {
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
@@ -157,8 +175,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
 
+        /// <summary>
         /// Replaces the GlobalSymbols to match the newly specified references. 
         /// Throws an ArgumentNullException if the given references are null. 
+        /// </summary>
         internal void UpdateReferences(References externals)
         {
             this.EnterWriteLock();
@@ -173,10 +193,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { this.ExitWriteLock(); }
         }
 
+        /// <summary>
         /// Registers the given lock as a dependent lock - 
         /// i.e. whenever both this compilation unit and a dependent lock are required, 
         /// ensures that the compilation unit has to be the outer lock.
         /// Throws an ArgumentNullException if the given lock is null.
+        /// </summary>
         internal void RegisterDependentLock(ReaderWriterLockSlim depLock)
         {
             if (depLock == null) throw new ArgumentNullException(nameof(depLock));
@@ -189,9 +211,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { this.SyncRoot.ExitWriteLock(); }
         }
 
+        /// <summary>
         /// Removes the given lock from the set of dependent locks.
         /// Returns true if the lock was successfully removed and false otherwise.
         /// Throws an ArgumentNullException if the given lock is null.
+        /// </summary>
         internal void UnregisterDependentLock(ReaderWriterLockSlim depLock)
         {
             if (depLock == null) throw new ArgumentNullException(nameof(depLock));
@@ -207,8 +231,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // routines replacing the direct access to the sync root
 
+        /// <summary>
         /// Enters a read-lock, provided none of the dependent locks is set, or a compilation lock is aready held. 
         /// Throws an InvalidOperationException if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.
+        /// </summary>
         public void EnterReadLock()
         {
             #if DEBUG
@@ -220,10 +246,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             #endif
             this.SyncRoot.EnterReadLock();
         }
-        public void ExitReadLock() => this.SyncRoot.ExitReadLock(); 
+        public void ExitReadLock() => this.SyncRoot.ExitReadLock();
 
+        /// <summary>
         /// Enters an upgradeable read-lock, provided none of the dependent locks is set, or a suitable compilation lock is aready held. 
         /// Throws an InvalidOperationException if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.
+        /// </summary>
         public void EnterUpgradeableReadLock()
         {
             #if DEBUG
@@ -237,8 +265,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
         public void ExitUpgradeableReadLock() => this.SyncRoot.ExitUpgradeableReadLock();
 
+        /// <summary>
         /// Enters a write-lock, provided none of the dependent locks is set, or a suitable compilation lock is aready held. 
         /// Throws an InvalidOperationException if any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.
+        /// </summary>
         public void EnterWriteLock()
         {
             #if DEBUG
@@ -255,8 +285,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // methods related to accessing and managing information about the compilation
 
-        /// returns all currently compiled Q# callables as ReadOnlyDictionary 
-        /// -> note that the wrapped dictionary may change!
+        /// <summary>
+        /// Returns all currently compiled Q# callables as ReadOnlyDictionary.
+        /// -> Note that the wrapped dictionary may change!
+        /// </summary>
         internal IReadOnlyDictionary<QsQualifiedName, QsCallable> GetCallables()
         {
             this.SyncRoot.EnterReadLock();
@@ -264,8 +296,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { this.SyncRoot.ExitReadLock(); }
         }
 
-        /// returns all currently compiled Q# types as ReadOnlyDictionary 
-        /// -> note that the wrapped dictionary may change!
+        /// <summary>
+        /// Returns all currently compiled Q# types as ReadOnlyDictionary.
+        /// -> Note that the wrapped dictionary may change!
+        /// </summary>
         internal IReadOnlyDictionary<QsQualifiedName, QsCustomType> GetTypes()
         {
             this.SyncRoot.EnterReadLock();
@@ -273,9 +307,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { this.SyncRoot.ExitReadLock(); }
         }
 
+        /// <summary>
         /// If the given updates are not null, replaces the contained types in the compilation, or adds them if they do not yet exist.
         /// Proceeds to remove any types that are not currently listed in GlobalSymbols from the compilation, and updates all position information. 
         /// Throws an ArgumentNullException if any of the given types to update is null.
+        /// </summary>
         internal void UpdateTypes(IEnumerable<QsCustomType> updates)
         {
             this.SyncRoot.EnterWriteLock();
@@ -317,10 +353,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         }
 
+        /// <summary>
         /// If the given updates are not null, replaces the contained callables in the compilation, or adds them if they do not yet exist.
         /// Proceeds to remove any callables and specializations that are not currently listed in GlobalSymbols from the compilation, 
         /// and updates the position information for all callables and specializations. 
         /// Throws an ArgumentNullException if any of the given callables to update is null.
+        /// </summary>
         internal void UpdateCallables(IEnumerable<QsCallable> updates)
         {
             this.SyncRoot.EnterWriteLock();
@@ -390,10 +428,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { this.SyncRoot.ExitWriteLock(); }
         }
 
+        /// <summary>
         /// Constructs a suitable callable for a given callable declaration header - 
         /// i.e. given all information about a callable except the implementation of its specializations, 
         /// constructs a QsCallable with the implementation of each specialization set to External. 
         /// Throws an ArgumentNullException if the given header is null.
+        /// </summary>
         public QsCallable GetImportedCallable(CallableDeclarationHeader header)
         {
             // TODO: this needs to be adapted once we support external specializations
@@ -415,8 +455,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 header.Signature, header.ArgumentTuple, specializations, header.Documentation, QsComments.Empty);
         }
 
+        /// <summary>
         /// Constructs a suitable type for a given type declaration header. 
         /// Throws an ArgumentNullException if the given header is null.
+        /// </summary>
         public QsCustomType GetImportedType(TypeDeclarationHeader header)
         {
             if (header == null) throw new ArgumentNullException(nameof(header));
@@ -424,10 +466,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return new QsCustomType(header.QualifiedName, header.SourceFile, location, header.Type, header.TypeItems, header.Documentation, QsComments.Empty);
         }
 
+        /// <summary>
         /// Returns the syntax tree for the current state of the compilation as out parameter.
         /// Note that functor generation directives are *not* evaluated in the the returned tree,
         /// and the returned tree may contain invalid parts. 
         /// Throws an InvalidOperationException if a callable definition is listed in GlobalSymbols for which no compilation exists. 
+        /// </summary>
         public ImmutableArray<QsNamespace> Build()
         {
             this.SyncRoot.EnterReadLock();
@@ -479,8 +523,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { this.SyncRoot.ExitReadLock(); }
         }
 
+        /// <summary>
         /// Returns a look-up that contains the names of all namespaces imported within a certain source file for the given namespace.
         /// Throws an ArgumentException if no namespace with the given name exists. 
+        /// </summary>
         public ILookup<NonNullable<string>, (NonNullable<string>, string)> GetOpenDirectives(NonNullable<string> nsName)
         {
             this.SyncRoot.EnterReadLock();
@@ -488,10 +534,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { this.SyncRoot.ExitReadLock(); }
         }
 
+        /// <summary>
         /// Determines the closest preceding specialization for the given position in the given file. 
         /// Returns the name of the parent callable, its position in the file as well as the position of the relevant specialization as out parameters. 
         /// Returns null without setting any of the out parameters if the given file or position is null, or if the parent callable could not be determined. 
-        /// Sets the correct namespace name and callable position but returns no implementation if the given position is within a callable declaration. 
+        /// Sets the correct namespace name and callable position but returns no implementation if the given position is within a callable declaration.
+        /// </summary>
         internal QsScope TryGetSpecializationAt(FileContentManager file, Position pos, 
             out QsQualifiedName callableName, out Position callablePos, out Position specializationPos)
         {
@@ -523,12 +571,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return ((SpecializationImplementation.Provided)relevantSpecialization.Implementation).Item2;
         }
 
+        /// <summary>
         /// Given all locally defined symbols within a particular specialization of a callable, 
         /// returns a new set of LocalDeclarations with the position information updated to the absolute values,
         /// assuming the given positions for the parent callable and the specialization the symbols are defined in are correct. 
         /// If no LocalDeclarations are given or the given declarations are null, 
         /// returns all (valid) symbols defined as part of the declaration of the parent callable with their position information set to the absolute value. 
         /// Returns an empty set of declarations if the name of the parent callable is null or no callable with the name is currently compiled.
+        /// </summary>
         internal LocalDeclarations PositionedDeclarations(QsQualifiedName parentCallable, Position callablePos, Position specPos, LocalDeclarations declarations = null)
         {
             LocalDeclarations TryGetLocalDeclarations()
@@ -548,6 +598,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return declarations.WithAbsolutePosition(AbsolutePosition);
         }
 
+        /// <summary>
         /// Returns all locally declared symbols at the given (absolute) position in the given file
         /// and sets the out parameter to the name of the parent callable at that position, 
         /// assuming that the position corresponds to a piece of code within the given file.  
@@ -555,6 +606,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// the returned declarations or the set parent name are not necessarily accurate - they are for any actual piece of code, though. 
         /// If the given file or position is null, or if the locally declared symbols could not be determined, returns an empty LocalDeclarations object. 
         /// Sets the parent name to null, if no parent could be determind.
+        /// </summary>
         internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName parentCallable)
         {
             var implementation = this.TryGetSpecializationAt(file, pos, out parentCallable, out var callablePos, out var specPos);

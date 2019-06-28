@@ -1,4 +1,7 @@
-﻿using Microsoft.VisualStudio.LanguageServer.Client;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using Microsoft.VisualStudio.LanguageServer.Client;
 using Microsoft.VisualStudio.Utilities;
 using System.ComponentModel.Composition;
 

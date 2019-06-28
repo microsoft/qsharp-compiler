@@ -23,11 +23,13 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             DiagnosticSeverity verbosity = DiagnosticSeverity.Warning,
             IEnumerable<int> noWarn = null, int lineNrOffset = 0)
         : base(verbosity, noWarn, lineNrOffset) =>
-            this.ApplyFormatting = format ?? Formatting.HumanReadableFormat; 
+            this.ApplyFormatting = format ?? Formatting.HumanReadableFormat;
 
+        /// <summary>
         /// Prints the given message to the Console. 
         /// Errors and Warnings are printed to the error stream.
         /// Throws an ArgumentNullException if the given message is null. 
+        /// </summary>
         private static void PrintToConsole(DiagnosticSeverity severity, string message)
         {
             if (message == null) throw new ArgumentNullException(nameof(message));
@@ -46,8 +48,10 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             finally { Console.ForegroundColor = consoleColor; }
         }
 
+        /// <summary>
         /// Prints a summary containing the currently counted number of errors, warnings and exceptions.
         /// Indicates a compilation failure if the given status does not correspond to the ReturnCode indicating a success. 
+        /// </summary>
         public virtual void ReportSummary(int status = CommandLineCompiler.ReturnCode.SUCCESS)
         {
             string ItemString(int nr, string name) => $"{nr} {name}{(nr == 1 ? "" : "s")}";
