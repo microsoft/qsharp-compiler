@@ -599,6 +599,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             int lineLength = file.GetLine(position.Line).WithoutEnding.Length;
             position = new Position(position.Line, Math.Min(position.Character, lineLength));
 
+            // New symbols shouldn't get any completions for existing symbols.
+            if (IsDeclaringNewSymbol(file, position))
+                return new CompletionList() { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
+
             var locals = compilation
                 .TryGetLocalDeclarations(file, position, out var name)
                 .Variables
@@ -619,6 +623,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 IsIncomplete = false,
                 Items = locals.Concat(symbols).ToArray()
             };
+        }
+
+        /// <summary>
+        /// Returns true if the given position is part of a new symbol that is being declared or bound.
+        /// </summary>
+        private static bool IsDeclaringNewSymbol(FileContentManager file, Position position)
+        {
+            CodeFragment fragment = file.TryGetFragmentAt(position, includeEnd: true);
+            if (fragment == null)
+                return false;
+            QsFragmentKind kind = fragment.Kind ?? QsFragmentKind.InvalidFragment;
+            Position offset = fragment.GetRange().Start;
+
+            bool PositionIsWithinSymbol(QsSymbol symbol) =>
+                position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(offset, symbol.Range.Item), includeEnd: true);
+
+            switch (kind)
+            {
+                // If the binding symbol is invalid, assume we're typing it in now. Otherwise, check if the position is
+                // inside the binding symbol.
+                case QsFragmentKind.ImmutableBinding ib:
+                    return ib.Item1.Symbol.IsInvalidSymbol || PositionIsWithinSymbol(ib.Item1);
+                case QsFragmentKind.MutableBinding mb:
+                    return mb.Item1.Symbol.IsInvalidSymbol || PositionIsWithinSymbol(mb.Item1);
+                // TODO: Add more cases.
+                default:
+                    return false;
+            }
         }
     }
 }
