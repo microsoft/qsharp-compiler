@@ -69,5 +69,5 @@ Change back to the "Extension" debugger and resume.
 ### Semver Issues ###
 
 You may see an error when packaging or debugging the VS Code extension indicating that the package is not semver compatible.
-This indicates that the build script `Build-Templates.ps1` did not produce a SemVer 2.0–compatible version number when writing `package.json` from `package.json.v.template`, typically due to a mis-set environment variable.
-If this happens, correct the environment variables used by `Build-Templates.ps1` or manually edit the `version` property of `package.json` (note that any such manual edits **will** be overwritten by calls to `Build-Templates.ps1` and will not be saved in the repo).
+This indicates that the build script `bootstrap.cmd` did not produce a SemVer 2.0–compatible version number when writing `package.json` from `package.json.v.template`, typically due to a mis-set environment variable.
+If this happens, correct the environment variables used by `bootstrap.cmd` or manually edit the `version` property of `package.json` (note that any such manual edits **will** be overwritten by calls to `bootstrap.cmd` and will not be saved in the repo).
