@@ -606,10 +606,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static CompletionList Completions(
             this FileContentManager file, CompilationUnit compilation, Position position)
         {
-            // Make sure the character position is valid for the given line.
-            int lineLength = file.GetLine(position.Line).WithoutEnding.Length;
-            position = new Position(position.Line, Math.Min(position.Character, lineLength));
-
             // New symbols shouldn't get any completions for existing symbols.
             if (IsDeclaringNewSymbol(file, position))
                 return new CompletionList() { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
