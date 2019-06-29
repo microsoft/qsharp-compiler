@@ -15,7 +15,7 @@ using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions.SymbolInformation;
-using SymbolKind = Microsoft.VisualStudio.LanguageServer.Protocol.SymbolKind;
+
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
