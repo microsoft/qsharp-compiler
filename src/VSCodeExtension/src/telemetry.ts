@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 import * as vscode from 'vscode';
 import { getPackageInfo } from './packageInfo';
 import TelemetryReporter from 'vscode-extension-telemetry';
@@ -10,7 +13,7 @@ export class Reporter extends vscode.Disposable {
     constructor(ctx: vscode.ExtensionContext) {
         super(() => reporter.dispose());
         let packageInfo = getPackageInfo(ctx);
-        if (packageInfo !== undefined) {
+        if (packageInfo !== undefined && packageInfo.enableTelemetry) {
             reporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
         }
     }
@@ -38,7 +41,7 @@ export function startTelemetry(context: vscode.ExtensionContext) {
     context.subscriptions.push(new Reporter(context));
 
     // Send initial events.
-    reporter.sendTelemetryEvent(EventNames.activate, {}, {});
+    if (reporter) reporter.sendTelemetryEvent(EventNames.activate, {}, {});
 }
 
 export function sendTelemetryTiming<T>(
@@ -57,7 +60,7 @@ export function sendTelemetryTiming<T>(
 
         measurements["elapsedTime"] = elapsedTime;
 
-        reporter.sendTelemetryEvent(eventName, properties, measurements);
+        if (reporter) reporter.sendTelemetryEvent(eventName, properties, measurements);
 
         return returnValue;
 
@@ -154,5 +157,5 @@ export function forwardServerTelemetry(telemetryRequest : any) {
     }
 
     // TODO: pass more than just the event name.
-    sendTelemetryEvent(name, properties, measurements);
+    sendTelemetryEvent(name, properties, measurements); 
 }

@@ -7,14 +7,22 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
+    /// <summary>
     /// Class allowing to enforce in-order processing of tasks. 
+    /// </summary>
     public class ProcessingQueue
     {
+        /// <summary>
         /// header string for the message given when an exception if logged
+        /// </summary>
         private readonly string ExceptionHeader;
+        /// <summary>
         /// used to log exceptions raised during processing
+        /// </summary>
         private readonly Action<Exception> LogException;
+        /// <summary>
         /// schedulers both for tasks that have to run sequentially and for tasks that can run simultaneously
+        /// </summary>
         private readonly ConcurrentExclusiveSchedulerPair Scheduler;
 
         public ProcessingQueue(Action<Exception> exceptionLogger, string exceptionHeader = null)
@@ -31,16 +39,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 catch (Exception ex) { this.LogException(ex); }
             });
 
+        /// <summary>
         /// The queue will not accept any more tasks after calling complete. 
+        /// </summary>
         public void Complete() =>
             this.Scheduler.Complete();
 
 
         // non-concurrent routines - i.e. routines that are forced to execute in order
 
+        /// <summary>
         /// Enqueues the given Action for exclusive (serialized) execution. 
         /// Uses the set exception logger to log any exception that occurs during execution. 
         /// Throws an ArgumentNullException if the given Action is null.
+        /// </summary>
         public Task QueueForExecutionAsync(Action processing)
         {
             if (processing == null) throw new ArgumentNullException(nameof(processing));
@@ -49,22 +61,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return processingTask;
         }
 
+        /// <summary>
         /// Executes the given Action synchronously, with no exclusive actions running.
         /// Uses the set exception logger to log any exception that occurs during execution. 
         /// Throws an ArgumentNullException if the given Action is null.
         /// NOTE: may deadlock if the given function to execute calls this processing queue. 
+        /// </summary>
         public void QueueForExecution(Action processing)
         {
             if (processing == null) throw new ArgumentNullException(nameof(processing));
             this.QueueForExecution(() => { processing(); return new object(); }, out var _);
         }
 
+        /// <summary>
         /// Executes the given function synchronously without any exclusive tasks running, 
         /// returning its result as out parameter. 
         /// Uses the set exception logger to log any exception that occurs during execution. 
         /// Returns true if the execution succeeded without throwing an exception, and false otherwise. 
         /// Throws an ArgumentNullException if the given function to execute is null.
         /// NOTE: may deadlock if the given function to execute calls this processing queue. 
+        /// </summary>
         public bool QueueForExecution<T>(Func<T> execute, out T result)
         {
             if (execute == null) throw new ArgumentNullException(nameof(execute));
@@ -83,9 +99,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // concurrent routines - i.e. routines that may execute at any time in between exclusive tasks
 
+        /// <summary>
         /// Enqueues the given Action for concurrent (background) execution. 
         /// Uses the set exception logger to log any exception that occurs during execution. 
         /// Throws an ArgumentNullException if the given Action is null.
+        /// </summary>
         public Task ConcurrentExecutionAsync(Action processing)
         {
             if (processing == null) throw new ArgumentNullException(nameof(processing));
@@ -94,21 +112,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return processingTask;
         }
 
+        /// <summary>
         /// Executes the given Action synchronously and concurrently (background).
         /// Uses the set exception logger to log any exception that occurs during execution. 
         /// Throws an ArgumentNullException if the given Action is null.
         /// NOTE: may deadlock if the given function to execute calls this processing queue. 
+        /// </summary>
         public void ConcurrentExecution(Action processing)
         {
             if (processing == null) throw new ArgumentNullException(nameof(processing));
             this.ConcurrentExecution(() => { processing(); return new object(); }, out var _);
         }
 
+        /// <summary>
         /// Executes the given function synchronously and concurrently, returning its result as out parameter.
         /// Returns true if the execution succeeded without throwing an exception, and false otherwise. 
         /// Uses the set exception logger to log any exception that occurs during execution. 
         /// Throws an ArgumentNullException if the given Action is null.
         /// NOTE: may deadlock if the given function to execute calls this processing queue. 
+        /// </summary>
         public bool ConcurrentExecution<T>(Func<T> execute, out T result)
         {
             if (execute == null) throw new ArgumentNullException(nameof(execute));

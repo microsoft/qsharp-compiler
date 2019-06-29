@@ -24,33 +24,41 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
     internal static class TypeChecking
     {
+        /// <summary>
         /// Given a collections of the token indices that contain the header item, 
         /// as well as function that extracts the declaration, builds the corresponding HeaderEntries,
         /// throwing the corresponding exceptions if the building fails. 
         /// Returns all HeaderEntries for which the extracted name of the declaration is valid. 
         /// Returns null if the given collection of tokens is null.
         /// Throws an ArgumentNullException if the given function for extracting the declaration is null.
+        /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<T>)> GetHeaderItems<T>(
             IEnumerable<(CodeFragment.TokenIndex, ImmutableArray<string>)> tokens,
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> GetDeclaration, string keepInvalid) =>
             tokens?.Select(tIndex => (tIndex.Item1, HeaderEntry<T>.From(GetDeclaration, tIndex.Item1, tIndex.Item2, keepInvalid)))
                 .Where(tuple => tuple.Item2 != null).Select(tuple => (tuple.Item1, (HeaderEntry<T>)tuple.Item2));
 
+        /// <summary>
         /// For each token in the given sequence, queries the given file for all documenting comments preceding the token.
         /// Returns a new sequence containing both the token and the associated documentation. 
         /// Throws the corresponding exceptio if the given sequence of tokens is non-null 
         /// but contains an null token or a token with a null or invalid range.
+        /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, ImmutableArray<string>)> WithDocumentingComments
             (this IEnumerable<CodeFragment.TokenIndex> tokens, FileContentManager file) =>
             tokens?.Select(token => (token, file.DocumentingComments(token.GetFragment().GetRange().Start)));
 
+        /// <summary>
         /// Returns the HeaderItems corresponding to all namespaces declared in the given file, or null if the given file is null. 
         /// For namespaces with an invalid namespace name the symbol name in the header item will be set to an UnknownNamespace.
+        /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<object>)> GetNamespaceHeaderItems(this FileContentManager file) =>
             GetHeaderItems(file?.NamespaceDeclarationTokens().WithDocumentingComments(file), 
                 frag => frag.Kind.DeclaredNamespace(), ReservedKeywords.InternalUse.UnknownNamespace);
 
+        /// <summary>
         /// Returns the HeaderItems corresponding to all open directives with a valid name in the given file, or null if the given file is null. 
+        /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<(string, QsRangeInfo)>)> GetOpenDirectivesHeaderItems(this FileContentManager file) =>
             GetHeaderItems(file?.OpenDirectiveTokens().WithDocumentingComments(file), frag =>
             {
@@ -67,22 +75,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             , null);
 
+        /// <summary>
         /// Returns the HeaderItems corresponding to all type declarations with a valid name in the given file, or null if the given file is null. 
+        /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<QsTuple<Tuple<QsSymbol, QsType>>>)> GetTypeDeclarationHeaderItems(this FileContentManager file) =>
             GetHeaderItems(file?.TypeDeclarationTokens().WithDocumentingComments(file), 
                 frag => frag.Kind.DeclaredType(), null);
 
-        /// Returns the HeaderItems corresponding to all callable declarations with a valid name in the given file, or null if the given file is null. 
+        /// <summary>
+        /// Returns the HeaderItems corresponding to all callable declarations with a valid name in the given file, or null if the given file is null.
+        /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, CallableSignature>>)> GetCallableDeclarationHeaderItems
             (this FileContentManager file) =>
             GetHeaderItems(file?.CallableDeclarationTokens().WithDocumentingComments(file), 
                 frag => frag.Kind.DeclaredCallable(), null);
 
+        /// <summary>
         /// Given the HeaderEntry of the parent, defines a function that extracts the specialization declaration
         /// for a CodeFragment that contains a specialization, that can be used to build a HeaderEntry for the specialization.
         /// The symbol saved in that HeaderEntry then is the name of the specialized callable, 
         /// and its declaration contains the specialization kind as well as the range info for the specialization intro. 
         /// The function returns Null if the Kind of the given fragment is null.
+        /// </summary>
         private static QsNullable<Tuple<QsSymbol, (QsSpecializationKind, QsSpecializationGenerator, Tuple<QsPositionInfo, QsPositionInfo>)>> SpecializationDeclaration
             (HeaderEntry<Tuple<QsCallableKind, CallableSignature>> parent, CodeFragment fragment)
         {
@@ -101,9 +115,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return QsNullable<Tuple<QsSymbol, (QsSpecializationKind, QsSpecializationGenerator, Tuple<QsPositionInfo, QsPositionInfo>)>>.NewValue(returnTuple);
         }
 
+        /// <summary>
         /// Given a collection of positioned items, returns the closest proceeding item for the given position.
         /// Throws an ArgumentNullException if the given position or collection of items is null.
         /// Throws an ArugmentException if the given position is not a valid position, or if no item precedes the given position.
+        /// </summary>
         private static T ContainingParent<T>(Position pos, IReadOnlyCollection<(Position, T)> items)
         {
             if (!Utils.IsValidPosition(pos)) throw new ArgumentException(nameof(pos));
@@ -115,10 +131,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : throw new ArgumentException("no preceding item exists");
         }
 
+        /// <summary>
         /// Calls the given function on each of the given items to add, 
         /// and adds the returned diagnostics to the given list of diagnostics.
         /// Returns a List of the token indices and the corresponding header items for which no errors were generated.
         /// Throws an ArgumentNullException if the given diagnostics or items, or the function to add them is null.
+        /// </summary>
         private static List<(TItem, HeaderEntry<THeader>)> AddItems<TItem,THeader>(
             IEnumerable<(TItem, HeaderEntry<THeader>)> itemsToAdd,
             Func<Position, Tuple<NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>>, THeader, ImmutableArray<string>, QsCompilerDiagnostic[]> Add,
@@ -139,12 +157,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return itemsToCompile;
         }
 
+        /// <summary>
         /// Extracts all documenting comments in the given file directly preceding the given position.
         /// Documenting comments may be separated by an empty line. 
         /// Strips the preceding triple-slash for the comments, as well as whitespace and the line break at the end. 
         /// Returns null if no documenting comment is given, or if the documenting comments do not have any non-whitespace content. 
         /// Throws an ArgumentNullException if the given file or position is null. 
         /// Throws an ArgumentException if the given position is not a valid position within the given file. 
+        /// </summary>
         private static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos)
         {
             if (!Utils.IsValidPosition(pos, file)) throw new ArgumentException(nameof(pos));
@@ -155,6 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return docs.SkipWhile(line => String.IsNullOrWhiteSpace(line)).Reverse().SkipWhile(line => String.IsNullOrWhiteSpace(line)).ToImmutableArray();
         }
 
+        /// <summary>
         /// Updates the given compilation with the information about all globally declared types and callables in the given file.
         /// Adds the generated diagnostics to the given list of diagnostics. 
         /// Returns a lookup for all callables that are to be included in the compilation, 
@@ -165,6 +186,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an InvalidOperationException if the given file is not at least read-locked, 
         /// since the returned token indices will only be valid until the next write operation that affects the tokens in the file.
         /// Throws an InvalidOperationException if the lock for the given compilation cannot be set because a dependent lock is the gating lock ("outermost lock").
+        /// </summary>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>)> UpdateGlobalSymbols
             (this FileContentManager file, CompilationUnit compilation, List<Diagnostic> diagnostics)
         {
@@ -225,6 +247,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { compilation.ExitUpgradeableReadLock(); }
         }
 
+        /// <summary>
         /// Given the HeaderItem for a callable declaration, as well as the Namespace and the name of the source file it is declared in, 
         /// adds all specializations defined within the declaration body to the given namespace.
         /// If the declaration body consists of only statements, adds the specialization corresponding to the default body.
@@ -234,6 +257,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the given callable does not contain any specializations, 
         /// returns a list of token indices containing only the token of the callable declaration.
         /// Throws an ArgumentNullException if either the given namespace or diagnostics are null.
+        /// </summary>
         private static List<CodeFragment.TokenIndex> AddSpecializationsToNamespace(FileContentManager file, Namespace ns,
             (CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, CallableSignature>>) parent, List<Diagnostic> diagnostics)
         {
@@ -286,12 +310,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return contentToCompile;
         }
 
+        /// <summary>
         /// Resolves all type declarations, callable declarations and callable specializations in the given NamespacesManager, 
         /// and verifies that the type declarations do not have any cyclic dependencies.
         /// If no fileName is given or the given fileName is null, 
         /// adds all diagnostics generated during resolution and verification to the given list of diagnostics.
         /// If the given fileName is not null, adds only the diagnostics for the file with that name to the given list of diagnostics. 
         /// Throws an ArgumentNullException if the given NamespaceManager or list of diagnostics is null. 
+        /// </summary>
         internal static void ResolveGlobalSymbols(NamespaceManager symbols, List<Diagnostic> diagnostics, string fileName = null)
         {
             if (symbols == null) throw new ArgumentNullException(nameof(symbols));
@@ -316,10 +342,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
+        /// <summary>
         /// Updates the symbol information in the given compilation unit with all (validly placed) open directives in the given file,
         /// and adds the generated diagnostics for the given file *only* to the given list of diagnostics. 
         /// Throws an ArgumentNullException if the given compilation unit, the given file or the given diagnostics are null.
         /// Throws an InvalidOperationException if the lock for the given compilation cannot be set because a dependent lock is the gating lock ("outermost lock").
+        /// </summary>
         internal static void ImportGlobalSymbols(this FileContentManager file, CompilationUnit compilation, List<Diagnostic> diagnostics)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
@@ -341,11 +369,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { file.SyncRoot.ExitReadLock(); }
         }
 
+        /// <summary>
         /// Builds a FragmentTree containting the given grouping of token indices for a certain parent. 
         /// Assumes that all given token indices are associated with the given file. 
         /// Throws an ArgumentNullException if the given file or any of the given groupings is null.
         /// Throws an InvalidOperationException if the given file is not at least read-locked, 
         /// since token indices are only ever valid until the next write operation to the file they are associated with.  
+        /// </summary>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> GetDeclarationTrees(this FileContentManager file, 
             ImmutableDictionary<QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>)> content)
         {
@@ -371,6 +401,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 spec => (spec.Item2, new FragmentTree(file.FileName, spec.Item1.Namespace, spec.Item1.Name, spec.Item3)));
         }
 
+        /// <summary>
         /// Updates and resolves all global symbols in each given file, 
         /// and modifies the given CompilationUnit accordingly in the process.
         /// Replaces all HeaderDiagnostics in the given files with the newly computed diagnostics, 
@@ -379,6 +410,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// invokes it for the diagnostics of each given file after updating them. 
         /// Throws an ArgumentNullException if the given compilation is null, 
         /// or if the given files, or any file contained in files, is null.
+        /// </summary>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> UpdateGlobalSymbolsFor
             (this CompilationUnit compilation, IEnumerable<FileContentManager> files)
         {
@@ -420,10 +452,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // routines for building statements
 
+        /// <summary>
         /// Builds the QsScope containing the given list of tree nodes, 
         /// calling BuildStatement for each of them, and using the given symbol tracker to verify and track all symbols. 
         /// The declarations the scope inherits from its parents are assumed to be the current declarations in the given symbol tacker. 
         /// Throws an ArgumentNullException if any of the arguments is null.
+        /// </summary>
         private static QsScope BuildScope(IReadOnlyList<FragmentTree.TreeNode> nodeContent, 
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
         {
@@ -438,10 +472,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return new QsScope(statements, inheritedSymbols);
         }
 
+        /// <summary>
         /// Applies the given build function to the position relative to the tree root and the given symbol tracker 
         /// to get the desired object as well as a list of diagnostics.
         /// Adds the generated diagnostics to the given list of diagnostics, and returns the build object.
         /// Throws an ArgumentNullException if the given build function, symbolTracker, or diagnostics are null.
+        /// </summary>
         private static T BuildStatement<T>(FragmentTree.TreeNode node, 
             Func<QsLocation, SymbolTracker<Position>,Tuple<T, QsCompilerDiagnostic[]>> build, 
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
@@ -457,6 +493,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return statement;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is a using-block intro,
         /// builds the corresponding using-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -469,6 +506,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildUsingStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -493,6 +531,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is a borrowing-block intro,
         /// builds the corresponding borrowing-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -505,6 +544,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildBorrowStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -529,6 +569,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is a repeat-until-success (RUS) intro,
         /// builds the corresponding RUS-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -542,6 +583,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope,
         /// or if the repeat header is not followed by a until-success clause.
+        /// </summary>
         private static bool TryBuildRepeatStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -585,6 +627,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is a for-loop intro,
         /// builds the corresponding for-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -597,6 +640,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildForStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -621,6 +665,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is a while-loop intro,
         /// builds the corresponding while-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -633,6 +678,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildWhileStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -657,6 +703,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is an if-statement into,
         /// builds the corresponding if-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -669,6 +716,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildIfStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -715,6 +763,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is a let-statement,
         /// builds the corresponding let-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -727,6 +776,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildLetStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -747,6 +797,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is a mutable-statement,
         /// builds the corresponding mutable-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -759,6 +810,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildMutableStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -779,6 +831,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is a set-statement,
         /// builds the corresponding set-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -791,6 +844,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildSetStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -811,6 +865,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is a fail-statement,
         /// builds the corresponding fail-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -823,6 +878,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildFailStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -843,6 +899,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is a return-statement,
         /// builds the corresponding return-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -855,6 +912,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildReturnStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -875,6 +933,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// If the current tree node of the given iterator is an expression-statement,
         /// builds the corresponding expression-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -887,6 +946,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This routine will fail if accessing the current iterator item fails. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
         private static bool TryBuildExpressionStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
@@ -907,6 +967,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return false;
         }
 
+        /// <summary>
         /// Given a sequence of tree nodes, builds the corrsponding array of Q# statements (ignoring invalid fragments) 
         /// using and updating the given symbol tracker and adding the generated diagnostics to the given list of diagnostics, 
         /// provided each statement consists of a suitable statement header followed by the required continuation(s), if any. 
@@ -914,6 +975,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the given symbol tracker does not currently contain an open scope.
         /// Throws an ArgumentNullException if any of the given arguments is null,
         /// or if any of the fragments contained in the given nodes is null.
+        /// </summary>
         private static ImmutableArray<QsStatement> BuildStatements(IEnumerator<FragmentTree.TreeNode> nodes, 
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
         {
@@ -973,6 +1035,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return statements.ToImmutableArray();
         }
 
+        /// <summary>
         /// Builds the user defined implementation taking the given argument tuple as argument based on the (children of the) given specialization root. 
         /// Uses the given SymbolTracker to resolve the symbols used within the implementation, and generates suitable diagnostics in the process.  
         /// If necessary, generates suitable diagnostics for functor arguments (only!), which are discriminated by the missing position information 
@@ -980,6 +1043,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the expected return type for the specialization is not Unit, verifies that all paths return a value or fail, generating suitable diagnostics. 
         /// Adds the generated diagnostics to the given list of diagnostics.
         /// Throws an ArgumentNullException if the given argument, the symbol tracker, or diagnostics are null. 
+        /// </summary>
         private static SpecializationImplementation BuildUserDefinedImplemenation(
             FragmentTree.TreeNode root, NonNullable<string> sourceFile, 
             QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
@@ -1023,10 +1087,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return SpecializationImplementation.NewProvided(argTuple, implementation);
         }
 
+        /// <summary>
         /// Given a lookup of all specializations and their build directives for the parent callable,
         /// determines the necessary functor support required for each operation call within a user defined implementation of the specified specialization. 
         /// Throws an ArgumentNullException if the given specialization for which to determine the required functor support is null, 
         /// or if the given dictionary of all relevant build directives or any of its values is. 
+        /// </summary>
         private static IEnumerable<QsFunctor> RequiredFunctorSupport(QsSpecializationKind spec, 
             ImmutableDictionary<QsSpecializationKind, QsNullable<QsGeneratorDirective>> directives)
         {
@@ -1060,6 +1126,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
+        /// <summary>
         /// Given the root of a specialization declaration, the signature of the callable it belongs to,
         /// as well as the argument tuple of that callable, builds and returns the corresponding specialization.
         /// If the given root is a callable declaration, a default body specialization with its children as the implementation is returned - 
@@ -1069,6 +1136,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// the NamespaceManager containing all global declarations, or the given list of diagnostics is null. 
         /// Throws an ArgumentException if the given root is neither a specialization declaration, nor a callable declaration,
         /// or if the callable the specialization belongs to does not support that specialization according to the given NamespaceManager.
+        /// </summary>
         private static ImmutableArray<QsSpecialization> BuildSpecializations
             (FragmentTree specsRoot, ResolvedSignature parentSignature, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
             NamespaceManager symbols, List<Diagnostic> diagnostics, CancellationToken cancellationToken)
@@ -1185,12 +1253,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // externally accessible routines for compilation evaluation 
 
+        /// <summary>
         /// Given access to a NamespaceManager containing all global declarations and their resolutions via a CompilationUnit,
         /// type checks each of the given FragmentTrees until the process is cancelled via the given cancellation token.
         /// For each namespace and callable name that occurs in the given FragmentTrees builds the corresponding QsCallable.
         /// Updates the given CompilationUnit with all built callables. Checks all types defined in the NamespaceManager for cycles. 
         /// Returns a list with all accumulated diagnostics. If the request has been cancelled, returns null.
         /// Throws an ArgumentNullException if any of the arguments is null. 
+        /// </summary>
         internal static List<Diagnostic> RunTypeChecking (CompilationUnit compilation, 
             ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> roots, CancellationToken cancellationToken)
         {
@@ -1263,6 +1333,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { compilation.ExitUpgradeableReadLock(); }
         }
 
+        /// <summary>
         /// Returns all locally declared symbols at the given relative position as well as all statements for which these symbols are defined, 
         /// assuming that the position corresponds to a piece of code within the given scope.  
         /// Note that the list of statements for which these symbols are defined includes the statement at the given relative position, 
@@ -1273,6 +1344,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though. 
         /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
         /// or if the given relative position is not a valid position.
+        /// </summary>
         public static (LocalDeclarations, IEnumerable<QsStatement>) LocalDeclarationsAt(this QsScope scope, Position relativePosition)
         {
             if (scope == null) throw new ArgumentNullException(nameof(scope));
@@ -1316,6 +1388,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return (defined, new[] { lastPreceding }.Concat(followingStatements));
         }
 
+        /// <summary>
         /// Recomputes the globally defined symbols within the given file and updates the Symbols in the given compilation unit accordingly.
         /// Replaces all header diagnostics in the given file with the diagnostics generated during the symbol update.
         /// If neither the globally declared types/callables nor the imported namespaces have changed,
@@ -1325,6 +1398,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the globally declared types/callables have changed, a global type checking event is triggered, 
         /// since the type checking for the entire compilation unit and all compilation units depending on it needs to be recomputed. 
         /// Throws an ArgumentNullException if the given file or compilation unit is null. 
+        /// </summary>
         internal static void UpdateTypeChecking(this FileContentManager file, CompilationUnit compilation)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));

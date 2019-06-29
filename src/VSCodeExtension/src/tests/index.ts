@@ -1,6 +1,6 @@
-//
-// PLEASE DO NOT MODIFY / DELETE UNLESS YOU KNOW WHAT YOU ARE DOING
-//
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 // This file is providing the test runner to use when running extension tests.
 // By default the test runner in use is Mocha based.
 //

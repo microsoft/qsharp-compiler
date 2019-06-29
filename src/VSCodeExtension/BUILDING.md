@@ -20,17 +20,16 @@ After doing so, `vsce` can be used from the command line.
 
 ## Steps ##
 
-Building the VS Code extension follows in a few main steps:
+Building the VS Code extension requires the following steps:
 
-- Setting up the Solid build itself.
+- Setting up the build pre-requisites (see below for details).
 - Installing all Node.js dependencies required by the extension.
 - Compiling the language server and copying its assemblies into `bin/`.
 - Compiling the TypeScript for the extension itself.
   This step is automatically invoked when debugging the extension from within VS Code.
 
-To set up the Solid build, we require at a minimum that `package.json` was successfully created from `package.json.v.template`.
-This is necessary as `package.json` specifies all of the dependencies which must be installed in order for the TypeScript comprising the VS Code extension to successfully compile and run.
-Typically, `package.json` is created from `package.json.v.template` by running `setVersionNumber.cmd` from the root folder of the Solid repository.
+To set up the build pre-requisites, we require to run `build/bootstrap.cmd` from the root folder of the repository.
+This in particular creates `package.json` from `package.json.v.template`, which specifies all of the dependencies that must be installed in order for the TypeScript comprising the VS Code extension to successfully compile and run.
 
 Once `package.json` exists, Node.js dependencies can be installed:
 
@@ -48,7 +47,7 @@ vsce package
 
 ## Debugging ##
 
-As an alternative to using `vsce package` to produce an installable VSIX,  the VS Code extension can be run in an experimental instance of VS Code.
+As an alternative to using `vsce package` to produce an installable VSIX, the VS Code extension can be run in an experimental instance of VS Code.
 To do so, make sure that you have run the build procedure above through to calling `Build-Dependencies.ps1`.
 Then, from the Debug tab in VS Code, ensure that "Extension" is selected in the Debug target menu and press the green ‣.
 
@@ -67,8 +66,8 @@ Change back to the "Extension" debugger and resume.
 
 ## Common Problems ##
 
-### semver Issues ###
+### Semver Issues ###
 
 You may see an error when packaging or debugging the VS Code extension indicating that the package is not semver compatible.
-This indicates that `setVersionNumber.cmd` did not produce a SemVer 2.0–compatible version number when writing `package.json` from `package.json.v.template`, typically due to a mis-set environment variable.
-If this happens, correct the environment variables used by `setVersionNumber.cmd` or manually edit the `version` property of `package.json` (note that any such manual edits **will** be overwritten by calls to `setVersionNumber.cmd` and will not be saved in the repo).
+This indicates that the build script `Set-VersionNumbers.ps1` did not produce a SemVer 2.0–compatible version number when writing `package.json` from `package.json.v.template`, typically due to a mis-set environment variable.
+If this happens, correct the environment variables used by `Set-VersionNumbers.ps1` or manually edit the `version` property of `package.json` (note that any such manual edits **will** be overwritten by calls to `Set-VersionNumbers.ps1` and will not be saved in the repo).

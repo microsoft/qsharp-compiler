@@ -44,12 +44,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public string OutputFolder { get; set; }
         }
 
-
+        /// <summary>
         /// Regex that matches anything within array brackets.
+        /// </summary>
         public static readonly Regex WithinArrayBrackets =
             new Regex(@"\[(?:[^\[\]]|(?<ctr>\[)|(?<-ctr>\]))*(?(ctr)(?!))\]");
 
+        /// <summary>
         /// Replaces all semicolons that occur within array brackets in the given string with commas. 
+        /// </summary>
         public static string UpdateArrayLiterals(string fileContent)
         {
             string ReplaceSemicolons(Match match) => match.Value.Replace(';', ',');
@@ -57,8 +60,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         }
 
 
+        /// <summary>
         /// Returns formatted Q# code for the given statement.
         /// Throws an ArgumentNullException if the given statement is null.
+        /// </summary>
         internal static string FormatStatement(QsStatement statement)
         {
             if (statement == null) throw new ArgumentNullException(nameof(statement));
@@ -67,11 +72,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             return ToCode.Output;
         }
 
+        /// <summary>
         /// Generates formatted Q# code based on the part of the syntax tree that corresponds to each file in the given compilation. 
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet. 
         /// Throws an ArgumentException if this is not possible because the given syntax tree is inconsistent with that wrapping.  
         /// Throws an ArgumentNullException if the given compilation is null.
+        /// </summary>
         private static IEnumerable<string> GenerateQsCode(Compilation compilation, NonNullable<string> file, ILogger logger)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
@@ -105,12 +112,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             };
         }
 
+        /// <summary>
         /// Generates formatted Q# code for the file with the given uri based on the syntax tree in the given compilation. 
         /// If the id of the file is consistent with the one assigned to a code snippet,
         /// logs the generated code using the given logger. 
         /// Creates a file containing the generated code in the given output folder otherwise.  
         /// Returns true if the generation succeeded, and false if an exception was thrown. 
         /// Throws an ArgumentNullException if the given compilation, the file uri or its absolute path are null.  
+        /// </summary>
         private static bool GenerateFormattedQsFile(Compilation compilation, NonNullable<string> fileName, string outputFolder, ILogger logger)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
@@ -137,11 +146,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             return true;
         }
 
+        /// <summary>
         /// Builds the compilation for the Q# code or Q# snippet and referenced assemblies defined by the given options.
         /// Generates formatted Q# code for each source file in the compilation. 
         /// Returns a suitable error code if some of the source files or references could not be found or loaded, or if the Q# generation failed.
         /// Compilation errors are not reflected in the return code, but are logged using the given logger. 
         /// Throws an ArgumentNullException if any of the given arguments is null.
+        /// </summary>
         public static int Run(FormatOptions options, ConsoleLogger logger)
         {
             if (options == null) throw new ArgumentNullException(nameof(options));

@@ -36,7 +36,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         private ClientCapabilities ClientCapabilities;
         private readonly EditorState EditorState;
 
+        /// <summary>
         /// helper function that selects a markup format from the given array of supported formats
+        /// </summary>
         private MarkupKind ChooseFormat(MarkupKind[] supportedFormats) =>
             supportedFormats?.Any() ?? false
                 ? supportedFormats.Contains(MarkupKind.Markdown) ? MarkupKind.Markdown : supportedFormats.First()
@@ -93,7 +95,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal Task PublishDiagnosticsAsync(PublishDiagnosticParams diagnostics) =>
             this.NotifyClientAsync(Methods.TextDocumentPublishDiagnosticsName, diagnostics);
 
+        /// <summary>
         /// does not actually do anything unless the corresponding flag is defined upon compilation
+        /// </summary>
         internal Task SendTelemetryAsync(string eventName,
             Dictionary<string, string> properties, Dictionary<string, int> measurements) =>
 #if TELEMETRY
@@ -107,7 +111,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             Task.CompletedTask;
 #endif
 
+        /// <summary>
         /// to be called when the server encounters an internal error (i.e. a QsCompilerError is raised)
+        /// </summary>
         internal void OnInternalError(Exception ex)
         {
             var line = "\n=============================\n";
