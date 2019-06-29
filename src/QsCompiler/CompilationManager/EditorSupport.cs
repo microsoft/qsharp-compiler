@@ -23,17 +23,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         // utils for getting the necessary information for editor commands
 
-        /// <summary>
-        /// Maps supported SymbolKind values to CompletionItemKind values.
-        /// </summary>
-        private static readonly IImmutableDictionary<SymbolKind, CompletionItemKind> completionKinds =
-            new Dictionary<SymbolKind, CompletionItemKind>
-            {
-                { SymbolKind.Namespace, CompletionItemKind.Module },
-                { SymbolKind.Struct, CompletionItemKind.Struct },
-                { SymbolKind.Method, CompletionItemKind.Method }
-            }.ToImmutableDictionary();
-
         /// throws an ArgumentNullException if the given offset or relative range is null
         private static Location AsLocation(NonNullable<string> source,
             Tuple<int, int> offset, Tuple<QsPositionInfo, QsPositionInfo> relRange) =>
@@ -618,16 +607,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Label = variable.VariableName.Value,
                     Kind = CompletionItemKind.Variable
                 });
-            var symbols = file.DocumentSymbols().Select(symbol => new CompletionItem()
-            {
-                Label = symbol.Name,
-                Kind = completionKinds.GetValueOrDefault(symbol.Kind)
-            });
-
             return new CompletionList()
             {
                 IsIncomplete = false,
-                Items = locals.Concat(symbols).ToArray()
+                Items = locals.ToArray()
             };
         }
 
