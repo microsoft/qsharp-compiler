@@ -642,18 +642,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             QsFragmentKind kind = fragment.Kind ?? QsFragmentKind.InvalidFragment;
             Position offset = fragment.GetRange().Start;
 
+            // If the symbol is invalid, assume the user is typing it in. This is a heuristic that isn't always
+            // accurate, but it's better than nothing.
             bool PositionIsWithinSymbol(QsSymbol symbol) =>
+                symbol.Symbol.IsInvalidSymbol ||
                 position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(offset, symbol.Range.Item), includeEnd: true);
 
             switch (kind)
             {
-                // If the binding symbol is invalid, assume we're typing it in now. Otherwise, check if the position is
-                // inside the binding symbol.
-                case QsFragmentKind.ImmutableBinding ib:
-                    return ib.Item1.Symbol.IsInvalidSymbol || PositionIsWithinSymbol(ib.Item1);
+                case QsFragmentKind.TypeDefinition td:
+                    return PositionIsWithinSymbol(td.Item1);
+                case QsFragmentKind.FunctionDeclaration fd:
+                    return PositionIsWithinSymbol(fd.Item1);
+                case QsFragmentKind.OperationDeclaration od:
+                    return PositionIsWithinSymbol(od.Item1);
+                case QsFragmentKind.BorrowingBlockIntro bbi:
+                    return PositionIsWithinSymbol(bbi.Item1);
+                case QsFragmentKind.UsingBlockIntro ubi:
+                    return PositionIsWithinSymbol(ubi.Item1);
+                case QsFragmentKind.ForLoopIntro fli:
+                    return PositionIsWithinSymbol(fli.Item1);
                 case QsFragmentKind.MutableBinding mb:
-                    return mb.Item1.Symbol.IsInvalidSymbol || PositionIsWithinSymbol(mb.Item1);
-                // TODO: Add more cases.
+                    return PositionIsWithinSymbol(mb.Item1);
+                case QsFragmentKind.ImmutableBinding ib:
+                    return PositionIsWithinSymbol(ib.Item1);
+                case QsFragmentKind.NamespaceDeclaration nd:
+                    return PositionIsWithinSymbol(nd.Item);
                 default:
                     return false;
             }
