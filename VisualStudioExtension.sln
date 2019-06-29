@@ -3,36 +3,36 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28809.33
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpFileTemplate", "VisualStudioExtension\QsharpFileTemplate\QsharpFileTemplate.csproj", "{5FDE4059-4A30-449C-82BA-483FDD3CD685}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpFileTemplate", "src\VisualStudioExtension\QsharpFileTemplate\QsharpFileTemplate.csproj", "{5FDE4059-4A30-449C-82BA-483FDD3CD685}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpVSIX", "VisualStudioExtension\QsharpVSIX\QsharpVSIX.csproj", "{35D0960B-E2EF-4FE6-B37B-613432C19C93}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpVSIX", "src\VisualStudioExtension\QsharpVSIX\QsharpVSIX.csproj", "{35D0960B-E2EF-4FE6-B37B-613432C19C93}"
 	ProjectSection(ProjectDependencies) = postProject
 		{DAC0C843-3BF1-41B0-AE7B-A2CC2AA62A12} = {DAC0C843-3BF1-41B0-AE7B-A2CC2AA62A12}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpAppTemplate", "VisualStudioExtension\QsharpAppTemplate\QsharpAppTemplate.csproj", "{F28C2462-3025-4628-B67E-DFDE9CB7DE52}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpAppTemplate", "src\VisualStudioExtension\QsharpAppTemplate\QsharpAppTemplate.csproj", "{F28C2462-3025-4628-B67E-DFDE9CB7DE52}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpTestTemplate", "VisualStudioExtension\QsharpTestTemplate\QsharpTestTemplate.csproj", "{AF507080-9AEA-4774-87E3-3CCAB6E8A3B6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpTestTemplate", "src\VisualStudioExtension\QsharpTestTemplate\QsharpTestTemplate.csproj", "{AF507080-9AEA-4774-87E3-3CCAB6E8A3B6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpLibTemplate", "VisualStudioExtension\QsharpLibTemplate\QsharpLibTemplate.csproj", "{9EF3C982-D6B4-47BE-A0FE-660F91738881}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpLibTemplate", "src\VisualStudioExtension\QsharpLibTemplate\QsharpLibTemplate.csproj", "{9EF3C982-D6B4-47BE-A0FE-660F91738881}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LanguageServer", "LanguageServer", "{EEC1E3AF-9958-4A04-BD62-163955CB3AD1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpLanguageClient", "VisualStudioExtension\QsharpLanguageClient\QsharpLanguageClient.csproj", "{7E56705D-3B1D-4D91-8379-C643B1B983F8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpLanguageClient", "src\VisualStudioExtension\QsharpLanguageClient\QsharpLanguageClient.csproj", "{7E56705D-3B1D-4D91-8379-C643B1B983F8}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsTextProcessor", "QsCompiler\TextProcessor\QsTextProcessor.fsproj", "{79A94B62-A36E-48D4-8BF1-BFA0C86F1C05}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsTextProcessor", "src\QsCompiler\TextProcessor\QsTextProcessor.fsproj", "{79A94B62-A36E-48D4-8BF1-BFA0C86F1C05}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsLanguageServer", "QsCompiler\LanguageServer\QsLanguageServer.csproj", "{DAC0C843-3BF1-41B0-AE7B-A2CC2AA62A12}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsLanguageServer", "src\QsCompiler\LanguageServer\QsLanguageServer.csproj", "{DAC0C843-3BF1-41B0-AE7B-A2CC2AA62A12}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsDataStructures", "QsCompiler\DataStructures\QsDataStructures.fsproj", "{6519DDC6-B712-456D-80E4-501FEEAD52A1}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsDataStructures", "src\QsCompiler\DataStructures\QsDataStructures.fsproj", "{6519DDC6-B712-456D-80E4-501FEEAD52A1}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsSyntaxProcessor", "QsCompiler\SyntaxProcessor\QsSyntaxProcessor.fsproj", "{3EB46539-3843-44C0-B511-37CD752FD3A3}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsSyntaxProcessor", "src\QsCompiler\SyntaxProcessor\QsSyntaxProcessor.fsproj", "{3EB46539-3843-44C0-B511-37CD752FD3A3}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsCore", "QsCompiler\Core\QsCore.fsproj", "{B3D3D668-4C5B-4A5A-96AB-EC5687FABACC}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsCore", "src\QsCompiler\Core\QsCore.fsproj", "{B3D3D668-4C5B-4A5A-96AB-EC5687FABACC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsTransformations", "QsCompiler\Transformations\QsTransformations.csproj", "{1E95FEBE-6FEA-42DD-A6D6-91946F1D3EBB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsTransformations", "src\QsCompiler\Transformations\QsTransformations.csproj", "{1E95FEBE-6FEA-42DD-A6D6-91946F1D3EBB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsCompilationManager", "QsCompiler\CompilationManager\QsCompilationManager.csproj", "{71248191-ABDE-4241-9FD9-B073D553AAA3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsCompilationManager", "src\QsCompiler\CompilationManager\QsCompilationManager.csproj", "{71248191-ABDE-4241-9FD9-B073D553AAA3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

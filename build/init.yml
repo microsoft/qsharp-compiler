@@ -19,7 +19,7 @@ steps:
 # Bootstrap
 ##
 - task: BatchScript@1
-  displayName: 'Run bootstrap.cmd'
+  displayName: 'Prepare build'
   inputs:
-    filename: build/bootstrap.cmd
+    filename: bootstrap.cmd
     modifyEnvironment: true

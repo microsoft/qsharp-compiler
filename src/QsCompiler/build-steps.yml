@@ -8,7 +8,7 @@ steps:
   inputs:
     command: test
     arguments: '-c $(BuildConfiguration) -v $(Build.Verbosity)  /p:DefineConstants=$(Assembly.Constants) /p:Version=$(Assembly.Version)'
-    projects: '$(CompilerSrcDir)/../QsCompiler.sln'
+    projects: '$(CompilerSrcDir)/../../QsCompiler.sln'
     
 
 - task: DotNetCoreCLI@2
