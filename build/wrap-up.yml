@@ -23,6 +23,7 @@ steps:
     SourceFolder: '$(Compiler.WorkingDirectory)'
     Contents: 'src\**\*.vsix'
     TargetFolder: '$(VSIX.Outdir)'
+    FlattenFolders: true
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: qsharp-compiler'
