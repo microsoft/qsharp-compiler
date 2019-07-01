@@ -34,6 +34,7 @@ Build-One 'publish' '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
 # VSCode extension
 ##
 pushd ../src/VSCodeExtension
+..\..\build\setup.ps1
 npm install
 npm run compile
 popd
