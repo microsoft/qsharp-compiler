@@ -2,18 +2,18 @@ steps:
 - template: init.yml
 
 
-- powershell: ./build.sh
+- powershell: ./build.ps1
   displayName: "Building"
   workingDirectory: $(Compiler.WorkingDirectory)/build
 
 
-- powershell: ./test.sh
+- powershell: ./test.ps1
   displayName: "Testing"
   workingDirectory: $(Compiler.WorkingDirectory)/build
   condition: and(succeeded(), ne(variables['Skip.Tests'], 'true'))
 
 
-- powershell: ./pack.sh
+- powershell: ./pack.ps1
   displayName: "Pack"
   workingDirectory: $(Compiler.WorkingDirectory)/build
 
