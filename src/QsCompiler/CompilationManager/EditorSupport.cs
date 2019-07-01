@@ -645,10 +645,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 });
 
             string @namespace = file.TryGetNamespaceAt(position);
-            var callables = compilation
-                .GlobalSymbols
-                .DefinedCallables()
-                .Where(callable => callable.QualifiedName.Namespace.Value == @namespace)
+            var openedNamespaces = compilation
+                .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
+                .Select(item => item.Item1.Value);
+            var callables =
+                compilation.GlobalSymbols.DefinedCallables()
+                .Concat(compilation.GlobalSymbols.ImportedCallables())
+                .Where(callable =>
+                    callable.QualifiedName.Namespace.Value == @namespace ||
+                    openedNamespaces.Contains(callable.QualifiedName.Namespace.Value))
                 .Select(callable => new CompletionItem()
                 {
                     Label = callable.QualifiedName.Name.Value,
