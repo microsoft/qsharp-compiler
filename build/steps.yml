@@ -3,18 +3,18 @@ steps:
 
 
 - bash: ./build.sh
-  displayName: "Building Q# compiler"
+  displayName: "Building"
   workingDirectory: $(Compiler.WorkingDirectory)/build
 
 
 - bash: ./test.sh
-  displayName: "Testing Q# compiler"
+  displayName: "Testing"
   workingDirectory: $(Compiler.WorkingDirectory)/build
   condition: and(succeeded(), ne(variables['Skip.Tests'], 'true'))
 
 
 - bash: ./pack.sh
-  displayName: "Pack Q# compiler"
+  displayName: "Pack"
   workingDirectory: $(Compiler.WorkingDirectory)/build
 
 

@@ -28,7 +28,7 @@ do_one publish '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
 ##
 # VSCode extension
 ##
-pushd ..\src\VSCodeExtension\
+pushd ../src/VSCodeExtension
 npm install
 npm run compile
 popd
