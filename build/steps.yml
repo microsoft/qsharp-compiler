@@ -1,18 +1,21 @@
 steps:
 - template: init.yml
 
-##
-# Build the compiler, language server and VS extension
-##
-- template: ../src/QsCompiler/build-steps.yml
-- template: ../src/VisualStudioExtension/build-steps.yml
 
-##
-# Create the corresponding packages and extensions
-##
-- template: pack.yml  
+- bash: ./build.sh
+  displayName: "Building Q# compiler"
+  workingDirectory: $(Compiler.WorkingDirectory)/build
 
-##
-# Wrap-up
-##
+
+- bash: ./test.sh
+  displayName: "Testing Q# compiler"
+  workingDirectory: $(Compiler.WorkingDirectory)/build
+  condition: and(succeeded(), ne(variables['Skip.Tests'], 'true'))
+
+
+- bash: ./pack.sh
+  displayName: "Pack Q# compiler"
+  workingDirectory: $(Compiler.WorkingDirectory)/build
+
+
 - template: wrap-up.yml

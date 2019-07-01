@@ -1,8 +1,15 @@
 name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(DayOfMonth)$(rev:rr)
-trigger: none
+trigger:
+- master
 
 variables:
-  - template: vars-common.yml
+  Build.Major: 0
+  Build.Minor: 0
+  IQSharp.Hosting.Env: 'build-agent'
+  Runtime.WorkingDirectory: $(System.DefaultWorkingDirectory)
+  Nuget.Outdir: $(Build.ArtifactStagingDirectory)/drops/nugets
+  Docs.Outdir: $(Build.ArtifactStagingDirectory)/drops/docs
+  Drop.Native: $(System.DefaultWorkingDirectory)/xplat
 
 
 jobs:
