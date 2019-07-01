@@ -48,10 +48,10 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             if (line.LineNumber == 0)
                 return 0;
 
-            ITextSnapshotLine previousLine = line.Snapshot.GetLineFromLineNumber(line.LineNumber - 1);
-            int desiredIndent = GetIndentation(previousLine.GetText());
+            ITextSnapshotLine lastNonEmptyLine = GetLastNonEmptyLine(line);
+            int desiredIndent = GetIndentation(lastNonEmptyLine.GetText());
             int indentSize = textView.Options.GetIndentSize();
-            if (StartsBlock(previousLine.GetText()))
+            if (StartsBlock(lastNonEmptyLine.GetText()))
                 desiredIndent += indentSize;
             if (EndsBlock(line.GetText()))
                 desiredIndent -= indentSize;
@@ -113,6 +113,20 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         /// Returns true if the character is an indentation character (a space or a tab).
         /// </summary>
         private static bool IsIndentation(char c) => c == ' ' || c == '\t';
+
+        /// <summary>
+        /// Returns the last non-empty line before the given line. If all of the lines before the given line are empty,
+        /// returns the first line of the snapshot instead.
+        /// <para/>
+        /// Assumes that the given line is not the first line of the snapshot.
+        /// </summary>
+        private static ITextSnapshotLine GetLastNonEmptyLine(ITextSnapshotLine line)
+        {
+            int lineNumber = line.LineNumber - 1;
+            while (lineNumber > 0 && line.Snapshot.GetLineFromLineNumber(lineNumber).Length == 0)
+                lineNumber--;
+            return line.Snapshot.GetLineFromLineNumber(lineNumber);
+        }
     }
 
     [ContentType("Q#")]
