@@ -643,10 +643,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Label = variable.VariableName.Value,
                     Kind = CompletionItemKind.Variable
                 });
+
+            string @namespace = file.TryGetNamespaceAt(position);
+            var callables = compilation
+                .GlobalSymbols
+                .DefinedCallables()
+                .Where(callable => callable.QualifiedName.Namespace.Value == @namespace)
+                .Select(callable => new CompletionItem()
+                {
+                    Label = callable.QualifiedName.Name.Value,
+                    Kind = CompletionItemKind.Method
+                });
+
             return new CompletionList()
             {
                 IsIncomplete = false,
-                Items = locals.ToArray()
+                Items = locals.Concat(callables).ToArray()
             };
         }
 
