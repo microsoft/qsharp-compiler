@@ -18,4 +18,23 @@ steps:
   workingDirectory: $(Compiler.WorkingDirectory)/build
 
 
+
+##
+# VisualStudio Extension can't be built from the build script.
+##
+- task: NuGetCommand@2
+  displayName: 'NuGet restore VisualStudioExtension'
+  inputs:
+    restoreSolution: '$(Compiler.WorkingDirectory)/VisualStudioExtension.sln'
+
+- task: VSBuild@1
+  displayName: 'Build VisualStudioExtension'
+  inputs:
+    solution: '$(Compiler.WorkingDirectory)/VisualStudioExtension.sln'
+    msbuildArgs: >
+      /p:DefineConstants=$(Assembly.Constants) 
+      /p:AssemblyVersion=$(Assembly.Version)
+    configuration: $(Build.Configuration)
+
+
 - template: wrap-up.yml

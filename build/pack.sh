@@ -4,9 +4,26 @@ set -e
 
 . ./set-env.sh
 
-./compiler-pack.sh
+##
+# Q# compiler
+##
+pack_one() {
+    nuget pack $1 \
+        -OutputDirectory $NUGET_OUTDIR \
+        -Properties Configuration=$BUILD_CONFIGURATION \
+        -Version $NUGET_VERSION \
+        -Verbosity detailed \
+        $2
 
-powershell -NoProfile ./extensions-pack.ps1 \
-    $BUILD_CONFIGURATION \
-    $ASSEMBLY_VERSION \
-    $VSIX_OUTDIR
+}
+
+echo "##[info]Using nuget to create packages"
+pack_one ../src/QsCompiler/Compiler/QsCompiler.csproj -IncludeReferencedProjects
+
+##
+# VSCode extension
+##
+pushd ../src/VSCodeExtension
+npm install vsce
+vsce package
+popd

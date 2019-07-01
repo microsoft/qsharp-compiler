@@ -4,9 +4,32 @@ set -e
 
 . ./set-env.sh
 
-./compiler-build.sh
+##
+# Q# compiler
+##
+do_one() {
+    dotnet $1 $2 \
+        -c $BUILD_CONFIGURATION \
+        -v $BUILD_VERBOSITY \
+        /property:DefineConstants=$ASSEMBLY_CONSTANTS \
+        /property:Version=$ASSEMBLY_VERSION 
+}
 
-powershell -NoProfile ./extensions-build.ps1 \
-    $BUILD_CONFIGURATION \
-    $ASSEMBLY_VERSION \
-    $ASSEMBLY_CONSTANTS
+echo "##[info]Build Q# compiler"
+do_one build '../QsCompiler.sln'
+
+echo "##[info]Publish Q# compiler app"
+do_one publish '../src/QsCompiler/CommandLineTool/QsCommandLineTool.csproj'
+
+echo "##[info]Publish Q# Language Server"
+do_one publish '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
+
+
+##
+# VSCode extension
+##
+pushd ..\src\VSCodeExtension\
+npm install
+npm run compile
+popd
+

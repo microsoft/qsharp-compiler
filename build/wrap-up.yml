@@ -16,6 +16,14 @@ steps:
   inputs:
     SearchPattern: '**\bin\**\*.pdb'
 
+- task: CopyFiles@2
+  displayName: 'Copy VSIX to: $(VSIX.Outdir)'
+  condition: succeededOrFailed()
+  inputs:
+    SourceFolder: '$(Compiler.WorkingDirectory)'
+    Contents: 'src\**\*.vsix'
+    TargetFolder: '$(VSIX.Outdir)'
+
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: qsharp-compiler'
   condition: succeededOrFailed()
