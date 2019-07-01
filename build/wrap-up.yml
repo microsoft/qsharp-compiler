@@ -17,8 +17,8 @@ steps:
     SearchPattern: '**\bin\**\*.pdb'
 
 - task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifact: drop'
+  displayName: 'Publish Artifact: qsharp-compiler'
   condition: succeededOrFailed()
   inputs:
-    PathtoPublish: '$(build.artifactstagingdirectory)'
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     artifactName: qsharp-compiler
