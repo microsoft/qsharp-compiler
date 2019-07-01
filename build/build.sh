@@ -29,7 +29,17 @@ do_one publish '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
 # VSCode extension
 ##
 pushd ../src/VSCodeExtension
-npm install
-npm run compile
+
+if [ -f 'package.json' ]; then
+    npm install
+    npm run compile
+else
+    echo "
+    ---------------------------------------------------------------------------
+    Missing package.json. vs-code extension will be skipped.
+    To build it, execute setup.ps1 first.
+    ---------------------------------------------------------------------------"
+fi
+
 popd
 

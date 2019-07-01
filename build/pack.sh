@@ -24,6 +24,14 @@ pack_one ../src/QsCompiler/Compiler/QsCompiler.csproj -IncludeReferencedProjects
 # VSCode extension
 ##
 pushd ../src/VSCodeExtension
-npm install vsce
-vsce package
+if [ -f 'package.json' ]; then
+    npm install vsce
+    vsce package
+else
+    echo "
+    ---------------------------------------------------------------------------
+    Missing package.json. vs-code extension will be skipped.
+    To build it, execute setup.ps1 first.
+    ---------------------------------------------------------------------------"
+fi
 popd
