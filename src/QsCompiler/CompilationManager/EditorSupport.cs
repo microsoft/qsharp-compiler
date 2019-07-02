@@ -644,26 +644,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Kind = CompletionItemKind.Variable
                 });
 
-            string @namespace = file.TryGetNamespaceAt(position);
-            var openedNamespaces = compilation
-                .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
-                .Select(item => item.Item1.Value);
+            var visibleNamespaces = GetVisibleNamespaces(file, compilation, position);
             var callables =
                 compilation.GlobalSymbols.DefinedCallables()
                 .Concat(compilation.GlobalSymbols.ImportedCallables())
-                .Where(callable =>
-                    callable.QualifiedName.Namespace.Value == @namespace ||
-                    openedNamespaces.Contains(callable.QualifiedName.Namespace.Value))
+                .Where(callable => visibleNamespaces.Contains(callable.QualifiedName.Namespace.Value))
                 .Select(callable => new CompletionItem()
                 {
                     Label = callable.QualifiedName.Name.Value,
                     Kind = CompletionItemKind.Method
                 });
+            var types =
+                compilation.GlobalSymbols.DefinedTypes()
+                .Concat(compilation.GlobalSymbols.ImportedTypes())
+                .Where(type => visibleNamespaces.Contains(type.QualifiedName.Namespace.Value))
+                .Select(type => new CompletionItem()
+                {
+                    Label = type.QualifiedName.Name.Value,
+                    Kind = CompletionItemKind.Struct
+                });
 
             return new CompletionList()
             {
                 IsIncomplete = false,
-                Items = locals.Concat(callables).ToArray()
+                Items = locals.Concat(callables).Concat(types).ToArray()
             };
         }
 
@@ -707,6 +711,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 default:
                     return false;
             }
+        }
+
+        /// <summary>
+        /// Returns all of the namespaces that are visible at the given position in the file. This includes the current
+        /// namespace and all opened namespaces.
+        /// </summary>
+        private static IEnumerable<string> GetVisibleNamespaces(
+            FileContentManager file, CompilationUnit compilation, Position position)
+        {
+            string @namespace = file.TryGetNamespaceAt(position);
+            var openedNamespaces = compilation
+                .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
+                .Select(item => item.Item1.Value);
+            return openedNamespaces.Concat(new[] { @namespace });
         }
     }
 }
