@@ -635,26 +635,75 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (IsDeclaringNewSymbol(file, position))
                 return new CompletionList() { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
 
-            var locals = compilation
-                .TryGetLocalDeclarations(file, position, out var name)
+            return new CompletionList()
+            {
+                IsIncomplete = false,
+                Items =
+                    GetLocalCompletions(file, compilation, position)
+                    .Concat(GetCallableCompletions(file, compilation, position))
+                    .Concat(GetTypeCompletions(file, compilation, position))
+                    .ToArray()
+            };
+        }
+
+        /// <summary>
+        /// Returns completions for local variables at the given position.
+        /// </summary>
+        private static IEnumerable<CompletionItem> GetLocalCompletions(
+            FileContentManager file, CompilationUnit compilation, Position position)
+        {
+            return
+                compilation
+                .TryGetLocalDeclarations(file, position, out var _)
                 .Variables
                 .Select(variable => new CompletionItem()
                 {
                     Label = variable.VariableName.Value,
                     Kind = CompletionItemKind.Variable
                 });
+        }
+
+        /// <summary>
+        /// Returns completions for all callables at the given position.
+        /// </summary>
+        private static IEnumerable<CompletionItem> GetCallableCompletions(
+            FileContentManager file, CompilationUnit compilation, Position position)
+        {
+            CompletionItemKind CompletionKindFromCallableKind(QsCallableKind kind)
+            {
+                switch (kind.Tag)
+                {
+                    case QsCallableKind.Tags.Function:
+                        return CompletionItemKind.Function;
+                    case QsCallableKind.Tags.Operation:
+                        return CompletionItemKind.Method;
+                    case QsCallableKind.Tags.TypeConstructor:
+                        return CompletionItemKind.Constructor;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
 
             var visibleNamespaces = GetVisibleNamespaces(file, compilation, position);
-            var callables =
+            return
                 compilation.GlobalSymbols.DefinedCallables()
                 .Concat(compilation.GlobalSymbols.ImportedCallables())
                 .Where(callable => visibleNamespaces.Contains(callable.QualifiedName.Namespace.Value))
                 .Select(callable => new CompletionItem()
                 {
                     Label = callable.QualifiedName.Name.Value,
-                    Kind = CompletionItemKind.Method
+                    Kind = CompletionKindFromCallableKind(callable.Kind)
                 });
-            var types =
+        }
+
+        /// <summary>
+        /// Returns completions for all types at the given position.
+        /// </summary>
+        private static IEnumerable<CompletionItem> GetTypeCompletions(
+            FileContentManager file, CompilationUnit compilation, Position position)
+        {
+            var visibleNamespaces = GetVisibleNamespaces(file, compilation, position);
+            return
                 compilation.GlobalSymbols.DefinedTypes()
                 .Concat(compilation.GlobalSymbols.ImportedTypes())
                 .Where(type => visibleNamespaces.Contains(type.QualifiedName.Namespace.Value))
@@ -663,12 +712,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Label = type.QualifiedName.Name.Value,
                     Kind = CompletionItemKind.Struct
                 });
-
-            return new CompletionList()
-            {
-                IsIncomplete = false,
-                Items = locals.Concat(callables).Concat(types).ToArray()
-            };
         }
 
         /// <summary>
