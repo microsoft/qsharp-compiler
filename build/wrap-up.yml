@@ -11,7 +11,7 @@ steps:
     testRunTitle: 'Q# compiler tests'
 
 - task: PublishSymbols@1
-  displayName: 'Publish symbols path: '
+  displayName: 'Publish symbols'
   continueOnError: true
   inputs:
     SearchPattern: '**\bin\**\*.pdb'
