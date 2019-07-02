@@ -3,10 +3,13 @@
 
 $ErrorActionPreference = 'Stop'
 
-.\set-env.ps1
+& "$PSScriptRoot/set-env.ps1"
+$all_ok = $True
 
 function Test-One {
-    Param($project)
+    Param(
+        [string]$project
+    );
 
     dotnet test $project `
         -c $Env:BUILD_CONFIGURATION `
@@ -15,9 +18,15 @@ function Test-One {
         /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
         /property:Version=$Env:ASSEMBLY_VERSION
 
-    if ($LastExitCode -ne 0) { throw "Cannot test $project." }
+    return ($LastExitCode -ne 0)
 }
 
-Write-Host "##[info]Testing C# code generation"
-Test-One '../QsCompiler.sln'
+Write-Host "##[info]Testing Q# compiler..."
+$all_ok = (Test-One '../QsCompiler.sln') -and $all_ok
+
+
+if (-not $all_ok) 
+{
+    throw "At least one project failed to compile. Check the logs."
+}
 

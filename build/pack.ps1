@@ -3,13 +3,18 @@
 
 $ErrorActionPreference = 'Stop'
 
-.\set-env.ps1
+& "$PSScriptRoot/set-env.ps1"
+$all_ok = $True
 
 ##
 # Q# compiler
 ##
 function Pack-One() {
-    Param($project, $include_references="")
+    param(
+        [string]$project, 
+        [string]$include_references=""
+    );
+
     nuget pack $project `
         -OutputDirectory $Env:NUGET_OUTDIR `
         -Properties Configuration=$Env:BUILD_CONFIGURATION `
@@ -17,16 +22,24 @@ function Pack-One() {
         -Verbosity detailed `
         $include_references
 
-    if ($LastExitCode -ne 0) { throw "Cannot pack $project." }
+    return ($LastExitCode -eq 0)
 }
 
 Write-Host "##[info]Using nuget to create packages"
-Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects'
+$all_ok = (Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects') -and $all_ok
 
 ##
 # VSCode extension
 ##
-pushd ../src/VSCodeExtension
-npm install vsce
-vsce package
-popd
+Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
+    npm install vsce
+    vsce package
+    $all_ok = ($LastExitCode -eq 0) -and $all_ok
+Pop-Location
+
+
+if (-not $all_ok) 
+{
+    throw "At least one project failed to pack. Check the logs."
+}
+
