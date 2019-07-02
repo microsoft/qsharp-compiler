@@ -18,11 +18,11 @@ function Test-One {
         /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
         /property:Version=$Env:ASSEMBLY_VERSION
 
-    return ($LastExitCode -ne 0)
+    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 }
 
 Write-Host "##[info]Testing Q# compiler..."
-$all_ok = (Test-One '../QsCompiler.sln') -and $all_ok
+Test-One '../QsCompiler.sln'
 
 
 if (-not $all_ok) 

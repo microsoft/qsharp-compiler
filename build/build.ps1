@@ -21,17 +21,17 @@ function Build-One {
         /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
         /property:Version=$Env:ASSEMBLY_VERSION
 
-    return ($LastExitCode -eq 0)
+    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 }
 
 Write-Host "##[info]Building Q# compiler..."
-$all_ok = (Build-One 'build' '../QsCompiler.sln') -and $all_ok
+Build-One 'build' '../QsCompiler.sln'
 
 Write-Host "##[info]Publishing Q# compiler app..."
-$all_ok = (Build-One 'publish' '../src/QsCompiler/CommandLineTool/QsCommandLineTool.csproj') -and $all_ok
+Build-One 'publish' '../src/QsCompiler/CommandLineTool/QsCommandLineTool.csproj'
 
 Write-Host "##[info]Publishing Q# Language Server..."
-$all_ok = (Build-One 'publish' '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj') -and $all_ok
+Build-One 'publish' '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
 
 
 ##
@@ -41,7 +41,7 @@ Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
     ..\..\build\setup.ps1
     npm install
     npm run compile
-    $all_ok = ($LastExitCode -eq 0) -and $all_ok
+    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 Pop-Location
 
 

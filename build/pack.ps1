@@ -22,11 +22,11 @@ function Pack-One() {
         -Verbosity detailed `
         $include_references
 
-    return ($LastExitCode -eq 0)
+    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 }
 
 Write-Host "##[info]Using nuget to create packages"
-$all_ok = (Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects') -and $all_ok
+Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects'
 
 ##
 # VSCode extension
@@ -34,7 +34,7 @@ $all_ok = (Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeRefe
 Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
     npm install vsce
     vsce package
-    $all_ok = ($LastExitCode -eq 0) -and $all_ok
+    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 Pop-Location
 
 
