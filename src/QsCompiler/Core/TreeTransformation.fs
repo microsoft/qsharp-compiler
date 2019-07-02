@@ -120,8 +120,8 @@ type SyntaxTreeTransformation() =
         | Provided (argTuple, body) -> this.onProvidedImplementation (argTuple, body) |> Provided
 
 
-    abstract member onSpecialization : QsSpecialization -> QsSpecialization
-    default this.onSpecialization (spec : QsSpecialization) = 
+    abstract member onSpecializationImplementation : QsSpecialization -> QsSpecialization
+    default this.onSpecializationImplementation (spec : QsSpecialization) = 
         let source = this.onSourceFile spec.SourceFile
         let loc = this.onLocation spec.Location
         let doc = this.onDocumentation spec.Documentation
@@ -132,16 +132,16 @@ type SyntaxTreeTransformation() =
         QsSpecialization.New spec.Kind (source, loc) (spec.Parent, typeArgs, signature, impl, doc, comments)
 
     abstract member onBodySpecialization : QsSpecialization -> QsSpecialization
-    default this.onBodySpecialization spec = this.onSpecialization spec
+    default this.onBodySpecialization spec = this.onSpecializationImplementation spec
     
     abstract member onAdjointSpecialization : QsSpecialization -> QsSpecialization
-    default this.onAdjointSpecialization spec = this.onSpecialization spec
+    default this.onAdjointSpecialization spec = this.onSpecializationImplementation spec
 
     abstract member onControlledSpecialization : QsSpecialization -> QsSpecialization
-    default this.onControlledSpecialization spec = this.onSpecialization spec
+    default this.onControlledSpecialization spec = this.onSpecializationImplementation spec
 
     abstract member onControlledAdjointSpecialization : QsSpecialization -> QsSpecialization
-    default this.onControlledAdjointSpecialization spec = this.onSpecialization spec
+    default this.onControlledAdjointSpecialization spec = this.onSpecializationImplementation spec
 
     member this.dispatchSpecialization (spec : QsSpecialization) = 
         let spec = this.beforeSpecialization spec
@@ -162,8 +162,8 @@ type SyntaxTreeTransformation() =
         let typeItems = this.onTypeItems t.TypeItems
         QsCustomType.New (source, loc) (t.FullName, typeItems, underlyingType, doc, comments)
 
-    abstract member onCallable : QsCallable -> QsCallable
-    default this.onCallable (c : QsCallable) = 
+    abstract member onCallableImplementation : QsCallable -> QsCallable
+    default this.onCallableImplementation (c : QsCallable) = 
         let source = this.onSourceFile c.SourceFile
         let loc = this.onLocation c.Location
         let doc = this.onDocumentation c.Documentation
@@ -174,13 +174,13 @@ type SyntaxTreeTransformation() =
         QsCallable.New c.Kind (source, loc) (c.FullName, argTuple, signature, specializations, doc, comments)
 
     abstract member onOperation : QsCallable -> QsCallable
-    default this.onOperation c = this.onCallable c
+    default this.onOperation c = this.onCallableImplementation c
 
     abstract member onFunction : QsCallable -> QsCallable
-    default this.onFunction c = this.onCallable c
+    default this.onFunction c = this.onCallableImplementation c
 
     abstract member onTypeConstructor : QsCallable -> QsCallable
-    default this.onTypeConstructor c = this.onCallable c
+    default this.onTypeConstructor c = this.onCallableImplementation c
 
 
     member this.dispatchCallable (c : QsCallable) = 
