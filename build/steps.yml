@@ -4,18 +4,18 @@ steps:
 
 - powershell: ./build.ps1
   displayName: "Building"
-  workingDirectory: $(Compiler.WorkingDirectory)/build
+  workingDirectory: $(System.DefaultWorkingDirectory)/build
 
 
 - powershell: ./test.ps1
   displayName: "Testing"
-  workingDirectory: $(Compiler.WorkingDirectory)/build
+  workingDirectory: $(System.DefaultWorkingDirectory)/build
   condition: and(succeeded(), ne(variables['Skip.Tests'], 'true'))
 
 
 - powershell: ./pack.ps1
   displayName: "Pack"
-  workingDirectory: $(Compiler.WorkingDirectory)/build
+  workingDirectory: $(System.DefaultWorkingDirectory)/build
 
 
 
@@ -25,12 +25,12 @@ steps:
 - task: NuGetCommand@2
   displayName: 'NuGet restore VisualStudioExtension'
   inputs:
-    restoreSolution: '$(Compiler.WorkingDirectory)/VisualStudioExtension.sln'
+    restoreSolution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
 
 - task: VSBuild@1
   displayName: 'Build VisualStudioExtension'
   inputs:
-    solution: '$(Compiler.WorkingDirectory)/VisualStudioExtension.sln'
+    solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
     msbuildArgs: >
       /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
