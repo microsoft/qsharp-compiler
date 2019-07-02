@@ -5,7 +5,7 @@ trigger:
 variables:
   Build.Major: 0
   Build.Minor: 0
-  Assembly.Version: Build.BuildNumber
+  Assembly.Version: $(Build.BuildNumber)
   Compiler.WorkingDirectory: $(System.DefaultWorkingDirectory)
   Nuget.Outdir: $(Build.ArtifactStagingDirectory)/drops/nugets
   VSIX.Outdir: $(Build.ArtifactStagingDirectory)/drops/vsix
