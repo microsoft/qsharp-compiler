@@ -5,8 +5,7 @@ trigger:
 variables:
   Build.Major: 0
   Build.Minor: 0
-  Compiler.WorkingDirectory: $(System.DefaultWorkingDirectory)
-  Nuget.Outdir: $(Build.ArtifactStagingDirectory)/drops/nugets
+  Assembly.Version: $(Build.BuildNumber)
   VSIX.Outdir: $(Build.ArtifactStagingDirectory)/drops/vsix
 
 
@@ -18,5 +17,5 @@ jobs:
   - task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
     displayName: 'Component detection'
     inputs:
-      failOnAlert: true   
+      failOnAlert: true
 

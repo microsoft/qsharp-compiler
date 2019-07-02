@@ -7,11 +7,11 @@ steps:
   condition: succeededOrFailed()
   inputs:
     testResultsFormat: VSTest
-    testResultsFiles: '$(Compiler.WorkingDirectory)/**/*.trx'
+    testResultsFiles: '$(System.DefaultWorkingDirectory)/**/*.trx'
     testRunTitle: 'Q# compiler tests'
 
 - task: PublishSymbols@1
-  displayName: 'Publish symbols path: '
+  displayName: 'Publish symbols'
   continueOnError: true
   inputs:
     SearchPattern: '**\bin\**\*.pdb'
@@ -20,9 +20,10 @@ steps:
   displayName: 'Copy VSIX to: $(VSIX.Outdir)'
   condition: succeededOrFailed()
   inputs:
-    SourceFolder: '$(Compiler.WorkingDirectory)'
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
     Contents: 'src\**\*.vsix'
     TargetFolder: '$(VSIX.Outdir)'
+    FlattenFolders: true
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: qsharp-compiler'
