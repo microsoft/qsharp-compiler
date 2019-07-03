@@ -118,11 +118,13 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         /// Returns the last non-empty line before the given line. If all of the lines before the given line are empty,
         /// returns the first line of the snapshot instead.
         /// <para/>
-        /// Assumes that the given line is not the first line of the snapshot.
+        /// Returns null if the given line is the first line in the snapshot.
         /// </summary>
         private static ITextSnapshotLine GetLastNonEmptyLine(ITextSnapshotLine line)
         {
             int lineNumber = line.LineNumber - 1;
+            if (lineNumber < 0)
+                return null;
             while (lineNumber > 0 && line.Snapshot.GetLineFromLineNumber(lineNumber).Length == 0)
                 lineNumber--;
             return line.Snapshot.GetLineFromLineNumber(lineNumber);
