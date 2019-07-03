@@ -9,6 +9,13 @@ using System.Linq;
 
 namespace Microsoft.Quantum.QsLanguageExtensionVS
 {
+    [ContentType("Q#")]
+    [Export(typeof(ISmartIndentProvider))]
+    internal class QsSmartIndentProvider : ISmartIndentProvider
+    {
+        public ISmartIndent CreateSmartIndent(ITextView textView) => new QsSmartIndent(textView);
+    }
+
     internal class QsSmartIndent : ISmartIndent
     {
         /// <summary>
@@ -128,16 +135,6 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             while (lineNumber > 0 && line.Snapshot.GetLineFromLineNumber(lineNumber).Length == 0)
                 lineNumber--;
             return line.Snapshot.GetLineFromLineNumber(lineNumber);
-        }
-    }
-
-    [ContentType("Q#")]
-    [Export(typeof(ISmartIndentProvider))]
-    internal class QsSmartIndentProvider : ISmartIndentProvider
-    {
-        public ISmartIndent CreateSmartIndent(ITextView textView)
-        {
-            return new QsSmartIndent(textView);
         }
     }
 }
