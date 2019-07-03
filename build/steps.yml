@@ -14,21 +14,26 @@ steps:
 
 
 - powershell: ./pack.ps1
-  displayName: "Pack"
+  displayName: "Pack NuGets"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
 
 
 ##
 # VisualStudio Extension can't be built from the build script.
+# Both extensions are hence built here. 
 ##
-- task: NuGetCommand@2
-  displayName: 'NuGet restore VisualStudioExtension'
+
+- task: CmdLine@1
+  displayName: 'Pack VS Code extension'
   inputs:
-    restoreSolution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
+    filename: vsce
+    arguments: package
+    workingFolder: '$(System.DefaultWorkingDirectory)/src/VSCodeExtension'
+
 
 - task: VSBuild@1
-  displayName: 'Build VisualStudioExtension'
+  displayName: 'Pack VisualStudio extension'
   inputs:
     solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
     msbuildArgs: >

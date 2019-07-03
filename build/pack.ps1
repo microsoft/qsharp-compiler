@@ -25,21 +25,11 @@ function Pack-One() {
     $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 }
 
-Write-Host "##[info]Using nuget to create packages"
+Write-Host "##[info]Packing Q# compiler..."
 Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects'
-
-##
-# VSCode extension
-##
-Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
-    npm install vsce
-    vsce package
-    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
-Pop-Location
-
 
 if (-not $all_ok) 
 {
-    throw "At least one project failed to pack. Check the logs."
+    throw "Packaging failed. Check the logs."
 }
 

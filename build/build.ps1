@@ -27,26 +27,29 @@ function Build-One {
 Write-Host "##[info]Building Q# compiler..."
 Build-One 'build' '../QsCompiler.sln'
 
-Write-Host "##[info]Publishing Q# compiler app..."
+Write-Host "##[info]Publishing Q# compiler command line compiler..."
 Build-One 'publish' '../src/QsCompiler/CommandLineTool/QsCommandLineTool.csproj'
 
-Write-Host "##[info]Publishing Q# Language Server..."
+Write-Host "##[info]Publishing Q# language server..."
 Build-One 'publish' '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
 
 
 ##
-# VSCode extension
+# Extensions
 ##
+Write-Host "##[info]Building VS Code extension..."
 Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
-    ..\..\build\setup.ps1
     npm install
     npm run compile
     $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 Pop-Location
 
+Write-Host "##[info]Building VisualStudio extension..."
+Build-One 'build' '../VisualStudioExtension.sln'
+
 
 if (-not $all_ok) 
 {
-    throw "At least one project failed to compile. Check the logs."
+    throw "Building failed. Check the logs."
 }
 
