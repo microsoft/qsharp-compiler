@@ -1,8 +1,13 @@
 name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(DayOfMonth)$(rev:rr)
-trigger: none
+trigger:
+- master
 
 variables:
-  - template: vars-common.yml
+  Build.Major: 0
+  Build.Minor: 0
+  Assembly.Version: $(Build.BuildNumber)
+  Drops.Dir: $(Build.ArtifactStagingDirectory)/drops
+  VSIX.Outdir: $(Drops.Dir)/vsix
 
 
 jobs:
@@ -13,5 +18,5 @@ jobs:
   - task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
     displayName: 'Component detection'
     inputs:
-      failOnAlert: true   
+      failOnAlert: true
 

@@ -102,8 +102,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public override QsCallable onOperation(QsCallable c) =>
             this.IsRelevant(c.SourceFile) ? base.onOperation(c) : c;
 
-        public override QsSpecialization onSpecialization(QsSpecialization spec) =>
-            this.IsRelevant(spec.SourceFile) ? base.onBodySpecialization(spec) : spec;
+        public override QsSpecialization onSpecializationImplementation(QsSpecialization spec) =>
+            this.IsRelevant(spec.SourceFile) ? base.onSpecializationImplementation(spec) : spec;
 
         public override QsLocation onLocation(QsLocation l)
         {
