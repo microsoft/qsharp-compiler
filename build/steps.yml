@@ -1,18 +1,35 @@
 steps:
 - template: init.yml
 
-##
-# Build the compiler, language server and VS extension
-##
-- template: ../src/QsCompiler/build-steps.yml
-- template: ../src/VisualStudioExtension/build-steps.yml
+
+- powershell: ./build.ps1
+  displayName: "Build all"
+  workingDirectory: $(System.DefaultWorkingDirectory)/build
+
+
+- powershell: ./test.ps1
+  displayName: "Test all"
+  workingDirectory: $(System.DefaultWorkingDirectory)/build
+  condition: and(succeeded(), ne(variables['Skip.Tests'], 'true'))
+
+
+- powershell: ./pack.ps1
+  displayName: "Pack NuGets and VS Code"
+  workingDirectory: $(System.DefaultWorkingDirectory)/build
+
+
 
 ##
-# Create the corresponding packages and extensions
+# VisualStudio Extension can't be built from the build script as msbuild is not available).
 ##
-- template: pack.yml  
+- task: VSBuild@1
+  displayName: 'Pack VisualStudio extension'
+  inputs:
+    solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
+    msbuildArgs: >
+      /p:DefineConstants=$(Assembly.Constants) 
+      /p:AssemblyVersion=$(Assembly.Version)
+    configuration: $(Build.Configuration)
 
-##
-# Wrap-up
-##
+
 - template: wrap-up.yml
