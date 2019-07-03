@@ -17,13 +17,20 @@ steps:
     SearchPattern: '**\bin\**\*.pdb'
 
 - task: CopyFiles@2
-  displayName: 'Copy VSIX to: $(VSIX.Outdir)'
+  displayName: 'Copy extensions to: $(VSIX.Outdir)'
   condition: succeededOrFailed()
   inputs:
     SourceFolder: '$(System.DefaultWorkingDirectory)'
     Contents: 'src\**\*.vsix'
     TargetFolder: '$(VSIX.Outdir)'
     FlattenFolders: true
+
+- task: CopyFiles@2
+  displayName: 'Copy NuGet(s) to: $(Build.ArtifactStagingDirectory)'
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
+    Contents: '*.nupkg'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'    
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: qsharp-compiler'
