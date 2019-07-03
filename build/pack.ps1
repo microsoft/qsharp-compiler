@@ -15,6 +15,7 @@ function Pack-One() {
         [string]$include_references=""
     );
 
+    Write-Host "##[info]Packing $project..."
     nuget pack $project `
         -OutputDirectory $Env:NUGET_OUTDIR `
         -Properties Configuration=$Env:BUILD_CONFIGURATION `
@@ -25,11 +26,39 @@ function Pack-One() {
     $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 }
 
-Write-Host "##[info]Pack Q# compiler..."
 Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects'
+
+##
+# VS Code Extension
+##
+Write-Host "##[info]Packing VS Code extension..."
+Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
+Try {
+    vsce package
+    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+} Catch {
+    Write-Host "##vso[task.logissue type=warning;]vsce not installed. Will skip creation of vs-code extension package"
+}
+Pop-Location
+
+##
+# VisualStudioExtension
+##
+Write-Host "##[info]Packing VisualStudio extension..."
+Push-Location (Join-Path $PSScriptRoot '..\src\VisualStudioExtension\QsharpVSIX')
+Try {
+    msbuild QsharpVSIX.csproj `
+        /t:CreateVsixContainer `
+        /property:Configuration=$Env:BUILD_CONFIGURATION `
+        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+} Catch {
+    Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip creation of VisualStudio Extension package"
+}
+Pop-Location
 
 if (-not $all_ok) 
 {
-    throw "Packaging failed. Check the logs."
+    throw "Packing failed. Check the logs."
 }
 

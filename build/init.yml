@@ -15,11 +15,6 @@ steps:
   inputs:
     versionSpec: '4.9.3'
 
-- task: NuGetCommand@2
-  displayName: 'Restore packages for VisualStudioExtension.sln'
-  inputs:
-    restoreSolution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
-
 - task: Npm@1
   displayName: 'Install vsce'
   inputs:

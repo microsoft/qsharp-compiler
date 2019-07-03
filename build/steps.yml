@@ -20,18 +20,8 @@ steps:
 
 
 ##
-# VisualStudio Extension can't be built from the build script.
-# Both extensions are hence packaged here. 
+# VisualStudio Extension can't be built from the build script as msbuild is not found.
 ##
-
-- task: CmdLine@1
-  displayName: 'Pack VS Code extension'
-  inputs:
-    filename: vsce
-    arguments: package
-    workingFolder: '$(System.DefaultWorkingDirectory)/src/VSCodeExtension'
-
-
 - task: VSBuild@1
   displayName: 'Pack VisualStudio extension'
   inputs:

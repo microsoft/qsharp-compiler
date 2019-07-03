@@ -15,6 +15,7 @@ function Build-One {
         [string]$project
     );
 
+    Write-Host "##[info]Building $project ($action)..."
     dotnet $action (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
@@ -24,13 +25,8 @@ function Build-One {
     $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 }
 
-Write-Host "##[info]Building Q# compiler..."
 Build-One 'build' '../QsCompiler.sln'
-
-Write-Host "##[info]Publishing Q# command line compiler..."
 Build-One 'publish' '../src/QsCompiler/CommandLineTool/QsCommandLineTool.csproj'
-
-Write-Host "##[info]Publishing Q# language server..."
 Build-One 'publish' '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
 
 
@@ -39,9 +35,30 @@ Build-One 'publish' '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
 ##
 Write-Host "##[info]Building VS Code extension..."
 Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
+Try {
     npm install
     npm run compile
     $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+} Catch {
+    Write-Host "##vso[task.logissue type=warning;]npm not installed. Will skip creation of vs-code extension"
+}
+Pop-Location
+
+##
+# VisualStudioExtension
+##
+Write-Host "##[info]Building VisualStudioExtension..."
+Push-Location (Join-Path $PSScriptRoot '..')
+Try {
+    nuget restore VisualStudioExtension.sln
+    msbuild VisualStudioExtension.sln `
+        /property:Configuration=$Env:BUILD_CONFIGURATION `
+        /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+} Catch {
+    Write-Host "##vso[task.logissue type=warning;]nuget or msbuild not installed. Will skip building the VisualStudio extension"
+}
 Pop-Location
 
 
