@@ -3,12 +3,12 @@ steps:
 
 
 - powershell: ./build.ps1
-  displayName: "Building"
+  displayName: "Build all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
 
 - powershell: ./test.ps1
-  displayName: "Testing"
+  displayName: "Test all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
   condition: and(succeeded(), ne(variables['Skip.Tests'], 'true'))
 
