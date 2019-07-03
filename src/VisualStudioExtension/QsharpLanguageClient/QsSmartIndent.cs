@@ -88,7 +88,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         private int GetIndentation(string line) =>
             line
             .TakeWhile(IsIndentation)
-            .Aggregate(0, (indent, c) => indent + (c == ' ' ? 1 : textView.Options.GetTabSize()));
+            .Aggregate(0, (indent, c) => indent + (c == '\t' ? textView.Options.GetTabSize() : 1));
 
         /// <summary>
         /// Returns a string containing spaces or tabs (depending on the text view options) to match the given
