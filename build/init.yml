@@ -4,7 +4,7 @@ steps:
 # Bootstrap
 ##
 - powershell: ./bootstrap.ps1
-  displayName: "Prepare build"
+  displayName: "Run bootstrap.ps1"
   workingDirectory: $(System.DefaultWorkingDirectory)
 
 ##
