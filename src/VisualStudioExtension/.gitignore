@@ -2,6 +2,3 @@
 # Files generated using .v.template
 Common/AssemblyCommon.cs
 QsharpVSIX/source.extension.vsixmanifest
-QsharpAppTemplate/AppProjectTemplate.xml
-QsharpLibTemplate/LibProjectTemplate.xml
-QsharpTestTemplate/TestProjectTemplate.xml

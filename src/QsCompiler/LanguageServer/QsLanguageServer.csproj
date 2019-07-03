@@ -8,7 +8,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- Provide a solution directory in case we are invoked from the dotnet core SDK. -->
-    <SolutionDir>$(MSBuildProjectDirectory)\..\..\</SolutionDir>
+    <SolutionDir>$(MSBuildProjectDirectory)\..\..\..\</SolutionDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
