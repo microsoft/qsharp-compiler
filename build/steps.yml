@@ -20,7 +20,7 @@ steps:
 
 
 ##
-# VisualStudio Extension can't be built from the build script as msbuild is not found.
+# VisualStudio Extension can't be built from the build script as msbuild is not available).
 ##
 - task: VSBuild@1
   displayName: 'Pack VisualStudio extension'
