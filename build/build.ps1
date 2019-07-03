@@ -40,14 +40,14 @@ Try {
     npm run compile
     $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 } Catch {
-    Write-Host "##vso[task.logissue type=warning;]npm not installed. Will skip creation of vs-code extension"
+    Write-Host "##vso[task.logissue type=warning;]npm not installed. Will skip creation of VS Code extension"
 }
 Pop-Location
 
 ##
 # VisualStudioExtension
 ##
-Write-Host "##[info]Building VisualStudioExtension..."
+Write-Host "##[info]Building VisualStudio extension..."
 Push-Location (Join-Path $PSScriptRoot '..')
 Try {
     nuget restore VisualStudioExtension.sln

@@ -37,7 +37,7 @@ Try {
     vsce package
     $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 } Catch {
-    Write-Host "##vso[task.logissue type=warning;]vsce not installed. Will skip creation of vs-code extension package"
+    Write-Host "##vso[task.logissue type=warning;]vsce not installed. Will skip creation of VS Code extension package"
 }
 Pop-Location
 
@@ -53,7 +53,7 @@ Try {
         /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
     $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 } Catch {
-    Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip creation of VisualStudio Extension package"
+    Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip creation of VisualStudio extension package"
 }
 Pop-Location
 

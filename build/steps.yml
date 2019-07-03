@@ -14,7 +14,7 @@ steps:
 
 
 - powershell: ./pack.ps1
-  displayName: "Pack NuGets"
+  displayName: "Pack NuGets and VS Code"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
 
