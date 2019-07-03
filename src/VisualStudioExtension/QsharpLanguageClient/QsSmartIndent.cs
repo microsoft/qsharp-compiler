@@ -50,6 +50,9 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         {
         }
 
+        /// <summary>
+        /// Returns the desired indentation, in number of spaces, of an <see cref="ITextSnapshotLine"/>.
+        /// </summary>
         public int? GetDesiredIndentation(ITextSnapshotLine line)
         {
             if (line.LineNumber == 0)
