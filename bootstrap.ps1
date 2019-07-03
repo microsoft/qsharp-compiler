@@ -54,6 +54,6 @@ Get-ChildItem -Recurse *.v.template `
             | Set-Content $Target -NoNewline
     }
 
-Push-Location (Join-Path $PSScriptRoot '../src/QsCompiler/Compiler')
+Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
 .\FindNuspecReferences.ps1;
 Pop-Location
