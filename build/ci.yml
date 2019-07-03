@@ -6,6 +6,7 @@ variables:
   Build.Major: 0
   Build.Minor: 0
   Assembly.Version: $(Build.BuildNumber)
+  NuGet.Outdir: $(Build.ArtifactStagingDirectory)/drops 
   VSIX.Outdir: $(Build.ArtifactStagingDirectory)/drops/vsix
 
 

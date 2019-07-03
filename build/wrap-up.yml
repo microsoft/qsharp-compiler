@@ -17,12 +17,20 @@ steps:
     SearchPattern: '**\bin\**\*.pdb'
 
 - task: CopyFiles@2
-  displayName: 'Copy VSIX to: $(VSIX.Outdir)'
+  displayName: 'Copy extensions to: $(VSIX.Outdir)'
   condition: succeededOrFailed()
   inputs:
     SourceFolder: '$(System.DefaultWorkingDirectory)'
     Contents: 'src\**\*.vsix'
     TargetFolder: '$(VSIX.Outdir)'
+    FlattenFolders: true
+
+- task: CopyFiles@2
+  displayName: 'Copy NuGet(s) to: $(NuGet.Outdir)'
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
+    Contents: '*.nupkg'
+    TargetFolder: '$(NuGet.Outdir)'    
     FlattenFolders: true
 
 - task: PublishBuildArtifacts@1

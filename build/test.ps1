@@ -27,6 +27,6 @@ Test-One '../QsCompiler.sln'
 
 if (-not $all_ok) 
 {
-    throw "At least one project failed to compile. Check the logs."
+    throw "Running tests failed. Check the logs."
 }
 

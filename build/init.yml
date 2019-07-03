@@ -1,26 +1,28 @@
 steps:
 
 ##
+# Bootstrap
+##
+- powershell: ./bootstrap.ps1
+  displayName: "Run bootstrap.ps1"
+  workingDirectory: $(System.DefaultWorkingDirectory)
+
+##
 # Pre-reqs
 ##
-- task: Npm@1
-  displayName: 'npm install -g vsce'
-  inputs:
-    command: custom
-    verbose: false
-    customCommand: 'install -g vsce'
-
-
 - task: NuGetToolInstaller@0
   displayName: 'Use NuGet 4.9.3'
   inputs:
     versionSpec: '4.9.3'
- 
-##
-# Bootstrap
-##
-- task: BatchScript@1
-  displayName: 'Prepare build'
+
+- task: NuGetCommand@2
+  displayName: 'Restore packages for VisualStudioExtension.sln'
   inputs:
-    filename: bootstrap.cmd
-    modifyEnvironment: true
+    restoreSolution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
+
+- task: Npm@1
+  displayName: 'Install vsce'
+  inputs:
+    command: custom
+    verbose: false
+    customCommand: 'install -g vsce'
