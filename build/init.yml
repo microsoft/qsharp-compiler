@@ -19,8 +19,6 @@ steps:
 ##
 # Bootstrap
 ##
-- task: BatchScript@1
-  displayName: 'Prepare build'
-  inputs:
-    filename: bootstrap.cmd
-    modifyEnvironment: true
+- powershell: ./bootstrap.ps1
+  displayName: "Prepare build"
+  workingDirectory: $(System.DefaultWorkingDirectory)
