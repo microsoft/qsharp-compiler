@@ -628,8 +628,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a list of suggested completion items for the given position.
         /// <para/>
-        /// Returns an empty CompletionList if any parameter is null or if no completions are available at the given
-        /// position.
+        /// Returns an empty CompletionList if any parameter is null, the position is invalid, or no completions are
+        /// available at the given position.
         /// </summary>
         public static CompletionList Completions(
             this FileContentManager file, CompilationUnit compilation, Position position)
@@ -652,7 +652,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns true if a new symbol is being declared at the given position.
         /// <para/>
-        /// If any parameter is null, returns false.
+        /// If any parameter is null or the position is invalid, returns false.
         /// </summary>
         private static bool IsDeclaringNewSymbol(FileContentManager file, Position position)
         {
