@@ -16,11 +16,6 @@ steps:
     versionSpec: '4.9.3'
 
 - task: NuGetCommand@2
-  displayName: 'Restore packages for QsCompiler.sln'
-  inputs:
-    restoreSolution: '$(System.DefaultWorkingDirectory)/QsCompiler.sln'
-
-- task: NuGetCommand@2
   displayName: 'Restore packages for VisualStudioExtension.sln'
   inputs:
     restoreSolution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
