@@ -25,7 +25,7 @@ function Pack-One() {
     $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
 }
 
-Write-Host "##[info]Packing Q# compiler..."
+Write-Host "##[info]Pack Q# compiler..."
 Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects'
 
 if (-not $all_ok) 

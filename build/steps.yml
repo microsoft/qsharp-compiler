@@ -21,7 +21,7 @@ steps:
 
 ##
 # VisualStudio Extension can't be built from the build script.
-# Both extensions are hence built here. 
+# Both extensions are hence packaged here. 
 ##
 
 - task: CmdLine@1
