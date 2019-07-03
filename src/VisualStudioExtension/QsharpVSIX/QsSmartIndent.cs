@@ -51,10 +51,13 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         }
 
         /// <summary>
-        /// Returns the desired indentation, in number of spaces, of an <see cref="ITextSnapshotLine"/>.
+        /// Returns the number of spaces to place at the start of the line, or null if there is no desired indentation.
         /// </summary>
         public int? GetDesiredIndentation(ITextSnapshotLine line)
         {
+            // Note: The ISmartIndent interface requires that the return type is nullable, but we always return a
+            // value.
+
             if (line.LineNumber == 0)
                 return 0;
 
