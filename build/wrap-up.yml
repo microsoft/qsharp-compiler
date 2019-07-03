@@ -26,11 +26,12 @@ steps:
     FlattenFolders: true
 
 - task: CopyFiles@2
-  displayName: 'Copy NuGet(s) to: $(Build.ArtifactStagingDirectory)'
+  displayName: 'Copy NuGet(s) to: $(NuGet.Outdir)'
   inputs:
     SourceFolder: '$(System.DefaultWorkingDirectory)'
     Contents: '*.nupkg'
-    TargetFolder: '$(Build.ArtifactStagingDirectory)'    
+    TargetFolder: '$(NuGet.Outdir)'    
+    FlattenFolders: true
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: qsharp-compiler'
