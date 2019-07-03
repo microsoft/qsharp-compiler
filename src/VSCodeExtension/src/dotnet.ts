@@ -7,8 +7,6 @@
 
 import * as vscode from 'vscode';
 
-// opn is not ES6 compliant.
-import opn = require('opn');
 import * as which from 'which';
 import * as cp from 'child_process';
 import * as semver from 'semver';
@@ -26,7 +24,7 @@ function promptToInstallDotNetCoreSDK(msg : string) {
         .then(
             (item) => {
                 if (item === installItem) {
-                    opn("https://dotnet.microsoft.com/download");
+                    vscode.env.openExternal(vscode.Uri.parse("https://dotnet.microsoft.com/download"));
                 }
             }
         );
