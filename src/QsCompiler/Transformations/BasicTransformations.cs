@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             base(new NoScopeTransformations()) =>
             this.SourceFiles = new HashSet<NonNullable<string>>();
 
-        public override QsSpecialization onSpecialization(QsSpecialization spec) // short cut to avoid further evaluation
+        public override QsSpecialization onSpecializationImplementation(QsSpecialization spec) // short cut to avoid further evaluation
         {
             this.onSourceFile(spec.SourceFile);
             return spec;
@@ -88,7 +88,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         // TODO: these transformations needs to be adapted once we support external specializations
         public override QsCustomType onType(QsCustomType t) => AddTypeIfInSource(t);
-        public override QsCallable onCallable(QsCallable c) => AddCallableIfInSource(c);
+        public override QsCallable onCallableImplementation(QsCallable c) => AddCallableIfInSource(c);
 
         public override QsNamespace Transform(QsNamespace ns)
         {
