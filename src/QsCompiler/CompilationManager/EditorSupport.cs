@@ -624,5 +624,71 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ActiveParameter = precedingArgs.Count() 
             };
         }
+
+        /// <summary>
+        /// Returns a list of suggested completion items for the given position.
+        /// <para/>
+        /// Returns an empty CompletionList if any parameter is null, the position is invalid, or no completions are
+        /// available at the given position.
+        /// </summary>
+        public static CompletionList Completions(
+            this FileContentManager file, CompilationUnit compilation, Position position)
+        {
+            // New symbols shouldn't get any completions for existing symbols.
+            if (file == null || compilation == null || position == null || IsDeclaringNewSymbol(file, position))
+                return new CompletionList() { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
+
+            var locals = compilation
+                .TryGetLocalDeclarations(file, position, out var _)
+                .Variables
+                .Select(variable => new CompletionItem()
+                {
+                    Label = variable.VariableName.Value,
+                    Kind = CompletionItemKind.Variable
+                });
+            return new CompletionList() { IsIncomplete = false, Items = locals.ToArray() };
+        }
+
+        /// <summary>
+        /// Returns true if a new symbol is being declared at the given position.
+        /// <para/>
+        /// If any parameter is null or the position is invalid, returns false.
+        /// </summary>
+        private static bool IsDeclaringNewSymbol(FileContentManager file, Position position)
+        {
+            CodeFragment fragment = file.TryGetFragmentAt(position, includeEnd: true);
+            if (fragment == null)
+                return false;
+
+            // If the symbol is invalid, there is no range available, but assume the user is typing in the symbol now.
+            Position offset = fragment.GetRange().Start;
+            bool PositionIsWithinSymbol(QsSymbol symbol) =>
+                symbol.Symbol.IsInvalidSymbol ||
+                position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(offset, symbol.Range.Item), includeEnd: true);
+
+            switch (fragment.Kind)
+            {
+                case QsFragmentKind.TypeDefinition td:
+                    return PositionIsWithinSymbol(td.Item1);
+                case QsFragmentKind.FunctionDeclaration fd:
+                    return PositionIsWithinSymbol(fd.Item1);
+                case QsFragmentKind.OperationDeclaration od:
+                    return PositionIsWithinSymbol(od.Item1);
+                case QsFragmentKind.BorrowingBlockIntro bbi:
+                    return PositionIsWithinSymbol(bbi.Item1);
+                case QsFragmentKind.UsingBlockIntro ubi:
+                    return PositionIsWithinSymbol(ubi.Item1);
+                case QsFragmentKind.ForLoopIntro fli:
+                    return PositionIsWithinSymbol(fli.Item1);
+                case QsFragmentKind.MutableBinding mb:
+                    return PositionIsWithinSymbol(mb.Item1);
+                case QsFragmentKind.ImmutableBinding ib:
+                    return PositionIsWithinSymbol(ib.Item1);
+                case QsFragmentKind.NamespaceDeclaration nd:
+                    return PositionIsWithinSymbol(nd.Item);
+                default:
+                    return false;
+            }
+        }
     }
 }

@@ -811,13 +811,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             queuedChange = false;
             if (count == 1 && line == start)
             {
-                // if the change contains any characters that cannot occur in a symbol, trigger an update
+                // TODO: If the change contains characters that are part of a symbol, we should delay sending
+                // diagnostics until the user has a chance to finish typing, either by queuing the update here or
+                // queuing the diagnostics before they're sent to the client.
                 this.UnprocessedUpdates.Enqueue(change);
                 var trimmedText = change.Text.TrimStart(); // tabs etc inserted by the editor come squashed together with the next inserted character
                 if (change.Text == String.Empty || 
                     trimmedText == "{" || trimmedText == "\"" || // let's not immediately trigger an update for these, hoping the matching one will come right after
-                    trimmedText == "\\" || trimmedText == "/" || // ... and the same here
-                    Utils.ValidAsSymbol.IsMatch(trimmedText)) 
+                    trimmedText == "\\" || trimmedText == "/") // ... and the same here
                 {
                     this.Timer.Start(); // we can simply queue this update - no need to actually execute it
                     queuedChange = true;

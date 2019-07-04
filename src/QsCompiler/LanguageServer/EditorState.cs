@@ -358,6 +358,14 @@ namespace Microsoft.Quantum.QsLanguageServer
         public ImmutableDictionary<string, WorkspaceEdit> CodeActions(CodeActionParams param) =>
             ValidFileUri(param?.TextDocument?.Uri) && !IgnoreFile(param.TextDocument.Uri) ? this.Projects.CodeActions(param) : null;
 
+        /// <summary>
+        /// Returns a list of suggested completion items for the given location.
+        /// <para/>
+        /// Returns null if the given file is listed as to be ignored, or if the given parameter or its uri is null.
+        /// </summary>
+        public CompletionList Completions(TextDocumentPositionParams param) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !IgnoreFile(param.TextDocument.Uri) ? this.Projects.Completions(param) : null;
+
 
         // utils to query the editor state server for testing purposes 
         // -> explicitly part of this class because any access to the resources may need to be coordinated as well
