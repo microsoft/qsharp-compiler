@@ -11,8 +11,9 @@ param(
 
 $TargetMoniker = "netcoreapp2.1";
 $LanguageServerRoot = Resolve-Path "../QsCompiler/LanguageServer/";
+$RepoRoot = Resolve-Path "../../"
 
-# If we're not given a configuration, try to populate from an enviromnent variable.
+# If we're not given a configuration, try to populate from an environment variable.
 if ($Configuration -eq $null -or $Configuration.Trim().Length -eq 0) {
     if ($Env:BuildConfiguration -eq $null) {
         # Default to Debug, so that we behave in the same
@@ -60,3 +61,7 @@ if (Get-Item -Path $binDir -ErrorAction SilentlyContinue) {
 }
 mkdir -Path $binDir | Out-Null
 Copy-Item -Recurse -Path (Join-Path $PublishRoot "*") -Destination $binDir -Verbose
+
+# Copy the third party notice
+Write-Host "$(Join-Path $RepoRoot "ThirdPartyNotice.txt")"
+Copy-Item -Path (Join-Path $RepoRoot "ThirdPartyNotice.txt") -Destination $PSScriptRoot -Verbose
