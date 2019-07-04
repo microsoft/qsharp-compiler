@@ -461,6 +461,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
         public CompletionList OnTextDocumentCompletion(JToken arg)
         {
+            //
             try
             {
                 return EditorState.Completions(Utils.TryJTokenAs<TextDocumentPositionParams>(arg));
