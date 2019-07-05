@@ -692,14 +692,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 switch (kind.Tag)
                 {
-                    case QsCallableKind.Tags.Function:
-                        return CompletionItemKind.Function;
-                    case QsCallableKind.Tags.Operation:
-                        return CompletionItemKind.Method;
                     case QsCallableKind.Tags.TypeConstructor:
                         return CompletionItemKind.Constructor;
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        return CompletionItemKind.Function;
                 }
             }
 
