@@ -688,11 +688,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || compilation == null || position == null)
                 return Array.Empty<CompletionItem>();
 
-            var visibleNamespaces = GetVisibleNamespaces(file, compilation, position);
+            var openedNamespaces = GetOpenedNamespaces(file, compilation, position);
             return
                 compilation.GlobalSymbols.DefinedCallables()
                 .Concat(compilation.GlobalSymbols.ImportedCallables())
-                .Where(callable => visibleNamespaces.Contains(callable.QualifiedName.Namespace.Value))
+                .Where(callable => openedNamespaces.Contains(callable.QualifiedName.Namespace.Value))
                 .Select(callable => new CompletionItem()
                 {
                     Label = callable.QualifiedName.Name.Value,
@@ -713,11 +713,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || compilation == null || position == null)
                 return Array.Empty<CompletionItem>();
 
-            var visibleNamespaces = GetVisibleNamespaces(file, compilation, position);
+            var openedNamespaces = GetOpenedNamespaces(file, compilation, position);
             return 
                 compilation.GlobalSymbols.DefinedTypes()
                 .Concat(compilation.GlobalSymbols.ImportedTypes())
-                .Where(type => visibleNamespaces.Contains(type.QualifiedName.Namespace.Value))
+                .Where(type => openedNamespaces.Contains(type.QualifiedName.Namespace.Value))
                 .Select(type => new CompletionItem()
                 {
                     Label = type.QualifiedName.Name.Value,
@@ -768,12 +768,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all of the namespaces that are visible at the given position in the file. This includes the current
-        /// namespace and all opened namespaces.
+        /// Returns the names of all namespaces that have been opened at the given position in the file, including the
+        /// current namespace.
         /// <para/>
         /// Returns an empty or incomplete list of namespaces if any parameter is null or the position is invalid.
         /// </summary>
-        private static IEnumerable<string> GetVisibleNamespaces(
+        private static IEnumerable<string> GetOpenedNamespaces(
             FileContentManager file, CompilationUnit compilation, Position position)
         {
             string @namespace = file.TryGetNamespaceAt(position);
