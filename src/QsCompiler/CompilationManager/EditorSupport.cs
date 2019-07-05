@@ -688,17 +688,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || compilation == null || position == null)
                 return Array.Empty<CompletionItem>();
 
-            CompletionItemKind CompletionKindFromCallableKind(QsCallableKind kind)
-            {
-                switch (kind.Tag)
-                {
-                    case QsCallableKind.Tags.TypeConstructor:
-                        return CompletionItemKind.Constructor;
-                    default:
-                        return CompletionItemKind.Function;
-                }
-            }
-
             var visibleNamespaces = GetVisibleNamespaces(file, compilation, position);
             return
                 compilation.GlobalSymbols.DefinedCallables()
@@ -707,7 +696,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(callable => new CompletionItem()
                 {
                     Label = callable.QualifiedName.Name.Value,
-                    Kind = CompletionKindFromCallableKind(callable.Kind)
+                    Kind =
+                        callable.Kind.IsTypeConstructor ? CompletionItemKind.Constructor : CompletionItemKind.Function
                 });
         }
 
