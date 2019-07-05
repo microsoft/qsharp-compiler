@@ -638,11 +638,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || compilation == null || position == null || IsDeclaringNewSymbol(file, position))
                 return new CompletionList() { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
 
+            var keywordCompletions =
+                Keywords.ReservedKeywords
+                .Select(keyword => new CompletionItem() { Label = keyword, Kind = CompletionItemKind.Keyword });
             return new CompletionList()
             {
                 IsIncomplete = false,
                 Items =
-                    GetLocalCompletions(file, compilation, position)
+                    keywordCompletions
+                    .Concat(GetLocalCompletions(file, compilation, position))
                     .Concat(GetCallableCompletions(file, compilation, position))
                     .Concat(GetTypeCompletions(file, compilation, position))
                     .ToArray()
@@ -724,7 +728,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return Array.Empty<CompletionItem>();
 
             var visibleNamespaces = GetVisibleNamespaces(file, compilation, position);
-            return
+            return 
                 compilation.GlobalSymbols.DefinedTypes()
                 .Concat(compilation.GlobalSymbols.ImportedTypes())
                 .Where(type => visibleNamespaces.Contains(type.QualifiedName.Namespace.Value))
