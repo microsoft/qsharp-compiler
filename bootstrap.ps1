@@ -9,10 +9,7 @@ param(
     $NuGetVersion = $Env:NUGET_VERSION,
 
     [string]
-    $VsixVersion = $Env:VSIX_VERSION,
-
-    [switch]
-    $EnableTelemetry
+    $VsixVersion = $Env:VSIX_VERSION
 );
 
 if ("$AssemblyVersion".Trim().Length -eq 0) {
@@ -37,6 +34,9 @@ if ("$VsixVersion".Trim().Length -eq 0) {
     $VsixVersion = "$AssemblyVersion";
 }
 
+$Telemetry = "$($Env:ASSEMBLY_CONSTANTS)".Contains("TELEMETRY").ToString().ToLower();
+Write-Output("Enable telemetry: $Telemetry");
+
 Get-ChildItem -Recurse *.v.template `
     | ForEach-Object {
         $Source = $_.FullName;
@@ -49,7 +49,11 @@ Get-ChildItem -Recurse *.v.template `
                     Replace("#NUGET_VERSION#", $NuGetVersion).
                     Replace("#VSIX_VERSION#", $VsixVersion).
                     Replace("#SEMVER_VERSION#", $SemverVersion).
-                    Replace("#ENABLE_TELEMETRY#", $EnableTelemetry.IsPresent.ToString().ToLower())
+                    Replace("#ENABLE_TELEMETRY#", $Telemetry)
             } `
             | Set-Content $Target -NoNewline
     }
+
+Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
+.\FindNuspecReferences.ps1;
+Pop-Location
