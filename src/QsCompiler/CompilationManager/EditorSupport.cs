@@ -626,13 +626,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a list of suggested completion items for the given location.
+        /// Returns a list of suggested completion items for the given position.
+        /// <para/>
+        /// Returns an empty CompletionList if any parameter is null, the position is invalid, or no completions are
+        /// available at the given position.
         /// </summary>
         public static CompletionList Completions(
             this FileContentManager file, CompilationUnit compilation, Position position)
         {
             // New symbols shouldn't get any completions for existing symbols.
-            if (IsDeclaringNewSymbol(file, position))
+            if (file == null || compilation == null || position == null || IsDeclaringNewSymbol(file, position))
                 return new CompletionList() { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
 
             return new CompletionList()
@@ -715,23 +718,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if the given position is part of a new symbol that is being declared or bound.
+        /// Returns true if a new symbol is being declared at the given position.
+        /// <para/>
+        /// If any parameter is null or the position is invalid, returns false.
         /// </summary>
         private static bool IsDeclaringNewSymbol(FileContentManager file, Position position)
         {
             CodeFragment fragment = file.TryGetFragmentAt(position, includeEnd: true);
             if (fragment == null)
                 return false;
-            QsFragmentKind kind = fragment.Kind ?? QsFragmentKind.InvalidFragment;
-            Position offset = fragment.GetRange().Start;
 
-            // If the symbol is invalid, assume the user is typing it in. This is a heuristic that isn't always
-            // accurate, but it's better than nothing.
+            // If the symbol is invalid, there is no range available, but assume the user is typing in the symbol now.
+            Position offset = fragment.GetRange().Start;
             bool PositionIsWithinSymbol(QsSymbol symbol) =>
                 symbol.Symbol.IsInvalidSymbol ||
                 position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(offset, symbol.Range.Item), includeEnd: true);
 
-            switch (kind)
+            switch (fragment.Kind)
             {
                 case QsFragmentKind.TypeDefinition td:
                     return PositionIsWithinSymbol(td.Item1);
