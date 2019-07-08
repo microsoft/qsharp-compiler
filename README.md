@@ -11,7 +11,7 @@ The Q# compiler provides a [command line interface](./tree/master/src/QsCompiler
 The specified target(s) will be invoked with the path where the compilation output has been generated. 
 The corresponding syntax tree can be reconstructed leveraging the routines provided in the CompilationLoader class available as part of the [Microsoft.Quantum.Compiler NuGet package](https://www.nuget.org/packages/Microsoft.Quantum.Compiler). 
 
-- **[QsCompiler/](./tree/master/src/QsCompiler/)**: Q# compiler including the command line tool
+- **[QsCompiler/](./src/QsCompiler/)**: Q# compiler including the command line tool
 - **[QsCompiler/LanguageServer](./tree/master/src/QsCompiler/LanguageServer/)**: Q# language server
 - **[VSCodeExtension/](./tree/master/src/VSCodeExtension/)**: Visual Studio Code extension
 - **[VisualStudioExtension/](./tree/master/src/VisualStudioExtension/)**: Visual Studio extension
