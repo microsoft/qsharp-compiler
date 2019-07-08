@@ -9,7 +9,7 @@ These extensions provide the IDE integration for Q#, and can be found on this re
 
 The Q# compiler provides a [command line interface](./tree/master/src/QsCompiler/CommandLineTool). For further information on how to use Q# binaries take a look at the [README](./tree/master/src/QsCompiler/CommandLineTool/README.md) in that folder.
 
-- **[QsCompiler/](./tree/master/src/QsCompiler/)**: Q# compiler including the command line tool
+- **[QsCompiler/](./src/QsCompiler/)**: Q# compiler including the command line tool
 - **[QsCompiler/LanguageServer](./tree/master/src/QsCompiler/LanguageServer/)**: Q# language server
 - **[VSCodeExtension/](./tree/master/src/VSCodeExtension/)**: Visual Studio Code extension
 - **[VisualStudioExtension/](./tree/master/src/VisualStudioExtension/)**: Visual Studio extension
