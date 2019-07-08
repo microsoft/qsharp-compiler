@@ -7,7 +7,7 @@ as well as the Q# language server included our [Visual Studio extension](https:/
 For more information related to the language server protocol take a look at [this repository](https://github.com/Microsoft/language-server-protocol).
 These extensions provide the IDE integration for Q#, and can be found on this repository as well.  
 
-The Q# compiler provides a [command line interface]((./tree/master/src/QsCompiler/CommandLineTool)) with the option to specify any dotnet executable as target. 
+The Q# compiler provides a [command line interface](./tree/master/src/QsCompiler/CommandLineTool) with the option to specify any dotnet executable as target. 
 The specified target(s) will be invoked with the path where the compilation output has been generated. 
 The corresponding syntax tree can be reconstructed leveraging the routines provided in the CompilationLoader class available as part of the [Microsoft.Quantum.Compiler NuGet package](https://www.nuget.org/packages/Microsoft.Quantum.Compiler). 
 
