@@ -7,12 +7,16 @@
     "author": "Microsoft DevLabs",
     "homepage": "http://docs.microsoft.com/quantum/",
     "icon": "mobius_strip_preview.png",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/microsoft/qsharp-compiler.git"
+    },
     "engines": {
         "vscode": "^1.31.0"
     },
     "license": "See license in LICENSE",
     "categories": [
-        "Languages"
+        "Programming Languages"
     ],
     "keywords": [
         "Q#",
@@ -94,7 +98,6 @@
         "@types/tmp": "0.0.33",
         "@types/semver": "^6.0.0"
     },
-    "repository": {},
     "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",
     "requiredDotNetCoreSDK": "2.1.0",
     "enableTelemetry" : #ENABLE_TELEMETRY#
