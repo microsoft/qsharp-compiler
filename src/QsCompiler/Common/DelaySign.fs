@@ -7,7 +7,7 @@ module internal SigningConstants
 
 #if SIGNED
     // Attributes for delay-signing
-    [<assembly:AssemblyKeyFile("..\\Common\\267DevDivSNKey2048.snk")>]
+    [<assembly:AssemblyKeyFile("..\\..\\..\\build\\267DevDivSNKey2048.snk")>]
     [<assembly:AssemblyDelaySign(true)>]
 
     do
