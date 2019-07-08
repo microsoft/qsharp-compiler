@@ -1,10 +1,11 @@
-# Microsoft Quantum Development Kit: IQ# Kernel #
+# Microsoft Quantum Development Kit: Q# Compiler and Language Server #
 
 Welcome to the Microsoft Quantum Development Kit!
 
 This repository contains the Q# compiler included in the [Quantum Development Kit](https://docs.microsoft.com/quantum/), 
 as well as the Q# language server included our [Visual Studio extension](https://marketplace.visualstudio.com/items?itemName=quantum.DevKit) and our [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=quantum.quantum-devkit-vscode).
-For more information related to the language server protocol take a look at [this repository](https://github.com/Microsoft/language-server-protocol). 
+For more information related to the language server protocol take a look at [this repository](https://github.com/Microsoft/language-server-protocol).
+These extensions provide the IDE integration for Q#, and can be found on this repository as well.  
 
 The Q# compiler provides a [command line interface]((./tree/master/src/QsCompiler/CommandLineTool)) with the option to specify any dotnet executable as target. 
 The specified target(s) will be invoked with the path where the compilation output has been generated. 
@@ -25,6 +26,9 @@ The Q# compiler and language server in this repository are built using [.NET Cor
 For instructions on how to build and debug the Visual Studio Code extension take a look at [this file](./tree/master/src/VSCodeExtension/BUILDING.md). 
 For building and debugging the Visual Studio extension set the [QsharpVSIX project](./tree/master/src/VisualStudioExtension/QsharpVSIX/) as startup project and launch and debug the extension as usual. 
 The Visual Studio extension is built on the [.NET Framework 4.6.1](https://dotnet.microsoft.com/download/dotnet-framework/net461) that can be easily obtained via the Visual Studio Installer. 
+
+Before you start developing you need to run the powershell script [bootstrap.ps1](./tree/master/bootstrap.ps1) to set up your environment. 
+The script in particular generates the files that are needed for building based on the templates in this repository. 
 
 We recommend uninstalling any other Q# extensions when working on the extensions in this repository.  
 
@@ -69,4 +73,4 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-For more details, please see [CONTRIBUTING.md](./tree/master/CONTRIBUTING.md), or the [contribution guide](https://docs.microsoft.com/quantum/contributing/).
+For more details, please see [CONTRIBUTING.md](./tree/master/CONTRIBUTING.md).
