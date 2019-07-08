@@ -5,7 +5,7 @@ node_modules
 *.vsix
 
 # Generated or copied files
-ThirdPartyNotice.txt
+NOTICE.txt
 package.json
 package-lock.json
 syntaxes/qsharp.tmLanguage.json

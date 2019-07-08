@@ -12,7 +12,7 @@ IF YOU COMPLY WITH THESE LICENSE TERMS, YOU HAVE THE RIGHTS BELOW. BY USING THE 
 
     a) **General.** You may only use the Microsoft Quantum Development Kit (Preview) software to help you develop and test your applications.
 
-    b) **Third Party Software.** The software may include third party applications that are licensed to you under this agreement or under their own terms. License terms, notices, and acknowledgements, if any, for the third party applications may be accessible in the accompanying ThirdPartyNotice.txt file. Even if such applications are governed by other agreements, the disclaimer, limitations on, and exclusions of damages below also apply to the extent allowed by applicable law. Kernel developed by ETH Zurich (Switzerland), group of Prof. Troyer.
+    b) **Third Party Software.** The software may include third party applications that are licensed to you under this agreement or under their own terms. License terms, notices, and acknowledgements, if any, for the third party applications may be accessible in the accompanying NOTICE.txt file. Even if such applications are governed by other agreements, the disclaimer, limitations on, and exclusions of damages below also apply to the extent allowed by applicable law. Kernel developed by ETH Zurich (Switzerland), group of Prof. Troyer.
 
 2.	**TIME-SENSITIVE SOFTWARE.**
 

@@ -63,5 +63,5 @@ mkdir -Path $binDir | Out-Null
 Copy-Item -Recurse -Path (Join-Path $PublishRoot "*") -Destination $binDir -Verbose
 
 # Copy the third party notice
-Write-Host "$(Join-Path $RepoRoot "ThirdPartyNotice.txt")"
-Copy-Item -Path (Join-Path $RepoRoot "ThirdPartyNotice.txt") -Destination $PSScriptRoot -Verbose
+Write-Host "$(Join-Path $RepoRoot "NOTICE.txt")"
+Copy-Item -Path (Join-Path $RepoRoot "NOTICE.txt") -Destination $PSScriptRoot -Verbose

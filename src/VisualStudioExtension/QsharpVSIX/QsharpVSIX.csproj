@@ -62,8 +62,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\..\ThirdPartyNotice.txt">
-      <Link>ThirdPartyNotice.txt</Link>
+    <Content Include="..\..\..\NOTICE.txt">
+      <Link>NOTICE.txt</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
