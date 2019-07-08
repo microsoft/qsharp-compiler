@@ -27,7 +27,8 @@ For instructions on how to build and debug the Visual Studio Code extension take
 For building and debugging the Visual Studio extension set the [QsharpVSIX project](./tree/master/src/VisualStudioExtension/QsharpVSIX/) as startup project and launch and debug the extension as usual. 
 The Visual Studio extension is built on the [.NET Framework 4.6.1](https://dotnet.microsoft.com/download/dotnet-framework/net461) that can be easily obtained via the Visual Studio Installer. 
 
-Before you start developing you need to run the powershell script [bootstrap.ps1](./tree/master/bootstrap.ps1) to set up your environment. 
+Before you start developing you need to run the PowerShell script [bootstrap.ps1](./tree/master/bootstrap.ps1) to set up your environment. 
+We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell. 
 The script in particular generates the files that are needed for building based on the templates in this repository. 
 
 We recommend uninstalling any other Q# extensions when working on the extensions in this repository.  
