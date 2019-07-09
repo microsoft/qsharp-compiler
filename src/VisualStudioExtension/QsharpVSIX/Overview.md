@@ -8,13 +8,6 @@ To jump right in, start with [Installation and validation](http://docs.microsoft
 
 If you'd like more general information about Microsoft's quantum computing initiative, see [Microsoft Quantum](https://www.microsoft.com/quantum/).
 
-## Release notes for January 18, 2018, version 0.1.1801.1707
-This release fixes some issues reported by the community:
-
-- The simulator now works with older CPUs that do not support AVX. It will use AVX if the CPU supports it.
-- Regional decimal settings will not cause the Q# compiler to fail.
-- The `SignD` primitive operation has been changed to return `Int` rather than `Double`.
-
 ## Feedback pipeline
 Your feedback about all parts of the Quantum Development Kit is important. We ask you to provide feedback by joining our community of developers at [Microsoft Quantum - Feedback](https://quantum.uservoice.com/). Sign in and share your experience in one of the following forums.
 
