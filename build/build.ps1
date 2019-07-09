@@ -35,11 +35,16 @@ Build-One 'publish' '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
 ##
 Write-Host "##[info]Building VS Code extension..."
 Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
-Try {
-    npm install
-    npm run compile
-    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
-} Catch {
+if (Get-Command npm -ErrorAction SilentlyContinue) {
+    Try {
+        npm install
+        npm run compile
+        $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+    } Catch {
+        Write-Host "##vso[task.logissue type=warning;]failed to build VS Code extension"
+        $all_ok = $False
+    }
+} else {
     Write-Host "##vso[task.logissue type=warning;]npm not installed. Will skip creation of VS Code extension"
 }
 Pop-Location

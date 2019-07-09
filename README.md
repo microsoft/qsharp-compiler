@@ -20,14 +20,14 @@ See the [introduction to quantum computing](https://docs.microsoft.com/quantum/c
 
 ## Getting Started ##
 
+Before you start developing you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) to set up your environment. 
+We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell. 
+The script in particular generates the files that are needed for building based on the templates in this repository. 
+
 The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). 
 For instructions on how to build and debug the Visual Studio Code extension take a look at [this file](./src/VSCodeExtension/BUILDING.md). 
 For building and debugging the Visual Studio extension set the [QsharpVSIX project](./src/VisualStudioExtension/QsharpVSIX/) as startup project and launch and debug the extension as usual. 
 The Visual Studio extension is built on the [.NET Framework 4.6.1](https://dotnet.microsoft.com/download/dotnet-framework/net461) that can be easily obtained via the Visual Studio Installer. 
-
-Before you start developing you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) to set up your environment. 
-We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell. 
-The script in particular generates the files that are needed for building based on the templates in this repository. 
 
 We recommend uninstalling any other Q# extensions when working on the extensions in this repository.  
 
