@@ -7,12 +7,12 @@ as well as the Q# language server included our [Visual Studio extension](https:/
 For more information related to the language server protocol take a look at [this repository](https://github.com/Microsoft/language-server-protocol).
 These extensions provide the IDE integration for Q#, and can be found on this repository as well.  
 
-The Q# compiler provides a [command line interface](./tree/master/src/QsCompiler/CommandLineTool). For further information on how to use Q# binaries take a look at the [README](./tree/master/src/QsCompiler/CommandLineTool/README.md) in that folder.
+The Q# compiler provides a [command line interface](./src/QsCompiler/CommandLineTool). For further information on how to use Q# binaries take a look at the [README](./src/QsCompiler/CommandLineTool/README.md) in that folder.
 
 - **[QsCompiler/](./src/QsCompiler/)**: Q# compiler including the command line tool
-- **[QsCompiler/LanguageServer](./tree/master/src/QsCompiler/LanguageServer/)**: Q# language server
-- **[VSCodeExtension/](./tree/master/src/VSCodeExtension/)**: Visual Studio Code extension
-- **[VisualStudioExtension/](./tree/master/src/VisualStudioExtension/)**: Visual Studio extension
+- **[QsCompiler/LanguageServer](./src/QsCompiler/LanguageServer/)**: Q# language server
+- **[VSCodeExtension/](./src/VSCodeExtension/)**: Visual Studio Code extension
+- **[VisualStudioExtension/](./src/VisualStudioExtension/)**: Visual Studio extension
 
 ## New to Quantum? ##
 
@@ -21,11 +21,11 @@ See the [introduction to quantum computing](https://docs.microsoft.com/quantum/c
 ## Getting Started ##
 
 The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). 
-For instructions on how to build and debug the Visual Studio Code extension take a look at [this file](./tree/master/src/VSCodeExtension/BUILDING.md). 
-For building and debugging the Visual Studio extension set the [QsharpVSIX project](./tree/master/src/VisualStudioExtension/QsharpVSIX/) as startup project and launch and debug the extension as usual. 
+For instructions on how to build and debug the Visual Studio Code extension take a look at [this file](./src/VSCodeExtension/BUILDING.md). 
+For building and debugging the Visual Studio extension set the [QsharpVSIX project](./src/VisualStudioExtension/QsharpVSIX/) as startup project and launch and debug the extension as usual. 
 The Visual Studio extension is built on the [.NET Framework 4.6.1](https://dotnet.microsoft.com/download/dotnet-framework/net461) that can be easily obtained via the Visual Studio Installer. 
 
-Before you start developing you need to run the PowerShell script [bootstrap.ps1](./tree/master/bootstrap.ps1) to set up your environment. 
+Before you start developing you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) to set up your environment. 
 We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell. 
 The script in particular generates the files that are needed for building based on the templates in this repository. 
 
@@ -72,4 +72,4 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-For more details, please see [CONTRIBUTING.md](./tree/master/CONTRIBUTING.md).
+For more details, please see [CONTRIBUTING.md](./CONTRIBUTING.md).
