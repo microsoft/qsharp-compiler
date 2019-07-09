@@ -47,9 +47,40 @@ Please include the following with each issue:
 If you are interested in contributing to conceptual documentation about Q#, please see the [MicrosoftDocs/quantum-docs-pr](https://github.com/MicrosoftDocs/quantum-docs-pr) repository.
 If you are interested in contributing API references, please see [Contributing Code](https://docs.microsoft.com/quantum/contributing/code) in the contribution guide.
 
-## Contributing Fixes and New Features
+## Contributing Code
 
-If you are interested in writing code to fix issues or to implement new features, please see [Contributing Code](https://docs.microsoft.com/quantum/contributing/code) in the contribution guide.
+If you are interested in helping fix issues you or someone else encountered, 
+please make sure that the corresponding issue has been filed on the repository. 
+Check that nobody is currently working on it and that it has indeed been marked as bug. 
+If that's the case, indicate on the issue that you are working on it, 
+and link to the corresponding GitHub page where the fix is being developed. 
+If someone is already working on a fix, ask if you can help or see what other things can be done.
+If an issue is tagged as feature, please follow the guidelines related to contributing features. 
+Sometimes it may take a couple of days for us to tag issues appropriately. 
+If an issue has not been tagged yet, please indicate that you would like to work on it and be patient - 
+we are a small team and are doing our best to be quick with responding to your inquiry!
+
+If you are interested in contributing a new feature, 
+please first check if a similar functionality has already been requested. 
+If so, consider contributing to the discussion around it rather than filing a separate issue.
+If no open or closed issue with such a request already exists, 
+please file one following the feature request template. 
+We will respond to feature requests and follow up with a discussion around its feasibility, 
+how one might go about implementing it, and whether that is something we would consider adding to our repo. 
+There are several reasons why we might not be able to eventually merge even a great feature for one reason or another. 
+Take a look at our general contribution guide for [reasons why this might be the case](https://docs.microsoft.com/en-us/quantum/contributing/code?view=qsharp-preview#when-well-reject-a-pull-request). 
+Even if we are not able to incorporate something into the packages and extensions we distribute, 
+we encourage you to pursue your passion project in your own fork, 
+and share and discuss your thoughts and progress on the corresponding issue. 
+
+If you are looking for a place to get started with contributing code, 
+search for example for the good-first-issue or help-wanted tags. 
+Also look for issues that have already been discussed in more detail, 
+and check if you can help someone who has already started working on it. 
+
+Whether you want to help fixing bugs or add new features, please take a look at our general guide for [Contributing Code](https://docs.microsoft.com/quantum/contributing/code).
+
+And last but not least:
 
 # Thank You!
 
