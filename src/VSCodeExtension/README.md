@@ -1,7 +1,7 @@
 # Microsoft Quantum Development Kit for Visual Studio Code Preview
 
 Thank you for your interest in Microsoft's Quantum Development Kit for Visual Studio Code preview. 
-The development kit contains the tools you'll need to build your own quantum computing programs and experiments. 
+The Quantum Development Kit contains the tools you'll need to build your own quantum computing programs and experiments. 
 Assuming some experience with Visual Studio Code, beginners can write their first quantum program, and experienced researchers can quickly and efficiently develop new quantum algorithms.
 
 **NOTE: The simulator included with the Quantum Development Kit requires a 64-bit operating system to run.**
@@ -12,16 +12,7 @@ Then use [Quickstart - your first computer program](http://docs.microsoft.com/qu
 If you'd like more general information about Microsoft's quantum computing initiative, see [Microsoft Quantum](https://www.microsoft.com/quantum/).
 
 ## Feedback pipeline
-Your feedback about all parts of the Quantum Development Kit is important. We ask you to provide feedback by joining our community of developers at [Microsoft Quantum - Feedback](https://quantum.uservoice.com/). Sign in and share your experience in one of the following forums.
-
-- Q# Language
-- Debugging and Simulation
-- Samples and Documentation
-- Libraries
-- Setup and IDE Integration
-- General Ideas and Feature Requests
-
-You will need a [Microsoft Account](https://signup.live.com/) to provide feedback.
+Your feedback about all parts of the Quantum Development Kit is important. Please go to [our GitHub repository](https://github.com/microsoft/qsharp-compiler) to provide feedback on the Q# compiler and language extensions, or to learn more about where to give feedback on other parts of the Quantum Development Kit.
  
 ## Microsoft Quantum Development Kit components
 The Quantum Development Kit preview provides a complete development and simulation environment that contains the following components.
