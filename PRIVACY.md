@@ -1,6 +1,11 @@
 # Privacy
 
-The code in this repository contains features that may enable you and Microsoft to collect data from users of the applications. Data collection is disabled by default but can be enabled by setting the corresponding flag upon compilation. 
+By default, any data collection capabilities are disabled for the code in this repository, 
+but the code contains features that may enable you and Microsoft to collect data from users of the applications
+which can be enabled via compilation flag. 
+Our shipped extensions that are built based on the code in this repository support collecting telemetry. 
+In that case, opt-in or opt-out works via the corresponding setting in Visual Studio and Visual Studio Code, 
+and the telemetry we collect falls under the [Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement).
 
 ## Data Collection
 
