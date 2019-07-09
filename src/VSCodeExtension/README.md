@@ -9,22 +9,14 @@ Assuming some experience with Visual Studio Code, beginners can write their firs
 To jump right in, start with [Installation and validation](http://docs.microsoft.com/quantum/quantum-installconfig#vscode) to create and validate your development environment. 
 Then use [Quickstart - your first computer program](http://docs.microsoft.com/quantum/quantum-WriteAQuantumProgram) to learn about the structure of a Q# project and how to write the quantum equivalent of "Hello, world!" --  a quantum teleport application.
 
+The source code for this extension can be found on [our GitHub repository](https://github.com/microsoft/qsharp-compiler). 
+
 If you'd like more general information about Microsoft's quantum computing initiative, see [Microsoft Quantum](https://www.microsoft.com/quantum/).
 
-## Feedback pipeline
+## Feedback
+
 Your feedback about all parts of the Quantum Development Kit is important. Please go to [our GitHub repository](https://github.com/microsoft/qsharp-compiler) to provide feedback on the Q# compiler and language extensions, or to learn more about where to give feedback on other parts of the Quantum Development Kit.
  
-## Microsoft Quantum Development Kit components
-The Quantum Development Kit preview provides a complete development and simulation environment that contains the following components.
-<table>
-<tr><th>Component</th><th>Function</th></tr>
-<tr><td>Q# language and compiler</td><td>Q# is a domain-specific programming language used for expressing quantum algorithms. It is used for writing sub-programs that execute on an adjunct quantum processor under the control of a classical host program and computer.</td></tr>
-<tr><td>Q# standard library</td><td>The library contains operations and functions that support both the classical language control requirement and the Q# quantum algorithms.</td></tr>
-<tr><td>Local quantum machine simulator</td><td>A full state vector simulator optimized for accurate vector simulation and speed.</td></tr>
-<tr><td>Quantum computer trace simulator</td><td>The trace simulator does not simulate the quantum environment like the local quantum simulator. It is used to estimate the resources required to execute a quantum program and also allow faster debugging of the non-Q# control code.</td></tr>
-<tr><td>Visual Studio Code extension</td><td>The extension contains syntax highlighting and code snippets.</td></tr>
-</table>
-
 ## Quantum Development Kit documentation
 The current documentation includes the following topics.
 * [Quantum computing concepts](https://docs.microsoft.com/en-us/quantum/concepts/) includes topics such as the relevance of linear algebra to quantum computing, the nature and use of a qubit, how to read a quantum circuit, and more.
