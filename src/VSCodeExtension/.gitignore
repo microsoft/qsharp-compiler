@@ -4,7 +4,8 @@ node_modules
 .vscode-test/
 *.vsix
 
-# Generated files
+# Generated or copied files
+NOTICE.txt
 package.json
 package-lock.json
 syntaxes/qsharp.tmLanguage.json
