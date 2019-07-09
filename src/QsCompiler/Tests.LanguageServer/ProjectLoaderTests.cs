@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 ("test7", "net461"),
                 ("test8", null),
                 ("test9", "netcoreapp2.0"),
-                ("test10", "netcoreapp2.2")
+                ("test10", "netcoreapp2.1")
             };
 
             foreach (var (project, framework) in testProjects)
