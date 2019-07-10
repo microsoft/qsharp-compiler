@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Initializes a CompilationUnitManager instance.
-        /// If an Action for publishing diagnostics is given and not null, 
+        /// If an <see cref="System.Action"/> for publishing diagnostics is given and is not null, 
         /// that action is called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
         public CompilationUnitManager(Action<Exception> exceptionLogger = null, Action<PublishDiagnosticParams> publishDiagnostics = null, bool syntaxCheckOnly = false)
