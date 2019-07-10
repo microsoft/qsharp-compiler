@@ -18,9 +18,11 @@ The Q# compiler provides a [command line interface](./src/QsCompiler/CommandLine
 
 See the [introduction to quantum computing](https://docs.microsoft.com/quantum/concepts/) provided with the Quantum Development Kit.
 
-## Getting Started ##
+## Building from Source ##
 
-Before you start developing you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) to set up your environment. 
+**If you're looking to use Q# to write quantum applications, please see the instructions on how to get started with using the [Quantum Development Kit](https://docs.microsoft.com/quantum/install-guide/) including the Q# compiler, language server, and development environment extensions.**
+
+Before you can build the source code on this repository and start developing it you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) to set up your environment. 
 We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell. 
 The script in particular generates the files that are needed for building based on the templates in this repository. 
 
