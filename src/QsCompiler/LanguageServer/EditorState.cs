@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 var onProjFile = param.Uri.AbsolutePath.EndsWith(".csproj", StringComparison.InvariantCultureIgnoreCase);
                 if (!param.Diagnostics.Any() || this.OpenFiles.ContainsKey(param.Uri) || onProjFile)
                 {
-                    // Some editors (e.g. VisualStudio) will actually ignore diagnostics for .cproj files.
+                    // Some editors (e.g. Visual Studio) will actually ignore diagnostics for .csproj files.
                     // Since all errors on project loading are associated with the corresponding project file for publishing, 
                     // we need to replace the project file ending before publishing. This issue is naturally resolved once we have our own project files...
                     var parentDir = Path.GetDirectoryName(param.Uri.AbsolutePath);
