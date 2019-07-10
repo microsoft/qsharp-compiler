@@ -129,7 +129,7 @@ export function forwardServerTelemetry(telemetryRequest : any) {
     // NB: the LSP API tells us only that telemetryRequest is an
     //     any, so we don't have proper type checking here.
     //     As a work around, we copy properties and measurements out one at a
-    //     time, dropping any values of the wrong time, and logging that to the
+    //     time, dropping any values of the wrong type, and logging that to the
     //     console.
     if ('properties' in telemetryRequest) {
         Object.keys(telemetryRequest['properties']).forEach(

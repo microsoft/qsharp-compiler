@@ -14,7 +14,7 @@
     "engines": {
         "vscode": "^1.31.0"
     },
-    "license": "See license in LICENSE",
+    "license": "MIT",
     "categories": [
         "Programming Languages"
     ],
@@ -23,7 +23,7 @@
         "qsharp",
         "quantum"
     ],
-    "qna": "https://quantum.uservoice.com/",
+    "qna": "https://github.com/microsoft/qsharp-compiler",
     "activationEvents": [
         "onLanguage:qsharp"
     ],

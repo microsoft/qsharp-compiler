@@ -60,7 +60,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// that in particular specify the path to the compiled binary as input and the same output folder, verbosity, and suppressed warnings as the given options.
         /// The output folder is set to the current directory if one or more targets have been specified but the output folder was left unspecified.
         /// Returns a suitable error code if one of the compilation or generation steps fails.
-        /// Throws an ArgumentNullException if any of the given arguments is null.
+        /// </summary>
+        /// <exception cref="System.ArgumentNullException">If any of the given arguments is null.</exception>
         /// </summary>
         public static int Run(BuildOptions options, ConsoleLogger logger)
         {

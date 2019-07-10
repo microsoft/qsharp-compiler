@@ -157,7 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var specDecl = fragment.Kind.DeclaredSpecialization();
                 if (specDecl.IsNull) return null;
-                var ((kind, gen), typeArgs) = specDecl.Item; // note: once we support type specializations we need to compute the signature of the spec to find the right one
+                var ((kind, gen), typeArgs) = specDecl.Item; // note: if we want to support type specializations we need to compute the signature of the spec to find the right one
                 return kind;
             }
 

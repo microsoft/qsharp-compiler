@@ -9,6 +9,7 @@ $all_ok = $True
 ##
 # Q# compiler projects
 ##
+
 function Build-One {
     param(
         [string]$action,
@@ -33,13 +34,19 @@ Build-One 'publish' '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
 ##
 # VS Code Extension
 ##
+
 Write-Host "##[info]Building VS Code extension..."
 Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
-Try {
-    npm install
-    npm run compile
-    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
-} Catch {
+if (Get-Command npm -ErrorAction SilentlyContinue) {
+    Try {
+        npm install
+        npm run compile
+        $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+    } Catch {
+        Write-Host "##vso[task.logissue type=warning;]Failed to build VS Code extension."
+        $all_ok = $False
+    }
+} else {
     Write-Host "##vso[task.logissue type=warning;]npm not installed. Will skip creation of VS Code extension"
 }
 Pop-Location
@@ -47,17 +54,33 @@ Pop-Location
 ##
 # VisualStudioExtension
 ##
+
 Write-Host "##[info]Building VisualStudio extension..."
 Push-Location (Join-Path $PSScriptRoot '..')
-Try {
-    nuget restore VisualStudioExtension.sln
-    msbuild VisualStudioExtension.sln `
-        /property:Configuration=$Env:BUILD_CONFIGURATION `
-        /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
-        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
-    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
-} Catch {
-    Write-Host "##vso[task.logissue type=warning;]nuget or msbuild not installed. Will skip building the VisualStudio extension"
+if (Get-Command nuget -ErrorAction SilentlyContinue) {
+    Try {
+        nuget restore VisualStudioExtension.sln
+        $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+    } Catch {
+        Write-Host "##vso[task.logissue type=warning;]Failed to restore VS extension solution."
+        $all_ok = $False
+    }
+} else {
+    Write-Host "##vso[task.logissue type=warning;]nuget not installed. Will skip restoring the VisualStudio extension solution"
+}
+if (Get-Command msbuild -ErrorAction SilentlyContinue) {
+    Try {
+        msbuild VisualStudioExtension.sln `
+            /property:Configuration=$Env:BUILD_CONFIGURATION `
+            /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+            /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+        $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+    } Catch {
+        Write-Host "##vso[task.logissue type=warning;]Failed to build VS extension."
+        $all_ok = $False
+    }
+} else {
+    Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip building the VisualStudio extension"
 }
 Pop-Location
 

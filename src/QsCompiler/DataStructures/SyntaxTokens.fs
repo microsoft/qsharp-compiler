@@ -187,7 +187,6 @@ type QsTuple<'Item> =
 
 type CallableSignature = { 
     TypeParameters : ImmutableArray<QsSymbol>
-    //CharacteristicParameters : ImmutableArray<QsSymbol> // TODO: not yet supported
     Argument : QsTuple<QsSymbol * QsType>
     ReturnType : QsType
     Characteristics : Characteristics

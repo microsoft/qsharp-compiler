@@ -12,9 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Canon" Version="0.3.1810.303-preview" />
-    <PackageReference Include="Microsoft.Quantum.Development.Kit" Version="0.3.1810.303-preview" />
-    <PackageReference Include="Microsoft.Quantum.xUnit" Version="0.3.1810.303-preview" />
+    <PackageReference Include="Microsoft.Quantum.Canon" Version="0.3.1811.203-preview" />
+    <PackageReference Include="Microsoft.Quantum.Development.Kit" Version="0.3.1811.203-preview" />
+    <PackageReference Include="Microsoft.Quantum.xUnit" Version="0.3.1811.203-preview" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
     <PackageReference Include="xunit" Version="2.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0">

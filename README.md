@@ -1,4 +1,4 @@
-# Microsoft Quantum Development Kit: Q# Compiler and Language Server #
+# Microsoft Quantum Development Kit: <br>Q# Compiler and Language Server #
 
 Welcome to the Microsoft Quantum Development Kit!
 
@@ -9,30 +9,34 @@ These extensions provide the IDE integration for Q#, and can be found on this re
 
 The Q# compiler provides a [command line interface](./src/QsCompiler/CommandLineTool). For further information on how to use Q# binaries take a look at the [README](./src/QsCompiler/CommandLineTool/README.md) in that folder.
 
-- **[QsCompiler/](./src/QsCompiler/)**: Q# compiler including the command line tool
+- **[QsCompiler](./src/QsCompiler/)**: Q# compiler including the command line tool
 - **[QsCompiler/LanguageServer](./src/QsCompiler/LanguageServer/)**: Q# language server
-- **[VSCodeExtension/](./src/VSCodeExtension/)**: Visual Studio Code extension
-- **[VisualStudioExtension/](./src/VisualStudioExtension/)**: Visual Studio extension
+- **[VSCodeExtension](./src/VSCodeExtension/)**: Visual Studio Code extension
+- **[VisualStudioExtension](./src/VisualStudioExtension/)**: Visual Studio extension
 
 ## New to Quantum? ##
 
 See the [introduction to quantum computing](https://docs.microsoft.com/quantum/concepts/) provided with the Quantum Development Kit.
 
-## Getting Started ##
+## Installing the Quantum Development Kit
 
-The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). 
-For instructions on how to build and debug the Visual Studio Code extension take a look at [this file](./src/VSCodeExtension/BUILDING.md). 
-For building and debugging the Visual Studio extension set the [QsharpVSIX project](./src/VisualStudioExtension/QsharpVSIX/) as startup project and launch and debug the extension as usual. 
-The Visual Studio extension is built on the [.NET Framework 4.6.1](https://dotnet.microsoft.com/download/dotnet-framework/net461) that can be easily obtained via the Visual Studio Installer. 
+**If you're looking to use Q# to write quantum applications, please see the instructions on how to get started with using the [Quantum Development Kit](https://docs.microsoft.com/quantum/install-guide/) including the Q# compiler, language server, and development environment extensions.**
 
-Before you start developing you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) to set up your environment. 
+Please see the [installation guide](https://docs.microsoft.com/quantum/install-guide) for further information on how to get started using the Quantum Development Kit to develop quantum applications.
+You may also visit our [Quantum](https://github.com/microsoft/quantum) repository, which offers a wide variety of samples on how to write quantum based programs.
+
+## Building from Source ##
+
+Before you can build the source code on this repository and start contributing to the Q# compiler and extensions you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) to set up your environment. 
 We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell. 
 The script in particular generates the files that are needed for building based on the templates in this repository. 
 
-We recommend uninstalling any other Q# extensions when working on the extensions in this repository.  
+The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). 
+For instructions on how to build and debug the Visual Studio Code extension take a look at [this file](./src/VSCodeExtension/BUILDING.md). 
+For building and debugging the Visual Studio extension, open [the corresponding solution](./VisualStudioExtension.sln) and set the [QsharpVSIX project](./src/VisualStudioExtension/QsharpVSIX/) as startup project, then launch and debug the extension as usual. 
+The Visual Studio extension is built on the [.NET Framework 4.6.1](https://dotnet.microsoft.com/download/dotnet-framework/net461) that can be easily obtained via the Visual Studio Installer. 
 
-Please see the [installation guide](https://docs.microsoft.com/quantum/install-guide) for further information on how to get started with the Quantum Development Kit in general.
-You may also visit our [Quantum](https://github.com/microsoft/quantum) repository, which offers a wide variety of samples on how to write quantum based programs.
+We recommend uninstalling any other Q# extensions when working on the extensions in this repository.  
 
 ## Build Status ##
 
@@ -49,7 +53,7 @@ If you have feedback about some other part of the Microsoft Quantum Development 
 
 ### Telemetry ###
 
-By default, sending out telemetry is disabled for all code in this repository, but can be enabled via compilation flag. 
+By default, sending out telemetry is disabled for all code in this repository, but it can be enabled via compilation flag. 
 Our shipped extensions that are built based on the code in this repository support collecting telemetry. 
 In that case, opt-in or opt-out works via the corresponding setting in Visual Studio and Visual Studio Code, 
 and the telemetry we collect falls under the [Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement).

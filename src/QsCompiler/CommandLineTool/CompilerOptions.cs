@@ -145,7 +145,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             $"}}";
 
         /// <summary>
-        /// helper function that returns true if the given file id is the one a compilation unit manager would assign to the code snipped 
+        /// Helper function that returns true if the given file id is consistent with the one for a code snippet. 
         /// </summary>
         public static bool IsCodeSnippet(NonNullable<string> fileId) =>
             fileId.Value == SNIPPET_FILE_ID.Value;

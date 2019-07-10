@@ -39,7 +39,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// the keys are the file ids (location of the dll file) and the values are the headers defined in that file
+        /// Dictionary that maps the id of a referenced assembly (given by its location on disk) to the headers defined in that assembly.
         /// </summary>
         public readonly ImmutableDictionary<NonNullable<string>, Headers> Declarations; 
 
@@ -378,7 +378,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 foreach (var callableName in keys)
                 {
                     if (!currentlyDefined.ContainsKey(callableName))
-                    { this.CompiledCallables.Remove(callableName); }  // todo: needs adaption once we have external specializations
+                    { this.CompiledCallables.Remove(callableName); }  // todo: needs adaption if we want to support external specializations
                 }
 
                 // update the position information for the remaining types and callables, keeping only the specializations that are listed in GlobalSymbols
@@ -404,7 +404,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var compilationExists = this.CompiledCallables.TryGetValue(fullName, out QsCallable compiled);
                     if (!compilationExists) continue; // may happen if a file has been modified during global type checking
 
-                    // TODO: this needs adaption once we fully support type specializations
+                    // TODO: this needs adaption if we want to support type specializations
                     var specializations = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName).Select(defined =>
                     {
                         var specHeader = defined.Item2;
@@ -436,7 +436,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public QsCallable GetImportedCallable(CallableDeclarationHeader header)
         {
-            // TODO: this needs to be adapted once we support external specializations
+            // TODO: this needs to be adapted if we want to support external specializations
             if (header == null) throw new ArgumentNullException(nameof(header));
             var importedSpecs = this.GlobalSymbols.ImportedSpecializations(header.QualifiedName);
             var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName).Select(defined => defined.Item2);
@@ -467,7 +467,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the syntax tree for the current state of the compilation as out parameter.
+        /// Returns the syntax tree based on the current state of the compilation.
         /// Note that functor generation directives are *not* evaluated in the the returned tree,
         /// and the returned tree may contain invalid parts. 
         /// Throws an InvalidOperationException if a callable definition is listed in GlobalSymbols for which no compilation exists. 
@@ -524,7 +524,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a look-up that contains the names of all namespaces imported within a certain source file for the given namespace.
+        /// Returns a look-up that contains the names of all namespaces and the corresponding short hand, if any, 
+        /// imported within a certain source file for the given namespace.
         /// Throws an ArgumentException if no namespace with the given name exists. 
         /// </summary>
         public ILookup<NonNullable<string>, (NonNullable<string>, string)> GetOpenDirectives(NonNullable<string> nsName)
