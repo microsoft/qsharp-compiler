@@ -665,24 +665,80 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public class Compilation
         {
+            /// <summary>
+            /// Contains the file IDs assigned by the Q# compiler for all source files included in the compilation. 
+            /// </summary>
             public readonly ImmutableHashSet<NonNullable<string>> SourceFiles;
+            /// <summary>
+            /// Contains the IDs assigned by the Q# compiler for all assemblies referenced in the compilation. 
+            /// </summary>
             public readonly ImmutableHashSet<NonNullable<string>> References;
 
+            /// <summary>
+            /// Contains a dictionary that maps the ID of a file included in the compilation 
+            /// to the text representation of its content. 
+            /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<string>> FileContent;
+            /// <summary>
+            /// Contains a dictionary that maps the ID of a file included in the compilation 
+            /// to the tokenization built based on its content. 
+            /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<ImmutableArray<CodeFragment>>> Tokenization;
+            /// <summary>
+            /// Contains a dictionary that maps the ID of a file included in the compilation 
+            /// to the syntax tree built based on its content. 
+            /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, QsNamespace> SyntaxTree;
 
+            /// <summary>
+            /// Contains a dictionary that maps the name of each namespace defined in the compilation to a look-up 
+            /// containing the names and corresponding short form (if any) of all opened namespaces for that (part of the) namespace in a particular source file. 
+            /// </summary>
             private readonly ImmutableDictionary<NonNullable<string>, ILookup<NonNullable<string>, (NonNullable<string>, string)>> OpenDirectivesForEachFile;
+            /// <summary>
+            /// Contains a dictionary that given the ID of a file included in the compilation 
+            /// returns all tokenized code fragments containing namespace declarations in that file.
+            /// </summary>
             private readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<CodeFragment>> NamespaceDeclarations;
+            /// <summary>
+            /// Contains a dictionary that given the fully qualified name of a compiled callable returns its syntax tree. 
+            /// </summary>
             public readonly ImmutableDictionary<QsQualifiedName, QsCallable> Callables;
+            /// <summary>
+            /// Contains a dictionary that given the fully qualified name of a compiled type returns its syntax tree. 
+            /// </summary>
             public readonly ImmutableDictionary<QsQualifiedName, QsCustomType> Types;
 
+            /// <summary>
+            /// Contains a dictionary that maps the ID of a file included in the compilation 
+            /// to all scope-related diagnostics generated during compilation. 
+            /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<Diagnostic>> ScopeDiagnostics;
+            /// <summary>
+            /// Contains a dictionary that maps the ID of a file included in the compilation 
+            /// to all syntax-related diagnostics generated during compilation. 
+            /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<Diagnostic>> SyntaxDiagnostics;
+            /// <summary>
+            /// Contains a dictionary that maps the ID of a file included in the compilation 
+            /// to all context-related diagnostics generated during compilation. 
+            /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<Diagnostic>> ContextDiagnostics;
+            /// <summary>
+            /// Contains a dictionary that maps the ID of a file included in the compilation 
+            /// to all diagnostics generated during compilation related to header information for declarations. 
+            /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<Diagnostic>> HeaderDiagnostics;
+            /// <summary>
+            /// Contains a dictionary that maps the ID of a file included in the compilation 
+            /// to all semantic diagnostics generated during compilation for the specified implementations. 
+            /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<Diagnostic>> SemanticDiagnostics;
 
+            /// <summary>
+            /// Maps a file ID assigned by the Q# compiler to all diagnostics generated during compilation. 
+            /// Returns an empty sequence if no file with the given ID has been included in the compilation. 
+            /// </summary>
             public IEnumerable<Diagnostic> Diagnostics(NonNullable<string> file) =>
                 this.SourceFiles.Contains(file) ? 
                     ScopeDiagnostics[file].Concat(
@@ -704,12 +760,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return declarations.Count() == 1 ? declarations.Single().Comments : QsComments.Empty;
             }
 
+            /// <summary>
+            /// Given ID of a source file and the name of a namespace, 
+            /// returns the names and corresponding short form (if any) of all opened namespaces for the (part of the) namespace in that file. 
+            /// Returns an empy sequence if no source file with the given ID and/or namespace with the given name exists in the compilation. 
+            /// </summary>
             public IEnumerable<(NonNullable<string>, string)> OpenDirectives(NonNullable<string> sourceFile, NonNullable<string> nsName) =>
                 this.OpenDirectivesForEachFile
                     .TryGetValue(nsName, out ILookup<NonNullable<string>, (NonNullable<string>, string)> lookUp) 
                         ? lookUp[sourceFile]
                         : Enumerable.Empty<(NonNullable<string>, string)>();
-
+            /// <summary>
+            /// Returns all the names of all callable and types defined in the namespace with the given name.
+            /// The returned names are unique and do not contain duplications e.g. for types and the corresponding constructor. 
+            /// Returns an empty sequence if no namespace with the given name exists in the compilation. 
+            /// </summary>
             public IEnumerable<NonNullable<string>> SymbolsDefinedInNamespace(NonNullable<string> nsName) =>
                 this.SyntaxTree.TryGetValue(nsName, out QsNamespace ns) 
                     ? ns.Elements.Select(element => (element is QsNamespaceElement.QsCallable c) ? c.Item.FullName.Name.Value : null)
