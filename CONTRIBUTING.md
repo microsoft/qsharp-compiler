@@ -50,7 +50,7 @@ and share and discuss your thoughts and progress on the corresponding issue.
 
 If you are looking for a place to get started with contributing code, 
 search for example for the [good-first-issue](https://github.com/microsoft/qsharp-compiler/labels/good%20first%20issue) or [help-wanted](https://github.com/microsoft/qsharp-compiler/labels/help%20wanted) labels. 
-Also look for issues that have already been discussed in more detail, 
+Also, look for issues that have already been discussed in more detail, 
 and check if you can help someone who has already started working on it. 
 
 Whether you want to help fixing bugs or add new features, please take a look at our general guide for [Contributing Code](https://docs.microsoft.com/quantum/contributing/code).
