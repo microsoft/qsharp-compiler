@@ -33,10 +33,15 @@ Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProje
 ##
 Write-Host "##[info]Packing VS Code extension..."
 Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
-Try {
-    vsce package
-    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
-} Catch {
+if (Get-Command vsce -ErrorAction SilentlyContinue) {
+    Try {
+        vsce package
+        $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+    } Catch {
+        Write-Host "##vso[task.logissue type=warning;]Failed to pack VS Code extension."
+        $all_ok = $False
+    }
+} else {    
     Write-Host "##vso[task.logissue type=warning;]vsce not installed. Will skip creation of VS Code extension package"
 }
 Pop-Location
@@ -46,13 +51,18 @@ Pop-Location
 ##
 Write-Host "##[info]Packing VisualStudio extension..."
 Push-Location (Join-Path $PSScriptRoot '..\src\VisualStudioExtension\QsharpVSIX')
-Try {
-    msbuild QsharpVSIX.csproj `
-        /t:CreateVsixContainer `
-        /property:Configuration=$Env:BUILD_CONFIGURATION `
-        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
-    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
-} Catch {
+if (Get-Command msbuild -ErrorAction SilentlyContinue) {
+    Try {
+        msbuild QsharpVSIX.csproj `
+            /t:CreateVsixContainer `
+            /property:Configuration=$Env:BUILD_CONFIGURATION `
+            /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+        $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+    } Catch {
+        Write-Host "##vso[task.logissue type=warning;]Failed to pack VS extension."
+        $all_ok = $False
+    }
+} else {    
     Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip creation of VisualStudio extension package"
 }
 Pop-Location
