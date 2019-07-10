@@ -103,7 +103,7 @@ type FunctorAutoGenTests (output:ITestOutputHelper) =
         this.Expect "Intrinsic5" [Error ErrorCode.UserDefinedImplementationForIntrinsic]
         this.Expect "Intrinsic6" [Error ErrorCode.UserDefinedImplementationForIntrinsic]
 
-        // TODO: Once external specializations are supported we need to make sure that 
+        // TODO: If external specializations are supported we need to make sure that 
         // "intrinsic" is not a valid generator for external specializations.
         // Similarly, we need to properly generate errors when the auto generation of external specializations fails.
 
