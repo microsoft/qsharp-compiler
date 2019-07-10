@@ -1,5 +1,5 @@
 {
-  "copyright": "Copyright � 2017-2019 Microsoft Corporation. All Rights Reserved.",
+  "copyright": "Copyright ⓒ 2017-2019 Microsoft Corporation. All Rights Reserved.",
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "qsharp",
   "version": "#VSIX_VERSION#",

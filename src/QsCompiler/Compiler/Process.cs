@@ -15,7 +15,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Starts the given process and accumulates the received output and error data in the given StringBuilders. 
         /// Returns true if the process completed within the specified time without throwing an exception, and false otherwise.
-        /// Any thrown exception is returns as out parameter. 
+        /// Any thrown exception is returned as out parameter. 
         /// </summary>
         public static bool Run(Process process, StringBuilder output, StringBuilder error, out Exception ex, int timeout)
         {
