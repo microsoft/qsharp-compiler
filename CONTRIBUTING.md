@@ -20,7 +20,7 @@ Have a feature request?
 We want to hear about it!
 
 The Quantum Development Kit is distributed across multiple repositories. Filing an issue against the correct repository will help address it swiftly. Check the list [in the contribution guide](https://docs.microsoft.com/quantum/contributing/#where-do-contributions-go) to figure out which repo is a good place to file it.
-You can follow the [template](./.github/ISSUE_TEMPLATE/bug_report.md) for reporting issues on this repository. 
+You can follow the [template](https://github.com/microsoft/qsharp-compiler/issues/new?assignees=&labels=bug&template=bug_report.md&title=) for reporting issues on this repository. 
 
 ## Contributing Code
 
@@ -49,7 +49,7 @@ we encourage you to pursue your passion project in your own fork,
 and share and discuss your thoughts and progress on the corresponding issue. 
 
 If you are looking for a place to get started with contributing code, 
-search for example for the good-first-issue or help-wanted tags. 
+search for example for the [good-first-issue](https://github.com/microsoft/qsharp-compiler/labels/good%20first%20issue) or [help-wanted](https://github.com/microsoft/qsharp-compiler/labels/help%20wanted) tags. 
 Also look for issues that have already been discussed in more detail, 
 and check if you can help someone who has already started working on it. 
 
