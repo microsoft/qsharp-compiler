@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns the project information containing the outputPath of the project 
         /// along with the Q# source files as well as all project and dll references as out parameter if it is. 
         /// Returns null if it isn't, or if the project file itself has been listed as to be ignored. 
-        /// Calls SendTelemetry with suitable data if the project is recognized Q# project. 
+        /// Calls SendTelemetry with suitable data if the project is a recognized Q# project. 
         /// </summary>
         internal bool QsProjectLoader(Uri projectFile, out ProjectInformation info)
         {
