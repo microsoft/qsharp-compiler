@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routines related to tracking the source files
 
         /// <summary>
-        /// returns the string with the file id associated with the given uri used throughout the compilation
+        /// Returns the string with the file ID associated with the given URI used throughout the compilation.
         /// </summary>
         public static bool TryGetFileId(Uri uri, out NonNullable<string> id)
         {
