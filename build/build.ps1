@@ -9,6 +9,7 @@ $all_ok = $True
 ##
 # Q# compiler projects
 ##
+
 function Build-One {
     param(
         [string]$action,
@@ -33,6 +34,7 @@ Build-One 'publish' '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
 ##
 # VS Code Extension
 ##
+
 Write-Host "##[info]Building VS Code extension..."
 Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
 if (Get-Command npm -ErrorAction SilentlyContinue) {
@@ -52,11 +54,22 @@ Pop-Location
 ##
 # VisualStudioExtension
 ##
+
 Write-Host "##[info]Building VisualStudio extension..."
 Push-Location (Join-Path $PSScriptRoot '..')
-if ((Get-Command nuget -ErrorAction SilentlyContinue) -and (Get-Command msbuild -ErrorAction SilentlyContinue)) {
+if (Get-Command nuget -ErrorAction SilentlyContinue) {
     Try {
         nuget restore VisualStudioExtension.sln
+        $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+    } Catch {
+        Write-Host "##vso[task.logissue type=warning;]Failed to restore VS extension solution."
+        $all_ok = $False
+    }
+} else {
+    Write-Host "##vso[task.logissue type=warning;]nuget not installed. Will skip restoring the VisualStudio extension solution"
+}
+if (Get-Command msbuild -ErrorAction SilentlyContinue) {
+    Try {
         msbuild VisualStudioExtension.sln `
             /property:Configuration=$Env:BUILD_CONFIGURATION `
             /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
@@ -67,7 +80,7 @@ if ((Get-Command nuget -ErrorAction SilentlyContinue) -and (Get-Command msbuild 
         $all_ok = $False
     }
 } else {
-    Write-Host "##vso[task.logissue type=warning;]nuget or msbuild not installed. Will skip building the VisualStudio extension"
+    Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip building the VisualStudio extension"
 }
 Pop-Location
 
