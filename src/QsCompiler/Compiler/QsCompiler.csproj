@@ -6,7 +6,13 @@
     <AssemblyName>Microsoft.Quantum.QsCompiler</AssemblyName>
     <AssemblyTitle>Microsoft Q# compiler library.</AssemblyTitle>
   </PropertyGroup>
-  
+
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/microsoft/qsharp-compiler</PackageProjectUrl>
+    <PackageIconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</PackageIconUrl>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\CompilationManager\QsCompilationManager.csproj" />
     <ProjectReference Include="..\DocumentationParser\QsDocumentationParser.csproj" />
