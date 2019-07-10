@@ -212,7 +212,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (files.Any(item => item.Value == null)) throw new ArgumentException("file content cannot be null");
             if (files.Any(item => !TryGetFileId(item.Key, out NonNullable<string> docKey))) throw new ArgumentException("invalid TextDocumentIdentifier");
 
-            return files.AsParallel() // FIXME: not sure how well this works
+            return files.AsParallel()
                 .WithDegreeOfParallelism(Environment.ProcessorCount > 1 ? Environment.ProcessorCount - 1 : Environment.ProcessorCount)
                 .WithExecutionMode(ParallelExecutionMode.ForceParallelism) // we are fine with a slower performance if the work is trivial
                 .Select(entry => InitializeFileManager(entry.Key, entry.Value, publishDiagnostics, onException))
@@ -669,15 +669,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public readonly ImmutableHashSet<NonNullable<string>> References;
 
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<string>> FileContent;
-
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<ImmutableArray<CodeFragment>>> Tokenization;
-            private readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<CodeFragment>> NamespaceDeclarations;
-            private readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<CodeFragment>> TypeDeclarations;
-            private readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<CodeFragment>> CallableDeclarations;
-
             public readonly ImmutableDictionary<NonNullable<string>, QsNamespace> SyntaxTree;
-            private readonly ImmutableDictionary<NonNullable<string>, ILookup<NonNullable<string>, (NonNullable<string>, string)>> OpenDirectivesForEachFile;
 
+            private readonly ImmutableDictionary<NonNullable<string>, ILookup<NonNullable<string>, (NonNullable<string>, string)>> OpenDirectivesForEachFile;
+            private readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<CodeFragment>> NamespaceDeclarations;
             public readonly ImmutableDictionary<QsQualifiedName, QsCallable> Callables;
             public readonly ImmutableDictionary<QsQualifiedName, QsCustomType> Types;
 
@@ -731,25 +727,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.FileContent = this.SourceFiles
                         .Select(file => (file, manager.FileContentManagers[file].GetLines().Select(line => line.Text).ToImmutableArray()))
                         .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-
                     this.Tokenization = this.SourceFiles
                         .Select(file => (file, manager.FileContentManagers[file].GetTokenizedLines().Select(line => line.Select(frag => frag.Copy()).ToImmutableArray()).ToImmutableArray()))
                         .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.NamespaceDeclarations= this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].NamespaceDeclarationTokens().Select(t => t.GetFragmentWithClosingComments()).ToImmutableArray()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.TypeDeclarations = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].TypeDeclarationTokens().Select(t => t.GetFragmentWithClosingComments()).ToImmutableArray()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.CallableDeclarations = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file].CallableDeclarationTokens().Select(t => t.GetFragmentWithClosingComments()).ToImmutableArray()))
-                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-
                     this.SyntaxTree = manager.CompilationUnit.Build().ToImmutableDictionary(ns => ns.Name);
+
                     this.OpenDirectivesForEachFile = this.SyntaxTree.Keys.ToImmutableDictionary(
                         nsName => nsName, 
                         nsName => manager.CompilationUnit.GetOpenDirectives(nsName));
-
+                    this.NamespaceDeclarations = this.SourceFiles
+                        .Select(file => (file, manager.FileContentManagers[file].NamespaceDeclarationTokens().Select(t => t.GetFragmentWithClosingComments()).ToImmutableArray()))
+                        .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
                     this.Callables = this.SyntaxTree.Values.GlobalCallableResolutions();
                     this.Types = this.SyntaxTree.Values.GlobalTypeResolutions();
 
