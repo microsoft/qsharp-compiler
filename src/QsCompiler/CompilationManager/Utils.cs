@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static readonly Regex EndOfLine = new Regex($"({LineBreak})$"); // NOTE: *needs* to fail, if no line breaking character exists (scope tracking depends on it)
 
         /// <summary>
-        /// splits the given text into multiple lines, with the line ending of each line included in the line
+        /// Splits the given text into multiple lines, with the line ending of each line included in the line.
         /// </summary>
         public static string[] SplitLines(string text)
         {

@@ -196,7 +196,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
 
         /// <summary>
         /// Returns a string that contains all information about the given diagnostic 
-        /// in a format that is detected and processed as diagnostic by VS and VS Code. 
+        /// in a format that is detected and processed as a diagnostic by VS and VS Code. 
         /// The string contains one-based position information if the range information is not null, 
         /// assuming the given position information is zero-based.
         /// Throws an ArgumentNullException if the given message is null. 

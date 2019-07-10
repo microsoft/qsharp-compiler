@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 var onProjFile = param.Uri.AbsolutePath.EndsWith(".csproj", StringComparison.InvariantCultureIgnoreCase);
                 if (!param.Diagnostics.Any() || this.OpenFiles.ContainsKey(param.Uri) || onProjFile)
                 {
-                    // Some editors (e.g. VisualStudio) will actually ignore diagnostics for .cproj files.
+                    // Some editors (e.g. Visual Studio) will actually ignore diagnostics for .csproj files.
                     // Since all errors on project loading are associated with the corresponding project file for publishing, 
                     // we need to replace the project file ending before publishing. This issue is naturally resolved once we have our own project files...
                     var parentDir = Path.GetDirectoryName(param.Uri.AbsolutePath);
@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns the project information containing the outputPath of the project 
         /// along with the Q# source files as well as all project and dll references as out parameter if it is. 
         /// Returns null if it isn't, or if the project file itself has been listed as to be ignored. 
-        /// Calls SendTelemetry with suitable data if the project is recognized Q# project. 
+        /// Calls SendTelemetry with suitable data if the project is a recognized Q# project. 
         /// </summary>
         internal bool QsProjectLoader(Uri projectFile, out ProjectInformation info)
         {
