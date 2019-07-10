@@ -23,7 +23,7 @@
         "qsharp",
         "quantum"
     ],
-    "qna": "https://quantum.uservoice.com/",
+    "qna": "https://github.com/microsoft/qsharp-compiler",
     "activationEvents": [
         "onLanguage:qsharp"
     ],

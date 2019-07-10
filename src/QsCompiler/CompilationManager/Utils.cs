@@ -175,8 +175,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if a given position is null.
         /// Throws an ArgumentException if a given position is not valid.
         /// </summary>
-        internal static bool IsSmallerThanOrEqualTo(this Position first, Position second)
-        { return !second.IsSmallerThan(first); }
+        internal static bool IsSmallerThanOrEqualTo(this Position first, Position second) =>
+            !second.IsSmallerThan(first); 
 
         /// <summary>
         /// Verifies the given position and range, and returns true if the given position lays within the given range.
@@ -195,16 +195,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns true if the given range is valid, i.e. if both start and end are valid positions, and start is smaller than or equal to end.
         /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
-        public static bool IsValidRange(Range range)
-        { return IsValidPosition(range?.Start) && IsValidPosition(range.End) && range.Start.IsSmallerThanOrEqualTo(range.End); }
+        public static bool IsValidRange(Range range) =>
+            IsValidPosition(range?.Start) && IsValidPosition(range.End) && range.Start.IsSmallerThanOrEqualTo(range.End); 
 
         /// <summary>
         /// Returns true if the given range is valid, 
         /// i.e. if both start and end are valid positions within the given file, and start is smaller than or equal to end.
         /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
-        internal static bool IsValidRange(Range range, FileContentManager file)
-        { return IsValidPosition(range?.Start, file) && IsValidPosition(range.End, file) && range.Start.IsSmallerThanOrEqualTo(range.End); }
+        internal static bool IsValidRange(Range range, FileContentManager file) =>
+            IsValidPosition(range?.Start, file) && IsValidPosition(range.End, file) && range.Start.IsSmallerThanOrEqualTo(range.End); 
 
         /// <summary>
         /// Returns the absolute position under the assumption that snd is relative to fst and both positions are zero-based.

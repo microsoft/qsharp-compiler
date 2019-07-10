@@ -28,7 +28,7 @@ Building the VS Code extension requires the following steps:
 - Compiling the TypeScript for the extension itself.
   This step is automatically invoked when debugging the extension from within VS Code.
 
-To set up the build pre-requisites, we require to run `bootstrap.cmd` from the root folder of the repository.
+To set up the build pre-requisites, we require to run `bootstrap.ps1` from the root folder of the repository.
 This in particular creates `package.json` from `package.json.v.template`, which specifies all of the dependencies that must be installed in order for the TypeScript comprising the VS Code extension to successfully compile and run.
 
 Once `package.json` exists, Node.js dependencies can be installed:
@@ -69,5 +69,5 @@ Change back to the "Extension" debugger and resume.
 ### Semver Issues ###
 
 You may see an error when packaging or debugging the VS Code extension indicating that the package is not semver compatible.
-This indicates that the build script `bootstrap.cmd` did not produce a SemVer 2.0–compatible version number when writing `package.json` from `package.json.v.template`, typically due to a mis-set environment variable.
-If this happens, correct the environment variables used by `bootstrap.cmd` or manually edit the `version` property of `package.json` (note that any such manual edits **will** be overwritten by calls to `bootstrap.cmd` and will not be saved in the repo).
+This indicates that the build script `bootstrap.ps1` did not produce a SemVer 2.0–compatible version number when writing `package.json` from `package.json.v.template`, typically due to a mis-set environment variable.
+If this happens, correct the environment variables used by `bootstrap.ps1` or manually edit the `version` property of `package.json` (note that any such manual edits **will** be overwritten by calls to `bootstrap.ps1` and will not be saved in the repo).

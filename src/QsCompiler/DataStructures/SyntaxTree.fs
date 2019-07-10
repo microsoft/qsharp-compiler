@@ -206,7 +206,7 @@ type ResolvedCharacteristics = private {
         let rec common current = function
             | [] -> current
             | head :: tail -> 
-                // todo: once we support set parameters, we need to replace them in head by their worst-case value
+                // todo: if we support parameterizing over characteristics, we need to replace them in head by their worst-case value
                 tail |> common {_Characteristics = Intersection (current, head)}             
         if characteristics |> List.exists (fun a -> a._Characteristics = EmptySet) then {_Characteristics = EmptySet}
         elif characteristics |> List.exists (fun a -> a.AreInvalid) then {_Characteristics = InvalidSetExpr}

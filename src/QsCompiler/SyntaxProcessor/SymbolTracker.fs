@@ -43,7 +43,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
 
     /// Denotes a property of the parent callable associated with this symbol tracker,  
     /// such as information about the kind, the type parameters, the returns type, and the source file it is declared in.
-    /// IMPORTANT: these need to be adapted once we support type specializations and/or external specializations!
+    /// IMPORTANT: these need to be adapted if we want to support type specializations and/or external specializations!
     let parentIsOperation, typeParameters, expectedReturnType = 
         match GlobalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with 
         | Null -> ArgumentException "the given NamespaceManager does not contain a callable with the given parent name" |> raise

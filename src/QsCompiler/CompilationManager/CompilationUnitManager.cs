@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and then executes the given function, returning its result. 
         /// Returns null if the given function to execute is null, but does everything else. 
         /// </summary>
-        public T FlushAndExecute<T>(Func<T> execute) where T : class
+        public T FlushAndExecute<T>(Func<T> execute = null) where T : class
         {
             // To enforce an up-to-date content for executing the given function,
             // we want to do a (synchronous!) global type checking on flushing,
