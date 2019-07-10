@@ -295,7 +295,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Called in order to process any queued changes in the file with the given uri and 
+        /// Called in order to process any queued changes in the file with the given URI and 
         /// - if verifications are enabled - trigger a semantic check.
         /// Does not do anything if no file with the given uri is listed as source file of this compilation. 
         /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri. 
