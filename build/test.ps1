@@ -11,7 +11,7 @@ function Test-One {
         [string]$project
     );
 
-    dotnet test $project `
+    dotnet test (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
         --logger trx `

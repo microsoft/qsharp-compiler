@@ -16,7 +16,7 @@ function Pack-One() {
     );
 
     Write-Host "##[info]Packing $project..."
-    nuget pack $project `
+    nuget pack (Join-Path $PSScriptRoot $project) `
         -OutputDirectory $Env:NUGET_OUTDIR `
         -Properties Configuration=$Env:BUILD_CONFIGURATION `
         -Version $Env:NUGET_VERSION `
