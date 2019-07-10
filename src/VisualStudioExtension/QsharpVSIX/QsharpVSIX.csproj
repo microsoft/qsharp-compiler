@@ -76,7 +76,7 @@
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <None Include="app.config" />
-    <Content Include="License.rtf">
+    <Content Include="LICENSE.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
