@@ -23,7 +23,10 @@ function Pack-One() {
         -Verbosity detailed `
         $include_references
 
-    $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+    if  ($LastExitCode -ne 0) {
+        Write-Host "##vso[task.logissue type=error;]Failed to pack $(project)."
+        $script:all_ok = $False
+    }
 }
 
 Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects'
@@ -36,9 +39,12 @@ Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
 if (Get-Command vsce -ErrorAction SilentlyContinue) {
     Try {
         vsce package
-        $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+
+        if  ($LastExitCode -ne 0) {
+            throw
+        }        
     } Catch {
-        Write-Host "##vso[task.logissue type=warning;]Failed to pack VS Code extension."
+        Write-Host "##vso[task.logissue type=error;]Failed to pack VS Code extension."
         $all_ok = $False
     }
 } else {    
@@ -57,9 +63,12 @@ if (Get-Command msbuild -ErrorAction SilentlyContinue) {
             /t:CreateVsixContainer `
             /property:Configuration=$Env:BUILD_CONFIGURATION `
             /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
-        $script:all_ok = ($LastExitCode -eq 0) -and $script:all_ok
+
+        if  ($LastExitCode -ne 0) {
+            throw
+        }
     } Catch {
-        Write-Host "##vso[task.logissue type=warning;]Failed to pack VS extension."
+        Write-Host "##vso[task.logissue type=error;]Failed to pack VS extension."
         $all_ok = $False
     }
 } else {    
