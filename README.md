@@ -46,7 +46,7 @@ We recommend uninstalling any other Q# extensions when working on the extensions
 
 ## Feedback ##
 
-If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp-compiler/issues/new)!
+If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp-compiler/issues/new/choose)!
 If you have feedback about some other part of the Microsoft Quantum Development Kit, please see the [contribution guide](https://docs.microsoft.com/quantum/contributing/) for more information.
 
 ## Legal and Licensing ##
