@@ -35,7 +35,7 @@ Sometimes it may take a couple of days for us to label issues appropriately.
 If an issue has not been labeled yet, please indicate that you would like to work on it and be patient - 
 we are a small team and are doing our best to be quick with responding to your inquiry!
 
-**Note:**    
+**Note:**
 Issues related to the design and evolution of the Q# language are marked with 
 [Area-Language](https://github.com/microsoft/qsharp-compiler/issues?q=is%3Aissue+is%3Aopen+label%3AArea-Language) 
 and are only temporarily tracked on this repository and won't be labeled as bug or feature. 
