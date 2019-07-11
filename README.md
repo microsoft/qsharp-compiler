@@ -33,8 +33,8 @@ The script in particular generates the files that are needed for building based 
 
 The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). 
 For instructions on how to build and debug the Visual Studio Code extension take a look at [this file](./src/VSCodeExtension/BUILDING.md). 
-For building and debugging the Visual Studio extension, open [the corresponding solution](./VisualStudioExtension.sln) and set the [QsharpVSIX project](./src/VisualStudioExtension/QsharpVSIX/) as startup project, then launch and debug the extension as usual. 
-The Visual Studio extension is built on the [.NET Framework 4.6.1](https://dotnet.microsoft.com/download/dotnet-framework/net461) that can be easily obtained via the Visual Studio Installer. 
+Building and debugging the Visual Studio extension requires Visual Studio 2019. Open [the corresponding solution](./VisualStudioExtension.sln) and set the [QsharpVSIX project](./src/VisualStudioExtension/QsharpVSIX/) as startup project, then launch and debug the extension as usual. 
+The Visual Studio extension is built on the [.NET Framework 4.7.2](https://dotnet.microsoft.com/download/dotnet-framework/net472) that comes with Visual Studio 2019. Alternatively you can easily obtain it via the Visual Studio Installer. 
 
 We recommend uninstalling any other Q# extensions when working on the extensions in this repository.  
 
