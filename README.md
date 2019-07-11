@@ -3,7 +3,7 @@
 Welcome to the Microsoft Quantum Development Kit!
 
 This repository contains the Q# compiler included in the [Quantum Development Kit](https://docs.microsoft.com/quantum/), 
-as well as the Q# language server included our [Visual Studio extension](https://marketplace.visualstudio.com/items?itemName=quantum.DevKit) and our [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=quantum.quantum-devkit-vscode).
+as well as the Q# language server included in our [Visual Studio extension](https://marketplace.visualstudio.com/items?itemName=quantum.DevKit) and our [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=quantum.quantum-devkit-vscode).
 For more information related to the language server protocol take a look at [this repository](https://github.com/Microsoft/language-server-protocol).
 These extensions provide the IDE integration for Q#, and can be found on this repository as well.  
 
