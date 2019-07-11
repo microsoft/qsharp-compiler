@@ -821,6 +821,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.SemanticDiagnostics = this.SourceFiles
                         .Select(file => (file, manager.FileContentManagers[file].CurrentSemanticDiagnostics()))
                         .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+
+
+
+                    Console.WriteLine("Hello Q#!");
+                    var st = new CompilerOptimizations.CP_SyntaxTree(Callables);
+                    while (st.checkChanged())
+                    {
+                        this.SyntaxTree = this.SyntaxTree
+                            .Select(p => new KeyValuePair<NonNullable<string>, QsNamespace>(p.Key, st.Transform(p.Value)))
+                            .ToImmutableDictionary(p => p.Key, p => p.Value);
+                    }
+                    Console.WriteLine("Done!");
                 }
                 catch (Exception ex) { manager.LogException(ex); }
             }
