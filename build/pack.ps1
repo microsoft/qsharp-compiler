@@ -24,7 +24,7 @@ function Pack-One() {
         $include_references
 
     if  ($LastExitCode -ne 0) {
-        Write-Host "##vso[task.logissue type=error;]Failed to pack $(project)."
+        Write-Host "##vso[task.logissue type=error;]Failed to pack $project."
         $script:all_ok = $False
     }
 }
