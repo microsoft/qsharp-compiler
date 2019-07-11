@@ -39,7 +39,7 @@ If you are interested in contributing a new feature,
 please first check if a similar functionality has already been requested. 
 If so, consider contributing to the discussion around it rather than filing a separate issue.
 If no open or closed issue with such a request already exists, 
-please file one following the [feature request template](https://github.com/microsoft/qsharp-compiler/issues/new?assignees=&labels=bug&template=bug_report.md&title=). 
+please file one following the [feature request template](https://github.com/microsoft/qsharp-compiler/issues/new?assignees=&labels=feature&template=feature_request.md&title=). 
 We will respond to feature requests and follow up with a discussion around its feasibility, 
 how one might go about implementing it, and whether that is something we would consider adding to our repo. 
 There are several reasons why we might not be able to eventually merge even a great feature for one reason or another. 
