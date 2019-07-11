@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\Common\AssemblyCommon.props" />
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>Microsoft.Quantum.QsSyntaxProcessor</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\DelaySign.fs">
+      <Link>DelaySign.fs</Link>
+    </Compile>
+    <Compile Include="VerificationTools.fs" />
+    <Compile Include="SymbolTracker.fs" />
+    <Compile Include="ContextVerification.fs" />
+    <Compile Include="ExpressionVerification.fs" />
+    <Compile Include="StatementVerification.fs" />
+    <Compile Include="TreeVerification.fs" />
+    <Compile Include="DeclarationVerification.fs" />
+    <Compile Include="SyntaxExtensions.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DocumentationParser\QsDocumentationParser.csproj" />
+    <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
+    <ProjectReference Include="..\Transformations\QsTransformations.csproj" />
+    <ProjectReference Include="..\Core\QsCore.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.6.2" />
+    <PackageReference Update="System.ValueTuple" Version="4.4.0" />
+  </ItemGroup>
+
+</Project>

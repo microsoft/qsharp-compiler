@@ -1,0 +1,72 @@
+{
+	"Namespace": {
+		"prefix": "namespace",
+		"body": [
+			"namespace ${1:$TM_FILENAME_BASE} {",
+			"    open Microsoft.Quantum.Intrinsic;",
+			"    open Microsoft.Quantum.Canon;",
+			"",
+			"    ${2:// ...}",
+			"",
+			"}",
+			""
+		],
+		"description": "Create new namespace."
+	},
+
+    "Operation": {
+        "prefix": "operation",
+        "body": [
+            "operation ${1:Name}(${2:target : Qubit}) : ${3:Unit}",
+            "is Adj + Ctl {",
+            "    ${4:// ...}",
+            "}"
+        ],
+        "description": "Create new operation"
+	},
+	
+	"Function": {
+		"prefix": "function",
+		"body": [
+			"function ${1:Name}(${input : InputType}) : ${3:OutputType} {",
+			"    ${4:// ...}",
+			"}"
+		],
+        "description": "Create new function"
+	},
+	
+	"///": {
+		"prefix": "///",
+		"body": [
+			"/// # Summary",
+			"/// ${1:summary}",
+			"///",
+			"/// # Input",
+			"/// ## ${2:inputName}",
+			"/// ${3:description}",
+			"///",
+			"/// # Remarks",
+			"/// ## Example",
+			"/// ```Q#",
+			"/// ${4:// ...}",
+			"/// ```",
+			"///",
+			"/// # See Also",
+			"/// - ${5:OperationName}",
+			"///",
+			"/// # References",
+			"/// - [arXiv:${6:0000.0000}](https://arxiv.org/abs/$6)"
+		],
+		"description": "Documentation comments"
+	},
+
+	"Using": {
+		"prefix": "using",
+		"body": [
+			"${1|using,borrowing|} (${2:name} = Qubit()) {",
+			"    ${3:// ...}",
+			"}"
+		],
+		"description": "Allocate a new qubit or register"
+	}
+}

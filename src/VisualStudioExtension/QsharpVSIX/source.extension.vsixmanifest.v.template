@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+    <Metadata>
+        <Identity Id="E3B5E3E1-FC1A-4E7D-B6FE-1CC4C8934C1D" Version="#VSIX_VERSION#" Language="en-US" Publisher="Microsoft" />
+        <DisplayName>Microsoft Quantum Development Kit</DisplayName>
+        <Description xml:space="preserve">Microsoft Quantum Development Kit provides support for developing quantum algorithms in the Q# programming language.</Description>
+        <MoreInfo>http://docs.microsoft.com/en-us/quantum/</MoreInfo>
+        <License>License.rtf</License>
+        <ReleaseNotes>http://docs.microsoft.com/en-us/quantum/quantum-relnotes</ReleaseNotes>
+        <Icon>mobius_strip_preview.png</Icon>
+        <PreviewImage>mobius_strip_preview.png</PreviewImage>
+        <Tags>quantum, Q#</Tags>
+    </Metadata>
+    <Installation InstalledByMsi="false">
+        <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[15.0.28010,17.0)" />
+        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[15.0.28010,17.0)" />
+        <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[15.0.28010,17.0)" />
+    </Installation>
+    <Dependencies>
+    </Dependencies>
+    <Assets>
+        <Asset Type="Microsoft.VisualStudio.ProjectTemplate" d:Source="Project" d:ProjectName="QsharpAppTemplate" TargetVersion="" d:TargetPath="|QsharpAppTemplate;TemplateProjectOutputGroup|" Path="ProjectTemplates" d:VsixSubPath="ProjectTemplates" />
+        <Asset Type="Microsoft.VisualStudio.ProjectTemplate" d:Source="Project" d:ProjectName="QsharpTestTemplate" d:TargetPath="|QsharpTestTemplate;TemplateProjectOutputGroup|" Path="ProjectTemplates" d:VsixSubPath="ProjectTemplates" />
+        <Asset Type="Microsoft.VisualStudio.ProjectTemplate" d:Source="Project" d:ProjectName="QsharpLibTemplate" d:TargetPath="|QsharpLibTemplate;TemplateProjectOutputGroup|" Path="ProjectTemplates" d:VsixSubPath="ProjectTemplates" />
+        <Asset Type="Microsoft.VisualStudio.ItemTemplate" d:Source="Project" d:TargetPath="|QsharpFileTemplate;TemplateProjectOutputGroup|" Path="ItemTemplates" d:VsixSubPath="ItemTemplates" />
+        <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="File" Path="syntax.pkgdef" />
+        <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="QsharpLanguageClient" Path="|QsharpLanguageClient|" />
+        <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="QsharpLanguageClient" Path="|QsharpLanguageClient;PkgdefProjectOutputGroup|" />
+    </Assets>
+    <Prerequisites>
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[15.8.27729.1,)" DisplayName="Visual Studio core editor" />
+        <Prerequisite Id="Microsoft.Net.Core.Component.SDK.2.1" Version="[15.8.27924.0,)" DisplayName=".NET Core 2.1 development tools" />
+    </Prerequisites>
+</PackageManifest>
+

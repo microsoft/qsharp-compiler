@@ -1,0 +1,1 @@
+This is a Q# multi-framework version with netstandard. It only works when targeting netstandard, though.
