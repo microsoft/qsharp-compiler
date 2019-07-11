@@ -93,7 +93,7 @@ if (Get-Command nuget -ErrorAction SilentlyContinue) {
         $all_ok = $False
     }
 } else {
-    Write-Host "##vso[task.logissue type=warning;]nuget not installed. Will skip restoring the VisualStudio extension solution"
+     Write-Host "##vso[task.logissue type=warning;]nuget not installed. Will skip restoring and building the VisualStudio extension solution"
 }
 Pop-Location
 
