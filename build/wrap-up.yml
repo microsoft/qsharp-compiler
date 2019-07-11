@@ -1,0 +1,33 @@
+##
+# Wrap-up, publish symbols and drop folder.
+##
+steps:
+- task: PublishTestResults@2
+  displayName: 'Publish tests results'
+  condition: succeededOrFailed()
+  inputs:
+    testResultsFormat: VSTest
+    testResultsFiles: '$(System.DefaultWorkingDirectory)/**/*.trx'
+    testRunTitle: 'Q# compiler tests'
+
+- task: PublishSymbols@1
+  displayName: 'Publish symbols'
+  continueOnError: true
+  inputs:
+    SearchPattern: '**\bin\**\*.pdb'
+
+- task: CopyFiles@2
+  displayName: 'Copy extensions to: $(VSIX.Outdir)'
+  condition: succeededOrFailed()
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
+    Contents: 'src\**\*.vsix'
+    TargetFolder: '$(VSIX.Outdir)'
+    FlattenFolders: true
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: qsharp-compiler'
+  condition: succeededOrFailed()
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    artifactName: qsharp-compiler

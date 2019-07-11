@@ -1,0 +1,23 @@
+steps:
+
+##
+# Bootstrap
+##
+- powershell: ./bootstrap.ps1
+  displayName: "Run bootstrap.ps1"
+  workingDirectory: $(System.DefaultWorkingDirectory)
+
+##
+# Pre-reqs
+##
+- task: NuGetToolInstaller@0
+  displayName: 'Use NuGet 4.9.3'
+  inputs:
+    versionSpec: '4.9.3'
+
+- task: Npm@1
+  displayName: 'Install vsce'
+  inputs:
+    command: custom
+    verbose: false
+    customCommand: 'install -g vsce'

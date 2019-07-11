@@ -1,0 +1,23 @@
+name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(DayOfMonth)$(rev:rr)
+trigger:
+- master
+
+variables:
+  Build.Major: 0
+  Build.Minor: 0
+  Assembly.Version: $(Build.BuildNumber)
+  Assembly.Constants: ''
+  Drops.Dir: $(Build.ArtifactStagingDirectory)/drops
+  VSIX.Outdir: $(Drops.Dir)/vsix
+
+
+jobs:
+- job: "QsCompiler"
+  steps:
+  - template: steps.yml
+
+  - task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
+    displayName: 'Component detection'
+    inputs:
+      failOnAlert: true
+

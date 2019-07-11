@@ -1,0 +1,1 @@
+Albeit compiling, this is an invalid Q# project as we don't support projects that target net framework. They must target either netstandard2 or netcoreapp2.

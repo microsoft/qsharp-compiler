@@ -1,0 +1,1 @@
+This is a valid .net core project (console app), but it doesn't have the QDK installed.
