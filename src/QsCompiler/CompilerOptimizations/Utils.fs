@@ -10,24 +10,29 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
+/// Option default value operator
+let (|?) = defaultArg
+
+
 type Expr = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
 type TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
 
 let rec isLiteral (expr: Expr): bool =
     match expr with
-    | UnitValue | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ -> true
+    | MissingExpr | UnitValue | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ -> true
     | ValueTuple a | StringLiteral (_, a) | ValueArray a -> Seq.forall (fun x -> isLiteral x.Expression) a
-    | RangeLiteral (a, b) -> isLiteral a.Expression && isLiteral b.Expression
+    | RangeLiteral (a, b) | CallLikeExpression (a, b) -> isLiteral a.Expression && isLiteral b.Expression
     | NewArray (_, a) -> isLiteral a.Expression
+    | Identifier (GlobalCallable _, _) -> true
     | _ -> false
 
 
 let rec prettyPrint (expr: Expr): string =
     match expr with
-    | Identifier (LocalVariable a, _) -> a.Value
-    | Identifier (GlobalCallable a, _) -> a.Name.Value
-    | CallLikeExpression (f, x) -> (prettyPrint f.Expression) + "(" + (prettyPrint x.Expression) + ")"
+    | Identifier (LocalVariable a, _) -> "LocalVariable " + a.Value
+    | Identifier (GlobalCallable a, _) -> "GlobalCallable " + a.Name.Value
+    | CallLikeExpression (f, x) -> "(" + (prettyPrint f.Expression) + " of " + (prettyPrint x.Expression) + ")"
     | ValueTuple a -> "(" + String.Join(", ", a |> Seq.map (fun x -> x.Expression) |> Seq.map prettyPrint) + ")"
     | a -> a.ToString()
 
@@ -36,11 +41,10 @@ let rangeLiteralToSeq (r: Expr): seq<int> =
     match r with
     | RangeLiteral (a, b) ->
         match a.Expression, b.Expression with
-        | IntLiteral start, IntLiteral stop -> seq { int start .. int stop }
-        | RangeLiteral (c, d), IntLiteral stop ->
-            match c.Expression, d.Expression with
-            | IntLiteral start, IntLiteral step -> seq { int start .. int step .. int stop }
-            | _ -> failwithf "Invalid range literal: %O" r
+        | IntLiteral start, IntLiteral stop ->
+            seq { int start .. int stop }
+        | RangeLiteral ({Expression = IntLiteral start}, {Expression = IntLiteral step}), IntLiteral stop ->
+            seq { int start .. int step .. int stop }
         | _ -> failwithf "Invalid range literal: %O" r
     | _ -> failwithf "Not a range literal: %O" r
 
@@ -108,6 +112,7 @@ let rec fillVars (vars: VariablesDict) (argTuple: StringTuple, arg: Expr): unit 
 
 
 
+
 let rec constructNewArray (bt: TypeKind) (length: int): Expr option =
     match defaultValue bt with
     | Some x -> ImmutableArray.CreateRange (List.replicate length (wrapExpr x bt)) |> ValueArray |> Some
@@ -131,3 +136,34 @@ and wrapExpr (expr: Expr) (bt: TypeKind): TypedExpression =
     TypedExpression.New (expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
 
 
+let rec countMissingExprs (expr: TypedExpression): int =
+    match expr.Expression with
+    | MissingExpr -> 1
+    | ValueTuple vt -> Seq.map countMissingExprs vt |> Seq.sum
+    | _ -> 0
+    
+let rec fillPartialArg (partialArg: TypedExpression, arg: list<TypedExpression>): TypedExpression * list<TypedExpression> =
+    match partialArg.Expression with
+    | MissingExpr ->
+        let first :: rest = arg
+        first, rest
+    | ValueTuple vt ->
+        let newList, newArg =
+            Seq.fold (fun (cpa, ca) v ->
+                let newPa, newCa = fillPartialArg (v, ca)
+                cpa @ [newPa], newCa
+            ) ([], arg) vt
+        let newPa = wrapExpr (ValueTuple (ImmutableArray.CreateRange newList)) partialArg.ResolvedType.Resolution
+        newPa, newArg
+    | _ -> partialArg, arg
+    
+let partialApplyFunction (baseMethod: TypedExpression) (partialArg: TypedExpression) (arg: TypedExpression): Expr =
+    let argsList =
+        if countMissingExprs partialArg = 1 then [arg]
+        else match arg.Expression with
+        | ValueTuple vt ->
+            if countMissingExprs partialArg <> vt.Length
+            then failwithf "Invalid number of arguments: %O doesn't match %O" (prettyPrint arg.Expression) (prettyPrint partialArg.Expression)
+            else List.ofSeq vt
+        | _ -> failwithf "Invalid arg: %O" (prettyPrint arg.Expression)
+    CallLikeExpression (baseMethod, fst (fillPartialArg (partialArg, argsList)))

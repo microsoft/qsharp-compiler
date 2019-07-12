@@ -36,7 +36,7 @@ type CP_SyntaxTree(compiledCallables: ImmutableDictionary<QsQualifiedName, QsCal
             vars.exitScope()
             result
 
-        override scope.Expression = upcast { new ExpressionEvaluator(vars, compiledCallables, 10) with
+        override scope.Expression = upcast { new ExpressionEvaluator(vars, compiledCallables, 2) with
             override ee.Transform x =
                 let newX = base.Transform x
                 if x.ToString() <> newX.ToString() then changed <- true

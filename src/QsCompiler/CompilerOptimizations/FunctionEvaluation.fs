@@ -1,7 +1,5 @@
 ﻿module FunctionEvaluation
 
-open System
-open System.Collections.Generic
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -12,7 +10,7 @@ open Utils
 
 exception Returned of Expr
 exception Failed of Expr
-exception CouldNotEvaluate
+exception CouldNotEvaluate of string
 
 
 type [<AbstractClass>] FunctionEvaluator(compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
@@ -20,7 +18,10 @@ type [<AbstractClass>] FunctionEvaluator(compiledCallables: ImmutableDictionary<
     let castToBool x =
         match x with
         | BoolLiteral b -> b
-        | _ -> raise CouldNotEvaluate
+        | _ -> "Not a BoolLiteral: " + (prettyPrint x) |> CouldNotEvaluate |> raise
+
+    member this.getCallable (name: QsQualifiedName): QsCallable =
+        compiledCallables.[name]
 
     abstract member evaluateExpression: VariablesDict -> TypedExpression -> Expr
 
@@ -37,9 +38,7 @@ type [<AbstractClass>] FunctionEvaluator(compiledCallables: ImmutableDictionary<
         | QsValueUpdate s ->
             match s.Lhs.Expression with
                 | Identifier (LocalVariable name, tArgs) -> vars.setVar(name.Value, this.evaluateExpression vars s.Rhs)
-                | _ ->
-                    Console.WriteLine("Unknown LHS of value update statement: " + s.Lhs.Expression.ToString())
-                    raise CouldNotEvaluate
+                | _ -> "Unknown LHS of value update statement: " + (prettyPrint s.Lhs.Expression) |> CouldNotEvaluate |> raise
         | QsConditionalStatement s ->
             match Seq.tryFind (fun (ts, block) -> this.evaluateExpression vars ts |> castToBool) s.ConditionalBlocks with
             | Some (ts, block) -> this.evaluateScope vars block.Body
@@ -47,9 +46,10 @@ type [<AbstractClass>] FunctionEvaluator(compiledCallables: ImmutableDictionary<
                 | Value body -> this.evaluateScope vars body.Body
                 | Null -> ()
         | QsForStatement s ->
-            match s.IterationValues.Expression with
+            let iterValues = this.evaluateExpression vars s.IterationValues
+            match iterValues with
             | RangeLiteral _ -> 
-                for loopValue in rangeLiteralToSeq s.IterationValues.Expression do
+                for loopValue in rangeLiteralToSeq iterValues do
                     vars.enterScope()
                     fillVars vars (StringTuple.fromSymbolTuple (fst s.LoopItem), IntLiteral (int64 loopValue))
                     this.evaluateScope vars s.Body
@@ -60,7 +60,8 @@ type [<AbstractClass>] FunctionEvaluator(compiledCallables: ImmutableDictionary<
                     fillVars vars (StringTuple.fromSymbolTuple (fst s.LoopItem), loopValue.Expression)
                     this.evaluateScope vars s.Body
                     vars.exitScope()
-            | _ -> raise CouldNotEvaluate
+            | _ ->
+                "Unknown IterationValue in for loop: " + (prettyPrint iterValues) |> CouldNotEvaluate |> raise
         | QsWhileStatement s ->
             while this.evaluateExpression vars s.Condition |> castToBool do
                 this.evaluateScope vars s.Body
@@ -72,7 +73,7 @@ type [<AbstractClass>] FunctionEvaluator(compiledCallables: ImmutableDictionary<
                 if not success then
                     this.evaluateScope vars s.FixupBlock.Body
         | QsQubitScope s ->
-            raise CouldNotEvaluate
+            "Cannot allocate qubits in function" |> CouldNotEvaluate |> raise
 
     member this.evaluateScope (vars: VariablesDict) (scope: QsScope): unit =
         vars.enterScope()
@@ -82,7 +83,7 @@ type [<AbstractClass>] FunctionEvaluator(compiledCallables: ImmutableDictionary<
 
     member this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): Expr option =
         // TODO: assert compiledCallables contains name
-        let callable = compiledCallables.[name]
+        let callable = this.getCallable name
         // TODO: assert callable.Specializations.Length == 1
         let impl = callable.Specializations.[0].Implementation
         match impl with
@@ -92,8 +93,16 @@ type [<AbstractClass>] FunctionEvaluator(compiledCallables: ImmutableDictionary<
             fillVars vars (StringTuple.fromQsTuple callable.ArgumentTuple, arg.Expression)
             try this.evaluateScope vars scope; None
             with
-            | Returned expr -> Some expr
-            | Failed expr -> None
-            | CouldNotEvaluate -> None
-        | _ -> None
+            | Returned expr ->
+                // printfn "Function %O returned %O" name.Name.Value (prettyPrint expr)
+                Some expr
+            | Failed expr ->
+                // printfn "Function %O failed with %O" name.Name.Value (prettyPrint expr)
+                None
+            | CouldNotEvaluate reason ->
+                // printfn "Could not evaluate function %O on arg %O for reason %O" name.Name.Value (prettyPrint arg.Expression) reason
+                None
+        | _ ->
+            // printfn "Implementation not provided for: %O" name
+            None
 

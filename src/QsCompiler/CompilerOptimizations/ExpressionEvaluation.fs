@@ -3,8 +3,6 @@
 open System
 open System.Collections.Immutable
 open System.Numerics
-open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -38,20 +36,28 @@ and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, fe: FunctionE
 
     override this.onIdentifier (sym, tArgs) =
         match sym with
-        | LocalVariable name ->
-            match vars.getVar name.Value with
-            | Some expr -> expr
-            | None -> Identifier (sym, tArgs)
+        | LocalVariable name -> vars.getVar name.Value |? Identifier (sym, tArgs)
         | _ -> Identifier (sym, tArgs)
 
     override this.onFunctionCall (method, arg) =
-        let arg = this.simplify arg
-        match maxRecursiveDepth > 0 && isLiteral arg.Expression, method.Expression with
-        | true, Identifier (GlobalCallable qualName, types) ->
-            match fe.evaluateFunction qualName arg types with
-            | Some result -> result
-            | None -> CallLikeExpression (method, arg)
-        | _ -> CallLikeExpression (method, arg)
+        let method, arg = this.simplify (method, arg)
+        if maxRecursiveDepth > 0 && isLiteral arg.Expression then
+            match method.Expression with
+            | Identifier (GlobalCallable qualName, types) ->
+                fe.evaluateFunction qualName arg types |? CallLikeExpression (method, arg)
+            | CallLikeExpression (baseMethod, partialArg) ->
+                this.Transform (partialApplyFunction baseMethod partialArg arg)
+            | _ ->
+                failwithf "Unknown function call: %O" (prettyPrint method.Expression)
+        else CallLikeExpression (method, arg)
+        
+    override this.onUnwrapApplication ex =
+        let ex = this.simplify ex
+        match ex.Expression with
+        | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, types)}, arg)
+            when (fe.getCallable qualName).Kind = TypeConstructor ->
+            arg.Expression
+        | _ -> UnwrapApplication ex
 
     override this.onArrayItem (arr, idx) =
         let arr, idx = this.simplify (arr, idx)
@@ -62,11 +68,9 @@ and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, fe: FunctionE
     override this.onNewArray (bt, idx) =
         let idx = this.simplify idx
         match idx.Expression with
-        | IntLiteral i -> match constructNewArray bt.Resolution (int i) with
-            | Some result -> result
-            | None -> NewArray (bt, idx)
+        | IntLiteral i -> constructNewArray bt.Resolution (int i) |? NewArray (bt, idx)
         | _ -> NewArray (bt, idx)
-        
+ 
     override this.onCopyAndUpdateExpression (lhs, accEx, rhs) =
         let lhs, accEx, rhs = this.simplify (lhs, accEx, rhs)
         match lhs.Expression, accEx.Expression with
