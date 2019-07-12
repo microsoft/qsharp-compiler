@@ -36,7 +36,7 @@ type CP_SyntaxTree(compiledCallables: ImmutableDictionary<QsQualifiedName, QsCal
             vars.exitScope()
             result
 
-        override scope.Expression = upcast { new ExpressionEvaluator(vars, compiledCallables, false) with
+        override scope.Expression = upcast { new ExpressionEvaluator(vars, compiledCallables, 10) with
             override ee.Transform x =
                 let newX = base.Transform x
                 if x.ToString() <> newX.ToString() then changed <- true
@@ -54,7 +54,7 @@ type CP_SyntaxTree(compiledCallables: ImmutableDictionary<QsQualifiedName, QsCal
                 if stm.Kind = ImmutableBinding then
                     if isLiteral rhs.Expression then
                         fillVars vars (StringTuple.fromSymbolTuple lhs, rhs.Expression)
-                        printfn "Found constant declaration: %O = %O" (StringTuple.fromSymbolTuple lhs) (prettyPrint rhs)
+                        printfn "Found constant declaration: %O = %O" (StringTuple.fromSymbolTuple lhs) (prettyPrint rhs.Expression)
                 QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
         }
     }

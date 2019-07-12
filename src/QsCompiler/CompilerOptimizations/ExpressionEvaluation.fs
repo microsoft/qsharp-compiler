@@ -13,19 +13,19 @@ open Utils
 open FunctionEvaluation
 
 
-type ExpressionEvaluator(vars: VariablesDict, compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>, reqFullEval: bool) =
+type ExpressionEvaluator(vars: VariablesDict, compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>, maxRecursiveDepth: int) =
     inherit ExpressionTransformation()
 
     member this.getFE() = { new FunctionEvaluator(compiledCallables) with 
         override f.evaluateExpression vars2 x =
-            (ExpressionEvaluator(vars2, compiledCallables, true).Transform x).Expression }
+            (ExpressionEvaluator(vars2, compiledCallables, maxRecursiveDepth-1).Transform x).Expression }
 
-    override this.Kind = upcast { new ExpressionKindEvaluator(vars, this.getFE(), reqFullEval) with 
+    override this.Kind = upcast { new ExpressionKindEvaluator(vars, this.getFE(), maxRecursiveDepth) with 
         override kind.ExpressionTransformation x = this.Transform x 
         override kind.TypeTransformation x = this.Type.Transform x }
 
 
-and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, fe: FunctionEvaluator, reqFullEval: bool) =
+and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, fe: FunctionEvaluator, maxRecursiveDepth: int) =
     inherit ExpressionKindTransformation()
         
     member private this.simplify e1 = this.ExpressionTransformation e1
@@ -35,29 +35,22 @@ and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, fe: FunctionE
 
     member private this.simplify (e1, e2, e3) =
         (this.ExpressionTransformation e1, this.ExpressionTransformation e2, this.ExpressionTransformation e3)
-        
-    (*override this.Transform expr =
-        let result = base.Transform expr
-        if reqFullEval && not (isLiteral result)
-        then failwithf "Failed to evaluate: %O" result
-        result*)
 
     override this.onIdentifier (sym, tArgs) =
         match sym with
         | LocalVariable name ->
             match vars.getVar name.Value with
             | Some expr -> expr
-            | None ->
-                if reqFullEval then failwithf "Unknown variable: %O" name
-                Identifier (sym, tArgs)
-        | _ ->
-            if reqFullEval then failwithf "Unknown identifier type: %O" sym
-            Identifier (sym, tArgs)
+            | None -> Identifier (sym, tArgs)
+        | _ -> Identifier (sym, tArgs)
 
     override this.onFunctionCall (method, arg) =
         let arg = this.simplify arg
-        match isLiteral arg.Expression, method.Expression with
-        | true, Identifier (GlobalCallable qualName, types) -> fe.evaluateFunction qualName arg types
+        match maxRecursiveDepth > 0 && isLiteral arg.Expression, method.Expression with
+        | true, Identifier (GlobalCallable qualName, types) ->
+            match fe.evaluateFunction qualName arg types with
+            | Some result -> result
+            | None -> CallLikeExpression (method, arg)
         | _ -> CallLikeExpression (method, arg)
 
     override this.onArrayItem (arr, idx) =
@@ -81,10 +74,10 @@ and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, fe: FunctionE
         | _ -> CopyAndUpdate (lhs, accEx, rhs)
 
     override this.onConditionalExpression (e1, e2, e3) =
-        let e1, e2, e3 = this.simplify (e1, e2, e3)
+        let e1 = this.simplify e1
         match e1.Expression with
-        | BoolLiteral a -> if a then e2.Expression else e3.Expression
-        | _ -> CONDITIONAL (e1, e2, e3)
+        | BoolLiteral a -> if a then (this.simplify e2).Expression else (this.simplify e3).Expression
+        | _ -> CONDITIONAL (e1, this.simplify e2, this.simplify e3)
 
     override this.onEquality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)

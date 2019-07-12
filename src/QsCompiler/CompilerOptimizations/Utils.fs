@@ -23,9 +23,12 @@ let rec isLiteral (expr: Expr): bool =
     | _ -> false
 
 
-let rec prettyPrint (expr: TypedExpression): string =
-    match expr.Expression with
-    | ValueTuple a -> "(" + String.Join(", ", Seq.map prettyPrint a) + ")"
+let rec prettyPrint (expr: Expr): string =
+    match expr with
+    | Identifier (LocalVariable a, _) -> a.Value
+    | Identifier (GlobalCallable a, _) -> a.Name.Value
+    | CallLikeExpression (f, x) -> (prettyPrint f.Expression) + "(" + (prettyPrint x.Expression) + ")"
+    | ValueTuple a -> "(" + String.Join(", ", a |> Seq.map (fun x -> x.Expression) |> Seq.map prettyPrint) + ")"
     | a -> a.ToString()
 
 
