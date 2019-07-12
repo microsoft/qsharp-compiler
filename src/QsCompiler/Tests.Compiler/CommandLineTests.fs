@@ -157,8 +157,9 @@ let ``diagnose outputs`` () =
 [<Fact>]
 let ``generate docs`` () =
     let docsFolder = ("TestFiles", "docs.Out") |> Path.Combine
-    for file in Directory.GetFiles docsFolder do
-        File.Delete file
+    if (Directory.Exists docsFolder) then
+        for file in Directory.GetFiles docsFolder do
+            File.Delete file
 
     let toc = Path.Combine (docsFolder, "toc.yml") 
     let nsDoc = Path.Combine (docsFolder, "Compiler.Tests.yml")
