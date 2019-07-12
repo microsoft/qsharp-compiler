@@ -46,8 +46,8 @@ let ``valid snippet`` () =
 [<Fact>]
 let ``invalid snippet`` () =
     [|
-        @"-s" 
-        @"let a = " 
+        "-s" 
+        "let a = " 
     |]
     |> testSnippet ReturnCode.COMPILATION_ERRORS
 
@@ -55,16 +55,16 @@ let ``invalid snippet`` () =
 [<Fact>]
 let ``one valid file`` () =
     [|
-        @"-i"
+        "-i"
         ("TestFiles","test-00.qs") |> Path.Combine
-        @"-v"
+        "-v"
     |]
     |> testInput ReturnCode.SUCCESS
     
 [<Fact>]
 let ``multiple valid file`` () =
     [|
-        @"--input" 
+        "--input" 
         ("TestFiles","test-00.qs") |> Path.Combine
         ("TestFiles","test-01.qs") |> Path.Combine
     |]
@@ -74,7 +74,7 @@ let ``multiple valid file`` () =
 [<Fact>]
 let ``one invalid file`` () =
     [|
-        @"-i" 
+        "-i" 
         ("TestFiles","test-02.qs") |> Path.Combine
     |]
     |> testInput ReturnCode.COMPILATION_ERRORS
@@ -83,7 +83,7 @@ let ``one invalid file`` () =
 [<Fact>]
 let ``mixed files`` () =
     [|
-        @"-i" 
+        "-i" 
         ("TestFiles","test-01.qs") |> Path.Combine
         ("TestFiles","test-02.qs") |> Path.Combine
     |]
@@ -93,13 +93,13 @@ let ``mixed files`` () =
 [<Fact>]
 let ``missing file`` () =
     [|
-        @"-i"
+        "-i"
         ("TestFiles","foo-00.qs") |> Path.Combine
     |]
     |> testInput ReturnCode.UNRESOLVED_FILES
     
     [|
-        @"-i"
+        "-i"
         ("TestFiles","test-01.qs") |> Path.Combine
         ("TestFiles","foo-00.qs") |> Path.Combine
     |]
@@ -109,9 +109,9 @@ let ``missing file`` () =
 [<Fact>]
 let ``invalid argument`` () =
     [|
-        @"-i"
+        "-i"
         ("TestFiles","test-00.qs") |> Path.Combine
-        @"--foo"
+        "--foo"
     |]
     |> testInput ReturnCode.INVALID_ARGUMENTS
         
@@ -120,7 +120,7 @@ let ``invalid argument`` () =
 let ``missing verb`` () =
     let args = 
         [|
-            @"-i"
+            "-i"
             ("TestFiles","test-00.qs") |> Path.Combine
         |]        
     let result = Program.Main args
@@ -131,8 +131,8 @@ let ``missing verb`` () =
 let ``invalid verb`` () =
     let args = 
         [|
-            @"foo"
-            @"-i"
+            "foo"
+            "-i"
             ("TestFiles","test-00.qs") |> Path.Combine
         |]
     let result = Program.Main args
@@ -143,7 +143,7 @@ let ``invalid verb`` () =
 let ``diagnose outputs`` () =
     let args = 
         [|
-            @"-i"
+            "-i"
             ("TestFiles","test-00.qs") |> Path.Combine
             "--tree"
             "--tokenization"
@@ -152,6 +152,32 @@ let ``diagnose outputs`` () =
         |]        
     let result = Program.Main args
     Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
+
+
+[<Fact>]
+let ``generate docs`` () =
+    let docsFolder = ("TestFiles", "docs.Out") |> Path.Combine
+    for file in Directory.GetFiles docsFolder do
+        File.Delete file
+
+    let toc = Path.Combine (docsFolder, "toc.yml") 
+    let nsDoc = Path.Combine (docsFolder, "Compiler.Tests.yml")
+    let opDoc = Path.Combine (docsFolder, "compiler.tests.test01.yml")
+    let existsAndNotEmpty fileName = fileName |> File.Exists && not (File.ReadAllText fileName |> String.IsNullOrWhiteSpace)
+    let args = 
+        [|
+            "build"
+            "--input" 
+            ("TestFiles","test-01.qs") |> Path.Combine
+            "--doc"
+            docsFolder
+        |]
+
+    let result = Program.Main args
+    Assert.Equal(ReturnCode.SUCCESS, result) 
+    Assert.True (existsAndNotEmpty toc)
+    Assert.True (existsAndNotEmpty nsDoc)
+    Assert.True (existsAndNotEmpty opDoc)
 
     
 [<Fact>]
