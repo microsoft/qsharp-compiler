@@ -156,6 +156,13 @@ let qsUntil      = addFragmentHeader Statements.Until
 /// keyword for a Q# control flow statement (QsLanguageKeyword)
 let qsRUSfixup   = addLanguageKeyword Statements.Fixup
 
+// block statements
+
+/// keyword for a Q# transformation pattern (QsFragmentHeader)
+let qsConjugate = addFragmentHeader Statements.Conjugate
+/// keyword for a Q# transformation pattern (QsFragmentHeader)
+let qsWith      = addFragmentHeader Statements.With
+
 /// keyword for a Q# allocation statement (QsFragmentHeader)
 let qsUsing      = addFragmentHeader Statements.Using
 /// keyword for a Q# allocation statement (QsFragmentHeader)
