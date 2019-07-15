@@ -1036,7 +1036,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Builds the user defined implementation taking the given argument tuple as argument based on the (children of the) given specialization root. 
+        /// Builds the user defined implementation based on the (children of the) given specialization root. 
+        /// The implementation takes the given argument tuple as argument and needs to support auto-generation for the specified set of functors.
         /// Uses the given SymbolTracker to resolve the symbols used within the implementation, and generates suitable diagnostics in the process.  
         /// If necessary, generates suitable diagnostics for functor arguments (only!), which are discriminated by the missing position information 
         /// for argument variables defined in the callable declaration). 
@@ -1047,10 +1048,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static SpecializationImplementation BuildUserDefinedImplemenation(
             FragmentTree.TreeNode root, NonNullable<string> sourceFile, 
             QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
+            ImmutableHashSet<QsFunctor> requiredFunctorSupport,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
         {
             if (argTuple == null) throw new ArgumentNullException(nameof(argTuple));
             if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
+            if (requiredFunctorSupport == null) throw new ArgumentNullException(nameof(requiredFunctorSupport));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
             // the variable defined on the declaration need to be verified upon building the callable (otherwise we get duplicate diagnostics),
@@ -1058,7 +1061,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // -> the position information is set to null (only) for variables defined in the declaration 
             var (variablesOnDeclation, variablesOnSpecialization) = SyntaxGenerator.ExtractItems(argTuple).Partition(decl => decl.Position.IsNull);
 
-            symbolTracker.BeginScope();
+            symbolTracker.BeginScope(requiredFunctorSupport.ToArray());
             foreach (var decl in variablesOnDeclation)
             { symbolTracker.TryAddVariableDeclartion(decl); }
 
@@ -1164,8 +1167,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new ArgumentException($"missing entry for {kind} specialization of {specsRoot.Namespace}.{specsRoot.Callable}");
                 var spec = definedSpecs[kind].Single().Item2;
 
-                var required = RequiredFunctorSupport(kind, directives);
-                var symbolTracker = new SymbolTracker<Position>(symbols, spec.SourceFile, spec.Parent, required);
+                var requiredFunctorSupport = RequiredFunctorSupport(kind, directives).ToImmutableHashSet();
+                var symbolTracker = new SymbolTracker<Position>(symbols, spec.SourceFile, spec.Parent);
                 var implementation = directive.IsValue ? SpecializationImplementation.NewGenerated(directive.Item) : null;
 
                 // a user defined implementation is ignored if it is invalid to specify such (e.g. for self-adjoint or intrinsic operations)
@@ -1175,7 +1178,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages) diagnostics.Add(Diagnostics.Generate(spec.SourceFile.Value, msg, specPos));
 
-                    implementation = BuildUserDefinedImplemenation(root, spec.SourceFile, arg, symbolTracker, diagnostics);
+                    implementation = BuildUserDefinedImplemenation(root, spec.SourceFile, arg, requiredFunctorSupport, symbolTracker, diagnostics);
                     QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
                 }
                 implementation = implementation ?? SpecializationImplementation.Intrinsic; 
@@ -1306,7 +1309,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var declaredVariables = SyntaxGenerator.ExtractItems(info.ArgumentTuple);
 
                     // verify the variable declarations in the callable declaration
-                    var symbolTracker = new SymbolTracker<Position>(compilation.GlobalSymbols, info.SourceFile, parent, ImmutableArray<QsFunctor>.Empty); // only ever used to verify declaration args
+                    var symbolTracker = new SymbolTracker<Position>(compilation.GlobalSymbols, info.SourceFile, parent); // only ever used to verify declaration args
                     symbolTracker.BeginScope();
                     foreach (var decl in declaredVariables)
                     {

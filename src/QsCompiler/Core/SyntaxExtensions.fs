@@ -147,6 +147,12 @@ type QsRepeatStatement with
         FixupBlock = fixupBlock
     }
 
+type QsConjugateStatement with 
+    static member New (outer, inner) = {
+        OuterTransformation = outer
+        InnerTransformation = inner
+    }
+
 type QsQubitScope with 
     static member New kind ((lhs,rhs), body) = {
         Kind = kind
