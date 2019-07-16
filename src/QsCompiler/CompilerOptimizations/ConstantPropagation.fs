@@ -17,7 +17,7 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
 
     let mutable changed = true
     let mutable prevChanged = false
-    let mutable foundConstants = []
+    let mutable declarations = []
 
     /// Returns whether the syntax tree has been modified since this function was last called
     member this.checkChanged() =
@@ -34,16 +34,9 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
     member this.undoMarkChanged() =
         changed <- prevChanged
 
-    /// Marks the given local variables as constants
-    member this.addFoundConstants(lhs) =
-        match lhs with
-        | VariableName n -> foundConstants <- foundConstants @ [n.Value]
-        | VariableNameTuple t -> t |> Seq.map (fun x -> this.addFoundConstants x) |> List.ofSeq |> ignore
-        | _ -> ()
-
     /// Gets a sorted list of the names of all the constant local variables
-    member this.getFoundConstants =
-        foundConstants |> List.sort |> Seq.ofList
+    member this.getDeclarations =
+        declarations |> List.sort |> Seq.ofList
         
     /// The ScopeTransformation used to evaluate constants
     override syntaxTree.Scope = { new ScopeTransformation() with
@@ -74,7 +67,7 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
                 if stm.Kind = ImmutableBinding then
                     if isLiteral rhs.Expression cd then
                         fillVars vars (StringTuple.fromSymbolTuple lhs, rhs.Expression)
-                        syntaxTree.addFoundConstants lhs
+                        declarations <- declarations @ [sprintf "%O = %O" (StringTuple.fromSymbolTuple lhs) (prettyPrint rhs.Expression)]
                         // printfn "Found constant declaration: %O = %O" (StringTuple.fromSymbolTuple lhs) (prettyPrint rhs.Expression)
                 QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
         }

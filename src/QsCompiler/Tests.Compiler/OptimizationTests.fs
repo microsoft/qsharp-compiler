@@ -33,8 +33,13 @@ let ``basic walk`` () =
     let optimizer = new ConstantPropagator(callables)
     tree |> Seq.map optimizer.Transform |> Seq.toList |> ignore
 
-    let found = optimizer.getFoundConstants
-    let expected = ["o"; "op"; "op"; "op"]
+    let found = optimizer.getDeclarations
+    let expected = [
+        "o = [DoubleLiteral 1.0, DoubleLiteral 2.0, DoubleLiteral -4.2]"
+        "op = GlobalCallable M"
+        "op = GlobalCallable M"
+        "op = GlobalCallable M"
+    ]
     Assert.Equal(expected, found)
 
 
@@ -55,8 +60,14 @@ namespace Microsoft.Quantum.Testing {
     let optimizer = new ConstantPropagator(callables)
     tree |> Seq.map optimizer.Transform |> Seq.toList |> ignore
 
-    let found = optimizer.getFoundConstants
-    let expected = ["a"; "w"; "x"; "y"; "z"]
+    let found = optimizer.getDeclarations
+    let expected = [
+        "a = IntLiteral 4L"
+        "w = BoolLiteral false"
+        "x = IntLiteral 5L"
+        "y = IntLiteral 8L"
+        "z = IntLiteral 0L"
+    ]
     Assert.Equal(expected, found)
 
 
@@ -116,8 +127,11 @@ namespace Microsoft.Quantum.Testing {
     let optimizer = new ConstantPropagator(callables)
     tree |> Seq.map optimizer.Transform |> Seq.toList |> ignore
 
-    let found = optimizer.getFoundConstants
-    let expected = ["b"; "c"; "d"; "e"]
+    let found = optimizer.getDeclarations
+    let expected = [
+        "(c, d, e) = (IntLiteral 2L, IntLiteral 3L, IntLiteral 5L)"
+        "b = IntLiteral 9L"
+    ]
     Assert.Equal(expected, found)
 
 
@@ -128,18 +142,13 @@ namespace Microsoft.Quantum.Testing {
     newtype MyInt = Int;
 
     operation Test () : Unit {
-
 	    let t = k(_, h(_, 3, _));
 	    let u = t(2);
 	    let v = ((h(_, 4, _))(5, _))(6);
-
 	    let m = MyInt(5);
 	    let n = m!;
-
 	    let o = M(x);
 	    let p = o == One;
-
-        return p;
     }
 
     function M (q : Int) : Result {
@@ -159,6 +168,12 @@ namespace Microsoft.Quantum.Testing {
     let optimizer = new ConstantPropagator(callables)
     tree |> Seq.map optimizer.Transform |> Seq.toList |> ignore
 
-    let found = optimizer.getFoundConstants
-    let expected = ["m"; "n"; "t"; "u"; "v"]
+    let found = optimizer.getDeclarations
+    let expected = [
+        "m = (GlobalCallable MyInt of IntLiteral 5L)"
+        "n = IntLiteral 5L"
+        "t = (GlobalCallable k of (MissingExpr, (GlobalCallable h of (MissingExpr, IntLiteral 3L, MissingExpr))))"
+        "u = IntLiteral 7L"
+        "v = IntLiteral 15L"
+    ]
     Assert.Equal(expected, found)

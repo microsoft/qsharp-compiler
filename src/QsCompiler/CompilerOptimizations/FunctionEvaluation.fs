@@ -82,7 +82,8 @@ type [<AbstractClass>] FunctionEvaluator(cd: CallableDict) =
         | QsWhileStatement s ->
             Seq.initInfinite (fun _ -> this.evaluateExpression vars s.Condition |> castToBool) |>
                 Seq.map (function
-                    | ExprValue true -> match this.evaluateScope vars s.Body with
+                    | ExprValue true ->
+                        match this.evaluateScope vars s.Body with
                         | Normal -> Normal, false
                         | res -> res, true
                     | ExprValue false -> Normal, true
@@ -91,9 +92,11 @@ type [<AbstractClass>] FunctionEvaluator(cd: CallableDict) =
         | QsRepeatStatement s ->
             Seq.initInfinite (fun _ -> this.evaluateScope vars s.RepeatBlock.Body) |>
                 Seq.map (function
-                    | Normal -> match this.evaluateExpression vars s.SuccessCondition |> castToBool with
+                    | Normal ->
+                        match this.evaluateExpression vars s.SuccessCondition |> castToBool with
                         | ExprValue true -> Normal, true
-                        | ExprValue false -> match this.evaluateScope vars s.FixupBlock.Body with
+                        | ExprValue false ->
+                            match this.evaluateScope vars s.FixupBlock.Body with
                             | Normal -> Normal, false
                             | res -> res, true
                         | ExprError s -> CouldNotEvaluate s, true
@@ -105,7 +108,8 @@ type [<AbstractClass>] FunctionEvaluator(cd: CallableDict) =
     /// Evaluates a list of Q# statements
     member this.evaluateScope (vars: VariablesDict) (scope: QsScope): FunctionState =
         vars.enterScope()
-        let res = scope.Statements |>
+        let res =
+            scope.Statements |>
             Seq.map (this.evaluateStatement vars) |>
             Seq.tryFind isInterrupt |? Normal
         vars.exitScope()

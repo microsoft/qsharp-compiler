@@ -51,6 +51,7 @@ let rec prettyPrint (expr: Expr): string =
     | Identifier (GlobalCallable a, _) -> "GlobalCallable " + a.Name.Value
     | CallLikeExpression (f, x) -> "(" + (prettyPrint f.Expression) + " of " + (prettyPrint x.Expression) + ")"
     | ValueTuple a -> "(" + String.Join(", ", a |> Seq.map (fun x -> x.Expression) |> Seq.map prettyPrint) + ")"
+    | ValueArray a -> "[" + String.Join(", ", a |> Seq.map (fun x -> x.Expression) |> Seq.map prettyPrint) + "]"
     | ADD (a, b) -> "(" + (prettyPrint a.Expression) + " + " + (prettyPrint b.Expression) + ")"
     | a -> a.ToString()
 
@@ -106,7 +107,8 @@ type StringTuple =
         
     static member fromQsTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): StringTuple =
         match x with
-        | QsTupleItem item -> match item.VariableName with
+        | QsTupleItem item ->
+            match item.VariableName with
             | ValidName n -> SingleItem n.Value
             | InvalidName -> SingleItem "__invalid__"
         | QsTuple items -> MultipleItems (Seq.map StringTuple.fromQsTuple items)
@@ -128,8 +130,10 @@ type StringTuple =
 let rec fillVars (vars: VariablesDict) (argTuple: StringTuple, arg: Expr): unit =
     match argTuple with
     | SingleItem item -> vars.defineVar(item, arg)
-    | MultipleItems items -> match arg with
-        | ValueTuple vt -> vt |> Seq.map (fun x -> x.Expression) |>
+    | MultipleItems items ->
+        match arg with
+        | ValueTuple vt ->
+            vt |> Seq.map (fun x -> x.Expression) |>
             Seq.zip items |> Seq.map (fillVars vars) |> List.ofSeq |> ignore
         | _ -> Seq.zip items [arg] |> Seq.map (fillVars vars) |> List.ofSeq |> ignore
 
@@ -173,8 +177,9 @@ let rec countMissingExprs (expr: TypedExpression): int =
 let rec fillPartialArg (partialArg: TypedExpression, arg: list<TypedExpression>): TypedExpression * list<TypedExpression> =
     match partialArg.Expression with
     | MissingExpr ->
-        let first :: rest = arg
-        first, rest
+        match arg with
+        | first::rest -> first, rest
+        | _ -> failwithf "Not enough remaining arguments"
     | ValueTuple vt ->
         let newList, newArg =
             Seq.fold (fun (cpa, ca) v ->
@@ -188,8 +193,8 @@ let rec fillPartialArg (partialArg: TypedExpression, arg: list<TypedExpression>)
 /// Transforms a partially-application call by replacing missing values with the new arguments
 let partialApplyFunction (baseMethod: TypedExpression) (partialArg: TypedExpression) (arg: TypedExpression): Expr =
     let argsList =
-        if countMissingExprs partialArg = 1 then [arg]
-        else match arg.Expression with
+        if countMissingExprs partialArg = 1 then [arg] else
+        match arg.Expression with
         | ValueTuple vt ->
             if countMissingExprs partialArg <> vt.Length
             then failwithf "Invalid number of arguments: %O doesn't match %O" (prettyPrint arg.Expression) (prettyPrint partialArg.Expression)
