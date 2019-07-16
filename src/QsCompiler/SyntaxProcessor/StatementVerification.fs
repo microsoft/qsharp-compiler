@@ -40,14 +40,14 @@ let private Verify symbols expr =
 /// If it does, returns an array with suitable diagnostics. Returns an empty array otherwise. 
 /// Remark: inversions can only be auto-generated if the only quantum dependencies occur within expresssion statements. 
 let private onAutoInvertCheckQuantumDependency (symbols : SymbolTracker<_>) (ex : TypedExpression, range) = 
-    if not (symbols.RequiredFunctorSupport |> List.contains QsFunctor.Adjoint && ex.InferredInformation.HasLocalQuantumDependency) then [||]
+    if not (symbols.RequiredFunctorSupport |> Seq.contains QsFunctor.Adjoint && ex.InferredInformation.HasLocalQuantumDependency) then [||]
     else [| range |> QsCompilerDiagnostic.Error (ErrorCode.QuantumDependencyOutsideExprStatement, []) |] 
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested, 
 /// returns an array with containing a diagnostic for the given range with the given error code.
 /// Returns an empty array otherwise.
 let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker<_>) = 
-    if not (symbols.RequiredFunctorSupport |> List.contains QsFunctor.Adjoint) then [||]
+    if not (symbols.RequiredFunctorSupport |> Seq.contains QsFunctor.Adjoint) then [||]
     else [| range |> QsCompilerDiagnostic.Error errCode |] 
 
 
@@ -257,11 +257,11 @@ let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedB
 /// as well as a positioned block of Q# statements specifying the transformation to conjugate it with (outer transformation U), 
 /// builds and returns the corresponding conjugate-statement representing the patter UVU* where U* is the adjoint of U.  
 /// Throws an ArgumentException if the given block specifying the inner transformation contains no location information. 
-let NewConjugateWithStatement (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
+let NewConjugateStatement (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
     let location = inner.Location |> function
         | Null -> ArgumentException "no location is set for the given block defining the transformation to conjugate" |> raise
         | Value loc -> loc
-    QsConjugateStatement.New (outer, inner) |> QsConjugateStatement |> asStatement QsComments.Empty location [], []
+    QsConjugateStatement.New (outer, inner) |> QsConjugateStatement |> asStatement QsComments.Empty location []
 
 /// Given the location of the statement header as well as a symbol tracker containing all currently declared symbols, 
 /// builds the Q# using- or borrowing-statement (depending on the given kind) at the given location

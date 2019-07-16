@@ -116,7 +116,8 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     member this.AllScopesClosed = pushedScopes.Length = 0
 
     /// Contains the set of functors that need to be supported by each operation call within the current scope.
-    member internal this.RequiredFunctorSupport = pushedScopes |> List.collect (fun scope -> scope.RequiredFunctorSupport) |> TrackedScope.CombinedFunctorSupport
+    member this.RequiredFunctorSupport : _ seq = 
+        pushedScopes |> List.collect (fun scope -> scope.RequiredFunctorSupport) |> TrackedScope.CombinedFunctorSupport |> List.toSeq
 
     /// pushes a new scope onto the stack and opens it
     member this.BeginScope([<ParamArray>] functorSupport : QsFunctor[]) = 

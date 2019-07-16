@@ -459,14 +459,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// </summary>
         private static QsScope BuildScope(IReadOnlyList<FragmentTree.TreeNode> nodeContent, 
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
+            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, params QsFunctor[] requiredFunctorSupport)
         {
             if (nodeContent == null) throw new ArgumentNullException(nameof(nodeContent));
             if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
             var inheritedSymbols = symbolTracker.CurrentDeclarations;
-            symbolTracker.BeginScope();
+            symbolTracker.BeginScope(requiredFunctorSupport);
             var statements = BuildStatements(nodeContent.GetEnumerator(), symbolTracker, diagnostics);
             symbolTracker.EndScope();
             return new QsScope(statements, inheritedSymbols);
@@ -764,6 +764,57 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// If the current tree node of the given iterator is a conjugate-statement intro,
+        /// builds the corresponding conjugate-statement updating the given symbolTracker in the process,
+        /// and moves the iterator to the next node.
+        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Returns the built statement as out parameter, and returns true if the statement has been built.
+        /// Sets the out parameter to null and returns false otherwise. 
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
+        /// or if the last MoveNext() returned true, and is otherwise set to false.  
+        /// This routine will fail if accessing the current iterator item fails. 
+        /// Throws an ArgumentNullException if any of the given arguments is null.
+        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
+        private static bool TryBuildConjugateStatement(IEnumerator<FragmentTree.TreeNode> nodes,
+            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+        {
+            if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
+            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
+
+            QsNullable<QsLocation> RelativeLocation(FragmentTree.TreeNode node) =>
+                QsNullable<QsLocation>.NewValue(new QsLocation(DiagnosticTools.AsTuple(node.GetPositionRelativeToRoot()), node.Fragment.HeaderRange));
+
+            if (nodes.Current.Fragment.Kind.IsConjugateIntro)
+            {
+                var innerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                var inner = new QsPositionedBlock(innerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
+
+                if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsWithIntro)
+                {
+                    // Since we need to generate an adjoint for the statements that define the outer transformation in any case - 
+                    // i.e. whether we need to generate an adjoint for the current scope or not - 
+                    // we only require additional support if no adjoint needs to be generated for the parent scope.
+                    var additionalFunctorSupport = symbolTracker.RequiredFunctorSupport.Contains(QsFunctor.Adjoint)
+                        ? new QsFunctor[0] // we already require that all called operations support the Adjoint functor 
+                        : new[] { QsFunctor.Adjoint }; // all operations called within the outer transformation need to support the Adjoint functor
+                    var outerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics, additionalFunctorSupport);
+                    var outer = new QsPositionedBlock(outerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
+
+                    statement = Statements.NewConjugateStatement(outer, inner);
+                    proceed = nodes.MoveNext();
+                    return true;
+                }
+                else throw new ArgumentException("conjugate-block needs to be followed by a with-block");
+            }
+            (statement, proceed) = (null, true);
+            return false;
+        }
+
+        /// <summary>
         /// If the current tree node of the given iterator is a let-statement,
         /// builds the corresponding let-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -1020,6 +1071,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 else if (TryBuildRepeatStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement repeatStatement))
                 { statements.Add(repeatStatement); }
+
+                else if (TryBuildConjugateStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement conjugateStatement))
+                { statements.Add(conjugateStatement); }
 
                 else if (TryBuildBorrowStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement borrowingStatement))
                 { statements.Add(borrowingStatement); }
