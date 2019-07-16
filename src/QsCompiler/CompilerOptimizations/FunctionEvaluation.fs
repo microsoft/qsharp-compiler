@@ -1,4 +1,4 @@
-﻿module FunctionEvaluation
+﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.FunctionEvaluation
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -8,82 +8,113 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Utils
 
 
-exception Returned of Expr
-exception Failed of Expr
-exception CouldNotEvaluate of string
+/// The current state of a function evaluation
+type FunctionState =
+| Normal
+| Returned of Expr
+| Failed of Expr
+| CouldNotEvaluate of string
+
+/// The current state of an expression evaluation
+type ExpressionResult<'A> =
+| ExprValue of 'A
+| ExprError of string
 
 
-type [<AbstractClass>] FunctionEvaluator(compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
+/// Evaluates functions by stepping through their code
+type [<AbstractClass>] FunctionEvaluator(cd: CallableDict) =
 
+    /// Transforms a BoolLiteral into the corresponding bool
     let castToBool x =
         match x with
-        | BoolLiteral b -> b
-        | _ -> "Not a BoolLiteral: " + (prettyPrint x) |> CouldNotEvaluate |> raise
+        | BoolLiteral b -> ExprValue b
+        | _ -> "Not a BoolLiteral: " + (prettyPrint x) |> ExprError
 
-    member this.getCallable (name: QsQualifiedName): QsCallable =
-        compiledCallables.[name]
+    /// Returns whether a FunctionState is an interrupt
+    let isInterrupt = function Normal -> false | _ -> true
 
+    /// The callback for the subroutine that evaluates and simplifies an expression
     abstract member evaluateExpression: VariablesDict -> TypedExpression -> Expr
 
-    member this.evaluateStatement (vars: VariablesDict) (statement: QsStatement): unit =
+    /// Evaluates a single Q# statement
+    member this.evaluateStatement (vars: VariablesDict) (statement: QsStatement): FunctionState =
         match statement.Statement with
         | QsExpressionStatement expr ->
-            this.evaluateExpression vars expr |> ignore
+            this.evaluateExpression vars expr |> ignore; Normal
         | QsReturnStatement expr ->
-            this.evaluateExpression vars expr |> Returned |> raise
+            this.evaluateExpression vars expr |> Returned
         | QsFailStatement expr ->
-            this.evaluateExpression vars expr |> Failed |> raise
+            this.evaluateExpression vars expr |> Failed
         | QsVariableDeclaration s ->
-            fillVars vars (StringTuple.fromSymbolTuple s.Lhs, this.evaluateExpression vars s.Rhs)
+            fillVars vars (StringTuple.fromSymbolTuple s.Lhs, this.evaluateExpression vars s.Rhs); Normal
         | QsValueUpdate s ->
             match s.Lhs.Expression with
-                | Identifier (LocalVariable name, tArgs) -> vars.setVar(name.Value, this.evaluateExpression vars s.Rhs)
-                | _ -> "Unknown LHS of value update statement: " + (prettyPrint s.Lhs.Expression) |> CouldNotEvaluate |> raise
+                | Identifier (LocalVariable name, tArgs) -> vars.setVar(name.Value, this.evaluateExpression vars s.Rhs); Normal
+                | _ -> "Unknown LHS of value update statement: " + (prettyPrint s.Lhs.Expression) |> CouldNotEvaluate
         | QsConditionalStatement s ->
-            match Seq.tryFind (fun (ts, block) -> this.evaluateExpression vars ts |> castToBool) s.ConditionalBlocks with
-            | Some (ts, block) -> this.evaluateScope vars block.Body
-            | None -> match s.Default with
-                | Value body -> this.evaluateScope vars body.Body
-                | Null -> ()
+            match s.ConditionalBlocks |>
+                Seq.map (fun (ts, block) -> this.evaluateExpression vars ts |> castToBool, block) |>
+                Seq.tryFind (fst >> function ExprValue true -> true | ExprValue false -> false | ExprError _ -> true), s.Default with
+            | Some (ExprError s, _), _ -> CouldNotEvaluate s
+            | Some (ExprValue _, block), _ | None, Value block -> this.evaluateScope vars block.Body
+            | None, Null -> Normal
         | QsForStatement s ->
             let iterValues = this.evaluateExpression vars s.IterationValues
             match iterValues with
-            | RangeLiteral _ -> 
-                for loopValue in rangeLiteralToSeq iterValues do
-                    vars.enterScope()
-                    fillVars vars (StringTuple.fromSymbolTuple (fst s.LoopItem), IntLiteral (int64 loopValue))
-                    this.evaluateScope vars s.Body
-                    vars.exitScope()
+            | RangeLiteral _ ->
+                rangeLiteralToSeq iterValues |> Seq.map (fun loopValue ->
+                        vars.enterScope()
+                        fillVars vars (StringTuple.fromSymbolTuple (fst s.LoopItem), IntLiteral (int64 loopValue))
+                        let result = this.evaluateScope vars s.Body
+                        vars.exitScope()
+                        result) |>
+                    Seq.tryFind isInterrupt |? Normal
             | ValueArray va ->
-                for loopValue in va do
-                    vars.enterScope()
-                    fillVars vars (StringTuple.fromSymbolTuple (fst s.LoopItem), loopValue.Expression)
-                    this.evaluateScope vars s.Body
-                    vars.exitScope()
+                va |> Seq.map (fun loopValue ->
+                        vars.enterScope()
+                        fillVars vars (StringTuple.fromSymbolTuple (fst s.LoopItem), loopValue.Expression)
+                        let result = this.evaluateScope vars s.Body
+                        vars.exitScope()
+                        result) |>
+                    Seq.tryFind isInterrupt |? Normal
             | _ ->
-                "Unknown IterationValue in for loop: " + (prettyPrint iterValues) |> CouldNotEvaluate |> raise
+                "Unknown IterationValue in for loop: " + (prettyPrint iterValues) |> CouldNotEvaluate
         | QsWhileStatement s ->
-            while this.evaluateExpression vars s.Condition |> castToBool do
-                this.evaluateScope vars s.Body
+            Seq.initInfinite (fun _ -> this.evaluateExpression vars s.Condition |> castToBool) |>
+                Seq.map (function
+                    | ExprValue true -> match this.evaluateScope vars s.Body with
+                        | Normal -> Normal, false
+                        | res -> res, true
+                    | ExprValue false -> Normal, true
+                    | ExprError s -> CouldNotEvaluate s, true) |>
+                Seq.tryFind snd |? (Normal, true) |> fst
         | QsRepeatStatement s ->
-            let mutable success = false
-            while not success do
-                this.evaluateScope vars s.RepeatBlock.Body
-                success <- this.evaluateExpression vars s.SuccessCondition |> castToBool
-                if not success then
-                    this.evaluateScope vars s.FixupBlock.Body
+            Seq.initInfinite (fun _ -> this.evaluateScope vars s.RepeatBlock.Body) |>
+                Seq.map (function
+                    | Normal -> match this.evaluateExpression vars s.SuccessCondition |> castToBool with
+                        | ExprValue true -> Normal, true
+                        | ExprValue false -> match this.evaluateScope vars s.FixupBlock.Body with
+                            | Normal -> Normal, false
+                            | res -> res, true
+                        | ExprError s -> CouldNotEvaluate s, true
+                    | res -> res, true) |>
+                Seq.tryFind snd |? (Normal, true) |> fst
         | QsQubitScope s ->
-            "Cannot allocate qubits in function" |> CouldNotEvaluate |> raise
+            "Cannot allocate qubits in function" |> CouldNotEvaluate
 
-    member this.evaluateScope (vars: VariablesDict) (scope: QsScope): unit =
+    /// Evaluates a list of Q# statements
+    member this.evaluateScope (vars: VariablesDict) (scope: QsScope): FunctionState =
         vars.enterScope()
-        for statement in scope.Statements do
-            this.evaluateStatement vars statement
+        let res = scope.Statements |>
+            Seq.map (this.evaluateStatement vars) |>
+            Seq.tryFind isInterrupt |? Normal
         vars.exitScope()
+        res
 
+    /// Evaluates a Q# function
     member this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): Expr option =
         // TODO: assert compiledCallables contains name
-        let callable = this.getCallable name
+        let callable = cd.getCallable name
         // TODO: assert callable.Specializations.Length == 1
         let impl = callable.Specializations.[0].Implementation
         match impl with
@@ -91,8 +122,10 @@ type [<AbstractClass>] FunctionEvaluator(compiledCallables: ImmutableDictionary<
             let vars = VariablesDict()
             vars.enterScope()
             fillVars vars (StringTuple.fromQsTuple callable.ArgumentTuple, arg.Expression)
-            try this.evaluateScope vars scope; None
-            with
+            match this.evaluateScope vars scope with
+            | Normal ->
+                // printfn "Function %O didn't return anything" name.Name.Value
+                None
             | Returned expr ->
                 // printfn "Function %O returned %O" name.Name.Value (prettyPrint expr)
                 Some expr

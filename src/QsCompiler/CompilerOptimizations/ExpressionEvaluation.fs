@@ -1,7 +1,6 @@
-﻿module ExpressionEvaluation
+﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.ExpressionEvaluation
 
 open System
-open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -11,19 +10,21 @@ open Utils
 open FunctionEvaluation
 
 
-type ExpressionEvaluator(vars: VariablesDict, compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>, maxRecursiveDepth: int) =
+/// The ExpressionTransformation used to evaluate constant expressions
+type ExpressionEvaluator(vars: VariablesDict, cd: CallableDict, maxRecursiveDepth: int) =
     inherit ExpressionTransformation()
 
-    member this.getFE() = { new FunctionEvaluator(compiledCallables) with 
+    member this.getFE() = { new FunctionEvaluator(cd) with 
         override f.evaluateExpression vars2 x =
-            (ExpressionEvaluator(vars2, compiledCallables, maxRecursiveDepth-1).Transform x).Expression }
+            (ExpressionEvaluator(vars2, cd, maxRecursiveDepth-1).Transform x).Expression }
 
-    override this.Kind = upcast { new ExpressionKindEvaluator(vars, this.getFE(), maxRecursiveDepth) with 
+    override this.Kind = upcast { new ExpressionKindEvaluator(vars, cd, this.getFE(), maxRecursiveDepth) with 
         override kind.ExpressionTransformation x = this.Transform x 
         override kind.TypeTransformation x = this.Type.Transform x }
 
-
-and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, fe: FunctionEvaluator, maxRecursiveDepth: int) =
+        
+/// The ExpressionKindTransformation used to evaluate constant expressions
+and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, cd: CallableDict, fe: FunctionEvaluator, maxRecursiveDepth: int) =
     inherit ExpressionKindTransformation()
         
     member private this.simplify e1 = this.ExpressionTransformation e1
@@ -41,7 +42,7 @@ and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, fe: FunctionE
 
     override this.onFunctionCall (method, arg) =
         let method, arg = this.simplify (method, arg)
-        if maxRecursiveDepth > 0 && isLiteral arg.Expression then
+        if maxRecursiveDepth > 0 && isLiteral arg.Expression cd then
             match method.Expression with
             | Identifier (GlobalCallable qualName, types) ->
                 fe.evaluateFunction qualName arg types |? CallLikeExpression (method, arg)
@@ -55,7 +56,7 @@ and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, fe: FunctionE
         let ex = this.simplify ex
         match ex.Expression with
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, types)}, arg)
-            when (fe.getCallable qualName).Kind = TypeConstructor ->
+            when (cd.getCallable qualName).Kind = TypeConstructor ->
             arg.Expression
         | _ -> UnwrapApplication ex
 
@@ -85,13 +86,13 @@ and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, fe: FunctionE
 
     override this.onEquality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
-        match isLiteral lhs.Expression && isLiteral rhs.Expression with
+        match isLiteral lhs.Expression cd && isLiteral rhs.Expression cd with
         | true -> BoolLiteral (lhs.Expression = rhs.Expression)
         | false -> EQ (lhs, rhs)
         
     override this.onInequality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
-        match isLiteral lhs.Expression && isLiteral rhs.Expression with
+        match isLiteral lhs.Expression cd && isLiteral rhs.Expression cd with
         | true -> BoolLiteral (lhs.Expression <> rhs.Expression)
         | false -> NEQ (lhs, rhs)
         

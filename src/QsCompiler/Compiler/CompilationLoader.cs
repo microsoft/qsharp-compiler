@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.CompilerOptimization;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Documentation;
@@ -216,6 +217,15 @@ namespace Microsoft.Quantum.QsCompiler
                 var functorSpecGenerated = this.VerifiedCompilation != null && FunctorGeneration.GenerateFunctorSpecializations(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree);
                 if (!functorSpecGenerated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
             }
+
+            // executing the specified optimization steps
+
+            var st = new ConstantPropagator(VerifiedCompilation.Callables);
+            while (st.checkChanged())
+            {
+                this.GeneratedSyntaxTree = this.GeneratedSyntaxTree.Select(p => st.Transform(p)).ToList();
+            }
+
 
             // generating the compiled binary
 
