@@ -112,6 +112,8 @@ let private verifyStatement (context : SyntaxTokenContext) =
         | BorrowingBlockIntro _    -> false, [| (ErrorCode.BorrowingInFunction |> Error, context.Range) |]
         | RepeatIntro _            -> true,  [| (WarningCode.DeprecatedRUSloopInFunction |> Warning, context.Range) |] // NOTE: if repeat is excluded, exlude the UntilSuccess below!
         | UntilSuccess _           -> true,  [||] // no need to raise an error - the error comes either from the preceding repeat or because the latter is missing 
+        | ConjugateIntro _         -> true,  [| (WarningCode.SkippingConjugateWithInFunction |> Warning, context.Range) |] // keepting the statement despite the warning to preserve diagnostics for invalid conjugate-statements
+        | WithIntro _              -> true,  [||] // no need to raise a warning - the warning comes either from the preceding repeat or because the latter is missing 
         | _                        -> true,  [||]
     let checkForNotValidInOperation = function
         | WhileLoopIntro _         -> false, [| (ErrorCode.WhileLoopInOperation |> Error, context.Range) |]
@@ -143,11 +145,11 @@ let private verifyStatement (context : SyntaxTokenContext) =
 
 /// Verifies that the preceding fragment in the given context is an if- or elif-clause.
 /// Returns an array with suitable diagnostics.
-let private preceedingIfOrElif context = 
+let private precededByIfOrElif context = 
     match context.Previous with
     | Value (IfClause _) | Value (ElifClause _) -> verifyStatement context
     | Value InvalidFragment -> false, [||]
-    | _ -> false, [| (ErrorCode.MissingPreceedingIfOrElif |> Error, context.Range) |]
+    | _ -> false, [| (ErrorCode.MissingPrecedingIfOrElif |> Error, context.Range) |]
 
 /// Verifies that the following fragment in the given context is an until-clause.
 /// Returns an array with suitable diagnostics.
@@ -159,11 +161,23 @@ let private followedByUntil context =
 
 /// Verifies that the preceding fragment in the given context is a repeat intro.
 /// Returns an array with suitable diagnostics.
-let private preceededByRepeat context = 
+let private precededByRepeat context = 
     match context.Previous with 
-    | Value RepeatIntro-> verifyStatement context 
+    | Value RepeatIntro -> verifyStatement context 
     | Value InvalidFragment -> false, [||]
-    | _ -> false, [| (ErrorCode.MissingPreceedingRepeat |> Error, context.Range) |] 
+    | _ -> false, [| (ErrorCode.MissingPrecedingRepeat |> Error, context.Range) |] 
+
+let private precededByConjugate context = 
+    match context.Previous with 
+    | Value ConjugateIntro -> verifyStatement context
+    | Value InvalidFragment -> false, [||]
+    | _ -> false, [| (ErrorCode.MissingPrecedingConjugate |> Error, context.Range) |]
+
+let private followedByWith context = 
+    match context.Next with 
+    | Value WithIntro -> verifyStatement context
+    | Value InvalidFragment -> false, [||]
+    | _ -> false, [| (ErrorCode.MissingContinuationWith |> Error, context.Range) |]
 
 /// Verifies that either there is no preceding fragment in the given context, 
 /// or the preceding fragment is another open directive.
@@ -196,12 +210,14 @@ let VerifySyntaxTokenContext =
             | MutableBinding                _ -> verifyStatement context        
             | ValueUpdate                   _ -> verifyStatement context
             | IfClause                      _ -> verifyStatement context        
-            | ElifClause                    _ -> preceedingIfOrElif context
-            | ElseClause                    _ -> preceedingIfOrElif context
+            | ElifClause                    _ -> precededByIfOrElif context
+            | ElseClause                    _ -> precededByIfOrElif context
             | ForLoopIntro                  _ -> verifyStatement context 
             | WhileLoopIntro                _ -> verifyStatement context
             | RepeatIntro                   _ -> followedByUntil context     
-            | UntilSuccess                  _ -> preceededByRepeat context
+            | UntilSuccess                  _ -> precededByRepeat context
+            | ConjugateIntro                _ -> followedByWith context
+            | WithIntro                     _ -> precededByConjugate context
             | UsingBlockIntro               _ -> verifyStatement context
             | BorrowingBlockIntro           _ -> verifyStatement context     
             | BodyDeclaration               _ -> verifySpecialization context

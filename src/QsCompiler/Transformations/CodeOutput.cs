@@ -692,15 +692,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             { this.AddToOutput(String.IsNullOrWhiteSpace(comment) ? "" : $"//{comment}"); }
         }
 
-        private bool PreceededByCode =>
-            SyntaxTreeToQs.PreceededByCode(this._Scope._Output);
+        private bool PrecededByCode =>
+            SyntaxTreeToQs.PrecededByCode(this._Scope._Output);
 
         private void AddStatement(string stm)
         {
             var comments = this._Scope.CurrentComments;
-            var preceededByBlockStatement = SyntaxTreeToQs.PreceededByBlock(this._Scope._Output);
+            var precededByBlockStatement = SyntaxTreeToQs.PrecededByBlock(this._Scope._Output);
 
-            if (preceededByBlockStatement || (PreceededByCode && comments.OpeningComments.Length != 0)) this.AddToOutput("");
+            if (precededByBlockStatement || (PrecededByCode && comments.OpeningComments.Length != 0)) this.AddToOutput("");
             this.AddComments(comments.OpeningComments);
             this.AddToOutput($"{stm};");
             this.AddComments(comments.ClosingComments);
@@ -710,7 +710,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         private void AddBlockStatement(string intro, QsScope statements, bool withWhiteSpace = true)
         {
             var comments = this._Scope.CurrentComments;
-            if (PreceededByCode && withWhiteSpace) this.AddToOutput("");
+            if (PrecededByCode && withWhiteSpace) this.AddToOutput("");
             this.AddComments(comments.OpeningComments);
             this.AddToOutput($"{intro} {"{"}");
             ++currentIndendation;
@@ -800,7 +800,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public override QsStatementKind onConditionalStatement(QsConditionalStatement stm)
         {
             var header = Keywords.qsIf.id;
-            if (PreceededByCode) this.AddToOutput("");
+            if (PrecededByCode) this.AddToOutput("");
             foreach (var clause in stm.ConditionalBlocks)
             {
                 this._Scope.CurrentComments = clause.Item2.Comments;
@@ -895,10 +895,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         private readonly List<string> _Output;
         public string Output => String.Join(Environment.NewLine, this._Output);
 
-        internal static bool PreceededByCode(IEnumerable<string> output) =>
+        internal static bool PrecededByCode(IEnumerable<string> output) =>
             output == null ? false : output.Any() && !String.IsNullOrWhiteSpace(output.Last().Replace("{", ""));
 
-        internal static bool PreceededByBlock(IEnumerable<string> output) =>
+        internal static bool PrecededByBlock(IEnumerable<string> output) =>
             output == null ? false : output.Any() && output.Last().Trim() == "}";
 
         public const string ExternalImplementation = "__external__";
@@ -1161,9 +1161,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public override QsSpecialization beforeSpecialization(QsSpecialization spec)
         {
-            var preceededByCode = PreceededByCode(this._Output);
-            var preceededByBlock = PreceededByBlock(this._Output);
-            if (preceededByCode && (preceededByBlock || spec.Implementation.IsProvided || spec.Documentation.Any())) this.AddToOutput("");
+            var precededByCode = PrecededByCode(this._Output);
+            var precededByBlock = PrecededByBlock(this._Output);
+            if (precededByCode && (precededByBlock || spec.Implementation.IsProvided || spec.Documentation.Any())) this.AddToOutput("");
             this.CurrentComments = spec.Comments;
             this.AddComments(spec.Comments.OpeningComments);
             if (spec.Comments.OpeningComments.Any() && spec.Documentation.Any()) this.AddToOutput("");

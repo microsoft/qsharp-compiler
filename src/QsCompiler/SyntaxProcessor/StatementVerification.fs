@@ -225,7 +225,7 @@ let NewWhileStatement comments (location : QsLocation) (symbols : SymbolTracker<
 /// Resolves and verifies the given Q# expression given a symbol tracker containing all currently declared symbols.
 /// Verifies that the type of the resolved expression is indeed of kind Bool.
 /// Returns an array of all diagnostics generated during resolution and verification,
-/// as well as a delegate that given a Q# scope returns the corresponding conditional block. 
+/// as well as a delegate that given a positioned block of Q# statements returns the corresponding conditional block. 
 let NewConditionalBlock comments location (symbols : SymbolTracker<_>) (qsExpr : QsExpression) = 
     let condition, _, errs = VerifyWith VerifyIsBoolean symbols qsExpr
     let autoGenErrs = (condition, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency symbols
@@ -233,7 +233,7 @@ let NewConditionalBlock comments location (symbols : SymbolTracker<_>) (qsExpr :
     new BlockStatement<_>(block), Array.concat [errs; autoGenErrs]
 
 /// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses, 
-/// as well as optionally a Q# scope and its location for the else-clause, builds and returns the complete if-statement.  
+/// as well as optionally a positioned block of Q# statements and its location for the else-clause, builds and returns the complete if-statement.  
 /// Throws an ArgumentException if the given if-block contains no location information. 
 let NewIfStatement (ifBlock : TypedExpression * QsPositionedBlock, elifBlocks, elseBlock : QsNullable<QsPositionedBlock>) = 
     let location = (snd ifBlock).Location |> function 
@@ -242,8 +242,8 @@ let NewIfStatement (ifBlock : TypedExpression * QsPositionedBlock, elifBlocks, e
     let condBlocks = seq { yield ifBlock; yield! elifBlocks; }
     QsConditionalStatement.New (condBlocks, elseBlock) |> QsConditionalStatement |> asStatement QsComments.Empty location []
 
-/// Given a Q# scope for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
-/// as well as a Q# scope for the fixup-block, builds the complete RUS-statement at the given location and returns it.
+/// Given a positioned block of Q# statements for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
+/// as well as a positioned block of Q# statements for the fixup-block, builds the complete RUS-statement at the given location and returns it.
 /// Returns an array with diagnostics generated if the statement does not satisfy the necessary conditions 
 /// for the required auto-generation of specializations (specified by the given SymbolTracker). 
 let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedBlock, successCondition, fixupBlock) = 
@@ -252,6 +252,16 @@ let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedB
         | Value loc -> loc 
     let autoGenErrs = symbols |> onAutoInvertGenerateError ((ErrorCode.RUSloopWithinAutoInversion, []), location.Range) 
     QsRepeatStatement.New (repeatBlock, successCondition, fixupBlock) |> QsRepeatStatement |> asStatement QsComments.Empty location [], autoGenErrs
+
+/// Given a positioned block of Q# statements specifying the transformation to conjugate (inner transformation V), 
+/// as well as a positioned block of Q# statements specifying the transformation to conjugate it with (outer transformation U), 
+/// builds and returns the corresponding conjugate-statement representing the patter UVU* where U* is the adjoint of U.  
+/// Throws an ArgumentException if the given block specifying the inner transformation contains no location information. 
+let NewConjugateWithStatement (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
+    let location = inner.Location |> function
+        | Null -> ArgumentException "no location is set for the given block defining the transformation to conjugate" |> raise
+        | Value loc -> loc
+    QsConjugateStatement.New (outer, inner) |> QsConjugateStatement |> asStatement QsComments.Empty location [], []
 
 /// Given the location of the statement header as well as a symbol tracker containing all currently declared symbols, 
 /// builds the Q# using- or borrowing-statement (depending on the given kind) at the given location
