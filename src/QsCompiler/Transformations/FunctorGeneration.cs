@@ -28,8 +28,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         private static readonly TypedExpression ControlQubits =
             SyntaxGenerator.ImmutableQubitArrayWithName(NonNullable<string>.New(InternalUse.ControlQubitsName));
 
+        public static readonly Func<QsScope, QsScope> ApplyAdjoint =
+            new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Transform;
 
-        // helper classes
+        public static readonly Func<QsScope, QsScope> ApplyControlled =
+            new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Transform;
+
+
+        // helper class
 
         /// <summary>
         /// Replaces each operation call with a call to the operation after application of the given functor. 
@@ -79,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         public override QsScope Transform(QsScope scope)
         {
-            var topStatements = new List<QsStatement>();
+            var topStatements = ImmutableArray.CreateBuilder<QsStatement>();
             var bottomStatements = new List<QsStatement>();
             foreach (var statement in scope.Statements)
             {
@@ -92,7 +98,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         }
 
 
-        // helper classes
+        // helper class
 
         /// <summary>
         /// Helper class for the scope transformation that reverses the order of all operation calls.
@@ -118,10 +124,45 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
 
     /// <summary>
+    /// Scope transformation that inlines all conjugate-statements, thus eliminating them from a given scope.
+    /// The generation of the adjoint for the outer block needed for conjugation is subject to the same limitation as any adjoint auto-generation. 
+    /// In particular, it is only guaranteed to be valid if operation calls only occur within expression statements, and 
+    /// throws an InvalidOperationException if the outer block contains while-loops. 
+    /// </summary>
+    public class InlineConjugateStatements :
+        ScopeTransformation<StatementKindTransformation<InlineConjugateStatements>, NoExpressionTransformations>
+    {
+        public InlineConjugateStatements() :
+            base(s => new StatementKindTransformation<InlineConjugateStatements>(s as InlineConjugateStatements), new NoExpressionTransformations())
+        { }
+
+        public override QsScope Transform(QsScope scope)
+        {
+            var statements = ImmutableArray.CreateBuilder<QsStatement>();
+            foreach (var statement in scope.Statements)
+            {
+                if (statement.Statement is QsStatementKind.QsConjugateStatement conjStm)
+                {
+                    var outer = this.Transform(conjStm.Item.OuterTransformation.Body);
+                    var inner = this.Transform(conjStm.Item.InnerTransformation.Body);
+                    var adjOuter = outer.GenerateAdjoint();
+
+                    statements.AddRange(outer.Statements);
+                    statements.AddRange(inner.Statements);
+                    statements.AddRange(adjOuter.Statements);
+                }
+                else statements.Add(this.onStatement(statement));
+            }
+            return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
+        }
+    }
+
+
+    /// <summary>
     /// Applying the transformation sets all location information to Null.
     /// </summary>
     public class StripLocationInformation :
-        ScopeTransformation<StatementKindTransformation<StripLocationInformation>,NoExpressionTransformations>
+        ScopeTransformation<StatementKindTransformation<StripLocationInformation>, NoExpressionTransformations>
     {
         public StripLocationInformation() :
             base(s => new StatementKindTransformation<StripLocationInformation>(s as StripLocationInformation), new NoExpressionTransformations())
@@ -129,6 +170,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> loc) =>
             QsNullable<QsLocation>.Null;
+
+        public static readonly Func<QsScope, QsScope> Apply =
+            new StripLocationInformation().Transform;
+    }
+
+
+    public static class AutoGeneration
+    {
+        /// <summary>
+        /// Given the body of an operation, auto-generates the (content of the) adjoint specialization, 
+        /// under the assumption that operation calls may only ever occur within expression statements, 
+        /// and while-loops cannot occur within operations. 
+        /// </summary>
+        public static QsScope GenerateAdjoint(this QsScope scope)
+        {
+            scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
+            scope = new ReverseOrderOfOperationCalls().Transform(scope);
+            return StripLocationInformation.Apply(scope);
+        }
+
+        /// <summary>
+        /// Given the body of an operation, auto-generates the (content of the) controlled specialization 
+        /// using the default name for control qubits.
+        /// </summary>
+        public static QsScope GenerateControlled(this QsScope scope)
+        {
+            scope = ApplyFunctorToOperationCalls.ApplyControlled(scope);
+            return StripLocationInformation.Apply(scope);
+        }
     }
 }
 

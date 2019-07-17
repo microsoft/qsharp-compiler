@@ -16,33 +16,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     public static class FunctorGeneration
     {
-        // utils for syntax tree transformations (i.e. methods that take a QsScope and return a QsScope)
-
-        /// <summary>
-        /// Given the body of an operation, auto-generates the (content of the) controlled specialization 
-        /// using the default name for control qubits.
-        /// </summary>
-        public static QsScope DistributeControlledFunctor(this QsScope scope)
-        {
-            scope = new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Transform(scope);
-            return new StripLocationInformation().Transform(scope);
-        }
-
-        /// <summary>
-        /// Given the body of an operation, auto-generates the (content of the) adjoint specialization, 
-        /// under the assumption that operation calls may only ever occur within expression statements, 
-        /// and while-loops cannot occur within operations. 
-        /// </summary>
-        public static QsScope DistributeAdjointFunctorAndReverse(this QsScope scope)
-        {
-            scope = new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Transform(scope); 
-            scope = new ReverseOrderOfOperationCalls().Transform(scope);
-            return new StripLocationInformation().Transform(scope);
-        }
-
-
-        // utils for rewriting the syntax tree
-
         /// <summary>
         /// Given the argument tuple of a specialization, returns the argument tuple for its controlled version.
         /// Returns null if the given argument tuple is null.
@@ -118,7 +91,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 void SetImplementation(QsScope impl) => adj = adj.WithImplementation(SpecializationImplementation.NewProvided(bodyArg, impl));
 
                 //if (gen.Item.IsSelfInverse) SetImplementation(bodyImpl); -> nothing to do here, we want to keep this information
-                if (gen.Item.IsInvert) SetImplementation(bodyImpl.DistributeAdjointFunctorAndReverse());
+                if (gen.Item.IsInvert) SetImplementation(bodyImpl.GenerateAdjoint());
             }
             return callable.WithSpecializations(specs => specs.Select(s => s.Kind == QsSpecializationKind.QsAdjoint ? adj : s).ToImmutableArray());
         }
@@ -144,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var (bodyArg, bodyImpl) = bodyDecl.Value;
                 void SetImplementation(QsScope impl) => ctl = ctl.WithImplementation(SpecializationImplementation.NewProvided(ControlledArg(bodyArg), impl));
-                if (gen.Item.IsDistribute) SetImplementation(bodyImpl.DistributeControlledFunctor());
+                if (gen.Item.IsDistribute) SetImplementation(bodyImpl.GenerateControlled());
             }
             return callable.WithSpecializations(specs => specs.Select(s => s.Kind == QsSpecializationKind.QsControlled ? ctl : s).ToImmutableArray());
         }
@@ -175,7 +148,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     var adj = callable.Specializations.GetSpecialization(QsSpecializationKind.QsAdjoint);
                     var (adjArg, adjImpl) = GetContent(adj?.Implementation) ?? throw new ArgumentException("no implementation provided for adjoint specialization");
-                    ctlAdj = ctlAdj.WithImplementation(SpecializationImplementation.NewProvided(ControlledArg(adjArg), adjImpl.DistributeControlledFunctor()));
+                    ctlAdj = ctlAdj.WithImplementation(SpecializationImplementation.NewProvided(ControlledArg(adjArg), adjImpl.GenerateControlled()));
                 }
                 else
                 {
@@ -184,7 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     void SetImplementation(QsScope impl) => ctlAdj = ctlAdj.WithImplementation(SpecializationImplementation.NewProvided(ctlArg, impl));
 
                     //if (gen.Item.IsSelfInverse) SetImplementation(ctlImpl); -> nothing to do here, we want to keep this information
-                    if (gen.Item.IsInvert) SetImplementation(ctlImpl.DistributeAdjointFunctorAndReverse());
+                    if (gen.Item.IsInvert) SetImplementation(ctlImpl.GenerateAdjoint());
                 }
             }
             return callable.WithSpecializations(specs => specs.Select(s => s.Kind == QsSpecializationKind.QsControlledAdjoint ? ctlAdj : s).ToImmutableArray());

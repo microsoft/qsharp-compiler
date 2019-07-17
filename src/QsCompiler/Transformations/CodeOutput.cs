@@ -816,6 +816,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             return QsStatementKind.NewQsConditionalStatement(stm);
         }
 
+        public override QsStatementKind onConjugateStatement(QsConjugateStatement stm)
+        {
+            this._Scope.CurrentComments = stm.InnerTransformation.Comments;
+            this.AddBlockStatement(Keywords.qsConjugate.id, stm.InnerTransformation.Body, true);
+            this._Scope.CurrentComments = stm.OuterTransformation.Comments;
+            this.AddBlockStatement(Keywords.qsWith.id, stm.OuterTransformation.Body, false);
+            return QsStatementKind.NewQsConjugateStatement(stm);
+        }
+
 
         public override QsStatementKind onExpressionStatement(TypedExpression ex)
         {
