@@ -60,7 +60,8 @@ type StatementKindTransformation(?enable) =
         let rhs = this.ExpressionTransformation stm.Rhs
         QsValueUpdate.New (lhs, rhs) |> QsValueUpdate
 
-    member private this.onPositionedBlock (intro : TypedExpression option, block : QsPositionedBlock) = 
+    abstract member onPositionedBlock : TypedExpression option * QsPositionedBlock -> TypedExpression option * QsPositionedBlock
+    default this.onPositionedBlock (intro : TypedExpression option, block : QsPositionedBlock) = 
         let location = this.LocationTransformation block.Location
         let comments = block.Comments
         let expr = intro |> Option.map this.ExpressionTransformation
@@ -95,12 +96,18 @@ type StatementKindTransformation(?enable) =
         let successCondition, fixupBlock = this.onPositionedBlock (Some stm.SuccessCondition, stm.FixupBlock)
         QsRepeatStatement.New (repeatBlock, successCondition |> Option.get, fixupBlock) |> QsRepeatStatement
 
-    member private this.onQubitScope (stm : QsQubitScope) = 
+    abstract member onQubitScope : QsQubitScope -> QsStatementKind
+    default this.onQubitScope (stm : QsQubitScope) = 
         let kind = stm.Kind
         let lhs = this.onSymbolTuple stm.Binding.Lhs
         let rhs = this.onQubitInitializer stm.Binding.Rhs
         let body = this.ScopeTransformation stm.Body
         QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
+
+    abstract member onScopeStatement : QsScopeStatement -> QsStatementKind
+    default this.onScopeStatement (stm : QsScopeStatement) = 
+        let body = this.ScopeTransformation stm.Body
+        QsScopeStatement.New body |> QsScopeStatement
 
     abstract member onAllocateQubits : QsQubitScope -> QsStatementKind
     default this.onAllocateQubits stm = this.onQubitScope stm
@@ -131,6 +138,7 @@ type StatementKindTransformation(?enable) =
         | QsWhileStatement stm       -> this.onWhileStatement       (stm)
         | QsRepeatStatement stm      -> this.onRepeatStatement      (stm)
         | QsQubitScope stm           -> this.dispatchQubitScope     (stm  |> beforeQubitScope)
+        | QsScopeStatement stm       -> this.onScopeStatement       (stm)
 
 
 and ScopeTransformation(?enableStatementKindTransformations) =

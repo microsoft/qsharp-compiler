@@ -7,12 +7,12 @@ open System
 open System.IO
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.CompilerOptimization
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
 open Microsoft.Quantum.QsCompiler.Transformations
 open Xunit
 
 
-
-
+/// Given a string of valid Q# code, outputs the AST and the callables dictionary
 let private buildSyntaxTree code =
     let fileId = new Uri(Path.GetFullPath "test-file.qs") 
     let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message) 
@@ -21,159 +21,53 @@ let private buildSyntaxTree code =
     let mutable syntaxTree = compilationUnit.GetSyntaxTree()   // will wait for any current tasks to finish
     FunctorGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree) |> ignore
     syntaxTree, compilationUnit.Build().Callables
+    
+/// Given a string of valid Q# code, outputs the optimized AST as a string
+let private optimize code =
+    let mutable tree, callables = buildSyntaxTree code
+    let optimizer = ConstantPropagator(callables)
+    while optimizer.checkChanged() do
+        tree <- tree |> Seq.map optimizer.Transform |> Seq.toList
+    String.Join("\n", Seq.map printNamespace tree)
+
+/// Helper function that saves the compiler output as a test case (in the bin directory)
+let private createTestCase path =
+    let code = Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
+    let optimized = optimize code
+    (Path.Combine(Path.GetFullPath ".", path + "_output.txt"), optimized) |> File.WriteAllText
+
+/// Asserts that the result of optimizing the _input file matches the result in the _output file
+let private assertOptimization path =
+    let code = Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
+    let optimized = optimize code
+    let expected = Path.Combine(Path.GetFullPath ".", path + "_output.txt") |> File.ReadAllText
+    Assert.Equal(expected, optimized)
 
 
 //////////////////////////////// tests //////////////////////////////////
 
 
 [<Fact>]
-let ``basic walk`` () = 
-    let tree, callables = Path.Combine(Path.GetFullPath ".", "TestFiles", "test-00.qs") |> File.ReadAllText |> buildSyntaxTree
-
-    let optimizer = new ConstantPropagator(callables)
-    tree |> Seq.map optimizer.Transform |> Seq.toList |> ignore
-
-    let found = optimizer.getDeclarations
-    let expected = [
-        "o = [DoubleLiteral 1.0, DoubleLiteral 2.0, DoubleLiteral -4.2]"
-        "op = GlobalCallable M"
-        "op = GlobalCallable M"
-        "op = GlobalCallable M"
-    ]
-    Assert.Equal(expected, found)
-
-
-[<Fact>]
 let ``arithmetic evaluation`` () =
-    let code = @"
-namespace Microsoft.Quantum.Testing {
-    operation Test () : Unit {
-	    let x = 5;
-	    let y = x + 3;
-	    let z = y * 5 % 4;
-	    let w = z > 1;
-	    let a = w ? 2 | y / 2;
-    }
-}"  
-    let tree, callables = code |> buildSyntaxTree
-
-    let optimizer = new ConstantPropagator(callables)
-    tree |> Seq.map optimizer.Transform |> Seq.toList |> ignore
-
-    let found = optimizer.getDeclarations
-    let expected = [
-        "a = IntLiteral 4L"
-        "w = BoolLiteral false"
-        "x = IntLiteral 5L"
-        "y = IntLiteral 8L"
-        "z = IntLiteral 0L"
-    ]
-    Assert.Equal(expected, found)
-
-
+    // createTestCase "TestCases/Optimizer/Arithmetic"
+    assertOptimization "TestCases/Optimizer/Arithmetic"
+    
 [<Fact>]
 let ``function evaluation`` () =
-    let code = @"
-namespace Microsoft.Quantum.Testing {
-    operation Test () : Unit {
-	    let b = f(1, 8);
-	    let (c, d, e) = (g2(3), g2(4), g2(5));
-	    let s = mySin(2.0);
-    }
-
-	function f (x : Int, w : Int) : Int {
-		mutable y = 1;
-		mutable z = new Int[5];
-		set z = z w/ 0 <- x;
-		while (z[0] > 0) {
-			set y += w;
-			set z = z w/ 0 <- z[0] / 2;
-		}
-		mutable b = 0;
-		for (a in z) {
-			set b += a;
-		}
-		return y + b;
-	}
-
-	function g1 (x : Int) : Int {
-		if (x == 0) {
-			return 0;
-		}
-		if (x == 1) {
-			return 1;
-		}
-		return g1(x-1) + g1(x-2);
-	}
-
-	function g2 (x : Int) : Int {
-		return x == 0 ? 0 | (x == 1 ? 1 | g2(x-1) + g2(x-2));
-	}
-
-	function mySin (x : Double) : Double {
-		let y = ArcSinh(x);
-		if (y == 0.0) {
-			return 2.0;
-		}
-		return ArcSinh(y);
-	}
-
-	function ArcSinh (x : Double) : Double {
-        body intrinsic;
-    }
-}"
-    let tree, callables = code |> buildSyntaxTree
-
-    let optimizer = new ConstantPropagator(callables)
-    tree |> Seq.map optimizer.Transform |> Seq.toList |> ignore
-
-    let found = optimizer.getDeclarations
-    let expected = [
-        "(c, d, e) = (IntLiteral 2L, IntLiteral 3L, IntLiteral 5L)"
-        "b = IntLiteral 9L"
-    ]
-    Assert.Equal(expected, found)
-
+    // createTestCase "TestCases/Optimizer/FunctionEval"
+    assertOptimization "TestCases/Optimizer/FunctionEval"
 
 [<Fact>]
-let ``other evaluation`` () =
-    let code = @"
-namespace Microsoft.Quantum.Testing {
-    newtype MyInt = Int;
+let ``loop unrolling`` () =
+    // createTestCase "TestCases/Optimizer/LoopUnrolling"
+    assertOptimization "TestCases/Optimizer/LoopUnrolling"
 
-    operation Test () : Unit {
-	    let t = k(_, h(_, 3, _));
-	    let u = t(2);
-	    let v = ((h(_, 4, _))(5, _))(6);
-	    let m = MyInt(5);
-	    let n = m!;
-	    let o = M(x);
-	    let p = o == One;
-    }
+[<Fact>]
+let ``miscellaneous`` () =
+    // createTestCase "TestCases/Optimizer/Miscellaneous"
+    assertOptimization "TestCases/Optimizer/Miscellaneous"
 
-    function M (q : Int) : Result {
-        body intrinsic;
-    }
-
-	function h (a : Int, b : Int, c : Int) : Int {
-		return a + b + c;
-	}
-
-	function k (a : Int, fun : ((Int, Int) -> Int)) : Int {
-		return fun(a, a);
-	}
-}"
-    let tree, callables = code |> buildSyntaxTree
-
-    let optimizer = new ConstantPropagator(callables)
-    tree |> Seq.map optimizer.Transform |> Seq.toList |> ignore
-
-    let found = optimizer.getDeclarations
-    let expected = [
-        "m = (GlobalCallable MyInt of IntLiteral 5L)"
-        "n = IntLiteral 5L"
-        "t = (GlobalCallable k of (MissingExpr, (GlobalCallable h of (MissingExpr, IntLiteral 3L, MissingExpr))))"
-        "u = IntLiteral 7L"
-        "v = IntLiteral 15L"
-    ]
-    Assert.Equal(expected, found)
+[<Fact>]
+let ``partial evaluation`` () =
+    // createTestCase "TestCases/Optimizer/PartialEval"
+    assertOptimization "TestCases/Optimizer/PartialEval"

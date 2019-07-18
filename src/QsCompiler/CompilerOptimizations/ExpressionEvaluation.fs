@@ -10,6 +10,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open Utils
 open FunctionEvaluation
+open Printer
 
 
 /// The ExpressionTransformation used to evaluate constant expressions
@@ -74,7 +75,7 @@ and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: 
             | CallLikeExpression (baseMethod, partialArg) ->
                 this.Transform (partialApplyFunction baseMethod partialArg arg)
             | _ ->
-                failwithf "Unknown function call: %O" (prettyPrint method.Expression)
+                failwithf "Unknown function call: %O" (printExpr method.Expression)
         else CallLikeExpression (method, arg)
         
     override this.onUnwrapApplication ex =

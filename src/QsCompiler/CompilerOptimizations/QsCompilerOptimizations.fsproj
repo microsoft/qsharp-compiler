@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <Compile Include="Utils.fs" />
+    <Compile Include="Printer.fs" />
     <Compile Include="FunctionEvaluation.fs" />
     <Compile Include="ExpressionEvaluation.fs" />
     <Compile Include="ConstantPropagation.fs" />

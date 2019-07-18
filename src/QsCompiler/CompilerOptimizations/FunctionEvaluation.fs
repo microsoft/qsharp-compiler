@@ -7,6 +7,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 open Utils
+open Printer
 
 
 /// The current state of a function evaluation
@@ -29,7 +30,7 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
     let castToBool x =
         match x with
         | BoolLiteral b -> ExprValue b
-        | _ -> "Not a BoolLiteral: " + (prettyPrint x) |> ExprError
+        | _ -> "Not a BoolLiteral: " + (printExpr x) |> ExprError
 
     /// Returns whether a FunctionState is an interrupt
     let isInterrupt = function Normal -> false | _ -> true
@@ -52,7 +53,7 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
             match s.Lhs.Expression with
                 | Identifier (LocalVariable name, tArgs) -> vars.setVar(name.Value, this.evaluateExpression vars s.Rhs); Normal
                 // TODO - allow any symbol tuple on the LHS
-                | _ -> "Unknown LHS of value update statement: " + (prettyPrint s.Lhs.Expression) |> CouldNotEvaluate
+                | _ -> "Unknown LHS of value update statement: " + (printExpr s.Lhs.Expression) |> CouldNotEvaluate
         | QsConditionalStatement s ->
             match s.ConditionalBlocks |>
                 Seq.map (fun (ts, block) -> this.evaluateExpression vars ts |> castToBool, block) |>
@@ -80,7 +81,7 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
                         result) |>
                     Seq.tryFind isInterrupt |? Normal
             | _ ->
-                "Unknown IterationValue in for loop: " + (prettyPrint iterValues) |> CouldNotEvaluate
+                "Unknown IterationValue in for loop: " + (printExpr iterValues) |> CouldNotEvaluate
         | QsWhileStatement s ->
             Seq.initInfinite (fun _ -> this.evaluateExpression vars s.Condition |> castToBool) |>
                 Seq.map (function
@@ -111,6 +112,8 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
         | QsQubitScope s ->
             QsCompilerError.Raise "Cannot allocate qubits in function"
             "Cannot allocate qubits in function" |> CouldNotEvaluate
+        | QsScopeStatement s ->
+            "Not implemented" |> CouldNotEvaluate
 
     /// Evaluates a list of Q# statements
     member private this.evaluateScope (vars: VariablesDict) (enterScope: bool) (scope: QsScope): FunctionState =

@@ -154,6 +154,11 @@ type QsQubitScope with
         Body = body
     }
 
+type QsScopeStatement with 
+    static member New body = {
+        Body = body
+    }
+
 type QsStatement with 
     static member New comments location (kind, symbolDecl) = {
         Statement = kind

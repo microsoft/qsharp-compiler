@@ -1,0 +1,11 @@
+namespace Microsoft.Quantum.Testing.Optimization.Arithmetic {
+    Operation Test () : UnitType {
+        QsBody () {
+            let x = IntLiteral 5L;
+            let y = IntLiteral 8L;
+            let z = IntLiteral 0L;
+            let w = BoolLiteral false;
+            let a = IntLiteral 4L;
+        }
+    }
+}
