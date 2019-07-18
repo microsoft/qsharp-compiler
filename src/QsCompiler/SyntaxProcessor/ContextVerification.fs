@@ -112,6 +112,7 @@ let private verifyStatement (context : SyntaxTokenContext) =
         | BorrowingBlockIntro _    -> false, [| (ErrorCode.BorrowingInFunction |> Error, context.Range) |]
         | RepeatIntro _            -> true,  [| (WarningCode.DeprecatedRUSloopInFunction |> Warning, context.Range) |] // NOTE: if repeat is excluded, exlude the UntilSuccess below!
         | UntilSuccess _           -> true,  [||] // no need to raise an error - the error comes either from the preceding repeat or because the latter is missing 
+        // FIXME: GIVE AN ERROR INSTEAD FOR CONJUGATE STATEMENT IN FUNCTION
         | ConjugateIntro _         -> true,  [| (WarningCode.SkippingConjugateWithInFunction |> Warning, context.Range) |] // keepting the statement despite the warning to preserve diagnostics for invalid conjugate-statements
         | WithIntro _              -> true,  [||] // no need to raise a warning - the warning comes either from the preceding repeat or because the latter is missing 
         | _                        -> true,  [||]
