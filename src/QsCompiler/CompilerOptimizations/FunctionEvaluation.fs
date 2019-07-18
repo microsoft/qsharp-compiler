@@ -58,7 +58,7 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
                 Seq.map (fun (ts, block) -> this.evaluateExpression vars ts |> castToBool, block) |>
                 Seq.tryFind (fst >> function ExprValue false -> false | _ -> true), s.Default with
             | Some (ExprError s, _), _ -> CouldNotEvaluate s
-            | Some (ExprValue _, block), _ | None, Value block -> this.evaluateScope vars block.Body
+            | Some (ExprValue _, block), _ | None, Value block -> this.evaluateScope vars true block.Body
             | None, Null -> Normal
         | QsForStatement s ->
             let iterValues = this.evaluateExpression vars s.IterationValues
@@ -67,7 +67,7 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
                 rangeLiteralToSeq iterValues |> Seq.map (fun loopValue ->
                         vars.enterScope()
                         fillVars vars (StringTuple.fromSymbolTuple (fst s.LoopItem), IntLiteral loopValue)
-                        let result = this.evaluateScope vars s.Body
+                        let result = this.evaluateScope vars true s.Body
                         vars.exitScope()
                         result) |>
                     Seq.tryFind isInterrupt |? Normal
@@ -75,7 +75,7 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
                 va |> Seq.map (fun loopValue ->
                         vars.enterScope()
                         fillVars vars (StringTuple.fromSymbolTuple (fst s.LoopItem), loopValue.Expression)
-                        let result = this.evaluateScope vars s.Body
+                        let result = this.evaluateScope vars true s.Body
                         vars.exitScope()
                         result) |>
                     Seq.tryFind isInterrupt |? Normal
@@ -85,37 +85,41 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
             Seq.initInfinite (fun _ -> this.evaluateExpression vars s.Condition |> castToBool) |>
                 Seq.map (function
                     | ExprValue true ->
-                        match this.evaluateScope vars s.Body with
+                        match this.evaluateScope vars true s.Body with
                         | Normal -> Normal, false
                         | res -> res, true
                     | ExprValue false -> Normal, true
                     | ExprError s -> CouldNotEvaluate s, true) |>
                 Seq.tryFind snd |? (Normal, true) |> fst
         | QsRepeatStatement s ->
-            Seq.initInfinite (fun _ -> this.evaluateScope vars s.RepeatBlock.Body) |>
+            vars.enterScope()
+            let res =
+                Seq.initInfinite (fun _ -> this.evaluateScope vars false s.RepeatBlock.Body) |>
                 Seq.map (function
                     | Normal ->
                         match this.evaluateExpression vars s.SuccessCondition |> castToBool with
                         | ExprValue true -> Normal, true
                         | ExprValue false ->
-                            match this.evaluateScope vars s.FixupBlock.Body with
+                            match this.evaluateScope vars false s.FixupBlock.Body with
                             | Normal -> Normal, false
                             | res -> res, true
                         | ExprError s -> CouldNotEvaluate s, true
                     | res -> res, true) |>
                 Seq.tryFind snd |? (Normal, true) |> fst
+            vars.exitScope()
+            res
         | QsQubitScope s ->
             QsCompilerError.Raise "Cannot allocate qubits in function"
             "Cannot allocate qubits in function" |> CouldNotEvaluate
 
     /// Evaluates a list of Q# statements
-    member private this.evaluateScope (vars: VariablesDict) (scope: QsScope): FunctionState =
-        vars.enterScope()
+    member private this.evaluateScope (vars: VariablesDict) (enterScope: bool) (scope: QsScope): FunctionState =
+        if enterScope then vars.enterScope()
         let res =
             scope.Statements |>
             Seq.map (this.evaluateStatement vars) |>
             Seq.tryFind isInterrupt |? Normal
-        vars.exitScope()
+        if enterScope then vars.exitScope()
         res
 
     /// Evaluates a Q# function
@@ -131,7 +135,7 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
             vars.enterScope()
             fillVars vars (StringTuple.fromQsTuple callable.ArgumentTuple, arg.Expression)
             let res =
-                match this.evaluateScope vars scope with
+                match this.evaluateScope vars true scope with
                 | Normal ->
                     // printfn "Function %O didn't return anything" name.Name.Value
                     None
