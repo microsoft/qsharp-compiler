@@ -124,6 +124,7 @@ type ErrorCode =
     | ControlledAdjointDeclInFunction = 4011
     | InvalidReturnWithinAllocationScope = 4012
     | WhileLoopInOperation = 4013
+    | ConjugateWithInFunction = 4014
 
     | MissingPrecedingIfOrElif = 4101
     | MissingContinuationUntil = 4102
@@ -267,7 +268,6 @@ type WarningCode =
     | DeprecatedANDoperator = 3302
     | DeprecatedORoperator = 3303
     | DeprecatedRUSloopInFunction = 4001
-    | SkippingConjugateWithInFunction = 4002
 
     | DiscardingItemInAssignment = 5001 
     | ConditionalEvaluationOfOperationCall = 5002
@@ -434,6 +434,7 @@ type DiagnosticItem =
             | ErrorCode.ControlledAdjointDeclInFunction         -> "Controlled-adjoint specializations can only be defined for operations."
             | ErrorCode.InvalidReturnWithinAllocationScope      -> "Return statements may only occur at the end of a using- or borrowing-block."
             | ErrorCode.WhileLoopInOperation                    -> "While-loops cannot be used in operations. Avoid conditional loops in operations if possible, and use a repeat-until-success pattern otherwise."
+            | ErrorCode.ConjugateWithInFunction                 -> "Conjugate-statements may only occur within operations, since they cannot add to the expressiveness within functions."
                                                             
             | ErrorCode.MissingPrecedingIfOrElif                -> "An elif- or else-block must be preceded by an if- or elif-block."
             | ErrorCode.MissingContinuationUntil                -> "A repeat-block must be followed by an until-clause."
@@ -579,7 +580,6 @@ type DiagnosticItem =
             | WarningCode.DeprecatedANDoperator                 -> "Deprecated syntax. Use \"and\" to denote the logical AND operator."
             | WarningCode.DeprecatedORoperator                  -> "Deprecated syntax. Use \"or\" to denote the logical OR operator."
             | WarningCode.DeprecatedRUSloopInFunction           -> "The use of repeat-until-success-loops within functions may not be supported in the future. Please use a while-loop instead."
-            | WarningCode.SkippingConjugateWithInFunction       -> "Conjugate-statements within functions will be optimized out by the compiler, since they cannot have any impact on the remaining computation."
 
             | WarningCode.DiscardingItemInAssignment            -> "The expression on the right hand side is discarded on assignment and can be ommitted."
             | WarningCode.ConditionalEvaluationOfOperationCall  -> "This expression may be short-circuited, and operation calls may not be executed."
