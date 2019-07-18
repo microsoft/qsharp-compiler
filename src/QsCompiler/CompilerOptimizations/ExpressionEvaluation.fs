@@ -25,11 +25,11 @@ type internal ExpressionEvaluator(vars: VariablesDict, cd: CallableDict, maxRecu
         override kind.ExpressionTransformation x = this.Transform x 
         override kind.TypeTransformation x = this.Type.Transform x }
 
-        
+
 /// The ExpressionKindTransformation used to evaluate constant expressions
 and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: CallableDict, fe: FunctionEvaluator, maxRecursiveDepth: int) =
     inherit ExpressionKindTransformation()
-        
+
     member private this.simplify e1 = this.ExpressionTransformation e1
 
     member private this.simplify (e1, e2) =
@@ -77,7 +77,7 @@ and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: 
             | _ ->
                 failwithf "Unknown function call: %O" (printExpr method.Expression)
         else CallLikeExpression (method, arg)
-        
+
     override this.onUnwrapApplication ex =
         let ex = this.simplify ex
         match ex.Expression with
@@ -125,37 +125,37 @@ and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: 
         match isLiteral lhs.Expression cd && isLiteral rhs.Expression cd with
         | true -> BoolLiteral (lhs.Expression = rhs.Expression)
         | false -> EQ (lhs, rhs)
-        
+
     override this.onInequality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match isLiteral lhs.Expression cd && isLiteral rhs.Expression cd with
         | true -> BoolLiteral (lhs.Expression <> rhs.Expression)
         | false -> NEQ (lhs, rhs)
-        
+
     override this.onLessThan (lhs, rhs) =
         this.arithBoolBinaryOp LT (<) (<) (<) lhs rhs
-        
+
     override this.onLessThanOrEqual (lhs, rhs) =
         this.arithBoolBinaryOp LTE (<=) (<=) (<=) lhs rhs
-        
+
     override this.onGreaterThan (lhs, rhs) =
         this.arithBoolBinaryOp GT (>) (>) (>) lhs rhs
-        
+
     override this.onGreaterThanOrEqual (lhs, rhs) =
         this.arithBoolBinaryOp GTE (>=) (>=) (>=) lhs rhs
-        
+
     override this.onLogicalAnd (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | BoolLiteral a, BoolLiteral b -> BoolLiteral (a && b)
         | _ -> AND (lhs, rhs)
-        
+
     override this.onLogicalOr (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | BoolLiteral a, BoolLiteral b -> BoolLiteral (a || b)
         | _ -> OR (lhs, rhs)
-    
+
     override this.onAddition (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
@@ -168,13 +168,13 @@ and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: 
 
     override this.onSubtraction (lhs, rhs) =
         this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
-        
+
     override this.onMultiplication (lhs, rhs) =
         this.arithNumBinaryOp MUL (*) (*) (*) lhs rhs
-        
+
     override this.onDivision (lhs, rhs) =
         this.arithNumBinaryOp DIV (/) (/) (/) lhs rhs
-        
+
     override this.onExponentiate (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
@@ -185,28 +185,28 @@ and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: 
 
     override this.onModulo (lhs, rhs) =
         this.intBinaryOp MOD (%) (%) lhs rhs
-        
+
     override this.onLeftShift (lhs, rhs) =
         this.intBinaryOp LSHIFT (fun l r -> l <<< int r) (fun l r -> l <<< int r) lhs rhs
-        
+
     override this.onRightShift (lhs, rhs) =
         this.intBinaryOp RSHIFT (fun l r -> l >>> int r) (fun l r -> l >>> int r) lhs rhs
-        
+
     override this.onBitwiseExclusiveOr (lhs, rhs) =
         this.intBinaryOp BXOR (^^^) (^^^) lhs rhs
-        
+
     override this.onBitwiseOr (lhs, rhs) =
         this.intBinaryOp BOR (|||) (|||) lhs rhs
-        
+
     override this.onBitwiseAnd (lhs, rhs) =
         this.intBinaryOp BAND (&&&) (&&&) lhs rhs
-        
+
     override this.onLogicalNot expr =
         let expr = this.simplify expr
         match expr.Expression with
         | BoolLiteral a -> BoolLiteral (not a)
         | _ -> NOT expr
-        
+
     override this.onNegative expr =
         let expr = this.simplify expr
         match expr.Expression with
@@ -214,7 +214,7 @@ and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: 
         | DoubleLiteral a -> DoubleLiteral (-a)
         | IntLiteral a -> IntLiteral (-a)
         | _ -> NEG expr
-        
+
     override this.onBitwiseNot expr =
         let expr = this.simplify expr
         match expr.Expression with

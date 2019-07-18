@@ -82,7 +82,6 @@ let rec printStm (indent: int) (stm: QsStatementKind): string =
         ws + sprintf "%O (%O = %O) %O" a.Kind (StringTuple.fromSymbolTuple a.Binding.Lhs) (printInitializer a.Binding.Rhs.Resolution) (printScope indent a.Body)
 
 
-/// Pretty-prints a QsScope
 and printScope (indent: int) (scope: QsScope): string =
     if scope.Statements.IsEmpty then "{ EmptyScope }"
     else
