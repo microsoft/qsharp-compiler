@@ -41,6 +41,7 @@ let private assertOptimization path =
     let code = Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
     let optimized = optimize code
     let expected = Path.Combine(Path.GetFullPath ".", path + "_output.txt") |> File.ReadAllText
+    let expected = expected.Replace("\r", "")  // Fix newline issues
     Assert.Equal(expected, optimized)
 
 
