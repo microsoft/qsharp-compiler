@@ -495,12 +495,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Replaces Transformation with an Action that first executes the given Transformation (unless it is null, in which case it is ignored),
-        /// and then replaces the tokens at lineNr with the ones returned by UpdateTokens when called on the current tokens 
+        /// Returns an Action as out parameter that replaces the tokens at lineNr 
+        /// with the ones returned by UpdateTokens when called on the current tokens 
         /// (i.e. the ones after having applied Transformation) on that line.
         /// Applies ModifiedTokens to the tokens at the given lineNr to obtain the list of tokens for which to mark all connections as edited. 
-        /// Then replaces MarkEdited with an Action that first exectutes the given MarkEdited (unless it is null, in which case it is ignored),
-        /// and then adds lineNr as well as all lines containing connections to mark to EditedTokens.
+        /// Then constructs and returns an Action as out parameter 
+        /// that adds lineNr as well as all lines containing connections to mark to EditedTokens.
         /// Throws an ArgumentNullException if UpdatedTokens or ModifiedTokens is null.
         /// Throws an ArgumentException if any of the values returned by UpdatedTokens or ModifiedTokens is null.
         /// Throws an ArgumentOutOfRangeException if linrNr is not a valid index for the current Tokens.
@@ -508,7 +508,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private void TransformAndMarkEdited(int lineNr,
             Func<ImmutableArray<CodeFragment>, ImmutableArray<CodeFragment>> UpdatedTokens,
             Func<ImmutableArray<CodeFragment>, ImmutableArray<CodeFragment>> ModifiedTokens,
-            ref Action Transformation, ref Action MarkEdited)
+            out Action Transformation, out Action MarkEdited)
         {
             this.Tokens.SyncRoot.EnterWriteLock();
             try
@@ -517,10 +517,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (ModifiedTokens == null) throw new ArgumentNullException(nameof(ModifiedTokens));
                 if (lineNr < 0 || lineNr >= this.Tokens.Count()) throw new ArgumentOutOfRangeException(nameof(lineNr));
 
-                var PriorTransformation = Transformation ?? (() => { return; });
                 Transformation = () =>
                 {
-                    PriorTransformation();
                     var updated = UpdatedTokens(this.GetTokenizedLine(lineNr));
                     if (updated == null) throw new ArgumentException($"{nameof(UpdatedTokens)} must not return null");
                     this.Tokens.Transform(lineNr, _ => updated);
@@ -528,10 +526,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 var modified = ModifiedTokens(this.GetTokenizedLine(lineNr));
                 if (modified == null) throw new ArgumentException($"{nameof(ModifiedTokens)} must not return null");
-                var PriorMarkEdited = MarkEdited ?? (() => { return; });
                 MarkEdited = () =>
                 {
-                    PriorMarkEdited();
                     this.EditedTokens.Add(lineNr);
                     foreach (var token in modified)
                     {
@@ -565,13 +561,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (!Utils.IsValidRange(range)) throw new ArgumentException("invalid range"); // *don't* verify against the current file content
                 if (range.End.Line >= this.Tokens.Count()) throw new ArgumentOutOfRangeException(nameof(range));
 
-                Action ApplyTransformations = null;
-                Action MarkEdited = null;
-                void FilterAndMarkEdited(int index, Func<CodeFragment, bool> predicate) =>
+                var ApplyTransformations = new List<Action>();
+                var MarkEdited = new List<Action>();
+                void FilterAndMarkEdited(int index, Func<CodeFragment, bool> predicate)
+                {
                     TransformAndMarkEdited(index,
                         tokens => tokens.Where(predicate).ToImmutableArray(),
                         tokens => tokens.Where(x => !predicate(x)).ToImmutableArray(),
-                        ref ApplyTransformations, ref MarkEdited);
+                        out var transformation, out var edited);
+                        ApplyTransformations.Add(transformation);
+                        MarkEdited.Add(edited);
+                }
 
                 var (start, end) = (range.Start.Line, range.End.Line);
                 FilterAndMarkEdited(start, ContextBuilder.NotOverlappingWith(range.WithUpdatedLineNumber(-start)));
@@ -587,9 +587,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // which lines get marked as edited depends on the tokens prior to transformation, 
                 // hence we accumulate all transformations and apply them only at the end 
-                QsCompilerError.Verify(ApplyTransformations != null && MarkEdited != null, $"{nameof(ApplyTransformations)} and {nameof(MarkEdited)} in {nameof(RemoveTokensInRange)} should not be null");
-                QsCompilerError.RaiseOnFailure(() => MarkEdited(), $"marking edited in {nameof(RemoveTokensInRange)} failed");
-                QsCompilerError.RaiseOnFailure(() => ApplyTransformations(), $"applying transformations in {nameof(RemoveTokensInRange)} failed");
+                QsCompilerError.RaiseOnFailure(() =>
+                { foreach (var edited in MarkEdited) edited(); }
+                , $"marking edited in {nameof(RemoveTokensInRange)} failed");
+                QsCompilerError.RaiseOnFailure(() =>
+                { foreach (var transformation in ApplyTransformations) transformation(); }
+                , $"applying transformations in {nameof(RemoveTokensInRange)} failed");
             }
             finally { this.Tokens.SyncRoot.ExitWriteLock(); }
         }
@@ -623,8 +626,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.Header.AddCallableDeclarations(newCallableDecl);
 
                 // update the Tokens
-                Action ApplyTransformations = null;
-                Action MarkEdited = null;
+                var ApplyTransformations = new List<Action>();
+                var MarkEdited = new List<Action>();
                 while (fragments.Any())
                 {
                     var startLine = fragments.First().GetRange().Start.Line;
@@ -656,14 +659,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         return merged.ToImmutableArray();
                     }
 
-                    this.TransformAndMarkEdited(startLine, MergeAndAttachComments, _ => tokens, ref ApplyTransformations, ref MarkEdited);
+                    this.TransformAndMarkEdited(startLine, MergeAndAttachComments, _ => tokens, out var transformation, out var edited);
+                    ApplyTransformations.Add(transformation);
+                    MarkEdited.Add(edited);
                     fragments = fragments.SkipWhile(fragment => fragment.GetRange().Start.Line == startLine).ToList();
                 }
 
                 // which lines get marked as edited depends on the tokens after the transformations, 
                 // hence we accumulate all mark-ups and apply them only after applying all transformations 
-                QsCompilerError.RaiseOnFailure(() => ApplyTransformations(), $"applying transformations in {nameof(TokensUpdate)} failed");
-                QsCompilerError.RaiseOnFailure(() => MarkEdited(), $"marking edited in {nameof(TokensUpdate)} failed");
+                QsCompilerError.RaiseOnFailure(() =>
+                { foreach (var transformation in ApplyTransformations) transformation(); }
+                , $"applying transformations in {nameof(TokensUpdate)} failed");
+                QsCompilerError.RaiseOnFailure(() =>
+                { foreach (var edited in MarkEdited) edited(); }
+                , $"marking edited in {nameof(TokensUpdate)} failed");
             }
             finally { this.SyncRoot.ExitWriteLock(); }
         }
