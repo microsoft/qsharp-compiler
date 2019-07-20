@@ -30,12 +30,13 @@ Building the VS Code extension requires the following steps:
 
 To set up the build pre-requisites, we require to run `bootstrap.ps1` from the root folder of the repository.
 This in particular creates `package.json` from `package.json.v.template`, which specifies all of the dependencies that must be installed in order for the TypeScript comprising the VS Code extension to successfully compile and run.
+All following steps need to be executed from within the root directory of the extension (this directory).
 
-Once `package.json` exists, Node.js dependencies can be installed:
-
+Once `package.json` exists, run 
 ```
 npm i
 ```
+from within this directory to install the Node.js dependencies. 
 
 The next step is accomplished by running the `Build-Dependencies.ps1` script; this script is invoked automatically when using the `vsce` tool in the next step, but you **must** run it manually to use the VS Code extension from within the debugger. `Build-Dependencies.ps1` will skip the compilation of the language server if the corresponding dll is found, independent on whether or not the language server has been modified. A recompilation of the server dll can be forced by passing the argument `-f` to `Build-Dependencies.ps1`.
 
