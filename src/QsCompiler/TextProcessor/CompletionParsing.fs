@@ -111,8 +111,9 @@ do qsTypeImpl :=
         attempt userDefinedType
     ] .>> many (arrayBrackets emptySpace)
 
-/// Parses an operation signature.
-let operationSignature = 
+/// Parses an operation declaration.
+let private operationDeclaration =
+    let header = withContext (Keyword opDeclHeader.id) opDeclHeader.parse
     let name = withContext DeclaredSymbol (symbolLike ErrorCode.InvalidIdentifierName)
     let typeAnnotation = noContext colon ?>> qsType
     let genericParamList = 
@@ -120,4 +121,10 @@ let operationSignature =
         let typeParams = angleBrackets <| sepBy1 (withContext DeclaredSymbol typeParameterNameLike) comma
         noContext noTypeParams <|> (typeParams |>> fst |>> List.last)
     let argumentTuple = noContext unitValue <|> buildTuple (name ?>> typeAnnotation)
-    name ?>> genericParamList ?>> argumentTuple ?>> typeAnnotation ?>> characteristicsAnnotation
+    header ?>> name ?>> genericParamList ?>> argumentTuple ?>> typeAnnotation ?>> characteristicsAnnotation
+
+/// Parses the possibly incomplete fragment text and returns the context at the end of the fragment.
+///
+/// Only operation declaration fragments are currently supported.
+let getContext text =
+    runParserOnString operationDeclaration [] "" (text + "\u0004")

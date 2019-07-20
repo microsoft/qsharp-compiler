@@ -45,6 +45,7 @@
     <Compile Include="TestUtils.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
+    <Compile Include="CompletionParsingTests.fs" />
     <Compile Include="SetupVerificationTests.fs" />
     <Compile Include="GlobalVerificationTests.fs" />
     <Compile Include="LocalVerificationTests.fs" />
