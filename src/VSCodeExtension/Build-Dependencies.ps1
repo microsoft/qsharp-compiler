@@ -64,4 +64,4 @@ Copy-Item -Recurse -Force -Path (Join-Path $PublishRoot "*") -Destination $binDi
 
 # Copy the third party notice
 Write-Host "$(Join-Path $RepoRoot "NOTICE.txt")"
-Copy-Item -Path (Join-Path $RepoRoot "NOTICE.txt") -Destination $PSScriptRoot -Verbose
+Copy-Item -Force -Path (Join-Path $RepoRoot "NOTICE.txt") -Destination $PSScriptRoot -Verbose
