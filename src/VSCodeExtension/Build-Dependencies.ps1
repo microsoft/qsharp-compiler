@@ -59,8 +59,8 @@ if (
 if (Get-Item -Path $binDir -ErrorAction SilentlyContinue) {
     Remove-Item -Recurse -Force $binDir
 }
-mkdir -Path $binDir | Out-Null
-Copy-Item -Recurse -Path (Join-Path $PublishRoot "*") -Destination $binDir -Verbose
+New-Item -Type Directory -Force -Path $binDir | Out-Null
+Copy-Item -Recurse -Force -Path (Join-Path $PublishRoot "*") -Destination $binDir -Verbose
 
 # Copy the third party notice
 Write-Host "$(Join-Path $RepoRoot "NOTICE.txt")"
