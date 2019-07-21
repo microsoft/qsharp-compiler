@@ -38,6 +38,22 @@ let private withContext context p =
 let private noContext p =
     (eot >>% Nothing) <|> (p >>% Nothing)
 
+/// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Returns the list of
+/// results from all parsers that succeeded.
+let private tryAll (ps : seq<Parser<'a, 'u>>) =
+    getCharStreamState >>= fun state stream ->
+        let backtrack p : Reply<'a> =
+            let reply = p stream
+            stream.BacktrackTo state
+            reply
+        let results =
+            ps |>
+            Seq.map backtrack |>
+            Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
+            Seq.map (fun reply -> reply.Result) |>
+            Seq.toList
+        new Reply<'a list> (results)
+
 /// Parses the brackets around a tuple, where the inside of the tuple is parsed by `inside` and the right bracket is
 /// optional if the stream ends first.
 let private tupleBrackets inside =
@@ -111,9 +127,8 @@ do qsTypeImpl :=
         attempt userDefinedType
     ] .>> many (arrayBrackets emptySpace)
 
-/// Parses an operation declaration.
-let private operationDeclaration =
-    let header = withContext (Keyword opDeclHeader.id) opDeclHeader.parse
+/// Parses a function signature.
+let private functionSignature =
     let name = withContext DeclaredSymbol (symbolLike ErrorCode.InvalidIdentifierName)
     let typeAnnotation = noContext colon ?>> qsType
     let genericParamList = 
@@ -121,10 +136,27 @@ let private operationDeclaration =
         let typeParams = angleBrackets <| sepBy1 (withContext DeclaredSymbol typeParameterNameLike) comma
         noContext noTypeParams <|> (typeParams |>> fst |>> List.last)
     let argumentTuple = noContext unitValue <|> buildTuple (name ?>> typeAnnotation)
-    header ?>> name ?>> genericParamList ?>> argumentTuple ?>> typeAnnotation ?>> characteristicsAnnotation
+    name ?>> genericParamList ?>> argumentTuple ?>> typeAnnotation
+
+/// Parses a function declaration.
+let private functionDeclaration =
+    let header = withContext (Keyword fctDeclHeader.id) fctDeclHeader.parse
+    header ?>> functionSignature
+
+/// Parses an operation declaration.
+let private operationDeclaration =
+    let header = withContext (Keyword opDeclHeader.id) opDeclHeader.parse
+    header ?>> functionSignature ?>> characteristicsAnnotation
+
+/// Parses the declaration of a function or operation.
+let private callableDeclaration =
+    tryAll [
+        functionDeclaration
+        operationDeclaration
+    ]
 
 /// Parses the possibly incomplete fragment text and returns the context at the end of the fragment.
 ///
-/// Only operation declaration fragments are currently supported.
+/// Only function and operation declaration fragments are currently supported.
 let getContext text =
-    runParserOnString operationDeclaration [] "" (text + "\u0004")
+    runParserOnString callableDeclaration [] "" (text + "\u0004")
