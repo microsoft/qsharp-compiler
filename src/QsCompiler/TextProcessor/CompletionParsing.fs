@@ -9,13 +9,13 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
 
 
-/// Describes the type of identifier that is expected at a particular position in the source code.
-type Context =
-    | DeclaredSymbol
+/// Describes the kind of identifier that is expected at a particular position in the source code.
+type IdentifierKind =
+    | Declaration
     | Type
     | Characteristic
     | Keyword of string
-    | Nothing
+    | NoIdentifier
 
 /// Parses the end-of-transmission character.
 let private eot =
@@ -26,17 +26,15 @@ let private eot =
 let private (?>>) p1 p2 =
     attempt (p1 .>> eof) <|> (p1 >>. p2)
 
-/// Returns a parser whose result is `context` if EOT occurs within the context of the identifier-like parser `p`, or
-/// whose result is `Nothing` otherwise. `p` is optional if EOT occurs first.
-let private withContext context p =
-    (eot >>% context) <|>
-    attempt (p >>. previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% context) <|>
-    (p >>% Nothing)
+/// Parses an expected identifier of the given kind. The identifier is optional if EOT occurs first.
+let private expectedId kind p =
+    (eot >>% kind) <|>
+    attempt (p >>. previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% kind) <|>
+    (p >>% NoIdentifier)
 
-/// Returns a parser that resets the context to `Nothing` immediately before or after the parser `p`. `p` is optional if
-/// EOT occurs first.
-let private noContext p =
-    (eot >>% Nothing) <|> (p >>% Nothing)
+/// Parses an expected operator. The operator is optional if EOT occurs first.
+let private expectedOp p =
+    (eot >>% NoIdentifier) <|> (p >>% NoIdentifier)
 
 /// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Returns the list of
 /// results from all parsers that succeeded.
@@ -57,7 +55,7 @@ let private tryAll (ps : seq<Parser<'a, 'u>>) =
 /// Parses the brackets around a tuple, where the inside of the tuple is parsed by `inside` and the right bracket is
 /// optional if the stream ends first.
 let private tupleBrackets inside =
-    bracket lTuple >>. inside ?>> noContext (bracket rTuple)
+    bracket lTuple >>. inside ?>> expectedOp (bracket rTuple)
 
 /// Recursively parses a tuple where each item is parsed by `item` and the right bracket is optional if the stream ends
 /// first.
@@ -69,11 +67,11 @@ let (private qsType, private qsTypeImpl) = createParserForwardedToRef()
 
 /// Parses the unit type.
 let private unitType = 
-    withContext Type qsUnit.parse
+    expectedId Type qsUnit.parse
 
 /// Parses an atomic (non-array, non-tuple, non-function, non-operation) type, excluding user-defined types.
 let private atomicType = 
-    withContext Type <| choice [
+    expectedId Type <| choice [
         qsBigInt.parse
         qsBool.parse
         qsDouble.parse
@@ -88,12 +86,12 @@ let private atomicType =
 
 /// Parses a user-defined type.
 let private userDefinedType = 
-    withContext Type (multiSegmentSymbol ErrorCode.InvalidTypeName)
+    expectedId Type (multiSegmentSymbol ErrorCode.InvalidTypeName)
 
 /// Parses a characteristics annotation (the characteristics keyword followed by a characteristics expression).
 let private characteristicsAnnotation =
-    withContext (Keyword qsCharacteristics.id) qsCharacteristics.parse ?>>
-    withContext Characteristic (expectedCharacteristics eof)
+    expectedId (Keyword qsCharacteristics.id) qsCharacteristics.parse ?>>
+    expectedId Characteristic (expectedCharacteristics eof)
 
 /// Parses an operation type.
 let private operationType =
@@ -114,7 +112,7 @@ let private tupleType =
 
 /// Parses a generic type parameter.
 let private typeParameter = 
-    pchar '\'' >>. withContext Type (term (symbolNameLike ErrorCode.InvalidTypeParameterName) |>> fst)
+    pchar '\'' >>. expectedId Type (term (symbolNameLike ErrorCode.InvalidTypeParameterName) |>> fst)
 
 do qsTypeImpl :=
     choice [
@@ -129,23 +127,23 @@ do qsTypeImpl :=
 
 /// Parses a function signature.
 let private functionSignature =
-    let name = withContext DeclaredSymbol (symbolLike ErrorCode.InvalidIdentifierName)
-    let typeAnnotation = noContext colon ?>> qsType
+    let name = expectedId Declaration (symbolLike ErrorCode.InvalidIdentifierName)
+    let typeAnnotation = expectedOp colon ?>> qsType
     let genericParamList = 
         let noTypeParams = angleBrackets emptySpace >>% () <|> notFollowedBy lAngle
-        let typeParams = angleBrackets <| sepBy1 (withContext DeclaredSymbol typeParameterNameLike) comma
-        noContext noTypeParams <|> (typeParams |>> fst |>> List.last)
-    let argumentTuple = noContext unitValue <|> buildTuple (name ?>> typeAnnotation)
+        let typeParams = angleBrackets <| sepBy1 (expectedId Declaration typeParameterNameLike) comma
+        expectedOp noTypeParams <|> (typeParams |>> fst |>> List.last)
+    let argumentTuple = expectedOp unitValue <|> buildTuple (name ?>> typeAnnotation)
     name ?>> genericParamList ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
 let private functionDeclaration =
-    let header = withContext (Keyword fctDeclHeader.id) fctDeclHeader.parse
+    let header = expectedId (Keyword fctDeclHeader.id) fctDeclHeader.parse
     header ?>> functionSignature
 
 /// Parses an operation declaration.
 let private operationDeclaration =
-    let header = withContext (Keyword opDeclHeader.id) opDeclHeader.parse
+    let header = expectedId (Keyword opDeclHeader.id) opDeclHeader.parse
     header ?>> functionSignature ?>> characteristicsAnnotation
 
 /// Parses the declaration of a function or operation.
@@ -155,8 +153,11 @@ let private callableDeclaration =
         operationDeclaration
     ]
 
-/// Parses the possibly incomplete fragment text and returns the context at the end of the fragment.
+/// Parses the possibly incomplete fragment text and returns a list of possible identifiers expected at the end of the
+/// fragment.
 ///
 /// Only function and operation declaration fragments are currently supported.
-let getContext text =
-    runParserOnString callableDeclaration [] "" (text + "\u0004")
+let identifierKinds text =
+    match runParserOnString callableDeclaration [] "" (text + "\u0004") with
+    | Success (result, _, _) -> result
+    | Failure (_) -> []
