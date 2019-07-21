@@ -57,6 +57,11 @@ let private tryAll (ps : seq<Parser<'a, 'u>>) =
 let private tupleBrackets inside =
     bracket lTuple >>. inside ?>> expectedOp (bracket rTuple)
 
+/// Parses angle brackets, where the inside of the brackets is parsed by `inside` and the right bracket is optional if
+/// the stream ends first.
+let private angleBrackets inside =
+    bracket lAngle >>. inside ?>> expectedOp (bracket rAngle)
+
 /// Recursively parses a tuple where each item is parsed by `item` and the right bracket is optional if the stream ends
 /// first.
 let rec private buildTuple item stream =
@@ -114,6 +119,11 @@ let private tupleType =
 let private typeParameter = 
     pchar '\'' >>. expectedId Type (term (symbolNameLike ErrorCode.InvalidTypeParameterName) |>> fst)
 
+/// Parses a generic type parameter declaration.
+let private typeParameterDeclaration =
+    expectedId Declaration (pchar '\'') ?>>
+    expectedId Declaration (term (symbolNameLike ErrorCode.InvalidTypeParameterName) |>> fst)
+
 do qsTypeImpl :=
     choice [
         attempt typeParameter
@@ -129,12 +139,10 @@ do qsTypeImpl :=
 let private functionSignature =
     let name = expectedId Declaration (symbolLike ErrorCode.InvalidIdentifierName)
     let typeAnnotation = expectedOp colon ?>> qsType
-    let genericParamList = 
-        let noTypeParams = angleBrackets emptySpace >>% () <|> notFollowedBy lAngle
-        let typeParams = angleBrackets <| sepBy1 (expectedId Declaration typeParameterNameLike) comma
-        expectedOp noTypeParams <|> (typeParams |>> fst |>> List.last)
+    let genericParamList =
+        angleBrackets (sepBy typeParameterDeclaration comma |>> List.tryLast |>> Option.defaultValue Declaration)
     let argumentTuple = expectedOp unitValue <|> buildTuple (name ?>> typeAnnotation)
-    name ?>> genericParamList ?>> argumentTuple ?>> typeAnnotation
+    name ?>> (opt genericParamList |>> Option.defaultValue NoIdentifier) ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
 let private functionDeclaration =
