@@ -57,6 +57,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QsContentTypeDefinition.cs" />
     <Compile Include="QsLanguageClient.cs" />
+    <Compile Include="QsSmartIndent.cs" />
     <Compile Include="Telemetry.cs" />
   </ItemGroup>
   <ItemGroup>
