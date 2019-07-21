@@ -73,7 +73,7 @@
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile && npm run builddeps",
-        "builddeps": "powershell -NoProfile ./Build-Dependencies.ps1",
+        "builddeps": "builddeps",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
         "postinstall": "node ./node_modules/vscode/bin/install",
