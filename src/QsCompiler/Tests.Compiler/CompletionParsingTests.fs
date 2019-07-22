@@ -10,7 +10,10 @@ let private testContext text expected =
 [<Fact>]
 let ``Callable declaration parser tests`` () =
     testContext "" [Keyword "function"; Keyword "operation"]
-    // TODO: testContext "o" [Keyword "function"; Keyword "operation"]
+    testContext "f" [Keyword "function"; Keyword "operation"]
+    testContext "fun" [Keyword "function"; Keyword "operation"]
+    testContext "o" [Keyword "function"; Keyword "operation"]
+    testContext "opera" [Keyword "function"; Keyword "operation"]
 
 [<Fact>]
 let ``Function declaration parser tests`` () =
@@ -68,7 +71,7 @@ let ``Operation declaration parser tests`` () =
     testContext "operation Foo (q : Qubit) : " [Type]
     testContext "operation Foo (q : Qubit) : Unit" [Type]
     testContext "operation Foo (q : Qubit) : Unit " [Keyword "is"]
-    // TODO: testContext "operation Foo (q : Qubit) : Unit i" (Keyword "is")
+    testContext "operation Foo (q : Qubit) : Unit i" [Keyword "is"]
     testContext "operation Foo (q : Qubit) : Unit is" [Keyword "is"]
     testContext "operation Foo (q : Qubit) : Unit is " [Characteristic]
     testContext "operation Foo (q : Qubit) : Unit is A" [Characteristic]

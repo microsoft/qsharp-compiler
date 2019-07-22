@@ -36,6 +36,12 @@ let private expectedId kind p =
 let private expectedOp p =
     (eot >>% NoIdentifier) <|> (p >>% NoIdentifier)
 
+/// Parses an expected keyword. If the keyword parser fails, this parser can still succeed if the next token is symbol-
+/// like and occurs immediately before EOT (i.e., a possibly incomplete keyword).
+let private expectedKeyword keyword =
+    expectedId (Keyword keyword.id) keyword.parse <|>
+    (symbolNameLike ErrorCode.UnknownCodeFragment >>. eot >>% Keyword keyword.id)
+
 /// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Returns the list of
 /// results from all parsers that succeeded.
 let private tryAll (ps : seq<Parser<'a, 'u>>) =
@@ -95,8 +101,7 @@ let private userDefinedType =
 
 /// Parses a characteristics annotation (the characteristics keyword followed by a characteristics expression).
 let private characteristicsAnnotation =
-    expectedId (Keyword qsCharacteristics.id) qsCharacteristics.parse ?>>
-    expectedId Characteristic (expectedCharacteristics eof)
+    expectedKeyword qsCharacteristics ?>> expectedId Characteristic (expectedCharacteristics eof)
 
 /// Parses an operation type.
 let private operationType =
@@ -146,13 +151,11 @@ let private functionSignature =
 
 /// Parses a function declaration.
 let private functionDeclaration =
-    let header = expectedId (Keyword fctDeclHeader.id) fctDeclHeader.parse
-    header ?>> functionSignature
+    expectedKeyword fctDeclHeader ?>> functionSignature
 
 /// Parses an operation declaration.
 let private operationDeclaration =
-    let header = expectedId (Keyword opDeclHeader.id) opDeclHeader.parse
-    header ?>> functionSignature ?>> characteristicsAnnotation
+    expectedKeyword opDeclHeader ?>> functionSignature ?>> characteristicsAnnotation
 
 /// Parses the declaration of a function or operation.
 let private callableDeclaration =
