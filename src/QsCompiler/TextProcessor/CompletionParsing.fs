@@ -122,12 +122,11 @@ let private tupleType =
 
 /// Parses a generic type parameter.
 let private typeParameter = 
-    pchar '\'' >>. expectedId Type (term (symbolNameLike ErrorCode.InvalidTypeParameterName) |>> fst)
+    pchar '\'' >>. expectedId Type (symbolLike ErrorCode.InvalidTypeParameterName)
 
 /// Parses a generic type parameter declaration.
 let private typeParameterDeclaration =
-    expectedId Declaration (pchar '\'') ?>>
-    expectedId Declaration (term (symbolNameLike ErrorCode.InvalidTypeParameterName) |>> fst)
+    expectedId Declaration (pchar '\'') ?>> expectedId Declaration (symbolLike ErrorCode.InvalidTypeParameterName)
 
 do qsTypeImpl :=
     choice [
