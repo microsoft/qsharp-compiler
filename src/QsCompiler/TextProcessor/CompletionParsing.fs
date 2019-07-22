@@ -50,13 +50,12 @@ let private tryAll (ps : seq<Parser<'a, 'u>>) =
             let reply = p stream
             stream.BacktrackTo state
             reply
-        let results =
-            ps |>
-            Seq.map backtrack |>
-            Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
-            Seq.map (fun reply -> reply.Result) |>
-            Seq.toList
-        new Reply<'a list> (results)
+        ps |>
+        Seq.map backtrack |>
+        Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
+        Seq.map (fun reply -> reply.Result) |>
+        Seq.toList |>
+        Reply<'a list>
 
 /// Parses the brackets around a tuple, where the inside of the tuple is parsed by `inside` and the right bracket is
 /// optional if the stream ends first.
