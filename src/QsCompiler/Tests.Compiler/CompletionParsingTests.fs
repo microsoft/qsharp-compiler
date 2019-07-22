@@ -5,7 +5,7 @@ open Xunit
 open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 let private testContext text expected =
-    Assert.Equal<IEnumerable<IdentifierKind>>(expected, identifierKinds text)
+    Assert.Equal<IEnumerable<IdentifierKind>>(expected, GetExpectedIdentifiers text)
 
 [<Fact>]
 let ``Callable declaration parser tests`` () =
