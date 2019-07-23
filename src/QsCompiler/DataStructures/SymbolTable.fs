@@ -613,6 +613,24 @@ and NamespaceManager
             | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
         | true, ns -> Some ns
 
+    /// Returns the name of all namespaces declared in source files or referenced assemblies.
+    member this.NamespaceNames () =
+        syncRoot.EnterReadLock()
+        try ImmutableArray.CreateRange (Namespaces.Values.Select (fun ns -> ns.Name))
+        finally syncRoot.ExitReadLock()
+
+    /// Returns the fully qualified namespace name of the given namespace alias (short name). If the alias is already a
+    /// fully qualified name, returns the name unchanged. Returns null if no such name exists within the given parent
+    /// namespace and source file.
+    ///
+    /// Throws an ArgumentException if the given parent namespace does not exist.
+    member this.TryResolveNamespaceAlias alias (nsName, source) =
+        syncRoot.EnterReadLock()
+        try match TryResolveQualifier alias (nsName, source) with
+            | None -> null
+            | Some ns -> ns.Name.Value
+        finally syncRoot.ExitReadLock()
+
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
     /// The resolution consists of replacing all unqualified names for user defined types by their qualified name.
     /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or unqualified) can be found.
@@ -644,7 +662,9 @@ and NamespaceManager
         let processTP (symName, range) = 
             if tpNames |> Seq.contains symName then TypeParameter {Origin = parent; TypeName = symName; Range = qsType.Range}, [||]
             else InvalidType, [| range |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, []) |]
-        SymbolResolution.ResolveType (processUDT, processTP) qsType
+        syncRoot.EnterReadLock()
+        try SymbolResolution.ResolveType (processUDT, processTP) qsType
+        finally syncRoot.ExitReadLock()
 
     /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the specified source file. 
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined types. 
