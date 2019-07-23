@@ -373,9 +373,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // suggestions for unreachable code
 
-            (string, WorkspaceEdit) SuggestedRemoveText(Position start, Position end)
+            (string, WorkspaceEdit) SuggestedRemoveText(int indentationLevel, Position start, Position end)
             {
-                var edit = new TextEdit { Range = new Range { Start = start, End = end }, NewText = $"{Environment.NewLine}" };
+                string whitespace = $"{Environment.NewLine}";
+                for (int i = 0; i < indentationLevel; i++ )
+                {
+                    whitespace += "\t";
+                }
+                var edit = new TextEdit { Range = new Range { Start = start, End = end }, NewText = whitespace };
                 return ($"Remove unreachable code", GetWorkspaceEdit(edit));
             }
 
@@ -393,7 +398,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     file.TryGetQsSymbolInfo(d.Range.Start, true, out frag);
                     return frag;
                 })
-                .Where(frag => frag != null) // in case the frag is null
+                .Where(frag => frag != null)
                 .Select(frag =>
                 {
                     var eraseStart = frag.GetRange().Start;
@@ -406,7 +411,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     }
                     var tempFrag = last.GetFragment();
                     var eraseEnd = tempFrag.GetRange().End;
-                    return SuggestedRemoveText(eraseStart, eraseEnd);
+                    return SuggestedRemoveText(tempFrag.Indentation - 1, eraseStart, eraseEnd);
                 });
 
             var suggestedIdQualifications = ambiguousCallables.Select(d => d.Range.Start)
