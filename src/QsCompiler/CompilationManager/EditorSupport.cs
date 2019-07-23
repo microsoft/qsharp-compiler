@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -368,6 +369,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var unknownCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
             var ambiguousTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousType));
             var unknownTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
+            var unreachableCode = context.Diagnostics.Where(DiagnosticTools.WarningType(WarningCode.UnreachableCode));
+
+            // suggestions for unreachable code
+
+            (string, WorkspaceEdit) SuggestedRemoveText(Position start, Position end)
+            {
+                var edit = new TextEdit { Range = new Range { Start = start, End = end }, NewText = $"{Environment.NewLine}" };
+                return ($"Remove unreachable code", GetWorkspaceEdit(edit));
+            }
 
             // suggestions for ambiguous ids and types
 
@@ -377,6 +387,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return ($"{suggestedNS.Value}.{id}", GetWorkspaceEdit(edit));
             }
 
+            var unreachableCodeSuggestions = unreachableCode.Select(d =>
+                {
+                    CodeFragment frag = null;
+                    file.TryGetQsSymbolInfo(d.Range.Start, true, out frag);
+                    return frag;
+                })
+                .Where(frag => frag != null) // in case the frag is null
+                .Select(frag =>
+                {
+                    var eraseStart = frag.GetRange().Start;
+                    var temp = new CodeFragment.TokenIndex(file, eraseStart.Line, 0);
+                    var last = temp;
+                    while (temp != null)
+                    {
+                        last = temp;
+                        temp = temp.NextOnScope(true);
+                    }
+                    var tempFrag = last.GetFragment();
+                    var eraseEnd = tempFrag.GetRange().End;
+                    return SuggestedRemoveText(eraseStart, eraseEnd);
+                });
+
             var suggestedIdQualifications = ambiguousCallables.Select(d => d.Range.Start)
                 .SelectMany(pos => file.NamespaceSuggestionsForIdAtPosition(pos, compilation, out var id)
                 .Select(ns => SuggestedNameQualification(ns, id, pos)));
@@ -385,7 +417,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(ns => SuggestedNameQualification(ns, id, pos)));
 
             if (!unknownCallables.Any() && !unknownTypes.Any())
-            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
+            {
+                return unreachableCodeSuggestions
+                    .Concat(suggestedIdQualifications)
+                    .Concat(suggestedTypeQualifications)
+                    .ToImmutableDictionary(s => s.Item1, s => s.Item2);
+            }
 
             // suggestions for unknown ids and types
 
@@ -416,8 +453,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .SelectMany(pos => file.NamespaceSuggestionsForTypeAtPosition(pos, compilation, out var _))
                 .Select(SuggestedOpenDirective);
 
-            return suggestionsForIds.Concat(suggestionsForTypes)
-                .Concat(suggestedIdQualifications).Concat(suggestedTypeQualifications)
+            return unreachableCodeSuggestions
+                .Concat(suggestionsForIds)
+                .Concat(suggestionsForTypes)
+                .Concat(suggestedIdQualifications)
+                .Concat(suggestedTypeQualifications)
                 .ToImmutableDictionary(s => s.Item1, s => s.Item2);
         }
 
