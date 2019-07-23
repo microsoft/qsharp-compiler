@@ -9,6 +9,7 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
+using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
@@ -368,6 +369,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var unknownCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
             var ambiguousTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousType));
             var unknownTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
+            var deprecatedUnitTypes = context.Diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedUnitType));
+
+            // Suggestion to replace depricated unit types
+            (string, WorkspaceEdit) editAtPosition(string text, Position start, Position end)
+            {
+                var edit = new TextEdit { Range = new Range { Start = start, End = end}, NewText = text };
+                return ("Replacing with \"" + $"{text}" + "\"", GetWorkspaceEdit(edit));
+            }
+
+            if (deprecatedUnitTypes.Any())
+            { return deprecatedUnitTypes.Select(d => editAtPosition(Keywords.qsUnit.id, d.Range.Start, d.Range.End)).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
 
             // suggestions for ambiguous ids and types
 
@@ -386,8 +398,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (!unknownCallables.Any() && !unknownTypes.Any())
             { return suggestedIdQualifications.Concat(suggestedTypeQualifications).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
-
-            // suggestions for unknown ids and types
 
             // determine the first fragment in the containing namespace
             var firstInNs = file.NamespaceDeclarationTokens()
