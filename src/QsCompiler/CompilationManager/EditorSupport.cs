@@ -399,6 +399,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (!unknownCallables.Any() && !unknownTypes.Any())
             { return suggestedIdQualifications.Concat(suggestedTypeQualifications).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
 
+            // suggestions for unknown ids and types
+
             // determine the first fragment in the containing namespace
             var firstInNs = file.NamespaceDeclarationTokens()
                 .TakeWhile(t => t.Line <= range.Start.Line).LastOrDefault() // going by line here is fine - I am ok with a failure if someone has muliple namespace and callable declarations on the same line...
