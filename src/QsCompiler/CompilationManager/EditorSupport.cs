@@ -373,9 +373,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // suggestions for unreachable code
 
-            (string, WorkspaceEdit) SuggestedRemoveText(int indentationLevel, Position start, Position end)
+            (string, WorkspaceEdit) SuggestedRemoveText(int indentationLevel, Position start, Position end, bool isRemoveLine = false)
             {
                 string whitespace = $"{Environment.NewLine}";
+                if (isRemoveLine)
+                {
+                    whitespace = "";
+                }
                 for (int i = 0; i < indentationLevel; i++ )
                 {
                     whitespace += "\t";
@@ -401,17 +405,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Where(frag => frag != null)
                 .Select(frag =>
                 {
-                    var eraseStart = frag.GetRange().Start;
-                    var temp = new CodeFragment.TokenIndex(file, eraseStart.Line, 0);
-                    var last = temp;
+                    Position eraseStart = frag.GetRange().Start;
+                    CodeFragment.TokenIndex temp = new CodeFragment.TokenIndex(file, eraseStart.Line, 0);
+                    CodeFragment.TokenIndex last = null;
+                    CodeFragment tempFrag = null;
+                    bool shouldEraseLine = false;
+                    if (temp != null)
+                    {
+                        last = temp.PreviousOnScope(true);
+                        shouldEraseLine = last.GetFragment().GetRange().End.Line != eraseStart.Line;
+                        if (shouldEraseLine)
+                        {
+                            eraseStart.Character = 0;
+                        }
+                    }
                     while (temp != null)
                     {
                         last = temp;
                         temp = temp.NextOnScope(true);
                     }
-                    var tempFrag = last.GetFragment();
-                    var eraseEnd = tempFrag.GetRange().End;
-                    return SuggestedRemoveText(tempFrag.Indentation - 1, eraseStart, eraseEnd);
+                    tempFrag = last.GetFragment();
+                    Position eraseEnd = tempFrag.GetRange().End;
+                    return SuggestedRemoveText(tempFrag.Indentation - 1, eraseStart, eraseEnd, shouldEraseLine);
                 });
 
             var suggestedIdQualifications = ambiguousCallables.Select(d => d.Range.Start)
