@@ -18,8 +18,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpLibTemplate", "src\Vi
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LanguageServer", "LanguageServer", "{EEC1E3AF-9958-4A04-BD62-163955CB3AD1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpLanguageClient", "src\VisualStudioExtension\QsharpLanguageClient\QsharpLanguageClient.csproj", "{7E56705D-3B1D-4D91-8379-C643B1B983F8}"
-EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsTextProcessor", "src\QsCompiler\TextProcessor\QsTextProcessor.fsproj", "{79A94B62-A36E-48D4-8BF1-BFA0C86F1C05}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsLanguageServer", "src\QsCompiler\LanguageServer\QsLanguageServer.csproj", "{DAC0C843-3BF1-41B0-AE7B-A2CC2AA62A12}"
@@ -33,6 +31,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsTransformations", "src\QsCompiler\Transformations\QsTransformations.csproj", "{1E95FEBE-6FEA-42DD-A6D6-91946F1D3EBB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsCompilationManager", "src\QsCompiler\CompilationManager\QsCompilationManager.csproj", "{71248191-ABDE-4241-9FD9-B073D553AAA3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsDocumentationParser", "src\QsCompiler\DocumentationParser\QsDocumentationParser.csproj", "{2544C34F-7E1C-47C5-871F-19D531FD2ADD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -60,10 +60,6 @@ Global
 		{9EF3C982-D6B4-47BE-A0FE-660F91738881}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EF3C982-D6B4-47BE-A0FE-660F91738881}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9EF3C982-D6B4-47BE-A0FE-660F91738881}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7E56705D-3B1D-4D91-8379-C643B1B983F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7E56705D-3B1D-4D91-8379-C643B1B983F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7E56705D-3B1D-4D91-8379-C643B1B983F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7E56705D-3B1D-4D91-8379-C643B1B983F8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{79A94B62-A36E-48D4-8BF1-BFA0C86F1C05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{79A94B62-A36E-48D4-8BF1-BFA0C86F1C05}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79A94B62-A36E-48D4-8BF1-BFA0C86F1C05}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -92,6 +88,10 @@ Global
 		{71248191-ABDE-4241-9FD9-B073D553AAA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{71248191-ABDE-4241-9FD9-B073D553AAA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{71248191-ABDE-4241-9FD9-B073D553AAA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2544C34F-7E1C-47C5-871F-19D531FD2ADD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2544C34F-7E1C-47C5-871F-19D531FD2ADD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2544C34F-7E1C-47C5-871F-19D531FD2ADD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2544C34F-7E1C-47C5-871F-19D531FD2ADD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -104,6 +104,7 @@ Global
 		{B3D3D668-4C5B-4A5A-96AB-EC5687FABACC} = {EEC1E3AF-9958-4A04-BD62-163955CB3AD1}
 		{1E95FEBE-6FEA-42DD-A6D6-91946F1D3EBB} = {EEC1E3AF-9958-4A04-BD62-163955CB3AD1}
 		{71248191-ABDE-4241-9FD9-B073D553AAA3} = {EEC1E3AF-9958-4A04-BD62-163955CB3AD1}
+		{2544C34F-7E1C-47C5-871F-19D531FD2ADD} = {EEC1E3AF-9958-4A04-BD62-163955CB3AD1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1CFD84BC-CB9D-4F11-BFA3-079CF3BF50F6}

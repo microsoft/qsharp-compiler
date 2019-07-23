@@ -3,7 +3,7 @@
 Welcome to the Microsoft Quantum Development Kit!
 
 This repository contains the Q# compiler included in the [Quantum Development Kit](https://docs.microsoft.com/quantum/), 
-as well as the Q# language server included our [Visual Studio extension](https://marketplace.visualstudio.com/items?itemName=quantum.DevKit) and our [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=quantum.quantum-devkit-vscode).
+as well as the Q# language server included in our [Visual Studio extension](https://marketplace.visualstudio.com/items?itemName=quantum.DevKit) and our [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=quantum.quantum-devkit-vscode).
 For more information related to the language server protocol take a look at [this repository](https://github.com/Microsoft/language-server-protocol).
 These extensions provide the IDE integration for Q#, and can be found on this repository as well.  
 
@@ -33,8 +33,8 @@ The script in particular generates the files that are needed for building based 
 
 The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). 
 For instructions on how to build and debug the Visual Studio Code extension take a look at [this file](./src/VSCodeExtension/BUILDING.md). 
-For building and debugging the Visual Studio extension, open [the corresponding solution](./VisualStudioExtension.sln) and set the [QsharpVSIX project](./src/VisualStudioExtension/QsharpVSIX/) as startup project, then launch and debug the extension as usual. 
-The Visual Studio extension is built on the [.NET Framework 4.6.1](https://dotnet.microsoft.com/download/dotnet-framework/net461) that can be easily obtained via the Visual Studio Installer. 
+Building and debugging the Visual Studio extension requires Visual Studio 2019. Open [the corresponding solution](./VisualStudioExtension.sln) and set the [QsharpVSIX project](./src/VisualStudioExtension/QsharpVSIX/) as startup project, then launch and debug the extension as usual. 
+The Visual Studio extension is built on the [.NET Framework 4.7.2](https://dotnet.microsoft.com/download/dotnet-framework/net472) that comes with Visual Studio 2019. Alternatively you can easily obtain it via the Visual Studio Installer. 
 
 We recommend uninstalling any other Q# extensions when working on the extensions in this repository.  
 
@@ -46,8 +46,17 @@ We recommend uninstalling any other Q# extensions when working on the extensions
 
 ## Feedback ##
 
-If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp-compiler/issues/new)!
+If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp-compiler/issues/new/choose)!
 If you have feedback about some other part of the Microsoft Quantum Development Kit, please see the [contribution guide](https://docs.microsoft.com/quantum/contributing/) for more information.
+
+## Reporting Security Issues ##
+
+Security issues and bugs should be reported privately, via email, to the Microsoft Security
+Response Center (MSRC) at [secure@microsoft.com](mailto:secure@microsoft.com). You should
+receive a response within 24 hours. If for some reason you do not, please follow up via
+email to ensure we received your original message. Further information, including the
+[MSRC PGP](https://technet.microsoft.com/en-us/security/dn606155) key, can be found in
+the [Security TechCenter](https://technet.microsoft.com/en-us/security/default).
 
 ## Legal and Licensing ##
 

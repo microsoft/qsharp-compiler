@@ -30,16 +30,21 @@ Check that nobody is currently working on it and that it has indeed been marked 
 If that's the case, indicate on the issue that you are working on it, 
 and link to the corresponding GitHub page where the fix is being developed. 
 If someone is already working on a fix, ask if you can help or see what other things can be done.
-If an issue is tagged as feature, please follow the guidelines related to contributing features. 
-Sometimes it may take a couple of days for us to tag issues appropriately. 
-If an issue has not been tagged yet, please indicate that you would like to work on it and be patient - 
+If an issue is labeled as feature, please follow the guidelines related to contributing features. 
+Sometimes it may take a couple of days for us to label issues appropriately. 
+If an issue has not been labeled yet, please indicate that you would like to work on it and be patient - 
 we are a small team and are doing our best to be quick with responding to your inquiry!
+
+**Note:**
+Issues related to the design and evolution of the Q# language are marked with 
+[Area-Language](https://github.com/microsoft/qsharp-compiler/issues?q=is%3Aissue+is%3Aopen+label%3AArea-Language) 
+and are only temporarily tracked on this repository and won't be labeled as bug or feature. 
 
 If you are interested in contributing a new feature, 
 please first check if a similar functionality has already been requested. 
 If so, consider contributing to the discussion around it rather than filing a separate issue.
 If no open or closed issue with such a request already exists, 
-please file one following the [feature request template](https://github.com/microsoft/qsharp-compiler/issues/new?assignees=&labels=bug&template=bug_report.md&title=). 
+please file one following the [feature request template](https://github.com/microsoft/qsharp-compiler/issues/new?assignees=&labels=feature&template=feature_request.md&title=). 
 We will respond to feature requests and follow up with a discussion around its feasibility, 
 how one might go about implementing it, and whether that is something we would consider adding to our repo. 
 There are several reasons why we might not be able to eventually merge even a great feature for one reason or another. 
