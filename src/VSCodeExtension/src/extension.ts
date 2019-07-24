@@ -179,6 +179,7 @@ function createNewProject(dotNetSdk: DotnetInfo) {
         "Quantum library": "classlib",
         "Unit testing project": "xunit"
     };
+    let errorMessage = "";
     vscode.window.showQuickPick(
         Object.keys(projectTypes)
     ).then(
@@ -208,10 +209,14 @@ function createNewProject(dotNetSdk: DotnetInfo) {
                 }
             )
             .then(uri => {
-                cp.spawn(
+                let proc = cp.spawn(
                     dotNetSdk.path,
                     ["new", projectType, "-lang", "Q#", "-o", uri.fsPath]
-                ).on(
+                );
+                proc.stderr.on('data', data => {
+                    errorMessage = errorMessage + data;
+                });
+                proc.on(
                     'exit', (code, signal) => {
                         if (code === 0) {
                             const openItem = "Open new project...";
@@ -235,7 +240,7 @@ function createNewProject(dotNetSdk: DotnetInfo) {
                             );
                         } else {
                             vscode.window.showErrorMessage(
-                                `.NET Core SDK exited with code ${code} when creating a new project.`
+                                `.NET Core SDK exited with code ${code} when creating a new project:\n${errorMessage}`
                             );
                         }
                     }
@@ -250,18 +255,26 @@ function installTemplates(dotNetSdk: DotnetInfo, packageInfo ?: IPackageInfo) {
         packageInfo === undefined
         ? ""
         : `::${packageInfo.version}`;
-    cp.spawn(
+    let errorMessage = "";
+    let proc = cp.spawn(
         dotNetSdk.path,
         ["new", "--install", `Microsoft.Quantum.ProjectTemplates${packageVersion}`]
-    ).on(
-        'exit', (code, signal) => {
+    );
+    proc.stderr.on(
+        'data', data => {
+            errorMessage = errorMessage + data;
+        }
+    );
+    proc.on(
+        'exit',
+        (code, signal) => {
             if (code === 0) {
                 vscode.window.showInformationMessage(
                     "Project templates installed successfully."
                 );
             } else {
                 vscode.window.showErrorMessage(
-                    `.NET Core SDK exited with code ${code} when installing project templates.`
+                    `.NET Core SDK exited with code ${code} when installing project templates:\n${errorMessage}`
                 );
             }
         }
