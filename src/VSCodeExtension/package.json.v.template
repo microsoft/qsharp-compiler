@@ -25,10 +25,23 @@
     ],
     "qna": "https://github.com/microsoft/qsharp-compiler",
     "activationEvents": [
-        "onLanguage:qsharp"
+        "onLanguage:qsharp",
+        "onCommand:quantum.installTemplates",
+        "onCommand:quantum.newProject"
     ],
     "main": "./out/extension",
     "contributes": {
+        "commands": [
+            {
+                "command": "quantum.installTemplates",
+                "title": "Q#: Install project templates"
+            },
+            
+            {
+                "command": "quantum.newProject",
+                "title": "Q#: Create new project"
+            }
+        ],
         "languages": [
             {
                 "id": "qsharp",
