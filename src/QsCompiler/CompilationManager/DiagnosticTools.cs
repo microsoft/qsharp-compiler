@@ -194,7 +194,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static Func<Diagnostic, bool> ErrorType(params ErrorCode[] types)
         {
             var codes = types.Select(err => err.Code());
-            return m => m.Severity == DiagnosticSeverity.Error && codes.Contains(m.Code);
+            return m => m.IsError() && codes.Contains(m.Code);
+        }
+
+        /// <summary>
+        /// Returns a function that returns true if the WarningType of the given Diagnostic is one of the given types.
+        /// </summary>
+        internal static Func<Diagnostic, bool> WarningType(params WarningCode[] types)
+        {
+            var codes = types.Select(warn => warn.Code());
+            return m => m.IsWarning() && codes.Contains(m.Code);
         }
 
         /// <summary>

@@ -368,6 +368,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var unknownCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
             var ambiguousTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousType));
             var unknownTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
+            var deprecatedOpCharacteristics = context.Diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedOpCharacteristics));
+
+            // update deprecated operation characteristics syntax
+            var updatedOpCharacteristics = deprecatedOpCharacteristics.Select(d =>
+            {
+                var start = d.Message.IndexOf('"') + 1;
+                var length = d.Message.IndexOf('"', start) - start;
+                var newText = d.Message.Substring(start, length);
+                var label = "Use new operation characteristics syntax";
+                return (label, GetWorkspaceEdit(new TextEdit { Range = d.Range, NewText = newText }));
+            });
 
             // suggestions for ambiguous ids and types
 
@@ -385,7 +396,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(ns => SuggestedNameQualification(ns, id, pos)));
 
             if (!unknownCallables.Any() && !unknownTypes.Any())
-            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
+            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).Concat(updatedOpCharacteristics).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
 
             // suggestions for unknown ids and types
 
@@ -418,6 +429,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return suggestionsForIds.Concat(suggestionsForTypes)
                 .Concat(suggestedIdQualifications).Concat(suggestedTypeQualifications)
+                .Concat(updatedOpCharacteristics)
                 .ToImmutableDictionary(s => s.Item1, s => s.Item2);
         }
 
