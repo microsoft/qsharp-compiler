@@ -458,5 +458,44 @@ let internal buildFragment header body (invalid : QsFragmentKind) (fragmentKind 
         header >>. (attempt (validBody state) <|> invalidBody state) >>= build
 
 
+/// Construts a QsFragment for a Q# attribute.
+/// Adds error handling capability to suggest a missing end symbol and missing arguments.
+let internal buildAttribute id args (fragmentKind : 'a * QsExpression -> QsFragmentKind) = 
+    let build (kind, (startPos, (text, endPos))) =
+        getUserState .>> clearDiagnostics
+        |>> fun diagnostics -> 
+            QsFragment.New(kind, (startPos, endPos), (filterAndAdapt diagnostics (endPos |> QsPositionInfo.New)).ToImmutableArray(), NonNullable<string>.New text)
+    
+    let delimiters state = 
+        let fragmentEnd =
+            let allWS = emptySpace .>>? eof
+            manyCharsTill anyChar (followedBy allWS) .>>. getPosition
+        (getPosition .>>. fragmentEnd) |> runOnSubstream state
+
+    let nextValid =
+        (skipChar '@') <|> (qsFragmentHeader |>> ignore)
+
+    let parseOverError =
+        skipInvalidUntil nextValid
+
+    let checkArgs = 
+        let processMissingArgs = buildError parseOverError ErrorCode.MissingAttributeArgs >>% () 
+        (lookAhead nextValid >>. processMissingArgs >>. preturn ((InvalidExpr, Null) |> QsExpression.New)) <|> args
+
+    let validBody state =
+        let body = id .>>. checkArgs
+        (body |>> fragmentKind .>>. delimiters state)
+
+    let checkEnding =
+        let processMissingSymbol = buildError parseOverError ErrorCode.MissingClosingAttributeSign >>% ()
+        (skipChar '@') <|> processMissingSymbol
+
+    let header =
+        (skipChar '@' |> term)
+
+    getCharStreamState >>= fun state ->
+        header >>. attempt (validBody state) .>> checkEnding >>= build 
+
+
 
 

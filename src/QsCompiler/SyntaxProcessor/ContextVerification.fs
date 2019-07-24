@@ -43,6 +43,13 @@ let private verifyDeclaration (context : SyntaxTokenContext) =
             | _ -> errMsg
     context.Parents |> Array.toList |> isNamespace
 
+/// Used by attributes to check if it is followed by another attribute, a function, an operation, or type definition/declaration.
+let private followedByNamespaceDeclaration (context : SyntaxTokenContext) =
+    match context.Next with 
+    | Value (FunctionDeclaration _) | Value (OperationDeclaration _) | Value (TypeDefinition _) | Value (AttributeDeclaration _) -> verifyDeclaration context
+    | Value InvalidFragment -> false, [||]
+    | _ -> false, [| (ErrorCode.MissingFollowingDeclaration |> Error, context.Range) |]
+
 /// Verifies that the given generator is a valid generator for the callable body - 
 /// i.e. verifies that the generator is either a user defined implementation, or intrinsic.
 /// Does *not* verify whether the symbol tuple for a user defined implementation is correct.
@@ -212,6 +219,7 @@ let VerifySyntaxTokenContext =
             | FunctionDeclaration           _ -> verifyDeclaration context
             | TypeDefinition                _ -> verifyDeclaration context
             | OpenDirective                 _ -> verifyOpenDirective context
+            | AttributeDeclaration          _ -> followedByNamespaceDeclaration context
             | NamespaceDeclaration          _ -> verifyNamespace context
             | InvalidFragment               _ -> false, [||] // excluded from the compilation
         |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x,y) -> QsCompilerDiagnostic.New (x, []) y)
