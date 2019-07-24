@@ -380,10 +380,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a dictionary of text edits regarding ambiguous and unknown callables and types.
+        /// Returns a dictionary of arrays of text edits regarding ambiguous and unknown callables and types.
         /// These edits are suggested by the compiler for the given context.
-        /// The keys of the dictionary are suitable titles for each edit that can be presented to the user. 
-        /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
+        /// The keys of the dictionary are suitable titles for each array of edits that can be presented to the user. 
+        /// Returns an empty array if no suitable edits found.
         /// </summary>
         private static IEnumerable<(string, TextEdit[])> DeprecatedOperatorsCodeActions(CodeActionContext context)
         {
@@ -406,10 +406,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a dictionary of text edits regarding ambiguous and unknown callables and types.
+        /// Returns a dictionary of arrays of text edits regarding ambiguous and unknown callables and types.
         /// These edits are suggested by the compiler for the given location and context.
-        /// The keys of the dictionary are suitable titles for each edit that can be presented to the user. 
-        /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
+        /// The keys of the dictionary are suitable titles for each array of edits that can be presented to the user. 
+        /// Returns an empty array if no suitable edits found.
         /// </summary>
         private static IEnumerable<(string, TextEdit[])> UnknownAmbiguousCodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
         {
@@ -469,12 +469,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return suggestionsForIds.Concat(suggestionsForTypes)
                 .Concat(suggestedIdQualifications).Concat(suggestedTypeQualifications);
         }
-
-
-
-
-
-
 
         /// <summary>
         /// Returns an array with all usages of the identifier at the given position (if any) as DocumentHighlights.
