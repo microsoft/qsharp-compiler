@@ -29,7 +29,6 @@ export namespace EventNames {
     export const lspReady = "lsp-ready";
     export const lspStopped = "lsp-stopped";
     export const error = "error";
-    export const commandExecuted = "command-executed";
 }
 
 // @ts-ignore

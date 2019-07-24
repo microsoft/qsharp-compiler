@@ -4,20 +4,12 @@ import * as cp from 'child_process';
 
 import { DotnetInfo } from './dotnet';
 import { IPackageInfo } from './packageInfo';
-import { sendTelemetryEvent, EventNames } from './telemetry';
 
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
     context.subscriptions.push(
         vscode.commands.registerCommand(
             name,
             () => {
-                sendTelemetryEvent(
-                    EventNames.commandExecuted,
-                    {
-                        commandName: name
-                    },
-                    {}
-                )
                 action();
             }
         )
