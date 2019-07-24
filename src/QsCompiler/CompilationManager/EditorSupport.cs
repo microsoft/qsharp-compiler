@@ -411,7 +411,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The keys of the dictionary are suitable titles for each array of edits that can be presented to the user. 
         /// Returns an empty array if no suitable edits found.
         /// </summary>
-        private static IEnumerable<(string, TextEdit[])> UnknownAmbiguousCodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
+        private static IEnumerable<(string, TextEdit[])> UnknownAmbiguousCodeActions(FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
         {
             // diagnostics based on which suggestions are given
             var ambiguousCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousCallable));
