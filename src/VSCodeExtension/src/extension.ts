@@ -18,7 +18,7 @@ import { ChildProcess } from 'child_process';
 
 import { startTelemetry, EventNames, sendTelemetryEvent, reporter, ErrorSeverities, forwardServerTelemetry } from './telemetry';
 import { DotnetInfo, requireDotNetSdk } from './dotnet';
-import { getPackageInfo } from './packageInfo';
+import { getPackageInfo, IPackageInfo } from './packageInfo';
 
 const extensionStartedAt = Date.now();
 
@@ -245,6 +245,29 @@ function createNewProject(dotNetSdk: DotnetInfo) {
     );
 }
 
+function installTemplates(dotNetSdk: DotnetInfo, packageInfo ?: IPackageInfo) {
+    let packageVersion = 
+        packageInfo === undefined
+        ? ""
+        : `::${packageInfo.version}`;
+    cp.spawn(
+        dotNetSdk.path,
+        ["new", "--install", `Microsoft.Quantum.ProjectTemplates${packageVersion}`]
+    ).on(
+        'exit', (code, signal) => {
+            if (code === 0) {
+                vscode.window.showInformationMessage(
+                    "Project templates installed successfully."
+                );
+            } else {
+                vscode.window.showErrorMessage(
+                    `.NET Core SDK exited with code ${code} when installing project templates.`
+                );
+            }
+        }
+    );
+}
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -257,6 +280,32 @@ export function activate(context: vscode.ExtensionContext) {
     startTelemetry(context);
     sendTelemetryEvent(EventNames.activate, {}, {});
 
+    let packageInfo = getPackageInfo(context);
+    let dotNetSdkVersion =  packageInfo === undefined ? undefined : packageInfo.requiredDotNetCoreSDK;
+    
+    // Register commands that use the .NET Core SDK.
+    // We do so as early as possible so that we can handle if someone calls
+    // a command before we found the .NET Core SDK.
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "quantum.newProject",
+            () => {
+                requireDotNetSdk(dotNetSdkVersion).then(createNewProject);
+            }
+        )
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "quantum.installTemplates",
+            () => {
+                requireDotNetSdk(dotNetSdkVersion).then(
+                    dotNetSdk => installTemplates(dotNetSdk, packageInfo)
+                );
+            }
+        )
+    );
+
     let rootFolder = findRootFolder();
 
     let config = vscode.workspace.getConfiguration("quantumDevKit");
@@ -266,49 +315,10 @@ export function activate(context: vscode.ExtensionContext) {
             ? configPath
             : context.asAbsolutePath(configPath);
 
-    let packageInfo = getPackageInfo(context);
     requireDotNetSdk(
         packageInfo === undefined ? undefined : packageInfo.requiredDotNetCoreSDK
     ).then((dotNetSdk) => {
         console.log(`[qsharp-lsp] Found the .NET Core SDK at ${dotNetSdk.path}.`);
-
-        // Register commands that use the .NET Core SDK.
-        context.subscriptions.push(
-            vscode.commands.registerCommand(
-                "quantum.installTemplates",
-                () => {
-                    let packageVersion = 
-                        packageInfo === undefined
-                        ? ""
-                        : `::${packageInfo.version}`;
-                    cp.spawn(
-                        dotNetSdk.path,
-                        ["new", "--install", `Microsoft.Quantum.ProjectTemplates${packageVersion}`]
-                    ).on(
-                        'exit', (code, signal) => {
-                            if (code === 0) {
-                                vscode.window.showInformationMessage(
-                                    "Project templates installed successfully."
-                                );
-                            } else {
-                                vscode.window.showErrorMessage(
-                                    `.NET Core SDK exited with code ${code} when installing project templates.`
-                                );
-                            }
-                        }
-                    );
-                }
-            )
-        );
-        
-        context.subscriptions.push(
-            vscode.commands.registerCommand(
-                "quantum.newProject",
-                () => {
-                    createNewProject(dotNetSdk);
-                }
-            )
-        );
 
 
         // Start the language server client.
