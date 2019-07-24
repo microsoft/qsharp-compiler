@@ -19,7 +19,7 @@ import { ChildProcess } from 'child_process';
 import { startTelemetry, EventNames, sendTelemetryEvent, reporter, ErrorSeverities, forwardServerTelemetry } from './telemetry';
 import { DotnetInfo, requireDotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
-import { installTemplates, createNewProject, registerCommand, openDocumentationHome } from './commands';
+import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp } from './commands';
 
 const extensionStartedAt = Date.now();
 
@@ -214,6 +214,19 @@ export function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.openDocumentation",
         openDocumentationHome
+    );
+
+    registerCommand(
+        context,
+        "quantum.installIQSharp",
+        () => {
+            requireDotNetSdk(dotNetSdkVersion).then(
+                dotNetSdk => installOrUpdateIQSharp(
+                    dotNetSdk
+                    // TODO: pass a required version here.
+                )
+            );
+        }
     );
 
     let rootFolder = findRootFolder();

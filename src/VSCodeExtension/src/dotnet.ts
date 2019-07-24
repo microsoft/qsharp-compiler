@@ -60,7 +60,7 @@ export function findDotNetSdk() : Promise<DotnetInfo> {
     });
 }
 
-export function requireDotNetSdk(version : string | undefined) : Promise<DotnetInfo> {
+export function requireDotNetSdk(version? : string) : Promise<DotnetInfo> {
     return new Promise((resolve, reject) => {
         findDotNetSdk()
             .then(
@@ -73,5 +73,45 @@ export function requireDotNetSdk(version : string | undefined) : Promise<DotnetI
                     resolve(dotnet);
                 }
             );
+    });
+}
+
+export function findIQSharpVersion() : Promise<{[key: string]: string} | undefined> {
+    return new Promise((resolve, reject) => {
+        requireDotNetSdk().then(
+            dotnet => {
+                cp.exec(
+                    `"${dotnet.path}" iqsharp --version`,
+                    (error, stdout, stderr) => {
+                        if (error === null) {
+                            let components = stdout.split("\n");
+                            let componentVersions: {[key: string]: string} = {};
+                            components.forEach(
+                                component => {
+                                    if (component.trim() === "") { return; }
+                                    let parts = component.split(":", 2);
+                                    componentVersions[parts[0].trim()] = parts[1].trim();
+                                }
+                            );
+                            resolve(componentVersions);
+                        } else if (
+                            error !== null &&
+                            error.message.indexOf("No executable found matching command \"dotnet-iqsharp\"") !== -1
+                        ) {
+                            // If the .NET Core SDK cannot find IQ#, we'll get an error
+                            // of the form:
+                            //     Command failed: "C:\Program Files\dotnet\dotnet.EXE" iqsharp --version
+                            //     No executable found matching command "dotnet-iqsharp"
+                            // Thus, we can look for the string above to tell if .NET Core SDK
+                            // couldn't find IQ#.
+                            // In that case, the version is undefined.
+                            resolve(undefined);
+                        } else {
+                            reject(stderr);
+                        }
+                    }
+                );
+            }
+        );
     });
 }

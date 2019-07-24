@@ -28,7 +28,8 @@
         "onLanguage:qsharp",
         "onCommand:quantum.installTemplates",
         "onCommand:quantum.newProject",
-        "onCommand:quantum.openDocumentation"
+        "onCommand:quantum.openDocumentation",
+        "onCommand:quantum.installIQSharp"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -37,15 +38,20 @@
                 "command": "quantum.installTemplates",
                 "title": "Q#: Install project templates"
             },
-            
+
             {
                 "command": "quantum.newProject",
                 "title": "Q#: Create new project..."
             },
-            
+
             {
                 "command": "quantum.openDocumentation",
                 "title": "Q#: Go to Quantum Development Kit documentation"
+            },
+
+            {
+                "command": "quantum.installIQSharp",
+                "title": "Q#: Install IQ#"
             }
         ],
         "languages": [

@@ -2,8 +2,10 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 
-import { DotnetInfo } from './dotnet';
+import { DotnetInfo, findIQSharpVersion } from './dotnet';
 import { IPackageInfo } from './packageInfo';
+import * as semver from 'semver';
+import { promisify } from 'util';
 
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
     context.subscriptions.push(
@@ -94,7 +96,7 @@ export function createNewProject(dotNetSdk: DotnetInfo) {
 }
 
 export function installTemplates(dotNetSdk: DotnetInfo, packageInfo ?: IPackageInfo) {
-    let packageVersion = 
+    let packageVersion =
         packageInfo === undefined
         ? ""
         : `::${packageInfo.version}`;
@@ -128,4 +130,61 @@ export function openDocumentationHome() {
     return vscode.env.openExternal(
         vscode.Uri.parse("https://docs.microsoft.com/quantum/")
     );
+}
+
+export function installOrUpdateIQSharp(dotNetSdk: DotnetInfo, requiredVersion?: string) {
+    findIQSharpVersion()
+        .then(
+            iqsharpVersion => {
+                if (iqsharpVersion !== undefined && iqsharpVersion["iqsharp"] !== undefined) {
+                    // We got a version, so let's check if it's up to date or not.
+                    // If it is up to date, we print out that this is the case and resolve the
+                    // promise immediately.
+                    if (requiredVersion === undefined || semver.gte(iqsharpVersion["iqsharp"], requiredVersion)) {
+                        vscode.window.showInformationMessage(`Currently IQ# version is up to date (${iqsharpVersion["iqsharp"]}).`);
+                        return false;
+                    }
+
+                    // If we made it here, we need to install IQ#. This can fail if it's already installed.
+                    // While dotnet does offer an update command, it's often more reliable to just uninstall and reinstall.
+                    // Thus, we uninstall here before proceeding to the install step below.
+                    return promisify(cp.exec)(
+                        `"${dotNetSdk.path}" tool uninstall --global Microsoft.Quantum.IQSharp`
+                    )
+                    .then(() => true);
+                }
+                return true;
+            }
+        )
+        .then(
+            needToInstall => {
+                if (needToInstall) {
+                    let versionSpec =
+                        requiredVersion === undefined
+                        ? ""
+                        : `::${requiredVersion}`;
+                    return promisify(cp.exec)(
+                        `"${dotNetSdk.path}" tool install --global Microsoft.Quantum.IQSharp${versionSpec}`
+                    )
+                    .then(() => {
+                        // Check what version actually got installed and report that back.
+                        findIQSharpVersion()
+                            .then(installedVersion => {
+                                if (installedVersion === undefined) {
+                                    throw new Error("Could not detect IQ# version after installing.");
+                                }
+                                if (installedVersion["iqsharp"] === undefined) {
+                                    throw new Error("Newly installed IQ# did not report a version.");
+                                }
+                                vscode.window.showInformationMessage(`Successfully installed IQ# version ${installedVersion["iqsharp"]}`);
+                            });
+                    });
+                }
+            }
+        )
+        .catch(
+            reason => {
+                vscode.window.showWarningMessage(`Could not install IQ#:\n${reason}`);
+            }
+        );
 }
