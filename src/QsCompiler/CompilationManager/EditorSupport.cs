@@ -362,6 +362,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Position afterArgsStart = null;
             Position afterArgsEnd = null;
 
+            Position ConvertFragPosToGlobalPos(QsPositionInfo posToConvert) => new Position
+            (
+                fragStart.Line + posToConvert.Line - 1,
+                (posToConvert.Line == 1 ? fragStart.Character : 0) + posToConvert.Column - 1
+            );
+
             var forLoopIntroExpression = (QsFragmentKind.ForLoopIntro)frag.Kind;
 
             if (!forLoopIntroExpression.Item2.Range.IsNull)
@@ -369,8 +375,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var rangeStart = ((QsFragmentKind.ForLoopIntro)frag.Kind).Item2.Range.Item.Item1;
                 var rangeEnd = ((QsFragmentKind.ForLoopIntro)frag.Kind).Item2.Range.Item.Item2;
 
-                beforeArgsStart = new Position(fragStart.Line + rangeStart.Line - 1, fragStart.Character + rangeStart.Column - 1);
-                afterArgsEnd = new Position(fragStart.Line + rangeEnd.Line - 1, fragStart.Character + rangeEnd.Column - 1);
+                beforeArgsStart = ConvertFragPosToGlobalPos(rangeStart);
+                afterArgsEnd = ConvertFragPosToGlobalPos(rangeEnd);
             }
 
             if (forLoopIntroExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.RangeLiteral rangeExpression)
@@ -397,8 +403,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                                 var argRangeStart = callLikeExression.Item2.Range.Item.Item1;
                                 var argRangeEnd = callLikeExression.Item2.Range.Item.Item2;
 
-                                beforeArgsEnd = new Position(fragStart.Line + argRangeStart.Line - 1, fragStart.Character + argRangeStart.Column - 1);
-                                afterArgsStart = new Position(fragStart.Line + argRangeEnd.Line - 1, fragStart.Character + argRangeEnd.Column - 1);
+                                beforeArgsEnd = ConvertFragPosToGlobalPos(argRangeStart);
+                                afterArgsStart = ConvertFragPosToGlobalPos(argRangeEnd);
                             }
                         }
                     }
