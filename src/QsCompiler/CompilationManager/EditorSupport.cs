@@ -358,22 +358,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (compilation == null || context?.Diagnostics == null) return null;
             var versionedFileId = new VersionedTextDocumentIdentifier { Uri = file.Uri, Version = 1 }; // setting version to null here won't work in VS Code ...
 
-            IEnumerable<(string, TextEdit)> codeActions = Enumerable.Empty<(string, TextEdit)>();
+            IEnumerable<(string, TextEdit[])> codeActions = Enumerable.Empty<(string, TextEdit[])>();
 
             // check all supported codeActions
-            IEnumerable<(string, TextEdit)> unknownCodeActions = UnknownAmbiguousCodeActions(file, compilation, range, context);
+            IEnumerable<(string, TextEdit[])> unknownCodeActions = UnknownAmbiguousCodeActions(file, compilation, range, context);
             if (unknownCodeActions != null)
                 codeActions = codeActions.Concat(unknownCodeActions);
 
-            IEnumerable<(string, TextEdit)> deprecatedCodeActions = DeprecatedOperatorsCodeActions(context);
+            IEnumerable<(string, TextEdit[])> deprecatedCodeActions = DeprecatedOperatorsCodeActions(context);
             if (deprecatedCodeActions != null)
                 codeActions = codeActions.Concat(deprecatedCodeActions);
 
             // format output
-            WorkspaceEdit GetWorkspaceEdit(TextEdit edit) => new WorkspaceEdit
+            WorkspaceEdit GetWorkspaceEdit(TextEdit[] edits) => new WorkspaceEdit
             {
-                DocumentChanges = new[] { new TextDocumentEdit { TextDocument = versionedFileId, Edits = new[] { edit } } },
-                Changes = new Dictionary<string, TextEdit[]> { { file.FileName.Value, new[] { edit } } }
+                DocumentChanges = new[] { new TextDocumentEdit { TextDocument = versionedFileId, Edits = edits } },
+                Changes = new Dictionary<string, TextEdit[]> { { file.FileName.Value, edits } }
             };
 
             return codeActions.Select(ca => (ca.Item1, GetWorkspaceEdit(ca.Item2))).ToImmutableDictionary(s => s.Item1, s => s.Item2);
@@ -385,17 +385,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The keys of the dictionary are suitable titles for each edit that can be presented to the user. 
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </summary>
-        private static IEnumerable<(string, TextEdit)> DeprecatedOperatorsCodeActions(CodeActionContext context)
+        private static IEnumerable<(string, TextEdit[])> DeprecatedOperatorsCodeActions(CodeActionContext context)
         {
             // diagnostics based on warnings of deprecated operators
             var deprecatedNOToperators = context.Diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedNOToperator));
             var deprecatedANDoperators = context.Diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedANDoperator));
             var deprecatedORoperators = context.Diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedORoperator));
    
-            (string, TextEdit) SuggestedNonDeprecatedOperator(string suggestedOp, string explanation, Range r)
+            (string, TextEdit[]) SuggestedNonDeprecatedOperator(string suggestedOp, string explanation, Range r)
             {
                 var edit = new TextEdit { Range = r, NewText = suggestedOp };
-                return (explanation, edit);
+                return (explanation, new TextEdit[] { edit });
             }
 
             var suggestedNOToperators = deprecatedNOToperators.Select(d => SuggestedNonDeprecatedOperator("not ", "Replace \"!\" with \"not\".", d.Range));
@@ -411,7 +411,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The keys of the dictionary are suitable titles for each edit that can be presented to the user. 
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </summary>
-        private static IEnumerable<(string, TextEdit)> UnknownAmbiguousCodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
+        private static IEnumerable<(string, TextEdit[])> UnknownAmbiguousCodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
         {
             // diagnostics based on which suggestions are given
             var ambiguousCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousCallable));
@@ -421,10 +421,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // suggestions for ambiguous ids and types
 
-            (string, TextEdit) SuggestedNameQualification(NonNullable<string> suggestedNS, string id, Position pos)
+            (string, TextEdit[]) SuggestedNameQualification(NonNullable<string> suggestedNS, string id, Position pos)
             {
                 var edit = new TextEdit { Range = new Range { Start = pos, End = pos }, NewText = $"{suggestedNS.Value}." };
-                return ($"{suggestedNS.Value}.{id}", edit);
+                return ($"{suggestedNS.Value}.{id}",  new TextEdit[] { edit });
             }
 
             var suggestedIdQualifications = ambiguousCallables.Select(d => d.Range.Start)
@@ -452,11 +452,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var additionalLinesAfterOpenDir = firstInNs.Kind.OpenedNamespace().IsNull ? $"{Environment.NewLine}{Environment.NewLine}" : "";
             var whitespaceAfterOpenDir = $"{Environment.NewLine}{additionalLinesAfterOpenDir}{indentationAfterOpenDir}";
 
-            (string, TextEdit) SuggestedOpenDirective(NonNullable<string> suggestedNS)
+            (string, TextEdit[]) SuggestedOpenDirective(NonNullable<string> suggestedNS)
             {
                 var directive = $"{Keywords.importDirectiveHeader.id} {suggestedNS.Value}";
                 var edit = new TextEdit { Range = openDirEditRange, NewText = $"{directive};{whitespaceAfterOpenDir}" };
-                return (directive, edit);
+                return (directive, new TextEdit[] { edit });
             }
 
             var suggestionsForIds = unknownCallables.Select(d => d.Range.Start)
