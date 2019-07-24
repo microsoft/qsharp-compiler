@@ -200,6 +200,93 @@ export function activate(context: vscode.ExtensionContext) {
     ).then((dotNetSdk) => {
         console.log(`[qsharp-lsp] Found the .NET Core SDK at ${dotNetSdk.path}.`);
 
+        // Register commands that use the .NET Core SDK.
+        context.subscriptions.push(
+            vscode.commands.registerCommand(
+                "quantum.installTemplates",
+                () => {
+                    let packageVersion = 
+                        packageInfo === undefined
+                        ? ""
+                        : `::${packageInfo.version}`;
+                    cp.spawn(
+                        dotNetSdk.path,
+                        ["new", "--install", `Microsoft.Quantum.ProjectTemplates${packageVersion}`]
+                    ).on(
+                        'exit', (code, signal) => {
+                            if (code === 0) {
+                                vscode.window.showInformationMessage(
+                                    "Project templates installed successfully."
+                                );
+                            } else {
+                                vscode.window.showErrorMessage(
+                                    `.NET Core SDK exited with code ${code} when installing project templates.`
+                                );
+                            }
+                        }
+                    );
+                }
+            )
+        );
+        
+        context.subscriptions.push(
+            vscode.commands.registerCommand(
+                "quantum.newProject",
+                () => {
+                    // Where should we make the new project?
+                    vscode.window.showSaveDialog({
+                        saveLabel: "Create Project"
+                    }).then(
+                        (uri) => {
+                            if (uri !== undefined) {
+                                if (uri.scheme !== "file") {
+                                    vscode.window.showErrorMessage(
+                                        "New projects must be saved to the filesystem."
+                                    );
+
+                                }
+                                cp.spawn(
+                                    dotNetSdk.path,
+                                    ["new", "console", "-lang", "Q#", "-o", uri.fsPath]
+                                ).on(
+                                    'exit', (code, signal) => {
+                                        if (code === 0) {
+                                            const openItem = "Open new project...";
+                                            vscode.window.showInformationMessage(
+                                                `Successfully created new project at ${uri.fsPath}.`,
+                                                openItem
+                                            ).then(
+                                                (item) => {
+                                                    if (item === openItem) {
+                                                        vscode.commands.executeCommand(
+                                                            "vscode.openFolder",
+                                                            uri
+                                                        ).then(
+                                                            (value) => {},
+                                                            (value) => {
+                                                                vscode.window.showErrorMessage("Could not open new project");
+                                                            }
+                                                        );
+                                                    }
+                                                }
+                                            );
+                                        } else {
+                                            vscode.window.showErrorMessage(
+                                                `.NET Core SDK exited with code ${code} when creating a new project.`
+                                            );
+                                        }
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            )
+        );
+
+
+        // Start the language server client.
+
         let serverOptions: ServerOptions =
             startServer(dotNetSdk, languageServerPath, rootFolder);
 
