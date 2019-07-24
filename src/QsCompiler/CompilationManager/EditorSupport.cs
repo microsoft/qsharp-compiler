@@ -426,12 +426,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return ($"{suggestedNS.Value}.{id}", GetWorkspaceEdit(edit));
             }
 
-            var unreachableCodeSuggestions = unreachableCode.Select(d =>
-                {
-                    CodeFragment frag = null;
-                    file.TryGetQsSymbolInfo(d.Range.Start, true, out frag);
-                    return frag;
-                })
+            var unreachableCodeSuggestions = unreachableCode
+                .Select(d => file?.TryGetFragmentAt(d.Range.Start, true))
                 .Where(frag => frag != null)
                 .Select(frag => SuggestedRemoveText(frag));
             var suggestedIdQualifications = ambiguousCallables.Select(d => d.Range.Start)
