@@ -19,7 +19,7 @@ import { ChildProcess } from 'child_process';
 import { startTelemetry, EventNames, sendTelemetryEvent, reporter, ErrorSeverities, forwardServerTelemetry } from './telemetry';
 import { DotnetInfo, requireDotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
-import { installTemplates, createNewProject, registerCommand } from './commands';
+import { installTemplates, createNewProject, registerCommand, openDocumentationHome } from './commands';
 
 const extensionStartedAt = Date.now();
 
@@ -208,6 +208,12 @@ export function activate(context: vscode.ExtensionContext) {
                 dotNetSdk => installTemplates(dotNetSdk, packageInfo)
             );
         }
+    );
+
+    registerCommand(
+        context,
+        "quantum.openDocumentation",
+        openDocumentationHome
     );
 
     let rootFolder = findRootFolder();

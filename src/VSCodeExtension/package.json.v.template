@@ -27,7 +27,8 @@
     "activationEvents": [
         "onLanguage:qsharp",
         "onCommand:quantum.installTemplates",
-        "onCommand:quantum.newProject"
+        "onCommand:quantum.newProject",
+        "onCommand:quantum.openDocumentation"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -39,7 +40,12 @@
             
             {
                 "command": "quantum.newProject",
-                "title": "Q#: Create new project"
+                "title": "Q#: Create new project..."
+            },
+            
+            {
+                "command": "quantum.openDocumentation",
+                "title": "Q#: Go to Quantum Development Kit documentation"
             }
         ],
         "languages": [

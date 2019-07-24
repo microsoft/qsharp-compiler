@@ -131,3 +131,9 @@ export function installTemplates(dotNetSdk: DotnetInfo, packageInfo ?: IPackageI
         }
     );
 }
+
+export function openDocumentationHome() {
+    return vscode.env.openExternal(
+        vscode.Uri.parse("https://docs.microsoft.com/quantum/")
+    );
+}
