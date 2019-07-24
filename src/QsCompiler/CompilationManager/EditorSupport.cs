@@ -394,7 +394,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
    
             (string, TextEdit[]) SuggestedNonDeprecatedOperator(string suggestedOp, string explanation, Range r)
             {
-                var edit = new TextEdit { Range = r, NewText = suggestedOp };
+                var edit = new TextEdit { Range = r.Copy(), NewText = suggestedOp };
                 return (explanation, new TextEdit[] { edit });
             }
 
