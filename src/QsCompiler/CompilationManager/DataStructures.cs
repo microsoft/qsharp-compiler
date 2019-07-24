@@ -220,6 +220,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 this.Index = index;
             }
 
+            internal TokenIndex(FileContentManager file, Position position)
+            {
+                this.File = file ?? throw new ArgumentNullException(nameof(file));
+                if (position.Line < 0 || position.Line >= file.NrTokenizedLines()) throw new ArgumentOutOfRangeException(nameof(position));
+
+                this.Line = position.Line;
+
+                int index = -1;
+                var line = file.GetTokenizedLine(position.Line);
+                for (int i = 0; i < line.Count(); i++)
+                {
+                    CodeFragment frag = line[i];
+                    // if the given position is within the fragment
+                    if (frag.GetRange().Start.Character <= position.Character &&
+                        frag.GetRange().End.Character >= position.Character)
+                    {
+                        index = i;
+                        break;
+                    }
+                }
+                if (index < 0) throw new ArgumentOutOfRangeException(nameof(position));
+                this.Index = index;
+            }
+
             internal TokenIndex(TokenIndex tIndex)
                 : this(tIndex.File, tIndex.Line, tIndex.Index) { }
 

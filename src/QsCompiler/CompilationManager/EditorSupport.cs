@@ -373,18 +373,47 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // suggestions for unreachable code
 
-            (string, WorkspaceEdit) SuggestedRemoveText(int indentationLevel, Position start, Position end, bool isRemoveLine = false)
+            (string, WorkspaceEdit) SuggestedRemoveText(CodeFragment fragment)
             {
-                string whitespace = $"{Environment.NewLine}";
-                if (isRemoveLine)
+                Position eraseStart = fragment.GetRange().Start;
+                CodeFragment.TokenIndex currentFragToken = new CodeFragment.TokenIndex(file, fragment.GetRange().Start);
+                CodeFragment.TokenIndex lastFragToken = currentFragToken.PreviousOnScope(true);
+                CodeFragment tempFrag = null;
+                string lastFollowedBy = "";
+
+                // Work off of the last reachable fragment, if there is one
+                if (lastFragToken != null)
                 {
-                    whitespace = "";
+                    tempFrag = lastFragToken.GetFragment();
+                    lastFollowedBy = $"{tempFrag.FollowedBy}";
+                    eraseStart = tempFrag.GetRange().End;
                 }
-                for (int i = 0; i < indentationLevel; i++ )
+
+                // Find the last fragment in the scope
+                while (currentFragToken != null)
                 {
-                    whitespace += "\t";
+                    lastFragToken = currentFragToken;
+                    currentFragToken = currentFragToken.NextOnScope(true);
                 }
-                var edit = new TextEdit { Range = new Range { Start = start, End = end }, NewText = whitespace };
+                tempFrag = lastFragToken.GetFragment();
+                Position eraseEnd = tempFrag.GetRange().End;
+
+                // Build replace string
+                string replaceString = $"{lastFollowedBy}";
+                if (eraseStart.Line != eraseEnd.Line)
+                {
+                    replaceString += $"{Environment.NewLine}";
+                    // Give it the indentation of the parent scope
+                    // ToDo: Support the tab style specified by the editor
+                    replaceString += String.Concat(Enumerable.Repeat("\t", tempFrag.Indentation - 1));
+                }
+                else
+                {
+                    replaceString += " ";
+                }
+
+                // Create and Return Edit
+                var edit = new TextEdit { Range = new Range { Start = eraseStart, End = eraseEnd }, NewText = replaceString };
                 return ($"Remove unreachable code", GetWorkspaceEdit(edit));
             }
 
@@ -403,32 +432,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return frag;
                 })
                 .Where(frag => frag != null)
-                .Select(frag =>
-                {
-                    Position eraseStart = frag.GetRange().Start;
-                    CodeFragment.TokenIndex temp = new CodeFragment.TokenIndex(file, eraseStart.Line, 0);
-                    CodeFragment.TokenIndex last = null;
-                    CodeFragment tempFrag = null;
-                    bool shouldEraseLine = false;
-                    if (temp != null)
-                    {
-                        last = temp.PreviousOnScope(true);
-                        shouldEraseLine = last.GetFragment().GetRange().End.Line != eraseStart.Line;
-                        if (shouldEraseLine)
-                        {
-                            eraseStart.Character = 0;
-                        }
-                    }
-                    while (temp != null)
-                    {
-                        last = temp;
-                        temp = temp.NextOnScope(true);
-                    }
-                    tempFrag = last.GetFragment();
-                    Position eraseEnd = tempFrag.GetRange().End;
-                    return SuggestedRemoveText(tempFrag.Indentation - 1, eraseStart, eraseEnd, shouldEraseLine);
-                });
-
+                .Select(frag => SuggestedRemoveText(frag));
             var suggestedIdQualifications = ambiguousCallables.Select(d => d.Range.Start)
                 .SelectMany(pos => file.NamespaceSuggestionsForIdAtPosition(pos, compilation, out var id)
                 .Select(ns => SuggestedNameQualification(ns, id, pos)));
