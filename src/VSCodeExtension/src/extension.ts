@@ -18,7 +18,8 @@ import { ChildProcess } from 'child_process';
 
 import { startTelemetry, EventNames, sendTelemetryEvent, reporter, ErrorSeverities, forwardServerTelemetry } from './telemetry';
 import { DotnetInfo, requireDotNetSdk } from './dotnet';
-import { getPackageInfo, IPackageInfo } from './packageInfo';
+import { getPackageInfo } from './packageInfo';
+import { installTemplates, createNewProject, registerCommand } from './commands';
 
 const extensionStartedAt = Date.now();
 
@@ -173,114 +174,6 @@ function startServer(dotNetSdk : DotnetInfo, assemblyPath : string, rootFolder :
     });
 }
 
-function createNewProject(dotNetSdk: DotnetInfo) {    
-    const projectTypes: {[key: string]: string} = {
-        "Standalone console application": "console",
-        "Quantum library": "classlib",
-        "Unit testing project": "xunit"
-    };
-    let errorMessage = "";
-    vscode.window.showQuickPick(
-        Object.keys(projectTypes)
-    ).then(
-        projectTypeSelection => {
-            if (projectTypeSelection === undefined) {
-                throw undefined;
-            }
-            let projectType = projectTypes[projectTypeSelection];
-            
-            vscode.window.showSaveDialog({
-                saveLabel: "Create Project"
-            }).then(
-                (uri) => {
-                    if (uri !== undefined) {
-                        if (uri.scheme !== "file") {
-                            vscode.window.showErrorMessage(
-                                "New projects must be saved to the filesystem."
-                            );
-                            throw new Error("URI scheme was not file.");
-                        }
-                        else {
-                            return uri;
-                        }
-                    } else {
-                        throw undefined;
-                    }
-                }
-            )
-            .then(uri => {
-                let proc = cp.spawn(
-                    dotNetSdk.path,
-                    ["new", projectType, "-lang", "Q#", "-o", uri.fsPath]
-                );
-                proc.stderr.on('data', data => {
-                    errorMessage = errorMessage + data;
-                });
-                proc.on(
-                    'exit', (code, signal) => {
-                        if (code === 0) {
-                            const openItem = "Open new project...";
-                            vscode.window.showInformationMessage(
-                                `Successfully created new project at ${uri.fsPath}.`,
-                                openItem
-                            ).then(
-                                (item) => {
-                                    if (item === openItem) {
-                                        vscode.commands.executeCommand(
-                                            "vscode.openFolder",
-                                            uri
-                                        ).then(
-                                            (value) => {},
-                                            (value) => {
-                                                vscode.window.showErrorMessage("Could not open new project");
-                                            }
-                                        );
-                                    }
-                                }
-                            );
-                        } else {
-                            vscode.window.showErrorMessage(
-                                `.NET Core SDK exited with code ${code} when creating a new project:\n${errorMessage}`
-                            );
-                        }
-                    }
-                );
-            });
-        }
-    );
-}
-
-function installTemplates(dotNetSdk: DotnetInfo, packageInfo ?: IPackageInfo) {
-    let packageVersion = 
-        packageInfo === undefined
-        ? ""
-        : `::${packageInfo.version}`;
-    let errorMessage = "";
-    let proc = cp.spawn(
-        dotNetSdk.path,
-        ["new", "--install", `Microsoft.Quantum.ProjectTemplates${packageVersion}`]
-    );
-    proc.stderr.on(
-        'data', data => {
-            errorMessage = errorMessage + data;
-        }
-    );
-    proc.on(
-        'exit',
-        (code, signal) => {
-            if (code === 0) {
-                vscode.window.showInformationMessage(
-                    "Project templates installed successfully."
-                );
-            } else {
-                vscode.window.showErrorMessage(
-                    `.NET Core SDK exited with code ${code} when installing project templates:\n${errorMessage}`
-                );
-            }
-        }
-    );
-}
-
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -299,24 +192,22 @@ export function activate(context: vscode.ExtensionContext) {
     // Register commands that use the .NET Core SDK.
     // We do so as early as possible so that we can handle if someone calls
     // a command before we found the .NET Core SDK.
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            "quantum.newProject",
-            () => {
-                requireDotNetSdk(dotNetSdkVersion).then(createNewProject);
-            }
-        )
+    registerCommand(
+        context,
+        "quantum.newProject",
+        () => {
+            requireDotNetSdk(dotNetSdkVersion).then(createNewProject)
+        }
     );
 
-    context.subscriptions.push(
-        vscode.commands.registerCommand(
-            "quantum.installTemplates",
-            () => {
-                requireDotNetSdk(dotNetSdkVersion).then(
-                    dotNetSdk => installTemplates(dotNetSdk, packageInfo)
-                );
-            }
-        )
+    registerCommand(
+        context,
+        "quantum.installTemplates",
+        () => {
+            requireDotNetSdk(dotNetSdkVersion).then(
+                dotNetSdk => installTemplates(dotNetSdk, packageInfo)
+            );
+        }
     );
 
     let rootFolder = findRootFolder();
