@@ -245,6 +245,7 @@ export function activate(context: vscode.ExtensionContext) {
                                     );
 
                                 }
+                                // TODO: show quick pick between console, library, and tests.
                                 cp.spawn(
                                     dotNetSdk.path,
                                     ["new", "console", "-lang", "Q#", "-o", uri.fsPath]
