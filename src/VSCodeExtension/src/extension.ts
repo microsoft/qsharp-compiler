@@ -173,6 +173,78 @@ function startServer(dotNetSdk : DotnetInfo, assemblyPath : string, rootFolder :
     });
 }
 
+function createNewProject(dotNetSdk: DotnetInfo) {    
+    const projectTypes: {[key: string]: string} = {
+        "Standalone console application": "console",
+        "Quantum library": "classlib",
+        "Unit testing project": "xunit"
+    };
+    vscode.window.showQuickPick(
+        Object.keys(projectTypes)
+    ).then(
+        projectTypeSelection => {
+            if (projectTypeSelection === undefined) {
+                throw undefined;
+            }
+            let projectType = projectTypes[projectTypeSelection];
+            
+            vscode.window.showSaveDialog({
+                saveLabel: "Create Project"
+            }).then(
+                (uri) => {
+                    if (uri !== undefined) {
+                        if (uri.scheme !== "file") {
+                            vscode.window.showErrorMessage(
+                                "New projects must be saved to the filesystem."
+                            );
+                            throw new Error("URI scheme was not file.");
+                        }
+                        else {
+                            return uri;
+                        }
+                    } else {
+                        throw undefined;
+                    }
+                }
+            )
+            .then(uri => {
+                cp.spawn(
+                    dotNetSdk.path,
+                    ["new", projectType, "-lang", "Q#", "-o", uri.fsPath]
+                ).on(
+                    'exit', (code, signal) => {
+                        if (code === 0) {
+                            const openItem = "Open new project...";
+                            vscode.window.showInformationMessage(
+                                `Successfully created new project at ${uri.fsPath}.`,
+                                openItem
+                            ).then(
+                                (item) => {
+                                    if (item === openItem) {
+                                        vscode.commands.executeCommand(
+                                            "vscode.openFolder",
+                                            uri
+                                        ).then(
+                                            (value) => {},
+                                            (value) => {
+                                                vscode.window.showErrorMessage("Could not open new project");
+                                            }
+                                        );
+                                    }
+                                }
+                            );
+                        } else {
+                            vscode.window.showErrorMessage(
+                                `.NET Core SDK exited with code ${code} when creating a new project.`
+                            );
+                        }
+                    }
+                );
+            });
+        }
+    );
+}
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -233,54 +305,7 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.commands.registerCommand(
                 "quantum.newProject",
                 () => {
-                    // Where should we make the new project?
-                    vscode.window.showSaveDialog({
-                        saveLabel: "Create Project"
-                    }).then(
-                        (uri) => {
-                            if (uri !== undefined) {
-                                if (uri.scheme !== "file") {
-                                    vscode.window.showErrorMessage(
-                                        "New projects must be saved to the filesystem."
-                                    );
-
-                                }
-                                // TODO: show quick pick between console, library, and tests.
-                                cp.spawn(
-                                    dotNetSdk.path,
-                                    ["new", "console", "-lang", "Q#", "-o", uri.fsPath]
-                                ).on(
-                                    'exit', (code, signal) => {
-                                        if (code === 0) {
-                                            const openItem = "Open new project...";
-                                            vscode.window.showInformationMessage(
-                                                `Successfully created new project at ${uri.fsPath}.`,
-                                                openItem
-                                            ).then(
-                                                (item) => {
-                                                    if (item === openItem) {
-                                                        vscode.commands.executeCommand(
-                                                            "vscode.openFolder",
-                                                            uri
-                                                        ).then(
-                                                            (value) => {},
-                                                            (value) => {
-                                                                vscode.window.showErrorMessage("Could not open new project");
-                                                            }
-                                                        );
-                                                    }
-                                                }
-                                            );
-                                        } else {
-                                            vscode.window.showErrorMessage(
-                                                `.NET Core SDK exited with code ${code} when creating a new project.`
-                                            );
-                                        }
-                                    }
-                                );
-                            }
-                        }
-                    );
+                    createNewProject(dotNetSdk);
                 }
             )
         );
