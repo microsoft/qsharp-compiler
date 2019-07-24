@@ -470,12 +470,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(suggestedIdQualifications).Concat(suggestedTypeQualifications);
         }
 
-
-
-
-
-
-
         /// <summary>
         /// Returns an array with all usages of the identifier at the given position (if any) as DocumentHighlights.
         /// Returns null if some parameters are unspecified (null),
