@@ -377,7 +377,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 Position eraseStart = fragment.GetRange().Start;
                 CodeFragment.TokenIndex currentFragToken = new CodeFragment.TokenIndex(file, fragment.GetRange().Start);
-                CodeFragment.TokenIndex lastFragToken = currentFragToken.PreviousOnScope(true);
+                CodeFragment.TokenIndex lastFragToken = new CodeFragment.TokenIndex(currentFragToken);
+                --lastFragToken;
                 CodeFragment tempFrag = null;
                 string lastFollowedBy = "";
 
