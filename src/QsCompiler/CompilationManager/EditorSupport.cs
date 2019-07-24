@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading.Tasks;
+using Markdig.Syntax.Inlines;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -14,6 +16,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using YamlDotNet.Core.Tokens;
 using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions.SymbolInformation;
 
 
@@ -346,6 +349,88 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             };
         }
 
+        private static WorkspaceEdit ProcessForLoopIntroFrag(FileContentManager file, VersionedTextDocumentIdentifier versionedFileId, CodeFragment frag)
+        {
+            bool checkStartWithZero = false;
+            bool checkHasLengthCall = false;
+            bool checkSubOne = false;
+
+            Position fragStart = frag.GetRange().Start;
+
+            Position beforeArgsStart = null;
+            Position beforeArgsEnd = null;
+            Position afterArgsStart = null;
+            Position afterArgsEnd = null;
+
+            var forLoopIntroExpression = (QsFragmentKind.ForLoopIntro)frag.Kind;
+
+            if (!forLoopIntroExpression.Item2.Range.IsNull)
+            {
+                var rangeStart = ((QsFragmentKind.ForLoopIntro)frag.Kind).Item2.Range.Item.Item1;
+                var rangeEnd = ((QsFragmentKind.ForLoopIntro)frag.Kind).Item2.Range.Item.Item2;
+
+                beforeArgsStart = new Position(fragStart.Line + rangeStart.Line - 1, fragStart.Character + rangeStart.Column - 1);
+                afterArgsEnd = new Position(fragStart.Line + rangeEnd.Line - 1, fragStart.Character + rangeEnd.Column - 1);
+            }
+
+            if (forLoopIntroExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.RangeLiteral rangeExpression)
+            {
+                if (rangeExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral intLiteralExpression)
+                {
+                    checkStartWithZero = intLiteralExpression.Item == 0L;
+                }
+
+                if (rangeExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.SUB SUBExpression)
+                {
+                    if (SUBExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.CallLikeExpression callLikeExression)
+                    {
+                        if (callLikeExression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.Identifier identifier)
+                        {
+                            var identifierSub = (QsSymbolKind<QsSymbol>.Symbol)identifier.Item1.Symbol;
+                            checkHasLengthCall = identifierSub.Item.Value == "Length";
+                        }
+
+                        if (callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple)
+                        {
+                            if(!callLikeExression.Item2.Range.IsNull)
+                            {
+                                var argRangeStart = callLikeExression.Item2.Range.Item.Item1;
+                                var argRangeEnd = callLikeExression.Item2.Range.Item.Item2;
+
+                                beforeArgsEnd = new Position(fragStart.Line + argRangeStart.Line - 1, fragStart.Character + argRangeStart.Column - 1);
+                                afterArgsStart = new Position(fragStart.Line + argRangeEnd.Line - 1, fragStart.Character + argRangeEnd.Column - 1);
+                            }
+                        }
+                    }
+
+                    if (SUBExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral subIntLiteralExpression)
+                    {
+                        checkSubOne = subIntLiteralExpression.Item == 1L;
+                    }
+                }
+            }
+
+            bool positionsAreNonNull =
+                beforeArgsStart != null &&
+                beforeArgsEnd != null &&
+                afterArgsStart != null &&
+                afterArgsEnd != null;
+            if (positionsAreNonNull && checkStartWithZero && checkHasLengthCall && checkSubOne)
+            {
+                TextEdit beforeArgsEdit = new TextEdit() { Range = new Range() { Start = beforeArgsStart, End = beforeArgsEnd }, NewText = "IndexRange" };
+                TextEdit afterArgsEdit = new TextEdit() { Range = new Range() { Start = afterArgsStart, End = afterArgsEnd }, NewText = "" };
+
+                // Build WorkspaceEdit
+                return new WorkspaceEdit
+                {
+                    DocumentChanges = new[] { new TextDocumentEdit { TextDocument = versionedFileId, Edits = new[] { beforeArgsEdit, afterArgsEdit } } },
+                    Changes = new Dictionary<string, TextEdit[]> { { file.FileName.Value, new[] { beforeArgsEdit, afterArgsEdit } } }
+                };
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// Returns a dictionary of workspace edits suggested by the compiler for the given location and context.
         /// The keys of the dictionary are suitable titles for each edit that can be presented to the user. 
@@ -356,6 +441,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (range?.Start == null || range.End == null || file == null || !Utils.IsValidRange(range, file)) return null;
             if (compilation == null || context?.Diagnostics == null) return null;
             var versionedFileId = new VersionedTextDocumentIdentifier { Uri = file.Uri, Version = 1 }; // setting version to null here won't work in VS Code ...
+
+            CodeFragment frag = file?.TryGetFragmentAt(range.Start, true);
 
             WorkspaceEdit GetWorkspaceEdit(TextEdit edit) => new WorkspaceEdit
             {
@@ -368,6 +455,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var unknownCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
             var ambiguousTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousType));
             var unknownTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
+
+            List<(string, WorkspaceEdit)> suggestionedIndexRangeReplaces = new List<(string, WorkspaceEdit)>();
+            if (frag.Kind.IsForLoopIntro)
+            {
+                WorkspaceEdit edit = ProcessForLoopIntroFrag(file, versionedFileId, frag);
+                if (edit != null)
+                {
+                    suggestionedIndexRangeReplaces.Add(("Use IndexRange instead of Length", edit));
+                }
+            }
 
             // suggestions for ambiguous ids and types
 
@@ -385,7 +482,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(ns => SuggestedNameQualification(ns, id, pos)));
 
             if (!unknownCallables.Any() && !unknownTypes.Any())
-            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
+            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).Concat(suggestionedIndexRangeReplaces).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
 
             // suggestions for unknown ids and types
 
@@ -418,6 +515,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return suggestionsForIds.Concat(suggestionsForTypes)
                 .Concat(suggestedIdQualifications).Concat(suggestedTypeQualifications)
+                .Concat(suggestionedIndexRangeReplaces)
                 .ToImmutableDictionary(s => s.Item1, s => s.Item2);
         }
 
