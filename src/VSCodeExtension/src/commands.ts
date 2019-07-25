@@ -59,7 +59,7 @@ function createNewProjectAtUri(dotNetSdk: DotnetInfo, projectType: string, uri: 
                 // Check if the problem was that the project templates are missing.
                 // If so, we can give a more helpful error message and offer the
                 // user to install templates.
-                if (errorMessage.includes("'Q#' is not a valid value for -lang")) {
+                if (errorMessage.includes("Q#") && errorMessage.includes("-lang")) {
                     const installTemplatesItem = "Install project templates and retry";
                     vscode.window.showErrorMessage(
                         "Project creation failed, as the Q# project templates not installed.",
