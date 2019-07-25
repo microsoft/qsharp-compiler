@@ -20,6 +20,15 @@ type IdentifierKind =
 let private eot =
     pchar '\u0004'
 
+/// Parses a symbol. Includes reserved keywords if the keyword is followed immediately by EOT without any whitespace
+/// (i.e., a possibly incomplete symbol that happens to start with a keyword). Does not consume whitespace.
+let private symbol =
+    let qsIdentifier =
+        identifier <| IdentifierOptions (isAsciiIdStart = (fun c -> isAsciiLetter c || c = '_'),
+                                         isAsciiIdContinue = isSymbolContinuation)
+    notFollowedBy qsReservedKeyword .>> qsIdentifier <|>
+    (qsReservedKeyword >>. previousCharSatisfiesNot Char.IsWhiteSpace >>. followedBy eot)
+
 /// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and returns
 /// the result of `p2`.
 let private (?>>) p1 p2 =
@@ -38,14 +47,13 @@ let private expectedOp p =
 /// Parses an expected keyword. If the keyword parser fails, this parser can still succeed if the next token is symbol-
 /// like and occurs immediately before EOT (i.e., a possibly incomplete keyword).
 let private expectedKeyword keyword =
-    expectedId (Keyword keyword.id) keyword.parse <|>
-    (symbolNameLike ErrorCode.UnknownCodeFragment >>. eot >>% [Keyword keyword.id])
+    expectedId (Keyword keyword.id) keyword.parse <|> (symbol >>. eot >>% [Keyword keyword.id])
 
 /// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
 /// results from all parsers that succeeded into a single list.
 ///
-/// The parser state after running this parser is the state after running first parser in the sequence that succeeds
-/// (i.e., same as `choice ps`).
+/// The parser state after running this parser is the state after running the first parser in the sequence that
+/// succeeds.
 let private pcollect (ps : seq<Parser<'a list, 'u>>) =
     getCharStreamState >>= fun state stream ->
         let backtrack p =
@@ -58,7 +66,7 @@ let private pcollect (ps : seq<Parser<'a list, 'u>>) =
             Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
             Seq.collect (fun reply -> reply.Result) |>
             Seq.toList
-        (choice ps >>% results) stream
+        choice (Seq.map attempt ps) >>% results <| stream
 
 /// `p1 <||> p2` is equivalent to `pcollect [p1; p2]`.
 let private (<||>) p1 p2 =
@@ -128,26 +136,26 @@ let private tupleType =
 
 /// Parses a generic type parameter.
 let private typeParameter = 
-    pchar '\'' >>. expectedId Type (symbolLike ErrorCode.InvalidTypeParameterName)
+    pchar '\'' >>. expectedId Type (term symbol)
 
 /// Parses a generic type parameter declaration.
 let private typeParameterDeclaration =
-    expectedId Declaration (pchar '\'') ?>> expectedId Declaration (symbolLike ErrorCode.InvalidTypeParameterName)
+    expectedId Declaration (pchar '\'') ?>> expectedId Declaration (term symbol)
 
 do qsTypeImpl :=
-    choice [
-        attempt typeParameter
-        attempt operationType
-        attempt functionType 
-        attempt unitType
-        attempt tupleType 
-        attempt atomicType
-        attempt userDefinedType
+    choice <| List.map attempt [
+        typeParameter
+        operationType
+        functionType 
+        unitType
+        tupleType 
+        atomicType
+        userDefinedType
     ] .>> many (arrayBrackets emptySpace)
 
 /// Parses a callable signature.
 let private callableSignature =
-    let name = expectedId Declaration (symbolLike ErrorCode.InvalidIdentifierName)
+    let name = expectedId Declaration (term symbol)
     let typeAnnotation = expectedOp colon ?>> qsType
     let genericParamList =
         angleBrackets (sepBy typeParameterDeclaration comma |>> List.tryLast |>> Option.defaultValue [Declaration])
@@ -164,7 +172,7 @@ let private operationDeclaration =
 
 /// Parses a user-defined type declaration.
 let private udtDeclaration = 
-    let name = expectedId Declaration (symbolLike ErrorCode.InvalidIdentifierName)
+    let name = expectedId Declaration (term symbol)
     let udtTuple =
         let namedItem = name ?>> expectedOp colon ?>> qsType
         qsType <||> buildTuple (namedItem <||> qsType)

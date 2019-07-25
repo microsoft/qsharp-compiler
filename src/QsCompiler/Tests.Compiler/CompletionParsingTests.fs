@@ -13,17 +13,16 @@ let ``Inside namespace parser tests`` () =
     test "" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
     test "f" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
     test "fun" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
-    // TODO: test "function" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    test "function" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
     test "o" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
     test "opera" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
-    // TODO: test "operation" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    test "operation" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
     test "n" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
     test "newt" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
-    // TODO: test "newtype" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    test "newtype" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
 
 [<Fact>]
 let ``Function declaration parser tests`` () =
-    test "function" [Keyword "function"]
     test "function " [Declaration]
     test "function Foo" [Declaration]
     test "function Foo " []
@@ -64,7 +63,6 @@ let ``Function declaration parser tests`` () =
 
 [<Fact>]
 let ``Operation declaration parser tests`` () =
-    test "operation" [Keyword "operation"]
     test "operation " [Declaration]
     test "operation Foo" [Declaration]
     test "operation Foo " []
@@ -123,7 +121,6 @@ let ``Operation declaration parser tests`` () =
 
 [<Fact>]
 let ``Type declaration parser tests`` () =
-    test "newtype" [Keyword "newtype"]
     test "newtype " [Declaration]
     test "newtype MyType" [Declaration]
     test "newtype MyType " []
@@ -132,10 +129,10 @@ let ``Type declaration parser tests`` () =
     test "newtype MyType = Int" [Type]
     test "newtype MyType = (" [Declaration; Type]
     test "newtype MyType = (In" [Declaration; Type]
-    // TODO: test "newtype MyType = (Int" [Declaration; Type]
+    test "newtype MyType = (Int" [Declaration; Type]
     test "newtype MyType = (Int," [Declaration; Type]
     test "newtype MyType = (Int, Boo" [Declaration; Type]
-    // TODO: test "newtype MyType = (Int, Bool" [Declaration; Type]
+    test "newtype MyType = (Int, Bool" [Declaration; Type]
     test "newtype MyType = (Int, Bool)" []
     test "newtype MyType = (MyItem :" [Type]
     test "newtype MyType = (MyItem : " [Type]
@@ -144,5 +141,5 @@ let ``Type declaration parser tests`` () =
     test "newtype MyType = (MyItem : Int," [Declaration; Type]
     test "newtype MyType = (MyItem : Int, " [Declaration; Type]
     test "newtype MyType = (MyItem : Int, Boo" [Declaration; Type]
-    // TODO: test "newtype MyType = (MyItem : Int, Bool" [Declaration; Type]
+    test "newtype MyType = (MyItem : Int, Bool" [Declaration; Type]
     test "newtype MyType = (MyItem : Int, Bool)" []
