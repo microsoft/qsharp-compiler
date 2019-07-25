@@ -176,7 +176,7 @@ function startServer(dotNetSdk : DotnetInfo, assemblyPath : string, rootFolder :
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
@@ -238,113 +238,113 @@ export function activate(context: vscode.ExtensionContext) {
             ? configPath
             : context.asAbsolutePath(configPath);
 
-    requireDotNetSdk(
-        packageInfo === undefined ? undefined : packageInfo.requiredDotNetCoreSDK
-    ).then((dotNetSdk) => {
-        console.log(`[qsharp-lsp] Found the .NET Core SDK at ${dotNetSdk.path}.`);
+    let dotNetSdk: DotnetInfo;
+    try {
+        dotNetSdk = await requireDotNetSdk(
+            packageInfo === undefined ? undefined : packageInfo.requiredDotNetCoreSDK
+        );
+    } catch (error) {
+        sendTelemetryEvent(EventNames.error, {
+            id:  "dotnet-missing", 
+            severity: ErrorSeverities.Error,
+            reason: error.message
+        });
+        console.log(`[qsharp-lsp] Could not find .NET Core SDK: ${error}`);
+        return;
+    }
+    console.log(`[qsharp-lsp] Found the .NET Core SDK at ${dotNetSdk.path}.`);
 
 
-        // Start the language server client.
+    // Start the language server client.
 
-        let serverOptions: ServerOptions =
-            startServer(dotNetSdk, languageServerPath, rootFolder);
+    let serverOptions: ServerOptions =
+        startServer(dotNetSdk, languageServerPath, rootFolder);
 
-        let clientOptions: LanguageClientOptions = {
-            initializationOptions: {
-                client: "VSCode",
+    let clientOptions: LanguageClientOptions = {
+        initializationOptions: {
+            client: "VSCode",
+        },
+        documentSelector: [
+            {scheme: "file", language: "qsharp"}
+        ],
+        revealOutputChannelOn: RevealOutputChannelOn.Never,
+
+        // Due to the known issue
+        // https://github.com/Microsoft/vscode-languageserver-node/issues/105,
+        // we use the workaround from
+        // https://github.com/felixfbecker/vscode-php-intellisense/pull/23
+        // to convert URIs in and out of VS Code's internal formatting through
+        // the "uri" NPM package.
+        uriConverters: {
+            // VS Code by default %-encodes even the colon after the drive letter
+            // NodeJS handles it much better
+            code2Protocol: uri => url.format(url.parse(uri.toString(true))),
+            protocol2Code: str => vscode.Uri.parse(str)
+        },
+
+        errorHandler: {
+            closed: () => {
+                return CloseAction.Restart;
             },
-            documentSelector: [
-                {scheme: "file", language: "qsharp"}
-            ],
-            revealOutputChannelOn: RevealOutputChannelOn.Never,
+            error: (error, message, count) => {
+                sendTelemetryEvent(EventNames.error, {
+                    id: error.name,
+                    severity: ErrorSeverities.Error,
+                    reason: error.message
+                });
+                // By default, continue the server as best as possible.
+                return ErrorAction.Continue;
+            }
+        }
+    };
 
-            // Due to the known issue
-            // https://github.com/Microsoft/vscode-languageserver-node/issues/105,
-            // we use the workaround from
-            // https://github.com/felixfbecker/vscode-php-intellisense/pull/23
-            // to convert URIs in and out of VS Code's internal formatting through
-            // the "uri" NPM package.
-            uriConverters: {
-                // VS Code by default %-encodes even the colon after the drive letter
-                // NodeJS handles it much better
-                code2Protocol: uri => url.format(url.parse(uri.toString(true))),
-                protocol2Code: str => vscode.Uri.parse(str)
-            },
+    console.log(`[qsharp-lsp] Language server assembly: ${languageServerPath}`);
 
-            errorHandler: {
-                closed: () => {
-                    return CloseAction.Restart;
+    let client = new LanguageClient(
+        'qsharp',
+        'Q# Language Extension',
+        serverOptions,
+        clientOptions
+    );
+    context.subscriptions.push(
+        // The definition of the StateChangeEvent has changed in recent versions of VS Code,
+        // so we use a dictionary from enum of different states to strings to make sure that
+        // the debug log is useful even if the enum changes.
+        client.onDidChangeState(stateChangeEvent => {
+            var states : { [key in State]: string } = {
+                [State.Running]: "running",
+                [State.Starting]: "starting",
+                [State.Stopped]: "stopped"
+            };
+            console.log(`[qsharp-lsp] State ${states[stateChangeEvent.oldState]} -> ${states[stateChangeEvent.newState]}`);
+        })
+    );
+    client
+        .onReady().then(() => {
+            let elapsed = Date.now() - extensionStartedAt;
+            sendTelemetryEvent(
+                EventNames.lspReady,
+                {
+                    'dotnetVersion': dotNetSdk.version
                 },
-                error: (error, message, count) => {
-                    sendTelemetryEvent(EventNames.error, {
-                        id: error.name,
-                        severity: ErrorSeverities.Error,
-                        reason: error.message
-                    });
-                    // By default, continue the server as best as possible.
-                    return ErrorAction.Continue;
+                {
+                    'elapsedTime': elapsed
                 }
+            );
+        });
+    client.onDidChangeState(
+        (event) => {
+            if (event.oldState === State.Running && event.newState === State.Stopped) {
+                sendTelemetryEvent(EventNames.lspStopped);
             }
-        };
-
-        console.log(`[qsharp-lsp] Language server assembly: ${languageServerPath}`);
-
-        let client = new LanguageClient(
-            'qsharp',
-            'Q# Language Extension',
-            serverOptions,
-            clientOptions
-        );
-        context.subscriptions.push(
-            // The definition of the StateChangeEvent has changed in recent versions of VS Code,
-            // so we use a dictionary from enum of different states to strings to make sure that
-            // the debug log is useful even if the enum changes.
-            client.onDidChangeState(stateChangeEvent => {
-                var states : { [key in State]: string } = {
-                    [State.Running]: "running",
-                    [State.Starting]: "starting",
-                    [State.Stopped]: "stopped"
-                };
-                console.log(`[qsharp-lsp] State ${states[stateChangeEvent.oldState]} -> ${states[stateChangeEvent.newState]}`);
-            })
-        );
-        client
-            .onReady().then(() => {
-                let elapsed = Date.now() - extensionStartedAt;
-                sendTelemetryEvent(
-                    EventNames.lspReady,
-                    {
-                        'dotnetVersion': dotNetSdk.version
-                    },
-                    {
-                        'elapsedTime': elapsed
-                    }
-                );
-            });
-        client.onDidChangeState(
-            (event) => {
-                if (event.oldState === State.Running && event.newState === State.Stopped) {
-                    sendTelemetryEvent(EventNames.lspStopped);
-                }
-            }
-        );
-        client.onTelemetry(forwardServerTelemetry);
-        let disposable = client.start();
-
-        console.log("[qsharp-lsp] Started LanguageClient object.");
-
-        context.subscriptions.push(disposable);
-    })
-    .catch(
-        (reason) => {            
-            sendTelemetryEvent(EventNames.error, {
-                id:  "dotnet-missing", 
-                severity: ErrorSeverities.Error,
-                reason: reason.message
-            });
-            console.log(`[qsharp-lsp] Could not find .NET Core SDK: ${reason}`);
         }
     );
+    client.onTelemetry(forwardServerTelemetry);
+    let disposable = client.start();
+
+    console.log("[qsharp-lsp] Started LanguageClient object.");
+
+    context.subscriptions.push(disposable);
 }
 
 // this method is called when your extension is deactivated
