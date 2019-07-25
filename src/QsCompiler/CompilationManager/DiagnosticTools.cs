@@ -76,7 +76,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static bool Overlaps(this Range range1, Range range2)
         {
             Range first, second;
-            if (range1.Start.Line < range2.Start.Line && range1.Start.Character < range2.Start.Character)
+            if (range1.Start.Line <= range2.Start.Line && range1.Start.Character <= range2.Start.Character)
                 (first, second) = (range1, range2);
             else
                 (first, second) = (range2, range1);
