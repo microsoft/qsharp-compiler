@@ -57,12 +57,12 @@ type SpecializationBundleProperties = internal {
             (fun group -> group.ToImmutableDictionary(getKind)))
 
 
-module private SymbolResolution = 
+module SymbolResolution = 
 
     // routines for resolving types and signatures
 
     /// helper function for ResolveType and ResolveCallableSignature
-    let rec private ResolveCharacteristics (ex : Characteristics) = // needs to preserve set parameters
+    let rec ResolveCharacteristics (ex : Characteristics) = // needs to preserve set parameters
         match ex.Characteristics with
         | EmptySet -> ResolvedCharacteristics.Empty
         | SimpleSet s -> SimpleSet s |> ResolvedCharacteristics.New 

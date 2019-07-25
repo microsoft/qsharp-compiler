@@ -71,6 +71,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Returns true if this range overlaps the given range.
+        /// </summary>
+        internal static bool Overlaps(this Range range1, Range range2)
+        {
+            Range first, second;
+            if (range1.Start.Line < range2.Start.Line && range1.Start.Character < range2.Start.Character)
+                (first, second) = (range1, range2);
+            else
+                (first, second) = (range2, range1);
+            return
+                first.End.Line > second.Start.Line ||
+                first.End.Line == second.Start.Line && first.End.Character > second.Start.Character;
+        }
+
+        /// <summary>
         /// Given the location information for a declared symbol,
         /// as well as the position of the declaration within which the symbol is declared, 
         /// returns the zero-based line and character index indicating the position of the symbol in the file.

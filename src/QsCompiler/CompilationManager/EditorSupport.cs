@@ -8,10 +8,12 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
+using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions.SymbolInformation;
@@ -371,14 +373,33 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var deprecatedOpCharacteristics = context.Diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedOpCharacteristics));
 
             // update deprecated operation characteristics syntax
-            var updatedOpCharacteristics = deprecatedOpCharacteristics.Select(d =>
+            WorkspaceEdit UpdateOperationCharacteristics(Diagnostic diagnostic)
             {
-                var start = d.Message.IndexOf('"') + 1;
-                var length = d.Message.IndexOf('"', start) - start;
-                var newText = d.Message.Substring(start, length);
-                var label = "Use new operation characteristics syntax";
-                return (label, GetWorkspaceEdit(new TextEdit { Range = d.Range, NewText = newText }));
-            });
+                var fragment = file.TryGetFragmentAt(diagnostic.Range.Start);
+                if (fragment.Kind is QsFragmentKind.OperationDeclaration operation)
+                {
+                    var characteristics =
+                        operation.Item2.Argument.GetCharacteristicsInArgumentTuple()
+                        .Where(c =>
+                            DiagnosticTools.GetAbsoluteRange(fragment.GetRange().Start, c.Range.Item)
+                            .Overlaps(diagnostic.Range))
+                        .Single();
+                    var typeToQs = new ExpressionTypeToQs(new ExpressionToQs());
+                    typeToQs.onCharacteristicsExpression(SymbolResolution.ResolveCharacteristics(characteristics));
+                    return GetWorkspaceEdit(new TextEdit
+                    {
+                        Range = diagnostic.Range,
+                        NewText = $"{Types.Characteristics} {typeToQs.Output}"
+                    });
+                }
+                // TODO: Support this code action in type declarations.
+                return null;
+            }
+            var updatedOpCharacteristics =
+                deprecatedOpCharacteristics
+                .Select(UpdateOperationCharacteristics)
+                .Where(edit => edit != null)
+                .Select(edit => ("Update operation characteristics syntax", edit));
 
             // suggestions for ambiguous ids and types
 
