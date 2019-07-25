@@ -15,7 +15,6 @@ type IdentifierKind =
     | Type
     | Characteristic
     | Keyword of string
-    | NoIdentifier
 
 /// Parses the end-of-transmission character.
 let private eot =
@@ -28,32 +27,32 @@ let private (?>>) p1 p2 =
 
 /// Parses an expected identifier of the given kind. The identifier is optional if EOT occurs first.
 let private expectedId kind p =
-    (eot >>% kind) <|>
-    attempt (p >>. previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% kind) <|>
-    (p >>% NoIdentifier)
+    (eot >>% [kind]) <|>
+    attempt (p >>. previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [kind]) <|>
+    (p >>% [])
 
 /// Parses an expected operator. The operator is optional if EOT occurs first.
 let private expectedOp p =
-    (eot >>% NoIdentifier) <|> (p >>% NoIdentifier)
+    (eot >>% []) <|> (p >>% [])
 
 /// Parses an expected keyword. If the keyword parser fails, this parser can still succeed if the next token is symbol-
 /// like and occurs immediately before EOT (i.e., a possibly incomplete keyword).
 let private expectedKeyword keyword =
     expectedId (Keyword keyword.id) keyword.parse <|>
-    (symbolNameLike ErrorCode.UnknownCodeFragment >>. eot >>% Keyword keyword.id)
+    (symbolNameLike ErrorCode.UnknownCodeFragment >>. eot >>% [Keyword keyword.id])
 
-/// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Returns the list of
-/// results from all parsers that succeeded.
-let private tryAll (ps : seq<Parser<'a, 'u>>) =
+/// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
+/// results from all parsers that succeeded into a single list.
+let private pcollect (ps : seq<Parser<'a list, 'u>>) =
     getCharStreamState >>= fun state stream ->
-        let backtrack p : Reply<'a> =
+        let backtrack p =
             let reply = p stream
             stream.BacktrackTo state
             reply
         ps |>
         Seq.map backtrack |>
         Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
-        Seq.map (fun reply -> reply.Result) |>
+        Seq.collect (fun reply -> reply.Result) |>
         Seq.toList |>
         Reply<'a list>
 
@@ -143,9 +142,9 @@ let private callableSignature =
     let name = expectedId Declaration (symbolLike ErrorCode.InvalidIdentifierName)
     let typeAnnotation = expectedOp colon ?>> qsType
     let genericParamList =
-        angleBrackets (sepBy typeParameterDeclaration comma |>> List.tryLast |>> Option.defaultValue Declaration)
+        angleBrackets (sepBy typeParameterDeclaration comma |>> List.tryLast |>> Option.defaultValue [Declaration])
     let argumentTuple = expectedOp unitValue <|> buildTuple (name ?>> typeAnnotation)
-    name ?>> (opt genericParamList |>> Option.defaultValue NoIdentifier) ?>> argumentTuple ?>> typeAnnotation
+    name ?>> (opt genericParamList |>> Option.defaultValue []) ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
 let private functionDeclaration =
@@ -157,13 +156,13 @@ let private operationDeclaration =
 
 /// Parses the declaration of a function or operation.
 let private callableDeclaration =
-    tryAll [
+    pcollect [
         functionDeclaration
         operationDeclaration
     ]
 
 /// Parses the possibly incomplete fragment text and returns a list of possible identifiers expected at the end of the
-/// fragment, or an empty list if parsing failed.
+/// fragment.
 ///
 /// Only function and operation declaration fragments are currently supported.
 let GetExpectedIdentifiers text =
