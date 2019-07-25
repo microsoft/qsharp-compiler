@@ -376,24 +376,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             WorkspaceEdit UpdateOperationCharacteristics(Diagnostic diagnostic)
             {
                 var fragment = file.TryGetFragmentAt(diagnostic.Range.Start);
+                QsTuple<Tuple<QsSymbol, QsType>> argument;
                 if (fragment.Kind is QsFragmentKind.OperationDeclaration operation)
+                    argument = operation.Item2.Argument;
+                else if (fragment.Kind is QsFragmentKind.TypeDefinition type)
+                    argument = type.Item2;
+                else
+                    return null;
+
+                var characteristics =
+                    argument.GetCharacteristicsInArgumentTuple()
+                    .Where(c =>
+                        DiagnosticTools.GetAbsoluteRange(fragment.GetRange().Start, c.Range.Item)
+                        .Overlaps(diagnostic.Range))
+                    .Single();
+                var typeToQs = new ExpressionTypeToQs(new ExpressionToQs());
+                typeToQs.onCharacteristicsExpression(SymbolResolution.ResolveCharacteristics(characteristics));
+                return GetWorkspaceEdit(new TextEdit
                 {
-                    var characteristics =
-                        operation.Item2.Argument.GetCharacteristicsInArgumentTuple()
-                        .Where(c =>
-                            DiagnosticTools.GetAbsoluteRange(fragment.GetRange().Start, c.Range.Item)
-                            .Overlaps(diagnostic.Range))
-                        .Single();
-                    var typeToQs = new ExpressionTypeToQs(new ExpressionToQs());
-                    typeToQs.onCharacteristicsExpression(SymbolResolution.ResolveCharacteristics(characteristics));
-                    return GetWorkspaceEdit(new TextEdit
-                    {
-                        Range = diagnostic.Range,
-                        NewText = $"{Types.Characteristics} {typeToQs.Output}"
-                    });
-                }
-                // TODO: Support this code action in type declarations.
-                return null;
+                    Range = diagnostic.Range,
+                    NewText = $"{Types.Characteristics} {typeToQs.Output}"
+                });
             }
             var updatedOpCharacteristics =
                 deprecatedOpCharacteristics
