@@ -377,7 +377,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var fragment = file.TryGetFragmentAt(diagnostic.Range.Start);
                 QsTuple<Tuple<QsSymbol, QsType>> argument;
-                if (fragment.Kind is QsFragmentKind.OperationDeclaration operation)
+                if (fragment.Kind is QsFragmentKind.FunctionDeclaration function)
+                    argument = function.Item2.Argument;
+                else if (fragment.Kind is QsFragmentKind.OperationDeclaration operation)
                     argument = operation.Item2.Argument;
                 else if (fragment.Kind is QsFragmentKind.TypeDefinition type)
                     argument = type.Item2;
