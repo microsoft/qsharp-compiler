@@ -138,8 +138,8 @@ do qsTypeImpl :=
         attempt userDefinedType
     ] .>> many (arrayBrackets emptySpace)
 
-/// Parses a function signature.
-let private functionSignature =
+/// Parses a callable signature.
+let private callableSignature =
     let name = expectedId Declaration (symbolLike ErrorCode.InvalidIdentifierName)
     let typeAnnotation = expectedOp colon ?>> qsType
     let genericParamList =
@@ -149,11 +149,11 @@ let private functionSignature =
 
 /// Parses a function declaration.
 let private functionDeclaration =
-    expectedKeyword fctDeclHeader ?>> functionSignature
+    expectedKeyword fctDeclHeader ?>> callableSignature
 
 /// Parses an operation declaration.
 let private operationDeclaration =
-    expectedKeyword opDeclHeader ?>> functionSignature ?>> characteristicsAnnotation
+    expectedKeyword opDeclHeader ?>> callableSignature ?>> characteristicsAnnotation
 
 /// Parses the declaration of a function or operation.
 let private callableDeclaration =
