@@ -43,18 +43,26 @@ let private expectedKeyword keyword =
 
 /// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
 /// results from all parsers that succeeded into a single list.
+///
+/// The parser state after running this parser is the state after running first parser in the sequence that succeeds
+/// (i.e., same as `choice ps`).
 let private pcollect (ps : seq<Parser<'a list, 'u>>) =
     getCharStreamState >>= fun state stream ->
         let backtrack p =
             let reply = p stream
             stream.BacktrackTo state
             reply
-        ps |>
-        Seq.map backtrack |>
-        Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
-        Seq.collect (fun reply -> reply.Result) |>
-        Seq.toList |>
-        Reply<'a list>
+        let results =
+            ps |>
+            Seq.map backtrack |>
+            Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
+            Seq.collect (fun reply -> reply.Result) |>
+            Seq.toList
+        (choice ps >>% results) stream
+
+/// `p1 <||> p2` is equivalent to `pcollect [p1; p2]`.
+let private (<||>) p1 p2 =
+    pcollect [p1; p2]
 
 /// Parses the brackets around a tuple, where the inside of the tuple is parsed by `inside` and the right bracket is
 /// optional if the stream ends first.
@@ -68,8 +76,8 @@ let private angleBrackets inside =
 
 /// Recursively parses a tuple where each item is parsed by `item` and the right bracket is optional if the stream ends
 /// first.
-let rec private buildTuple item stream =
-    tupleBrackets (sepBy1 item comma |>> List.last) stream
+let rec private buildTuple item =
+    tupleBrackets (sepBy1 item comma |>> List.last)
 
 /// Parses a type.
 let (private qsType, private qsTypeImpl) = createParserForwardedToRef()
@@ -154,18 +162,27 @@ let private functionDeclaration =
 let private operationDeclaration =
     expectedKeyword opDeclHeader ?>> callableSignature ?>> characteristicsAnnotation
 
-/// Parses the declaration of a function or operation.
-let private callableDeclaration =
+/// Parses a user-defined type declaration.
+let private udtDeclaration = 
+    let name = expectedId Declaration (symbolLike ErrorCode.InvalidIdentifierName)
+    let udtTuple =
+        let namedItem = name ?>> expectedOp colon ?>> qsType
+        qsType <||> buildTuple (namedItem <||> qsType)
+    expectedKeyword typeDeclHeader ?>> name ?>> expectedOp equal ?>> udtTuple
+
+/// Parses fragments that are valid at the top level of a namespace.
+let private insideNamespace =
     pcollect [
         functionDeclaration
         operationDeclaration
+        udtDeclaration
     ]
 
 /// Parses the possibly incomplete fragment text and returns the set of possible identifiers expected at the end of the
 /// fragment.
 ///
-/// Only function and operation declaration fragments are currently supported.
+/// Only top-level namespace fragments (except open) are currently supported.
 let GetExpectedIdentifiers text =
-    match runParserOnString callableDeclaration [] "" (text + "\u0004") with
+    match runParserOnString insideNamespace [] "" (text + "\u0004") with
     | Success (result, _, _) -> Set.ofList result
     | Failure (_) -> Set.empty

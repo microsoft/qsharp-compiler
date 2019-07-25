@@ -9,12 +9,17 @@ let private test text expected =
     Assert.Equal<IEnumerable<IdentifierKind>>(Set.ofList expected, GetExpectedIdentifiers text)
 
 [<Fact>]
-let ``Callable declaration parser tests`` () =
-    test "" [Keyword "function"; Keyword "operation"]
-    test "f" [Keyword "function"; Keyword "operation"]
-    test "fun" [Keyword "function"; Keyword "operation"]
-    test "o" [Keyword "function"; Keyword "operation"]
-    test "opera" [Keyword "function"; Keyword "operation"]
+let ``Inside namespace parser tests`` () =
+    test "" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    test "f" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    test "fun" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    // TODO: test "function" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    test "o" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    test "opera" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    // TODO: test "operation" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    test "n" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    test "newt" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
+    // TODO: test "newtype" [Keyword "function"; Keyword "operation"; Keyword "newtype"]
 
 [<Fact>]
 let ``Function declaration parser tests`` () =
@@ -115,3 +120,29 @@ let ``Operation declaration parser tests`` () =
     test "operation Foo<'T> (q : (MyType -> Int)) : Unit" [Type]
     test "operation Foo (q : Qubit) : (Int, MyT is Adj" []
     test "operation Foo (q : Qubit) : (Int, MyT is Adj " []
+
+[<Fact>]
+let ``Type declaration parser tests`` () =
+    test "newtype" [Keyword "newtype"]
+    test "newtype " [Declaration]
+    test "newtype MyType" [Declaration]
+    test "newtype MyType " []
+    test "newtype MyType =" [Type]
+    test "newtype MyType = " [Type]
+    test "newtype MyType = Int" [Type]
+    test "newtype MyType = (" [Declaration; Type]
+    test "newtype MyType = (In" [Declaration; Type]
+    // TODO: test "newtype MyType = (Int" [Declaration; Type]
+    test "newtype MyType = (Int," [Declaration; Type]
+    test "newtype MyType = (Int, Boo" [Declaration; Type]
+    // TODO: test "newtype MyType = (Int, Bool" [Declaration; Type]
+    test "newtype MyType = (Int, Bool)" []
+    test "newtype MyType = (MyItem :" [Type]
+    test "newtype MyType = (MyItem : " [Type]
+    test "newtype MyType = (MyItem : In" [Type]
+    test "newtype MyType = (MyItem : Int" [Type]
+    test "newtype MyType = (MyItem : Int," [Declaration; Type]
+    test "newtype MyType = (MyItem : Int, " [Declaration; Type]
+    test "newtype MyType = (MyItem : Int, Boo" [Declaration; Type]
+    // TODO: test "newtype MyType = (MyItem : Int, Bool" [Declaration; Type]
+    test "newtype MyType = (MyItem : Int, Bool)" []
