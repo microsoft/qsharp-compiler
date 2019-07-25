@@ -15,6 +15,7 @@ type IdentifierKind =
     | Type
     | Characteristic
     | Keyword of string
+    | Namespace
 
 /// Parses the end-of-transmission character.
 let private eot =
@@ -178,12 +179,20 @@ let private udtDeclaration =
         qsType <||> buildTuple (namedItem <||> qsType)
     expectedKeyword typeDeclHeader ?>> name ?>> expectedOp equal ?>> udtTuple
 
+/// Parses an open directive.
+let private openDirective =
+    expectedKeyword importDirectiveHeader ?>>
+    expectedId Namespace (multiSegmentSymbol ErrorCode.InvalidTypeName) ?>>
+    expectedKeyword importedAs ?>>
+    expectedId Declaration (multiSegmentSymbol ErrorCode.InvalidTypeName)
+
 /// Parses fragments that are valid at the top level of a namespace.
 let private insideNamespace =
     pcollect [
         functionDeclaration
         operationDeclaration
         udtDeclaration
+        openDirective
     ]
 
 /// Parses the possibly incomplete fragment text and returns the set of possible identifiers expected at the end of the
