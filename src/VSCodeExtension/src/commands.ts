@@ -9,6 +9,7 @@ import { DotnetInfo, findIQSharpVersion } from './dotnet';
 import { IPackageInfo } from './packageInfo';
 import * as semver from 'semver';
 import { promisify } from 'util';
+import { oc } from 'ts-optchain';
 
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
     context.subscriptions.push(
@@ -98,11 +99,11 @@ export function createNewProject(dotNetSdk: DotnetInfo) {
     );
 }
 
-export function installTemplates(dotNetSdk: DotnetInfo, packageInfo ?: IPackageInfo) {
+export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageInfo) {
     let packageVersion =
-        packageInfo === undefined
-        ? ""
-        : `::${packageInfo.version}`;
+        oc(packageInfo).nugetVersion
+        ? `::${oc(packageInfo).nugetVersion}`
+        : "";
     let errorMessage = "";
     let proc = cp.spawn(
         dotNetSdk.path,

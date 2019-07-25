@@ -222,8 +222,8 @@ export async function activate(context: vscode.ExtensionContext) {
         () => {
             requireDotNetSdk(dotNetSdkVersion).then(
                 dotNetSdk => installOrUpdateIQSharp(
-                    dotNetSdk
-                    // TODO: pass a required version here.
+                    dotNetSdk,
+                    packageInfo ? packageInfo.nugetVersion : undefined
                 )
             );
         }
