@@ -6,7 +6,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 
 let private test text expected =
-    Assert.Equal<IEnumerable<IdentifierKind>>(expected, GetExpectedIdentifiers text)
+    Assert.Equal<IEnumerable<IdentifierKind>>(Set.ofList expected, GetExpectedIdentifiers text)
 
 [<Fact>]
 let ``Callable declaration parser tests`` () =

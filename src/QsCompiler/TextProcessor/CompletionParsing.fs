@@ -161,11 +161,11 @@ let private callableDeclaration =
         operationDeclaration
     ]
 
-/// Parses the possibly incomplete fragment text and returns a list of possible identifiers expected at the end of the
+/// Parses the possibly incomplete fragment text and returns the set of possible identifiers expected at the end of the
 /// fragment.
 ///
 /// Only function and operation declaration fragments are currently supported.
 let GetExpectedIdentifiers text =
     match runParserOnString callableDeclaration [] "" (text + "\u0004") with
-    | Success (result, _, _) -> result
-    | Failure (_) -> []
+    | Success (result, _, _) -> Set.ofList result
+    | Failure (_) -> Set.empty
