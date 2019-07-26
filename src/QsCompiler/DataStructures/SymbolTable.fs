@@ -170,10 +170,13 @@ type private PartialNamespace private
         | true, specs -> specs.Add spec // it is up to the namespace to verify the type specializations
         | false, _ -> CallableSpecializations.Add(cName, new List<_>([spec]))
 
-    /// Deletes the specialization(s) defined at the specified location for the callable with the given name.
-    /// Throws the standard key does not exist exception if no callable with that name exists.
+    /// Deletes the *explicitly* defined specialization at the specified location for the callable with the given name.
+    /// Does not delete specializations that have been inserted by the compiler, i.e. specializations whose location matches the callable declaration location.
+    /// Throws the standard key does not exist exception if no specialization for the callable with that name exists.
     member internal this.RemoveCallableSpecialization (location : QsLocation) cName = 
-        CallableSpecializations.[cName].RemoveAll (fun (_, res) -> location.Offset = res.Position && location.Range = res.Range)
+        match CallableDeclarations.TryGetValue cName with 
+        | true, (_, decl) when decl.Position = location.Offset && decl.Range = location.Range -> 0 
+        | _ -> CallableSpecializations.[cName].RemoveAll (fun (_, res) -> location.Offset = res.Position && location.Range = res.Range)
 
     /// Sets the resolution for the type with the given name to the given type.
     /// Throws the standard key does not exist exception if no type with that name exists.
@@ -736,8 +739,11 @@ and NamespaceManager
 
                 // we remove the specializations which could not be bundled and resolve the newly inserted ones
                 for (specSource, (errPos, d)) in bundleErrs do
-                    let removed = ns.RemoveSpecialization (specSource, {Offset = errPos; Range = d.Range}) parent.Name
-                    QsCompilerError.Verify ((removed = 1), "failed to remove exactly one specialization")
+                    match d.Diagnostic with 
+                    | Information _ | Warning _ -> ()
+                    | Error errCode -> 
+                        let removed = ns.RemoveSpecialization (specSource, {Offset = errPos; Range = d.Range}) parent.Name
+                        QsCompilerError.Verify ((removed <= 1), sprintf "removed %i specializations based on error code %s" removed (errCode.ToString()))
                 let autoResErrs = ns.SetSpecializationResolutions (parent.Name, typeArgsResolution)
 
                 // only then can we resolve the generators themselves
