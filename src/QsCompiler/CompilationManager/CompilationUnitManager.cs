@@ -580,6 +580,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // -> these commands need to be responsive and therefore won't wait for any processing to finish
         // -> if the query cannot be processed immediately, they simply return null
 
+        /// <param name="suppressExceptionLogging">
+        /// Whether to suppress logging of exceptions from the query.
+        /// <para/>
+        /// NOTE: In debug mode, exceptions are always logged even if this parameter is true.
+        /// </param>
         internal T FileQuery<T>(TextDocumentIdentifier textDocument,
             Func<FileContentManager, CompilationUnit, T> Query, bool suppressExceptionLogging = false)
             where T : class
@@ -589,7 +594,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 try { return Query(f, this.CompilationUnit); }
                 catch (Exception ex)
                 {
+#if DEBUG
+                    this.LogException(ex);
+#else
                     if (!suppressExceptionLogging) this.LogException(ex);
+#endif
                     return null;
                 }
             }
