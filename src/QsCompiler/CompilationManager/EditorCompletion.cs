@@ -59,13 +59,36 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class EditorCompletion
     {
         /// <summary>
-        /// The empty completion list.
+        /// Completion items for built-in type keywords.
         /// </summary>
-        private static readonly CompletionList empty = new CompletionList()
-        {
-            IsIncomplete = false,
-            Items = Array.Empty<CompletionItem>()
-        };
+        private static readonly IEnumerable<CompletionItem> typeKeywords =
+            new[]
+            {
+                // TODO: Move this list to the Keywords module.
+                Keywords.qsUnit,
+                Keywords.qsInt,
+                Keywords.qsBigInt,
+                Keywords.qsDouble,
+                Keywords.qsBool,
+                Keywords.qsQubit,
+                Keywords.qsResult,
+                Keywords.qsPauli,
+                Keywords.qsRange,
+                Keywords.qsString
+            }
+            .Select(keyword => new CompletionItem { Label = keyword.id, Kind = CompletionItemKind.Keyword });
+
+        /// <summary>
+        /// Completion items for built-in characteristic keywords.
+        /// </summary>
+        private static readonly IEnumerable<CompletionItem> characteristicKeywords =
+            new[]
+            {
+                // TODO: Move this list to the Keywords module.
+                Keywords.qsAdjSet,
+                Keywords.qsCtlSet
+            }
+            .Select(keyword => new CompletionItem { Label = keyword.id, Kind = CompletionItemKind.Keyword });
 
         /// <summary>
         /// Returns a list of suggested completion items for the given position.
@@ -79,36 +102,47 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || compilation == null || position == null)
                 return null;
 
-            // New symbols shouldn't get any completions for existing symbols.
-            if (IsDeclaringNewSymbol(file, position))
-                return empty;
-
             var namespacePath =
                 ResolveNamespaceAlias(file, compilation, position, GetSymbolNamespacePath(file, position));
 
             // If the character at the position is a dot but no valid namespace path precedes it (for example, in a
             // decimal number), then no completions are valid here.
             if (namespacePath == null && file.GetLine(position.Line).Text[position.Character - 1] == '.')
-                return empty;
+                return new CompletionList() { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
 
-            // TODO: Show only syntactically valid completions depending on the position in the source code. For
-            // example, at the beginning of a statement, only function names (for functions that return Unit), operation
-            // names (for operations that return Unit, and if the position is in another operation), and certain
-            // keywords are allowed.
-            var openNamespaces = GetOpenNamespaces(file, compilation, position);
-            var completions = namespacePath != null
-                ?
-                GetCallableCompletions(file, compilation, new[] { namespacePath })
-                .Concat(GetTypeCompletions(file, compilation, new[] { namespacePath }))
-                .Concat(GetGlobalNamespaceCompletions(compilation, namespacePath))
-                :
-                Keywords.ReservedKeywords
-                .Select(keyword => new CompletionItem() { Label = keyword, Kind = CompletionItemKind.Keyword })
-                .Concat(GetLocalCompletions(file, compilation, position))
-                .Concat(GetCallableCompletions(file, compilation, openNamespaces))
-                .Concat(GetTypeCompletions(file, compilation, openNamespaces))
-                .Concat(GetGlobalNamespaceCompletions(compilation, namespacePath ?? ""))
-                .Concat(GetNamespaceAliasCompletions(file, compilation, position));
+            // TODO: Support context-aware completions for additional contexts.
+            IEnumerable<CompletionItem> completions;
+            if (IsInNamespaceContext(file, position))
+            {
+                var fragment = file.TryGetFragmentAt(position, includeEnd: true);
+                var textUpToPosition = fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
+                completions =
+                    CompletionParsing.GetExpectedIdentifiers(textUpToPosition)
+                    .SelectMany(kind => GetCompletionsForKind(file, compilation, position, namespacePath, kind));
+            }
+            else if (namespacePath != null)
+            {
+                completions =
+                    GetCallableCompletions(file, compilation, new[] { namespacePath })
+                    .Concat(GetTypeCompletions(file, compilation, new[] { namespacePath }))
+                    .Concat(GetGlobalNamespaceCompletions(compilation, namespacePath));
+            }
+            else if (!IsDeclaringNewSymbol(file, position))
+            {
+                var openNamespaces = GetOpenNamespaces(file, compilation, position);
+                completions =
+                    Keywords.ReservedKeywords
+                    .Select(keyword => new CompletionItem() { Label = keyword, Kind = CompletionItemKind.Keyword })
+                    .Concat(GetLocalCompletions(file, compilation, position))
+                    .Concat(GetCallableCompletions(file, compilation, openNamespaces))
+                    .Concat(GetTypeCompletions(file, compilation, openNamespaces))
+                    .Concat(GetGlobalNamespaceCompletions(compilation, namespacePath ?? ""))
+                    .Concat(GetNamespaceAliasCompletions(file, compilation, position));
+            }
+            else
+            {
+                completions = Array.Empty<CompletionItem>();
+            }
             return new CompletionList() { IsIncomplete = false, Items = completions.ToArray() };
         }
 
@@ -128,6 +162,50 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (documentation != null)
                 item.Documentation = new MarkupContent() { Kind = format, Value = documentation };
             return item;
+        }
+
+        /// <summary>
+        /// Returns true if the given position in the file is at the top-level of a namespace.
+        /// <para/>
+        /// Returns false if any parameter is null.
+        /// </summary>
+        private static bool IsInNamespaceContext(FileContentManager file, Position position)
+        {
+            if (file == null || position == null)
+                return false;
+            var index = file.GetTokenizedLine(position.Line).TakeWhile(ContextBuilder.TokensUpTo(position)).Count() - 1;
+            var parent = new CodeFragment.TokenIndex(file, position.Line, index).GetNonEmptyParent().GetFragment();
+            return parent.Kind.IsNamespaceDeclaration;
+        }
+
+        /// <summary>
+        /// Returns completion items that match the given identifier kind.
+        /// <para/>
+        /// Returns null if any parameter except namespacePrefix is null.
+        /// </summary>
+        private static IEnumerable<CompletionItem> GetCompletionsForKind(
+            FileContentManager file,
+            CompilationUnit compilation,
+            Position position,
+            string namespacePrefix,
+            CompletionParsing.IdentifierKind kind)
+        {
+            if (file == null || compilation == null || position == null || kind == null)
+                return null;
+
+            if (kind is CompletionParsing.IdentifierKind.Keyword keyword)
+                return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
+            if (kind.IsType)
+                return
+                    GetTypeCompletions(file, compilation, GetOpenNamespaces(file, compilation, position))
+                    .Concat(typeKeywords);
+            if (kind.IsNamespace)
+                return
+                    GetGlobalNamespaceCompletions(compilation, namespacePrefix)
+                    .Concat(GetNamespaceAliasCompletions(file, compilation, position));
+            if (kind.IsCharacteristic)
+                return characteristicKeywords;
+            return Array.Empty<CompletionItem>();
         }
 
         /// <summary>
