@@ -172,6 +172,7 @@ type private PartialNamespace private
 
     /// Deletes the *explicitly* defined specialization at the specified location for the callable with the given name.
     /// Does not delete specializations that have been inserted by the compiler, i.e. specializations whose location matches the callable declaration location.
+    /// Returns the number of removed specializations. 
     /// Throws the standard key does not exist exception if no specialization for the callable with that name exists.
     member internal this.RemoveCallableSpecialization (location : QsLocation) cName = 
         match CallableDeclarations.TryGetValue cName with 
@@ -547,6 +548,7 @@ and Namespace private
         this.TryAddCallableSpecialization kind (source, location) ((parentName, declLocation.Range), generator, doc) 
 
     /// Deletes the specialization(s) defined at the specified location and source file for the callable with the given name.
+    /// Returns the number of removed specializations.
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
     /// Throws the standard key does not exist exception if no callable with that name exists.
     member internal this.RemoveSpecialization (source, location) cName =
