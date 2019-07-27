@@ -164,7 +164,7 @@ let private boolLiteral =
 
 /// Parses a Q# int or double literal as QsExpression. 
 let private numericLiteral =
-    let verifyAndBuild (nl : NumberLiteral) = 
+    let verifyAndBuild (nl : NumberLiteral, range) = 
         let format = 
             if   nl.IsBinary      then 2
             elif nl.IsOctal       then 8 
@@ -177,14 +177,19 @@ let private numericLiteral =
         let isInt    = nl.IsInteger     && format <> 0                  && nl.SuffixLength = 0 // any format is fine here
         let isBigInt = nl.IsInteger     && (format = 10 || format = 16) && nl.SuffixLength = 1 && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
         let isDouble = not nl.IsInteger && format = 10                  && nl.SuffixLength = 0 
+        let returnWithRange kind = preturn (kind, range)
         try if isInt then 
                 let value = System.Convert.ToUInt64 (str, format) // convert to uint64 to allow proper handling of Int64.MinValue
-                if value = uint64(-System.Int64.MinValue) then System.Int64.MinValue |> IntLiteral |> preturn |> asExpression >>= (NEG >> preturn)
-                else (int64)value |> IntLiteral |> preturn
+                if value = uint64(-System.Int64.MinValue) then System.Int64.MinValue |> IntLiteral |> preturn |> asExpression >>= (NEG >> returnWithRange)
+                elif value > (uint64)System.Int64.MaxValue then // needs to be after the first check above
+                    buildError (preturn range) ErrorCode.IntOverflow >>. returnWithRange ((int64)value |> IntLiteral)                
+                else (int64)value |> IntLiteral |> returnWithRange
             elif isBigInt then 
-                if format = 16 then BigInteger.Parse(str, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> preturn
-                else BigInteger.Parse (nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> preturn
-            elif isDouble then System.Convert.ToDouble (nl.String, CultureInfo.InvariantCulture) |> DoubleLiteral |> preturn
+                if format = 16 then BigInteger.Parse(str, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
+                else BigInteger.Parse (nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
+            elif isDouble then 
+                try System.Convert.ToDouble (nl.String, CultureInfo.InvariantCulture) |> DoubleLiteral |> returnWithRange
+                with | :? System.OverflowException -> buildError (preturn range) ErrorCode.DoubleOverflow >>. returnWithRange (System.Double.NaN |> DoubleLiteral)
             else fail "invalid number format"
         with | _ -> fail "failed to initialize number literal"         
     let format =  // not allowed are: infinity, NaN
@@ -202,7 +207,7 @@ let private numericLiteral =
                 else notFollowedBy (pchar '.') >>. preturn nl
         // note that on a first pass, all options *need* to be parsed together -> don't split into double and int!!
         attempt (number false) <|> attempt (number true) 
-    literal >>= verifyAndBuild |> asExpression
+    term literal >>= verifyAndBuild |>> fun (exKind, range) -> range |> buildExpression exKind
 
 /// Parses a Q# string literal as QsExpression. 
 /// Handles both interpolates and non-interpolated strings.

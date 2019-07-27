@@ -141,11 +141,21 @@ let ``Symbol name tests`` () =
 
 [<Fact>]
 let ``Expression literal tests`` () =
+
+    // constants that should be handled
     let minInt = System.Int64.MinValue // -9223372036854775808L
     let maxInt = System.Int64.MaxValue // 9223372036854775807L
     let minDouble = System.Double.MinValue // -1.7976931348623157E+308
     let maxDouble = System.Double.MaxValue // 1.7976931348623157E+308
     Assert.Equal(minInt, -(-minInt))
+
+    // constants that should raise an error
+    let absMinIntMinus1 = uint64(-minInt) + 1UL
+    let minIntMinus1Str = absMinIntMinus1.ToString() |> sprintf "-%s"
+    let maxIntPlus1 = uint64(maxInt) + 1UL
+    let maxIntPlus2 = uint64(maxInt) + 2UL
+    let doublePrecBound = "1.79769313486232E+308" // what shows up as out of range in C#
+    let minusDoublePrecBound = sprintf "-%s" doublePrecBound
 
     let noExprs = ([| |] : QsExpression[]).ToImmutableArray()
     [
@@ -153,6 +163,12 @@ let ``Expression literal tests`` () =
         ("1",                     true,    toInt 1,                                                               []); 
         ("+1",                    true,    toInt 1,                                                               []); 
         ("-1",                    true,    toExpr (NEG (toInt 1)),                                                []); 
+        (minInt.ToString(),       true,    toExpr (NEG (NEG (IntLiteral minInt |> toExpr) |> toExpr)),            []); 
+        (minIntMinus1Str,         true,    toExpr (NEG (IntLiteral ((int64)absMinIntMinus1) |> toExpr)),          [Error ErrorCode.IntOverflow]);
+        (maxIntPlus1.ToString(),  true,    toExpr (NEG (IntLiteral ((int64)maxIntPlus1) |> toExpr)),              []); // no error, will pop up at runtime
+        (maxIntPlus2.ToString(),  true,    toExpr (IntLiteral ((int64)maxIntPlus2)),                              [Error ErrorCode.IntOverflow]);
+        (doublePrecBound,         true,    toExpr (DoubleLiteral System.Double.NaN),                              [Error ErrorCode.DoubleOverflow]);
+        (minusDoublePrecBound,    true,    toExpr (NEG (DoubleLiteral System.Double.NaN |> toExpr)),              [Error ErrorCode.DoubleOverflow]);
         (minInt.ToString(),       true,    toExpr (NEG (NEG (IntLiteral minInt |> toExpr) |> toExpr)),            []); 
         (maxInt.ToString(),       true,    toExpr (IntLiteral maxInt),                                            []); 
         (minDouble.ToString("R"), true,    toExpr (NEG (DoubleLiteral -minDouble |> toExpr)),                     []); 
