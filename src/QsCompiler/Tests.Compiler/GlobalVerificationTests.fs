@@ -52,6 +52,37 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
+    member this.``Uniqueness of specializations`` () = 
+
+        this.Expect "ValidSetOfSpecializations1"  []
+        this.Expect "ValidSetOfSpecializations2"  []
+        this.Expect "ValidSetOfSpecializations3"  []
+        this.Expect "ValidSetOfSpecializations4"  []
+        this.Expect "ValidSetOfSpecializations5"  []
+        this.Expect "ValidSetOfSpecializations6"  []
+        this.Expect "ValidSetOfSpecializations7"  []
+        this.Expect "ValidSetOfSpecializations8"  []
+        this.Expect "ValidSetOfSpecializations9"  []
+        this.Expect "ValidSetOfSpecializations10" []
+        this.Expect "ValidSetOfSpecializations11" []
+        this.Expect "ValidSetOfSpecializations12" []
+        this.Expect "ValidSetOfSpecializations13" []
+
+        this.Expect "InvalidSetOfSpecializations1"  [Error ErrorCode.RedefinitionOfControlledAdjoint]
+        this.Expect "InvalidSetOfSpecializations2"  [Error ErrorCode.RedefinitionOfControlledAdjoint]
+        this.Expect "InvalidSetOfSpecializations3"  [Error ErrorCode.RedefinitionOfControlledAdjoint]
+        this.Expect "InvalidSetOfSpecializations4"  [Error ErrorCode.RedefinitionOfControlledAdjoint]
+        this.Expect "InvalidSetOfSpecializations5"  [Error ErrorCode.RedefinitionOfControlledAdjoint]
+        this.Expect "InvalidSetOfSpecializations6"  [Error ErrorCode.RedefinitionOfControlledAdjoint]
+        this.Expect "InvalidSetOfSpecializations7"  [Error ErrorCode.RedefinitionOfAdjoint]
+        this.Expect "InvalidSetOfSpecializations8"  [Error ErrorCode.RedefinitionOfAdjoint]
+        this.Expect "InvalidSetOfSpecializations9"  [Error ErrorCode.RedefinitionOfAdjoint]
+        this.Expect "InvalidSetOfSpecializations10" [Error ErrorCode.RedefinitionOfControlled]
+        this.Expect "InvalidSetOfSpecializations11" [Error ErrorCode.RedefinitionOfControlled]
+        this.Expect "InvalidSetOfSpecializations12" [Error ErrorCode.RedefinitionOfControlled]
+
+
+    [<Fact>]
     member this.``Circular dependencies in user defined types`` () = 
 
         this.Expect "TypeA1"       []

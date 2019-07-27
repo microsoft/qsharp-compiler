@@ -170,14 +170,23 @@ type private PartialNamespace private
         | true, specs -> specs.Add spec // it is up to the namespace to verify the type specializations
         | false, _ -> CallableSpecializations.Add(cName, new List<_>([spec]))
 
+    /// Deletes the *explicitly* defined specialization at the specified location for the callable with the given name.
+    /// Does not delete specializations that have been inserted by the compiler, i.e. specializations whose location matches the callable declaration location.
+    /// Returns the number of removed specializations. 
+    /// Throws the standard key does not exist exception if no specialization for the callable with that name exists.
+    member internal this.RemoveCallableSpecialization (location : QsLocation) cName = 
+        match CallableDeclarations.TryGetValue cName with 
+        | true, (_, decl) when decl.Position = location.Offset && decl.Range = location.Range -> 0 
+        | _ -> CallableSpecializations.[cName].RemoveAll (fun (_, res) -> location.Offset = res.Position && location.Range = res.Range)
+
     /// Sets the resolution for the type with the given name to the given type.
-    /// Fails with the standard key does not exist error if no type with that name exists.
+    /// Throws the standard key does not exist exception if no type with that name exists.
     member internal this.SetTypeResolution (tName, resolvedType) = 
         let qsType = TypeDeclarations.[tName]
         TypeDeclarations.[tName] <- {qsType with Resolved = resolvedType}
 
     /// Sets the resolution for the signature of the callable with the given name to the given signature.
-    /// Fails with the standard key does not exist error if no callable with that name exists.
+    /// Throws the standard key does not exist exception if no callable with that name exists.
     member internal this.SetCallableResolution (cName, resolvedSignature) = 
         let (kind, signature) = CallableDeclarations.[cName]
         CallableDeclarations.[cName] <- (kind, {signature with Resolved = resolvedSignature})
@@ -538,6 +547,15 @@ and Namespace private
         let doc = ImmutableArray.Create(sprintf "automatically generated %A specialization for %s.%s" kind this.Name.Value parentName.Value)
         this.TryAddCallableSpecialization kind (source, location) ((parentName, declLocation.Range), generator, doc) 
 
+    /// Deletes the specialization(s) defined at the specified location and source file for the callable with the given name.
+    /// Returns the number of removed specializations.
+    /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
+    /// Throws the standard key does not exist exception if no callable with that name exists.
+    member internal this.RemoveSpecialization (source, location) cName =
+        match Parts.TryGetValue source with 
+        | true, partial -> partial.RemoveCallableSpecialization location cName
+        | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
+
 
 /// Threadsafe class for global symbol management.
 /// Takes a lookup for all callables and for all types declared within one of the assemblies 
@@ -716,7 +734,8 @@ and NamespaceManager
         diagnostics.ToArray()
 
     /// Resolves all specialization generation directives for all callables declared in all source files of each namespace, 
-    /// then resolves and caches the signature of the callables themselves. 
+    /// inserting inferred specializations if necessary and removing invalid specializations. 
+    /// Then resolves and caches the signature of the callables themselves. 
     /// Returns the diagnostics generated upon resolution as well as the root position and file for each diagnostic as tuple.
     /// IMPORTANT: does *not* return diagnostics generated for type constructors - suitable diagnostics need to be generated upon type resolution.
     member private this.CacheCallableResolutions () = 
@@ -737,10 +756,19 @@ and NamespaceManager
                 let definedSpecs = ns.SpecializationsDefinedInAllSources parent.Name
                 let insertSpecialization typeArgs kind = ns.InsertSpecialization (kind, typeArgs) (parent.Name, source)
                 let props, bundleErrs = SymbolResolution.GetBundleProperties insertSpecialization (signature, source) definedSpecs
-                errs <- (bundleErrs |> Array.concat) :: errs
+                let bundleErrs = bundleErrs |> Array.concat
+                errs <- bundleErrs :: errs
+
+                // we remove the specializations which could not be bundled and resolve the newly inserted ones
+                for (specSource, (errPos, d)) in bundleErrs do
+                    match d.Diagnostic with 
+                    | Information _ | Warning _ -> ()
+                    | Error errCode -> 
+                        let removed = ns.RemoveSpecialization (specSource, {Offset = errPos; Range = d.Range}) parent.Name
+                        QsCompilerError.Verify ((removed <= 1), sprintf "removed %i specializations based on error code %s" removed (errCode.ToString()))
+                let autoResErrs = ns.SetSpecializationResolutions (parent.Name, typeArgsResolution)
 
                 // only then can we resolve the generators themselves
-                let autoResErrs = ns.SetSpecializationResolutions (parent.Name, typeArgsResolution)
                 let resolution _ = SymbolResolution.ResolveGenerator props 
                 let specErrs = ns.SetSpecializationResolutions (parent.Name, resolution)
 
