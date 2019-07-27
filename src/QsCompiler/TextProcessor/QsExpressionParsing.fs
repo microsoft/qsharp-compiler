@@ -177,7 +177,10 @@ let private numericLiteral =
         let isInt    = nl.IsInteger     && format <> 0                  && nl.SuffixLength = 0 // any format is fine here
         let isBigInt = nl.IsInteger     && (format = 10 || format = 16) && nl.SuffixLength = 1 && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
         let isDouble = not nl.IsInteger && format = 10                  && nl.SuffixLength = 0 
-        try if isInt then System.Convert.ToInt64 (str, format) |> IntLiteral |> preturn
+        try if isInt then 
+                let value = System.Convert.ToUInt64 (str, format) // convert to uint64 to allow proper handling of Int64.MinValue
+                if value = uint64(-System.Int64.MinValue) then System.Int64.MinValue |> IntLiteral |> preturn |> asExpression >>= (NEG >> preturn)
+                else (int64)value |> IntLiteral |> preturn
             elif isBigInt then 
                 if format = 16 then BigInteger.Parse(str, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> preturn
                 else BigInteger.Parse (nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> preturn
