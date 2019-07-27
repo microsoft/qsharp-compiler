@@ -155,12 +155,12 @@ let rec matchExpression e1 e2 =
     | UnitValue
     | IntLiteral _
     | BigIntLiteral _
-    | DoubleLiteral _
     | BoolLiteral _
     | ResultLiteral _
     | PauliLiteral _
     | MissingExpr
     | InvalidExpr                   -> ex1 = ex2
+    | DoubleLiteral d1              -> match ex2 with | DoubleLiteral d2 -> d1 = d2 || (Double.IsNaN d1 && Double.IsNaN d2)                                                   | _ -> false
     | Identifier (i1,t1)            -> match ex2 with | Identifier (i2,t2) -> i1.Symbol = i2.Symbol && matchTypeArray t1 t2                                                   | _ -> false
     | StringLiteral (s1, a1)        -> match ex2 with | StringLiteral (s2, a2) -> (s1 = s2) && (matchAll a1 a2)                                                               | _ -> false
     | ValueTuple a1                 -> match ex2 with | ValueTuple a2 -> matchAll a1 a2                                                                                       | _ -> false
