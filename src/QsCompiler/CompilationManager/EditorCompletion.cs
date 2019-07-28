@@ -107,8 +107,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // If the character at the position is a dot but no valid namespace path precedes it (for example, in a
             // decimal number), then no completions are valid here.
-            if (namespacePath == null && file.GetLine(position.Line).Text[position.Character - 1] == '.')
+            if (namespacePath == null &&
+                position.Character > 0 &&
+                file.GetLine(position.Line).Text[position.Character - 1] == '.')
+            {
                 return new CompletionList() { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
+            }
 
             // TODO: Support context-aware completions for additional contexts.
             IEnumerable<CompletionItem> completions;
