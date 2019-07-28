@@ -404,12 +404,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     // Get last un-documented declaration
                     var declTokenInd = decls?.TakeWhile(t => t.Line <= range.Start.Line)
-                                             .Where(t => !hasDocumentingComment(t.GetFragment().GetRange().Start)).LastOrDefault();
+                                             .Where(t => !hasDocumentingComment(t.GetFragment().GetRange().Start));
 
-                    if (declTokenInd is null || declTokenInd.Equals(default))
-                        return default;
+                    if (declTokenInd is null || !declTokenInd.Any())
+                        return (null,null);
 
-                    var declFrag       = declTokenInd.GetFragment();
+                    var declFrag       = declTokenInd.Last().GetFragment();
                     var declRange      = declFrag.GetRange();
                     string indentation = file.GetLine(declRange.Start.Line).Text.Substring(0, declRange.Start.Character);
                     string docPrefix   = "/// ", endl = $"{Environment.NewLine}{indentation}";
@@ -431,7 +431,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                     return ($"Document {declFrag.Text}",
                             GetWorkspaceEdit(new TextEdit { Range = new Range { Start = declRange.Start, End = declRange.Start }, NewText = docString }));
-                }).Where(x => !x.Equals(default));
+                }).Where(x => !x.Equals((null,null)));
             }
 
             var suggestedDocStrings = SuggestedDocStrings(file.CallableDeclarationTokens(), file.NamespaceDeclarationTokens(), file.TypeDeclarationTokens());
