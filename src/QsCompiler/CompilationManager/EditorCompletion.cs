@@ -471,28 +471,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             switch (fragment.Kind)
             {
-                case QsFragmentKind.TypeDefinition td:
-                    return PositionIsWithinSymbol(td.Item1);
-                case QsFragmentKind.FunctionDeclaration fd:
-                    return PositionIsWithinSymbol(fd.Item1);
-                case QsFragmentKind.OperationDeclaration od:
-                    return PositionIsWithinSymbol(od.Item1);
-                case QsFragmentKind.BorrowingBlockIntro bbi:
-                    return PositionIsWithinSymbol(bbi.Item1);
-                case QsFragmentKind.UsingBlockIntro ubi:
-                    return PositionIsWithinSymbol(ubi.Item1);
-                case QsFragmentKind.ForLoopIntro fli:
-                    return PositionIsWithinSymbol(fli.Item1);
-                case QsFragmentKind.MutableBinding mb:
-                    return PositionIsWithinSymbol(mb.Item1);
-                case QsFragmentKind.ImmutableBinding ib:
-                    return PositionIsWithinSymbol(ib.Item1);
-                case QsFragmentKind.OpenDirective od:
-                    return od.Item2.IsValue && PositionIsWithinSymbol(od.Item2.Item);
-                case QsFragmentKind.NamespaceDeclaration nd:
-                    return PositionIsWithinSymbol(nd.Item);
-                default:
-                    return false;
+                case QsFragmentKind.TypeDefinition td: return PositionIsWithinSymbol(td.Item1);
+                case QsFragmentKind.FunctionDeclaration fd: return PositionIsWithinSymbol(fd.Item1);
+                case QsFragmentKind.OperationDeclaration od: return PositionIsWithinSymbol(od.Item1);
+                case QsFragmentKind.BorrowingBlockIntro bbi: return PositionIsWithinSymbol(bbi.Item1);
+                case QsFragmentKind.UsingBlockIntro ubi: return PositionIsWithinSymbol(ubi.Item1);
+                case QsFragmentKind.ForLoopIntro fli: return PositionIsWithinSymbol(fli.Item1);
+                case QsFragmentKind.MutableBinding mb: return PositionIsWithinSymbol(mb.Item1);
+                case QsFragmentKind.ImmutableBinding ib: return PositionIsWithinSymbol(ib.Item1);
+                case QsFragmentKind.OpenDirective od: return od.Item2.IsValue && PositionIsWithinSymbol(od.Item2.Item);
+                case QsFragmentKind.NamespaceDeclaration nd: return PositionIsWithinSymbol(nd.Item);
+                default: return false;
             }
         }
 
