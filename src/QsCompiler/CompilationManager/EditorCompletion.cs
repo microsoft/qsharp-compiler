@@ -114,8 +114,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<CompletionItem> completions;
             if (IsInNamespaceContext(file, position))
             {
-                var fragment = file.TryGetFragmentAt(position, includeEnd: true);
-                var textUpToPosition = fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
+                var fragment = GetLastTokenBefore(file, position)?.GetFragment();
+                QsCompilerError.Verify(fragment != null, "Namespace context should have at least one token");
+                var textUpToPosition =
+                    fragment.GetRange().End.IsSmallerThan(position)
+                    ? fragment.Text
+                    : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
                 completions =
                     CompletionParsing.GetExpectedIdentifiers(textUpToPosition)
                     .SelectMany(kind => GetCompletionsForKind(file, compilation, position, namespacePath, kind));
@@ -173,9 +177,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (file == null || position == null)
                 return false;
-            var index = file.GetTokenizedLine(position.Line).TakeWhile(ContextBuilder.TokensUpTo(position)).Count() - 1;
-            var parent = new CodeFragment.TokenIndex(file, position.Line, index).GetNonEmptyParent().GetFragment();
-            return parent.Kind.IsNamespaceDeclaration;
+            var token = GetLastTokenBefore(file, position);
+            return token?.GetNonEmptyParent()?.GetFragment().Kind.IsNamespaceDeclaration ?? false;
         }
 
         /// <summary>
@@ -511,6 +514,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return compilation.GlobalSymbols.TryResolveNamespaceAlias(
                 NonNullable<string>.New(alias), NonNullable<string>.New(nsName), file.FileName)
                 ?? alias;
+        }
+
+        /// <summary>
+        /// Returns the index of the last token before the given position in the file.
+        /// <para/>
+        /// Returns null if any parameter is null or if there are no tokens before the given position.
+        /// </summary>
+        private static CodeFragment.TokenIndex GetLastTokenBefore(FileContentManager file, Position position)
+        {
+            if (file == null || position == null)
+                return null;
+
+            var lineNumber = position.Line;
+            var tokens = file.GetTokenizedLine(lineNumber);
+
+            // If the current line is empty, find the last non-empty line before it.
+            while (tokens.IsEmpty && lineNumber > 0)
+                tokens = file.GetTokenizedLine(--lineNumber);
+
+            var index = tokens.TakeWhile(ContextBuilder.TokensUpTo(position)).Count() - 1;
+            return index == -1 ? null : new CodeFragment.TokenIndex(file, lineNumber, index);
         }
     }
 }
