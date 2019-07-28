@@ -204,7 +204,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .Concat(typeKeywords);
             if (kind.IsNamespace)
                 return
-                    GetGlobalNamespaceCompletions(compilation, namespacePrefix)
+                    GetGlobalNamespaceCompletions(compilation, namespacePrefix ?? "")
                     .Concat(GetNamespaceAliasCompletions(file, compilation, position));
             if (kind.IsCharacteristic)
                 return characteristicKeywords;
