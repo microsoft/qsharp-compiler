@@ -173,7 +173,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.RenameProvider = true;
             capabilities.HoverProvider = true;
             capabilities.DocumentHighlightProvider = true;
-            capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "," };
+            capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "(", "," };
             capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities 
             capabilities.CompletionProvider.ResolveProvider = true;
             capabilities.CompletionProvider.TriggerCharacters = new[] { "." };

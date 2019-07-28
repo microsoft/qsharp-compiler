@@ -108,6 +108,8 @@ type ErrorCode =
     | InvalidValueArray = 3301
     | InvalidValueTuple = 3302
     | UpdateOfArrayItemExpr = 3303
+    | IntOverflow = 3304
+    | DoubleOverflow = 3305
 
     | NotWithinGlobalScope = 4001
     | NotWithinNamespace = 4002
@@ -415,6 +417,8 @@ type DiagnosticItem =
             | ErrorCode.InvalidValueArray                       -> "Syntax error in value array. Expecting a comma separated list of expressions."
             | ErrorCode.InvalidValueTuple                       -> "Syntax error in value tuple. Expecting a comma separated list of tuple items."
             | ErrorCode.UpdateOfArrayItemExpr                   -> "Array items are immutable. To set an item \"idx\" of an array \"arr\" to a value \"expr\", use and reassign a copy-and-update expression instead: \"set arr w/= idx <- expr;\"."
+            | ErrorCode.IntOverflow                             -> "Int literal is outside of the range of valid values."
+            | ErrorCode.DoubleOverflow                          -> "Double literal is outside of the range of valid values."
 
             | ErrorCode.NotWithinGlobalScope                    -> "Namespace declarations can only occur on a global scope."
             | ErrorCode.NotWithinNamespace                      -> "Declarations and open-directives can only occur within a namespace."

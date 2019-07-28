@@ -1088,40 +1088,41 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given a lookup of all specializations and their build directives for the parent callable,
+        /// Given a function that returns the generator directive for a given specialization kind, or null if none has been defined for that kind,
         /// determines the necessary functor support required for each operation call within a user defined implementation of the specified specialization. 
         /// Throws an ArgumentNullException if the given specialization for which to determine the required functor support is null, 
-        /// or if the given dictionary of all relevant build directives or any of its values is. 
+        /// or if the given function to query the directives is. 
         /// </summary>
         private static IEnumerable<QsFunctor> RequiredFunctorSupport(QsSpecializationKind spec, 
-            ImmutableDictionary<QsSpecializationKind, QsNullable<QsGeneratorDirective>> directives)
+            Func<QsSpecializationKind, QsGeneratorDirective> directives) 
         {
             if (spec == null) throw new ArgumentNullException(nameof(spec));
             if (directives == null) throw new ArgumentNullException(nameof(directives));
 
-            if (directives.TryGetValue(QsSpecializationKind.QsAdjoint, out var adjDir) &&
-                spec.IsQsBody && adjDir.IsValue && !(adjDir.Item.IsSelfInverse || adjDir.Item.IsInvalidGenerator))
+            var adjDir = directives(QsSpecializationKind.QsAdjoint);
+            var ctlDir = directives(QsSpecializationKind.QsControlled);
+            var ctlAdjDir = directives(QsSpecializationKind.QsControlledAdjoint);
+
+            if (spec.IsQsBody && adjDir != null && !(adjDir.IsSelfInverse || adjDir.IsInvalidGenerator))
             {
-                if (adjDir.Item.IsInvert) yield return QsFunctor.Adjoint;
+                if (adjDir.IsInvert) yield return QsFunctor.Adjoint;
                 else QsCompilerError.Raise("expecting adjoint functor generator directive to be 'invert'");
             }
 
-            if (directives.TryGetValue(QsSpecializationKind.QsControlled, out var ctlDir) &&
-                spec.IsQsBody && ctlDir.IsValue && !ctlDir.Item.IsInvalidGenerator)
+            if (spec.IsQsBody && ctlDir != null && !ctlDir.IsInvalidGenerator)
             {
-                if (ctlDir.Item.IsDistribute) yield return QsFunctor.Controlled;
+                if (ctlDir.IsDistribute) yield return QsFunctor.Controlled;
                 else QsCompilerError.Raise("expecting controlled functor generator directive to be 'distribute'");
             }
 
             // since a directive for a controlled adjoint specialization requires an auto-generation based on either the adjoint or the controlled version
             // when the latter may or may not be auto-generated, we also need to check the controlled adjoint specialization
-            if (directives.TryGetValue(QsSpecializationKind.QsControlledAdjoint, out var ctlAdjDir) &&
-                ctlAdjDir.IsValue && !(ctlAdjDir.Item.IsSelfInverse || ctlAdjDir.Item.IsInvalidGenerator))
+            if (ctlAdjDir != null && !(ctlAdjDir.IsSelfInverse || ctlAdjDir.IsInvalidGenerator))
             {
-                if (ctlAdjDir.Item.IsDistribute)
-                { if (spec.IsQsAdjoint || (spec.IsQsBody && adjDir.IsValue)) yield return QsFunctor.Controlled; }
-                else if (ctlAdjDir.Item.IsInvert)
-                { if (spec.IsQsControlled || (spec.IsQsBody && ctlDir.IsValue)) yield return QsFunctor.Adjoint; }
+                if (ctlAdjDir.IsDistribute)
+                { if (spec.IsQsAdjoint || (spec.IsQsBody && adjDir != null)) yield return QsFunctor.Controlled; }
+                else if (ctlAdjDir.IsInvert)
+                { if (spec.IsQsControlled || (spec.IsQsBody && ctlDir != null)) yield return QsFunctor.Adjoint; }
                 else QsCompilerError.Raise("expecting controlled adjoint functor generator directive to be either 'invert' or 'distribute'");
             }
         }
@@ -1147,10 +1148,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
             if (cancellationToken.IsCancellationRequested) return ImmutableArray<QsSpecialization>.Empty;
-            var definedSpecs = symbols.DefinedSpecializations(new QsQualifiedName(specsRoot.Namespace, specsRoot.Callable)).ToLookup(s => s.Item2.Kind);
-            var directives = definedSpecs.ToImmutableDictionary(
-                specs => specs.Key, 
-                specs => QsCompilerError.RaiseOnFailure(specs.Single, "more than one specialization of the same kind exists").Item1); // currently not supported
+            var definedSpecs = symbols.DefinedSpecializations(new QsQualifiedName(specsRoot.Namespace, specsRoot.Callable))
+                .ToLookup(s => s.Item2.Kind).ToImmutableDictionary(
+                    specs => specs.Key, 
+                    specs => QsCompilerError.RaiseOnFailure(specs.Single, "more than one specialization of the same kind exists")); // currently not supported
 
             QsSpecialization GetSpecialization(SpecializationDeclarationHeader spec, ResolvedSignature signature, 
                 SpecializationImplementation implementation, QsComments comments = null) =>
@@ -1160,11 +1161,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             QsSpecialization BuildSpecialization(QsSpecializationKind kind, ResolvedSignature signature, QsSpecializationGeneratorKind<QsSymbol> gen, FragmentTree.TreeNode root,
                 Func<QsSymbol, Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsCompilerDiagnostic[]>> buildArg, QsComments comments = null)
             {
-                if (!directives.TryGetValue(kind, out var directive))
+                if (!definedSpecs.TryGetValue(kind, out var defined))
                     throw new ArgumentException($"missing entry for {kind} specialization of {specsRoot.Namespace}.{specsRoot.Callable}");
-                var spec = definedSpecs[kind].Single().Item2;
+                var (directive, spec) = defined;
 
-                var required = RequiredFunctorSupport(kind, directives);
+                var required = RequiredFunctorSupport(kind, k => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null);
                 var symbolTracker = new SymbolTracker<Position>(symbols, spec.SourceFile, spec.Parent, required);
                 var implementation = directive.IsValue ? SpecializationImplementation.NewGenerated(directive.Item) : null;
 
@@ -1192,6 +1193,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (cancellationToken.IsCancellationRequested) return null;
                 bool InvalidCharacteristicsOrSupportedFunctors(params QsFunctor[] functors) =>
                     parentCharacteristics.AreInvalid || !functors.Any(f => !supportedFunctors.Contains(f));
+                if (!definedSpecs.Values.Any(d => DiagnosticTools.AsPosition(d.Item2.Position) == root.Fragment.GetRange().Start)) return null; // only process specializations that are valid
 
                 if (FileHeader.IsCallableDeclaration(root.Fragment)) // no specializations have been defined -> one default body
                 {
@@ -1227,25 +1229,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // build the specializations defined in the source code
             var existing = ImmutableArray.CreateBuilder<QsSpecialization>();
-            existing.AddRange(specsRoot.Specializations.Select(BuildSpec));
+            existing.AddRange(specsRoot.Specializations.Select(BuildSpec).Where(s => s != null));
             if (cancellationToken.IsCancellationRequested) return existing.ToImmutableArray();
 
             // additionally we need to build the specializations that are missing in the source code
             var existingKinds = existing.Select(t => t.Kind).ToImmutableHashSet();
-            foreach (var defined in definedSpecs)
+            foreach (var (directive, spec) in definedSpecs.Values)
             {
-                var (directive, spec) = defined.Single();
-                if (!existingKinds.Contains(spec.Kind))
-                {
-                    var implementation = directive.IsValue
-                        ? SpecializationImplementation.NewGenerated(directive.Item)
-                        : SpecializationImplementation.Intrinsic;
-                    if (spec.Kind.IsQsBody || spec.Kind.IsQsAdjoint)
-                    { existing.Add(GetSpecialization(spec, parentSignature, implementation)); } 
-                    else if (spec.Kind.IsQsControlled || spec.Kind.IsQsControlledAdjoint)
-                    { existing.Add(GetSpecialization(spec, controlledSignature, implementation)); }
-                    else QsCompilerError.Raise("unknown functor kind");
-                }
+                if (existingKinds.Contains(spec.Kind)) continue;
+                var implementation = directive.IsValue
+                    ? SpecializationImplementation.NewGenerated(directive.Item)
+                    : SpecializationImplementation.Intrinsic;
+                if (spec.Kind.IsQsBody || spec.Kind.IsQsAdjoint)
+                { existing.Add(GetSpecialization(spec, parentSignature, implementation)); } 
+                else if (spec.Kind.IsQsControlled || spec.Kind.IsQsControlledAdjoint)
+                { existing.Add(GetSpecialization(spec, controlledSignature, implementation)); }
+                else QsCompilerError.Raise("unknown functor kind");
             }
             return existing.ToImmutableArray();
         }
