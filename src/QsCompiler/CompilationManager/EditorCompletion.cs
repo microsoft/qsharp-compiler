@@ -354,19 +354,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (position == null)
                 throw new ArgumentNullException(nameof(position));
 
-            string @namespace = file.TryGetNamespaceAt(position);
+            var @namespace = file.TryGetNamespaceAt(position);
             return
                 @namespace == null
                 ? Array.Empty<CompletionItem>()
                 : compilation
-                .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
-                .Where(open => open.Item2 != null)
-                .Select(open => new CompletionItem()
-                {
-                    Label = open.Item2,
-                    Kind = CompletionItemKind.Module,
-                    Detail = open.Item1.Value
-                });
+                    .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
+                    .Where(open => open.Item2 != null)
+                    .Select(open => new CompletionItem()
+                    {
+                        Label = open.Item2,
+                        Kind = CompletionItemKind.Module,
+                        Detail = open.Item1.Value
+                    });
         }
 
         /// <summary>
@@ -419,12 +419,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (position == null)
                 throw new ArgumentNullException(nameof(position));
 
-            CodeFragment fragment = file.TryGetFragmentAt(position, includeEnd: true);
+            var fragment = file.TryGetFragmentAt(position, includeEnd: true);
             if (fragment == null)
                 return false;
 
             // If the symbol is invalid, there is no range available, but assume the user is typing in the symbol now.
-            Position offset = fragment.GetRange().Start;
+            var offset = fragment.GetRange().Start;
             bool PositionIsWithinSymbol(QsSymbol symbol) =>
                 symbol.Symbol.IsInvalidSymbol ||
                 position.IsWithinRange(DiagnosticTools.GetAbsoluteRange(offset, symbol.Range.Item), includeEnd: true);
@@ -471,15 +471,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (position == null)
                 throw new ArgumentNullException(nameof(position));
 
-            string @namespace = file.TryGetNamespaceAt(position);
+            var @namespace = file.TryGetNamespaceAt(position);
             return
                 @namespace == null
                 ? Array.Empty<string>()
                 : compilation
-                .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
-                .Where(open => open.Item2 == null)  // Only include open directives without an alias.
-                .Select(open => open.Item1.Value)
-                .Concat(new[] { @namespace });
+                    .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
+                    .Where(open => open.Item2 == null)  // Only include open directives without an alias.
+                    .Select(open => open.Item1.Value)
+                    .Concat(new[] { @namespace });
         }
 
         /// <summary>
@@ -497,7 +497,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var fragment = file.TryGetFragmentAt(position, includeEnd: true);
             if (fragment == null)
                 return null;
-            int startAt = GetTextIndexFromPosition(fragment, position);
+            var startAt = GetTextIndexFromPosition(fragment, position);
             var match = Utils.QualifiedSymbolRTL.Match(fragment.Text, startAt);
             if (match.Success && match.Index + match.Length == startAt && match.Value.LastIndexOf('.') != -1)
                 return match.Value.Substring(0, match.Value.LastIndexOf('.'));
@@ -517,9 +517,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (position == null)
                 throw new ArgumentNullException(nameof(position));
 
-            int relativeLine = position.Line - fragment.GetRange().Start.Line;
-            string[] lines = Utils.SplitLines(fragment.Text);
-            int relativeChar =
+            var relativeLine = position.Line - fragment.GetRange().Start.Line;
+            var lines = Utils.SplitLines(fragment.Text);
+            var relativeChar =
                 relativeLine == 0 ? position.Character - fragment.GetRange().Start.Character : position.Character;
             if (relativeLine < 0 ||
                 relativeLine >= lines.Length ||
@@ -548,7 +548,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (alias == null)
                 throw new ArgumentNullException(nameof(alias));
 
-            string nsName = file.TryGetNamespaceAt(position);
+            var nsName = file.TryGetNamespaceAt(position);
             if (nsName == null)
                 return alias;
             return compilation.GlobalSymbols.TryResolveNamespaceAlias(
