@@ -633,7 +633,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             index = new CodeFragment.TokenIndex(file, lineNumber, indexNumber);
             fragment = index.GetFragment();
-            if (GetDelimitingCharPosition(file, fragment).IsSmallerThan(position))
+            if (fragment.FollowedBy != CodeFragment.MissingDelimiter &&
+                GetDelimitingCharPosition(file, fragment).IsSmallerThan(position))
             {
                 switch (fragment.FollowedBy)
                 {
@@ -648,6 +649,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the position of the delimiting character that follows the given code fragment.
         /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the code fragment has a missing delimiter.</exception>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         private static Position GetDelimitingCharPosition(FileContentManager file, CodeFragment fragment)
         {
@@ -655,19 +657,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (fragment == null)
                 throw new ArgumentNullException(nameof(fragment));
+            if (fragment.FollowedBy == CodeFragment.MissingDelimiter)
+                throw new ArgumentException("Code fragment has a missing delimiter", nameof(fragment));
 
             var end = fragment.GetRange().End;
             for (var lineNumber = end.Line; lineNumber < file.NrLines(); lineNumber++)
             {
-                var line = file.GetLine(lineNumber);
                 var start = lineNumber == end.Line ? end.Character : 0;
+                var line = file.GetLine(lineNumber);
                 var index = line.FindInCode(s => s.IndexOf(fragment.FollowedBy), start, line.Text.Length - start);
                 if (index != -1)
                     return new Position(lineNumber, index);
             }
-            QsCompilerError.Raise("Fragment was not followed by a delimiting character");
-            // The compiler can't statically determine that QsCompilerError.Raise always throws an exception, so...
-            throw new Exception("QsCompilerError.Raise did not throw an exception");
+            
+            // This means the code fragment and file state are inconsistent...
+            throw new Exception("Code fragment was not followed by the specified delimiting character");
         }
     }
 }
