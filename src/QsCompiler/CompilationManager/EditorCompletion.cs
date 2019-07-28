@@ -558,17 +558,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(position));
 
             var relativeLine = position.Line - fragment.GetRange().Start.Line;
-            var lines = Utils.SplitLines(fragment.Text);
-            var relativeChar =
+            var lines = Utils.SplitLines(fragment.Text).DefaultIfEmpty("");
+            var relativeCharacter =
                 relativeLine == 0 ? position.Character - fragment.GetRange().Start.Character : position.Character;
             if (relativeLine < 0 ||
-                relativeLine >= lines.Length ||
-                relativeChar < 0 ||
-                relativeChar > lines[relativeLine].Length)
+                relativeLine >= lines.Count() ||
+                relativeCharacter < 0 ||
+                relativeCharacter > lines.ElementAt(relativeLine).Length)
             {
                 throw new ArgumentException("Position is outside the fragment range", nameof(position));
             }
-            return lines.Take(relativeLine).Sum(line => line.Length) + relativeChar;
+            return lines.Take(relativeLine).Sum(line => line.Length) + relativeCharacter;
         }
 
         /// <summary>
