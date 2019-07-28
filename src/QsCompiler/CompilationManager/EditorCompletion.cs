@@ -59,6 +59,37 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class EditorCompletion
     {
         /// <summary>
+        /// Describes the relationship between two code fragments.
+        /// </summary>
+        private enum FragmentRelationship
+        {
+            /// <summary>
+            /// One or both code fragments are missing.
+            /// </summary>
+            Missing,
+
+            /// <summary>
+            /// The code fragments are the same.
+            /// </summary>
+            Self,
+
+            /// <summary>
+            /// Both code fragments are in the same scope.
+            /// </summary>
+            SameScope,
+
+            /// <summary>
+            /// The second fragment is inside an inner scope relative to the first fragment.
+            /// </summary>
+            InnerScope,
+
+            /// <summary>
+            /// The second fragment is in the enclosing scope of the first fragment.
+            /// </summary>
+            EnclosingScope
+        }
+
+        /// <summary>
         /// Completion items for built-in type keywords.
         /// </summary>
         private static readonly IEnumerable<CompletionItem> typeKeywords =
@@ -117,12 +148,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<CompletionItem> completions;
             if (IsInNamespaceContext(file, position))
             {
-                var fragment = GetLastTokenBefore(file, position)?.GetFragment();
-                QsCompilerError.Verify(fragment != null, "Namespace context should have at least one token");
-                var textUpToPosition =
-                    fragment.GetRange().End.IsSmallerThan(position)
-                    ? fragment.Text
-                    : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
+                var relationship = GetFragmentAtOrBefore(file, position, out _, out var fragment);
+                string textUpToPosition = "";
+                if (relationship == FragmentRelationship.Self)
+                    textUpToPosition =
+                        fragment.GetRange().End.IsSmallerThan(position)
+                        ? fragment.Text
+                        : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
                 completions =
                     CompletionParsing.GetExpectedIdentifiers(textUpToPosition)
                     .SelectMany(kind => GetCompletionsForKind(file, compilation, position, resolvedNsPath, kind));
@@ -181,8 +213,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (position == null)
                 throw new ArgumentNullException(nameof(position));
-            var token = GetLastTokenBefore(file, position);
-            return token?.GetNonEmptyParent()?.GetFragment().Kind.IsNamespaceDeclaration ?? false;
+
+            var relationship = GetFragmentAtOrBefore(file, position, out var index, out _);
+            CodeFragment.TokenIndex parent = null;
+            if (relationship == FragmentRelationship.EnclosingScope)
+                parent = index;
+            else if (relationship == FragmentRelationship.Self || relationship == FragmentRelationship.SameScope)
+                parent = index.GetNonEmptyParent();
+            else if (relationship == FragmentRelationship.InnerScope)
+                parent = index.GetNonEmptyParent()?.GetNonEmptyParent();
+            return parent == null ? false : parent.GetFragment().Kind.IsNamespaceDeclaration;
         }
 
         /// <summary>
@@ -556,11 +596,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the index of the last token before the given position in the file. Returns null if there are no
-        /// tokens before the given position.
+        /// Gets the token index and corresponding code fragment at, or the closest before, the given position in the
+        /// file. Returns the relationship between the found fragment and the fragment that would exist directly at the
+        /// given position, which may be different from <see cref="FragmentRelationship.Self"/> if the given position is
+        /// not part of any fragment.
+        /// <para/>
+        /// If <see cref="FragmentRelationship.Missing"/> is returned, then both the token index and code fragment out
+        /// parameters are set to null.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        private static CodeFragment.TokenIndex GetLastTokenBefore(FileContentManager file, Position position)
+        private static FragmentRelationship GetFragmentAtOrBefore(
+            FileContentManager file,
+            Position position,
+            out CodeFragment.TokenIndex index,
+            out CodeFragment fragment)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -574,8 +623,51 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             while (tokens.IsEmpty && lineNumber > 0)
                 tokens = file.GetTokenizedLine(--lineNumber);
 
-            var index = tokens.TakeWhile(ContextBuilder.TokensUpTo(position)).Count() - 1;
-            return index == -1 ? null : new CodeFragment.TokenIndex(file, lineNumber, index);
+            var indexNumber = tokens.TakeWhile(ContextBuilder.TokensUpTo(position)).Count() - 1;
+            if (indexNumber == -1)
+            {
+                index = null;
+                fragment = null;
+                return FragmentRelationship.Missing;
+            }
+
+            index = new CodeFragment.TokenIndex(file, lineNumber, indexNumber);
+            fragment = index.GetFragment();
+            if (GetDelimitingCharPosition(file, fragment).IsSmallerThan(position))
+            {
+                switch (fragment.FollowedBy)
+                {
+                    case '}': return FragmentRelationship.InnerScope;
+                    case '{': return FragmentRelationship.EnclosingScope;
+                    case ';': return FragmentRelationship.SameScope;
+                }
+            }
+            return FragmentRelationship.Self;
+        }
+
+        /// <summary>
+        /// Returns the position of the delimiting character that follows the given code fragment.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        private static Position GetDelimitingCharPosition(FileContentManager file, CodeFragment fragment)
+        {
+            if (file == null)
+                throw new ArgumentNullException(nameof(file));
+            if (fragment == null)
+                throw new ArgumentNullException(nameof(fragment));
+
+            var end = fragment.GetRange().End;
+            for (var lineNumber = end.Line; lineNumber < file.NrLines(); lineNumber++)
+            {
+                var line = file.GetLine(lineNumber);
+                var start = lineNumber == end.Line ? end.Character : 0;
+                var index = line.FindInCode(s => s.IndexOf(fragment.FollowedBy), start, line.Text.Length - start);
+                if (index != -1)
+                    return new Position(lineNumber, index);
+            }
+            QsCompilerError.Raise("Fragment was not followed by a delimiting character");
+            // The compiler can't statically determine that QsCompilerError.Raise always throws an exception, so...
+            throw new Exception("QsCompilerError.Raise did not throw an exception");
         }
     }
 }
