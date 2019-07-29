@@ -1,5 +1,6 @@
 ﻿using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -95,19 +96,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static readonly IEnumerable<CompletionItem> typeKeywords =
             new[]
             {
-                // TODO: Move this list to the Keywords module.
-                Keywords.qsUnit,
-                Keywords.qsInt,
-                Keywords.qsBigInt,
-                Keywords.qsDouble,
-                Keywords.qsBool,
-                Keywords.qsQubit,
-                Keywords.qsResult,
-                Keywords.qsPauli,
-                Keywords.qsRange,
-                Keywords.qsString
+                Types.Unit,
+                Types.Int,
+                Types.BigInt,
+                Types.Double,
+                Types.Bool,
+                Types.Qubit,
+                Types.Result,
+                Types.Pauli,
+                Types.Range,
+                Types.String
             }
-            .Select(keyword => new CompletionItem { Label = keyword.id, Kind = CompletionItemKind.Keyword });
+            .Select(type => new CompletionItem { Label = type, Kind = CompletionItemKind.Keyword });
 
         /// <summary>
         /// Completion items for built-in characteristic keywords.
@@ -115,11 +115,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static readonly IEnumerable<CompletionItem> characteristicKeywords =
             new[]
             {
-                // TODO: Move this list to the Keywords module.
-                Keywords.qsAdjSet,
-                Keywords.qsCtlSet
+                Types.AdjSet,
+                Types.CtlSet
             }
-            .Select(keyword => new CompletionItem { Label = keyword.id, Kind = CompletionItemKind.Keyword });
+            .Select(characteristic => new CompletionItem { Label = characteristic, Kind = CompletionItemKind.Keyword });
 
         /// <summary>
         /// Returns a list of suggested completion items for the given position.
