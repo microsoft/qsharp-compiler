@@ -8,8 +8,8 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
 
 
-/// Describes the context of a code fragment in terms of what completion possibilities are available.
-type CompletionContext =
+/// Describes the environment of a code fragment in terms of what kind of completions are available.
+type CompletionEnvironment =
     /// The code fragment is inside a namespace but outside any callable.
     | NamespaceTopLevel
 
@@ -220,11 +220,11 @@ module CompletionParsing =
             openDirective
         ]
 
-    /// Parses the possibly incomplete fragment text and returns the set of possible identifiers expected at the end of
-    /// the fragment.
-    let GetExpectedIdentifiers context text =
+    /// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the
+    /// end of the text.
+    let GetExpectedIdentifiers env text =
         let parser =
-            match context with
+            match env with
             | NamespaceTopLevel -> namespaceTopLevel
         match runParserOnString parser [] "" (text + "\u0004") with
         | Success (result, _, _) -> Set.ofList result

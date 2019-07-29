@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
-using CompletionContext = Microsoft.Quantum.QsCompiler.TextProcessing.CompletionContext;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -143,8 +142,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             IEnumerable<CompletionItem> completions;
-            var context = GetContext(file, position);
-            if (context != null)
+            var env = GetCompletionEnvironment(file, position);
+            if (env != null)
             {
                 var relationship = GetFragmentAtOrBefore(file, position, out _, out var fragment);
                 string textUpToPosition = "";
@@ -154,7 +153,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         ? fragment.Text
                         : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
                 completions =
-                    CompletionParsing.GetExpectedIdentifiers(context, textUpToPosition)
+                    CompletionParsing.GetExpectedIdentifiers(env, textUpToPosition)
                     .SelectMany(kind => GetCompletionsForKind(file, compilation, position, kind));
             }
             else if (nsPath != null)
@@ -203,10 +202,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the context at the given position in the file or null if the context cannot be determined.
+        /// Returns the completion environment at the given position in the file or null if the environment cannot be
+        /// determined.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        private static CompletionContext GetContext(FileContentManager file, Position position)
+        private static CompletionEnvironment GetCompletionEnvironment(FileContentManager file, Position position)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -222,9 +222,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             else if (relationship == FragmentRelationship.InnerScope)
                 parent = index.GetNonEmptyParent()?.GetNonEmptyParent();
 
-            // TODO: Support context-aware completions for additional contexts.
+            // TODO: Support context-aware completions for additional environments.
             if (parent != null && parent.GetFragment().Kind.IsNamespaceDeclaration)
-                return CompletionContext.NamespaceTopLevel;
+                return CompletionEnvironment.NamespaceTopLevel;
             return null;
         }
 
