@@ -294,7 +294,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(position));
             return
                 compilation
-                .TryGetLocalDeclarations(file, position, out var _)
+                .TryGetLocalDeclarations(file, position, out _)
                 .Variables
                 .Select(variable => new CompletionItem()
                 {
