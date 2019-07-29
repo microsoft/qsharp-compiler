@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using CompletionContext = Microsoft.Quantum.QsCompiler.TextProcessing.CompletionContext;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -205,7 +206,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the context at the given position in the file or null if the context cannot be determined.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        private static CompletionParsing.Context GetContext(FileContentManager file, Position position)
+        private static CompletionContext GetContext(FileContentManager file, Position position)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -223,7 +224,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // TODO: Support context-aware completions for additional contexts.
             if (parent != null && parent.GetFragment().Kind.IsNamespaceDeclaration)
-                return CompletionParsing.Context.NamespaceTopLevel;
+                return CompletionContext.NamespaceTopLevel;
             return null;
         }
 
@@ -235,7 +236,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             FileContentManager file,
             CompilationUnit compilation,
             Position position,
-            CompletionParsing.IdentifierKind kind,
+            IdentifierKind kind,
             string namespacePrefix = "")
         {
             if (file == null)
@@ -251,15 +252,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             switch (kind)
             {
-                case CompletionParsing.IdentifierKind.Member member:
+                case IdentifierKind.Member member:
                     return GetCompletionsForKind(file, compilation, position, member.Item2,
                                                  ResolveNamespaceAlias(file, compilation, position, member.Item1));
-                case CompletionParsing.IdentifierKind.Keyword keyword:
+                case IdentifierKind.Keyword keyword:
                     return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
             }
             switch (kind.Tag)
             {
-                case CompletionParsing.IdentifierKind.Tags.Type:
+                case IdentifierKind.Tags.Type:
                     var namespaces = namespacePrefix == ""
                         ? GetOpenNamespaces(file, compilation, position)
                         : new[] { namespacePrefix };
@@ -268,11 +269,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         .Concat(GetTypeCompletions(file, compilation, namespaces))
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position));
-                case CompletionParsing.IdentifierKind.Tags.Namespace:
+                case IdentifierKind.Tags.Namespace:
                     return
                         GetGlobalNamespaceCompletions(compilation, namespacePrefix)
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position));
-                case CompletionParsing.IdentifierKind.Tags.Characteristic:
+                case IdentifierKind.Tags.Characteristic:
                     return characteristicKeywords;
             }
             return Array.Empty<CompletionItem>();

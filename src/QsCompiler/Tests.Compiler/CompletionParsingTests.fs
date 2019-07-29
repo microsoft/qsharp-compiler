@@ -2,6 +2,7 @@
 
 open System.Collections.Generic
 open Xunit
+open Microsoft.Quantum.QsCompiler.TextProcessing
 open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 
