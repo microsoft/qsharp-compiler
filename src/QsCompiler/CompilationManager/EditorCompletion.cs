@@ -233,7 +233,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             CompilationUnit compilation,
             Position position,
             CompletionParsing.IdentifierKind kind,
-            string @namespace = "")
+            string namespacePrefix = "")
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -243,8 +243,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(position));
             if (kind == null)
                 throw new ArgumentNullException(nameof(kind));
-            if (@namespace == null)
-                throw new ArgumentNullException(nameof(@namespace));
+            if (namespacePrefix == null)
+                throw new ArgumentNullException(nameof(namespacePrefix));
 
             switch (kind)
             {
@@ -257,12 +257,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             switch (kind.Tag)
             {
                 case CompletionParsing.IdentifierKind.Tags.Type:
+                    var namespaces = namespacePrefix == ""
+                        ? GetOpenNamespaces(file, compilation, position)
+                        : new[] { namespacePrefix };
                     return
-                        GetTypeCompletions(file, compilation, GetOpenNamespaces(file, compilation, position))
-                        .Concat(typeKeywords);
+                        (namespacePrefix == "" ? typeKeywords : Array.Empty<CompletionItem>())
+                        .Concat(GetTypeCompletions(file, compilation, namespaces))
+                        .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
+                        .Concat(GetNamespaceAliasCompletions(file, compilation, position));
                 case CompletionParsing.IdentifierKind.Tags.Namespace:
                     return
-                        GetGlobalNamespaceCompletions(compilation, @namespace)
+                        GetGlobalNamespaceCompletions(compilation, namespacePrefix)
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position));
                 case CompletionParsing.IdentifierKind.Tags.Characteristic:
                     return characteristicKeywords;
