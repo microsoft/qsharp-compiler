@@ -13,13 +13,15 @@ open Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
 
 
 /// The SyntaxTreeTransformation used to evaluate constants
-type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
+type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>, inliningLimit: int) =
     inherit SyntaxTreeTransformation()
     let vars = VariablesDict()
     let callableDict = {compiledCallables = compiledCallables}
 
     // For determining if constant folding should be rerun
     let mutable changed = true
+
+    member private this.getVars = vars
 
     /// Returns whether the syntax tree has been modified since this function was last called
     member this.checkChanged() =
@@ -44,7 +46,7 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
         override scope.Expression = upcast { new ExpressionEvaluator(vars, callableDict, 10) with
             override ee.Transform x =
                 let newX = base.Transform x
-                if x <> newX then changed <- true
+                // if x <> newX then changed <- true
                 newX }
                 
         /// The StatementKindTransformation used to evaluate constants
@@ -63,22 +65,36 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
                         // printfn "Found constant declaration: %O = %O" (StringTuple.fromSymbolTuple lhs) (prettyPrint rhs.Expression)
                 QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
 
+            override statementKind.onExpressionStatement ex = 
+                let ex = statementKind.ExpressionTransformation ex
+                match ex.Expression with
+                | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, arg) when inliningLimit > 0 ->
+                    let callable = compiledCallables.[qualName];
+                    let impl = callable.Specializations.[0].Implementation
+                    match impl with
+                    | Provided (specArgs, scope) ->
+                        let newEvaluator = ConstantPropagator(compiledCallables, inliningLimit - 1)
+                        newEvaluator.getVars.enterScope()
+                        fillVars newEvaluator.getVars (StringTuple.fromQsTuple callable.ArgumentTuple, arg.Expression)
+                        let newScope = newEvaluator.Scope.Transform scope
+                        newScope |> QsScopeStatement.New |> QsScopeStatement
+                    | _ -> QsExpressionStatement ex
+                | _ -> QsExpressionStatement ex
+
             override statementKind.onConditionalStatement stm = 
                 let cbList, cbListEnd =
-                    stm.ConditionalBlocks |> Seq.fold (fun s (c, b) ->
-                        let cond, block = statementKind.onPositionedBlock (Some c, b)
-                        match cond.Value.Expression with
+                    stm.ConditionalBlocks |> Seq.fold (fun s (cond, block) ->
+                        let newCond = statementKind.ExpressionTransformation cond
+                        match newCond.Expression with
                         | BoolLiteral true -> s @ [None, block]
                         | BoolLiteral false -> s
-                        | _ -> s @ [cond, block]
-                    ) [] |> List.ofSeq |> takeWhilePlus1 (fun (c, b) -> c <> None)
-                let defaultCase = stm.Default |> QsNullable<_>.Map (fun b -> statementKind.onPositionedBlock (None, b) |> snd)
+                        | _ -> s @ [Some cond, block]
+                    ) [] |> List.ofSeq |> takeWhilePlus1 (fun (c, _) -> c <> None)
+                let newDefault = cbListEnd |> Option.map (snd >> Value) |? stm.Default
 
-                let newDefault =
-                    match cbListEnd, defaultCase with
-                    | Some (_, a), _ -> Value a
-                    | _, Value a -> Value a
-                    | _ -> Null
+                let cbList = cbList |> List.map (fun (c, b) -> statementKind.onPositionedBlock (c, b))
+                let newDefault = match newDefault with Value x -> statementKind.onPositionedBlock (None, x) |> snd |> Value | Null -> Null
+
                 match cbList, newDefault with
                 | [], Value x ->
                     x.Body |> QsScopeStatement.New |> QsScopeStatement
@@ -86,7 +102,7 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
                     QsScope.New ([], LocalDeclarations.New []) |> QsScopeStatement.New |> QsScopeStatement
                 | _ ->
                     let cases = cbList |> Seq.map (fun (c, b) -> (Option.get c, b))
-                    QsConditionalStatement.New (cases, defaultCase) |> QsConditionalStatement
+                    QsConditionalStatement.New (cases, newDefault) |> QsConditionalStatement
 
             override statementKind.onForStatement stm =
                 let loopVar = fst stm.LoopItem |> statementKind.onSymbolTuple
