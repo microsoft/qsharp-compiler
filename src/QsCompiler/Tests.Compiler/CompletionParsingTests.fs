@@ -6,7 +6,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 
 let private test text expected =
-    Assert.Equal<IEnumerable<IdentifierKind>>(Set.ofList expected, GetExpectedIdentifiers text)
+    Assert.Equal<IEnumerable<IdentifierKind>>(Set.ofList expected, GetExpectedIdentifiers NamespaceTopLevel text)
 
 [<Fact>]
 let ``Inside namespace parser tests`` () =
