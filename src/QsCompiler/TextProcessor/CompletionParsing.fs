@@ -2,7 +2,6 @@
 
 open System
 open FParsec
-open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
 open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
@@ -11,11 +10,18 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
 
 /// Describes the kind of identifier that is expected at a particular position in the source code.
 type IdentifierKind =
+    /// The identifier is a new symbol declaration.
     | Declaration
+    /// The identifier is a type name.
     | Type
+    /// The identifier is a characteristic set name.
     | Characteristic
+    /// The identifier is the given keyword.
     | Keyword of string
+    /// The identifier is a namespace.
     | Namespace
+    /// The identifier is a member of the given namespace and has the given kind.
+    | Member of string * IdentifierKind
 
 /// Parses the end-of-transmission character.
 let private eot =
@@ -27,8 +33,8 @@ let private symbol =
     let qsIdentifier =
         identifier <| IdentifierOptions (isAsciiIdStart = (fun c -> isAsciiLetter c || c = '_'),
                                          isAsciiIdContinue = isSymbolContinuation)
-    notFollowedBy qsReservedKeyword .>> qsIdentifier <|>
-    (qsReservedKeyword >>. previousCharSatisfiesNot Char.IsWhiteSpace >>. followedBy eot)
+    notFollowedBy qsReservedKeyword >>. qsIdentifier <|>
+    (qsIdentifier .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> followedBy eot)
 
 /// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and returns
 /// the result of `p2`.
@@ -37,18 +43,31 @@ let private (?>>) p1 p2 =
 
 /// Parses an expected identifier of the given kind. The identifier is optional if EOT occurs first.
 let private expectedId kind p =
-    (eot >>% [kind]) <|>
+    eot >>% [kind] <|>
     attempt (p >>. previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [kind]) <|>
     (p >>% [])
 
 /// Parses an expected operator. The operator is optional if EOT occurs first.
 let private expectedOp p =
-    (eot >>% []) <|> (p >>% [])
+    eot >>% [] <|> (p >>% [])
 
 /// Parses an expected keyword. If the keyword parser fails, this parser can still succeed if the next token is symbol-
 /// like and occurs immediately before EOT (i.e., a possibly incomplete keyword).
 let private expectedKeyword keyword =
     expectedId (Keyword keyword.id) keyword.parse <|> (symbol >>. eot >>% [Keyword keyword.id])
+
+/// Parses an expected qualified symbol of the given kind.
+let private expectedQualifiedSymbol kind =
+    let withoutLast list = List.take (List.length list - 1) list
+    let asMember = function
+        | [] -> [kind]
+        | symbols -> [Member (String.Join (".", symbols), kind)]
+    let qualifiedSymbol =
+        attempt (sepBy1 symbol (pchar '.')) |>> withoutLast |>> asMember <|>
+        (sepEndBy1 symbol (pchar '.') |>> asMember)
+    eot >>% [kind] <|>
+    attempt (term qualifiedSymbol |>> fst .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> optional eot) <|>
+    (term qualifiedSymbol >>% [])
 
 /// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
 /// results from all parsers that succeeded into a single list.
@@ -112,7 +131,7 @@ let private atomicType =
 
 /// Parses a user-defined type.
 let private userDefinedType = 
-    expectedId Type (multiSegmentSymbol ErrorCode.InvalidTypeName)
+    expectedQualifiedSymbol Type
 
 /// Parses a characteristics annotation (the characteristics keyword followed by a characteristics expression).
 let private characteristicsAnnotation =
@@ -182,9 +201,9 @@ let private udtDeclaration =
 /// Parses an open directive.
 let private openDirective =
     expectedKeyword importDirectiveHeader ?>>
-    expectedId Namespace (multiSegmentSymbol ErrorCode.InvalidTypeName) ?>>
+    expectedQualifiedSymbol Namespace ?>>
     expectedKeyword importedAs ?>>
-    expectedId Declaration (multiSegmentSymbol ErrorCode.InvalidTypeName)
+    expectedQualifiedSymbol Declaration
 
 /// Parses fragments that are valid at the top level of a namespace.
 let private insideNamespace =

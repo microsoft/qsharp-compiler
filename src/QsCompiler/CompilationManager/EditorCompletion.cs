@@ -132,11 +132,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || compilation == null || position == null)
                 return null;
 
-            var nsPath = GetSymbolNamespacePath(file, position);
-            var resolvedNsPath = nsPath == null ? null : ResolveNamespaceAlias(file, compilation, position, nsPath);
-
             // If the character at the position is a dot but no valid namespace path precedes it (for example, in a
             // decimal number), then no completions are valid here.
+            var nsPath = GetSymbolNamespacePath(file, position);
             if (nsPath == null &&
                 position.Character > 0 &&
                 file.GetLine(position.Line).Text[position.Character - 1] == '.')
@@ -157,10 +155,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
                 completions =
                     CompletionParsing.GetExpectedIdentifiers(textUpToPosition)
-                    .SelectMany(kind => GetCompletionsForKind(file, compilation, position, resolvedNsPath, kind));
+                    .SelectMany(kind => GetCompletionsForKind(file, compilation, position, kind));
             }
-            else if (resolvedNsPath != null)
+            else if (nsPath != null)
             {
+                var resolvedNsPath = ResolveNamespaceAlias(file, compilation, position, nsPath);
                 completions =
                     GetCallableCompletions(file, compilation, new[] { resolvedNsPath })
                     .Concat(GetTypeCompletions(file, compilation, new[] { resolvedNsPath }))
@@ -228,13 +227,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns completion items that match the given identifier kind.
         /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown when any argument except namespacePrefix is null.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         private static IEnumerable<CompletionItem> GetCompletionsForKind(
             FileContentManager file,
             CompilationUnit compilation,
             Position position,
-            string namespacePrefix,
-            CompletionParsing.IdentifierKind kind)
+            CompletionParsing.IdentifierKind kind,
+            string @namespace = "")
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -244,19 +243,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(position));
             if (kind == null)
                 throw new ArgumentNullException(nameof(kind));
+            if (@namespace == null)
+                throw new ArgumentNullException(nameof(@namespace));
 
-            if (kind is CompletionParsing.IdentifierKind.Keyword keyword)
-                return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
-            if (kind.IsType)
-                return
-                    GetTypeCompletions(file, compilation, GetOpenNamespaces(file, compilation, position))
-                    .Concat(typeKeywords);
-            if (kind.IsNamespace)
-                return
-                    GetGlobalNamespaceCompletions(compilation, namespacePrefix ?? "")
-                    .Concat(GetNamespaceAliasCompletions(file, compilation, position));
-            if (kind.IsCharacteristic)
-                return characteristicKeywords;
+            switch (kind)
+            {
+                case CompletionParsing.IdentifierKind.Member member:
+                    return GetCompletionsForKind(file, compilation, position, member.Item2,
+                                                 ResolveNamespaceAlias(file, compilation, position, member.Item1));
+                case CompletionParsing.IdentifierKind.Keyword keyword:
+                    return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
+            }
+            switch (kind.Tag)
+            {
+                case CompletionParsing.IdentifierKind.Tags.Type:
+                    return
+                        GetTypeCompletions(file, compilation, GetOpenNamespaces(file, compilation, position))
+                        .Concat(typeKeywords);
+                case CompletionParsing.IdentifierKind.Tags.Namespace:
+                    return
+                        GetGlobalNamespaceCompletions(compilation, @namespace)
+                        .Concat(GetNamespaceAliasCompletions(file, compilation, position));
+                case CompletionParsing.IdentifierKind.Tags.Characteristic:
+                    return characteristicKeywords;
+            }
             return Array.Empty<CompletionItem>();
         }
 
