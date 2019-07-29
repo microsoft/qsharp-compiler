@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 position.Character > 0 &&
                 file.GetLine(position.Line).Text[position.Character - 1] == '.')
             {
-                return new CompletionList() { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
+                return new CompletionList { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
             }
 
             IEnumerable<CompletionItem> completions;
@@ -169,7 +169,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var openNamespaces = GetOpenNamespaces(file, compilation, position);
                 completions =
                     Keywords.ReservedKeywords
-                    .Select(keyword => new CompletionItem() { Label = keyword, Kind = CompletionItemKind.Keyword })
+                    .Select(keyword => new CompletionItem { Label = keyword, Kind = CompletionItemKind.Keyword })
                     .Concat(GetLocalCompletions(file, compilation, position))
                     .Concat(GetCallableCompletions(file, compilation, openNamespaces))
                     .Concat(GetTypeCompletions(file, compilation, openNamespaces))
@@ -180,7 +180,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 completions = Array.Empty<CompletionItem>();
             }
-            return new CompletionList() { IsIncomplete = false, Items = completions.ToArray() };
+            return new CompletionList { IsIncomplete = false, Items = completions.ToArray() };
         }
 
         /// <summary>
@@ -197,7 +197,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             var documentation = TryGetDocumentation(compilation, data, item.Kind, format == MarkupKind.Markdown);
             if (documentation != null)
-                item.Documentation = new MarkupContent() { Kind = format, Value = documentation };
+                item.Documentation = new MarkupContent { Kind = format, Value = documentation };
             return item;
         }
 
@@ -328,7 +328,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Detail = callable.QualifiedName.Namespace.Value,
                     Data = new CompletionItemData()
                     {
-                        TextDocument = new TextDocumentIdentifier() { Uri = file.Uri },
+                        TextDocument = new TextDocumentIdentifier { Uri = file.Uri },
                         QualifiedName = callable.QualifiedName,
                         SourceFile = callable.SourceFile.Value
                     }
@@ -359,7 +359,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Detail = type.QualifiedName.Namespace.Value,
                     Data = new CompletionItemData()
                     {
-                        TextDocument = new TextDocumentIdentifier() { Uri = file.Uri },
+                        TextDocument = new TextDocumentIdentifier { Uri = file.Uri },
                         QualifiedName = type.QualifiedName,
                         SourceFile = type.SourceFile.Value
                     }
