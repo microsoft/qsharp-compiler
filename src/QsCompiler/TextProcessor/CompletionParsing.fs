@@ -8,6 +8,11 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
 
 
+/// Represents the context of a code fragment.
+type Context =
+    /// The code fragment is inside a namespace but outside any callable.
+    | NamespaceTopLevel
+
 /// Describes the kind of identifier that is expected at a particular position in the source code.
 type IdentifierKind =
     /// The identifier is a new symbol declaration.
@@ -206,7 +211,7 @@ let private openDirective =
     expectedQualifiedSymbol Declaration
 
 /// Parses fragments that are valid at the top level of a namespace.
-let private insideNamespace =
+let private namespaceTopLevel =
     pcollect [
         functionDeclaration
         operationDeclaration
@@ -216,9 +221,10 @@ let private insideNamespace =
 
 /// Parses the possibly incomplete fragment text and returns the set of possible identifiers expected at the end of the
 /// fragment.
-///
-/// Only top-level namespace fragments (except open) are currently supported.
-let GetExpectedIdentifiers text =
-    match runParserOnString insideNamespace [] "" (text + "\u0004") with
+let GetExpectedIdentifiers context text =
+    let parser =
+        match context with
+        | NamespaceTopLevel -> namespaceTopLevel
+    match runParserOnString parser [] "" (text + "\u0004") with
     | Success (result, _, _) -> Set.ofList result
     | Failure (_) -> Set.empty

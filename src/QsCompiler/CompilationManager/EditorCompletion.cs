@@ -141,9 +141,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return new CompletionList() { IsIncomplete = false, Items = Array.Empty<CompletionItem>() };
             }
 
-            // TODO: Support context-aware completions for additional contexts.
             IEnumerable<CompletionItem> completions;
-            if (IsInNamespaceContext(file, position))
+            var context = GetContext(file, position);
+            if (context != null)
             {
                 var relationship = GetFragmentAtOrBefore(file, position, out _, out var fragment);
                 string textUpToPosition = "";
@@ -153,7 +153,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         ? fragment.Text
                         : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
                 completions =
-                    CompletionParsing.GetExpectedIdentifiers(textUpToPosition)
+                    CompletionParsing.GetExpectedIdentifiers(context, textUpToPosition)
                     .SelectMany(kind => GetCompletionsForKind(file, compilation, position, kind));
             }
             else if (nsPath != null)
@@ -202,10 +202,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if the given position in the file is at the top-level of a namespace.
+        /// Returns the context at the given position in the file or null if the context cannot be determined.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        private static bool IsInNamespaceContext(FileContentManager file, Position position)
+        private static CompletionParsing.Context GetContext(FileContentManager file, Position position)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -220,7 +220,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 parent = index.GetNonEmptyParent();
             else if (relationship == FragmentRelationship.InnerScope)
                 parent = index.GetNonEmptyParent()?.GetNonEmptyParent();
-            return parent == null ? false : parent.GetFragment().Kind.IsNamespaceDeclaration;
+
+            // TODO: Support context-aware completions for additional contexts.
+            if (parent != null && parent.GetFragment().Kind.IsNamespaceDeclaration)
+                return CompletionParsing.Context.NamespaceTopLevel;
+            return null;
         }
 
         /// <summary>
