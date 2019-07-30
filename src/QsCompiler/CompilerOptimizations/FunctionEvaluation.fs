@@ -10,14 +10,14 @@ open Utils
 
 
 /// The current state of a function evaluation
-type internal FunctionState =
-| Normal
-| Returned of Expr
-| Failed of Expr
-| CouldNotEvaluate of string
+type private FunctionState =
+| Normal // The function is proceeding normally
+| Returned of Expr // The function is returning a value
+| Failed of Expr // The function is throwing an exception
+| CouldNotEvaluate of string // I couldn't evaluate the function
 
 /// The current state of an expression evaluation
-type internal ExpressionResult<'A> =
+type private ExpressionResult<'A> =
 | ExprValue of 'A
 | ExprError of string
 
@@ -38,7 +38,7 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
     abstract member evaluateExpression: VariablesDict -> TypedExpression -> Expr
 
     /// Evaluates a single Q# statement
-    member this.evaluateStatement (vars: VariablesDict) (statement: QsStatement): FunctionState =
+    member private this.evaluateStatement (vars: VariablesDict) (statement: QsStatement): FunctionState =
         match statement.Statement with
         | QsExpressionStatement expr ->
             this.evaluateExpression vars expr |> ignore; Normal
@@ -66,7 +66,7 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
             | RangeLiteral _ ->
                 rangeLiteralToSeq iterValues |> Seq.map (fun loopValue ->
                         vars.enterScope()
-                        fillVars vars (StringTuple.fromSymbolTuple (fst s.LoopItem), IntLiteral (int64 loopValue))
+                        fillVars vars (StringTuple.fromSymbolTuple (fst s.LoopItem), IntLiteral loopValue)
                         let result = this.evaluateScope vars s.Body
                         vars.exitScope()
                         result) |>
@@ -109,7 +109,7 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
             "Cannot allocate qubits in function" |> CouldNotEvaluate
 
     /// Evaluates a list of Q# statements
-    member this.evaluateScope (vars: VariablesDict) (scope: QsScope): FunctionState =
+    member private this.evaluateScope (vars: VariablesDict) (scope: QsScope): FunctionState =
         vars.enterScope()
         let res =
             scope.Statements |>
@@ -130,19 +130,22 @@ type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
             let vars = VariablesDict()
             vars.enterScope()
             fillVars vars (StringTuple.fromQsTuple callable.ArgumentTuple, arg.Expression)
-            match this.evaluateScope vars scope with
-            | Normal ->
-                // printfn "Function %O didn't return anything" name.Name.Value
-                None
-            | Returned expr ->
-                // printfn "Function %O returned %O" name.Name.Value (prettyPrint expr)
-                Some expr
-            | Failed expr ->
-                // printfn "Function %O failed with %O" name.Name.Value (prettyPrint expr)
-                None
-            | CouldNotEvaluate reason ->
-                // printfn "Could not evaluate function %O on arg %O for reason %O" name.Name.Value (prettyPrint arg.Expression) reason
-                None
+            let res =
+                match this.evaluateScope vars scope with
+                | Normal ->
+                    // printfn "Function %O didn't return anything" name.Name.Value
+                    None
+                | Returned expr ->
+                    // printfn "Function %O returned %O" name.Name.Value (prettyPrint expr)
+                    Some expr
+                | Failed expr ->
+                    // printfn "Function %O failed with %O" name.Name.Value (prettyPrint expr)
+                    None
+                | CouldNotEvaluate reason ->
+                    // printfn "Could not evaluate function %O on arg %O for reason %O" name.Name.Value (prettyPrint arg.Expression) reason
+                    None
+            vars.exitScope()
+            res
         | _ ->
             // printfn "Implementation not provided for: %O" name
             None

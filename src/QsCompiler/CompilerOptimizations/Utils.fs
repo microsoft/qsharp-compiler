@@ -68,14 +68,14 @@ let rec internal prettyPrint (expr: Expr): string =
 
 
 /// Converts a range literal to a sequence of integers
-let internal rangeLiteralToSeq (r: Expr): seq<int> =
+let internal rangeLiteralToSeq (r: Expr): seq<int64> =
     match r with
     | RangeLiteral (a, b) ->
         match a.Expression, b.Expression with
         | IntLiteral start, IntLiteral stop ->
-            seq { int start .. int stop }
+            seq { start .. stop }
         | RangeLiteral ({Expression = IntLiteral start}, {Expression = IntLiteral step}), IntLiteral stop ->
-            seq { int start .. int step .. int stop }
+            seq { start .. step .. stop }
         | _ -> failwithf "Invalid range literal: %O" r
     | _ -> failwithf "Not a range literal: %O" r
 
