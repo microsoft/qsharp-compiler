@@ -220,10 +220,10 @@ namespace Microsoft.Quantum.QsCompiler
 
             // executing the specified optimization steps
 
-            var st = new ConstantPropagator(VerifiedCompilation.Callables);
-            while (st.checkChanged())
+            var constantPropagator = new ConstantPropagator(VerifiedCompilation.Callables);
+            while (constantPropagator.checkChanged())
             {
-                this.GeneratedSyntaxTree = this.GeneratedSyntaxTree.Select(p => st.Transform(p)).ToList();
+                this.GeneratedSyntaxTree = this.GeneratedSyntaxTree.Select(p => constantPropagator.Transform(p)).ToList();
             }
 
 

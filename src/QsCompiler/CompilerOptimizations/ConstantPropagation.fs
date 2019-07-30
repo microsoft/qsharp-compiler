@@ -13,10 +13,13 @@ open Microsoft.Quantum.QsCompiler.CompilerOptimization.ExpressionEvaluation
 type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
     inherit SyntaxTreeTransformation()
     let vars = VariablesDict()
-    let cd = {compiledCallables = compiledCallables}
+    let callableDict = {compiledCallables = compiledCallables}
 
-    let mutable changed = true
+    // For determining if constant folding should be rerun
+    let mutable changed = true 
     let mutable prevChanged = false
+    
+    // For logging the constants we found
     let mutable declarations = []
 
     /// Returns whether the syntax tree has been modified since this function was last called
@@ -48,10 +51,10 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
             result
             
         /// The ExpressionTransformation used to evaluate constant expressions
-        override scope.Expression = upcast { new ExpressionEvaluator(vars, cd, 10) with
+        override scope.Expression = upcast { new ExpressionEvaluator(vars, callableDict, 10) with
             override ee.Transform x =
                 let newX = base.Transform x
-                if x.ToString() <> newX.ToString() then changed <- true
+                if x <> newX then changed <- true
                 newX }
                 
         /// The StatementKindTransformation used to evaluate constants
@@ -65,7 +68,7 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
                 let lhs = statementKind.onSymbolTuple stm.Lhs
                 let rhs = statementKind.ExpressionTransformation stm.Rhs
                 if stm.Kind = ImmutableBinding then
-                    if isLiteral rhs.Expression cd then
+                    if isLiteral rhs.Expression callableDict then
                         fillVars vars (StringTuple.fromSymbolTuple lhs, rhs.Expression)
                         declarations <- declarations @ [sprintf "%O = %O" (StringTuple.fromSymbolTuple lhs) (prettyPrint rhs.Expression)]
                         // printfn "Found constant declaration: %O = %O" (StringTuple.fromSymbolTuple lhs) (prettyPrint rhs.Expression)

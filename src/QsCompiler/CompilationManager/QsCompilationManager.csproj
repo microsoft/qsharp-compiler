@@ -24,7 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CompilerOptimizations\QsCompilerOptimizations.fsproj" />
     <ProjectReference Include="..\Core\QsCore.fsproj" />
     <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
     <ProjectReference Include="..\SyntaxProcessor\QsSyntaxProcessor.fsproj" />

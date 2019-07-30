@@ -1,6 +1,7 @@
 ﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.FunctionEvaluation
 
 open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -50,11 +51,12 @@ type [<AbstractClass>] FunctionEvaluator(cd: CallableDict) =
         | QsValueUpdate s ->
             match s.Lhs.Expression with
                 | Identifier (LocalVariable name, tArgs) -> vars.setVar(name.Value, this.evaluateExpression vars s.Rhs); Normal
+                // TODO - allow any symbol tuple on the LHS
                 | _ -> "Unknown LHS of value update statement: " + (prettyPrint s.Lhs.Expression) |> CouldNotEvaluate
         | QsConditionalStatement s ->
             match s.ConditionalBlocks |>
                 Seq.map (fun (ts, block) -> this.evaluateExpression vars ts |> castToBool, block) |>
-                Seq.tryFind (fst >> function ExprValue true -> true | ExprValue false -> false | ExprError _ -> true), s.Default with
+                Seq.tryFind (fst >> function ExprValue false -> false | _ -> true), s.Default with
             | Some (ExprError s, _), _ -> CouldNotEvaluate s
             | Some (ExprValue _, block), _ | None, Value block -> this.evaluateScope vars block.Body
             | None, Null -> Normal
@@ -103,6 +105,7 @@ type [<AbstractClass>] FunctionEvaluator(cd: CallableDict) =
                     | res -> res, true) |>
                 Seq.tryFind snd |? (Normal, true) |> fst
         | QsQubitScope s ->
+            QsCompilerError.Raise "Cannot allocate qubits in function"
             "Cannot allocate qubits in function" |> CouldNotEvaluate
 
     /// Evaluates a list of Q# statements
@@ -117,9 +120,10 @@ type [<AbstractClass>] FunctionEvaluator(cd: CallableDict) =
 
     /// Evaluates a Q# function
     member this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): Expr option =
-        // TODO: assert compiledCallables contains name
         let callable = cd.getCallable name
-        // TODO: assert callable.Specializations.Length == 1
+        QsCompilerError.Verify (
+            callable.Specializations.Length = 1,
+            "Functions should only have one specialization")
         let impl = callable.Specializations.[0].Implementation
         match impl with
         | Provided (specArgs, scope) ->

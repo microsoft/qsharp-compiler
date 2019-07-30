@@ -5,31 +5,35 @@ open System.Collections.Generic
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
 /// Option default value operator
-let (|?) = defaultArg
+let internal (|?) = defaultArg
 
 
 /// Shorthand for a QsExpressionKind
-type Expr = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
+type internal Expr = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
 /// Shorthand for a QsTypeKind
-type TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+type internal TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
 
 /// Represents the global dictionary that maps names to callables
-type CallableDict = {
+type internal CallableDict = {
         compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>
 } with
     member this.getCallable (name: QsQualifiedName): QsCallable =
+        QsCompilerError.Verify (
+            this.compiledCallables.ContainsKey name,
+            "Trying to access unknown callable")
         this.compiledCallables.[name]
 
 
 /// Returns whether a given expression is a literal (and thus a constant)
-let rec isLiteral (expr: Expr) (cd: CallableDict): bool =
+let rec internal isLiteral (expr: Expr) (cd: CallableDict): bool =
     match expr with
     | UnitValue | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ -> true
     | ValueTuple a | StringLiteral (_, a) | ValueArray a -> Seq.forall (fun x -> isLiteral x.Expression cd) a
@@ -37,7 +41,14 @@ let rec isLiteral (expr: Expr) (cd: CallableDict): bool =
     | NewArray (_, a) -> isLiteral a.Expression cd
     | Identifier (GlobalCallable _, _) | MissingExpr -> true
     | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, b)
-        when (cd.getCallable qualName).Kind = TypeConstructor -> isLiteral b.Expression cd
+        when (cd.getCallable qualName).Kind = TypeConstructor ->
+        QsCompilerError.Verify (
+            (cd.getCallable qualName).Specializations.Length = 1,
+            "Type constructors should have exactly one specialization")
+        QsCompilerError.Verify (
+            (cd.getCallable qualName).Specializations.[0].Implementation = Intrinsic,
+            "Type constructors should be implicit")
+        isLiteral b.Expression cd
     | CallLikeExpression (a, b) ->
         isLiteral a.Expression cd && isLiteral b.Expression cd &&
             TypedExpression.IsPartialApplication (CallLikeExpression (a, b))
@@ -45,7 +56,7 @@ let rec isLiteral (expr: Expr) (cd: CallableDict): bool =
 
 
 /// Helper method to improve expression readability
-let rec prettyPrint (expr: Expr): string =
+let rec internal prettyPrint (expr: Expr): string =
     match expr with
     | Identifier (LocalVariable a, _) -> "LocalVariable " + a.Value
     | Identifier (GlobalCallable a, _) -> "GlobalCallable " + a.Name.Value
@@ -57,7 +68,7 @@ let rec prettyPrint (expr: Expr): string =
 
 
 /// Converts a range literal to a sequence of integers
-let rangeLiteralToSeq (r: Expr): seq<int> =
+let internal rangeLiteralToSeq (r: Expr): seq<int> =
     match r with
     | RangeLiteral (a, b) ->
         match a.Expression, b.Expression with
@@ -70,11 +81,11 @@ let rangeLiteralToSeq (r: Expr): seq<int> =
 
 
 /// Represents the current state of all the local variables in a function
-type VariablesDict() =
+type internal VariablesDict() =
     let scopeStack = new Stack<Dictionary<string, Expr>>()
 
     member this.enterScope(): unit =
-        scopeStack.Push (new Dictionary<string, Expr>()) |> ignore
+        scopeStack.Push (new Dictionary<string, Expr>())
 
     member this.exitScope(): unit =
         // TODO: assert scopeStack is nonempty
@@ -101,7 +112,7 @@ type VariablesDict() =
         
 /// Represents a (possibly-nested) tuple of strings.
 /// Used as a way to compare QsTuples and SymbolTuples.
-type StringTuple =
+type internal StringTuple =
 | SingleItem of string
 | MultipleItems of seq<StringTuple>
         
@@ -127,26 +138,33 @@ type StringTuple =
         
         
 /// Modifies the VariablesDict by setting the given argument tuple to the given values
-let rec fillVars (vars: VariablesDict) (argTuple: StringTuple, arg: Expr): unit =
+let rec internal fillVars (vars: VariablesDict) (argTuple: StringTuple, arg: Expr): unit =
     match argTuple with
     | SingleItem item -> vars.defineVar(item, arg)
     | MultipleItems items ->
         match arg with
         | ValueTuple vt ->
+            QsCompilerError.Verify (
+                vt.Length = Seq.length items,
+                "Matched tuples must have the same length")
             vt |> Seq.map (fun x -> x.Expression) |>
             Seq.zip items |> Seq.map (fillVars vars) |> List.ofSeq |> ignore
-        | _ -> Seq.zip items [arg] |> Seq.map (fillVars vars) |> List.ofSeq |> ignore
+        | _ ->
+            QsCompilerError.Verify (
+                1 = Seq.length items,
+                "Expecting a single-element tuple")
+            Seq.zip items [arg] |> Seq.map (fillVars vars) |> List.ofSeq |> ignore
 
 
 /// Returns a new array of the given type and length.
 /// Returns None if the type doesn't have a default value.
-let rec constructNewArray (bt: TypeKind) (length: int): Expr option =
+let rec internal constructNewArray (bt: TypeKind) (length: int): Expr option =
     match defaultValue bt with
     | Some x -> ImmutableArray.CreateRange (List.replicate length (wrapExpr x bt)) |> ValueArray |> Some
     | None -> None
 
 /// Returns the default value for a given type (from Q# documentation)
-and defaultValue (bt: TypeKind): Expr option =
+and private defaultValue (bt: TypeKind): Expr option =
     match bt with
     | Int -> IntLiteral 0L |> Some
     | BigInt -> BigIntLiteral BigInteger.Zero |> Some
@@ -159,14 +177,16 @@ and defaultValue (bt: TypeKind): Expr option =
     | ArrayType t -> constructNewArray t.Resolution 0
     | _ -> None
 
-/// Wraps a QsExpressionType in a basic TypedExpression
-and wrapExpr (expr: Expr) (bt: TypeKind): TypedExpression =
+/// Wraps a QsExpressionType in a basic TypedExpression.
+/// The returned TypedExpression has no type param / inferred info / range information,
+/// and it should not be used for any code step that requires this information.
+and internal wrapExpr (expr: Expr) (bt: TypeKind): TypedExpression =
     let ii = {IsMutable=false; HasLocalQuantumDependency=false}
     TypedExpression.New (expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
 
 
 /// Counts the number of MissingExprs in the given tuple
-let rec countMissingExprs (expr: TypedExpression): int =
+let rec private countMissingExprs (expr: TypedExpression): int =
     match expr.Expression with
     | MissingExpr -> 1
     | ValueTuple vt -> Seq.map countMissingExprs vt |> Seq.sum
@@ -174,7 +194,7 @@ let rec countMissingExprs (expr: TypedExpression): int =
     
 /// Replaces any MissingExprs in the given tuple with the first elements of the given list.
 /// Returns the new values of the partial-argument tuple and the argument list.
-let rec fillPartialArg (partialArg: TypedExpression, arg: list<TypedExpression>): TypedExpression * list<TypedExpression> =
+let rec private fillPartialArg (partialArg: TypedExpression, arg: list<TypedExpression>): TypedExpression * list<TypedExpression> =
     match partialArg.Expression with
     | MissingExpr ->
         match arg with
@@ -191,7 +211,7 @@ let rec fillPartialArg (partialArg: TypedExpression, arg: list<TypedExpression>)
     | _ -> partialArg, arg
     
 /// Transforms a partially-application call by replacing missing values with the new arguments
-let partialApplyFunction (baseMethod: TypedExpression) (partialArg: TypedExpression) (arg: TypedExpression): Expr =
+let internal partialApplyFunction (baseMethod: TypedExpression) (partialArg: TypedExpression) (arg: TypedExpression): Expr =
     let argsList =
         if countMissingExprs partialArg = 1 then [arg] else
         match arg.Expression with
@@ -201,3 +221,19 @@ let partialApplyFunction (baseMethod: TypedExpression) (partialArg: TypedExpress
             else List.ofSeq vt
         | _ -> failwithf "Invalid arg: %O" (prettyPrint arg.Expression)
     CallLikeExpression (baseMethod, fst (fillPartialArg (partialArg, argsList)))
+
+
+let internal longPow a b =
+    if b < 0 then
+        failwithf "Negative power %d not supported for integer exponentiation." b
+
+    let mutable x = a
+    let mutable power = b
+    let mutable returnValue = 1;
+    while power <> 0 do
+        if (power &&& 1) = 1 then
+            returnValue *= x
+        x *= x
+        power /= 2
+    returnValue
+
