@@ -10,20 +10,20 @@ open Utils
 
 
 /// The current state of a function evaluation
-type FunctionState =
+type internal FunctionState =
 | Normal
 | Returned of Expr
 | Failed of Expr
 | CouldNotEvaluate of string
 
 /// The current state of an expression evaluation
-type ExpressionResult<'A> =
+type internal ExpressionResult<'A> =
 | ExprValue of 'A
 | ExprError of string
 
 
 /// Evaluates functions by stepping through their code
-type [<AbstractClass>] FunctionEvaluator(cd: CallableDict) =
+type [<AbstractClass>] internal FunctionEvaluator(cd: CallableDict) =
 
     /// Transforms a BoolLiteral into the corresponding bool
     let castToBool x =

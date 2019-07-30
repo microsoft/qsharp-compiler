@@ -13,7 +13,7 @@ open FunctionEvaluation
 
 
 /// The ExpressionTransformation used to evaluate constant expressions
-type ExpressionEvaluator(vars: VariablesDict, cd: CallableDict, maxRecursiveDepth: int) =
+type internal ExpressionEvaluator(vars: VariablesDict, cd: CallableDict, maxRecursiveDepth: int) =
     inherit ExpressionTransformation()
 
     member this.getFE() = { new FunctionEvaluator(cd) with 
@@ -26,7 +26,7 @@ type ExpressionEvaluator(vars: VariablesDict, cd: CallableDict, maxRecursiveDept
 
         
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, cd: CallableDict, fe: FunctionEvaluator, maxRecursiveDepth: int) =
+and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: CallableDict, fe: FunctionEvaluator, maxRecursiveDepth: int) =
     inherit ExpressionKindTransformation()
         
     member private this.simplify e1 = this.ExpressionTransformation e1
@@ -179,7 +179,7 @@ and [<AbstractClass>] ExpressionKindEvaluator(vars: VariablesDict, cd: CallableD
         match lhs.Expression, rhs.Expression with
         | BigIntLiteral a, IntLiteral b -> BigIntLiteral (BigInteger.Pow(a, Convert.ToInt32(b)))
         | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (Math.Pow(a, b))
-        | IntLiteral a, IntLiteral b -> IntLiteral (int64 (Math.Pow(float a, float b)))
+        | IntLiteral a, IntLiteral b -> IntLiteral (longPow a b)
         | _ -> POW (lhs, rhs)
 
     override this.onModulo (lhs, rhs) =

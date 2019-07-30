@@ -37,7 +37,8 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
     member this.undoMarkChanged() =
         changed <- prevChanged
 
-    /// Gets a sorted list of the names of all the constant local variables
+    /// Gets a sorted list of the names of all the constant local variables.
+    /// Used for temporary logging/testing purposes, will be removed.
     member this.getDeclarations =
         declarations |> List.sort |> Seq.ofList
         

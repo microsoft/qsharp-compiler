@@ -223,17 +223,17 @@ let internal partialApplyFunction (baseMethod: TypedExpression) (partialArg: Typ
     CallLikeExpression (baseMethod, fst (fillPartialArg (partialArg, argsList)))
 
 
-let internal longPow a b =
-    if b < 0 then
+/// Computes exponentiation for 64-bit integers
+let internal longPow (a: int64) (b: int64): int64 =
+    if b < 0L then
         failwithf "Negative power %d not supported for integer exponentiation." b
-
     let mutable x = a
     let mutable power = b
-    let mutable returnValue = 1;
-    while power <> 0 do
-        if (power &&& 1) = 1 then
-            returnValue *= x
-        x *= x
-        power /= 2
+    let mutable returnValue = 1L;
+    while power <> 0L do
+        if (power &&& 1L) = 1L then
+            returnValue <- returnValue * x
+        x <- x * x
+        power <- power >>> 1
     returnValue
 
