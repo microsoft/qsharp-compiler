@@ -41,8 +41,8 @@ let private symbol =
     notFollowedBy qsReservedKeyword >>. qsIdentifier <|>
     (qsIdentifier .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> followedBy eot)
 
-/// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and
-/// returns the result of `p2`.
+/// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and returns
+/// the result of `p2`.
 let private (?>>) p1 p2 =
     attempt (p1 .>> eof) <|> (p1 >>. p2)
 
@@ -56,8 +56,8 @@ let private expectedId kind p =
 let private expectedOp p =
     eot >>% [] <|> (p >>% [])
 
-/// Parses an expected keyword. If the keyword parser fails, this parser can still succeed if the next token is
-/// symbol-like and occurs immediately before EOT (i.e., a possibly incomplete keyword).
+/// Parses an expected keyword. If the keyword parser fails, this parser can still succeed if the next token is symbol-
+/// like and occurs immediately before EOT (i.e., a possibly incomplete keyword).
 let private expectedKeyword keyword =
     expectedId (Keyword keyword.id) keyword.parse <|> (symbol >>. eot >>% [Keyword keyword.id])
 
@@ -102,13 +102,13 @@ let private (<||>) p1 p2 =
 let private tupleBrackets inside =
     bracket lTuple >>. inside ?>> expectedOp (bracket rTuple)
 
-/// Parses angle brackets, where the inside of the brackets is parsed by `inside` and the right bracket is optional
-/// if the stream ends first.
+/// Parses angle brackets, where the inside of the brackets is parsed by `inside` and the right bracket is optional if
+/// the stream ends first.
 let private angleBrackets inside =
     bracket lAngle >>. inside ?>> expectedOp (bracket rAngle)
 
-/// Recursively parses a tuple where each item is parsed by `item` and the right bracket is optional if the stream
-/// ends first.
+/// Recursively parses a tuple where each item is parsed by `item` and the right bracket is optional if the stream ends
+/// first.
 let rec private buildTuple item =
     tupleBrackets (sepBy1 item comma |>> List.last)
 
@@ -219,8 +219,8 @@ let private namespaceTopLevel =
         openDirective
     ]
 
-/// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the
-/// end of the text.
+/// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
+/// of the text.
 let GetExpectedIdentifiers env text =
     let parser =
         match env with
