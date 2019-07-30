@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using static Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
@@ -153,7 +154,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         ? fragment.Text
                         : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
                 completions =
-                    CompletionParsing.GetExpectedIdentifiers(env, textUpToPosition)
+                    GetExpectedIdentifiers(env, textUpToPosition)
                     .SelectMany(kind => GetCompletionsForKind(file, compilation, position, kind));
             }
             else if (nsPath != null)
