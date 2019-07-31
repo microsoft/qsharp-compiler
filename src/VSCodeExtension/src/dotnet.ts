@@ -66,7 +66,7 @@ export class DotNetSdk {
                         }
                     ).catch(reject);
                 } catch (ex) {
-                    promptToInstallDotNetCoreSDK("The .NET Core SDK was not found on your PATH.");
+                    DotNetSdk.promptToInstall("The .NET Core SDK was not found on your PATH.");
                     reject(ex);
                 }
             } else {
@@ -83,7 +83,7 @@ export class DotNetSdk {
                     dotnet => {
                         if (version !== undefined && semver.lt(dotnet.version, version)) {
                             let msg = `The Quantum Development Kit extension requires .NET Core SDK version ${version} or later, but ${dotnet.version} was found.`;
-                            promptToInstallDotNetCoreSDK(msg);
+                            DotNetSdk.promptToInstall(msg);
                             reject(msg);
                         }
                         resolve(dotnet);
@@ -91,20 +91,22 @@ export class DotNetSdk {
                 );
         });
     }
+
+    public static promptToInstall(msg : string) {
+        let installItem = "Install .NET Core SDK...";
+        vscode.window
+            .showErrorMessage(msg, installItem)
+            .then(
+                (item) => {
+                    if (item === installItem) {
+                        vscode.env.openExternal(vscode.Uri.parse("https://dotnet.microsoft.com/download"));
+                    }
+                }
+            );
+    }
+    
 }
 
-function promptToInstallDotNetCoreSDK(msg : string) {
-    let installItem = "Install .NET Core SDK...";
-    vscode.window
-        .showErrorMessage(msg, installItem)
-        .then(
-            (item) => {
-                if (item === installItem) {
-                    vscode.env.openExternal(vscode.Uri.parse("https://dotnet.microsoft.com/download"));
-                }
-            }
-        );
-}
 
 export function findIQSharpVersion() : Promise<{[key: string]: string} | undefined> {
     return new Promise((resolve, reject) => {
