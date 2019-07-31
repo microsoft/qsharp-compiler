@@ -9,13 +9,31 @@ import { DotnetInfo, findIQSharpVersion, DotNetSdk } from './dotnet';
 import { IPackageInfo } from './packageInfo';
 import * as semver from 'semver';
 import { oc } from 'ts-optchain';
+import { reporter, EventNames } from './telemetry';
 
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
     context.subscriptions.push(
         vscode.commands.registerCommand(
             name,
             () => {
+                reporter.sendTelemetryEvent(
+                    EventNames.commandStarted,
+                    {
+                        "commandName": name
+                    }
+                );
+                let startedAt = Date.now();
                 action();
+                let elapsedMilliseconds = Date.now() - startedAt;
+                reporter.sendTelemetryEvent(
+                    EventNames.commandCompleted,
+                    {
+                        "commandName": name
+                    },
+                    {
+                        "elapsedMilliseconds": elapsedMilliseconds
+                    }
+                );
             }
         )
     );
