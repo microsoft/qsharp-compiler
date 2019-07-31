@@ -196,27 +196,37 @@ let ``Open directive parser tests`` () =
 
 [<Fact>]
 let ``Statement parser tests`` () =
-    test Statement "" [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "x" [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "x " [Keyword "and"; Keyword "or"]
-    test Statement "x or" [Keyword "and"; Keyword "or"]
-    test Statement "x or " [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "x or y" [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "x or y " [Keyword "and"; Keyword "or"]
-    test Statement "x or y and" [Keyword "and"; Keyword "or"]
-    test Statement "x or y and " [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "x or y and not" [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "x or y and not " [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "x or y and not z" [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "x or y and not not " [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "x or y and not not z" [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "foo!" [Keyword "and"; Keyword "or"]
-    test Statement "foo! " [Keyword "and"; Keyword "or"]
-    test Statement "foo! and" [Keyword "and"; Keyword "or"]
-    test Statement "foo! and " [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "foo! and bar" [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "foo! and bar " [Keyword "and"; Keyword "or"]
-    test Statement "Adjoint" [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "Adjoint " [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "Adjoint Foo" [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
-    test Statement "Adjoint Foo " [Keyword "and"; Keyword "or"]
+    let expression = [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
+    let infix = [Keyword "and"; Keyword "or"]
+    test Statement "" expression
+    test Statement "x" expression
+    test Statement "x " infix
+    test Statement "x or" infix
+    test Statement "x or " expression
+    test Statement "x or y" expression
+    test Statement "x or y " infix
+    test Statement "x or y and" infix
+    test Statement "x or y and " expression
+    test Statement "x or y and not" expression
+    test Statement "x or y and not " expression
+    test Statement "x or y and not z" expression
+    test Statement "x or y and not not " expression
+    test Statement "x or y and not not z" expression
+    test Statement "foo!" infix
+    test Statement "foo! " infix
+    test Statement "foo! and" infix
+    test Statement "foo! and " expression
+    test Statement "foo! and bar" expression
+    test Statement "foo! and bar " infix
+    test Statement "Foo(" expression
+    test Statement "Foo()" infix
+    test Statement "Foo(x" expression
+    test Statement "Foo(x," expression
+    test Statement "Foo(x, " expression
+    test Statement "Foo(x, y" expression
+    test Statement "Foo(x, y)" infix
+    test Statement "Adjoint" expression
+    test Statement "Adjoint " expression
+    test Statement "Adjoint Foo" expression
+    test Statement "Adjoint Foo " infix
+    test Statement "Adjoint Foo(q)" infix

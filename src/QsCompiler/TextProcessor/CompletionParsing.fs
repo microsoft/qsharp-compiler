@@ -251,6 +251,9 @@ let private namespaceTopLevel =
         openDirective
     ]
 
+/// Parses an expression.
+let (private expression, private expressionImpl) = createParserForwardedToRef()
+
 /// Parses any prefix operator in an expression.
 let private prefixOp =
     expectedKeyword notOperator >|< expectedKeyword qsAdjointFunctor >|< expectedKeyword qsControlledFunctor
@@ -261,16 +264,18 @@ let private infixOp =
 
 /// Parses any postfix operator in an expression.
 let private postfixOp =
-    expectedOp (term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')))
+    expectedOp (term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '='))) >|<
+    expectedOp unitValue >|<
+    buildTuple expression
 
 /// Parses any expression term.
 let private expressionTerm =
     expectedId Variable (term symbol)
 
 /// Parses an expression.
-let private expression =
-    many prefixOp <@> expressionTerm <@> many postfixOp ?>>
-    (many1 (infixOp ?>> (many prefixOp <@> expressionTerm <@> many postfixOp)) |>> List.last)
+do expressionImpl :=
+    many prefixOp <@> expressionTerm ?>> many postfixOp <@>
+    many (infixOp ?>> (many prefixOp <@> expressionTerm <@> many postfixOp))
 
 /// Parses a statement.
 let private statement =
