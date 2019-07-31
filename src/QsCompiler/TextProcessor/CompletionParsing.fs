@@ -247,11 +247,15 @@ let private namespaceTopLevel =
 
 /// Parses any prefix operator in an expression.
 let private prefixOp =
-    expectedKeyword notOperator
+    expectedKeyword notOperator >|< expectedKeyword qsAdjointFunctor >|< expectedKeyword qsControlledFunctor
 
 /// Parses any infix operator in an expression.
 let private infixOp =
     expectedKeyword andOperator >|< expectedKeyword orOperator
+
+/// Parses any postfix operator in an expression.
+let private postfixOp =
+    expectedOp (term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')))
 
 /// Parses any expression term.
 let private expressionTerm =
@@ -259,7 +263,8 @@ let private expressionTerm =
 
 /// Parses an expression.
 let private expression =
-    many prefixOp <@> expressionTerm ?>> (many1 (infixOp ?>> (many prefixOp <@> expressionTerm)) |>> List.last)
+    many prefixOp <@> expressionTerm <@> many postfixOp ?>>
+    (many1 (infixOp ?>> (many prefixOp <@> expressionTerm <@> many postfixOp)) |>> List.last)
 
 /// Parses a statement.
 let private statement =
