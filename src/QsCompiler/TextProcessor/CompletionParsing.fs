@@ -17,17 +17,21 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
 type CompletionEnvironment =
     /// The code fragment is inside a namespace but outside any callable.
     | NamespaceTopLevel
+    /// The code fragment is a statement inside a callable.
+    | Statement
 
 /// Describes the kind of identifier that is expected at a particular position in the source code.
 type IdentifierKind =
-    /// The identifier is a new symbol declaration.
-    | Declaration
-    /// The identifier is a type name.
-    | Type
-    /// The identifier is a characteristic set name.
-    | Characteristic
     /// The identifier is the given keyword.
     | Keyword of string
+    /// The identifier is a variable name.
+    | Variable
+    /// The identifier is a type name.
+    | Type
+    /// The identifier is a new symbol declaration.
+    | Declaration
+    /// The identifier is a characteristic set name.
+    | Characteristic
     /// The identifier is a namespace.
     | Namespace
     /// The identifier is a member of the given namespace and has the given kind.
@@ -63,7 +67,7 @@ let private expectedOp p =
 /// Parses an expected keyword. If the keyword parser fails, this parser can still succeed if the next token is symbol-
 /// like and occurs immediately before EOT (i.e., a possibly incomplete keyword).
 let private expectedKeyword keyword =
-    expectedId (Keyword keyword.id) keyword.parse <|> (symbol >>. eot >>% [Keyword keyword.id])
+    expectedId (Keyword keyword.id) keyword.parse <|> attempt (symbol >>. eot >>% [Keyword keyword.id])
 
 /// Parses an expected qualified symbol. The identifier is optional if EOT occurs first. Returns `[kind]` if EOT occurs
 /// first or there is no whitespace after the qualified symbol; otherwise, returns `[]`.
@@ -79,28 +83,43 @@ let private expectedQualifiedSymbol kind =
     attempt (term qualifiedSymbol |>> fst .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> optional eot) <|>
     (term qualifiedSymbol >>% [])
 
+/// Returns the result of the parser `p` without changing the stream state.
+let peek p =
+    getCharStreamState >>= fun state stream ->
+        let reply = p stream
+        stream.BacktrackTo state
+        reply
+
 /// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
 /// results from all parsers that succeeded into a single list.
 ///
 /// The parser state after running this parser is the state after running the first parser in the sequence that
 /// succeeds.
-let private pcollect (ps : seq<Parser<'a list, 'u>>) =
-    getCharStreamState >>= fun state stream ->
-        let backtrack p =
-            let reply = p stream
-            stream.BacktrackTo state
-            reply
-        let results =
-            ps |>
-            Seq.map backtrack |>
-            Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
-            Seq.collect (fun reply -> reply.Result) |>
-            Seq.toList
-        choice (Seq.map attempt ps) >>% results <| stream
+let private pcollect (ps : seq<Parser<'a list, 'u>>) stream =
+    let results =
+        ps |>
+        Seq.map (fun p -> peek p stream) |>
+        Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
+        Seq.collect (fun reply -> reply.Result) |>
+        Seq.toList
+    (Seq.map attempt ps |> choice >>% results) stream
 
-/// `p1 <||> p2` is equivalent to `pcollect [p1; p2]`.
-let private (<||>) p1 p2 =
+/// `p1 >|< p2` is equivalent to `pcollect [p1; p2]`.
+let private (>|<) p1 p2 : Parser<'a list, 'u> =
     pcollect [p1; p2]
+
+/// `many p` repeatedly applies parser `p` until `p` fails or consumes EOT, and returns the last result. If `p` consumes
+/// EOT, it backtracks but still returns the result. Thus, this parser acts like FParsec's `many` but will never consume
+/// EOT.
+let private many p stream =
+    let last = (p .>> previousCharSatisfies ((<>) '\u0004') |> attempt |> many1 |>> List.last) stream
+    let next = (peek p <|>% []) stream
+    if next.Status = ReplyStatus.Ok then next
+    else last
+
+/// `p1 <@> p2` parses `p1` then `p2` and concatenates the results.
+let private (<@>) p1 p2 =
+    p1 .>>. p2 |>> fun (list1, list2) -> list1 @ list2
 
 /// Parses the brackets around a tuple, where the inside of the tuple is parsed by `inside` and the right bracket is
 /// optional if the stream ends first.
@@ -181,7 +200,7 @@ do qsTypeImpl :=
         tupleType 
         atomicType
         userDefinedType
-    ] .>> many (arrayBrackets emptySpace)
+    ] .>> many (arrayBrackets emptySpace >>% [])
 
 /// Parses a callable signature.
 let private callableSignature =
@@ -206,7 +225,7 @@ let private udtDeclaration =
     let (udt, udtImpl) = createParserForwardedToRef ()
     do udtImpl :=
         let namedItem = name ?>> expectedOp colon ?>> qsType
-        qsType <||> buildTuple (namedItem <||> udt)
+        qsType >|< buildTuple (namedItem >|< udt)
     expectedKeyword typeDeclHeader ?>> name ?>> expectedOp equal ?>> udt
 
 /// Parses an open directive.
@@ -225,12 +244,33 @@ let private namespaceTopLevel =
         openDirective
     ]
 
+/// Parses any prefix operator in an expression.
+let private prefixOp =
+    expectedKeyword notOperator
+
+/// Parses any infix operator in an expression.
+let private infixOp =
+    expectedKeyword andOperator >|< expectedKeyword orOperator
+
+/// Parses any expression term, including prefix operators.
+let private expressionTerm =
+    many prefixOp <@> expectedId Variable (term symbol)
+
+/// Parses an expression.
+let private expression =
+    expressionTerm ?>> (infixOp ?>> expressionTerm |> many1 |>> List.last)
+
+/// Parses a statement.
+let private statement =
+    expression
+
 /// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
 /// of the text.
 let GetExpectedIdentifiers env text =
     let parser =
         match env with
         | NamespaceTopLevel -> namespaceTopLevel
+        | Statement -> statement
     match runParserOnString parser [] "" (text + "\u0004") with
     | Success (result, _, _) -> Set.ofList result
     | Failure (_) -> Set.empty
