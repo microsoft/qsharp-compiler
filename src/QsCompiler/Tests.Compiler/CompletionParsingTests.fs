@@ -142,8 +142,6 @@ let ``Operation declaration parser tests`` () =
     test NamespaceTopLevel "operation Foo<'T> (q : ('T -> Int)) : Unit" [Type]
     test NamespaceTopLevel "operation Foo<'T> (q : ('T->Int)) : Unit" [Type]
     test NamespaceTopLevel "operation Foo<'T> (q : (MyType -> Int)) : Unit" [Type]
-    test NamespaceTopLevel "operation Foo (q : Qubit) : (Int, MyT is Adj" []
-    test NamespaceTopLevel "operation Foo (q : Qubit) : (Int, MyT is Adj " []
 
 [<Fact>]
 let ``Type declaration parser tests`` () =

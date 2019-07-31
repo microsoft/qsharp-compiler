@@ -37,6 +37,12 @@ type IdentifierKind =
     /// The identifier is a member of the given namespace and has the given kind.
     | Member of string * IdentifierKind
 
+/// The exception that is thrown when the completion parser can't parse the text of a fragment.
+exception CompletionParserError of detail : string * error : ParserError
+    with
+        override this.Message = this.error.ToString()
+        override this.ToString() = this.detail
+
 /// Parses the end-of-transmission character.
 let private eot =
     pchar '\u0004'
@@ -272,6 +278,8 @@ let private statement =
 
 /// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
 /// of the text.
+///
+/// Raises a CompletionParseError if the text cannot be parsed.
 let GetExpectedIdentifiers env text =
     let parser =
         match env with
@@ -279,4 +287,4 @@ let GetExpectedIdentifiers env text =
         | Statement -> statement
     match runParserOnString parser [] "" (text + "\u0004") with
     | Success (result, _, _) -> Set.ofList result
-    | Failure (_) -> Set.empty
+    | Failure (detail, error, _) -> raise <| CompletionParserError (detail, error)
