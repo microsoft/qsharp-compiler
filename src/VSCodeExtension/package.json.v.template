@@ -52,6 +52,11 @@
             {
                 "command": "quantum.installIQSharp",
                 "title": "Q#: Install IQ#"
+            },
+
+            {
+                "command": "quantum.launchJupyter",
+                "title": "Q#: Launch Jupyter notebook"
             }
         ],
         "languages": [
@@ -105,6 +110,7 @@
         "test": "npm run compile && node ./node_modules/vscode/bin/test"
     },
     "dependencies": {
+        "node-uuid": "^1.4.8",
         "portfinder": "1.0.13",
         "semver": "^6.0.0",
         "tmp": "0.0.33",
@@ -114,6 +120,7 @@
         "which": "1.3.1"
     },
     "devDependencies": {
+        "@types/node-uuid": "0.0.28",
         "vscode": "^1.1.34",
         "typescript": "^2.6.1",
         "tslint": "^5.8.0",

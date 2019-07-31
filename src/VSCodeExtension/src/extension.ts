@@ -19,7 +19,7 @@ import { ChildProcess } from 'child_process';
 import { startTelemetry, EventNames, sendTelemetryEvent, reporter, ErrorSeverities, forwardServerTelemetry } from './telemetry';
 import { DotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
-import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp } from './commands';
+import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp, launchJupyterNotebook } from './commands';
 
 const extensionStartedAt = Date.now();
 
@@ -227,6 +227,12 @@ export async function activate(context: vscode.ExtensionContext) {
                 )
             );
         }
+    );
+
+    registerCommand(
+        context,
+        "quantum.launchJupyter",
+        launchJupyterNotebook
     );
 
     let rootFolder = findRootFolder();

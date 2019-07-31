@@ -9,14 +9,16 @@ import { DotnetInfo, findIQSharpVersion, DotNetSdk } from './dotnet';
 import { IPackageInfo } from './packageInfo';
 import * as semver from 'semver';
 import { oc } from 'ts-optchain';
-import { reporter, EventNames } from './telemetry';
+import { EventNames, sendTelemetryEvent } from './telemetry';
+import * as portfinder from 'portfinder';
+import * as uuid from 'uuid';
 
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
     context.subscriptions.push(
         vscode.commands.registerCommand(
             name,
             () => {
-                reporter.sendTelemetryEvent(
+                sendTelemetryEvent(
                     EventNames.commandStarted,
                     {
                         "commandName": name
@@ -25,7 +27,7 @@ export function registerCommand(context: vscode.ExtensionContext, name: string, 
                 let startedAt = Date.now();
                 action();
                 let elapsedMilliseconds = Date.now() - startedAt;
-                reporter.sendTelemetryEvent(
+                sendTelemetryEvent(
                     EventNames.commandCompleted,
                     {
                         "commandName": name
@@ -246,4 +248,24 @@ export function installOrUpdateIQSharp(dotNetSdk: DotNetSdk, requiredVersion?: s
                 vscode.window.showWarningMessage(`Could not install IQ#:\n${reason}`);
             }
         );
+}
+
+function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export async function launchJupyterNotebook() {
+    // Start by finding a port rooted at 8888.
+    let port = await portfinder.getPortPromise({host: 'localhost', port: 8888});
+    let token = uuid.v4();
+    let terminal = vscode.window.createTerminal(
+        "Jupyter Notebook"
+    );
+    terminal.sendText(
+        `jupyter notebook --no-browser --port=${port} --NotebookApp.token=${token}`,
+        true
+    );
+    await sleep(500);
+    terminal.show();
+    return vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}/?token=${token}`));
 }
