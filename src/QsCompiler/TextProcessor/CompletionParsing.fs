@@ -253,13 +253,13 @@ let private prefixOp =
 let private infixOp =
     expectedKeyword andOperator >|< expectedKeyword orOperator
 
-/// Parses any expression term, including prefix operators.
+/// Parses any expression term.
 let private expressionTerm =
-    many prefixOp <@> expectedId Variable (term symbol)
+    expectedId Variable (term symbol)
 
 /// Parses an expression.
 let private expression =
-    expressionTerm ?>> (infixOp ?>> expressionTerm |> many1 |>> List.last)
+    many prefixOp <@> expressionTerm ?>> (many1 (infixOp ?>> (many prefixOp <@> expressionTerm)) |>> List.last)
 
 /// Parses a statement.
 let private statement =
