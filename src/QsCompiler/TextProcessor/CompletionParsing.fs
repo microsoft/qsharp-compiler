@@ -113,9 +113,10 @@ let private (>|<) p1 p2 : Parser<'a list, 'u> =
 /// EOT.
 let private many p stream =
     let last = (p .>> previousCharSatisfies ((<>) '\u0004') |> attempt |> many1 |>> List.last) stream
-    let next = (peek p <|>% []) stream
+    let next = (p .>> previousCharSatisfies ((=) '\u0004') |> peek) stream
     if next.Status = ReplyStatus.Ok then next
-    else last
+    elif last.Status = ReplyStatus.Ok then last
+    else Reply []
 
 /// `p1 <@> p2` parses `p1` then `p2` and concatenates the results.
 let private (<@>) p1 p2 =
