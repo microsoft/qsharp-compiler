@@ -17,7 +17,7 @@ import * as tmp from 'tmp';
 import { ChildProcess } from 'child_process';
 
 import { startTelemetry, EventNames, sendTelemetryEvent, reporter, ErrorSeverities, forwardServerTelemetry } from './telemetry';
-import { DotnetInfo, requireDotNetSdk } from './dotnet';
+import { DotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
 import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp } from './commands';
 
@@ -138,7 +138,7 @@ function listenPromise(server: net.Server, port: number, maxPort: number, hostna
     });
 }
 
-function startServer(dotNetSdk : DotnetInfo, assemblyPath : string, rootFolder : string): (() => Thenable<StreamInfo>) {
+function startServer(dotNetSdk : DotNetSdk, assemblyPath : string, rootFolder : string): (() => Thenable<StreamInfo>) {
     return () => new Promise((resolve, reject) => {
 
         let server = net.createServer(socket => {
@@ -196,7 +196,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.newProject",
         () => {
-            requireDotNetSdk(dotNetSdkVersion).then(createNewProject)
+            DotNetSdk.require(dotNetSdkVersion).then(createNewProject)
         }
     );
 
@@ -204,7 +204,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.installTemplates",
         () => {
-            requireDotNetSdk(dotNetSdkVersion).then(
+            DotNetSdk.require(dotNetSdkVersion).then(
                 dotNetSdk => installTemplates(dotNetSdk, packageInfo)
             );
         }
@@ -220,7 +220,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.installIQSharp",
         () => {
-            requireDotNetSdk(dotNetSdkVersion).then(
+            DotNetSdk.require(dotNetSdkVersion).then(
                 dotNetSdk => installOrUpdateIQSharp(
                     dotNetSdk,
                     packageInfo ? packageInfo.nugetVersion : undefined
@@ -238,9 +238,9 @@ export async function activate(context: vscode.ExtensionContext) {
             ? configPath
             : context.asAbsolutePath(configPath);
 
-    let dotNetSdk: DotnetInfo;
+    let dotNetSdk: DotNetSdk;
     try {
-        dotNetSdk = await requireDotNetSdk(
+        dotNetSdk = await DotNetSdk.require(
             packageInfo === undefined ? undefined : packageInfo.requiredDotNetCoreSDK
         );
     } catch (error) {

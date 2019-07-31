@@ -10,12 +10,88 @@ import * as vscode from 'vscode';
 import * as which from 'which';
 import * as cp from 'child_process';
 import * as semver from 'semver';
+import { promisify } from 'util';
 
 // EXPORTS /////////////////////////////////////////////////////////////////////
 
 export type DotnetInfo = {path: string, version: string};
 
-let dotnet : DotnetInfo | undefined = undefined;
+let dotnet : DotNetSdk | undefined = undefined;
+
+let exec = promisify(cp.exec);
+
+export class DotNetSdk {
+    private info: DotnetInfo;
+
+    constructor(info: DotnetInfo) {
+        this.info = info;
+    }
+
+    get path(): string {
+        return this.info.path;
+    }
+
+    get version(): string {
+        return this.info.version;
+    }
+
+    /**
+     * exec
+     */
+    public exec(cmd: string, options?: cp.ExecOptions): Promise<{
+        stdout: string | Buffer,
+        stderr: string | Buffer
+    }> {
+        return exec(
+            `"${this.info.path} ${cmd}`,
+            options
+        );
+    }
+
+    /**
+    * Returns the path to the .NET Core SDK, or prompts the user to install
+    * if the SDK is not found.
+    */
+    public static find() : Promise<DotNetSdk> {
+        return new Promise((resolve, reject) => {
+            if (dotnet === undefined) {
+                try {
+                    let path = which.sync("dotnet");
+                    exec(
+                        `"${path}" --version`
+                    ).then(
+                        value => {
+                            dotnet = new DotNetSdk({path: path, version: value.stdout.trim()});
+                            resolve(dotnet);
+                        }
+                    ).catch(reject);
+                } catch (ex) {
+                    promptToInstallDotNetCoreSDK("The .NET Core SDK was not found on your PATH.");
+                    reject(ex);
+                }
+            } else {
+                resolve(dotnet);
+            }
+
+        });
+    }
+
+    public static require(version? : string) : Promise<DotNetSdk> {
+        return new Promise((resolve, reject) => {
+            DotNetSdk.find()
+                .then(
+                    dotnet => {
+                        if (version !== undefined && semver.lt(dotnet.version, version)) {
+                            let msg = `The Quantum Development Kit extension requires .NET Core SDK version ${version} or later, but ${dotnet.version} was found.`;
+                            promptToInstallDotNetCoreSDK(msg);
+                            reject(msg);
+                        }
+                        resolve(dotnet);
+                    }
+                );
+        });
+    }
+}
 
 function promptToInstallDotNetCoreSDK(msg : string) {
     let installItem = "Install .NET Core SDK...";
@@ -30,55 +106,9 @@ function promptToInstallDotNetCoreSDK(msg : string) {
         );
 }
 
-/**
- * Returns the path to the .NET Core SDK, or prompts the user to install
- * if the SDK is not found.
- */
-export function findDotNetSdk() : Promise<DotnetInfo> {
-    return new Promise((resolve, reject) => {
-
-        if (dotnet === undefined) {
-            try {
-                let path = which.sync("dotnet");
-                cp.exec(
-                    `"${path}" --version`,
-                    (error, stdout, stderr) => {
-                        if (error === null) {
-                            dotnet = {path: path, version: stdout.trim()};
-                            resolve(dotnet);
-                        } else {reject(error);}
-                    }
-                );
-            } catch (ex) {
-                promptToInstallDotNetCoreSDK("The .NET Core SDK was not found on your PATH.");
-                reject(ex);
-            }
-        } else {
-            resolve(dotnet);
-        }
-
-    });
-}
-
-export function requireDotNetSdk(version? : string) : Promise<DotnetInfo> {
-    return new Promise((resolve, reject) => {
-        findDotNetSdk()
-            .then(
-                dotnet => {
-                    if (version !== undefined && semver.lt(dotnet.version, version)) {
-                        let msg = `The Quantum Development Kit extension requires .NET Core SDK version ${version} or later, but ${dotnet.version} was found.`;
-                        promptToInstallDotNetCoreSDK(msg);
-                        reject(msg);
-                    }
-                    resolve(dotnet);
-                }
-            );
-    });
-}
-
 export function findIQSharpVersion() : Promise<{[key: string]: string} | undefined> {
     return new Promise((resolve, reject) => {
-        requireDotNetSdk().then(
+        DotNetSdk.require().then(
             dotnet => {
                 cp.exec(
                     `"${dotnet.path}" iqsharp --version`,

@@ -5,10 +5,9 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 
-import { DotnetInfo, findIQSharpVersion } from './dotnet';
+import { DotnetInfo, findIQSharpVersion, DotNetSdk } from './dotnet';
 import { IPackageInfo } from './packageInfo';
 import * as semver from 'semver';
-import { promisify } from 'util';
 import { oc } from 'ts-optchain';
 
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
@@ -19,7 +18,7 @@ export function registerCommand(context: vscode.ExtensionContext, name: string, 
                 action();
             }
         )
-    )
+    );
 }
 
 function createNewProjectAtUri(dotNetSdk: DotnetInfo, projectType: string, uri: vscode.Uri) {
@@ -100,7 +99,7 @@ export function createNewProject(dotNetSdk: DotnetInfo) {
                 throw undefined;
             }
             let projectType = projectTypes[projectTypeSelection];
-            
+
             vscode.window.showSaveDialog({
                 saveLabel: "Create Project"
             }).then(
@@ -170,7 +169,7 @@ export function openDocumentationHome() {
     );
 }
 
-export function installOrUpdateIQSharp(dotNetSdk: DotnetInfo, requiredVersion?: string) {
+export function installOrUpdateIQSharp(dotNetSdk: DotNetSdk, requiredVersion?: string) {
     findIQSharpVersion()
         .then(
             iqsharpVersion => {
@@ -186,10 +185,8 @@ export function installOrUpdateIQSharp(dotNetSdk: DotnetInfo, requiredVersion?: 
                     // If we made it here, we need to install IQ#. This can fail if it's already installed.
                     // While dotnet does offer an update command, it's often more reliable to just uninstall and reinstall.
                     // Thus, we uninstall here before proceeding to the install step below.
-                    return promisify(cp.exec)(
-                        `"${dotNetSdk.path}" tool uninstall --global Microsoft.Quantum.IQSharp`
-                    )
-                    .then(() => true);
+                    return dotNetSdk.exec("tool uninstall --global Microsoft.Quantum.IQSharp")
+                        .then(() => true);
                 }
                 return true;
             }
@@ -201,9 +198,7 @@ export function installOrUpdateIQSharp(dotNetSdk: DotnetInfo, requiredVersion?: 
                         requiredVersion === undefined
                         ? ""
                         : `::${requiredVersion}`;
-                    return promisify(cp.exec)(
-                        `"${dotNetSdk.path}" tool install --global Microsoft.Quantum.IQSharp${versionSpec}`
-                    )
+                    return dotNetSdk.exec(`tool install --global Microsoft.Quantum.IQSharp${versionSpec}`)
                     .then(() => {
                         // Check what version actually got installed and report that back.
                         findIQSharpVersion()
@@ -214,7 +209,15 @@ export function installOrUpdateIQSharp(dotNetSdk: DotnetInfo, requiredVersion?: 
                                 if (installedVersion["iqsharp"] === undefined) {
                                     throw new Error("Newly installed IQ# did not report a version.");
                                 }
-                                vscode.window.showInformationMessage(`Successfully installed IQ# version ${installedVersion["iqsharp"]}`);
+                                // Now that we've confirmed that the tool is available, use it to
+                                // register IQ# with Jupyter.
+                                return dotNetSdk.exec("iqsharp install --user")
+                                .then(
+                                    obj => {
+                                        vscode.window.showInformationMessage(`Successfully installed IQ# version ${installedVersion["iqsharp"]}`);
+                                        return obj;
+                                    }
+                                );
                             });
                     });
                 }
