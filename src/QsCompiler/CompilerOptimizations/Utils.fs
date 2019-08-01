@@ -10,6 +10,8 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
+open Maybe
+
 
 /// Option default value operator
 let internal (|?) = defaultArg
@@ -145,6 +147,19 @@ let rec internal fillVars (vars: VariablesDict) (argTuple: StringTuple, arg: Exp
             Seq.zip items [arg] |> Seq.map (fillVars vars) |> List.ofSeq |> ignore
 
 
+/// Converts a QsTuple to a SymbolTuple
+let rec toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): SymbolTuple =
+    match x with
+    | QsTupleItem item ->
+        match item.VariableName with
+        | ValidName n -> VariableName n
+        | InvalidName -> InvalidItem
+    | QsTuple items when items.Length = 1 ->
+        toSymbolTuple items.[0]
+    | QsTuple items ->
+        VariableNameTuple ((Seq.map toSymbolTuple items).ToImmutableArray())
+
+
 /// Returns a new array of the given type and length.
 /// Returns None if the type doesn't have a default value.
 let rec internal constructNewArray (bt: TypeKind) (length: int): Expr option =
@@ -172,6 +187,11 @@ and private defaultValue (bt: TypeKind): Expr option =
 and internal wrapExpr (expr: Expr) (bt: TypeKind): TypedExpression =
     let ii = {IsMutable=false; HasLocalQuantumDependency=false}
     TypedExpression.New (expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
+
+
+/// Wraps a QsStatementKind in a basic QsStatement
+let wrapStmt (stmt: QsStatementKind): QsStatement =
+    QsStatement.New QsComments.Empty Null (stmt, [])
 
 
 /// Counts the number of MissingExprs in the given tuple
@@ -237,4 +257,73 @@ let rec internal takeWhilePlus1 (f: 'A -> bool) (l : list<'A>) =
             first :: a, b
         else [], Some first
     | [] -> [], None
+
+
+let rec findAllBaseStatements (scope: QsScope): seq<QsStatementKind> =
+    scope.Statements |> Seq.collect (fun s ->
+        match s.Statement with
+        | QsConditionalStatement cond ->
+            seq {
+                for _, b in cond.ConditionalBlocks do yield b.Body
+                match cond.Default with
+                | Value b -> yield b.Body
+                | _ -> ()
+            } |> Seq.collect findAllBaseStatements
+        | QsForStatement {Body = scope}
+        | QsWhileStatement {Body = scope}
+        | QsQubitScope {Body = scope}
+        | QsScopeStatement {Body = scope} -> findAllBaseStatements scope
+        | QsRepeatStatement {RepeatBlock = scope1; FixupBlock = scope2} ->
+            Seq.concat [findAllBaseStatements scope1.Body; findAllBaseStatements scope2.Body]
+        | x -> Seq.singleton x
+    )
+
+let rec hasReturnStatement (scope: QsScope): bool =
+    scope |> findAllBaseStatements |> Seq.exists (function QsReturnStatement _ -> true | _ -> false)
+
+let rec scopeLength (scope: QsScope): int =
+    scope |> findAllBaseStatements |> Seq.length
+
+
+let internal tryInline (ex: TypedExpression) (callableDict: CallableDict) =
+    maybe {
+        let! expr, arg =
+            match ex.Expression with
+            | CallLikeExpression ({Expression = expr}, arg) -> Some (expr, arg)
+            | _ -> None
+        let! qualName, specKind =
+            match expr with
+            | Identifier (GlobalCallable qualName, _) -> Some (qualName, QsBody)
+            | AdjointApplication {Expression = Identifier (GlobalCallable qualName, _)} -> Some (qualName, QsAdjoint)
+            | ControlledApplication {Expression = Identifier (GlobalCallable qualName, _)} -> Some (qualName, QsControlled)
+            | AdjointApplication {Expression = ControlledApplication {Expression = Identifier (GlobalCallable qualName, _)}} -> Some (qualName, QsControlledAdjoint)
+            | ControlledApplication {Expression = AdjointApplication {Expression = Identifier (GlobalCallable qualName, _)}} -> Some (qualName, QsControlledAdjoint)
+            | _ -> None
+        let callable = callableDict.getCallable qualName
+        let! impl = callable.Specializations |> Seq.tryFind (fun s -> s.Kind = specKind)
+        let! specArgs, scope =
+            match impl with
+            | {Implementation = Provided (specArgs, scope)} -> Some (specArgs, scope)
+            | {Implementation = Generated SelfInverse} ->
+                let newKind = match specKind with QsAdjoint -> Some QsBody | QsControlledAdjoint -> Some QsControlled | _ -> None
+                match callable.Specializations |> Seq.tryFind (fun s -> Some s.Kind = newKind) with
+                | Some {Implementation = Provided (specArgs, scope)} -> Some (specArgs, scope)
+                | _ -> None
+            | _ -> None
+        let! _ = if not (hasReturnStatement scope) then Some () else None
+        let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple callable.ArgumentTuple, arg)
+        let newStatements = scope.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
+        return qualName, {scope with Statements = newStatements}
+    }
+
+let rec internal findAllCalls (scope: QsScope) (cd: CallableDict) (found: HashSet<QsQualifiedName>): unit =
+    scope |> findAllBaseStatements |> Seq.map (function
+        | QsExpressionStatement ex ->
+            match tryInline ex cd with
+            | Some (qualName, newScope) ->
+                if found.Add qualName then
+                    findAllCalls newScope cd found
+            | None -> ()
+        | _ -> ()
+    ) |> List.ofSeq |> ignore
 

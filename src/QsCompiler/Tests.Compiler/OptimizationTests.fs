@@ -25,7 +25,7 @@ let private buildSyntaxTree code =
 /// Given a string of valid Q# code, outputs the optimized AST as a string
 let private optimize code =
     let mutable tree, callables = buildSyntaxTree code
-    let optimizer = ConstantPropagator(callables, 4)
+    let optimizer = ConstantPropagator(callables)
     while optimizer.checkChanged() do
         tree <- tree |> Seq.map optimizer.Transform |> Seq.toList
     String.Join("\n", Seq.map printNamespace tree)
@@ -57,6 +57,11 @@ let ``arithmetic evaluation`` () =
 let ``function evaluation`` () =
     // createTestCase "TestCases/Optimizer/FunctionEval"
     assertOptimization "TestCases/Optimizer/FunctionEval"
+    
+[<Fact>]
+let ``inlining`` () =
+    // createTestCase "TestCases/Optimizer/Inlining"
+    assertOptimization "TestCases/Optimizer/Inlining"
 
 [<Fact>]
 let ``loop unrolling`` () =

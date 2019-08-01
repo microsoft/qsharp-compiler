@@ -146,14 +146,16 @@ and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: 
 
     override this.onLogicalAnd (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
-        match lhs.Expression, rhs.Expression with
-        | BoolLiteral a, BoolLiteral b -> BoolLiteral (a && b)
+        match lhs.Expression with
+        | BoolLiteral true -> rhs.Expression
+        | BoolLiteral false -> BoolLiteral false
         | _ -> AND (lhs, rhs)
 
     override this.onLogicalOr (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
-        match lhs.Expression, rhs.Expression with
-        | BoolLiteral a, BoolLiteral b -> BoolLiteral (a || b)
+        match lhs.Expression with
+        | BoolLiteral true -> BoolLiteral true
+        | BoolLiteral false -> rhs.Expression
         | _ -> OR (lhs, rhs)
 
     override this.onAddition (lhs, rhs) =

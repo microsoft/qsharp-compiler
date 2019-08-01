@@ -77,7 +77,7 @@ let rec printStm (indent: int) (stm: QsStatementKind): string =
     | QsScopeStatement a ->
         ws + printScope indent a.Body
     | QsExpressionStatement a ->
-        ws + printExpr a.Expression
+        ws + printExpr a.Expression + ";"
     | QsQubitScope a ->
         ws + sprintf "%O (%O = %O) %O" a.Kind (StringTuple.fromSymbolTuple a.Binding.Lhs) (printInitializer a.Binding.Rhs.Resolution) (printScope indent a.Body)
 
