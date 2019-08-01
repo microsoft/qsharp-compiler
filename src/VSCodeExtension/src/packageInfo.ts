@@ -15,6 +15,7 @@ export interface IPackageInfo {
     aiKey: string;
     requiredDotNetCoreSDK: string;
     enableTelemetry: string;
+    nugetVersion?: string;
 }
 
 export function getPackageInfo(context: vscode.ExtensionContext): IPackageInfo | undefined {
@@ -25,7 +26,8 @@ export function getPackageInfo(context: vscode.ExtensionContext): IPackageInfo |
             version: extensionPackage.version,
             aiKey: extensionPackage.aiKey,
             requiredDotNetCoreSDK: extensionPackage.requiredDotNetCoreSDK,
-            enableTelemetry: extensionPackage.enableTelemetry
+            enableTelemetry: extensionPackage.enableTelemetry,
+            nugetVersion: extensionPackage.nugetVersion
         };
     }
     return;

@@ -408,8 +408,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var specializations = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName).Select(defined =>
                     {
                         var specHeader = defined.Item2;
-                        var compiledSpecs = compiled.Specializations.Where(spec => spec.Kind == specHeader.Kind);
-                        QsCompilerError.Verify(compiledSpecs.Count() <= 1, "more than one specialization of the same kind exists"); // currently not supported
+                        var compiledSpecs = compiled.Specializations.Where(spec => 
+                            spec.Kind == specHeader.Kind &&
+                            spec.TypeArguments.Equals(specHeader.TypeArguments)
+                        ); 
+                        QsCompilerError.Verify(compiledSpecs.Count() <= 1, "more than one specialization of the same kind exists");
                         if (!compiledSpecs.Any()) return null; // may happen if a file has been modified during global type checking
 
                         var compiledSpec = compiledSpecs.Single();

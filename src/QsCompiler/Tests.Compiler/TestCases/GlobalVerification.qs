@@ -122,6 +122,158 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     }
 
 
+	// checking for duplicate specializations
+
+	operation ValidSetOfSpecializations1 () : Unit {
+		body (...) {}
+		adjoint auto; 
+		controlled auto;
+		adjoint controlled auto;
+	}
+
+	operation ValidSetOfSpecializations2 () : Unit {
+		body (...) {}
+		adjoint auto; 
+		controlled auto;
+		controlled adjoint auto;
+	}
+
+	operation ValidSetOfSpecializations3 () : Unit {
+		body (...) {}
+		controlled adjoint auto;
+	}
+
+	operation ValidSetOfSpecializations4 () : Unit {
+		body (...) {}
+		adjoint auto;
+	}
+
+	operation ValidSetOfSpecializations5 () : Unit {
+		body (...) {}
+		controlled auto;
+	}
+
+	operation ValidSetOfSpecializations6 () : Unit {
+		body (...) {}
+		adjoint (...) {} 
+		controlled (cs, ...) {} 
+		adjoint controlled (cs, ...) {} 
+	}
+
+	operation ValidSetOfSpecializations7 () : Unit {
+		body (...) {}
+		adjoint (...) {} 
+		controlled (cs, ...) {} 
+		controlled adjoint (cs, ...) {} 
+	}
+
+	operation ValidSetOfSpecializations8 () : Unit {
+		body (...) {}
+		controlled adjoint (cs, ...) {} 
+	}
+
+	operation ValidSetOfSpecializations9 () : Unit {
+		body (...) {}
+		adjoint (...) {} 
+	}
+
+	operation ValidSetOfSpecializations10 () : Unit {
+		body (...) {}
+		controlled (cs, ...) {} 
+	}
+
+	operation ValidSetOfSpecializations11 () : Unit
+	is Adj + Ctl {
+		body (...) {}
+		controlled adjoint (cs, ...) {} 
+	}
+
+	operation ValidSetOfSpecializations12 () : Unit
+	is Adj + Ctl {
+		body (...) {}
+		adjoint (...) {} 
+	}
+
+	operation ValidSetOfSpecializations13 () : Unit
+	is Adj + Ctl {
+		body (...) {}
+		controlled (cs, ...) {} 
+	}
+
+
+	operation InvalidSetOfSpecializations1 () : Unit {
+		body (...) {}
+		controlled adjoint auto;
+		controlled adjoint auto;
+	}
+
+	operation InvalidSetOfSpecializations2 () : Unit {
+		body (...) {}
+		controlled adjoint auto;
+		controlled adjoint (cs, ...) {}
+	}
+
+	operation InvalidSetOfSpecializations3 () : Unit {
+		body (...) {}
+		controlled adjoint (cs, ...) {}
+		controlled adjoint (cs, ...) {}
+	}
+
+	operation InvalidSetOfSpecializations4 () : Unit {
+		body (...) {}
+		controlled adjoint auto;
+		adjoint controlled auto;
+	}
+
+	operation InvalidSetOfSpecializations5 () : Unit {
+		body (...) {}
+		controlled adjoint (cs, ...) {}
+		adjoint controlled auto;
+	}
+
+	operation InvalidSetOfSpecializations6 () : Unit {
+		body (...) {}
+		controlled adjoint (cs, ...) {}
+		adjoint controlled (cs, ...) {}
+	}
+
+	operation InvalidSetOfSpecializations7 () : Unit {
+		body (...) {}
+		adjoint auto;
+		adjoint auto;
+	}
+
+	operation InvalidSetOfSpecializations8 () : Unit {
+		body (...) {}
+		adjoint auto;
+		adjoint (...) {}
+	}
+
+	operation InvalidSetOfSpecializations9 () : Unit {
+		body (...) {}
+		adjoint (...) {}
+		adjoint (...) {}
+	}
+
+	operation InvalidSetOfSpecializations10 () : Unit {
+		body (...) {}
+		controlled auto;
+		controlled auto;
+	}
+
+	operation InvalidSetOfSpecializations11 () : Unit {
+		body (...) {}
+		controlled (cs, ...) {}
+		controlled auto;
+	}
+
+	operation InvalidSetOfSpecializations12 () : Unit {
+		body (...) {}
+		controlled (cs, ...) {}
+		controlled (cs, ...) {}
+	}
+
+
     // all paths return a value or fail
 
     function AllPathsReturnValue1 () : Int {
