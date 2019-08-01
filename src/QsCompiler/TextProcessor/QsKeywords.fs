@@ -159,14 +159,14 @@ let qsRUSfixup   = addLanguageKeyword Statements.Fixup
 // block statements
 
 /// keyword for a Q# transformation pattern (QsFragmentHeader)
-let qsConjugate = addFragmentHeader Statements.Conjugate
+let qsConjugation = addFragmentHeader Statements.Conjugation
 /// keyword for a Q# transformation pattern (QsFragmentHeader)
-let qsWith      = addFragmentHeader Statements.With
+let qsAround      = addFragmentHeader Statements.Around
 
 /// keyword for a Q# allocation statement (QsFragmentHeader)
-let qsUsing      = addFragmentHeader Statements.Using
+let qsUsing        = addFragmentHeader Statements.Using
 /// keyword for a Q# allocation statement (QsFragmentHeader)
-let qsBorrowing  = addFragmentHeader Statements.Borrowing
+let qsBorrowing    = addFragmentHeader Statements.Borrowing
 
 // expression related keywords
 

@@ -161,8 +161,8 @@ let public SymbolInformation fragmentKind =
     | QsFragmentKind.WhileLoopIntro                   ex -> [||],                      ([ex]     , [])          |> collectWith SymbolsFromExpr
     | QsFragmentKind.RepeatIntro                         -> [||],                      ([||]     , [||], [||])
     | QsFragmentKind.UntilSuccess                 (ex,_) -> [||],                      ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ConjugateIntro                      -> [||],                      ([||]     , [||], [||])
-    | QsFragmentKind.WithIntro                           -> [||],                      ([||]     , [||], [||])
+    | QsFragmentKind.ConjugationIntro                    -> [||],                      ([||]     , [||], [||])
+    | QsFragmentKind.AroundIntro                         -> [||],                      ([||]     , [||], [||])
     | QsFragmentKind.UsingBlockIntro         (sym, init) -> sym |> SymbolDeclarations, init                     |> VariablesInInitializer
     | QsFragmentKind.BorrowingBlockIntro     (sym, init) -> sym |> SymbolDeclarations, init                     |> VariablesInInitializer
     | QsFragmentKind.BodyDeclaration                 gen -> gen |> SymbolsInGenerator, ([||], [||], [||])

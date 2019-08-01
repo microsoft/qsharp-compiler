@@ -788,12 +788,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             QsNullable<QsLocation> RelativeLocation(FragmentTree.TreeNode node) =>
                 QsNullable<QsLocation>.NewValue(new QsLocation(DiagnosticTools.AsTuple(node.GetPositionRelativeToRoot()), node.Fragment.HeaderRange));
 
-            if (nodes.Current.Fragment.Kind.IsConjugateIntro)
+            if (nodes.Current.Fragment.Kind.IsConjugationIntro)
             {
-                var innerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
-                var inner = new QsPositionedBlock(innerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
+                var outerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                var outer = new QsPositionedBlock(outerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
-                if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsWithIntro)
+                if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsAroundIntro)
                 {
                     // Since we need to generate an adjoint for the statements that define the outer transformation in any case - 
                     // i.e. whether we need to generate an adjoint for the current scope or not - 
@@ -801,14 +801,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var additionalFunctorSupport = symbolTracker.RequiredFunctorSupport.Contains(QsFunctor.Adjoint)
                         ? new QsFunctor[0] // we already require that all called operations support the Adjoint functor 
                         : new[] { QsFunctor.Adjoint }; // all operations called within the outer transformation need to support the Adjoint functor
-                    var outerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics, additionalFunctorSupport);
-                    var outer = new QsPositionedBlock(outerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
+                    var innerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics, additionalFunctorSupport);
+                    var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
                     statement = Statements.NewConjugateStatement(outer, inner);
                     proceed = nodes.MoveNext();
                     return true;
                 }
-                else throw new ArgumentException("conjugate-block needs to be followed by a with-block");
+                else throw new ArgumentException("conjugation-block needs to be followed by an around-block");
             }
             (statement, proceed) = (null, true);
             return false;
