@@ -1222,8 +1222,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new ArgumentException($"missing entry for {kind} specialization of {specsRoot.Namespace}.{specsRoot.Callable}");
                 var (directive, spec) = defined;
 
-                var required = RequiredFunctorSupport(kind, k => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null);
-                var symbolTracker = new SymbolTracker<Position>(symbols, spec.SourceFile, spec.Parent, required);
+                var symbolTracker = new SymbolTracker<Position>(symbols, spec.SourceFile, spec.Parent);
                 var implementation = directive.IsValue ? SpecializationImplementation.NewGenerated(directive.Item) : null;
 
                 // a user defined implementation is ignored if it is invalid to specify such (e.g. for self-adjoint or intrinsic operations)
@@ -1233,6 +1232,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages) diagnostics.Add(Diagnostics.Generate(spec.SourceFile.Value, msg, specPos));
 
+                    QsGeneratorDirective GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
+                    var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
                     implementation = BuildUserDefinedImplemenation(root, spec.SourceFile, arg, requiredFunctorSupport, symbolTracker, diagnostics);
                     QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
                 }
