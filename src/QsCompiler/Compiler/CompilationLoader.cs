@@ -55,8 +55,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool GenerateFunctorSupport;
             /// <summary>
-            /// If set to true, the syntax tree rewrite step that eliminated all statements 
-            /// that are not commonly handled in during code generation is executed during compilation. 
+            /// If set to true, the syntax tree rewrite step that eliminated selective abstractions is executed during compilation. 
             /// In particular, all conjugate-statements are inlined. 
             /// </summary>
             public bool TrimSyntaxTree;
