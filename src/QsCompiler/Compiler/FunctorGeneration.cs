@@ -12,7 +12,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
 
 
-namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
+namespace Microsoft.Quantum.QsCompiler
 {
     public static class FunctorGeneration
     {

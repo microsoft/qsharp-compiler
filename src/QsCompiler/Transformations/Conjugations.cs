@@ -3,12 +3,38 @@
 
 using System;
 using System.Collections.Immutable;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
 {
+    public class InlineConjugations
+        : SyntaxTreeTransformation<InlineConjugateStatements>
+    {
+        public bool Success { get; private set; }
+        private readonly Action<Exception> OnException;
+
+        public InlineConjugations(Action<Exception> onException = null)
+            : base(new InlineConjugateStatements()) =>
+            this.OnException = onException;
+
+        public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> onProvidedImplementation
+            (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
+        {
+            this._Scope.Reset();
+            try { body = this._Scope.Transform(body); }
+            catch (Exception ex)
+            {
+                this.OnException?.Invoke(ex);
+                this.Success = false;
+            }
+            return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
+        }
+    }
+
+
     /// <summary>
     /// Scope transformation that inlines all conjugate-statements, thus eliminating them from a given scope.
     /// The generation of the adjoint for the outer block needed for conjugation is subject to the same limitation as any adjoint auto-generation. 
@@ -18,7 +44,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
     public class InlineConjugateStatements 
         : ScopeTransformation<StatementKindTransformation<InlineConjugateStatements>, NoExpressionTransformations>
     {
-        private readonly Func<QsScope, QsScope> ResolveNames;
+        private Func<QsScope, QsScope> ResolveNames;
+        internal void Reset() => this.ResolveNames = new UniqueVariableNames().Transform;
 
         public InlineConjugateStatements()
             : base(s => new StatementKindTransformation<InlineConjugateStatements>(s as InlineConjugateStatements), new NoExpressionTransformations()) =>
