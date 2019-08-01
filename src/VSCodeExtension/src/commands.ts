@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 
-import { DotnetInfo, findIQSharpVersion, DotNetSdk } from './dotnet';
+import { findIQSharpVersion, DotNetSdk } from './dotnet';
 import { IPackageInfo } from './packageInfo';
 import * as semver from 'semver';
 import { oc } from 'ts-optchain';
@@ -13,6 +13,10 @@ import { EventNames, sendTelemetryEvent } from './telemetry';
 import * as portfinder from 'portfinder';
 import * as uuid from 'uuid';
 
+/**
+ * Given the name of a VS Code command, and an action that implements that command,
+ * registers the new command into a VS Code extension context.
+ */
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
     context.subscriptions.push(
         vscode.commands.registerCommand(
@@ -41,7 +45,7 @@ export function registerCommand(context: vscode.ExtensionContext, name: string, 
     );
 }
 
-function createNewProjectAtUri(dotNetSdk: DotnetInfo, projectType: string, uri: vscode.Uri) {
+function createNewProjectAtUri(dotNetSdk: DotNetSdk, projectType: string, uri: vscode.Uri) {
     let proc = cp.spawn(
         dotNetSdk.path,
         ["new", projectType, "-lang", "Q#", "-o", uri.fsPath]
@@ -105,7 +109,7 @@ function createNewProjectAtUri(dotNetSdk: DotnetInfo, projectType: string, uri: 
     );
 }
 
-export function createNewProject(dotNetSdk: DotnetInfo) {    
+export function createNewProject(dotNetSdk: DotNetSdk) {    
     const projectTypes: {[key: string]: string} = {
         "Standalone console application": "console",
         "Quantum library": "classlib",
@@ -144,7 +148,7 @@ export function createNewProject(dotNetSdk: DotnetInfo) {
     );
 }
 
-export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageInfo) {
+export function installTemplates(dotNetSdk: DotNetSdk, packageInfo?: IPackageInfo) {
     let packageVersion =
         oc(packageInfo).nugetVersion
         ? `::${packageInfo!.nugetVersion}`
