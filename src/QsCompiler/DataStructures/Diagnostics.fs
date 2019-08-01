@@ -250,7 +250,7 @@ type ErrorCode =
     | UnexpectedCompilerException = 7015
 
     | FunctorGenerationFailed = 7101
-    | CodeGenPreparationFailed = 7102
+    | TreeTrimmingFailed = 7102
     | CsGenerationFailed = 7103
     | QsGenerationFailed = 7104
     | DocGenerationFailed = 7105
@@ -561,7 +561,7 @@ type DiagnosticItem =
             | ErrorCode.UnexpectedCompilerException             -> "The compiler threw an exception."
 
             | ErrorCode.FunctorGenerationFailed                 -> "Auto-generation of functor specialization(s) failed."
-            | ErrorCode.CodeGenPreparationFailed                -> "Elimination of abstractions that are not handled during code generation failed."
+            | ErrorCode.TreeTrimmingFailed                      -> "The generated syntax tree could not be trimmed."
             | ErrorCode.CsGenerationFailed                      -> "Unable to generate C# code to run within the simulation framework."
             | ErrorCode.QsGenerationFailed                      -> "Unable to generate formatted Q# code based on the built syntax tree."
             | ErrorCode.DocGenerationFailed                     -> "Unable to generate documentation for the compiled code."

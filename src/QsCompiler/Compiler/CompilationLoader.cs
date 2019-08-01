@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// that are not commonly handled in during code generation is executed during compilation. 
             /// In particular, all conjugate-statements are inlined. 
             /// </summary>
-            public bool PrepareCodeGen;
+            public bool TrimSyntaxTree;
             /// <summary>
             /// If the output folder is not null, 
             /// documentation is generated in the specified folder based on doc comments in the source code. 
@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal int ReferenceLoading = -1;
             internal int Validation = -1;
             internal int FunctorSupport = -1;
-            internal int CodeGenPreparation = -1;
+            internal int TreeTrimming = -1;
             internal int Documentation = -1;
             internal int BinaryFormat = -1;
             internal Dictionary<string, int> BuildTargets;
@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
-                WasSuccessful(options.PrepareCodeGen, this.CodeGenPreparation) &&
+                WasSuccessful(options.TrimSyntaxTree, this.TreeTrimming) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 !this.BuildTargets.Values.Any(status => !WasSuccessful(true, status))
@@ -226,12 +226,12 @@ namespace Microsoft.Quantum.QsCompiler
                 if (!functorSpecGenerated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
             }
 
-            if (this.Config.PrepareCodeGen)
+            if (this.Config.TrimSyntaxTree)
             {
-                this.CompilationStatus.CodeGenPreparation = 0;
-                var rewrite = new InlineConjugations();
+                this.CompilationStatus.TreeTrimming = 0;
+                var rewrite = new InlineConjugations(onException: ex => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex));
                 this.GeneratedSyntaxTree = this.GeneratedSyntaxTree?.Select(ns => rewrite.Transform(ns))?.ToImmutableArray();
-                if (this.GeneratedSyntaxTree == null || !rewrite.Success) this.LogAndUpdate(ref this.CompilationStatus.CodeGenPreparation, ErrorCode.CodeGenPreparationFailed, Enumerable.Empty<string>());
+                if (this.GeneratedSyntaxTree == null || !rewrite.Success) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
             }
 
             // generating the compiled binary
