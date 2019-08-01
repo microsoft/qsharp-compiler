@@ -7,7 +7,7 @@ open Xunit
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Testing.TestUtils
-open Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
+open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
 [<Fact>]
@@ -87,12 +87,19 @@ let ``Strip unique variable name resolution`` () =
     |> List.iter Assert.Equal
 
     origNames
-    |> List.map NameResolution.GetUniqueName
-    |> List.map (fun var -> var, NameResolution.GetUniqueName var)
+    |> List.map NameResolution.GenerateUniqueName
+    |> List.map (fun unique -> unique, NameResolution.GenerateUniqueName unique)
+    |> List.map (fun (unique, twiceWrapped) -> unique, NameResolution.StripUniqueName twiceWrapped)
+    |> List.iter Assert.Equal
+
+    origNames
+    |> List.map (fun var -> var, NameResolution.GenerateUniqueName var)
+    |> List.map (fun (var, unique) -> var, NameResolution.GenerateUniqueName unique)
+    |> List.map (fun (var, twiceWrapped) -> var, NameResolution.StripUniqueName twiceWrapped)
     |> List.map (fun (var, unique) -> var, NameResolution.StripUniqueName unique)
     |> List.iter Assert.Equal
 
     origNames
-    |> List.map (fun var -> var, NameResolution.GetUniqueName var)
+    |> List.map (fun var -> var, NameResolution.GenerateUniqueName var)
     |> List.map (fun (var, unique) -> var, NameResolution.StripUniqueName unique)
     |> List.iter Assert.Equal
