@@ -217,6 +217,8 @@ namespace Microsoft.Quantum.QsCompiler
                 if (!functorSpecGenerated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
             }
 
+            // TODO: ADD A PREP CODE GEN STEP
+
             // generating the compiled binary
 
             using (var ms = new MemoryStream())

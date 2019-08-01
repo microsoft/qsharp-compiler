@@ -6,6 +6,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations
@@ -39,6 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// </summary>
         public static QsScope GenerateAdjoint(this QsScope scope)
         {
+            scope = new UniqueVariableNames().Transform(scope);
             scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
             scope = new ReverseOrderOfOperationCalls().Transform(scope);
             return StripLocationInformation.Apply(scope);
@@ -61,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// throws an InvalidOperationException if the outer block contains while-loops. 
         /// </summary>
         public static QsScope InlineConjugations(this QsScope scope) =>
-            InlineConjugateStatements.Apply(scope); 
+            new InlineConjugateStatements().Transform(scope); 
     }
 }
 

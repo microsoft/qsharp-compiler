@@ -2,41 +2,13 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Text.RegularExpressions;
-using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
 {
-    //public class InlineConjugations :
-    //    SyntaxTreeTransformation<InlineConjugateStatements>
-    //{
-    //    public InlineConjugations() :
-    //        base(new InlineConjugateStatements())
-    //    { }
-    //
-    //    private static readonly Func<QsScope, QsScope> SkipConjugates =
-    //        new SkipConjugateStatements().Transform;
-    //
-    //    private QsSpecialization TransformFunctionSpecialization(QsSpecialization spec) =>
-    //        spec.Implementation is SpecializationImplementation.Provided impl
-    //            ? spec.WithImplementation(SpecializationImplementation.NewProvided(impl.Item1, SkipConjugates(impl.Item2)))
-    //            : spec;
-    //
-    //    public override QsCallable onFunction(QsCallable c) => 
-    //        c.WithSpecializations(specs => specs.Select(TransformFunctionSpecialization).ToImmutableArray());
-    //
-    //    public override QsCallable onTypeConstructor(QsCallable c) =>
-    //        c.WithSpecializations(specs => specs.Select(TransformFunctionSpecialization).ToImmutableArray());
-    //}
-
-    // FIXME: WE NEED TO RESOLVE TO UNIQUE VARIABLE NAMES BEFORE WE DO THE AUTO-GENERATION OF ADJOINT
-
     /// <summary>
     /// Scope transformation that inlines all conjugate-statements, thus eliminating them from a given scope.
     /// The generation of the adjoint for the outer block needed for conjugation is subject to the same limitation as any adjoint auto-generation. 
@@ -46,12 +18,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
     public class InlineConjugateStatements 
         : ScopeTransformation<StatementKindTransformation<InlineConjugateStatements>, NoExpressionTransformations>
     {
-        public InlineConjugateStatements() 
-            : base(s => new StatementKindTransformation<InlineConjugateStatements>(s as InlineConjugateStatements), new NoExpressionTransformations())
-        { }
+        private readonly Func<QsScope, QsScope> ResolveNames;
 
-        public static Func<QsScope, QsScope> Apply =
-            new InlineConjugateStatements().Transform;
+        public InlineConjugateStatements()
+            : base(s => new StatementKindTransformation<InlineConjugateStatements>(s as InlineConjugateStatements), new NoExpressionTransformations()) =>
+            this.ResolveNames = new UniqueVariableNames().Transform;
 
         public override QsScope Transform(QsScope scope)
         {
@@ -60,11 +31,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             {
                 if (statement.Statement is QsStatementKind.QsConjugateStatement conjStm)
                 {
-                    // FIXME: WE NEED TO RESOLVE TO UNIQUE VARIABLE NAMES!
-
-                    var outer = this.Transform(conjStm.Item.OuterTransformation.Body);
-                    var inner = this.Transform(conjStm.Item.InnerTransformation.Body);
-                    var adjOuter = outer.GenerateAdjoint();
+                    // since we are eliminating scopes, 
+                    // we need to make sure that the variables defined within the inlined scopes do not clash with other defined variables.
+                    var outer = ResolveNames(this.Transform(conjStm.Item.OuterTransformation.Body));
+                    var inner = ResolveNames(this.Transform(conjStm.Item.InnerTransformation.Body));
+                    var adjOuter = outer.GenerateAdjoint(); // will add a unique name wrapper
 
                     statements.AddRange(outer.Statements);
                     statements.AddRange(inner.Statements);
