@@ -3,9 +3,11 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.RegexTests
 
-open TestUtils
 open Xunit
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
+open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Testing.TestUtils
+open Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 
 
 [<Fact>]
@@ -64,3 +66,33 @@ let ``Replace array item delimeters`` () =
     |> List.iter (fun (str,exp) -> FormatCompilation.UpdateArrayLiterals str |> fun got -> Assert.Equal(exp, got))
 
 
+[<Fact>]
+let ``Strip unique variable name resolution`` () = 
+    let NameResolution = new UniqueVariableNames()
+
+    // name wrapping is added and stripped without verifying the validity of the variable name
+    let origNames = 
+        [
+            "var1"
+            "__var2__"
+            "3"
+            "1+5"
+            "some name" // the matching will fail (only) if there is a linebreak
+            "'TName"
+        ] 
+        |> List.map NonNullable<string>.New 
+
+    origNames
+    |> List.map (fun var -> var, NameResolution.StripUniqueName var)
+    |> List.iter Assert.Equal
+
+    origNames
+    |> List.map NameResolution.GetUniqueName
+    |> List.map (fun var -> var, NameResolution.GetUniqueName var)
+    |> List.map (fun (var, unique) -> var, NameResolution.StripUniqueName unique)
+    |> List.iter Assert.Equal
+
+    origNames
+    |> List.map (fun var -> var, NameResolution.GetUniqueName var)
+    |> List.map (fun (var, unique) -> var, NameResolution.StripUniqueName unique)
+    |> List.iter Assert.Equal

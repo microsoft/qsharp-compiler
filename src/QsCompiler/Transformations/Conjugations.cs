@@ -2,8 +2,12 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text.RegularExpressions;
+using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 
@@ -31,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
     //        c.WithSpecializations(specs => specs.Select(TransformFunctionSpecialization).ToImmutableArray());
     //}
 
-    // FIXME: WE NEED TO RESOLVE TO UNIQUE VARIABLE NAMES!
+    // FIXME: WE NEED TO RESOLVE TO UNIQUE VARIABLE NAMES BEFORE WE DO THE AUTO-GENERATION OF ADJOINT
 
     /// <summary>
     /// Scope transformation that inlines all conjugate-statements, thus eliminating them from a given scope.
@@ -39,11 +43,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
     /// In particular, it is only guaranteed to be valid if operation calls only occur within expression statements, and 
     /// throws an InvalidOperationException if the outer block contains while-loops. 
     /// </summary>
-    public class InlineConjugateStatements :
-        ScopeTransformation<StatementKindTransformation<InlineConjugateStatements>, NoExpressionTransformations>
+    public class InlineConjugateStatements 
+        : ScopeTransformation<StatementKindTransformation<InlineConjugateStatements>, NoExpressionTransformations>
     {
-        public InlineConjugateStatements() :
-            base(s => new StatementKindTransformation<InlineConjugateStatements>(s as InlineConjugateStatements), new NoExpressionTransformations())
+        public InlineConjugateStatements() 
+            : base(s => new StatementKindTransformation<InlineConjugateStatements>(s as InlineConjugateStatements), new NoExpressionTransformations())
         { }
 
         public static Func<QsScope, QsScope> Apply =
@@ -70,25 +74,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             }
             return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
         }
-    }
-
-
-    /// <summary>
-    /// Applying the transformation generates a new scope without any conjugate-statements. 
-    /// Conjugate-statements will be silently eliminated without replacement or further verification. 
-    /// </summary>
-    public class SkipConjugateStatements :
-        ScopeTransformation<StatementKindTransformation<SkipConjugateStatements>, NoExpressionTransformations>
-    {
-        public SkipConjugateStatements() :
-            base(s => new StatementKindTransformation<SkipConjugateStatements>(s as SkipConjugateStatements), new NoExpressionTransformations())
-        { }
-
-        public static Func<QsScope, QsScope> Apply =
-            new SkipConjugateStatements().Transform;
-
-        public override QsScope Transform(QsScope scope) =>
-            base.Transform(new QsScope(scope.Statements.Where(s => !s.Statement.IsQsConjugateStatement).ToImmutableArray(), scope.KnownSymbols));
     }
 }
 
