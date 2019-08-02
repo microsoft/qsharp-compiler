@@ -12,7 +12,8 @@
     <Compile Include="..\Common\DelaySign.fs">
       <Link>DelaySign.fs</Link>
     </Compile>
-    <Compile Include="Maybe.fs" />
+    <Compile Include="ComputationExpressions.fs" />
+    <Compile Include="TransformationState.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Printer.fs" />
     <Compile Include="FunctionEvaluation.fs" />

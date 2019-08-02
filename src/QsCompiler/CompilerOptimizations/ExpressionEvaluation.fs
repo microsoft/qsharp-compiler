@@ -8,26 +8,27 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+open TransformationState
 open Utils
 open FunctionEvaluation
 open Printer
 
 
 /// The ExpressionTransformation used to evaluate constant expressions
-type internal ExpressionEvaluator(vars: VariablesDict, cd: CallableDict, maxRecursiveDepth: int) =
+type ExpressionEvaluator(stateRef: TransformationState ref, maxRecursiveDepth: int) =
     inherit ExpressionTransformation()
 
-    member this.getFE() = { new FunctionEvaluator(cd) with 
-        override f.evaluateExpression vars2 x =
-            (ExpressionEvaluator(vars2, cd, maxRecursiveDepth-1).Transform x).Expression }
+    member this.getFE() = { new FunctionEvaluator() with 
+        override f.evaluateExpression state2 x =
+            (ExpressionEvaluator(ref state2, maxRecursiveDepth-1).Transform x).Expression }
 
-    override this.Kind = upcast { new ExpressionKindEvaluator(vars, cd, this.getFE(), maxRecursiveDepth) with 
+    override this.Kind = upcast { new ExpressionKindEvaluator(stateRef, this.getFE(), maxRecursiveDepth) with 
         override kind.ExpressionTransformation x = this.Transform x 
         override kind.TypeTransformation x = this.Type.Transform x }
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: CallableDict, fe: FunctionEvaluator, maxRecursiveDepth: int) =
+and [<AbstractClass>] ExpressionKindEvaluator(stateRef: TransformationState ref, fe: FunctionEvaluator, maxRecursiveDepth: int) =
     inherit ExpressionKindTransformation()
 
     member private this.simplify e1 = this.ExpressionTransformation e1
@@ -63,15 +64,15 @@ and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: 
 
     override this.onIdentifier (sym, tArgs) =
         match sym with
-        | LocalVariable name -> vars.getVar name.Value |? Identifier (sym, tArgs)
+        | LocalVariable name -> getVar !stateRef name.Value |? Identifier (sym, tArgs)
         | _ -> Identifier (sym, tArgs)
 
     override this.onFunctionCall (method, arg) =
         let method, arg = this.simplify (method, arg)
-        if maxRecursiveDepth > 0 && isLiteral arg.Expression cd then
+        if maxRecursiveDepth > 0 && isLiteral !stateRef arg.Expression then
             match method.Expression with
             | Identifier (GlobalCallable qualName, types) ->
-                fe.evaluateFunction qualName arg types |? CallLikeExpression (method, arg)
+                fe.evaluateFunction !stateRef qualName arg types |? CallLikeExpression (method, arg)
             | CallLikeExpression (baseMethod, partialArg) ->
                 this.Transform (partialApplyFunction baseMethod partialArg arg)
             | _ ->
@@ -82,13 +83,13 @@ and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: 
         let ex = this.simplify ex
         match ex.Expression with
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, types)}, arg)
-            when (cd.getCallable qualName).Kind = TypeConstructor ->
+            when (getCallable !stateRef qualName).Kind = TypeConstructor ->
             // TODO - must be adapted if we want to support user-defined type constructors
             QsCompilerError.Verify (
-                (cd.getCallable qualName).Specializations.Length = 1,
+                (getCallable !stateRef qualName).Specializations.Length = 1,
                 "Type constructors should have exactly one specialization")
             QsCompilerError.Verify (
-                (cd.getCallable qualName).Specializations.[0].Implementation = Intrinsic,
+                (getCallable !stateRef qualName).Specializations.[0].Implementation = Intrinsic,
                 "Type constructors should be implicit")
             arg.Expression
         | _ -> UnwrapApplication ex
@@ -122,13 +123,13 @@ and [<AbstractClass>] internal ExpressionKindEvaluator(vars: VariablesDict, cd: 
 
     override this.onEquality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
-        match isLiteral lhs.Expression cd && isLiteral rhs.Expression cd with
+        match isLiteral !stateRef lhs.Expression && isLiteral !stateRef rhs.Expression with
         | true -> BoolLiteral (lhs.Expression = rhs.Expression)
         | false -> EQ (lhs, rhs)
 
     override this.onInequality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
-        match isLiteral lhs.Expression cd && isLiteral rhs.Expression cd with
+        match isLiteral !stateRef lhs.Expression && isLiteral !stateRef rhs.Expression with
         | true -> BoolLiteral (lhs.Expression <> rhs.Expression)
         | false -> NEQ (lhs, rhs)
 

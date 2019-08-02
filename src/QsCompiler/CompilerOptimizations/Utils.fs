@@ -10,56 +10,16 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-open Maybe
+open ComputationExpressions
+open TransformationState
 
 
 /// Option default value operator
 let internal (|?) = defaultArg
 
 
-/// Shorthand for a QsExpressionKind
-type internal Expr = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
-/// Shorthand for a QsTypeKind
-type internal TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
-/// Shorthand for a QsInitializerKind
-type internal InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
-
-
-/// Represents the global dictionary that maps names to callables
-type internal CallableDict = {
-        compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>
-} with
-    member this.getCallable (name: QsQualifiedName): QsCallable =
-        QsCompilerError.Verify (
-            this.compiledCallables.ContainsKey name,
-            "Trying to access unknown callable")
-        this.compiledCallables.[name]
-
-
-/// Returns whether a given expression is a literal (and thus a constant)
-let rec internal isLiteral (expr: Expr) (cd: CallableDict): bool =
-    match expr with
-    | UnitValue | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ -> true
-    | ValueTuple a | StringLiteral (_, a) | ValueArray a -> Seq.forall (fun x -> isLiteral x.Expression cd) a
-    | RangeLiteral (a, b) -> isLiteral a.Expression cd && isLiteral b.Expression cd
-    | NewArray (_, a) -> isLiteral a.Expression cd
-    | Identifier (GlobalCallable _, _) | MissingExpr -> true
-    | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, b)
-        when (cd.getCallable qualName).Kind = TypeConstructor ->
-        QsCompilerError.Verify (
-            (cd.getCallable qualName).Specializations.Length = 1,
-            "Type constructors should have exactly one specialization")
-        QsCompilerError.Verify (
-            (cd.getCallable qualName).Specializations.[0].Implementation = Intrinsic,
-            "Type constructors should be implicit")
-        isLiteral b.Expression cd
-    | CallLikeExpression (a, b) ->
-        isLiteral a.Expression cd && isLiteral b.Expression cd &&
-            TypedExpression.IsPartialApplication (CallLikeExpression (a, b))
-    | _ -> false
-
-
-let internal rangeLiteralToSeq (r: Expr): seq<int64> =
+/// Converts a range literal to a sequence of integers
+let rangeLiteralToSeq (r: Expr): seq<int64> =
     match r with
     | RangeLiteral (a, b) ->
         match a.Expression, b.Expression with
@@ -69,82 +29,6 @@ let internal rangeLiteralToSeq (r: Expr): seq<int64> =
             seq { start .. step .. stop }
         | _ -> failwithf "Invalid range literal: %O" r
     | _ -> failwithf "Not a range literal: %O" r
-
-
-/// Represents the current state of all the local variables in a function
-type internal VariablesDict() =
-    let scopeStack = new Stack<Dictionary<string, Expr>>()
-
-    member this.enterScope(): unit =
-        scopeStack.Push (new Dictionary<string, Expr>())
-
-    member this.exitScope(): unit =
-        // TODO: assert scopeStack is nonempty
-        scopeStack.Pop () |> ignore
-
-    member this.defineVar(name: string, value: Expr): unit =
-        // TODO: assert variable is undefined
-        scopeStack.Peek().[name] <- value
-
-    member this.setVar(name: string, value: Expr): unit =
-        // TODO: assert variable is defined, is same type
-        (scopeStack |> Seq.find (fun x -> x.ContainsKey name)).[name] <- value
-
-    member this.getVar(name: string): Expr option =
-        match scopeStack |> Seq.tryFind (fun x -> x.ContainsKey name) with
-        | Some dict -> Some dict.[name]
-        | None -> None
-
-    override this.ToString(): string =
-        "[" + String.Join("\n", scopeStack |> Seq.map (fun x ->
-            "{" + String.Join(", ", x |> Seq.map (fun y -> y.Key + "=" + y.Value.ToString())) + "}"
-        )) + "]"
-
-
-/// Represents a (possibly-nested) tuple of strings.
-/// Used as a way to compare QsTuples and SymbolTuples.
-type internal StringTuple =
-| SingleItem of string
-| MultipleItems of seq<StringTuple>
-
-    static member fromQsTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): StringTuple =
-        match x with
-        | QsTupleItem item ->
-            match item.VariableName with
-            | ValidName n -> SingleItem n.Value
-            | InvalidName -> SingleItem "__invalid__"
-        | QsTuple items -> MultipleItems (Seq.map StringTuple.fromQsTuple items)
-
-    static member fromSymbolTuple (x: SymbolTuple): StringTuple =
-        match x with
-        | InvalidItem -> SingleItem "__invalid__"
-        | VariableName n -> SingleItem n.Value
-        | VariableNameTuple items -> MultipleItems (Seq.map StringTuple.fromSymbolTuple items)
-        | DiscardedItem -> SingleItem "__discarded__"
-
-    override this.ToString() =
-        match this with
-        | SingleItem item -> item
-        | MultipleItems items -> "(" + String.Join(", ", items) + ")"
-
-
-/// Modifies the VariablesDict by setting the given argument tuple to the given values
-let rec internal fillVars (vars: VariablesDict) (argTuple: StringTuple, arg: Expr): unit =
-    match argTuple with
-    | SingleItem item -> vars.defineVar(item, arg)
-    | MultipleItems items ->
-        match arg with
-        | ValueTuple vt ->
-            QsCompilerError.Verify (
-                vt.Length = Seq.length items,
-                "Matched tuples must have the same length")
-            vt |> Seq.map (fun x -> x.Expression) |>
-            Seq.zip items |> Seq.map (fillVars vars) |> List.ofSeq |> ignore
-        | _ ->
-            QsCompilerError.Verify (
-                1 = Seq.length items,
-                "Expecting a single-element tuple")
-            Seq.zip items [arg] |> Seq.map (fillVars vars) |> List.ofSeq |> ignore
 
 
 /// Converts a QsTuple to a SymbolTuple
@@ -159,13 +43,22 @@ let rec toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): Sym
     | QsTuple items ->
         VariableNameTuple ((Seq.map toSymbolTuple items).ToImmutableArray())
 
+/// Wraps a QsExpressionType in a basic TypedExpression
+/// The returned TypedExpression has no type param / inferred info / range information,
+/// and it should not be used for any code step that requires this information.
+let wrapExpr (expr: Expr) (bt: TypeKind): TypedExpression =
+    let ii = {IsMutable=false; HasLocalQuantumDependency=false}
+    TypedExpression.New (expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
+
+/// Wraps a QsStatementKind in a basic QsStatement
+let wrapStmt (stmt: QsStatementKind): QsStatement =
+    QsStatement.New QsComments.Empty Null (stmt, [])
+
 
 /// Returns a new array of the given type and length.
 /// Returns None if the type doesn't have a default value.
-let rec internal constructNewArray (bt: TypeKind) (length: int): Expr option =
-    match defaultValue bt with
-    | Some x -> ImmutableArray.CreateRange (List.replicate length (wrapExpr x bt)) |> ValueArray |> Some
-    | None -> None
+let rec constructNewArray (bt: TypeKind) (length: int): Expr option =
+    defaultValue bt |> Option.map (fun x -> ImmutableArray.CreateRange (List.replicate length (wrapExpr x bt)) |> ValueArray)
 
 /// Returns the default value for a given type (from Q# documentation)
 and private defaultValue (bt: TypeKind): Expr option =
@@ -181,24 +74,12 @@ and private defaultValue (bt: TypeKind): Expr option =
     | ArrayType t -> constructNewArray t.Resolution 0
     | _ -> None
 
-/// Wraps a QsExpressionType in a basic TypedExpression.
-/// The returned TypedExpression has no type param / inferred info / range information,
-/// and it should not be used for any code step that requires this information.
-and internal wrapExpr (expr: Expr) (bt: TypeKind): TypedExpression =
-    let ii = {IsMutable=false; HasLocalQuantumDependency=false}
-    TypedExpression.New (expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
-
-
-/// Wraps a QsStatementKind in a basic QsStatement
-let wrapStmt (stmt: QsStatementKind): QsStatement =
-    QsStatement.New QsComments.Empty Null (stmt, [])
-
 
 /// Counts the number of MissingExprs in the given tuple
 let rec private countMissingExprs (expr: TypedExpression): int =
     match expr.Expression with
     | MissingExpr -> 1
-    | ValueTuple vt -> Seq.map countMissingExprs vt |> Seq.sum
+    | ValueTuple vt -> Seq.sumBy countMissingExprs vt
     | _ -> 0
     
 /// Replaces any MissingExprs in the given tuple with the first elements of the given list.
@@ -259,7 +140,7 @@ let rec internal takeWhilePlus1 (f: 'A -> bool) (l : list<'A>) =
     | [] -> [], None
 
 
-let rec findAllBaseStatements (scope: QsScope): seq<QsStatementKind> =
+let rec private findAllBaseStatements (scope: QsScope): seq<QsStatementKind> =
     scope.Statements |> Seq.collect (fun s ->
         match s.Statement with
         | QsConditionalStatement cond ->
@@ -285,7 +166,7 @@ let rec scopeLength (scope: QsScope): int =
     scope |> findAllBaseStatements |> Seq.length
 
 
-let internal tryInline (ex: TypedExpression) (callableDict: CallableDict) =
+let tryInline (state: TransformationState) (ex: TypedExpression) =
     maybe {
         let! expr, arg =
             match ex.Expression with
@@ -299,7 +180,7 @@ let internal tryInline (ex: TypedExpression) (callableDict: CallableDict) =
             | AdjointApplication {Expression = ControlledApplication {Expression = Identifier (GlobalCallable qualName, _)}} -> Some (qualName, QsControlledAdjoint)
             | ControlledApplication {Expression = AdjointApplication {Expression = Identifier (GlobalCallable qualName, _)}} -> Some (qualName, QsControlledAdjoint)
             | _ -> None
-        let callable = callableDict.getCallable qualName
+        let callable = getCallable state qualName
         let! impl = callable.Specializations |> Seq.tryFind (fun s -> s.Kind = specKind)
         let! specArgs, scope =
             match impl with
@@ -316,13 +197,13 @@ let internal tryInline (ex: TypedExpression) (callableDict: CallableDict) =
         return qualName, {scope with Statements = newStatements}
     }
 
-let rec internal findAllCalls (scope: QsScope) (cd: CallableDict) (found: HashSet<QsQualifiedName>): unit =
+let rec findAllCalls (state: TransformationState) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
     scope |> findAllBaseStatements |> Seq.map (function
         | QsExpressionStatement ex ->
-            match tryInline ex cd with
+            match tryInline state ex with
             | Some (qualName, newScope) ->
                 if found.Add qualName then
-                    findAllCalls newScope cd found
+                    findAllCalls state newScope found
             | None -> ()
         | _ -> ()
     ) |> List.ofSeq |> ignore

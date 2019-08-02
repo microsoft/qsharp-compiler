@@ -8,18 +8,19 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.Maybe
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.TransformationState
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.Utils
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.ExpressionEvaluation
 
 
 /// The SyntaxTreeTransformation used to evaluate constants
 type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
     inherit SyntaxTreeTransformation()
-    let vars = VariablesDict()
-    let callableDict = {compiledCallables = compiledCallables}
 
-    // For determining if constant folding should be rerun
+    let callableDict = compiledCallables |> Seq.map (function KeyValue(a, b) -> a, b) |> Map.ofSeq
+    let stateRef = callableDict |> newState |> ref
     let mutable changed = true
 
     /// Returns whether the syntax tree has been modified since this function was last called
@@ -31,23 +32,35 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
     /// Checks whether the syntax tree changed at all
     override this.Transform x =
         let newX = base.Transform x
-        if x <> newX then changed <- true
+        if x <> newX then
+            let s1 = printNamespace x
+            let s2 = printNamespace newX
+            if s1 <> s2 then
+                changed <- true
         newX
+
+    override this.onCallableImplementation c =
+        printfn "Transforming callable %s" (printNamespaceElem (QsCallable c))
+        let prev = (!stateRef).currentCallable
+        stateRef := {!stateRef with currentCallable = Some c}
+        let result = base.onCallableImplementation c
+        stateRef := {!stateRef with currentCallable = prev}
+        result
 
     /// The ScopeTransformation used to evaluate constants
     override syntaxTree.Scope = { new ScopeTransformation() with
 
         override scope.Transform x =
-            vars.enterScope()
+            stateRef := enterScope !stateRef
             let result = base.Transform x
-            vars.exitScope()
+            stateRef := exitScope !stateRef
             result
 
         /// The ExpressionTransformation used to evaluate constant expressions
-        override scope.Expression = upcast ExpressionEvaluator(vars, callableDict, 10)
+        override scope.Expression = upcast ExpressionEvaluator(stateRef, 10)
 
         /// The StatementKindTransformation used to evaluate constants
-        override scope.StatementKind = upcast { new StatementOptimizer(vars, callableDict) with 
+        override scope.StatementKind = upcast { new StatementOptimizer(stateRef) with 
             override so.ExpressionTransformation x = scope.Expression.Transform x
             override so.LocationTransformation x = scope.onLocation x
             override so.ScopeTransformation x = scope.Transform x
@@ -57,26 +70,30 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
                 let lhs = so.onSymbolTuple stm.Lhs
                 let rhs = so.ExpressionTransformation stm.Rhs
                 if stm.Kind = ImmutableBinding then
-                    if isLiteral rhs.Expression callableDict then
-                        fillVars vars (StringTuple.fromSymbolTuple lhs, rhs.Expression)
+                    stateRef := defineVarTuple !stateRef (lhs, rhs.Expression)
                 QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
         }
     }
 
 
 /// The StatementKindTransformation used to simplify statements
-and [<AbstractClass>] internal StatementOptimizer(vars: VariablesDict, callableDict: CallableDict) =
+and [<AbstractClass>] StatementOptimizer(stateRef: TransformationState ref) =
     inherit StatementKindTransformation()
 
 
     override this.onExpressionStatement ex =
         let ex = this.ExpressionTransformation ex
         maybe {
-            let! qualName, newScope = tryInline ex callableDict
+            let! qualName, newScope = tryInline !stateRef ex
             let mySet = HashSet()
-            findAllCalls newScope callableDict mySet
-            let! _ = if not (mySet.Contains qualName) then Some() else None
-            return this.ScopeTransformation newScope |> QsScopeStatement.New |> QsScopeStatement
+            findAllCalls !stateRef newScope mySet
+            let! currentCallable = (!stateRef).currentCallable
+            let! _ = if not (mySet.Contains currentCallable.FullName) then Some() else None
+            let s1 = printNamespaceElem (QsCallable currentCallable)
+            let s2 = printScope 0 newScope
+            let newScope2 = this.ScopeTransformation newScope
+            return newScope2 |> QsScopeStatement.New |> QsScopeStatement
+            // return newScope |> QsScopeStatement.New |> QsScopeStatement
         } |? QsExpressionStatement ex
 
 
