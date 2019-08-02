@@ -40,7 +40,6 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
         newX
 
     override this.onCallableImplementation c =
-        printfn "Transforming callable %s" (printNamespaceElem (QsCallable c))
         let prev = (!stateRef).currentCallable
         stateRef := {!stateRef with currentCallable = Some c}
         let result = base.onCallableImplementation c
@@ -88,7 +87,7 @@ and [<AbstractClass>] StatementOptimizer(stateRef: TransformationState ref) =
             let mySet = HashSet()
             findAllCalls !stateRef newScope mySet
             let! currentCallable = (!stateRef).currentCallable
-            let! _ = if not (mySet.Contains currentCallable.FullName) then Some() else None
+            do! not (mySet.Contains currentCallable.FullName) |> check
             let s1 = printNamespaceElem (QsCallable currentCallable)
             let s2 = printScope 0 newScope
             let newScope2 = this.ScopeTransformation newScope

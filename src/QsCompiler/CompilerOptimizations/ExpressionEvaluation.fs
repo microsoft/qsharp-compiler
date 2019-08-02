@@ -8,6 +8,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+open ComputationExpressions
 open TransformationState
 open Utils
 open FunctionEvaluation
@@ -69,15 +70,26 @@ and [<AbstractClass>] ExpressionKindEvaluator(stateRef: TransformationState ref,
 
     override this.onFunctionCall (method, arg) =
         let method, arg = this.simplify (method, arg)
-        if maxRecursiveDepth > 0 && isLiteral !stateRef arg.Expression then
+        maybe {
             match method.Expression with
             | Identifier (GlobalCallable qualName, types) ->
-                fe.evaluateFunction !stateRef qualName arg types |? CallLikeExpression (method, arg)
+                do! check (maxRecursiveDepth > 0 && isLiteral !stateRef arg.Expression)
+                return! fe.evaluateFunction !stateRef qualName arg types
             | CallLikeExpression (baseMethod, partialArg) ->
-                this.Transform (partialApplyFunction baseMethod partialArg arg)
-            | _ ->
-                failwithf "Unknown function call: %O" (printExpr method.Expression)
-        else CallLikeExpression (method, arg)
+                do! hasMissingExprs partialArg |> check
+                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+            | _ -> ()
+        } |? CallLikeExpression (method, arg)
+
+    override this.onPartialApplication (method, arg) =
+        let method, arg = this.simplify (method, arg)
+        maybe {
+            match method.Expression with
+            | CallLikeExpression (baseMethod, partialArg) ->
+                do! hasMissingExprs partialArg |> check
+                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+            | _ -> ()
+        } |? CallLikeExpression (method, arg)
 
     override this.onUnwrapApplication ex =
         let ex = this.simplify ex

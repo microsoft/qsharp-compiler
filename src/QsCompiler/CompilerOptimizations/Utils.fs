@@ -75,42 +75,31 @@ and private defaultValue (bt: TypeKind): Expr option =
     | _ -> None
 
 
-/// Counts the number of MissingExprs in the given tuple
-let rec private countMissingExprs (expr: TypedExpression): int =
+let rec hasMissingExprs (expr: TypedExpression): bool =
     match expr.Expression with
-    | MissingExpr -> 1
-    | ValueTuple vt -> Seq.sumBy countMissingExprs vt
-    | _ -> 0
-    
-/// Replaces any MissingExprs in the given tuple with the first elements of the given list.
-/// Returns the new values of the partial-argument tuple and the argument list.
-let rec private fillPartialArg (partialArg: TypedExpression, arg: list<TypedExpression>): TypedExpression * list<TypedExpression> =
-    match partialArg.Expression with
-    | MissingExpr ->
-        match arg with
-        | first::rest -> first, rest
-        | _ -> failwithf "Not enough remaining arguments"
-    | ValueTuple vt ->
-        let newList, newArg =
-            Seq.fold (fun (cpa, ca) v ->
-                let newPa, newCa = fillPartialArg (v, ca)
-                cpa @ [newPa], newCa
-            ) ([], arg) vt
-        let newPa = wrapExpr (ValueTuple (ImmutableArray.CreateRange newList)) partialArg.ResolvedType.Resolution
-        newPa, newArg
-    | _ -> partialArg, arg
+    | MissingExpr -> true
+    | ValueTuple vt -> Seq.exists hasMissingExprs vt
+    | _ -> false
 
-/// Transforms a partially-application call by replacing missing values with the new arguments
-let internal partialApplyFunction (baseMethod: TypedExpression) (partialArg: TypedExpression) (arg: TypedExpression): Expr =
-    let argsList =
-        if countMissingExprs partialArg = 1 then [arg] else
-        match arg.Expression with
-        | ValueTuple vt ->
-            if countMissingExprs partialArg <> vt.Length
-            then failwithf "Invalid number of arguments: %O doesn't match %O" arg.Expression partialArg.Expression
-            else List.ofSeq vt
-        | _ -> failwithf "Invalid arg: %O" arg.Expression
-    CallLikeExpression (baseMethod, fst (fillPartialArg (partialArg, argsList)))
+let rec fillPartialArg (partialArg: TypedExpression, arg: TypedExpression): TypedExpression =
+    match partialArg with
+    | Missing -> arg
+    | Tuple items ->
+        let argsList =
+            match List.filter hasMissingExprs items, arg with
+            | [_], _ -> [arg]
+            | _, Tuple args -> args
+            | _ -> failwithf "args must be a tuple"
+        // assert items2.Length = items3.Length
+        items |> List.mapFold (fun args t1 ->
+            if hasMissingExprs t1 then
+                match args with
+                | [] -> failwithf "ran out of args"
+                | head :: tail -> fillPartialArg (t1, head), tail
+            else t1, args
+        ) argsList |> fst |> ImmutableArray.CreateRange
+        |> ValueTuple |> wrapExpr <| partialArg.ResolvedType.Resolution
+    | _ -> failwithf "unknown partialArgs"
 
 
 /// Computes exponentiation for 64-bit integers
@@ -191,7 +180,7 @@ let tryInline (state: TransformationState) (ex: TypedExpression) =
                 | Some {Implementation = Provided (specArgs, scope)} -> Some (specArgs, scope)
                 | _ -> None
             | _ -> None
-        let! _ = if not (hasReturnStatement scope) then Some () else None
+        do! not (hasReturnStatement scope) |> check
         let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple callable.ArgumentTuple, arg)
         let newStatements = scope.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
         return qualName, {scope with Statements = newStatements}

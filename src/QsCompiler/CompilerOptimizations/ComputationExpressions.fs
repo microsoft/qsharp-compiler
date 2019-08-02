@@ -3,53 +3,6 @@
 open System
 
 
-type Monad (returnMethod, bindMethod) =
-
-    member this.Bind(m, f) = (bindMethod |> box |> unbox) f m
-
-    member this.Return(x) = (returnMethod) x
-
-    member this.ReturnFrom(x) = x
-
-    member this.Yield(x) = this.Return x
-
-    member this.YieldFrom(x) = x
-
-    member this.Zero() = this.Return ()
-
-    member this.Combine(m, f) = this.Bind(m, f)
-
-    member this.Delay(f) = f
-
-    member this.Run(f) = f()
-
-    member this.While(guard, body) =
-        if not (guard()) 
-        then this.Zero() 
-        else this.Bind(body(), fun () ->
-            this.While(guard, body))
-
-    member this.TryWith(body, handler) =
-        try this.ReturnFrom(body())
-        with e -> handler e
-
-    member this.TryFinally(body, compensation) =
-        try this.ReturnFrom(body())
-        finally compensation() 
-
-    member this.Using(disposable: #System.IDisposable, body) =
-        let body' = fun () -> body disposable
-        this.TryFinally(body', fun () ->
-            match disposable with
-            | null -> ()
-            | disp -> disp.Dispose())
-
-    member this.For(sequence: seq<_>, body) =
-        this.Using(sequence.GetEnumerator(), fun enum ->
-            this.While(enum.MoveNext,
-                this.Delay(fun () -> body enum.Current)))
-
-
 /// The maybe monad. Returns None if any of the lines are None.
 type MaybeBuilder() =
 
@@ -88,6 +41,8 @@ type MaybeBuilder() =
             fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
 
 let maybe = MaybeBuilder()
+
+let check x = if x then Some () else None
 
 
 type ResultBuilder() =
