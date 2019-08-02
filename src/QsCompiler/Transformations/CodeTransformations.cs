@@ -40,7 +40,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// </summary>
         public static QsScope GenerateAdjoint(this QsScope scope)
         {
-            scope = new UniqueVariableNames().Transform(scope);
+            // Since we are pulling purely classical statements up, we are potentially changing the order of declarations. 
+            // We therefore need to generate unique variable names before reordering the statements. 
+            scope = new UniqueVariableNames().Transform(scope); 
             scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
             scope = new ReverseOrderOfOperationCalls().Transform(scope);
             return StripLocationInformation.Apply(scope);

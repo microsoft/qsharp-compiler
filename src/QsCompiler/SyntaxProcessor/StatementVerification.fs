@@ -258,8 +258,8 @@ let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedB
 /// builds and returns the corresponding conjugate-statement representing the patter UVU* where U* is the adjoint of U.  
 /// Throws an ArgumentException if the given block specifying the inner transformation contains no location information. 
 let NewConjugateStatement (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
-    let location = inner.Location |> function
-        | Null -> ArgumentException "no location is set for the given block defining the transformation to conjugate" |> raise
+    let location = outer.Location |> function
+        | Null -> ArgumentException "no location is set for the given block defining the conjugating transformation" |> raise
         | Value loc -> loc
     QsConjugateStatement.New (outer, inner) |> QsConjugateStatement |> asStatement QsComments.Empty location []
 

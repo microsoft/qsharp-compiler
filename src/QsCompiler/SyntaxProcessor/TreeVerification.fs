@@ -50,6 +50,10 @@ let AllPathsReturnValueOrFail body =
                 if not withinQubitScope then returnsWithinQubitScope.Clear()
             | QsStatementKind.QsForStatement statement -> checkReturnStatements withinQubitScope statement.Body
             | QsStatementKind.QsWhileStatement statement -> checkReturnStatements withinQubitScope statement.Body
+            | QsStatementKind.QsConjugateStatement statement -> 
+                let added = statement.OuterTransformation.Body |> delayAddingReturns
+                checkReturnStatements withinQubitScope statement.InnerTransformation.Body
+                returnsWithinQubitScope.AddRange added
             | QsStatementKind.QsRepeatStatement statement -> 
                 let added = statement.RepeatBlock.Body |> delayAddingReturns 
                 checkReturnStatements withinQubitScope statement.FixupBlock.Body
@@ -61,7 +65,10 @@ let AllPathsReturnValueOrFail body =
                 | Value block -> checkReturnStatements withinQubitScope block.Body
                 | Null -> ()
                 returnsWithinQubitScope.AddRange added
-            | _ -> ()
+            | QsStatementKind.QsExpressionStatement _ 
+            | QsStatementKind.QsFailStatement _ 
+            | QsStatementKind.QsValueUpdate _ 
+            | QsStatementKind.QsVariableDeclaration _ -> ()
 
     // returns true if all paths in the given scope contain a terminating (i.e. return or fail) statement
     let rec checkTermination (scope : QsScope) = 
@@ -72,6 +79,9 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsForStatement _ // it is not immediately obvious whether or not the body will get executed, hence non-terminating
             | QsStatementKind.QsWhileStatement _ -> true // same here
             | QsStatementKind.QsQubitScope statement -> checkTermination statement.Body |> not
+            | QsStatementKind.QsConjugateStatement statement -> 
+                checkTermination statement.OuterTransformation.Body |> not &&
+                checkTermination statement.InnerTransformation.Body |> not
             | QsStatementKind.QsRepeatStatement statement -> 
                 checkTermination statement.FixupBlock.Body |> ignore // only here to give warnings for unreachable code
                 checkTermination statement.RepeatBlock.Body |> not
@@ -80,7 +90,10 @@ let AllPathsReturnValueOrFail body =
                 match statement.Default with
                 | Value block -> checkTermination block.Body |> not || returns |> List.contains false
                 | Null -> true
-            | _ -> true 
+            | QsStatementKind.QsExpressionStatement _ 
+            | QsStatementKind.QsFailStatement _ 
+            | QsStatementKind.QsValueUpdate _ 
+            | QsStatementKind.QsVariableDeclaration _ -> true
 
         let returnOrFailAndAfter = Seq.toList <| scope.Statements.SkipWhile isNonTerminatingStatement
         if returnOrFailAndAfter.Length <> 0 then 

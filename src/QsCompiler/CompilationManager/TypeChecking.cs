@@ -1409,10 +1409,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             LocalDeclarations Concat(LocalDeclarations fst, LocalDeclarations snd)
                 => new LocalDeclarations(fst.Variables.Concat(snd.Variables).ToImmutableArray());
-            bool BeforePosition(QsStatement statement) =>
-                statement.Location.IsValue && DiagnosticTools.AsPosition(statement.Location.Item.Offset).IsSmallerThan(relativePosition);
+            bool BeforePosition(QsNullable<QsLocation> location) =>
+                location.IsValue && DiagnosticTools.AsPosition(location.Item.Offset).IsSmallerThan(relativePosition);
 
-            var precedingStatements = scope.Statements.TakeWhile(BeforePosition);
+            var precedingStatements = scope.Statements.TakeWhile(stm => BeforePosition(stm.Location));
             if (!precedingStatements.Any()) return (scope.KnownSymbols, scope.Statements);
             var lastPreceding = precedingStatements.Last();
 
@@ -1423,8 +1423,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var elseBlock = condStatement.Item.Default.ValueOr(null);
                 if (elseBlock != null) blocks = blocks.Concat(new[] { elseBlock });
 
-                var preceding = blocks.TakeWhile(block =>
-                    block.Location.IsValue && DiagnosticTools.AsPosition(block.Location.Item.Offset).IsSmallerThan(relativePosition));
+                var preceding = blocks.TakeWhile(block => BeforePosition(block.Location));
                 relevantScope = preceding.Any() ? preceding.Last().Body : null;
             }
             if (lastPreceding.Statement is QsStatementKind.QsForStatement forStatement)
@@ -1436,12 +1435,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var allContainedStatements = repeatStatement.Item.RepeatBlock.Body.Statements.Concat(repeatStatement.Item.FixupBlock.Body.Statements).ToImmutableArray();
                 relevantScope = new QsScope(allContainedStatements, repeatStatement.Item.RepeatBlock.Body.KnownSymbols);
             }
+            if (lastPreceding.Statement is QsStatementKind.QsConjugateStatement conjugateStatement)
+            {
+                relevantScope = BeforePosition(conjugateStatement.Item.InnerTransformation.Location)
+                    ? conjugateStatement.Item.InnerTransformation.Body
+                    : conjugateStatement.Item.OuterTransformation.Body;
+            }
             if (lastPreceding.Statement is QsStatementKind.QsQubitScope allocationScope)
             { relevantScope = allocationScope.Item.Body; }
 
             if (relevantScope != null) return relevantScope.LocalDeclarationsAt(relativePosition);
             var defined = precedingStatements.Aggregate(scope.KnownSymbols, (decl, statement) => Concat(decl, statement.SymbolDeclarations));
-            var followingStatements = scope.Statements.SkipWhile(BeforePosition);
+            var followingStatements = scope.Statements.SkipWhile(stm => BeforePosition(stm.Location));
             return (defined, new[] { lastPreceding }.Concat(followingStatements));
         }
 
