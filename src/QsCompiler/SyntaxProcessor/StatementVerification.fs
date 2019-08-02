@@ -256,7 +256,7 @@ let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedB
 /// Given a positioned block of Q# statements specifying the transformation to conjugate (inner transformation V), 
 /// as well as a positioned block of Q# statements specifying the transformation to conjugate it with (outer transformation U), 
 /// builds and returns the corresponding conjugate-statement representing the patter UVU* where U* is the adjoint of U.  
-/// Throws an ArgumentException if the given block specifying the inner transformation contains no location information. 
+/// Throws an ArgumentException if the given block specifying the outer transformation contains no location information. 
 let NewConjugateStatement (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
     let location = outer.Location |> function
         | Null -> ArgumentException "no location is set for the given block defining the conjugating transformation" |> raise

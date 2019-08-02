@@ -412,12 +412,12 @@ and private untilSuccess =
     buildFragment qsUntil.parse (expectedCondition qsRUSfixup.parse .>>. optionalFixup) invalid UntilSuccess
 
 
-/// Uses buildFragment to parse a Q# conjugate intro as QsFragment.
+/// Uses buildFragment to parse a Q# conjugation intro as QsFragment.
 and private conjugationHeader =
     let valid = fun _ -> ConjugationIntro
     buildFragment qsConjugation.parse (preturn "") ConjugationIntro valid
 
-/// Uses buildFragment to parse a Q# with intro as QsFragment.
+/// Uses buildFragment to parse a Q# around intro as QsFragment.
 and private aroundHeader =
     let valid = fun _ -> AroundIntro
     buildFragment qsAround.parse (preturn "") AroundIntro valid

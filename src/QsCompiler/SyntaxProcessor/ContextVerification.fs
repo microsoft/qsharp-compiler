@@ -167,12 +167,16 @@ let private precededByRepeat context =
     | Value InvalidFragment -> false, [||]
     | _ -> false, [| (ErrorCode.MissingPrecedingRepeat |> Error, context.Range) |] 
 
+/// Verifies that the preceding fragment in the given context is a conjugation intro.
+/// Returns an array with suitable diagnostics.
 let private precededByConjugation context = 
     match context.Previous with 
     | Value ConjugationIntro -> verifyStatement context
     | Value InvalidFragment -> false, [||]
     | _ -> false, [| (ErrorCode.MissingPrecedingConjugation |> Error, context.Range) |]
 
+/// Verifies that the following fragment in the given context is an around intro.
+/// Returns an array with suitable diagnostics.
 let private followedByAround context = 
     match context.Next with 
     | Value AroundIntro -> verifyStatement context

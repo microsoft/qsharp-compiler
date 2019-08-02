@@ -25,8 +25,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
         private readonly Action<Exception> OnException;
 
         public InlineConjugations(Action<Exception> onException = null)
-            : base(new InlineConjugateStatements()) =>
+            : base(new InlineConjugateStatements())
+        {
+            this.Success = true;
             this.OnException = onException;
+        }
 
         public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> onProvidedImplementation
             (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
