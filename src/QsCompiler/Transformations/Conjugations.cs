@@ -10,6 +10,14 @@ using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
 {
+    /// <summary>
+    /// Syntax tree transformation that inlines all conjugate-statements, thus eliminating them from a given scope.
+    /// All exception thrown during transformation are caught and the action given upon instantiation - if any - is called upon them. 
+    /// The syntax tree is left unchanged if an exception occurs. The Success property is true if and only if no exceptions occurred. 
+    /// The generation of the adjoint for the outer block needed for conjugation is subject to the same limitation as any adjoint auto-generation. 
+    /// In particular, it is only guaranteed to be valid if operation calls only occur within expression statements, and 
+    /// throws an InvalidOperationException if the outer block contains while-loops. 
+    /// </summary>
     public class InlineConjugations
         : SyntaxTreeTransformation<InlineConjugateStatements>
     {
@@ -33,7 +41,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
         }
     }
-
 
     /// <summary>
     /// Scope transformation that inlines all conjugate-statements, thus eliminating them from a given scope.

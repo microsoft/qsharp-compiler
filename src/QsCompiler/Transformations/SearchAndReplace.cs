@@ -252,6 +252,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     // routines for replacing symbols/identifiers
 
     /// <summary>
+    /// Upon transformation, assigns each defined variable a unique name, independent on the scope, and replaces all references to it accordingly.
+    /// The original variable name can be recovered by using the static method StripUniqueName.  
     /// This class is *not* threadsafe. 
     /// </summary>
     public class UniqueVariableNames
