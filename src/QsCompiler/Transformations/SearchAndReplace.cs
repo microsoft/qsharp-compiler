@@ -269,7 +269,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// <summary>
         /// Will overwrite the dictionary entry mapping a variable name to the corresponding unique name if the key already exists. 
         /// </summary>
-        public NonNullable<string> GenerateUniqueName(NonNullable<string> varName)
+        internal NonNullable<string> GenerateUniqueName(NonNullable<string> varName)
         {
             var unique = NonNullable<string>.New($"__{Prefix}{this.VariableNr++}__{varName.Value}__");
             this.UniqueNames[varName] = unique;
