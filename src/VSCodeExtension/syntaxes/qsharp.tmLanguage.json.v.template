@@ -60,7 +60,7 @@
         {
           "comment": "C# reserved words which can't be used in Q#, E-L",
           "name": "invalid.illegal.el.qsharp",
-          "match": "\\b(enum|event|explicit|extern|finally|fixed|float|foreach|goto|implicit|int|interface|internal|is|lock|long)\\b"
+          "match": "\\b(enum|event|explicit|extern|finally|fixed|float|foreach|goto|implicit|int|interface|internal|lock|long)\\b"
         },
         {
           "comment": "C# reserved words which can't be used in Q#, N-S",
