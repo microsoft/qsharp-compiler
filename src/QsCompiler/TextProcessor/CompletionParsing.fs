@@ -89,13 +89,6 @@ let private expectedQualifiedSymbol kind =
     attempt (term qualifiedSymbol |>> fst .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> optional eot) <|>
     (term qualifiedSymbol >>% [])
 
-/// Returns the result of the parser `p` without changing the stream state.
-let peek p =
-    getCharStreamState >>= fun state stream ->
-        let reply = p stream
-        stream.BacktrackTo state
-        reply
-
 /// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
 /// results from all parsers that succeeded into a single list.
 ///
@@ -104,7 +97,7 @@ let peek p =
 let private pcollect (ps : seq<Parser<'a list, 'u>>) stream =
     let results =
         ps |>
-        Seq.map (fun p -> peek p stream) |>
+        Seq.map (fun p -> lookAhead p stream) |>
         Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
         Seq.collect (fun reply -> reply.Result) |>
         Seq.toList
@@ -119,7 +112,7 @@ let private (>|<) p1 p2 : Parser<'a list, 'u> =
 /// EOT.
 let private many p stream =
     let last = (p .>> previousCharSatisfies ((<>) '\u0004') |> attempt |> many1 |>> List.last) stream
-    let next = (p .>> previousCharSatisfies ((=) '\u0004') |> peek) stream
+    let next = (p .>> previousCharSatisfies ((=) '\u0004') |> lookAhead) stream
     if next.Status = ReplyStatus.Ok then next
     elif last.Status = ReplyStatus.Ok then last
     else Reply []
