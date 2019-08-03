@@ -790,18 +790,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (nodes.Current.Fragment.Kind.IsConjugatingBlockIntro)
             {
-                var outerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                // Since we need to generate an adjoint for the statements that define the outer transformation in any case - 
+                // i.e. whether we need to generate an adjoint for the current scope or not - 
+                // we only require additional support if no adjoint needs to be generated for the parent scope.
+                var additionalFunctorSupport = symbolTracker.RequiredFunctorSupport.Contains(QsFunctor.Adjoint)
+                    ? new QsFunctor[0] // we already require that all called operations support the Adjoint functor 
+                    : new[] { QsFunctor.Adjoint }; // all operations called within the outer transformation need to support the Adjoint functor
+                var outerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics, additionalFunctorSupport);
                 var outer = new QsPositionedBlock(outerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
                 if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsApplyBlockIntro)
                 {
-                    // Since we need to generate an adjoint for the statements that define the outer transformation in any case - 
-                    // i.e. whether we need to generate an adjoint for the current scope or not - 
-                    // we only require additional support if no adjoint needs to be generated for the parent scope.
-                    var additionalFunctorSupport = symbolTracker.RequiredFunctorSupport.Contains(QsFunctor.Adjoint)
-                        ? new QsFunctor[0] // we already require that all called operations support the Adjoint functor 
-                        : new[] { QsFunctor.Adjoint }; // all operations called within the outer transformation need to support the Adjoint functor
-                    var innerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics, additionalFunctorSupport);
+                    var innerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
                     statement = Statements.NewConjugateStatement(outer, inner);
