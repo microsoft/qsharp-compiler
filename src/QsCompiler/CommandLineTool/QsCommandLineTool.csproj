@@ -10,16 +10,16 @@
 
   <PropertyGroup>
     <Authors>Microsoft</Authors>
-    <Description>Microsoft's Q# compiler tool.</Description>
+    <Description>Microsoft's Q# command line compiler.</Description>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <PackageReleaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/Microsoft/qsharpc-compiler</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/Microsoft/qsharp-compiler</PackageProjectUrl>
     <PackageIconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</PackageIconUrl>
     <PackageTags>Quantum Q# Qsharp</PackageTags>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>qsc</ToolCommandName>
-    <PackageId>Microsoft.Quantum.Compiler.Tool</PackageId>
+    <PackageId>Microsoft.Quantum.Compiler.CommandLine</PackageId>
     <ContentTargetFolders>\</ContentTargetFolders>
     <ApplicationIcon />
   </PropertyGroup>
