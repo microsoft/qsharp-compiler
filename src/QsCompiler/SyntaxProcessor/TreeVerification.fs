@@ -29,6 +29,12 @@ let AllPathsReturnValueOrFail body =
 
     // generate an error for every return within a using or borrowing block that is not executed as the last statement of a particular path
     let returnsWithinQubitScope = new List<QsStatement>() 
+    let errorOnCollectedReturns() = 
+        if returnsWithinQubitScope.Any() then 
+            for stm in returnsWithinQubitScope do 
+                stm |> addDiagnostic (QsCompilerDiagnostic.Error (ErrorCode.InvalidReturnWithinAllocationScope, []))
+            returnsWithinQubitScope.Clear()
+
     let rec checkReturnStatements withinQubitScope (scope : QsScope) = 
         let delayAddingReturns block = // returns all newly detected return statements instead of directly adding them to returnsWithinQubitScope
             let initialReturns = new List<_>(returnsWithinQubitScope)
@@ -39,10 +45,7 @@ let AllPathsReturnValueOrFail body =
             added
 
         for statement in scope.Statements do 
-            if returnsWithinQubitScope.Any() then 
-                for stm in returnsWithinQubitScope do 
-                    stm |> addDiagnostic (QsCompilerDiagnostic.Error (ErrorCode.InvalidReturnWithinAllocationScope, []))
-                returnsWithinQubitScope.Clear()
+            errorOnCollectedReturns()
             match statement.Statement with 
             | QsStatementKind.QsReturnStatement _ -> if withinQubitScope then returnsWithinQubitScope.Add statement
             | QsStatementKind.QsQubitScope statement -> 
@@ -54,9 +57,11 @@ let AllPathsReturnValueOrFail body =
                 let added = statement.OuterTransformation.Body |> delayAddingReturns
                 checkReturnStatements withinQubitScope statement.InnerTransformation.Body
                 returnsWithinQubitScope.AddRange added
+                errorOnCollectedReturns() // returns within any of the two blocks are necessariliy followed by a statement
             | QsStatementKind.QsRepeatStatement statement -> 
                 let added = statement.RepeatBlock.Body |> delayAddingReturns 
                 checkReturnStatements withinQubitScope statement.FixupBlock.Body
+                errorOnCollectedReturns() // returns within the fixup block are necessarily followed by a statement
                 returnsWithinQubitScope.AddRange added
             | QsStatementKind.QsConditionalStatement statement -> 
                 let added = new List<_>()
