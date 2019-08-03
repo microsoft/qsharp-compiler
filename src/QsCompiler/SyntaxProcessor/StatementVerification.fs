@@ -255,13 +255,13 @@ let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedB
 
 /// Given a positioned block of Q# statements specifying the transformation to conjugate (inner transformation V), 
 /// as well as a positioned block of Q# statements specifying the transformation to conjugate it with (outer transformation U), 
-/// builds and returns the corresponding conjugate-statement representing the patter UVU* where U* is the adjoint of U.  
+/// builds and returns the corresponding conjugation statement representing the patter UVU* where U* is the adjoint of U.  
 /// Throws an ArgumentException if the given block specifying the outer transformation contains no location information. 
-let NewConjugateStatement (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
+let NewConjugationStatement (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
     let location = outer.Location |> function
-        | Null -> ArgumentException "no location is set for the given block defining the conjugating transformation" |> raise
+        | Null -> ArgumentException "no location is set for the given within-block defining the conjugating transformation" |> raise
         | Value loc -> loc
-    QsConjugateStatement.New (outer, inner) |> QsConjugateStatement |> asStatement QsComments.Empty location []
+    QsConjugationStatement.New (outer, inner) |> QsConjugationStatement |> asStatement QsComments.Empty location []
 
 /// Given the location of the statement header as well as a symbol tracker containing all currently declared symbols, 
 /// builds the Q# using- or borrowing-statement (depending on the given kind) at the given location

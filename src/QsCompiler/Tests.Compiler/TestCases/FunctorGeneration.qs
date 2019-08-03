@@ -396,19 +396,19 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation NeedsFunctorSupport9 (q : Qubit) : Unit
 	is Ctl + Adj {
-		conjugating { Adjointable(q); }
+		within { Adjointable(q); }
 		apply {}
     }
 
 	operation NeedsFunctorSupport10 (q : Qubit) : Unit
 	is Ctl + Adj {
-		conjugating { }
+		within { }
 		apply { Operation(q); }
     }
 
 	operation NeedsFunctorSupport11 (q : Qubit) : Unit {
         body (...) { 
-			conjugating { Controllable(q); }
+			within { Controllable(q); }
 			apply {}
 		}
         controlled adjoint auto;
@@ -416,7 +416,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation NeedsFunctorSupport12 (q : Qubit) : Unit {
         body (...) { 
-			conjugating { }
+			within { }
 			apply { Operation(q); }
 		}
         controlled adjoint auto;
@@ -424,7 +424,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation NeedsFunctorSupport13 (q : Qubit) : Unit {
         body (...) { 
-			conjugating { Adjointable(q); }
+			within { Adjointable(q); }
 			apply {}
 		}
         controlled adjoint (cs, ...) {}
@@ -432,7 +432,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation NeedsFunctorSupport14 (q : Qubit) : Unit {
         body (...) { 
-			conjugating { }
+			within { }
 			apply { Operation(q); }
 		}
         controlled adjoint (cs, ...) {}
@@ -440,7 +440,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation NeedsFunctorSupport15 (q : Qubit) : Unit {
         body (...) { 
-			conjugating { }
+			within { }
 			apply { Controllable(q); }
 		}
         adjoint auto;
@@ -448,25 +448,25 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation NeedsFunctorSupport16 (q : Qubit) : Unit {
         body (...) { 
-			conjugating { Adjointable(q); }
+			within { Adjointable(q); }
 			apply {}
 		}
         controlled auto;
     }
 
 	operation NeedsFunctorSupport17(q : Qubit) : Unit {
-		conjugating { Operation(q); }
+		within { Operation(q); }
 		apply { }
 	}
 
 	operation NeedsFunctorSupport18(q : Qubit) : Unit {
-		conjugating { Controllable(q); }
+		within { Controllable(q); }
 		apply { }
 	}
 
 	operation NeedsFunctorSupport19(q : Qubit) : Unit {
 		body (...) {
-			conjugating { Operation(q); }
+			within { Operation(q); }
 			apply { }		
 		}
 		adjoint self;
@@ -474,7 +474,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation NeedsFunctorSupport20(q : Qubit) : Unit
 	is Adj {
-		conjugating { Controllable(q); }
+		within { Controllable(q); }
 		apply { }		
 	}
 
@@ -537,7 +537,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation FunctorSupport12 (q : Qubit) : Unit {
         body (...) { 
-			conjugating {}
+			within {}
 			apply { Operation(q); }
 		}
         adjoint self;
@@ -545,7 +545,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation FunctorSupport13 (q : Qubit) : Unit {
         body (...) {
-			conjugating {}
+			within {}
 			apply { Adjointable(q); }
 		}
         adjoint auto;
@@ -553,7 +553,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation FunctorSupport14 (q : Qubit) : Unit {
         body (...) {
-			conjugating {}
+			within {}
 			apply { Controllable(q); }
 		}
         controlled auto;
@@ -561,7 +561,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation FunctorSupport15 (q : Qubit) : Unit {
         body (...) {
-			conjugating {}
+			within {}
 			apply { Unitary(q); }
 		}
         controlled adjoint auto;
@@ -569,7 +569,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation FunctorSupport16 (q : Qubit) : Unit {
         body (...) {
-			conjugating {}
+			within {}
 			apply { Operation(q); }
 		}
         adjoint (...) {}
@@ -577,7 +577,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation FunctorSupport17 (q : Qubit) : Unit {
         body (...) {
-			conjugating {}
+			within {}
 			apply { Operation(q); }
 		}
         controlled (cs, ...) {}
@@ -585,7 +585,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation FunctorSupport18 (q : Qubit) : Unit {
         body (...) {
-			conjugating {}
+			within {}
 			apply { Controllable(q); }
 		}
 		adjoint self;
@@ -594,14 +594,14 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 	operation FunctorSupport19 (q : Qubit) : Unit {
         body (...) {
-			conjugating {}
+			within {}
 			apply { Controllable(q); }
 		}
         controlled adjoint self;
     }
 
 	operation FunctorSupport20 (q : Qubit) : Unit {
-		conjugating {
+		within {
 			Adjointable(q);
 			Unitary(q);
 			Function();
@@ -736,17 +736,17 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 	}
 
 	operation InvalidAutoInversion16(q : Qubit) : Unit {
-		conjugating { return (); }
+		within { return (); }
 		apply { }
 	}
 
 	operation InvalidAutoInversion17(q : Qubit) : Unit {
-		conjugating { set _ = 1; }
+		within { set _ = 1; }
 		apply { }
 	}
 
 	operation InvalidAutoInversion18(q : Qubit) : Unit {
-		conjugating {
+		within {
 			repeat {}
 			until (true);
 		}
@@ -789,21 +789,21 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 	}
 
 	operation ValidInversion5(q : Qubit) : Unit {
-		conjugating {}
+		within {}
 		apply {
 			return ();
 		}
 	}
 
 	operation ValidInversion6(q : Qubit) : Unit {
-		conjugating {}
+		within {}
 		apply {
 			set _ = 1;
 		}
 	}
 
 	operation ValidInversion7(q : Qubit) : Unit {
-		conjugating {}
+		within {}
 		apply {
 			repeat {}
 			until (true);
@@ -811,7 +811,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 	}
 
 	operation ValidInversion8(q : Qubit) : Unit {
-		conjugating { fail ""; }
+		within { fail ""; }
 		apply {}
 	}
 

@@ -66,7 +66,7 @@ let fragmentKeywords = [
                     "let";"mutable";"set";
                     "for";"while";
                     "repeat";"until";
-                    "conjugating";"apply";
+                    "within";"apply";
                     "if";"elif";"else";"return";"fail";
                     "using";"borrowing";
                     "namespace";"open";"operation";"function";"newtype";

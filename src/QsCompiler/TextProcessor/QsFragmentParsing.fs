@@ -203,7 +203,7 @@ let rec private getFragments() = // Note: this needs to be a function!
         (qsWhile              , whileHeader                 )
         (qsRepeat             , repeatHeader                )
         (qsUntil              , untilSuccess                )
-        (qsConjugating        , conjugatingHeader           )
+        (qsWithin             , withinHeader                )
         (qsApply              , applyHeader                 )
         (qsUsing              , usingHeader                 )
         (qsBorrowing          , borrowingHeader             )
@@ -412,10 +412,10 @@ and private untilSuccess =
     buildFragment qsUntil.parse (expectedCondition qsRUSfixup.parse .>>. optionalFixup) invalid UntilSuccess
 
 
-/// Uses buildFragment to parse a Q# conjugating block intro as QsFragment.
-and private conjugatingHeader =
-    let valid = fun _ -> ConjugatingBlockIntro
-    buildFragment qsConjugating.parse (preturn "") ConjugatingBlockIntro valid
+/// Uses buildFragment to parse a Q# within-block intro as QsFragment.
+and private withinHeader =
+    let valid = fun _ -> WithinBlockIntro
+    buildFragment qsWithin.parse (preturn "") WithinBlockIntro valid
 
 /// Uses buildFragment to parse a Q# apply block intro as QsFragment.
 and private applyHeader =

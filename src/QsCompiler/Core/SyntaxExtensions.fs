@@ -147,7 +147,7 @@ type QsRepeatStatement with
         FixupBlock = fixupBlock
     }
 
-type QsConjugateStatement with 
+type QsConjugationStatement with 
     static member New (outer, inner) = {
         OuterTransformation = outer
         InnerTransformation = inner

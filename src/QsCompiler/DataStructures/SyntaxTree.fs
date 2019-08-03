@@ -443,7 +443,7 @@ type QsScope = {
 
 
 /// Used instead of QsScope to represent a statement block within a statement that (potentially) contains more than one such block. 
-/// This is the case e.g. for in if-statement which may contain several conditional blocks, or a repeat-until-success-statement, or a conjugate-statement.
+/// This is the case e.g. for in if-statement which may contain several conditional blocks, or a repeat-until-success-statement, or a conjugation.
 and QsPositionedBlock = {
     /// the Q# statement block to execute (only) if the associated condition evaluates to true
     /// -> note that the block is treated as a separate scope, i.e. variables declared within the block won't be visible after the end of the block
@@ -492,7 +492,7 @@ and QsWhileStatement = {
 
 
 /// used to represent a pattern of the form UVU* where U* is the adjoint of U
-and QsConjugateStatement = {
+and QsConjugationStatement = {
     /// represents the outer transformation U in a pattern of the form UVU* where U* is the adjoint of U
     OuterTransformation : QsPositionedBlock
     /// represents the inner transformation V in a pattern of the form UVU* where U* is the adjoint of U
@@ -540,7 +540,7 @@ and QsStatementKind =
 | QsForStatement         of QsForStatement
 | QsWhileStatement       of QsWhileStatement
 | QsRepeatStatement      of QsRepeatStatement
-| QsConjugateStatement   of QsConjugateStatement 
+| QsConjugationStatement of QsConjugationStatement 
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
 
 

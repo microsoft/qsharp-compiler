@@ -764,8 +764,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a conjugate-statement intro,
-        /// builds the corresponding conjugate-statement updating the given symbolTracker in the process,
+        /// If the current tree node of the given iterator is a within-block intro,
+        /// builds the corresponding conjugation updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
         /// Adds the diagnostics generated during the building to the given list of diagnostics. 
         /// Returns the built statement as out parameter, and returns true if the statement has been built.
@@ -777,7 +777,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if any of the given arguments is null.
         /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
         /// </summary>
-        private static bool TryBuildConjugateStatement(IEnumerator<FragmentTree.TreeNode> nodes,
+        private static bool TryBuildConjugationStatement(IEnumerator<FragmentTree.TreeNode> nodes,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
@@ -788,7 +788,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             QsNullable<QsLocation> RelativeLocation(FragmentTree.TreeNode node) =>
                 QsNullable<QsLocation>.NewValue(new QsLocation(DiagnosticTools.AsTuple(node.GetPositionRelativeToRoot()), node.Fragment.HeaderRange));
 
-            if (nodes.Current.Fragment.Kind.IsConjugatingBlockIntro)
+            if (nodes.Current.Fragment.Kind.IsWithinBlockIntro)
             {
                 // Since we need to generate an adjoint for the statements that define the outer transformation in any case - 
                 // i.e. whether we need to generate an adjoint for the current scope or not - 
@@ -804,11 +804,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var innerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
-                    statement = Statements.NewConjugateStatement(outer, inner);
+                    statement = Statements.NewConjugationStatement(outer, inner);
                     proceed = nodes.MoveNext();
                     return true;
                 }
-                else throw new ArgumentException("conjugating-block needs to be followed by an apply-block");
+                else throw new ArgumentException("within-block needs to be followed by an apply-block");
             }
             (statement, proceed) = (null, true);
             return false;
@@ -1072,8 +1072,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 else if (TryBuildRepeatStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement repeatStatement))
                 { statements.Add(repeatStatement); }
 
-                else if (TryBuildConjugateStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement conjugateStatement))
-                { statements.Add(conjugateStatement); }
+                else if (TryBuildConjugationStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement conjugationStatement))
+                { statements.Add(conjugationStatement); }
 
                 else if (TryBuildBorrowStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement borrowingStatement))
                 { statements.Add(borrowingStatement); }
@@ -1435,11 +1435,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var allContainedStatements = repeatStatement.Item.RepeatBlock.Body.Statements.Concat(repeatStatement.Item.FixupBlock.Body.Statements).ToImmutableArray();
                 relevantScope = new QsScope(allContainedStatements, repeatStatement.Item.RepeatBlock.Body.KnownSymbols);
             }
-            if (lastPreceding.Statement is QsStatementKind.QsConjugateStatement conjugateStatement)
+            if (lastPreceding.Statement is QsStatementKind.QsConjugationStatement conjugationStatement)
             {
-                relevantScope = BeforePosition(conjugateStatement.Item.InnerTransformation.Location)
-                    ? conjugateStatement.Item.InnerTransformation.Body
-                    : conjugateStatement.Item.OuterTransformation.Body;
+                relevantScope = BeforePosition(conjugationStatement.Item.InnerTransformation.Location)
+                    ? conjugationStatement.Item.InnerTransformation.Body
+                    : conjugationStatement.Item.OuterTransformation.Body;
             }
             if (lastPreceding.Statement is QsStatementKind.QsQubitScope allocationScope)
             { relevantScope = allocationScope.Item.Body; }

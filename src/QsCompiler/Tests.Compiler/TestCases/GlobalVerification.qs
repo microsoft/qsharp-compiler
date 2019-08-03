@@ -365,14 +365,14 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     }
 
 	operation AllPathsReturnValue13 () : Int {
-		conjugating {
+		within {
 			return 1;
 		}
 		apply {}
 	}
 
 	operation AllPathsReturnValue14 () : Int {
-		conjugating {}
+		within {}
 		apply {
 			return 1;
 		}
@@ -468,14 +468,14 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     }
 
 	operation AllPathsFail13 () : Int {
-		conjugating {
+		within {
 			fail "";
 		}
 		apply {}
 	}
 
 	operation AllPathsFail14 () : Int {
-		conjugating {}
+		within {}
 		apply {
 			fail "";
 		}
@@ -794,14 +794,14 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     operation InvalidReturnFromWithinUsing6 () : Unit {
         using (q = Qubit()) {
-			conjugating { return(); }
+			within { return(); }
 			apply {}
         }
     }
 
     operation InvalidReturnFromWithinUsing7 () : Unit {
         using (q = Qubit()) {
-			conjugating {}
+			within {}
 			apply { return(); }
         }
     }
@@ -1028,14 +1028,14 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     operation InvalidReturnFromWithinBorrowing8 () : Unit {
         borrowing (q = Qubit()) {
-			conjugating { return(); }
+			within { return(); }
 			apply {}
         }
     }
 
     operation InvalidReturnFromWithinBorrowing9 () : Unit {
         borrowing (q = Qubit()) {
-			conjugating {}
+			within {}
 			apply { return(); }
         }
     }
@@ -1432,7 +1432,7 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     operation InvalidReturnPlacement16 () : Unit {
         using (q = Qubit()) {
-			conjugating {}
+			within {}
 			apply { 
                 using (c = Qubit()) { 
                     return (); 
@@ -1443,7 +1443,7 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     operation InvalidReturnPlacement17 () : Unit {
         using (q = Qubit()) {
-			conjugating { 
+			within { 
                 using (c = Qubit()) { 
                     return (); 
                 }			
@@ -1454,7 +1454,7 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     operation InvalidReturnPlacement18 (arg : Bool) : Unit {
         using (q = Qubit()) {
-			conjugating {}
+			within {}
 			apply { 
 				if (arg) { return (); }
 			}
@@ -1463,7 +1463,7 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     operation InvalidReturnPlacement19 (arg : Bool) : Unit {
         using (q = Qubit()) {
-			conjugating { 
+			within { 
 				if (arg) { return (); }
 			}
 			apply { }
@@ -1472,8 +1472,8 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     operation InvalidReturnPlacement20 () : Unit {
         using (q = Qubit()) {
-			conjugating { 
-				conjugating { 
+			within { 
+				within { 
 					return(); 
 					Function();
 				}

@@ -59,13 +59,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         }
 
         /// <summary>
-        /// Eliminates all conjugate-statements from the given scope by replacing them with the corresponding implementations (i.e. inlining them). 
-        /// The generation of the adjoint for the outer block needed for conjugation is subject to the same limitation as any adjoint auto-generation. 
+        /// Eliminates all conjugations from the given scope by replacing them with the corresponding implementations (i.e. inlining them). 
+        /// The generation of the adjoint for the outer block is subject to the same limitation as any adjoint auto-generation. 
         /// In particular, it is only guaranteed to be valid if operation calls only occur within expression statements, and 
         /// throws an InvalidOperationException if the outer block contains while-loops. 
         /// </summary>
         public static QsScope InlineConjugations(this QsScope scope) =>
-            new InlineConjugateStatements().Transform(scope); 
+            new InlineConjugationStatements().Transform(scope); 
     }
 }
 
