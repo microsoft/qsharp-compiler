@@ -203,8 +203,8 @@ let rec private getFragments() = // Note: this needs to be a function!
         (qsWhile              , whileHeader                 )
         (qsRepeat             , repeatHeader                )
         (qsUntil              , untilSuccess                )
-        (qsConjugation        , conjugationHeader           )
-        (qsAround             , aroundHeader                )
+        (qsConjugating        , conjugatingHeader           )
+        (qsApply              , applyHeader                 )
         (qsUsing              , usingHeader                 )
         (qsBorrowing          , borrowingHeader             )
         (namespaceDeclHeader  , namespaceDeclaration        )
@@ -412,15 +412,15 @@ and private untilSuccess =
     buildFragment qsUntil.parse (expectedCondition qsRUSfixup.parse .>>. optionalFixup) invalid UntilSuccess
 
 
-/// Uses buildFragment to parse a Q# conjugation intro as QsFragment.
-and private conjugationHeader =
-    let valid = fun _ -> ConjugationIntro
-    buildFragment qsConjugation.parse (preturn "") ConjugationIntro valid
+/// Uses buildFragment to parse a Q# conjugating block intro as QsFragment.
+and private conjugatingHeader =
+    let valid = fun _ -> ConjugatingBlockIntro
+    buildFragment qsConjugating.parse (preturn "") ConjugatingBlockIntro valid
 
-/// Uses buildFragment to parse a Q# around intro as QsFragment.
-and private aroundHeader =
-    let valid = fun _ -> AroundIntro
-    buildFragment qsAround.parse (preturn "") AroundIntro valid
+/// Uses buildFragment to parse a Q# apply block intro as QsFragment.
+and private applyHeader =
+    let valid = fun _ -> ApplyBlockIntro
+    buildFragment qsApply.parse (preturn "") ApplyBlockIntro valid
 
 
 /// Uses buildFragment to parse a Q# using block intro as QsFragment.

@@ -788,12 +788,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             QsNullable<QsLocation> RelativeLocation(FragmentTree.TreeNode node) =>
                 QsNullable<QsLocation>.NewValue(new QsLocation(DiagnosticTools.AsTuple(node.GetPositionRelativeToRoot()), node.Fragment.HeaderRange));
 
-            if (nodes.Current.Fragment.Kind.IsConjugationIntro)
+            if (nodes.Current.Fragment.Kind.IsConjugatingBlockIntro)
             {
                 var outerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
                 var outer = new QsPositionedBlock(outerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
-                if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsAroundIntro)
+                if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsApplyBlockIntro)
                 {
                     // Since we need to generate an adjoint for the statements that define the outer transformation in any case - 
                     // i.e. whether we need to generate an adjoint for the current scope or not - 
@@ -808,7 +808,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     proceed = nodes.MoveNext();
                     return true;
                 }
-                else throw new ArgumentException("conjugation-block needs to be followed by an around-block");
+                else throw new ArgumentException("conjugating-block needs to be followed by an apply-block");
             }
             (statement, proceed) = (null, true);
             return false;

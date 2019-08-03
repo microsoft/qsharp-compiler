@@ -30,8 +30,8 @@ type ErrorCode =
     | InvalidRepeatIntro = 3012       
     | InvalidUntilClause = 3013           
     | InvalidRUSfixup = 3014 
-    | InvalidConjugationIntro = 3015
-    | InvalidAroundIntro = 3016
+    | InvalidConjugatingBlockIntro = 3015
+    | InvalidApplyBlockIntro = 3016
     | InvalidUsingBlockIntro = 3017              
     | InvalidBorrowingBlockIntro = 3018       
     | InvalidBodyDeclaration = 3019
@@ -126,13 +126,13 @@ type ErrorCode =
     | ControlledAdjointDeclInFunction = 4011
     | InvalidReturnWithinAllocationScope = 4012
     | WhileLoopInOperation = 4013
-    | ConjugationWithInFunction = 4014
+    | ConjugationWithinFunction = 4014
 
     | MissingPrecedingIfOrElif = 4101
     | MissingContinuationUntil = 4102
     | MissingPrecedingRepeat = 4103
-    | MissingPrecedingConjugation = 4104
-    | MissingContinuationAround = 4105
+    | MissingPrecedingConjugating = 4104
+    | MissingContinuationApply = 4105
     | DistributedAdjointGenerator = 4106
     | InvalidBodyGenerator = 4107
     | BodyGenArgMismatch = 4108
@@ -345,8 +345,8 @@ type DiagnosticItem =
             | ErrorCode.InvalidRepeatIntro                      -> "Syntax error in repeat header."                   
             | ErrorCode.InvalidUntilClause                      -> "Syntax error in until-clause."                     
             | ErrorCode.InvalidRUSfixup                         -> "Syntax error in fixup header."
-            | ErrorCode.InvalidConjugationIntro                 -> "Syntax error in conjugation-block header."
-            | ErrorCode.InvalidAroundIntro                      -> "Syntax error in around-block header."
+            | ErrorCode.InvalidConjugatingBlockIntro            -> "Syntax error in conjugating-block header."
+            | ErrorCode.InvalidApplyBlockIntro                  -> "Syntax error in apply-block header."
             | ErrorCode.InvalidUsingBlockIntro                  -> "Syntax error in using-block header."               
             | ErrorCode.InvalidBorrowingBlockIntro              -> "Syntax error in borrowing-block header."          
             | ErrorCode.InvalidBodyDeclaration                  -> "Syntax error in body declaration."               
@@ -441,13 +441,13 @@ type DiagnosticItem =
             | ErrorCode.ControlledAdjointDeclInFunction         -> "Controlled-adjoint specializations can only be defined for operations."
             | ErrorCode.InvalidReturnWithinAllocationScope      -> "Return statements may only occur at the end of a using- or borrowing-block."
             | ErrorCode.WhileLoopInOperation                    -> "While-loops cannot be used in operations. Avoid conditional loops in operations if possible, and use a repeat-until-success pattern otherwise."
-            | ErrorCode.ConjugationWithInFunction               -> "Conjugate-statements may only occur within operations, since they cannot add to the expressiveness within functions."
+            | ErrorCode.ConjugationWithinFunction               -> "Conjugate-statements may only occur within operations, since they cannot add to the expressiveness within functions."
                                                             
             | ErrorCode.MissingPrecedingIfOrElif                -> "An elif- or else-block must be preceded by an if- or elif-block."
             | ErrorCode.MissingContinuationUntil                -> "A repeat-block must be followed by an until-clause."
             | ErrorCode.MissingPrecedingRepeat                  -> "An until-clause must be preceded by a repeat-block."
-            | ErrorCode.MissingPrecedingConjugation             -> "An around-block must be preceded by a conjugation-block."
-            | ErrorCode.MissingContinuationAround               -> "A conjugation-block must be followed by an around-block."
+            | ErrorCode.MissingPrecedingConjugating             -> "An apply-block must be preceded by the conjugating-block."
+            | ErrorCode.MissingContinuationApply                -> "A conjugating-block must be followed by an apply-block."
             | ErrorCode.DistributedAdjointGenerator             -> "Invalid generator for adjoint specialization. Valid generators are \"invert\", \"self\" and \"auto\"."
             | ErrorCode.InvalidBodyGenerator                    -> "Invalid generator for body specialization. A body specialization must be user defined (\"body (...)\"), or specified as intrinsic (\"body intrinsic\")."
             | ErrorCode.BodyGenArgMismatch                      -> "The argument to a user-defined body specialization must be of the form \"(...)\"."

@@ -112,8 +112,8 @@ let private verifyStatement (context : SyntaxTokenContext) =
         | BorrowingBlockIntro _    -> false, [| (ErrorCode.BorrowingInFunction |> Error, context.Range) |]
         | RepeatIntro _            -> true,  [| (WarningCode.DeprecatedRUSloopInFunction |> Warning, context.Range) |] // NOTE: if repeat is excluded, exlude the UntilSuccess below!
         | UntilSuccess _           -> true,  [||] // no need to raise an error - the error comes either from the preceding repeat or because the latter is missing 
-        | ConjugationIntro _       -> false, [| (ErrorCode.ConjugationWithInFunction |> Error, context.Range) |] 
-        | AroundIntro _            -> false, [||] // no need to raise an error - the error comes either from the preceding conjugate or because the latter is missing 
+        | ConjugatingBlockIntro _  -> false, [| (ErrorCode.ConjugationWithinFunction |> Error, context.Range) |] 
+        | ApplyBlockIntro _        -> false, [||] // no need to raise an error - the error comes either from the preceding conjugate or because the latter is missing 
         | _                        -> true,  [||]
     let checkForNotValidInOperation = function
         | WhileLoopIntro _         -> false, [| (ErrorCode.WhileLoopInOperation |> Error, context.Range) |]
@@ -169,19 +169,19 @@ let private precededByRepeat context =
 
 /// Verifies that the preceding fragment in the given context is a conjugation intro.
 /// Returns an array with suitable diagnostics.
-let private precededByConjugation context = 
+let private precededByConjugating context = 
     match context.Previous with 
-    | Value ConjugationIntro -> verifyStatement context
+    | Value ConjugatingBlockIntro -> verifyStatement context
     | Value InvalidFragment -> false, [||]
-    | _ -> false, [| (ErrorCode.MissingPrecedingConjugation |> Error, context.Range) |]
+    | _ -> false, [| (ErrorCode.MissingPrecedingConjugating |> Error, context.Range) |]
 
-/// Verifies that the following fragment in the given context is an around intro.
+/// Verifies that the following fragment in the given context is an apply intro.
 /// Returns an array with suitable diagnostics.
-let private followedByAround context = 
+let private followedByApply context = 
     match context.Next with 
-    | Value AroundIntro -> verifyStatement context
+    | Value ApplyBlockIntro -> verifyStatement context
     | Value InvalidFragment -> false, [||]
-    | _ -> false, [| (ErrorCode.MissingContinuationAround |> Error, context.Range) |]
+    | _ -> false, [| (ErrorCode.MissingContinuationApply |> Error, context.Range) |]
 
 /// Verifies that either there is no preceding fragment in the given context, 
 /// or the preceding fragment is another open directive.
@@ -220,8 +220,8 @@ let VerifySyntaxTokenContext =
             | WhileLoopIntro                _ -> verifyStatement context
             | RepeatIntro                   _ -> followedByUntil context     
             | UntilSuccess                  _ -> precededByRepeat context
-            | ConjugationIntro              _ -> followedByAround context
-            | AroundIntro                   _ -> precededByConjugation context
+            | ConjugatingBlockIntro         _ -> followedByApply context
+            | ApplyBlockIntro               _ -> precededByConjugating context
             | UsingBlockIntro               _ -> verifyStatement context
             | BorrowingBlockIntro           _ -> verifyStatement context     
             | BodyDeclaration               _ -> verifySpecialization context

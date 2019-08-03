@@ -113,14 +113,14 @@ module Statements =
     // block statements
 
     /// keyword for a Q# transformation pattern
-    let Conjugation  = "conjugation"
+    let Conjugating = "conjugating"
     /// keyword for a Q# transformation pattern
-    let Around       = "around"
+    let Apply       = "apply"
 
     /// keyword for a Q# allocation statement
-    let Using        = "using"
+    let Using       = "using"
     /// keyword for a Q# allocation statement
-    let Borrowing    = "borrowing"
+    let Borrowing   = "borrowing"
 
 
 /// contains keywords for Q# expressions 

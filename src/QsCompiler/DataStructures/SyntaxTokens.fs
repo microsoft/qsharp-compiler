@@ -206,8 +206,8 @@ type QsFragmentKind =
 | WhileLoopIntro                of QsExpression
 | RepeatIntro                   
 | UntilSuccess                  of QsExpression * bool // true if a fixup is included
-| ConjugationIntro
-| AroundIntro
+| ConjugatingBlockIntro
+| ApplyBlockIntro
 | UsingBlockIntro               of QsSymbol * QsInitializer
 | BorrowingBlockIntro           of QsSymbol * QsInitializer
 | BodyDeclaration               of QsSpecializationGenerator
@@ -238,8 +238,8 @@ with
         | WhileLoopIntro               _ -> ErrorCode.InvalidWhileLoopIntro
         | RepeatIntro                  _ -> ErrorCode.InvalidRepeatIntro                 
         | UntilSuccess                 _ -> ErrorCode.InvalidUntilClause
-        | ConjugationIntro             _ -> ErrorCode.InvalidConjugationIntro
-        | AroundIntro                  _ -> ErrorCode.InvalidAroundIntro
+        | ConjugatingBlockIntro        _ -> ErrorCode.InvalidConjugatingBlockIntro
+        | ApplyBlockIntro              _ -> ErrorCode.InvalidApplyBlockIntro
         | UsingBlockIntro              _ -> ErrorCode.InvalidUsingBlockIntro             
         | BorrowingBlockIntro          _ -> ErrorCode.InvalidBorrowingBlockIntro         
         | BodyDeclaration              _ -> ErrorCode.InvalidBodyDeclaration             
@@ -270,8 +270,8 @@ with
         | WhileLoopIntro                 _
         | RepeatIntro                    _
         | UntilSuccess                  (_, true)
-        | ConjugationIntro               _
-        | AroundIntro                    _
+        | ConjugatingBlockIntro          _
+        | ApplyBlockIntro                _
         | UsingBlockIntro                _  
         | BorrowingBlockIntro            _ -> ErrorCode.ExpectingOpeningBracket
         | BodyDeclaration              gen

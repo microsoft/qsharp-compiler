@@ -332,7 +332,7 @@ let private itemAccessExpr =
                     let combineWith right left = buildCombinedExpr (RangeLiteral (left, right)) (left.Range, right.Range)
                     match core.Expression with
                     // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence, 
-                    // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are prentheses around it. 
+                    // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it. 
                     | RangeLiteral (lex, rex) -> buildCombinedExpr (RangeLiteral (missingEx lend, lex)) (QsPositionInfo.Range (lstart, lend), lex.Range) |> combineWith rex 
                     | _ -> missingEx lend |> combineWith core |> applyPost
                 | None -> core |> applyPost
