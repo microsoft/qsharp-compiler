@@ -95,11 +95,11 @@ type StatementKindTransformation(?enable) =
         let successCondition, fixupBlock = this.onPositionedBlock (Some stm.SuccessCondition, stm.FixupBlock)
         QsRepeatStatement.New (repeatBlock, successCondition |> Option.get, fixupBlock) |> QsRepeatStatement
 
-    abstract member onConjugationStatement : QsConjugationStatement -> QsStatementKind
-    default this.onConjugationStatement stm = 
+    abstract member onConjugation : QsConjugation -> QsStatementKind
+    default this.onConjugation stm = 
         let outer = this.onPositionedBlock (None, stm.OuterTransformation) |> snd
         let inner = this.onPositionedBlock (None, stm.InnerTransformation) |> snd
-        QsConjugationStatement.New (outer, inner) |> QsConjugationStatement
+        QsConjugation.New (outer, inner) |> QsConjugation
 
     member private this.onQubitScope (stm : QsQubitScope) = 
         let kind = stm.Kind
@@ -136,7 +136,7 @@ type StatementKindTransformation(?enable) =
         | QsForStatement stm         -> this.onForStatement         (stm  |> beforeForStatement)
         | QsWhileStatement stm       -> this.onWhileStatement       (stm)
         | QsRepeatStatement stm      -> this.onRepeatStatement      (stm)
-        | QsConjugationStatement stm -> this.onConjugationStatement (stm)
+        | QsConjugation stm          -> this.onConjugation          (stm)
         | QsQubitScope stm           -> this.dispatchQubitScope     (stm  |> beforeQubitScope)
 
 

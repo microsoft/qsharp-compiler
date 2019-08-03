@@ -491,15 +491,6 @@ and QsWhileStatement = {
 }
 
 
-/// used to represent a pattern of the form UVU* where U* is the adjoint of U
-and QsConjugationStatement = {
-    /// represents the outer transformation U in a pattern of the form UVU* where U* is the adjoint of U
-    OuterTransformation : QsPositionedBlock
-    /// represents the inner transformation V in a pattern of the form UVU* where U* is the adjoint of U
-    InnerTransformation : QsPositionedBlock
-}
-
-
 /// Note: a Q# repeat statement is a quantum specific control flow statement and hence only valid within Q# operations. 
 /// The statement corresponds to a while(true)-loop with a break-condition in the middle. 
 and QsRepeatStatement = {
@@ -513,6 +504,15 @@ and QsRepeatStatement = {
     /// statement block executed if the success-condition evaluates to false, before repeating the execution of the statement
     /// -> Note that any variables declared in the repeat-block are visible within the this block. 
     FixupBlock : QsPositionedBlock
+}
+
+
+/// used to represent a pattern of the form UVU* where U* is the adjoint of U
+and QsConjugation = {
+    /// represents the outer transformation U in a pattern of the form UVU* where U* is the adjoint of U
+    OuterTransformation : QsPositionedBlock
+    /// represents the inner transformation V in a pattern of the form UVU* where U* is the adjoint of U
+    InnerTransformation : QsPositionedBlock
 }
 
 
@@ -540,7 +540,7 @@ and QsStatementKind =
 | QsForStatement         of QsForStatement
 | QsWhileStatement       of QsWhileStatement
 | QsRepeatStatement      of QsRepeatStatement
-| QsConjugationStatement of QsConjugationStatement 
+| QsConjugation          of QsConjugation
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
 
 

@@ -816,13 +816,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             return QsStatementKind.NewQsConditionalStatement(stm);
         }
 
-        public override QsStatementKind onConjugationStatement(QsConjugationStatement stm)
+        public override QsStatementKind onConjugation(QsConjugation stm)
         {
             this._Scope.CurrentComments = stm.InnerTransformation.Comments;
             this.AddBlockStatement(Keywords.qsWithin.id, stm.InnerTransformation.Body, true);
             this._Scope.CurrentComments = stm.OuterTransformation.Comments;
             this.AddBlockStatement(Keywords.qsApply.id, stm.OuterTransformation.Body, false);
-            return QsStatementKind.NewQsConjugationStatement(stm);
+            return QsStatementKind.NewQsConjugation(stm);
         }
 
 

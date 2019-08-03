@@ -53,7 +53,7 @@ let AllPathsReturnValueOrFail body =
                 if not withinQubitScope then returnsWithinQubitScope.Clear()
             | QsStatementKind.QsForStatement statement -> checkReturnStatements withinQubitScope statement.Body
             | QsStatementKind.QsWhileStatement statement -> checkReturnStatements withinQubitScope statement.Body
-            | QsStatementKind.QsConjugationStatement statement -> 
+            | QsStatementKind.QsConjugation statement -> 
                 let added = statement.OuterTransformation.Body |> delayAddingReturns
                 checkReturnStatements withinQubitScope statement.InnerTransformation.Body
                 returnsWithinQubitScope.AddRange added
@@ -84,7 +84,7 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsForStatement _ // it is not immediately obvious whether or not the body will get executed, hence non-terminating
             | QsStatementKind.QsWhileStatement _ -> true // same here
             | QsStatementKind.QsQubitScope statement -> checkTermination statement.Body |> not
-            | QsStatementKind.QsConjugationStatement statement -> 
+            | QsStatementKind.QsConjugation statement -> 
                 checkTermination statement.OuterTransformation.Body |> not &&
                 checkTermination statement.InnerTransformation.Body |> not
             | QsStatementKind.QsRepeatStatement statement -> 

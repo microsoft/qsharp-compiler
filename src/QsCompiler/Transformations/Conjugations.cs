@@ -66,12 +66,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             var statements = ImmutableArray.CreateBuilder<QsStatement>();
             foreach (var statement in scope.Statements)
             {
-                if (statement.Statement is QsStatementKind.QsConjugationStatement conjStm)
+                if (statement.Statement is QsStatementKind.QsConjugation conj)
                 {
                     // since we are eliminating scopes, 
                     // we need to make sure that the variables defined within the inlined scopes do not clash with other defined variables.
-                    var outer = ResolveNames(this.Transform(conjStm.Item.OuterTransformation.Body));
-                    var inner = ResolveNames(this.Transform(conjStm.Item.InnerTransformation.Body));
+                    var outer = ResolveNames(this.Transform(conj.Item.OuterTransformation.Body));
+                    var inner = ResolveNames(this.Transform(conj.Item.InnerTransformation.Body));
                     var adjOuter = outer.GenerateAdjoint(); // will add a unique name wrapper
 
                     statements.AddRange(outer.Statements);

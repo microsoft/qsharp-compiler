@@ -804,7 +804,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var innerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
-                    statement = Statements.NewConjugationStatement(outer, inner);
+                    statement = Statements.NewConjugation(outer, inner);
                     proceed = nodes.MoveNext();
                     return true;
                 }
@@ -1435,11 +1435,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var allContainedStatements = repeatStatement.Item.RepeatBlock.Body.Statements.Concat(repeatStatement.Item.FixupBlock.Body.Statements).ToImmutableArray();
                 relevantScope = new QsScope(allContainedStatements, repeatStatement.Item.RepeatBlock.Body.KnownSymbols);
             }
-            if (lastPreceding.Statement is QsStatementKind.QsConjugationStatement conjugationStatement)
+            if (lastPreceding.Statement is QsStatementKind.QsConjugation conjugation)
             {
-                relevantScope = BeforePosition(conjugationStatement.Item.InnerTransformation.Location)
-                    ? conjugationStatement.Item.InnerTransformation.Body
-                    : conjugationStatement.Item.OuterTransformation.Body;
+                relevantScope = BeforePosition(conjugation.Item.InnerTransformation.Location)
+                    ? conjugation.Item.InnerTransformation.Body
+                    : conjugation.Item.OuterTransformation.Body;
             }
             if (lastPreceding.Statement is QsStatementKind.QsQubitScope allocationScope)
             { relevantScope = allocationScope.Item.Body; }
