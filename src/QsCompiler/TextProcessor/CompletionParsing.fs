@@ -138,9 +138,8 @@ let private tupleBrackets inside =
 let private angleBrackets inside =
     bracket lAngle >>. inside ?>> expectedOp (bracket rAngle)
 
-/// Recursively parses a tuple where each item is parsed by `item` and the right bracket is optional if the stream ends
-/// first.
-let rec private buildTuple item =
+/// Parses a tuple where each item is parsed by `item` and the right bracket is optional if the stream ends first.
+let private buildTuple item =
     tupleBrackets (sepBy1 item comma |>> List.last)
 
 /// Parses a type.
