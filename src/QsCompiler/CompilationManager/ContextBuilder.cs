@@ -373,22 +373,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static Context.SyntaxTokenContext GetContext(this CodeFragment.TokenIndex tokenIndex)
         {
             if (tokenIndex == null) throw new ArgumentNullException(nameof(tokenIndex));
-            QsNullable<QsFragmentKind> Nullable(CodeFragment fragment) =>
-                fragment?.Kind == null
+            QsNullable<QsFragmentKind> Nullable(CodeFragment token, bool precedesSelf) =>
+                token?.Kind == null
                 ? QsNullable<QsFragmentKind>.Null
-                : fragment.IncludeInCompilation 
-                ? QsNullable<QsFragmentKind>.NewValue(fragment.Kind)
-                : QsNullable<QsFragmentKind>.NewValue(QsFragmentKind.InvalidFragment);
+                : precedesSelf && !token.IncludeInCompilation // fragments that *follow * self need to be re-evaluated first
+                    ? QsNullable<QsFragmentKind>.NewValue(QsFragmentKind.InvalidFragment)
+                    : QsNullable<QsFragmentKind>.NewValue(token.Kind);
 
-            var self = tokenIndex.GetFragment();
-            var previous = tokenIndex.PreviousOnScope()?.GetFragment(); // excludes empty tokens
-            var next = tokenIndex.NextOnScope()?.GetFragment(); // excludes empty tokens
-            var parents = tokenIndex.GetNonEmptyParents().Select(tIndex => Nullable(tIndex.GetFragment())).ToArray();
-            var nullableSelf = self?.Kind == null // special treatment such that errors for fragments excluded from compilation still get logged...
-                ? QsNullable<QsFragmentKind>.Null
-                : QsNullable<QsFragmentKind>.NewValue(self.Kind);
-            var headerRange = self?.HeaderRange ?? QsCompilerDiagnostic.DefaultRange;
-            return new Context.SyntaxTokenContext(headerRange, nullableSelf, Nullable(previous), Nullable(next), parents);
+            var fragment = tokenIndex.GetFragment();
+            var headerRange = fragment?.HeaderRange ?? QsCompilerDiagnostic.DefaultRange;
+
+            var self = Nullable(fragment, false); // making sure that errors for fragments excluded from compilation still get logged
+            var previous = Nullable(tokenIndex.PreviousOnScope()?.GetFragment(), true); // excludes empty tokens
+            var next = Nullable(tokenIndex.NextOnScope()?.GetFragment(), false);  // excludes empty tokens
+            var parents = tokenIndex.GetNonEmptyParents().Select(tIndex => Nullable(tIndex.GetFragment(), true)).ToArray();                
+            return new Context.SyntaxTokenContext(headerRange, self, previous, next, parents);
         }
 
         /// <summary>
@@ -425,7 +424,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 verifiedLines.Add(tokenIndex.Line);
 
                 // if a token is newly included in or excluded from the compilation, 
-                // then this may impact all following tokens
+                // then this may impact context information for all following tokens
                 var changedStatus = include ^ fragment.IncludeInCompilation;
                 var next = tokenIndex.NextOnScope();
                 if (changedStatus && next != null && !changedLines.Contains(next.Line))
