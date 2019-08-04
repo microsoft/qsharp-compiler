@@ -169,7 +169,8 @@ let (private qsType, private qsTypeImpl) = createParserForwardedToRef()
 let private characteristicsAnnotation =
     expectedKeyword qsCharacteristics ?>> expectedId Characteristic (expectedCharacteristics eof)
 
-do qsTypeImpl :=
+/// Parses a type, except the top-level type cannot be an array type.
+let private nonArrayType =
     let typeParameter = pchar '\'' >>. expectedId TypeParameter (term symbol)
     let operationType =
         let inOutType = qsType >>. opArrow >>. qsType
@@ -196,7 +197,10 @@ do qsTypeImpl :=
         attempt functionType
         attempt (tuple qsType)
         keywordType <|>@ expectedQualifiedSymbol UserDefinedType
-    ] .>> many (arrayBrackets (emptySpace >>% []))
+    ]
+
+do qsTypeImpl :=
+    nonArrayType .>> many (arrayBrackets (emptySpace >>% []))
 
 /// Parses a callable signature.
 let private callableSignature =
@@ -268,6 +272,11 @@ let private postfixOp =
     
 /// Parses any expression term.
 let private expressionTerm =
+    let newArray =
+        expectedKeyword arrayDecl ?>>
+        nonArrayType ?>>
+        manyR (arrayBrackets (emptySpace >>% [])) @>>
+        array expression
     let keywordLiteral =
         [
             qsPauliX
@@ -281,6 +290,7 @@ let private expressionTerm =
         ] |> List.map expectedKeyword |> pcollect
     let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
     pcollect [
+        newArray
         tuple expression
         array expression
         keywordLiteral

@@ -221,6 +221,7 @@ let ``Expression statement parser tests`` () =
     let test = testAs Statement
     let expression = [
         Variable
+        Keyword "new"
         Keyword "not"
         Keyword "Adjoint"
         Keyword "Controlled"
@@ -319,3 +320,15 @@ let ``Expression statement parser tests`` () =
     test "(Foo())[1 .. " expression
     test "(Foo())[1 ..." []
     test "(Foo())[1 ...]" infix
+    test "new" expression
+    test "new " types
+    test "new Int" types
+    test "new Int[" expression
+    test "new Int[x" expression
+    test "new Int[x " infix
+    test "new Int[x +" expression
+    test "new Int[x + 1" []
+    test "new Int[x + 1]" infix
+    test "new Int[][" expression
+    test "new Int[][2" []
+    test "new Int[][2]" infix
