@@ -90,8 +90,8 @@ let private symbol =
         identifier <| IdentifierOptions (isAsciiIdStart = isSymbolStart, isAsciiIdContinue = isSymbolContinuation)
     notFollowedBy qsReservedKeyword >>. qsIdentifier <|> (qsIdentifier .>> followedBy eot)
 
-/// Parses an expected operator. The `after` parser (if specified) must also succeed after the operator string `op` is
-/// parsed. Returns the empty list.
+/// Parses an operator. The `after` parser (if specified) must also succeed after the operator string `op` is parsed.
+/// Returns the empty list.
 let private operator op after =
     term (pstring op >>. Option.defaultValue (preturn ()) after) >>% []
 
