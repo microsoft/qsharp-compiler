@@ -87,6 +87,11 @@ let private symbol =
         identifier <| IdentifierOptions (isAsciiIdStart = isSymbolStart, isAsciiIdContinue = isSymbolContinuation)
     notFollowedBy qsReservedKeyword >>. qsIdentifier <|> (qsIdentifier .>> followedBy eot)
 
+/// Parses an expected operator. The `after` parser (if specified) must also succeed after the operator string `op` is
+/// parsed. Returns the empty list.
+let private operator op after =
+    term (pstring op >>. Option.defaultValue (preturn ()) after) >>% []
+
 /// Parses `p` unless EOT occurs first. Returns the empty list.
 let private expected p =
     eot >>% [] <|> (p >>% [])
@@ -103,10 +108,6 @@ let private expectedId kind p =
 let private expectedKeyword keyword =
     expectedId (Keyword keyword.id) keyword.parse <|> attempt (symbol >>. eot >>% [Keyword keyword.id])
 
-/// Parses an expected operator. The `after` parser (if specified) must also succeed after the operator string `op` is
-/// parsed. Returns the empty list.
-let private expectedOp op after =
-    pstring op .>> Option.defaultValue (preturn ()) after |> term |> expected
 
 /// Parses an expected qualified symbol. The identifier is optional if EOT occurs first. Returns `[kind]` if EOT occurs
 /// first or there is no whitespace after the qualified symbol; otherwise, returns `[]`.
@@ -219,7 +220,7 @@ let private udtDeclaration =
     let name = expectedId Declaration (term symbol)
     let (udt, udtImpl) = createParserForwardedToRef ()
     do udtImpl :=
-        let namedItem = name ?>> expectedOp colon ?>> qsType
+        let namedItem = name ?>> expected colon ?>> qsType
         qsType <|>@ tuple (namedItem <|>@ udt)
     expectedKeyword typeDeclHeader ?>> name ?>> expected equal ?>> udtTuple
 
@@ -244,18 +245,27 @@ let (private expression, private expressionImpl) = createParserForwardedToRef()
 
 /// Parses any prefix operator in an expression.
 let private prefixOp =
-    expectedKeyword notOperator <|> expectedOp qsNEGop.op None
+    expectedKeyword notOperator <|> operator qsNEGop.op None
 
 /// Parses any infix operator in an expression.
 let private infixOp =
-    expectedKeyword andOperator <|>@ expectedKeyword orOperator
+    choice [
+        expectedKeyword andOperator <|>@ expectedKeyword orOperator
+        operator qsADDop.op None
+        operator qsSUBop.op None
+        operator qsRangeOp.op None
+    ]
 
 /// Parses any postfix operator in an expression.
 let private postfixOp =
-    expectedOp qsUnwrapModifier.op (Some (notFollowedBy <| pchar '=')) <|>@
-    expected unitValue <|>@
-    tuple expression
-
+    choice [
+        operator qsUnwrapModifier.op (Some (notFollowedBy (pchar '=')))
+        operator qsOpenRangeOp.op None .>> optional eot
+        (unitValue >>% [])
+        tuple expression
+        array expression
+    ]
+    
 /// Parses any expression term.
 let private expressionTerm =
     let keywordLiteral =
@@ -274,13 +284,13 @@ let private expressionTerm =
         tuple expression
         array expression
         keywordLiteral
-        numericLiteral >>% []
+        numericLiteral >>. optional eot >>% []
         manyR functor @>> expectedId Variable (term symbol)
     ]
 
 /// Parses an expression.
 do expressionImpl :=
-    let termBundle = manyR prefixOp @>> expressionTerm ?>> manyR postfixOp
+    let termBundle = manyR prefixOp @>> expressionTerm ?>> manyLast postfixOp
     termBundle @>> manyLast (infixOp ?>> termBundle)
 
 /// Parses a statement.

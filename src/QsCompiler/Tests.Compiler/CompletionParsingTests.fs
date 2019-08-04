@@ -291,3 +291,31 @@ let ``Expression statement parser tests`` () =
     test "(x and y," expression
     test "(x and y, z" expression
     test "(x and y, z)" infix
+    test "x[" expression
+    test "x[y " infix
+    test "x[2 + " expression
+    test "x[2]" infix
+    test "x[y]" infix
+    test "x[Length" expression
+    test "x[Length(" expression
+    test "x[Length(x)" infix
+    test "x[Length(x) -" expression
+    test "x[Length(x) - " expression
+    test "x[Length(x) - 1" []
+    test "x[Length(x) - 1]" infix
+    test "x[1 .. " expression
+    test "x[1 ..." []
+    test "x[1 ...]" infix
+    test "(Foo())[" expression
+    test "(Foo())[2]" infix
+    test "(Foo())[y]" infix
+    test "(Foo())[Length" expression
+    test "(Foo())[Length(" expression
+    test "(Foo())[Length(x)" infix
+    test "(Foo())[Length(x) -" expression
+    test "(Foo())[Length(x) - " expression
+    test "(Foo())[Length(x) - 1" []
+    test "(Foo())[Length(x) - 1]" infix
+    test "(Foo())[1 .. " expression
+    test "(Foo())[1 ..." []
+    test "(Foo())[1 ...]" infix
