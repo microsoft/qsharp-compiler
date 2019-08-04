@@ -112,55 +112,34 @@ let private expectedQualifiedSymbol kind =
     attempt (term qualifiedSymbol |>> fst .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> optional eot) <|>
     (term qualifiedSymbol >>% [])
 
-/// `many p` repeatedly applies parser `p` until `p` fails or consumes EOT, and returns the last result. If `p` consumes
-/// EOT, it backtracks but still returns the result. Thus, this parser acts like FParsec's `many` but will never consume
-/// EOT.
-let private many p stream =
+/// `manyR p` is like `many p` but is reentrant on the last item if the last item is followed by EOT. This is useful if,
+/// for example, the last item is incomplete such that it is ambiguous whether the last item is part of the list or is
+/// actually a delimiter.
+let private manyR p stream =
     let last = (p .>> previousCharSatisfies ((<>) '\u0004') |> attempt |> many1 |>> List.last) stream
     let next = (p .>> previousCharSatisfies ((=) '\u0004') |> lookAhead) stream
     if next.Status = ReplyStatus.Ok then next
     elif last.Status = ReplyStatus.Ok then last
     else Reply []
 
-/// Parses the brackets around a tuple, where the inside of the tuple is parsed by `inside` and the right bracket is
-/// optional if the stream ends first.
-let private tupleBrackets inside =
-    bracket lTuple >>. inside ?>> expectedOp (bracket rTuple)
+/// Parses brackets around `p`. The right bracket is optional if EOT occurs first.
+let private brackets (left, right) p =
+    bracket left >>. p ?>> expectedOp (bracket right)
 
-/// Parses angle brackets, where the inside of the brackets is parsed by `inside` and the right bracket is optional if
-/// the stream ends first.
-let private angleBrackets inside =
-    bracket lAngle >>. inside ?>> expectedOp (bracket rAngle)
+/// Parses tuple brackets around `p`.
+let private tupleBrackets p =
+    brackets (lTuple, rTuple) p
 
-/// Parses a tuple where each item is parsed by `item` and the right bracket is optional if the stream ends first.
-let private buildTuple item =
-    tupleBrackets (sepBy1 item comma |>> List.last)
+/// Parses angle brackets around `p`.
+let private angleBrackets p =
+    brackets (lAngle, rAngle) p
+
+/// Parses a tuple of items parsed by `p`.
+let private tuple p =
+    tupleBrackets (sepBy1 p comma |>> List.last)
 
 /// Parses a type.
 let (private qsType, private qsTypeImpl) = createParserForwardedToRef()
-
-/// Parses the unit type.
-let private unitType = 
-    expectedId Type qsUnit.parse
-
-/// Parses an atomic (non-array, non-tuple, non-function, non-operation) type, excluding user-defined types.
-let private atomicType = 
-    expectedId Type <| choice [
-        qsBigInt.parse
-        qsBool.parse
-        qsDouble.parse
-        qsInt.parse
-        qsPauli.parse
-        qsQubit.parse
-        qsRange.parse
-        qsResult.parse
-        qsString.parse
-        qsUnit.parse
-    ]
-
-/// Parses a user-defined type.
-let private userDefinedType = 
-    expectedQualifiedSymbol Type
 
 /// Parses a characteristics annotation (the characteristics keyword followed by a characteristics expression).
 let private characteristicsAnnotation =
@@ -175,32 +154,34 @@ let private operationType =
         inOutType
     tupleBrackets inside
 
-/// Parses a function type.
-let private functionType =
-    tupleBrackets (qsType >>. fctArrow >>. qsType)
-
-/// Parses a tuple type.
-let private tupleType =
-    buildTuple qsType
-
-/// Parses a generic type parameter.
-let private typeParameter = 
-    pchar '\'' >>. expectedId Type (term symbol)
+do qsTypeImpl :=
+    let typeParameter = pchar '\'' >>. expectedId Type (term symbol)
+    let functionType = tupleBrackets (qsType >>. fctArrow >>. qsType)
+    let keywordType =
+        [
+            qsBigInt
+            qsBool
+            qsDouble
+            qsInt
+            qsPauli
+            qsQubit
+            qsRange
+            qsResult
+            qsString
+            qsUnit
+        ] |> List.map expectedKeyword |> pcollect
+    let userDefinedType = expectedQualifiedSymbol Type
+    choice [
+        attempt typeParameter
+        attempt operationType
+        attempt functionType
+        attempt (tuple qsType)
+        keywordType <|>@ userDefinedType
+    ] .>> many (arrayBrackets emptySpace)
 
 /// Parses a generic type parameter declaration.
 let private typeParameterDeclaration =
     expectedId Declaration (pchar '\'') ?>> expectedId Declaration (term symbol)
-
-do qsTypeImpl :=
-    choice <| List.map attempt [
-        typeParameter
-        operationType
-        functionType 
-        unitType
-        tupleType 
-        atomicType
-        userDefinedType
-    ] .>> many (arrayBrackets emptySpace >>% [])
 
 /// Parses a callable signature.
 let private callableSignature =
@@ -208,7 +189,7 @@ let private callableSignature =
     let typeAnnotation = expectedOp colon ?>> qsType
     let genericParamList =
         angleBrackets (sepBy typeParameterDeclaration comma |>> List.tryLast |>> Option.defaultValue [Declaration])
-    let argumentTuple = expectedOp unitValue <|> buildTuple (name ?>> typeAnnotation)
+    let argumentTuple = expectedOp unitValue <|> tuple (name ?>> typeAnnotation)
     name ?>> (opt genericParamList |>> Option.defaultValue []) ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
@@ -225,7 +206,7 @@ let private udtDeclaration =
     let (udt, udtImpl) = createParserForwardedToRef ()
     do udtImpl :=
         let namedItem = name ?>> expectedOp colon ?>> qsType
-        qsType <|>@ buildTuple (namedItem <|>@ udt)
+        qsType <|>@ tuple (namedItem <|>@ udt)
     expectedKeyword typeDeclHeader ?>> name ?>> expectedOp equal ?>> udtTuple
 
 /// Parses an open directive.
@@ -259,7 +240,7 @@ let private infixOp =
 let private postfixOp =
     expectedOp (term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '='))) <|>@
     expectedOp unitValue <|>@
-    buildTuple expression
+    tuple expression
 
 /// Parses any expression term.
 let private expressionTerm =
@@ -267,8 +248,8 @@ let private expressionTerm =
 
 /// Parses an expression.
 do expressionImpl :=
-    many prefixOp @>> expressionTerm ?>> many postfixOp @>>
-    many (infixOp ?>> (many prefixOp @>> expressionTerm @>> many postfixOp))
+    let termBundle = manyR prefixOp @>> expressionTerm ?>> manyR postfixOp
+    termBundle @>> manyR (infixOp ?>> termBundle)
 
 /// Parses a statement.
 let private statement =

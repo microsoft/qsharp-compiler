@@ -62,25 +62,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static partial class EditorSupport
     {
         /// <summary>
-        /// Completion items for built-in type keywords.
-        /// </summary>
-        private static readonly IEnumerable<CompletionItem> typeKeywords =
-            new[]
-            {
-                Types.Unit,
-                Types.Int,
-                Types.BigInt,
-                Types.Double,
-                Types.Bool,
-                Types.Qubit,
-                Types.Result,
-                Types.Pauli,
-                Types.Range,
-                Types.String
-            }
-            .Select(type => new CompletionItem { Label = type, Kind = CompletionItemKind.Keyword });
-
-        /// <summary>
         /// Completion items for built-in characteristic keywords.
         /// </summary>
         private static readonly IEnumerable<CompletionItem> characteristicKeywords =
@@ -229,8 +210,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         ? GetOpenNamespaces(file, compilation, position)
                         : new[] { namespacePrefix };
                     return
-                        (namespacePrefix == "" ? typeKeywords : Array.Empty<CompletionItem>())
-                        .Concat(GetTypeCompletions(file, compilation, namespaces))
+                        GetTypeCompletions(file, compilation, namespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
                 case IdentifierKind.Tags.Namespace:

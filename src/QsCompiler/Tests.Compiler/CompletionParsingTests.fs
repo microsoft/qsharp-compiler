@@ -8,6 +8,21 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 let private test env text expected =
     Assert.Equal<IEnumerable<IdentifierKind>>(Set.ofList expected, GetExpectedIdentifiers env text)
 
+let private types =
+    [
+        Keyword "BigInt"
+        Keyword "Bool"
+        Keyword "Double"
+        Keyword "Int"
+        Keyword "Pauli"
+        Keyword "Qubit"
+        Keyword "Range"
+        Keyword "Result"
+        Keyword "String"
+        Keyword "Unit"
+        Type
+    ]
+
 [<Fact>]
 let ``Inside namespace parser tests`` () =
     test NamespaceTopLevel "" [Keyword "function"; Keyword "operation"; Keyword "newtype"; Keyword "open"]
@@ -31,43 +46,43 @@ let ``Function declaration parser tests`` () =
     test NamespaceTopLevel "function Foo (" [Declaration]
     test NamespaceTopLevel "function Foo (x" [Declaration]
     test NamespaceTopLevel "function Foo (x " []
-    test NamespaceTopLevel "function Foo (x :" [Type]
-    test NamespaceTopLevel "function Foo (x : Int" [Type]
+    test NamespaceTopLevel "function Foo (x :" types
+    test NamespaceTopLevel "function Foo (x : Int" types
     test NamespaceTopLevel "function Foo (x : Int " []
     test NamespaceTopLevel "function Foo (x : Int)" []
-    test NamespaceTopLevel "function Foo (x : Int) :" [Type]
-    test NamespaceTopLevel "function Foo (x : Int) : " [Type]
-    test NamespaceTopLevel "function Foo (x : Int) : Unit" [Type]
+    test NamespaceTopLevel "function Foo (x : Int) :" types
+    test NamespaceTopLevel "function Foo (x : Int) : " types
+    test NamespaceTopLevel "function Foo (x : Int) : Unit" types
     test NamespaceTopLevel "function Foo (x : Int) : Unit " []
-    test NamespaceTopLevel "function Foo (x : Int) : (Int, MyT" [Type]
-    test NamespaceTopLevel "function Foo (x : Int) : (Int," [Type]
-    test NamespaceTopLevel "function Foo (x : Int) : (Int, " [Type]
+    test NamespaceTopLevel "function Foo (x : Int) : (Int, MyT" types
+    test NamespaceTopLevel "function Foo (x : Int) : (Int," types
+    test NamespaceTopLevel "function Foo (x : Int) : (Int, " types
     test NamespaceTopLevel "function Foo (x : Int) : (Int, MyT " []
-    test NamespaceTopLevel "function Foo (x : (" [Type]
-    test NamespaceTopLevel "function Foo (x : (Int" [Type]
-    test NamespaceTopLevel "function Foo (x : (Int," [Type]
-    test NamespaceTopLevel "function Foo (x : (Int, " [Type]
-    test NamespaceTopLevel "function Foo (x : (Int, Int" [Type]
+    test NamespaceTopLevel "function Foo (x : (" types
+    test NamespaceTopLevel "function Foo (x : (Int" types
+    test NamespaceTopLevel "function Foo (x : (Int," types
+    test NamespaceTopLevel "function Foo (x : (Int, " types
+    test NamespaceTopLevel "function Foo (x : (Int, Int" types
     test NamespaceTopLevel "function Foo (x : (Int, Int " []
     test NamespaceTopLevel "function Foo (x : (Int, Int), " [Declaration]
-    test NamespaceTopLevel "function Foo (f : (Int -> " [Type]
-    test NamespaceTopLevel "function Foo (f : (Int -> Int" [Type]
+    test NamespaceTopLevel "function Foo (f : (Int -> " types
+    test NamespaceTopLevel "function Foo (f : (Int -> Int" types
     test NamespaceTopLevel "function Foo (f : (Int -> Int " []
     test NamespaceTopLevel "function Foo (f : (Int -> Int)" []
-    test NamespaceTopLevel "function Foo (f : (Int -> Int)) : Unit" [Type]
+    test NamespaceTopLevel "function Foo (f : (Int -> Int)) : Unit" types
     test NamespaceTopLevel "function Foo (f : (Int -> Int)) : Unit " []
-    test NamespaceTopLevel "function Foo (q : ((Int -> Int) -> " [Type]
+    test NamespaceTopLevel "function Foo (q : ((Int -> Int) -> " types
     test NamespaceTopLevel "function Foo (q : ((Int -> Int) -> Int " []
-    test NamespaceTopLevel "function Foo (q : ((Int -> Int) -> Int)) : Unit" [Type]
-    test NamespaceTopLevel "function Foo (q : ((Int->Int)->Int)) : Unit" [Type]
-    test NamespaceTopLevel "function Foo (q : ((Int -> Int) -> Int)) : Unit" [Type]
+    test NamespaceTopLevel "function Foo (q : ((Int -> Int) -> Int)) : Unit" types
+    test NamespaceTopLevel "function Foo (q : ((Int->Int)->Int)) : Unit" types
+    test NamespaceTopLevel "function Foo (q : ((Int -> Int) -> Int)) : Unit" types
     test NamespaceTopLevel "function Foo<" [Declaration]
     test NamespaceTopLevel "function Foo<'" [Declaration]
-    test NamespaceTopLevel "function Foo<> (q : 'T) : Unit" [Type]
-    test NamespaceTopLevel "function Foo<'T> (q : 'T) : Unit" [Type]
-    test NamespaceTopLevel "function Foo<'T> (q : ('T -> Int)) : Unit" [Type]
-    test NamespaceTopLevel "function Foo<'T> (q : ('T->Int)) : Unit" [Type]
-    test NamespaceTopLevel "function Foo<'T> (q : (MyType -> Int)) : Unit" [Type]
+    test NamespaceTopLevel "function Foo<> (q : 'T) : Unit" types
+    test NamespaceTopLevel "function Foo<'T> (q : 'T) : Unit" types
+    test NamespaceTopLevel "function Foo<'T> (q : ('T -> Int)) : Unit" types
+    test NamespaceTopLevel "function Foo<'T> (q : ('T->Int)) : Unit" types
+    test NamespaceTopLevel "function Foo<'T> (q : (MyType -> Int)) : Unit" types
 
 [<Fact>]
 let ``Operation declaration parser tests`` () =
@@ -76,12 +91,12 @@ let ``Operation declaration parser tests`` () =
     test NamespaceTopLevel "operation Foo " []
     test NamespaceTopLevel "operation Foo (" [Declaration]
     test NamespaceTopLevel "operation Foo (q" [Declaration]
-    test NamespaceTopLevel "operation Foo (q :" [Type]
-    test NamespaceTopLevel "operation Foo (q : Qubit" [Type]
+    test NamespaceTopLevel "operation Foo (q :" types
+    test NamespaceTopLevel "operation Foo (q : Qubit" types
     test NamespaceTopLevel "operation Foo (q : Qubit)" []
-    test NamespaceTopLevel "operation Foo (q : Qubit) :" [Type]
-    test NamespaceTopLevel "operation Foo (q : Qubit) : " [Type]
-    test NamespaceTopLevel "operation Foo (q : Qubit) : Unit" [Type]
+    test NamespaceTopLevel "operation Foo (q : Qubit) :" types
+    test NamespaceTopLevel "operation Foo (q : Qubit) : " types
+    test NamespaceTopLevel "operation Foo (q : Qubit) : Unit" types
     test NamespaceTopLevel "operation Foo (q : Qubit) : Unit " [Keyword "is"]
     test NamespaceTopLevel "operation Foo (q : Qubit) : Unit i" [Keyword "is"]
     test NamespaceTopLevel "operation Foo (q : Qubit) : Unit is" [Keyword "is"]
@@ -101,78 +116,78 @@ let ``Operation declaration parser tests`` () =
     // TODO: test NamespaceTopLevel "operation Foo (q : Qubit) : Unit is (Adj + Ctl)" []    
     test NamespaceTopLevel "operation Foo (q : Qubit) : Unit is Adj + Ctl " []
     test NamespaceTopLevel "operation Foo (q : Qubit) : Unit is Adj + Cat " []
-    test NamespaceTopLevel "operation Foo (q : Qubit) : (Int, MyT" [Type]
-    test NamespaceTopLevel "operation Foo (q : Qubit) : (Int," [Type]
+    test NamespaceTopLevel "operation Foo (q : Qubit) : (Int, MyT" types
+    test NamespaceTopLevel "operation Foo (q : Qubit) : (Int," types
     test NamespaceTopLevel "operation Foo (q : Qubit) : (Int, MyT " []
-    test NamespaceTopLevel "operation Foo (q : (" [Type]
-    test NamespaceTopLevel "operation Foo (q : (Qubit" [Type]
-    test NamespaceTopLevel "operation Foo (q : (Qubit," [Type]
-    test NamespaceTopLevel "operation Foo (q : (Qubit, " [Type]
-    test NamespaceTopLevel "operation Foo (q : (Qubit, Qubit" [Type]
+    test NamespaceTopLevel "operation Foo (q : (" types
+    test NamespaceTopLevel "operation Foo (q : (Qubit" types
+    test NamespaceTopLevel "operation Foo (q : (Qubit," types
+    test NamespaceTopLevel "operation Foo (q : (Qubit, " types
+    test NamespaceTopLevel "operation Foo (q : (Qubit, Qubit" types
     test NamespaceTopLevel "operation Foo (q : (Qubit, Qubit " []
     test NamespaceTopLevel "operation Foo (q : (Qubit, Qubit), " [Declaration]
-    test NamespaceTopLevel "operation Foo (q : (Qubit => " [Type]
-    test NamespaceTopLevel "operation Foo (q : (Qubit => Unit" [Type]
+    test NamespaceTopLevel "operation Foo (q : (Qubit => " types
+    test NamespaceTopLevel "operation Foo (q : (Qubit => Unit" types
     test NamespaceTopLevel "operation Foo (q : (Qubit => Unit " [Keyword "is"]
     test NamespaceTopLevel "operation Foo (q : (Qubit => Unit is " [Characteristic]
     test NamespaceTopLevel "operation Foo (q : (Qubit => Unit is Adj" [Characteristic]
     test NamespaceTopLevel "operation Foo (q : (Qubit => Unit is Adj " []
     test NamespaceTopLevel "operation Foo (q : (Qubit => Unit is Adj + " [Characteristic]
     test NamespaceTopLevel "operation Foo (q : (Qubit => Unit is Adj)" []
-    test NamespaceTopLevel "operation Foo (q : (Qubit => Unit is Adj)) : Unit" [Type]
+    test NamespaceTopLevel "operation Foo (q : (Qubit => Unit is Adj)) : Unit" types
     test NamespaceTopLevel "operation Foo (q : ((Qubit => Unit " []
     test NamespaceTopLevel "operation Foo (q : ((Qubit => Unit) " [Keyword "is"]
     test NamespaceTopLevel "operation Foo (q : ((Qubit => Unit) is " [Characteristic]
     test NamespaceTopLevel "operation Foo (q : ((Qubit => Unit) is Adj" [Characteristic]
     test NamespaceTopLevel "operation Foo (q : ((Qubit => Unit) is Adj)" []
     test NamespaceTopLevel "operation Foo (q : ((Qubit => Unit) is Adj))" []
-    test NamespaceTopLevel "operation Foo (q : ((Qubit => Unit) is Adj)) :" [Type]
-    test NamespaceTopLevel "operation Foo (f : (Int -> " [Type]
-    test NamespaceTopLevel "operation Foo (f : (Int -> Int)) : Unit" [Type]
+    test NamespaceTopLevel "operation Foo (q : ((Qubit => Unit) is Adj)) :" types
+    test NamespaceTopLevel "operation Foo (f : (Int -> " types
+    test NamespaceTopLevel "operation Foo (f : (Int -> Int)) : Unit" types
     test NamespaceTopLevel "operation Foo (f : (Int -> Int)) : Unit " [Keyword "is"]
-    test NamespaceTopLevel "operation Foo (q : (Int => Int)) : Unit" [Type]
-    test NamespaceTopLevel "operation Foo (q : ((Int -> Int) => " [Type]
+    test NamespaceTopLevel "operation Foo (q : (Int => Int)) : Unit" types
+    test NamespaceTopLevel "operation Foo (q : ((Int -> Int) => " types
     test NamespaceTopLevel "operation Foo (q : ((Int -> Int) => Int " [Keyword "is"]
-    test NamespaceTopLevel "operation Foo (q : ((Int -> Int) => Int)) : Unit" [Type]
-    test NamespaceTopLevel "operation Foo (q : ((Int->Int)=>Int)) : Unit" [Type]
-    test NamespaceTopLevel "operation Foo (q : ((Int -> Int) -> Int)) : Unit" [Type]
-    test NamespaceTopLevel "operation Foo (q : ((Int => Int) => Int)) : Unit" [Type]
-    test NamespaceTopLevel "operation Foo<'T> (q : 'T) : Unit" [Type]
-    test NamespaceTopLevel "operation Foo<'T> (q : ('T => Int)) : Unit" [Type]
-    test NamespaceTopLevel "operation Foo<'T> (q : ('T -> Int)) : Unit" [Type]
-    test NamespaceTopLevel "operation Foo<'T> (q : ('T->Int)) : Unit" [Type]
-    test NamespaceTopLevel "operation Foo<'T> (q : (MyType -> Int)) : Unit" [Type]
+    test NamespaceTopLevel "operation Foo (q : ((Int -> Int) => Int)) : Unit" types
+    test NamespaceTopLevel "operation Foo (q : ((Int->Int)=>Int)) : Unit" types
+    test NamespaceTopLevel "operation Foo (q : ((Int -> Int) -> Int)) : Unit" types
+    test NamespaceTopLevel "operation Foo (q : ((Int => Int) => Int)) : Unit" types
+    test NamespaceTopLevel "operation Foo<'T> (q : 'T) : Unit" types
+    test NamespaceTopLevel "operation Foo<'T> (q : ('T => Int)) : Unit" types
+    test NamespaceTopLevel "operation Foo<'T> (q : ('T -> Int)) : Unit" types
+    test NamespaceTopLevel "operation Foo<'T> (q : ('T->Int)) : Unit" types
+    test NamespaceTopLevel "operation Foo<'T> (q : (MyType -> Int)) : Unit" types
 
 [<Fact>]
 let ``Type declaration parser tests`` () =
     test NamespaceTopLevel "newtype " [Declaration]
     test NamespaceTopLevel "newtype MyType" [Declaration]
     test NamespaceTopLevel "newtype MyType " []
-    test NamespaceTopLevel "newtype MyType =" [Type]
-    test NamespaceTopLevel "newtype MyType = " [Type]
-    test NamespaceTopLevel "newtype MyType = Int" [Type]
-    test NamespaceTopLevel "newtype MyType = (" [Declaration; Type]
-    test NamespaceTopLevel "newtype MyType = (In" [Declaration; Type]
-    test NamespaceTopLevel "newtype MyType = (Int" [Declaration; Type]
+    test NamespaceTopLevel "newtype MyType =" types
+    test NamespaceTopLevel "newtype MyType = " types
+    test NamespaceTopLevel "newtype MyType = Int" types
+    test NamespaceTopLevel "newtype MyType = (" (Declaration :: types)
+    test NamespaceTopLevel "newtype MyType = (In" (Declaration :: types)
+    test NamespaceTopLevel "newtype MyType = (Int" (Declaration :: types)
     test NamespaceTopLevel "newtype MyType = (Int " []
-    test NamespaceTopLevel "newtype MyType = (Int," [Declaration; Type]
-    test NamespaceTopLevel "newtype MyType = (Int, Boo" [Declaration; Type]
-    test NamespaceTopLevel "newtype MyType = (Int, Bool" [Declaration; Type]
+    test NamespaceTopLevel "newtype MyType = (Int," (Declaration :: types)
+    test NamespaceTopLevel "newtype MyType = (Int, Boo" (Declaration :: types)
+    test NamespaceTopLevel "newtype MyType = (Int, Bool" (Declaration :: types)
     test NamespaceTopLevel "newtype MyType = (Int, Bool)" []
-    test NamespaceTopLevel "newtype MyType = (MyItem :" [Type]
-    test NamespaceTopLevel "newtype MyType = (MyItem : " [Type]
-    test NamespaceTopLevel "newtype MyType = (MyItem : In" [Type]
-    test NamespaceTopLevel "newtype MyType = (MyItem : Int" [Type]
-    test NamespaceTopLevel "newtype MyType = (MyItem : Int," [Declaration; Type]
-    test NamespaceTopLevel "newtype MyType = (MyItem : Int, " [Declaration; Type]
-    test NamespaceTopLevel "newtype MyType = (MyItem : Int, Boo" [Declaration; Type]
-    test NamespaceTopLevel "newtype MyType = (MyItem : Int, Bool" [Declaration; Type]
+    test NamespaceTopLevel "newtype MyType = (MyItem :" types
+    test NamespaceTopLevel "newtype MyType = (MyItem : " types
+    test NamespaceTopLevel "newtype MyType = (MyItem : In" types
+    test NamespaceTopLevel "newtype MyType = (MyItem : Int" types
+    test NamespaceTopLevel "newtype MyType = (MyItem : Int," (Declaration :: types)
+    test NamespaceTopLevel "newtype MyType = (MyItem : Int, " (Declaration :: types)
+    test NamespaceTopLevel "newtype MyType = (MyItem : Int, Boo" (Declaration :: types)
+    test NamespaceTopLevel "newtype MyType = (MyItem : Int, Bool" (Declaration :: types)
     test NamespaceTopLevel "newtype MyType = (MyItem : Int, Bool)" []
-    test NamespaceTopLevel "newtype MyType = (MyItem : Int, (" [Declaration; Type]
-    test NamespaceTopLevel "newtype MyType = (MyItem : Int, (Item2" [Declaration; Type]
+    test NamespaceTopLevel "newtype MyType = (MyItem : Int, (" (Declaration :: types)
+    test NamespaceTopLevel "newtype MyType = (MyItem : Int, (Item2" (Declaration :: types)
     test NamespaceTopLevel "newtype MyType = (MyItem : Int, (Item2 " []
-    test NamespaceTopLevel "newtype MyType = (MyItem : Int, (Item2, " [Declaration; Type]
-    test NamespaceTopLevel "newtype MyType = (MyItem : Int, (Item2, Item3 :" [Type]
+    test NamespaceTopLevel "newtype MyType = (MyItem : Int, (Item2, " (Declaration :: types)
+    test NamespaceTopLevel "newtype MyType = (MyItem : Int, (Item2, Item3 :" types
     test NamespaceTopLevel "newtype MyType = (MyItem : Int, (Item2, Item3 : Int)" []
     test NamespaceTopLevel "newtype MyType = (MyItem : Int, (Item2, Item3 : Int))" []
 
