@@ -56,6 +56,7 @@
     <Compile Include="AttributesTests.fs" />
     <Compile Include="CommandLineTests.fs" />
     <Compile Include="SymbolManagementTests.fs" />
+    <Compile Include="OptimizationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Utils.fs" />
+    <Compile Include="FunctionEvaluation.fs" />
+    <Compile Include="ExpressionEvaluation.fs" />
+    <Compile Include="ConstantPropagation.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NETStandard.Library" Version="2.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\QsCore.fsproj" />
+    <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
+  </ItemGroup>
+
+</Project>
