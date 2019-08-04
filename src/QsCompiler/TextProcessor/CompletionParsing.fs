@@ -59,17 +59,21 @@ let private (@>>) p1 p2 =
 ///
 /// The parser state after running this parser is the state after running the first parser in the sequence that
 /// succeeds.
-let private pcollect (ps : seq<Parser<'a list, 'u>>) stream =
-    let results =
+let private pcollect ps stream =
+    let successes =
         ps |>
-        Seq.map (fun p -> lookAhead p stream) |>
-        Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
-        Seq.collect (fun reply -> reply.Result) |>
+        Seq.map (fun p -> (p, lookAhead p stream)) |>
+        Seq.filter (fun (_, reply) -> reply.Status = Ok) |>
         Seq.toList
-    (Seq.map attempt ps |> choice >>% results) stream
+    if List.isEmpty successes then
+        Reply (Error, ErrorMessageList (Message "No parser in pcollect succeeded"))
+    else
+        let results = successes |> List.map snd |> List.collect (fun reply -> reply.Result)
+        let p = List.head successes |> fst
+        (p >>% results) stream
 
 /// `p1 <|>@ p2` is equivalent to `pcollect [p1; p2]`.
-let private (<|>@) p1 p2 : Parser<'a list, 'u> =
+let private (<|>@) p1 p2 =
     pcollect [p1; p2]
 
 /// Parses the end-of-transmission character.
