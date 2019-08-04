@@ -306,6 +306,7 @@ let private expressionTerm =
         ] |> List.map expectedKeyword |> pcollect
     let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
     pcollect [
+        operator qsOpenRangeOp.op None >>. opt expression |>> Option.defaultValue []
         newArray
         tuple expression
         array expression

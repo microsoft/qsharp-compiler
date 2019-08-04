@@ -307,7 +307,14 @@ let ``Expression statement parser tests`` () =
     test "x[Length(x) - 1]" infix
     test "x[1 .. " expression
     test "x[1 ..." []
+    test "x[1..." []
+    test "x[..." expression
+    test "x[...2" []
+    test "x[...2]" infix
+    test "x[...2..." []
+    test "x[...2...]" infix
     test "x[1 ...]" infix
+    test "x[...]" infix
     test "(Foo())[" expression
     test "(Foo())[2]" infix
     test "(Foo())[y]" infix
