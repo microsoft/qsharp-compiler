@@ -212,7 +212,20 @@ let ``Open directive parser tests`` () =
 
 [<Fact>]
 let ``Statement parser tests`` () =
-    let expression = [Variable; Keyword "not"; Keyword "Adjoint"; Keyword "Controlled"]
+    let expression = [
+        Variable
+        Keyword "not"
+        Keyword "Adjoint"
+        Keyword "Controlled"
+        Keyword "PauliX"
+        Keyword "PauliY"
+        Keyword "PauliZ"
+        Keyword "PauliI"
+        Keyword "Zero"
+        Keyword "One"
+        Keyword "true"
+        Keyword "false"
+    ]
     let infix = [Keyword "and"; Keyword "or"]
     test Statement "" expression
     test Statement "x" expression
@@ -241,8 +254,13 @@ let ``Statement parser tests`` () =
     test Statement "Foo(x, " expression
     test Statement "Foo(x, y" expression
     test Statement "Foo(x, y)" infix
+    test Statement "Foo(true, Zero)" infix
+    test Statement "Foo(2)" infix
+    test Statement "Foo(1.2)" infix
+    test Statement "Foo(-0.111)" infix
+    test Statement "Foo(2, 1.2, -0.111)" infix
     test Statement "Adjoint" expression
-    test Statement "Adjoint " expression
-    test Statement "Adjoint Foo" expression
+    test Statement "Adjoint " [Keyword "Adjoint"; Keyword "Controlled"; Variable]
+    test Statement "Adjoint Foo" [Keyword "Adjoint"; Keyword "Controlled"; Variable]
     test Statement "Adjoint Foo " infix
     test Statement "Adjoint Foo(q)" infix

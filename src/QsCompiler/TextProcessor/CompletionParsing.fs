@@ -7,6 +7,7 @@ module Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 open System
 open FParsec
+open Microsoft.Quantum.QsCompiler.TextProcessing.ExpressionParsing
 open Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
 open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
@@ -86,6 +87,9 @@ let private symbol =
         identifier <| IdentifierOptions (isAsciiIdStart = isSymbolStart, isAsciiIdContinue = isSymbolContinuation)
     notFollowedBy qsReservedKeyword >>. qsIdentifier <|> (qsIdentifier .>> followedBy eot)
 
+/// Parses `p` unless EOT occurs first. Returns the empty list.
+let private expected p =
+    eot >>% [] <|> (p >>% [])
 
 /// Parses an expected identifier. The identifier is optional if EOT occurs first. Returns `[kind]` if EOT occurs first
 /// or if `p` did not end in whitespace; otherwise, returns `[]`.
@@ -94,14 +98,15 @@ let private expectedId kind p =
     attempt (p >>. previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [kind]) <|>
     (p >>% [])
 
-/// Parses an expected operator. The operator is optional if EOT occurs first.
-let private expectedOp p =
-    eot >>% [] <|> (p >>% [])
-
 /// Parses an expected keyword. If the keyword parser fails, this parser can still succeed if the next token is symbol-
 /// like and occurs immediately before EOT (i.e., a possibly incomplete keyword).
 let private expectedKeyword keyword =
     expectedId (Keyword keyword.id) keyword.parse <|> attempt (symbol >>. eot >>% [Keyword keyword.id])
+
+/// Parses an expected operator. The `after` parser (if specified) must also succeed after the operator string `op` is
+/// parsed. Returns the empty list.
+let private expectedOp op after =
+    pstring op .>> Option.defaultValue (preturn ()) after |> term |> expected
 
 /// Parses an expected qualified symbol. The identifier is optional if EOT occurs first. Returns `[kind]` if EOT occurs
 /// first or there is no whitespace after the qualified symbol; otherwise, returns `[]`.
@@ -129,7 +134,7 @@ let private manyR p stream =
 
 /// Parses brackets around `p`. The right bracket is optional if EOT occurs first.
 let private brackets (left, right) p =
-    bracket left >>. p ?>> expectedOp (bracket right)
+    bracket left >>. p ?>> expected (bracket right)
 
 /// Parses tuple brackets around `p`.
 let private tupleBrackets p =
@@ -182,10 +187,10 @@ do qsTypeImpl :=
 /// Parses a callable signature.
 let private callableSignature =
     let name = expectedId Declaration (term symbol)
-    let typeAnnotation = expectedOp colon ?>> qsType
-    let typeParam = expectedOp (pchar '\'') ?>> expectedId Declaration (term symbol)
+    let typeAnnotation = expected colon ?>> qsType
+    let typeParam = expected (pchar '\'') ?>> expectedId Declaration (term symbol)
     let typeParamList = angleBrackets (sepBy typeParam comma |>> List.tryLast |>> Option.defaultValue [])
-    let argumentTuple = expectedOp unitValue <|> tuple (name ?>> typeAnnotation)
+    let argumentTuple = expected unitValue <|> tuple (name ?>> typeAnnotation)
     name ?>> (typeParamList <|>% []) ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
@@ -203,7 +208,7 @@ let private udtDeclaration =
     do udtImpl :=
         let namedItem = name ?>> expectedOp colon ?>> qsType
         qsType <|>@ tuple (namedItem <|>@ udt)
-    expectedKeyword typeDeclHeader ?>> name ?>> expectedOp equal ?>> udtTuple
+    expectedKeyword typeDeclHeader ?>> name ?>> expected equal ?>> udtTuple
 
 /// Parses an open directive.
 let private openDirective =
@@ -226,7 +231,7 @@ let (private expression, private expressionImpl) = createParserForwardedToRef()
 
 /// Parses any prefix operator in an expression.
 let private prefixOp =
-    expectedKeyword notOperator <|>@ expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
+    expectedKeyword notOperator <|> expectedOp qsNEGop.op None
 
 /// Parses any infix operator in an expression.
 let private infixOp =
@@ -234,13 +239,29 @@ let private infixOp =
 
 /// Parses any postfix operator in an expression.
 let private postfixOp =
-    expectedOp (term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '='))) <|>@
-    expectedOp unitValue <|>@
+    expectedOp qsUnwrapModifier.op (Some (notFollowedBy <| pchar '=')) <|>@
+    expected unitValue <|>@
     tuple expression
 
 /// Parses any expression term.
 let private expressionTerm =
-    expectedId Variable (term symbol)
+    let keywordLiteral =
+        [
+            qsPauliX
+            qsPauliY
+            qsPauliZ
+            qsPauliI
+            qsZero
+            qsOne
+            qsTrue
+            qsFalse
+        ] |> List.map expectedKeyword |> pcollect
+    let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
+    pcollect [
+        keywordLiteral
+        numericLiteral >>% []
+        manyR functor @>> expectedId Variable (term symbol)
+    ]
 
 /// Parses an expression.
 do expressionImpl :=
