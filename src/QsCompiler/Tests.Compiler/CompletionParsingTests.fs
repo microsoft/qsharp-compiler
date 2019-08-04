@@ -332,3 +332,11 @@ let ``Expression statement parser tests`` () =
     test "new Int[][" expression
     test "new Int[][2" []
     test "new Int[][2]" infix
+    test "x:" []
+    test "x::" [NamedItem]
+    test "x::Foo" [NamedItem]
+    test "x::Foo " infix
+    test "(Foo()):" []
+    test "(Foo())::" [NamedItem]
+    test "(Foo())::Foo" [NamedItem]
+    test "(Foo())::Foo " infix

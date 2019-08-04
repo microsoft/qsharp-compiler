@@ -39,6 +39,9 @@ type IdentifierKind =
     | Namespace
     /// The identifier is a member of the given namespace and has the given kind.
     | Member of string * IdentifierKind
+    /// The identifier is a named item in a user-defined type.
+    // TODO: Add information so completion knows the type being accessed.
+    | NamedItem
 
 /// The exception that is thrown when the completion parser can't parse the text of a fragment.
 exception CompletionParserError of detail : string * error : ParserError with
@@ -265,6 +268,7 @@ let private postfixOp =
     choice [
         operator qsUnwrapModifier.op (Some (notFollowedBy (pchar '=')))
         operator qsOpenRangeOp.op None .>> optional eot
+        operator qsNamedItemCombinator.op None >>. expectedId NamedItem (term symbol)
         (unitValue >>% [])
         tuple expression
         array expression
