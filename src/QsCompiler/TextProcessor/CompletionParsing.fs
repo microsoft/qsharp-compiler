@@ -270,11 +270,17 @@ let private postfixOp =
         (expression <|>@ expectedId NamedItem (term symbol)) ?>>
         expected (operator qsCopyAndUpdateOp.cont None) ?>>
         expression
+    let conditional =
+        operator qsConditionalOp.op None >>.
+        expression ?>>
+        expected (operator qsConditionalOp.cont None) ?>>
+        expression
     choice [
         operator qsUnwrapModifier.op (Some (notFollowedBy (pchar '=')))
         operator qsOpenRangeOp.op None .>> optional eot
         operator qsNamedItemCombinator.op None >>. expectedId NamedItem (term symbol)
         copyAndUpdate
+        conditional
         (unitValue >>% [])
         tuple expression
         array expression

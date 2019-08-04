@@ -345,9 +345,15 @@ let ``Expression statement parser tests`` () =
     test "arr w/" (NamedItem :: expression)
     test "arr w/ 2" []
     test "arr w/ 2 " infix
-    test "arr w/ 2 <-" expression
-    test "arr w/ 2 <- true" expression
+    test "arr w/ 2.." expression
+    test "arr w/ 2..4" []
+    test "arr w/ 2..4 <-" expression
+    test "arr w/ 2..4 <- true" expression
     test "x w/ Foo" (NamedItem :: expression)
     test "x w/ Foo " infix
     test "x w/ Foo <-" expression
     test "x w/ Foo <- false" expression
+    test "Foo() ?" expression
+    test "Foo() ? 1 + 2 |" expression
+    test "Foo() ? 1 + 2 | 4" []
+    test "Foo() ? 1 + 2 | 4 " infix
