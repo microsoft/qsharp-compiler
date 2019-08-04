@@ -43,6 +43,33 @@ exception CompletionParserError of detail : string * error : ParserError
         override this.Message = this.error.ToString()
         override this.ToString() = this.detail
 
+/// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and returns
+/// the result of `p2`.
+let private (?>>) p1 p2 =
+    attempt (p1 .>> eof) <|> (p1 >>. p2)
+
+/// `p1 <@> p2` parses `p1` then `p2` and concatenates the results.
+let private (@>>) p1 p2 =
+    p1 .>>. p2 |>> fun (list1, list2) -> list1 @ list2
+
+/// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
+/// results from all parsers that succeeded into a single list.
+///
+/// The parser state after running this parser is the state after running the first parser in the sequence that
+/// succeeds.
+let private pcollect (ps : seq<Parser<'a list, 'u>>) stream =
+    let results =
+        ps |>
+        Seq.map (fun p -> lookAhead p stream) |>
+        Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
+        Seq.collect (fun reply -> reply.Result) |>
+        Seq.toList
+    (Seq.map attempt ps |> choice >>% results) stream
+
+/// `p1 <|>@ p2` is equivalent to `pcollect [p1; p2]`.
+let private (<|>@) p1 p2 : Parser<'a list, 'u> =
+    pcollect [p1; p2]
+
 /// Parses the end-of-transmission character.
 let private eot =
     pchar '\u0004'
@@ -54,10 +81,6 @@ let private symbol =
         identifier <| IdentifierOptions (isAsciiIdStart = isSymbolStart, isAsciiIdContinue = isSymbolContinuation)
     notFollowedBy qsReservedKeyword >>. qsIdentifier <|> (qsIdentifier .>> followedBy eot)
 
-/// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and returns
-/// the result of `p2`.
-let private (?>>) p1 p2 =
-    attempt (p1 .>> eof) <|> (p1 >>. p2)
 
 /// Parses an expected identifier. The identifier is optional if EOT occurs first. Returns `[kind]` if EOT occurs first
 /// or if `p` did not end in whitespace; otherwise, returns `[]`.
@@ -89,24 +112,6 @@ let private expectedQualifiedSymbol kind =
     attempt (term qualifiedSymbol |>> fst .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> optional eot) <|>
     (term qualifiedSymbol >>% [])
 
-/// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
-/// results from all parsers that succeeded into a single list.
-///
-/// The parser state after running this parser is the state after running the first parser in the sequence that
-/// succeeds.
-let private pcollect (ps : seq<Parser<'a list, 'u>>) stream =
-    let results =
-        ps |>
-        Seq.map (fun p -> lookAhead p stream) |>
-        Seq.filter (fun reply -> reply.Status = ReplyStatus.Ok) |>
-        Seq.collect (fun reply -> reply.Result) |>
-        Seq.toList
-    (Seq.map attempt ps |> choice >>% results) stream
-
-/// `p1 >|< p2` is equivalent to `pcollect [p1; p2]`.
-let private (>|<) p1 p2 : Parser<'a list, 'u> =
-    pcollect [p1; p2]
-
 /// `many p` repeatedly applies parser `p` until `p` fails or consumes EOT, and returns the last result. If `p` consumes
 /// EOT, it backtracks but still returns the result. Thus, this parser acts like FParsec's `many` but will never consume
 /// EOT.
@@ -116,10 +121,6 @@ let private many p stream =
     if next.Status = ReplyStatus.Ok then next
     elif last.Status = ReplyStatus.Ok then last
     else Reply []
-
-/// `p1 <@> p2` parses `p1` then `p2` and concatenates the results.
-let private (<@>) p1 p2 =
-    p1 .>>. p2 |>> fun (list1, list2) -> list1 @ list2
 
 /// Parses the brackets around a tuple, where the inside of the tuple is parsed by `inside` and the right bracket is
 /// optional if the stream ends first.
@@ -224,8 +225,8 @@ let private udtDeclaration =
     let (udt, udtImpl) = createParserForwardedToRef ()
     do udtImpl :=
         let namedItem = name ?>> expectedOp colon ?>> qsType
-        qsType >|< buildTuple (namedItem >|< udt)
-    expectedKeyword typeDeclHeader ?>> name ?>> expectedOp equal ?>> udt
+        qsType <|>@ buildTuple (namedItem <|>@ udt)
+    expectedKeyword typeDeclHeader ?>> name ?>> expectedOp equal ?>> udtTuple
 
 /// Parses an open directive.
 let private openDirective =
@@ -248,16 +249,16 @@ let (private expression, private expressionImpl) = createParserForwardedToRef()
 
 /// Parses any prefix operator in an expression.
 let private prefixOp =
-    expectedKeyword notOperator >|< expectedKeyword qsAdjointFunctor >|< expectedKeyword qsControlledFunctor
+    expectedKeyword notOperator <|>@ expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
 
 /// Parses any infix operator in an expression.
 let private infixOp =
-    expectedKeyword andOperator >|< expectedKeyword orOperator
+    expectedKeyword andOperator <|>@ expectedKeyword orOperator
 
 /// Parses any postfix operator in an expression.
 let private postfixOp =
-    expectedOp (term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '='))) >|<
-    expectedOp unitValue >|<
+    expectedOp (term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '='))) <|>@
+    expectedOp unitValue <|>@
     buildTuple expression
 
 /// Parses any expression term.
@@ -266,8 +267,8 @@ let private expressionTerm =
 
 /// Parses an expression.
 do expressionImpl :=
-    many prefixOp <@> expressionTerm ?>> many postfixOp <@>
-    many (infixOp ?>> (many prefixOp <@> expressionTerm <@> many postfixOp))
+    many prefixOp @>> expressionTerm ?>> many postfixOp @>>
+    many (infixOp ?>> (many prefixOp @>> expressionTerm @>> many postfixOp))
 
 /// Parses a statement.
 let private statement =
