@@ -40,10 +40,9 @@ type IdentifierKind =
     | Member of string * IdentifierKind
 
 /// The exception that is thrown when the completion parser can't parse the text of a fragment.
-exception CompletionParserError of detail : string * error : ParserError
-    with
-        override this.Message = this.error.ToString()
-        override this.ToString() = this.detail
+exception CompletionParserError of detail : string * error : ParserError with
+    override this.Message = this.error.ToString()
+    override this.ToString() = this.detail
 
 /// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and returns
 /// the result of `p2`.
@@ -147,21 +146,17 @@ let private tuple p =
 /// Parses a type.
 let (private qsType, private qsTypeImpl) = createParserForwardedToRef()
 
-/// Parses a characteristics annotation (the characteristics keyword followed by a characteristics expression).
+/// Parses the characteristics keyword followed by a characteristics expression.
 let private characteristicsAnnotation =
     expectedKeyword qsCharacteristics ?>> expectedId Characteristic (expectedCharacteristics eof)
 
-/// Parses an operation type.
-let private operationType =
-    let inOutType = qsType >>. opArrow >>. qsType
-    let inside =
-        attempt (tupleBrackets inOutType ?>> characteristicsAnnotation) <|>
-        attempt (inOutType ?>> characteristicsAnnotation) <|>
-        inOutType
-    tupleBrackets inside
-
 do qsTypeImpl :=
     let typeParameter = pchar '\'' >>. expectedId TypeParameter (term symbol)
+    let operationType =
+        let inOutType = qsType >>. opArrow >>. qsType
+        tupleBrackets (attempt (tupleBrackets inOutType ?>> characteristicsAnnotation) <|>
+                       attempt (inOutType ?>> characteristicsAnnotation) <|>
+                       inOutType)
     let functionType = tupleBrackets (qsType >>. fctArrow >>. qsType)
     let keywordType =
         [
@@ -176,27 +171,22 @@ do qsTypeImpl :=
             qsString
             qsUnit
         ] |> List.map expectedKeyword |> pcollect
-    let userDefinedType = expectedQualifiedSymbol UserDefinedType
     choice [
         attempt typeParameter
         attempt operationType
         attempt functionType
         attempt (tuple qsType)
-        keywordType <|>@ userDefinedType
+        keywordType <|>@ expectedQualifiedSymbol UserDefinedType
     ] .>> many (arrayBrackets emptySpace)
-
-/// Parses a generic type parameter declaration.
-let private typeParameterDeclaration =
-    expectedId Declaration (pchar '\'') ?>> expectedId Declaration (term symbol)
 
 /// Parses a callable signature.
 let private callableSignature =
     let name = expectedId Declaration (term symbol)
     let typeAnnotation = expectedOp colon ?>> qsType
-    let genericParamList =
-        angleBrackets (sepBy typeParameterDeclaration comma |>> List.tryLast |>> Option.defaultValue [Declaration])
+    let typeParam = expectedOp (pchar '\'') ?>> expectedId Declaration (term symbol)
+    let typeParamList = angleBrackets (sepBy typeParam comma |>> List.tryLast |>> Option.defaultValue [])
     let argumentTuple = expectedOp unitValue <|> tuple (name ?>> typeAnnotation)
-    name ?>> (opt genericParamList |>> Option.defaultValue []) ?>> argumentTuple ?>> typeAnnotation
+    name ?>> (typeParamList <|>% []) ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
 let private functionDeclaration =

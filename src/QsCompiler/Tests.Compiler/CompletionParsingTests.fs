@@ -76,7 +76,7 @@ let ``Function declaration parser tests`` () =
     test NamespaceTopLevel "function Foo (q : ((Int -> Int) -> Int)) : Unit" types
     test NamespaceTopLevel "function Foo (q : ((Int->Int)->Int)) : Unit" types
     test NamespaceTopLevel "function Foo (q : ((Int -> Int) -> Int)) : Unit" types
-    test NamespaceTopLevel "function Foo<" [Declaration]
+    test NamespaceTopLevel "function Foo<" []
     test NamespaceTopLevel "function Foo<'" [Declaration]
     test NamespaceTopLevel "function Foo<> (q : 'T) : Unit" types
     test NamespaceTopLevel "function Foo<'T> (q : '" [TypeParameter]
