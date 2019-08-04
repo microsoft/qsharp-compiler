@@ -238,6 +238,7 @@ let ``Expression statement parser tests`` () =
     test "" expression
     test "x" expression
     test "x " infix
+    test "2 " infix
     test "x or" infix
     test "x or " expression
     test "x or y" expression
@@ -340,3 +341,13 @@ let ``Expression statement parser tests`` () =
     test "(Foo())::" [NamedItem]
     test "(Foo())::Foo" [NamedItem]
     test "(Foo())::Foo " infix
+    test "arr w" infix
+    test "arr w/" (NamedItem :: expression)
+    test "arr w/ 2" []
+    test "arr w/ 2 " infix
+    test "arr w/ 2 <-" expression
+    test "arr w/ 2 <- true" expression
+    test "x w/ Foo" (NamedItem :: expression)
+    test "x w/ Foo " infix
+    test "x w/ Foo <-" expression
+    test "x w/ Foo <- false" expression

@@ -265,10 +265,16 @@ let private infixOp =
 
 /// Parses any postfix operator in an expression.
 let private postfixOp =
+    let copyAndUpdate =
+        operator qsCopyAndUpdateOp.op None >>.
+        (expression <|>@ expectedId NamedItem (term symbol)) ?>>
+        expected (operator qsCopyAndUpdateOp.cont None) ?>>
+        expression
     choice [
         operator qsUnwrapModifier.op (Some (notFollowedBy (pchar '=')))
         operator qsOpenRangeOp.op None .>> optional eot
         operator qsNamedItemCombinator.op None >>. expectedId NamedItem (term symbol)
+        copyAndUpdate
         (unitValue >>% [])
         tuple expression
         array expression
@@ -298,7 +304,7 @@ let private expressionTerm =
         tuple expression
         array expression
         keywordLiteral
-        numericLiteral >>. optional eot >>% []
+        numericLiteral >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
         manyR functor @>> expectedId Variable (term symbol)
     ]
 
