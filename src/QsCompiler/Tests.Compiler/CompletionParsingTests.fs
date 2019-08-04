@@ -211,7 +211,7 @@ let ``Open directive parser tests`` () =
     test NamespaceTopLevel "open Microsoft.Quantum.Math as My.Math " []
 
 [<Fact>]
-let ``Statement parser tests`` () =
+let ``Expression statement parser tests`` () =
     let expression = [
         Variable
         Keyword "not"
@@ -264,3 +264,23 @@ let ``Statement parser tests`` () =
     test Statement "Adjoint Foo" [Keyword "Adjoint"; Keyword "Controlled"; Variable]
     test Statement "Adjoint Foo " infix
     test Statement "Adjoint Foo(q)" infix
+    test Statement "[" expression
+    test Statement "[x" expression
+    test Statement "[x]" infix
+    test Statement "[x " infix
+    test Statement "[x a" infix
+    test Statement "[x and" infix
+    test Statement "[x and " expression
+    test Statement "[x and y," expression
+    test Statement "[x and y, z" expression
+    test Statement "[x and y, z]" infix
+    test Statement "(" expression
+    test Statement "(x" expression
+    test Statement "(x)" infix
+    test Statement "(x " infix
+    test Statement "(x a" infix
+    test Statement "(x and" infix
+    test Statement "(x and " expression
+    test Statement "(x and y," expression
+    test Statement "(x and y, z" expression
+    test Statement "(x and y, z)" infix

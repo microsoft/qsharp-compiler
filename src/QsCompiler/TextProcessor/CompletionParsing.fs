@@ -128,9 +128,14 @@ let private expectedQualifiedSymbol kind =
 let private manyR p stream =
     let last = (p .>> previousCharSatisfies ((<>) '\u0004') |> attempt |> many1 |>> List.last) stream
     let next = (p .>> previousCharSatisfies ((=) '\u0004') |> lookAhead) stream
-    if next.Status = ReplyStatus.Ok then next
-    elif last.Status = ReplyStatus.Ok then last
+    if next.Status = Ok then next
+    elif last.Status = Ok then last
     else Reply []
+
+/// `manyLast p` is like `many p` but returns only the result of the last item, or the empty list if no items were
+/// parsed.
+let private manyLast p =
+    many p |>> List.tryLast |>> Option.defaultValue []
 
 /// Parses brackets around `p`. The right bracket is optional if EOT occurs first.
 let private brackets (left, right) p =
@@ -140,13 +145,21 @@ let private brackets (left, right) p =
 let private tupleBrackets p =
     brackets (lTuple, rTuple) p
 
+/// Parses array brackets around `p`.
+let private arrayBrackets p =
+    brackets (lArray, rArray) p
+
 /// Parses angle brackets around `p`.
 let private angleBrackets p =
     brackets (lAngle, rAngle) p
 
-/// Parses a tuple of items parsed by `p`.
+/// Parses a tuple of items each parsed by `p`.
 let private tuple p =
     tupleBrackets (sepBy1 p comma |>> List.last)
+
+/// Parses an array of items each parsed by `p`.
+let private array p =
+    arrayBrackets (sepBy1 p comma |>> List.last)
 
 /// Parses a type.
 let (private qsType, private qsTypeImpl) = createParserForwardedToRef()
@@ -182,7 +195,7 @@ do qsTypeImpl :=
         attempt functionType
         attempt (tuple qsType)
         keywordType <|>@ expectedQualifiedSymbol UserDefinedType
-    ] .>> many (arrayBrackets emptySpace)
+    ] .>> many (arrayBrackets (emptySpace >>% []))
 
 /// Parses a callable signature.
 let private callableSignature =
@@ -258,6 +271,8 @@ let private expressionTerm =
         ] |> List.map expectedKeyword |> pcollect
     let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
     pcollect [
+        tuple expression
+        array expression
         keywordLiteral
         numericLiteral >>% []
         manyR functor @>> expectedId Variable (term symbol)
@@ -266,7 +281,7 @@ let private expressionTerm =
 /// Parses an expression.
 do expressionImpl :=
     let termBundle = manyR prefixOp @>> expressionTerm ?>> manyR postfixOp
-    termBundle @>> manyR (infixOp ?>> termBundle)
+    termBundle @>> manyLast (infixOp ?>> termBundle)
 
 /// Parses a statement.
 let private statement =
