@@ -26,8 +26,10 @@ type IdentifierKind =
     | Keyword of string
     /// The identifier is a variable name.
     | Variable
-    /// The identifier is a type name.
-    | Type
+    /// The identifier is a user-defined type name.
+    | UserDefinedType
+    /// The identifier is a type parameter.
+    | TypeParameter
     /// The identifier is a new symbol declaration.
     | Declaration
     /// The identifier is a characteristic set name.
@@ -155,7 +157,7 @@ let private operationType =
     tupleBrackets inside
 
 do qsTypeImpl :=
-    let typeParameter = pchar '\'' >>. expectedId Type (term symbol)
+    let typeParameter = pchar '\'' >>. expectedId TypeParameter (term symbol)
     let functionType = tupleBrackets (qsType >>. fctArrow >>. qsType)
     let keywordType =
         [
@@ -170,7 +172,7 @@ do qsTypeImpl :=
             qsString
             qsUnit
         ] |> List.map expectedKeyword |> pcollect
-    let userDefinedType = expectedQualifiedSymbol Type
+    let userDefinedType = expectedQualifiedSymbol UserDefinedType
     choice [
         attempt typeParameter
         attempt operationType

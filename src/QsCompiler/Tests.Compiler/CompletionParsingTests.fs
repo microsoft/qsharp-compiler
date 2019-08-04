@@ -20,7 +20,7 @@ let private types =
         Keyword "Result"
         Keyword "String"
         Keyword "Unit"
-        Type
+        UserDefinedType
     ]
 
 [<Fact>]
@@ -79,6 +79,7 @@ let ``Function declaration parser tests`` () =
     test NamespaceTopLevel "function Foo<" [Declaration]
     test NamespaceTopLevel "function Foo<'" [Declaration]
     test NamespaceTopLevel "function Foo<> (q : 'T) : Unit" types
+    test NamespaceTopLevel "function Foo<'T> (q : '" [TypeParameter]
     test NamespaceTopLevel "function Foo<'T> (q : 'T) : Unit" types
     test NamespaceTopLevel "function Foo<'T> (q : ('T -> Int)) : Unit" types
     test NamespaceTopLevel "function Foo<'T> (q : ('T->Int)) : Unit" types

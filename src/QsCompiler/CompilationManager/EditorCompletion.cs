@@ -205,7 +205,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             switch (kind.Tag)
             {
-                case IdentifierKind.Tags.Type:
+                case IdentifierKind.Tags.UserDefinedType:
                     var namespaces = namespacePrefix == ""
                         ? GetOpenNamespaces(file, compilation, position)
                         : new[] { namespacePrefix };
