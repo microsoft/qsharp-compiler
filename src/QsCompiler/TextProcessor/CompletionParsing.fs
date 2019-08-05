@@ -252,15 +252,29 @@ let (private expression, private expressionImpl) = createParserForwardedToRef()
 
 /// Parses any prefix operator in an expression.
 let private prefixOp =
-    expectedKeyword notOperator <|> operator qsNEGop.op None
+    expectedKeyword notOperator <|> operator qsNEGop.op None <|> operator qsBNOTop.op None
 
 /// Parses any infix operator in an expression.
 let private infixOp =
     choice [
         expectedKeyword andOperator <|>@ expectedKeyword orOperator
+        operator qsRangeOp.op None
+        operator qsBORop.op None
+        operator qsBXORop.op None
+        operator qsBANDop.op None
+        operator qsEQop.op None
+        operator qsNEQop.op None
+        operator qsLTEop.op None
+        operator qsGTEop.op None
+        operator qsLTop.op (Some (notFollowedBy (pchar '-')))
+        operator qsGTop.op None
+        operator qsRSHIFTop.op None
         operator qsADDop.op None
         operator qsSUBop.op None
-        operator qsRangeOp.op None
+        operator qsMULop.op None
+        operator qsMODop.op None
+        operator qsDIVop.op (Some (notFollowedBy (pchar '/')))
+        operator qsPOWop.op None
     ]
 
 /// Parses any postfix operator in an expression.

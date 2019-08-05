@@ -250,6 +250,23 @@ let ``Expression statement parser tests`` () =
     test "x or y and not z" expression
     test "x or y and not not " expression
     test "x or y and not not z" expression
+    test "x +" expression
+    test "x + " expression
+    test "x + 2" []
+    test "x >" expression
+    test "x > " expression
+    test "x > y" expression
+    test "x > y " infix
+    test "x <" expression
+    test "x < " expression
+    test "x < y" expression
+    test "x < y " infix
+    test "x &&&" expression
+    test "x &&& " expression
+    test "x &&& y" expression
+    test "~~~" expression
+    test "~~~x" expression
+    test "~~~x " infix
     test "foo!" infix
     test "foo! " infix
     test "foo! and" infix
