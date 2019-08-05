@@ -19,8 +19,7 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
     let callableDict = {compiledCallables = compiledCallables}
 
     // For determining if constant folding should be rerun
-    let mutable changed = true 
-    let mutable prevChanged = false
+    let mutable changed = true
 
     /// Returns whether the syntax tree has been modified since this function was last called
     member this.checkChanged() =
@@ -30,12 +29,7 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
 
     /// Marks the syntax tree as having changed
     member this.markChanged() =
-        prevChanged <- changed
         changed <- true
-
-    /// Ignores the most recent marking of the syntax tree changing
-    member this.undoMarkChanged() =
-        changed <- prevChanged
 
     /// The ScopeTransformation used to evaluate constants
     override syntaxTree.Scope = { new ScopeTransformation() with
