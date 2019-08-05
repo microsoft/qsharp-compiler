@@ -1099,7 +1099,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Adds the generated diagnostics to the given list of diagnostics.
         /// Throws an ArgumentNullException if the given argument, the symbol tracker, or diagnostics are null. 
         /// </summary>
-        private static SpecializationImplementation BuildUserDefinedImplemenation(
+        private static SpecializationImplementation BuildUserDefinedImplementation(
             FragmentTree.TreeNode root, NonNullable<string> sourceFile, 
             QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
             ImmutableHashSet<QsFunctor> requiredFunctorSupport,
@@ -1234,7 +1234,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                     QsGeneratorDirective GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
                     var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
-                    implementation = BuildUserDefinedImplemenation(root, spec.SourceFile, arg, requiredFunctorSupport, symbolTracker, diagnostics);
+                    implementation = BuildUserDefinedImplementation(root, spec.SourceFile, arg, requiredFunctorSupport, symbolTracker, diagnostics);
                     QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
                 }
                 implementation = implementation ?? SpecializationImplementation.Intrinsic; 
