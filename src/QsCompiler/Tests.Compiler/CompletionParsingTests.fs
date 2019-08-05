@@ -402,3 +402,7 @@ let ``Expression statement parser tests`` () =
     test "$\"hello \\{x + y" []
     test "$\"hello \\{x + y}" []
     test "$\"hello \\{x + y}\"" infix
+    test "$\"hello {$\"" []
+    test "$\"hello {$\"hi\"" infix
+    test "$\"hello {$\"hi\"}" []
+    test "$\"hello {$\"hi\"}\"" infix
