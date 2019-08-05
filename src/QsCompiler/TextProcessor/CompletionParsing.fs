@@ -157,6 +157,10 @@ let private arrayBrackets p =
 let private angleBrackets p =
     brackets (lAngle, rAngle) p
 
+/// Parses curly brackets around `p`.
+let private curlyBrackets p =
+    brackets (lCurly, rCurly) p
+
 /// Parses a tuple of items each parsed by `p`.
 let private tuple p =
     tupleBrackets (sepBy1 p comma |>> List.last)
@@ -318,6 +322,19 @@ let private expressionTerm =
             qsTrue
             qsFalse
         ] |> List.map expectedKeyword |> pcollect
+    let stringLiteral =
+        let unescaped p = previousCharSatisfies ((<>) '\\') >>. p
+        let quote = pstring "\""
+        let interpolated =
+            let text =
+                manyChars (notFollowedBy (unescaped quote <|> unescaped lCurly) >>. anyChar) >>.
+                optional eot >>. preturn []
+            let code = curlyBrackets expression
+            pchar '$' >>. expected quote ?>> text ?>> manyLast (code ?>> text) ?>> expected quote
+        let uninterpolated =
+            let text = manyChars (notFollowedBy (unescaped quote) >>. anyChar) >>. optional eot >>. preturn []
+            quote >>. text ?>> expected quote
+        interpolated <|> uninterpolated
     let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
     pcollect [
         operator qsOpenRangeOp.op None >>. opt expression |>> Option.defaultValue []
@@ -326,6 +343,7 @@ let private expressionTerm =
         array expression
         keywordLiteral
         numericLiteral >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
+        stringLiteral
         manyR functor @>> expectedId Variable (term symbol)
     ]
 

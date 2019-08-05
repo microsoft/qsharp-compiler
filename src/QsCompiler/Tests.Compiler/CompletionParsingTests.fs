@@ -381,3 +381,24 @@ let ``Expression statement parser tests`` () =
     test "Foo() ? 1 + 2 |" expression
     test "Foo() ? 1 + 2 | 4" []
     test "Foo() ? 1 + 2 | 4 " infix
+    test "\"" []
+    test "\"hello" []
+    test "\"hello\"" infix
+    test "\"hello\\\"" []
+    test "\"hello\\\"world" []
+    test "\"hello\\\"world\"" infix
+    test "$\"hello" []
+    test "$\"hello {" expression
+    test "$\"hello {x " infix
+    test "$\"hello {x +" expression
+    test "$\"hello {x + " expression
+    test "$\"hello {x + y" expression
+    test "$\"hello {x + y}" []
+    test "$\"hello {x + y}\"" infix
+    test "$\"hello \\{" []
+    test "$\"hello \\{x " []
+    test "$\"hello \\{x +" []
+    test "$\"hello \\{x + " []
+    test "$\"hello \\{x + y" []
+    test "$\"hello \\{x + y}" []
+    test "$\"hello \\{x + y}\"" infix
