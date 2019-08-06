@@ -4,7 +4,7 @@
 'use strict';
 
 import * as vscode from 'vscode';
-import { startTelemetry, EventNames, sendTelemetryEvent, reporter, ErrorSeverities, forwardServerTelemetry } from './telemetry';
+import { startTelemetry, EventNames, sendTelemetryEvent, reporter, ErrorSeverities } from './telemetry';
 import { DotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
 import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp, launchJupyterNotebook } from './commands';
