@@ -507,11 +507,11 @@ and QsRepeatStatement = {
 }
 
 
-/// used to represent a pattern of the form UVU* where U* is the adjoint of U
+/// used to represent a pattern of the form U*VU where the order of application is right to left and U* is the adjoint of U
 and QsConjugation = {
-    /// represents the outer transformation U in a pattern of the form UVU* where U* is the adjoint of U
+    /// represents the outer transformation U in a pattern of the form U*VU where the order of application is right to left and U* is the adjoint of U
     OuterTransformation : QsPositionedBlock
-    /// represents the inner transformation V in a pattern of the form UVU* where U* is the adjoint of U
+    /// represents the inner transformation V in a pattern of the form U*VU where the order of application is right to left and U* is the adjoint of U
     InnerTransformation : QsPositionedBlock
 }
 
