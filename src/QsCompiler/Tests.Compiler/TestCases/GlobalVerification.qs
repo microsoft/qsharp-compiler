@@ -122,156 +122,156 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     }
 
 
-	// checking for duplicate specializations
+    // checking for duplicate specializations
 
-	operation ValidSetOfSpecializations1 () : Unit {
-		body (...) {}
-		adjoint auto; 
-		controlled auto;
-		adjoint controlled auto;
-	}
+    operation ValidSetOfSpecializations1 () : Unit {
+        body (...) {}
+        adjoint auto; 
+        controlled auto;
+        adjoint controlled auto;
+    }
 
-	operation ValidSetOfSpecializations2 () : Unit {
-		body (...) {}
-		adjoint auto; 
-		controlled auto;
-		controlled adjoint auto;
-	}
+    operation ValidSetOfSpecializations2 () : Unit {
+        body (...) {}
+        adjoint auto; 
+        controlled auto;
+        controlled adjoint auto;
+    }
 
-	operation ValidSetOfSpecializations3 () : Unit {
-		body (...) {}
-		controlled adjoint auto;
-	}
+    operation ValidSetOfSpecializations3 () : Unit {
+        body (...) {}
+        controlled adjoint auto;
+    }
 
-	operation ValidSetOfSpecializations4 () : Unit {
-		body (...) {}
-		adjoint auto;
-	}
+    operation ValidSetOfSpecializations4 () : Unit {
+        body (...) {}
+        adjoint auto;
+    }
 
-	operation ValidSetOfSpecializations5 () : Unit {
-		body (...) {}
-		controlled auto;
-	}
+    operation ValidSetOfSpecializations5 () : Unit {
+        body (...) {}
+        controlled auto;
+    }
 
-	operation ValidSetOfSpecializations6 () : Unit {
-		body (...) {}
-		adjoint (...) {} 
-		controlled (cs, ...) {} 
-		adjoint controlled (cs, ...) {} 
-	}
+    operation ValidSetOfSpecializations6 () : Unit {
+        body (...) {}
+        adjoint (...) {} 
+        controlled (cs, ...) {} 
+        adjoint controlled (cs, ...) {} 
+    }
 
-	operation ValidSetOfSpecializations7 () : Unit {
-		body (...) {}
-		adjoint (...) {} 
-		controlled (cs, ...) {} 
-		controlled adjoint (cs, ...) {} 
-	}
+    operation ValidSetOfSpecializations7 () : Unit {
+        body (...) {}
+        adjoint (...) {} 
+        controlled (cs, ...) {} 
+        controlled adjoint (cs, ...) {} 
+    }
 
-	operation ValidSetOfSpecializations8 () : Unit {
-		body (...) {}
-		controlled adjoint (cs, ...) {} 
-	}
+    operation ValidSetOfSpecializations8 () : Unit {
+        body (...) {}
+        controlled adjoint (cs, ...) {} 
+    }
 
-	operation ValidSetOfSpecializations9 () : Unit {
-		body (...) {}
-		adjoint (...) {} 
-	}
+    operation ValidSetOfSpecializations9 () : Unit {
+        body (...) {}
+        adjoint (...) {} 
+    }
 
-	operation ValidSetOfSpecializations10 () : Unit {
-		body (...) {}
-		controlled (cs, ...) {} 
-	}
+    operation ValidSetOfSpecializations10 () : Unit {
+        body (...) {}
+        controlled (cs, ...) {} 
+    }
 
-	operation ValidSetOfSpecializations11 () : Unit
-	is Adj + Ctl {
-		body (...) {}
-		controlled adjoint (cs, ...) {} 
-	}
+    operation ValidSetOfSpecializations11 () : Unit
+    is Adj + Ctl {
+        body (...) {}
+        controlled adjoint (cs, ...) {} 
+    }
 
-	operation ValidSetOfSpecializations12 () : Unit
-	is Adj + Ctl {
-		body (...) {}
-		adjoint (...) {} 
-	}
+    operation ValidSetOfSpecializations12 () : Unit
+    is Adj + Ctl {
+        body (...) {}
+        adjoint (...) {} 
+    }
 
-	operation ValidSetOfSpecializations13 () : Unit
-	is Adj + Ctl {
-		body (...) {}
-		controlled (cs, ...) {} 
-	}
+    operation ValidSetOfSpecializations13 () : Unit
+    is Adj + Ctl {
+        body (...) {}
+        controlled (cs, ...) {} 
+    }
 
 
-	operation InvalidSetOfSpecializations1 () : Unit {
-		body (...) {}
-		controlled adjoint auto;
-		controlled adjoint auto;
-	}
+    operation InvalidSetOfSpecializations1 () : Unit {
+        body (...) {}
+        controlled adjoint auto;
+        controlled adjoint auto;
+    }
 
-	operation InvalidSetOfSpecializations2 () : Unit {
-		body (...) {}
-		controlled adjoint auto;
-		controlled adjoint (cs, ...) {}
-	}
+    operation InvalidSetOfSpecializations2 () : Unit {
+        body (...) {}
+        controlled adjoint auto;
+        controlled adjoint (cs, ...) {}
+    }
 
-	operation InvalidSetOfSpecializations3 () : Unit {
-		body (...) {}
-		controlled adjoint (cs, ...) {}
-		controlled adjoint (cs, ...) {}
-	}
+    operation InvalidSetOfSpecializations3 () : Unit {
+        body (...) {}
+        controlled adjoint (cs, ...) {}
+        controlled adjoint (cs, ...) {}
+    }
 
-	operation InvalidSetOfSpecializations4 () : Unit {
-		body (...) {}
-		controlled adjoint auto;
-		adjoint controlled auto;
-	}
+    operation InvalidSetOfSpecializations4 () : Unit {
+        body (...) {}
+        controlled adjoint auto;
+        adjoint controlled auto;
+    }
 
-	operation InvalidSetOfSpecializations5 () : Unit {
-		body (...) {}
-		controlled adjoint (cs, ...) {}
-		adjoint controlled auto;
-	}
+    operation InvalidSetOfSpecializations5 () : Unit {
+        body (...) {}
+        controlled adjoint (cs, ...) {}
+        adjoint controlled auto;
+    }
 
-	operation InvalidSetOfSpecializations6 () : Unit {
-		body (...) {}
-		controlled adjoint (cs, ...) {}
-		adjoint controlled (cs, ...) {}
-	}
+    operation InvalidSetOfSpecializations6 () : Unit {
+        body (...) {}
+        controlled adjoint (cs, ...) {}
+        adjoint controlled (cs, ...) {}
+    }
 
-	operation InvalidSetOfSpecializations7 () : Unit {
-		body (...) {}
-		adjoint auto;
-		adjoint auto;
-	}
+    operation InvalidSetOfSpecializations7 () : Unit {
+        body (...) {}
+        adjoint auto;
+        adjoint auto;
+    }
 
-	operation InvalidSetOfSpecializations8 () : Unit {
-		body (...) {}
-		adjoint auto;
-		adjoint (...) {}
-	}
+    operation InvalidSetOfSpecializations8 () : Unit {
+        body (...) {}
+        adjoint auto;
+        adjoint (...) {}
+    }
 
-	operation InvalidSetOfSpecializations9 () : Unit {
-		body (...) {}
-		adjoint (...) {}
-		adjoint (...) {}
-	}
+    operation InvalidSetOfSpecializations9 () : Unit {
+        body (...) {}
+        adjoint (...) {}
+        adjoint (...) {}
+    }
 
-	operation InvalidSetOfSpecializations10 () : Unit {
-		body (...) {}
-		controlled auto;
-		controlled auto;
-	}
+    operation InvalidSetOfSpecializations10 () : Unit {
+        body (...) {}
+        controlled auto;
+        controlled auto;
+    }
 
-	operation InvalidSetOfSpecializations11 () : Unit {
-		body (...) {}
-		controlled (cs, ...) {}
-		controlled auto;
-	}
+    operation InvalidSetOfSpecializations11 () : Unit {
+        body (...) {}
+        controlled (cs, ...) {}
+        controlled auto;
+    }
 
-	operation InvalidSetOfSpecializations12 () : Unit {
-		body (...) {}
-		controlled (cs, ...) {}
-		controlled (cs, ...) {}
-	}
+    operation InvalidSetOfSpecializations12 () : Unit {
+        body (...) {}
+        controlled (cs, ...) {}
+        controlled (cs, ...) {}
+    }
 
 
     // all paths return a value or fail
@@ -364,19 +364,19 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
         }
     }
 
-	operation AllPathsReturnValue13 () : Int {
-		within {
-			return 1;
-		}
-		apply {}
-	}
+    operation AllPathsReturnValue13 () : Int {
+        within {
+            return 1;
+        }
+        apply {}
+    }
 
-	operation AllPathsReturnValue14 () : Int {
-		within {}
-		apply {
-			return 1;
-		}
-	}
+    operation AllPathsReturnValue14 () : Int {
+        within {}
+        apply {
+            return 1;
+        }
+    }
 
 
     function AllPathsFail1 () : Int {
@@ -467,19 +467,19 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
         }
     }
 
-	operation AllPathsFail13 () : Int {
-		within {
-			fail "";
-		}
-		apply {}
-	}
+    operation AllPathsFail13 () : Int {
+        within {
+            fail "";
+        }
+        apply {}
+    }
 
-	operation AllPathsFail14 () : Int {
-		within {}
-		apply {
-			fail "";
-		}
-	}
+    operation AllPathsFail14 () : Int {
+        within {}
+        apply {
+            fail "";
+        }
+    }
 
 
     // not all paths return a value or fail
@@ -561,7 +561,7 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
             fixup { return 1; }
         }
     }
-	
+    
     operation NotAllPathsReturnValue12 () : Int {
         borrowing (q = Qubit()) {
             repeat {}
@@ -794,15 +794,15 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     operation InvalidReturnFromWithinUsing6 () : Unit {
         using (q = Qubit()) {
-			within { return(); }
-			apply {}
+            within { return(); }
+            apply {}
         }
     }
 
     operation InvalidReturnFromWithinUsing7 () : Unit {
         using (q = Qubit()) {
-			within {}
-			apply { return(); }
+            within {}
+            apply { return(); }
         }
     }
 
@@ -1028,15 +1028,15 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     operation InvalidReturnFromWithinBorrowing8 () : Unit {
         borrowing (q = Qubit()) {
-			within { return(); }
-			apply {}
+            within { return(); }
+            apply {}
         }
     }
 
     operation InvalidReturnFromWithinBorrowing9 () : Unit {
         borrowing (q = Qubit()) {
-			within {}
-			apply { return(); }
+            within {}
+            apply { return(); }
         }
     }
 
@@ -1432,54 +1432,54 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     operation InvalidReturnPlacement16 () : Unit {
         using (q = Qubit()) {
-			within {}
-			apply { 
+            within {}
+            apply { 
                 using (c = Qubit()) { 
                     return (); 
                 }
-			}
+            }
         }
     }
 
     operation InvalidReturnPlacement17 () : Unit {
         using (q = Qubit()) {
-			within { 
+            within { 
                 using (c = Qubit()) { 
                     return (); 
-                }			
-			}
-			apply { }
+                }            
+            }
+            apply { }
         }
     }
 
     operation InvalidReturnPlacement18 (arg : Bool) : Unit {
         using (q = Qubit()) {
-			within {}
-			apply { 
-				if (arg) { return (); }
-			}
+            within {}
+            apply { 
+                if (arg) { return (); }
+            }
         }
     }
 
     operation InvalidReturnPlacement19 (arg : Bool) : Unit {
         using (q = Qubit()) {
-			within { 
-				if (arg) { return (); }
-			}
-			apply { }
+            within { 
+                if (arg) { return (); }
+            }
+            apply { }
         }
     }
 
     operation InvalidReturnPlacement20 () : Unit {
         using (q = Qubit()) {
-			within { 
-				within { 
-					return(); 
-					Function();
-				}
-				apply {}
-			}
-			apply { DoNothing(); } 
+            within { 
+                within { 
+                    return(); 
+                    Function();
+                }
+                apply {}
+            }
+            apply { DoNothing(); } 
         }
     }
 }
