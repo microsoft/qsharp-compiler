@@ -6,7 +6,6 @@ using System.Linq;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Editing;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
@@ -18,6 +17,9 @@ namespace Microsoft.Quantum.QsCompiler
     public static class WellKnown
     {
         public const string AST_RESOURCE_NAME = "__qsharp_data__.bson";
+        public const string METADATA_NAMESPACE = "__qsharp__";
+        public const string METADATA_TYPE = "Metadata";
+        public const string DEPENDENCIES_FIELD = "Dependencies";
     }
 
     class Program
@@ -83,6 +85,16 @@ namespace Microsoft.Quantum.QsCompiler
 
         void OnExecute() => LoggingExceptions(EncapsulateTarget);
 
+        internal CodeAnalysis.SyntaxTree GenerateAssemblyMetadata(
+            Compilation compilation,
+            IEnumerable<MetadataReference> references
+        )
+        {
+            var tree = MetadataGeneration.GenerateAssemblyMetadata(compilation, references, Log);
+            Log($"Creating syntax tree:\n{tree.GetRoot().NormalizeWhitespace().ToFullString()}");
+            return tree;
+        }
+
         void EncapsulateTarget()
         {
             // Begin by setting the various paths that we need.
@@ -105,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler
             // Our goal is to turn these references into references we can
             // emit into our new assembly.
 
-            var references = 
+            var references =
                 // We first use the Q# compiler library to deserialize
                 // the serialized AST into an enumerable of namespaces,
                 // then passing that to the source files transformer in the
@@ -120,39 +132,49 @@ namespace Microsoft.Quantum.QsCompiler
                 // Strip out Q# source files.
                 .Where(sourceFile => sourceFile.EndsWith(".dll"))
                 // Fix / vs \ by going through Uri and back.
-                .Select(sourceFile => 
+                .Select(sourceFile =>
                     new Uri(sourceFile).LocalPath
                 )
-                // We will get a warning if System.Object can't be found as a reference.
-                .Concat(
-                    new string[]
-                    {
-                        typeof(object).Assembly.Location
-                    }
-                )
                 // Finally, we each source location into a metadata reference.
+                // In doing so, we assign an alias to each reference so that
+                // we can look up its Metadata object.
                 .Select(
-                    sourceFile => MetadataReference.CreateFromFile(
-                        Path.GetFullPath(sourceFile)
-                    )
-                )
-                .ToArray();
-            
+                    (sourceFile, idx) => MetadataReference
+                        .CreateFromFile(
+                            Path.GetFullPath(sourceFile)
+                        )
+                        .WithAliases(
+                            new string[] {$"reference{idx}"}
+                        )
+                );
+
             foreach (var reference in references)
             {
                 Log($"Found reference: {reference.Display}");
             }
-            
+
             // We then use the assembly name and references to create a new
-            // compilation object. Normally we'd add syntax trees here as well,
-            // but we want to make an assembly that exports no CLR types.
+            // compilation object.
             var compilation = CSharpCompilation.Create(
                 assemblyName,
-                references: references,
+                references:
+                    references.Concat(
+                        // We will get a warning if System.Object can't be found as a reference.
+                        new MetadataReference[]
+                        {
+                            MetadataReference.CreateFromFile(typeof(object).Assembly.Location)
+                        }
+                    ),
                 options: new CSharpCompilationOptions(
                     outputKind: OutputKind.DynamicallyLinkedLibrary
 
                 )
+            );
+
+            // After we have the compilation, we can use it to look up metadata
+            // from referenced assemblies and generate the right syntax tree.
+            compilation = compilation.AddSyntaxTrees(
+                GenerateAssemblyMetadata(compilation, references)
             );
 
             // Finally, we can emit the assembly to a file.
