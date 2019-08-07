@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--Copyright, Microsoft Corporation, All rights reserved.-->
+<Rule
+	Name="ConfigurationGeneral"
+	DisplayName="General"
+	PageTemplate="generic"
+	Description="General"
+	xmlns="http://schemas.microsoft.com/build/2009/properties">
+    <Rule.Categories>
+        <Category Name="General" DisplayName="General" Description="General" />
+    </Rule.Categories>
+    <Rule.DataSource>
+        <DataSource Persistence="ProjectFile" Label="Configuration" />
+    </Rule.DataSource>
+
+    <StringProperty Name="StartItem" DisplayName="Start Item">
+        <StringProperty.DataSource>
+            <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+        </StringProperty.DataSource>
+    </StringProperty>
+
+    <StringProperty Name="ProjectGuid" Visible="False">
+        <StringProperty.DataSource>
+            <DataSource Persistence="ProjectFile" Label="Globals" HasConfigurationCondition="False" />
+        </StringProperty.DataSource>
+    </StringProperty>
+
+    <BoolProperty Name="ShowAllFiles" Visible="False">
+        <BoolProperty.DataSource>
+            <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
+        </BoolProperty.DataSource>
+    </BoolProperty>
+
+    <BoolProperty Name="AutoRefresh" Visible="False">
+        <BoolProperty.DataSource>
+            <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
+        </BoolProperty.DataSource>
+    </BoolProperty>
+</Rule>

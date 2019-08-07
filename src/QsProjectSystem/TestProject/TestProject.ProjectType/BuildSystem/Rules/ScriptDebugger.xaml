@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--Copyright, Microsoft Corporation, All rights reserved.-->
+<Rule
+	Name="ScriptDebugger"
+	DisplayName="Script Debugger"
+	PageTemplate="debugger"
+	Description="Script Debugger options"
+	xmlns="http://schemas.microsoft.com/build/2009/properties">
+    <Rule.DataSource>
+        <DataSource Persistence="UserFileWithXamlDefaults" HasConfigurationCondition="True"/>
+    </Rule.DataSource>
+
+    <StringProperty Name="RunCommand" DisplayName="Command"
+                Default="$(WinDir)\System32\cscript.exe"
+                Description="The debug command to execute.">
+        <StringProperty.ValueEditors>
+            <ValueEditor EditorType="DefaultFindFullPathPropertyEditor" DisplayName="&lt;wscript.exe&gt;">
+                <ValueEditor.Metadata>
+                    <NameValuePair Name="Exename" Value="wscript.exe" />
+                </ValueEditor.Metadata>
+            </ValueEditor>
+
+            <ValueEditor EditorType="DefaultStringPropertyEditor" DisplayName="&lt;Edit...&gt;"/>
+            <ValueEditor EditorType="DefaultFilePropertyEditor" DisplayName="&lt;Browse...&gt;">
+                <ValueEditor.Metadata>
+                    <NameValuePair Name="Filters" Value="Executables (*.exe)|*.exe" />
+                </ValueEditor.Metadata>
+            </ValueEditor>
+        </StringProperty.ValueEditors>
+    </StringProperty>
+
+    <StringProperty Name="RunCommandArguments" DisplayName="Command Arguments"
+                Description="The command line arguments to pass to the application.">
+        <Argument Property="ScriptDebuggerCommand" />
+    </StringProperty>
+    <StringProperty Name="RunWorkingDirectory" DisplayName="Working Directory"
+                Default="$(MSBuildProjectDirectory)"
+                Description="The application's working directory. By default, the directory containing the project file."
+                Subtype="folder"/>
+</Rule>

@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--Copyright, Microsoft Corporation, All rights reserved.-->
+<Rule
+	Name="ConfigurationGeneralFile"
+	DisplayName="General"
+	PageTemplate="generic"
+	Description="Project item general properties"
+	xmlns="http://schemas.microsoft.com/build/2009/properties">
+	<Rule.DataSource>
+		<DataSource Persistence="ProjectFile" HasConfigurationCondition="False" ItemType="{}{AnyType}" />
+	</Rule.DataSource>
+  <DynamicEnumProperty Name="{}{ItemType}" DisplayName="Item Type"
+                       Description="Item type determines the build tool or the file"
+                       EnumProvider="ItemTypes" />
+  <StringProperty Name="DependentUpon" Visible="False" />
+  <BoolProperty Name="Visible" Visible="false" />
+  <StringProperty Name="Link" Visible="false" />
+</Rule>

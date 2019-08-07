@@ -12,7 +12,6 @@ namespace QsProjectSystem
     [ProvideProjectFactory(typeof(QsProjectSystemPackage), "Q# Project",
         "Q# Project Files (*.qsproj);*.qsproj", "qsproj", "qsproj",
         @"Templates\Projects\QSharpProject", LanguageVsTemplate = "QSharpProject")]
-
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
     [Guid(QsProjectSystemPackage.PackageGuidString)]
     public sealed class QsProjectSystemPackage : AsyncPackage
@@ -22,6 +21,17 @@ namespace QsProjectSystem
         /// </summary>
         public const string PackageGuidString = "3d28495d-e5df-4f6d-b974-0f4349f34a39";
         public const string QsProjectFactoryGuidString = "AE300E5E-0476-4A1C-89BC-2721B8251387";
+
+        /// <summary>
+        /// The GUID for this project type.  It is unique with the project file extension and
+        /// appears under the VS registry hive's Projects key.
+        /// </summary>
+        public const string ProjectTypeGuid = "93f50e17-ec36-4b6d-80ba-d20f934c20cc";
+
+        /// <summary>
+        /// The file extension of this project type.  No preceding period.
+        /// </summary>
+        public const string ProjectExtension = "qsproj";
 
         /// <summary>
         /// Initialization of the package; this method is called right after the package is sited, so this is the place
