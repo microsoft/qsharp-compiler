@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -14,14 +17,6 @@ using Microsoft.CodeAnalysis.Emit;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    public static class WellKnown
-    {
-        public const string AST_RESOURCE_NAME = "__qsharp_data__.bson";
-        public const string METADATA_NAMESPACE = "__qsharp__";
-        public const string METADATA_TYPE = "Metadata";
-        public const string DEPENDENCIES_FIELD = "Dependencies";
-    }
-
     class Program
     {
 
