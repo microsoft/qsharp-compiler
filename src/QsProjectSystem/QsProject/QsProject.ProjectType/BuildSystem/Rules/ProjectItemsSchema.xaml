@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--Copyright, Microsoft Corporation, All rights reserved.-->
+<ProjectSchemaDefinitions
+    xmlns="http://schemas.microsoft.com/build/2009/properties">
+
+    <ContentType
+        Name="Script"
+        DisplayName="Script file"
+        ItemType="Script">
+    </ContentType>
+
+    <ContentType
+        Name="Text"
+        DisplayName="Text file"
+        ItemType="None">
+    </ContentType>
+
+    <ItemType Name="Script" DisplayName="Script"/>
+    <ItemType Name="None" DisplayName="Does not participate in build"/>
+
+    <FileExtension Name=".vbs" ContentType="Script"/>
+    <FileExtension Name=".jS" ContentType="Script"/>
+    <FileExtension Name=".txt" ContentType="Text"/>
+</ProjectSchemaDefinitions>

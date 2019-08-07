@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectSystemBase>$(MSBuildThisFileDirectory)</ProjectSystemBase>
+
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+
+    <DebuggerFlavor>ScriptDebugger</DebuggerFlavor>
+    <RunCommand>$(WinDir)\System32\cscript.exe</RunCommand>
+    <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
+    <StartItem>Start.js</StartItem>
+  </PropertyGroup>
+</Project>
