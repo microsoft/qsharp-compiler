@@ -3,7 +3,7 @@ namespace Microsoft.Quantum.Testing.Optimization.PartialEval {
     newtype MyInt = Int;
 	newtype MyFunc = (Int -> Int);
 
-    operation Test () : Unit {
+    operation Test () : (Int, Int, Int, Int, Int, Int, Bool) {
 	    let t = k(_, h(_, 3, _));
 	    let u = t(2);
 	    let v = ((h(_, 4, _))(5, _))(6);
@@ -21,6 +21,8 @@ namespace Microsoft.Quantum.Testing.Optimization.PartialEval {
 
 	    let o = M(2);
 	    let p = o == One;
+
+		return (u, v, y, z, c, n, p);
     }
 
     function M (q : Int) : Result {

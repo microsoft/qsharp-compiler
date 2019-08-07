@@ -19,16 +19,21 @@ type ConstantPropagator(compiledCallables) =
     let callables = makeCallables compiledCallables
     
     let mutable constants = Constants []
+    let mutable skipScope = false
 
 
     /// The ScopeTransformation used to evaluate constants
     override syntaxTree.Scope = { new ScopeTransformation() with
 
         override scope.Transform x =
-            constants <- enterScope constants
-            let result = base.Transform x
-            constants <- exitScope constants
-            result
+            if skipScope then
+                skipScope <- false
+                base.Transform x
+            else
+                constants <- enterScope constants
+                let result = base.Transform x
+                constants <- exitScope constants
+                result
 
         /// The ExpressionTransformation used to evaluate constant expressions
         override scope.Expression = upcast ExpressionEvaluator(callables, constants, 10)
@@ -69,5 +74,12 @@ type ConstantPropagator(compiledCallables) =
                 | _ ->
                     let cases = cbList |> Seq.map (fun (c, b) -> (Option.get c, b))
                     QsConditionalStatement.New (cases, newDefault) |> QsConditionalStatement
+
+            override this.onRepeatStatement stm =
+                constants <- enterScope constants
+                skipScope <- true
+                let result = base.onRepeatStatement stm
+                constants <- exitScope constants
+                result
         }
     }

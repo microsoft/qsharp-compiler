@@ -76,7 +76,8 @@ let rec internal printStm (indent: int) (stm: QsStatementKind): string =
     | QsFailStatement a ->
         ws + sprintf "fail %O;" (printExpr a.Expression)
     | QsVariableDeclaration a ->
-        ws + sprintf "let %O = %O;" (printSymbolTuple a.Lhs) (printExpr a.Rhs.Expression)
+        let keyword = match a.Kind with ImmutableBinding -> "let" | MutableBinding -> "mutable"
+        ws + sprintf "%O %O = %O;" keyword (printSymbolTuple a.Lhs) (printExpr a.Rhs.Expression)
     | QsValueUpdate a ->
         ws + sprintf "set %O = %O;" (printExpr a.Lhs.Expression) (printExpr a.Rhs.Expression)
     | QsConditionalStatement a ->

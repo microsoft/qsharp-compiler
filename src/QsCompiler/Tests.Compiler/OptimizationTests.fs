@@ -5,11 +5,9 @@ module Microsoft.Quantum.QsCompiler.Testing.OptimizationTests
 
 open System
 open System.IO
-open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.CompilerOptimization
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.Transformations
 open Xunit
 

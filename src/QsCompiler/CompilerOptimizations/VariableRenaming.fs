@@ -18,6 +18,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
 
     let mutable numUses = Map.empty
     let mutable constants = enterScope (Constants [])
+    let mutable skipScope = false
 
     let demangle varName =
         let m = Regex.Match (varName, "^__qsVar\d+__(.+)__$")
@@ -48,10 +49,14 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
 
 
     override scope.Transform x =
-        constants <- enterScope constants
-        let result = base.Transform x
-        constants <- exitScope constants
-        result
+        if skipScope then
+            skipScope <- false
+            base.Transform x
+        else
+            constants <- enterScope constants
+            let result = base.Transform x
+            constants <- exitScope constants
+            result
 
     override scope.Expression = { new ExpressionTransformation() with 
         override expr.Kind = { new ExpressionKindTransformation() with
@@ -77,14 +82,35 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
         override stmtKind.ScopeTransformation x = scope.Transform x
         override stmtKind.TypeTransformation x = scope.Expression.Type.Transform x
 
-        override this.onVariableDeclaration stm = 
-            let rhs = this.ExpressionTransformation stm.Rhs
-            let lhs = this.onSymbolTuple stm.Lhs
-            QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
-
         override this.onSymbolTuple syms =
             match syms with
             | VariableName item -> VariableName (NonNullable<_>.New (generateUniqueName item.Value))
             | VariableNameTuple items -> Seq.map this.onSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
             | InvalidItem | DiscardedItem -> syms
+
+        override this.onVariableDeclaration stm = 
+            let rhs = this.ExpressionTransformation stm.Rhs
+            let lhs = this.onSymbolTuple stm.Lhs
+            QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
+
+        override this.onForStatement stm = 
+            let iterVals = this.ExpressionTransformation stm.IterationValues
+            let loopVar = fst stm.LoopItem |> this.onSymbolTuple
+            let loopVarType = this.TypeTransformation (snd stm.LoopItem)
+            let body = this.ScopeTransformation stm.Body
+            QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement
+
+        override this.onRepeatStatement stm =
+            constants <- enterScope constants
+            skipScope <- true
+            let result = base.onRepeatStatement stm
+            constants <- exitScope constants
+            result
+
+        override this.onQubitScope (stm : QsQubitScope) = 
+            let kind = stm.Kind
+            let rhs = this.onQubitInitializer stm.Binding.Rhs
+            let lhs = this.onSymbolTuple stm.Binding.Lhs
+            let body = this.ScopeTransformation stm.Body
+            QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
     }

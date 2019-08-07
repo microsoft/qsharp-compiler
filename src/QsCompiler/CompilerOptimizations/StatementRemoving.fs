@@ -31,6 +31,16 @@ type StatementRemover() =
         | QsWhileStatement s when s.Body.Statements.IsEmpty -> false
         | _ -> true
 
+    let splitStatement stmt =
+        match stmt.Statement with
+        | QsVariableDeclaration s ->
+            match s.Lhs, s.Rhs with
+            | Tuple l, Tuple r ->
+                Seq.zip l r |> Seq.map (QsBinding.New s.Kind >> QsVariableDeclaration >> wrapStmt)
+            | _ -> Seq.singleton stmt
+        | QsScopeStatement s -> s.Body.Statements |> Seq.cast
+        | _ -> Seq.singleton stmt
+
 
     override syntaxTree.onProvidedImplementation (argTuple, body) = 
         let renamerVal = VariableRenamer(argTuple)
@@ -49,9 +59,7 @@ type StatementRemover() =
                 scope.Statements
                 |> Seq.map this.onStatement
                 |> Seq.filter isStatementNeeded
-                |> Seq.collect (function
-                    | {Statement = QsScopeStatement s} -> s.Body.Statements |> Seq.cast
-                    | a -> Seq.singleton a)
+                |> Seq.collect splitStatement
             QsScope.New (statements, parentSymbols)
 
         override scope.StatementKind = { new StatementKindTransformation() with
@@ -71,5 +79,10 @@ type StatementRemover() =
                     } |? syms
                 | VariableNameTuple items -> Seq.map (this.onSymbolTuple) items |> ImmutableArray.CreateRange |> VariableNameTuple
                 | InvalidItem | DiscardedItem -> syms
+
+            (*override this.onVariableDeclaration stm = 
+                let lhs = this.onSymbolTuple stm.Lhs
+                let rhs = this.ExpressionTransformation stm.Rhs
+                QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration*)
         }
     }

@@ -1,10 +1,12 @@
 ﻿/// This namespace contains test cases for arithmetic optimization
 namespace Microsoft.Quantum.Testing.Optimization.LoopUnrolling {
-    operation Test () : Unit {
+    operation Test () : Int {
+		mutable r = 0;
         for (i in [0, 2, 4]) {
 	        if (i == 2) {
-		        let r = i + 1;
+		        set r = i + 1;
 	        }
         }
+		return r;
     }
 }

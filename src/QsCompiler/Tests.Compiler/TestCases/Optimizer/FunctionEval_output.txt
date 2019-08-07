@@ -5,14 +5,14 @@ namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
 
     Function f (x, w) : Int {
         QsBody (x, w) {
-            let y = IntLiteral 1L;
-            let z = [IntLiteral 0L, IntLiteral 0L, IntLiteral 0L, IntLiteral 0L, IntLiteral 0L];
+            mutable y = IntLiteral 1L;
+            mutable z = [IntLiteral 0L, IntLiteral 0L, IntLiteral 0L, IntLiteral 0L, IntLiteral 0L];
             set LocalVariable z = (LocalVariable z w/= IntLiteral 0L <- LocalVariable x);
             while (LocalVariable z[IntLiteral 0L] > IntLiteral 0L) {
                 set LocalVariable y = (LocalVariable y + LocalVariable w);
                 set LocalVariable z = (LocalVariable z w/= IntLiteral 0L <- (LocalVariable z[IntLiteral 0L] / IntLiteral 2L));
             }
-            let b = IntLiteral 0L;
+            mutable b = IntLiteral 0L;
             for a in LocalVariable z {
                 set LocalVariable b = (LocalVariable b + LocalVariable a);
             }
@@ -48,11 +48,10 @@ namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
         }
     }
 
-    Operation Test () : UnitType {
+    Operation Test () : (Int, Int, Int, Int, Double) {
         QsBody () {
-            let b = IntLiteral 9L;
-            let (c, d, e) = (IntLiteral 2L, IntLiteral 3L, IntLiteral 5L);
             let s = (GlobalCallable mySin of DoubleLiteral 2.0);
+            return (IntLiteral 9L, IntLiteral 2L, IntLiteral 3L, IntLiteral 5L, LocalVariable s);
         }
     }
 }

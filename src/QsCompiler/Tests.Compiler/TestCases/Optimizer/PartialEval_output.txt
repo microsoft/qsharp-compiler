@@ -21,21 +21,11 @@ namespace Microsoft.Quantum.Testing.Optimization.PartialEval {
         }
     }
 
-    Operation Test () : UnitType {
+    Operation Test () : (Int, Int, Int, Int, Int, Int, Bool) {
         QsBody () {
-            let t = (GlobalCallable k of (MissingExpr, (GlobalCallable h of (MissingExpr, IntLiteral 3L, MissingExpr))));
-            let u = IntLiteral 7L;
-            let v = IntLiteral 15L;
-            let x = (GlobalCallable j of (MissingExpr, (IntLiteral 0L, MissingExpr, MissingExpr)));
-            let y = IntLiteral 6L;
-            let z = IntLiteral 3L;
-            let a = (GlobalCallable MyFunc of (GlobalCallable j of (IntLiteral 5L, (IntLiteral 0L, MissingExpr, IntLiteral 5L))));
-            let b = (GlobalCallable j of (IntLiteral 5L, (IntLiteral 0L, MissingExpr, IntLiteral 5L)));
-            let c = IntLiteral 12L;
-            let m = (GlobalCallable MyInt of IntLiteral 5L);
-            let n = IntLiteral 5L;
             let o = (GlobalCallable M of IntLiteral 2L);
             let p = (LocalVariable o = ResultLiteral One);
+            return (IntLiteral 7L, IntLiteral 15L, IntLiteral 6L, IntLiteral 3L, IntLiteral 12L, IntLiteral 5L, LocalVariable p);
         }
     }
 

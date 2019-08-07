@@ -1,18 +1,9 @@
 namespace Microsoft.Quantum.Testing.Optimization.LoopUnrolling {
-    Operation Test () : UnitType {
+    Operation Test () : Int {
         QsBody () {
-            {
-                let i = IntLiteral 0L;
-            }
-            {
-                let i = IntLiteral 2L;
-                {
-                    let r = IntLiteral 3L;
-                }
-            }
-            {
-                let i = IntLiteral 4L;
-            }
+            mutable r = IntLiteral 0L;
+            set LocalVariable r = IntLiteral 3L;
+            return LocalVariable r;
         }
     }
 }
