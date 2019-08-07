@@ -29,6 +29,13 @@ type PureCircuitFinder() =
         result
 
     override syntaxTree.Scope = { new ScopeTransformation() with
+
+        override scope.Transform x =
+            finishCircuit ()
+            let result = base.Transform x
+            finishCircuit ()
+            result
+
         override scope.StatementKind = { new StatementKindTransformation() with
             override stmtKind.ExpressionTransformation x = scope.Expression.Transform x
             override stmtKind.LocationTransformation x = scope.onLocation x
@@ -37,14 +44,11 @@ type PureCircuitFinder() =
 
             override stmtKind.Transform kind =
                 match kind with
-                | QsExpressionStatement expr ->
-                    currentCircuit <- currentCircuit @ [expr.Expression]
+                | QsExpressionStatement s -> currentCircuit <- currentCircuit @ [s.Expression]
                 | QsQubitScope _ -> ()
                 | QsScopeStatement _ -> ()
-                | QsVariableDeclaration {Rhs = expr} when expr.InferredInformation.HasLocalQuantumDependency |> not -> ()
-                | _ ->
-                    finishCircuit ()
-
+                | QsVariableDeclaration s when s.Rhs.InferredInformation.HasLocalQuantumDependency |> not -> ()
+                | _ -> finishCircuit ()
                 base.Transform kind
         }
     }

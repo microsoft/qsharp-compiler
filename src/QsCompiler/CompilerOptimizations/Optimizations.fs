@@ -16,16 +16,18 @@ type Optimizations() =
     static member optimize (tree: seq<_>) =
         let mutable tree = List.ofSeq tree
         let callables = GlobalCallableResolutions tree
+
         let optimizers = [
             ConstantPropagator(callables) :> OptimizingTransformation
             upcast LoopUnroller()
             upcast CallableInliner(callables)
             upcast StatementRemover()
-            upcast PureCircuitFinder()
         ]
         for opt in optimizers do
             tree <- List.map opt.Transform tree
+
         if optimizers |> List.exists (fun opt -> opt.checkChanged()) then
             Optimizations.optimize tree
-        else tree
+        else
+            List.map (PureCircuitFinder().Transform) tree
 

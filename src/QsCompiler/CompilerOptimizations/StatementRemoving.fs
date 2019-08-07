@@ -79,10 +79,5 @@ type StatementRemover() =
                     } |? syms
                 | VariableNameTuple items -> Seq.map (this.onSymbolTuple) items |> ImmutableArray.CreateRange |> VariableNameTuple
                 | InvalidItem | DiscardedItem -> syms
-
-            (*override this.onVariableDeclaration stm = 
-                let lhs = this.onSymbolTuple stm.Lhs
-                let rhs = this.ExpressionTransformation stm.Rhs
-                QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration*)
         }
     }

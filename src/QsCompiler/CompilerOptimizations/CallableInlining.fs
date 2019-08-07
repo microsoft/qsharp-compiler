@@ -78,7 +78,7 @@ type CallableInliner(compiledCallables) =
             let! current = currentCallable
             do! check (callableCannotReach callables scope current.FullName)
             
-            let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple callable.ArgumentTuple, arg)
+            let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple specArgs, arg)
             let newStatements = scope.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
             return {scope with Statements = newStatements} |> QsScopeStatement.New |> QsScopeStatement
         }

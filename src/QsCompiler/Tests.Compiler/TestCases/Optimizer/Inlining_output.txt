@@ -16,23 +16,11 @@ namespace Microsoft.Quantum.Testing.Optimization.Inlining {
 
     Operation Test (q) : UnitType {
         QsBody (q) {
-            let __qsVar1__q__ = LocalVariable q;
-            let __qsVar2__q__ = LocalVariable __qsVar1__q__;
-            let __qsVar3__q__ = LocalVariable __qsVar2__q__;
-            let __qsVar4__q__ = LocalVariable __qsVar3__q__;
-            let __qsVar5__q__ = LocalVariable __qsVar4__q__;
-            (GlobalCallable X of LocalVariable __qsVar5__q__);
-            let __qsVar6__q__ = LocalVariable __qsVar3__q__;
-            (GlobalCallable X of LocalVariable __qsVar6__q__);
-            let __qsVar7__q__ = LocalVariable __qsVar2__q__;
-            let __qsVar8__q__ = LocalVariable __qsVar7__q__;
-            (GlobalCallable X of LocalVariable __qsVar8__q__);
-            let __qsVar9__q__ = LocalVariable __qsVar1__q__;
-            let __qsVar10__q__ = LocalVariable __qsVar9__q__;
-            let __qsVar11__q__ = LocalVariable __qsVar10__q__;
-            (GlobalCallable X of LocalVariable __qsVar11__q__);
-            let __qsVar12__q__ = LocalVariable __qsVar9__q__;
-            (GlobalCallable X of LocalVariable __qsVar12__q__);
+            (GlobalCallable X of LocalVariable q);
+            (GlobalCallable X of LocalVariable q);
+            (GlobalCallable X of LocalVariable q);
+            (GlobalCallable X of LocalVariable q);
+            (GlobalCallable X of LocalVariable q);
         }
     }
 }
