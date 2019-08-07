@@ -6,7 +6,8 @@ open Microsoft.Quantum.QsCompiler.CompilerOptimization.OptimizingTransformation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.LoopUnrolling
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.ScopeFlattening
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRenaming
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementRemoving
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitFinding
 
 
@@ -19,7 +20,7 @@ type Optimizations() =
             ConstantPropagator(callables) :> OptimizingTransformation
             upcast LoopUnroller()
             upcast CallableInliner(callables)
-            upcast ScopeFlattener()
+            upcast StatementRemover()
             upcast PureCircuitFinder()
         ]
         for opt in optimizers do

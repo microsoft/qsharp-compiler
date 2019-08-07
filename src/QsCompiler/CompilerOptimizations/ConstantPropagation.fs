@@ -44,7 +44,7 @@ type ConstantPropagator(compiledCallables) =
                 let lhs = so.onSymbolTuple stm.Lhs
                 let rhs = so.ExpressionTransformation stm.Rhs
                 if stm.Kind = ImmutableBinding then
-                    constants <- defineVarTuple callables constants (lhs, rhs.Expression)
+                    constants <- defineVarTuple (isLiteral callables) constants (lhs, rhs.Expression)
                 QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
 
             override this.onConditionalStatement stm =

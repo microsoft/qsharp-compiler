@@ -21,7 +21,8 @@
     <Compile Include="ConstantPropagation.fs" />
     <Compile Include="LoopUnrolling.fs" />
     <Compile Include="CallableInlining.fs" />
-    <Compile Include="ScopeFlattening.fs" />
+    <Compile Include="VariableRenaming.fs" />
+    <Compile Include="StatementRemoving.fs" />
     <Compile Include="PureCircuitFinding.fs" />
     <Compile Include="Optimizations.fs" />
   </ItemGroup>

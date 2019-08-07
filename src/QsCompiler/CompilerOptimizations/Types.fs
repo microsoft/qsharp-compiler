@@ -24,7 +24,7 @@ let getCallable callables qualName =
 
 
 /// Represents the current state of a constant propagation pass
-type Constants = Constants of list<Map<string, Expr>>
+type Constants<'T> = Constants of list<Map<string, 'T>>
 
 let enterScope constants =
     match constants with Constants c -> Constants (Map.empty :: c)
@@ -54,15 +54,15 @@ let rec isLiteral (callables: Callables) (expr: Expr): bool =
     | _ -> false
 
 
-let defineVar callables constants (name, value) =
-    if not (isLiteral callables value) then constants else
+let defineVar check constants (name, value) =
+    if not (check value) then constants else
     // TODO: assert variable is undefined
     match constants with
     | Constants (head :: tail) -> Constants (head.Add (name, value) :: tail)
     | Constants [] -> failwithf "No scope to define variables in"
     
-let setVar callables constants (name, value) =
-    if not (isLiteral callables value) then constants else
+let setVar check constants (name, value) =
+    if not (check value) then constants else
     // TODO: assert variable is defined, is same type
     match constants with
     Constants c ->
@@ -72,13 +72,13 @@ let setVar callables constants (name, value) =
             Constants (List.mapi updateFunc c)
         | None -> failwithf "Variable %s is undefined" name
 
-let rec private onTuple op callables constants (names, values) =
+let rec private onTuple op check constants (names, values) =
     match names, values with
     | VariableName name, _ ->
-        op callables constants (name.Value, values)
+        op check constants (name.Value, values)
     | VariableNameTuple namesTuple, ValueTuple valuesTuple ->
         // TODO: assert items and vt are same length
-        Seq.zip namesTuple (Seq.map (fun x -> x.Expression) valuesTuple) |> Seq.fold (onTuple op callables) constants
+        Seq.zip namesTuple (Seq.map (fun x -> x.Expression) valuesTuple) |> Seq.fold (onTuple op check) constants
     | _ -> constants
 
 let defineVarTuple = onTuple defineVar
