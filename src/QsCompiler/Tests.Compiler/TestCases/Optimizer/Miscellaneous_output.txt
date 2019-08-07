@@ -45,18 +45,16 @@ namespace Microsoft.Quantum.Testing {
             ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
             for item in (Unwrap LocalVariable r1) {
                 {
-                    {
-                        let j = IntLiteral 0L;
-                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                    }
-                    {
-                        let j = IntLiteral 2L;
-                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                    }
-                    {
-                        let j = IntLiteral 4L;
-                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                    }
+                    let j = IntLiteral 0L;
+                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                }
+                {
+                    let j = IntLiteral 2L;
+                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                }
+                {
+                    let j = IntLiteral 4L;
+                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                 }
             }
         }
@@ -65,18 +63,16 @@ namespace Microsoft.Quantum.Testing {
             ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable q2)));
             for item in (Unwrap LocalVariable r1) {
                 {
-                    {
-                        let j = IntLiteral 0L;
-                        ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
-                    }
-                    {
-                        let j = IntLiteral 2L;
-                        ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
-                    }
-                    {
-                        let j = IntLiteral 4L;
-                        ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
-                    }
+                    let j = IntLiteral 0L;
+                    ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                }
+                {
+                    let j = IntLiteral 2L;
+                    ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                }
+                {
+                    let j = IntLiteral 4L;
+                    ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
                 }
             }
         }
@@ -89,159 +85,145 @@ namespace Microsoft.Quantum.Testing {
             let op = GlobalCallable M;
             if (LocalVariable r = ResultLiteral One) {
                 {
+                    let i = IntLiteral 5L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 5L]);
                     {
-                        let i = IntLiteral 5L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 5L]);
-                        {
-                            let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
-                            let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
-                            ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
-                            for item in (Unwrap LocalVariable r1) {
-                                {
-                                    {
-                                        let j = IntLiteral 0L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 2L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 4L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                }
+                        let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                             }
                         }
                     }
+                }
+                {
+                    let i = IntLiteral 4L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 4L]);
                     {
-                        let i = IntLiteral 4L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 4L]);
-                        {
-                            let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
-                            let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
-                            ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
-                            for item in (Unwrap LocalVariable r1) {
-                                {
-                                    {
-                                        let j = IntLiteral 0L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 2L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 4L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                }
+                        let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                             }
                         }
                     }
+                }
+                {
+                    let i = IntLiteral 3L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 3L]);
                     {
-                        let i = IntLiteral 3L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 3L]);
-                        {
-                            let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
-                            let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
-                            ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
-                            for item in (Unwrap LocalVariable r1) {
-                                {
-                                    {
-                                        let j = IntLiteral 0L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 2L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 4L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                }
+                        let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                             }
                         }
                     }
+                }
+                {
+                    let i = IntLiteral 2L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 2L]);
                     {
-                        let i = IntLiteral 2L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 2L]);
-                        {
-                            let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
-                            let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
-                            ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
-                            for item in (Unwrap LocalVariable r1) {
-                                {
-                                    {
-                                        let j = IntLiteral 0L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 2L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 4L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                }
+                        let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                             }
                         }
                     }
+                }
+                {
+                    let i = IntLiteral 1L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 1L]);
                     {
-                        let i = IntLiteral 1L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 1L]);
-                        {
-                            let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
-                            let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
-                            ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
-                            for item in (Unwrap LocalVariable r1) {
-                                {
-                                    {
-                                        let j = IntLiteral 0L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 2L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 4L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                }
+                        let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                             }
                         }
                     }
+                }
+                {
+                    let i = IntLiteral 0L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 0L]);
                     {
-                        let i = IntLiteral 0L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 0L]);
-                        {
-                            let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
-                            let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
-                            ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
-                            for item in (Unwrap LocalVariable r1) {
-                                {
-                                    {
-                                        let j = IntLiteral 0L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 2L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                    {
-                                        let j = IntLiteral 4L;
-                                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                    }
-                                }
+                        let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                             }
                         }
                     }
@@ -253,18 +235,16 @@ namespace Microsoft.Quantum.Testing {
                 ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
                 for item in (Unwrap LocalVariable r1) {
                     {
-                        {
-                            let j = IntLiteral 0L;
-                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                        }
-                        {
-                            let j = IntLiteral 2L;
-                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                        }
-                        {
-                            let j = IntLiteral 4L;
-                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                        }
+                        let j = IntLiteral 0L;
+                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                    }
+                    {
+                        let j = IntLiteral 2L;
+                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                    }
+                    {
+                        let j = IntLiteral 4L;
+                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                     }
                 }
             }
@@ -276,18 +256,16 @@ namespace Microsoft.Quantum.Testing {
                 ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
                 for item in (Unwrap LocalVariable r1) {
                     {
-                        {
-                            let j = IntLiteral 0L;
-                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                        }
-                        {
-                            let j = IntLiteral 2L;
-                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                        }
-                        {
-                            let j = IntLiteral 4L;
-                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                        }
+                        let j = IntLiteral 0L;
+                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                    }
+                    {
+                        let j = IntLiteral 2L;
+                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                    }
+                    {
+                        let j = IntLiteral 4L;
+                        (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                     }
                 }
             }
@@ -295,154 +273,285 @@ namespace Microsoft.Quantum.Testing {
             let r = (GlobalCallable M of LocalVariable q2);
             if (LocalVariable r = ResultLiteral One) {
                 {
+                    let i = IntLiteral 0L;
                     {
-                        let i = IntLiteral 0L;
+                        let c = LocalVariable q;
+                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 0L]);
                         {
-                            let c = LocalVariable q;
-                            let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 0L]);
-                            {
-                                let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
-                                let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
-                                ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
-                                for item in (Unwrap LocalVariable r1) {
-                                    {
-                                        {
-                                            let j = IntLiteral 0L;
-                                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                        }
-                                        {
-                                            let j = IntLiteral 2L;
-                                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                        }
-                                        {
-                                            let j = IntLiteral 4L;
-                                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                        }
-                                    }
+                            let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
+                            let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                            ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
+                            for item in (Unwrap LocalVariable r1) {
+                                {
+                                    let j = IntLiteral 0L;
+                                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                                }
+                                {
+                                    let j = IntLiteral 2L;
+                                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                                }
+                                {
+                                    let j = IntLiteral 4L;
+                                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                                 }
                             }
                         }
                     }
+                }
+                {
+                    let i = IntLiteral 1L;
+                }
+                {
+                    let i = IntLiteral 2L;
                     {
-                        let i = IntLiteral 1L;
-                        { EmptyScope }
-                    }
-                    {
-                        let i = IntLiteral 2L;
+                        let c = LocalVariable q;
+                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 2L]);
                         {
-                            let c = LocalVariable q;
-                            let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 2L]);
-                            {
-                                let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
-                                let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
-                                ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
-                                for item in (Unwrap LocalVariable r1) {
-                                    {
-                                        {
-                                            let j = IntLiteral 0L;
-                                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                        }
-                                        {
-                                            let j = IntLiteral 2L;
-                                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                        }
-                                        {
-                                            let j = IntLiteral 4L;
-                                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                        }
-                                    }
+                            let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
+                            let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                            ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
+                            for item in (Unwrap LocalVariable r1) {
+                                {
+                                    let j = IntLiteral 0L;
+                                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                                }
+                                {
+                                    let j = IntLiteral 2L;
+                                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                                }
+                                {
+                                    let j = IntLiteral 4L;
+                                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                                 }
                             }
                         }
                     }
+                }
+                {
+                    let i = IntLiteral 3L;
+                }
+                {
+                    let i = IntLiteral 4L;
                     {
-                        let i = IntLiteral 3L;
-                        { EmptyScope }
-                    }
-                    {
-                        let i = IntLiteral 4L;
+                        let c = LocalVariable q;
+                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 4L]);
                         {
-                            let c = LocalVariable q;
-                            let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 4L]);
-                            {
-                                let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
-                                let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
-                                ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
-                                for item in (Unwrap LocalVariable r1) {
-                                    {
-                                        {
-                                            let j = IntLiteral 0L;
-                                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                        }
-                                        {
-                                            let j = IntLiteral 2L;
-                                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                        }
-                                        {
-                                            let j = IntLiteral 4L;
-                                            (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
-                                        }
-                                    }
+                            let (q1, r1) = ((Unwrap LocalVariable q), LocalVariable b2);
+                            let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                            ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable q2));
+                            for item in (Unwrap LocalVariable r1) {
+                                {
+                                    let j = IntLiteral 0L;
+                                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                                }
+                                {
+                                    let j = IntLiteral 2L;
+                                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                                }
+                                {
+                                    let j = IntLiteral 4L;
+                                    (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
                                 }
                             }
                         }
                     }
-                    {
-                        let i = IntLiteral 5L;
-                        { EmptyScope }
-                    }
+                }
+                {
+                    let i = IntLiteral 5L;
                 }
             } else {
                 fail "r is supposed to be Zero";
             }
         }
         QsControlled (ctrls, (q2, n2, b2, q)) {
-            ((Controlled GlobalCallable op1) of (LocalVariable ctrls, (LocalVariable q2, LocalVariable b2)));
+            {
+                let (q1, r1) = (LocalVariable ctrls, (LocalVariable q2, LocalVariable b2));
+                let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable q2)));
+                for item in (Unwrap LocalVariable r1) {
+                    {
+                        let j = IntLiteral 0L;
+                        ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                    }
+                    {
+                        let j = IntLiteral 2L;
+                        ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                    }
+                    {
+                        let j = IntLiteral 4L;
+                        ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                    }
+                }
+            }
             let op = GlobalCallable M;
             let r = (GlobalCallable M of LocalVariable q2);
             if (LocalVariable r = ResultLiteral One) {
                 {
+                    let i = IntLiteral 0L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 0L]);
                     {
-                        let i = IntLiteral 0L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 0L]);
-                        ((Controlled GlobalCallable op1) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2)));
+                        let (q1, r1) = (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2));
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable q2)));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                        }
                     }
+                }
+                {
+                    let i = IntLiteral 1L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 1L]);
                     {
-                        let i = IntLiteral 1L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 1L]);
-                        ((Controlled GlobalCallable op1) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2)));
+                        let (q1, r1) = (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2));
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable q2)));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                        }
                     }
+                }
+                {
+                    let i = IntLiteral 2L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 2L]);
                     {
-                        let i = IntLiteral 2L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 2L]);
-                        ((Controlled GlobalCallable op1) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2)));
+                        let (q1, r1) = (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2));
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable q2)));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                        }
                     }
+                }
+                {
+                    let i = IntLiteral 3L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 3L]);
                     {
-                        let i = IntLiteral 3L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 3L]);
-                        ((Controlled GlobalCallable op1) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2)));
+                        let (q1, r1) = (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2));
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable q2)));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                        }
                     }
+                }
+                {
+                    let i = IntLiteral 4L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 4L]);
                     {
-                        let i = IntLiteral 4L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 4L]);
-                        ((Controlled GlobalCallable op1) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2)));
+                        let (q1, r1) = (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2));
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable q2)));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                        }
                     }
+                }
+                {
+                    let i = IntLiteral 5L;
+                    let c = LocalVariable q;
+                    let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 5L]);
                     {
-                        let i = IntLiteral 5L;
-                        let c = LocalVariable q;
-                        let m = (GlobalCallable op0 of (Unwrap LocalVariable b2)[IntLiteral 5L]);
-                        ((Controlled GlobalCallable op1) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2)));
+                        let (q1, r1) = (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable b2));
+                        let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                        ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable q2)));
+                        for item in (Unwrap LocalVariable r1) {
+                            {
+                                let j = IntLiteral 0L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 2L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                            {
+                                let j = IntLiteral 4L;
+                                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                            }
+                        }
                     }
                 }
             }
         }
         QsControlledAdjoint (ctrls, (q2, n2, b2, q)) {
-            ((Adjoint (Controlled GlobalCallable op1)) of (LocalVariable ctrls, (LocalVariable q2, LocalVariable b2)));
+            {
+                let (q1, r1) = (LocalVariable ctrls, (LocalVariable q2, LocalVariable b2));
+                let q2 = (Unwrap LocalVariable r1)[IntLiteral 0L];
+                ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable q2)));
+                for item in (Unwrap LocalVariable r1) {
+                    {
+                        let j = IntLiteral 0L;
+                        ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                    }
+                    {
+                        let j = IntLiteral 2L;
+                        ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                    }
+                    {
+                        let j = IntLiteral 4L;
+                        ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
+                    }
+                }
+            }
         }
     }
 

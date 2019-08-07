@@ -121,7 +121,8 @@ type StatementKindTransformation(?enable) =
         | Allocate -> this.onAllocateQubits stm
         | Borrow   -> this.onBorrowQubits stm
 
-    member this.Transform kind = 
+    abstract member Transform : QsStatementKind -> QsStatementKind
+    default this.Transform kind = 
         let beforeBinding (stm : QsBinding<TypedExpression>) = { stm with Lhs = this.beforeVariableDeclaration stm.Lhs }
         let beforeForStatement (stm : QsForStatement) = {stm with LoopItem = (this.beforeVariableDeclaration (fst stm.LoopItem), snd stm.LoopItem)} 
         let beforeQubitScope (stm : QsQubitScope) = {stm with Binding = {stm.Binding with Lhs = this.beforeVariableDeclaration stm.Binding.Lhs}}

@@ -8,6 +8,7 @@ open System.IO
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.CompilerOptimization
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.Transformations
 open Xunit
 
@@ -20,14 +21,12 @@ let private buildSyntaxTree code =
     compilationUnit.AddOrUpdateSourceFileAsync file |> ignore  // spawns a task that modifies the current compilation
     let mutable syntaxTree = compilationUnit.GetSyntaxTree()   // will wait for any current tasks to finish
     FunctorGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree) |> ignore
-    syntaxTree, compilationUnit.Build().Callables
-    
+    syntaxTree
+
 /// Given a string of valid Q# code, outputs the optimized AST as a string
 let private optimize code =
-    let mutable tree, callables = buildSyntaxTree code
-    let optimizer = ConstantPropagator(callables)
-    while optimizer.checkChanged() do
-        tree <- tree |> Seq.map optimizer.Transform |> Seq.toList
+    let mutable tree = buildSyntaxTree code
+    tree <- Optimizations.optimize tree
     String.Join("\n", Seq.map printNamespace tree)
 
 /// Helper function that saves the compiler output as a test case (in the bin directory)

@@ -5,7 +5,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-open TransformationState
+open Types
 
 
 // Pretty-print various syntax elements

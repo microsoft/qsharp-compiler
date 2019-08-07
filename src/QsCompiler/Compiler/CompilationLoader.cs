@@ -220,12 +220,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             // executing the specified optimization steps
 
-            var constantPropagator = new ConstantPropagator(VerifiedCompilation.Callables);
-            while (constantPropagator.checkChanged())
-            {
-                this.GeneratedSyntaxTree = this.GeneratedSyntaxTree.Select(p => constantPropagator.Transform(p)).ToList();
-            }
-
+            this.GeneratedSyntaxTree = Optimizations.optimize(this.GeneratedSyntaxTree);
 
             // generating the compiled binary
 
