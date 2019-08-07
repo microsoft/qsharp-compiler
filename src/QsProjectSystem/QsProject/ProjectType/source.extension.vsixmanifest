@@ -13,8 +13,8 @@
         <!--<Dependency d:Source="Installed" Id="B73A99D8-FCAA-4197-9122-F8ABA095A72F" DisplayName="Visual Studio Common Project System v14" Version="[11.2,14.0)" />-->
     </Dependencies>
     <Assets>
-        <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="QsProject.ProjectType" Path="|QsProject.ProjectType|"/>
-        <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="QsProject.ProjectType" Path="|QsProject.ProjectType;PkgdefProjectOutputGroup|" />
+        <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%|" />
+        <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
         <Asset Type="Microsoft.VisualStudio.ProjectTemplate" d:Source="Project" d:ProjectName="QsProject.ProjectTemplate" d:TargetPath="|QsProject.ProjectTemplate;TemplateProjectOutputGroup|" Path="ProjectTemplates" d:VsixSubPath="ProjectTemplates" />
     </Assets>
     <Prerequisites>
