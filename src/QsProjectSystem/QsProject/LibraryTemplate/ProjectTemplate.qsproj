@@ -11,7 +11,7 @@
   <Import Project="$(CustomProjectExtensionsPath)QsProject.targets" />
 
   <ItemGroup>
-    <Compile Include="**\*.qs" />
+    <QsharpSourceFile Include="**\*.qs" />
   </ItemGroup>
 
   <ItemGroup>

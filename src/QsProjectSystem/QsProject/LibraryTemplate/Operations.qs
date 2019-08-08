@@ -1,4 +1,4 @@
-﻿namespace Quantum.$safeprojectname$
+﻿namespace Quantum
 {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Canon;

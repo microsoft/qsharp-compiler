@@ -40,9 +40,10 @@
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
 
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\Compile.xaml;">
-      <Context>File</Context>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\qsharp.xaml;">
+      <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
+
   </ItemGroup>
 
   <Import Project="$(MSBuildProjectFullPath).user" Condition="Exists('$(MSBuildProjectFullPath).user')" />

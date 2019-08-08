@@ -4,9 +4,9 @@
     xmlns="http://schemas.microsoft.com/build/2009/properties">
 
     <ContentType
-        Name="Compile"
-        DisplayName="Source file"
-        ItemType="Compile">
+	    Name="QsharpSourceFile" 
+	    DisplayName="Q# source file" 
+	    ItemType="QsCompile">
     </ContentType>
 
     <ContentType
@@ -15,9 +15,9 @@
         ItemType="None">
     </ContentType>
 
-    <ItemType Name="Compile" DisplayName="Compile"/>
+    <ItemType Name="QsCompile" DisplayName="Compile"/>
     <ItemType Name="None" DisplayName="None"/>
 
-    <FileExtension Name=".qs" ContentType="Compile"/>
+    <FileExtension Name=".qs" ContentType="QsharpSourceFile" />
     <FileExtension Name=".md" ContentType="Markdown"/>
 </ProjectSchemaDefinitions>
