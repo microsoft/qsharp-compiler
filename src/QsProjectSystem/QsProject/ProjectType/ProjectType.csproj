@@ -146,10 +146,9 @@
   Resources for our new project system
   -->
   <ItemGroup>
-    <Compile Include="ConfiguredProject.cs" />
-    <Compile Include="UnconfiguredProject.cs" />
+    <Compile Include="Project.cs" />
     <Compile Include="ProjectProperties.cs" />
-    <Compile Include="VsPackage.cs" />
+    <Compile Include="Package.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

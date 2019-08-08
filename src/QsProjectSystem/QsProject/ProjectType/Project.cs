@@ -1,43 +1,26 @@
-﻿/***************************************************************************
-
-Copyright (c) Microsoft Corporation. All rights reserved.
-This code is licensed under the Visual Studio SDK license terms.
-THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-
-***************************************************************************/
-
-namespace Microsoft.Quantum.QsProjectSystem
+﻿namespace Microsoft.Quantum.QsProjectSystem
 {
     using System.ComponentModel.Composition;
     using Microsoft.VisualStudio.ProjectSystem;
     using Microsoft.VisualStudio.ProjectSystem.VS;
     using Microsoft.VisualStudio.Shell.Interop;
 
+
     [Export]
-    [AppliesTo(QsUnconfiguredProject.UniqueCapability)]
+    [AppliesTo(UniqueCapability)]
     [ProjectTypeRegistration(
-        VsPackage.ProjectTypeGuid, "Q# Project", "Q# Project Files (*.qsproj);*.qsproj", 
-        ProjectExtension, Language, resourcePackageGuid: VsPackage.PackageGuid, PossibleProjectExtensions = ProjectExtension)]
+        VsPackage.ProjectTypeGuid, "Q# Project", "Q# Project Files (*.qsproj);*.qsproj",
+        VsPackage.ProjectExtension, Language, resourcePackageGuid: VsPackage.PackageGuid, PossibleProjectExtensions = VsPackage.ProjectExtension)]
     internal class QsUnconfiguredProject
     {
         internal const string Language = "Q♯";
 
         /// <summary>
-        /// The file extension used by your project type.
-        /// This does not include the leading period.
-        /// </summary>
-        internal const string ProjectExtension = "qsproj";
-
-        /// <summary>
-        /// A project capability that is present in your project type and none others.
-        /// This is a convenient constant that may be used by your extensions so they
-        /// only apply to instances of your project type.
+        /// Constant that is only present for Q# projects. 
+        /// May be used by extensions to do something specifically for this project type only.
         /// </summary>
         /// <remarks>
-        /// This value should be kept in sync with the capability as actually defined in your .targets.
+        /// This value needs to be kept in sync with the capability defined in .targets.
         /// </remarks>
         internal const string UniqueCapability = "QSharpProject";
 
@@ -62,8 +45,17 @@ namespace Microsoft.Quantum.QsProjectSystem
 
         [ImportMany(ExportContractNames.VsTypes.IVsProject, typeof(IVsProject))]
         internal OrderPrecedenceImportCollection<IVsHierarchy> ProjectHierarchies { get; private set; }
+    }
 
-        internal IVsHierarchy ProjectHierarchy =>
-            this.ProjectHierarchies.Single().Value;
+
+    [Export]
+    [AppliesTo(QsUnconfiguredProject.UniqueCapability)]
+    internal class QsConfiguredProject
+    {
+        [Import]
+        internal ConfiguredProject ConfiguredProject { get; private set; }
+
+        [Import]
+        internal ProjectProperties Properties { get; private set; }
     }
 }
