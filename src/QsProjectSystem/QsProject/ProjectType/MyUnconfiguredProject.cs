@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsProjectSystem
 
     [Export]
     [AppliesTo(MyUnconfiguredProject.UniqueCapability)]
-    [ProjectTypeRegistration(VsPackage.ProjectTypeGuid, "QSharp Project", "#2", ProjectExtension, Language, resourcePackageGuid: VsPackage.PackageGuid, PossibleProjectExtensions = ProjectExtension)]
+    [ProjectTypeRegistration(VsPackage.ProjectTypeGuid, "QSharp Project", "QSharp Project Project Files (*.qsproj);*.qsproj", ProjectExtension, Language, resourcePackageGuid: VsPackage.PackageGuid, PossibleProjectExtensions = ProjectExtension)]
     internal class MyUnconfiguredProject
     {
         /// <summary>
