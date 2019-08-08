@@ -11,42 +11,42 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
 /// Shorthand for a QsExpressionKind
-type Expr = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
+type internal Expr = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
 /// Shorthand for a QsTypeKind
-type TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+type internal TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 /// Shorthand for a QsInitializerKind
-type InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
+type internal InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
 
 
 /// Represents the current state of a constant propagation pass
-type TransformationState = {
+type internal TransformationState = {
     compiledCallables: Map<QsQualifiedName, QsCallable>
     scopeStack: list<Map<string, Expr>>
     currentCallable: QsCallable option
 }
 
-let newState compiledCallables =
+let internal newState compiledCallables =
     {compiledCallables = compiledCallables; scopeStack = []; currentCallable = None}
 
 
-let getCallable state qualName =
+let internal getCallable state qualName =
     state.compiledCallables.[qualName]
 
 
-let enterScope state =
+let internal enterScope state =
     {state with scopeStack = Map.empty :: state.scopeStack}
 
-let exitScope state =
+let internal exitScope state =
     match state.scopeStack with
     | _ :: tail -> {state with scopeStack = tail}
     | [] -> failwithf "No scope to exit"
 
-let getVar state name =
+let internal getVar state name =
     state.scopeStack |> List.tryPick (Map.tryFind name)
     
 
 /// Returns whether a given expression is a literal (and thus a constant)
-let rec isLiteral (state: TransformationState) (expr: Expr): bool =
+let rec internal isLiteral (state: TransformationState) (expr: Expr): bool =
     match expr with
     | UnitValue | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ -> true
     | ValueTuple a | StringLiteral (_, a) | ValueArray a -> Seq.forall (fun x -> isLiteral state x.Expression) a
@@ -61,7 +61,7 @@ let rec isLiteral (state: TransformationState) (expr: Expr): bool =
     | _ -> false
 
 
-let defineVar state (name, value) =
+let internal defineVar state (name, value) =
     if not (isLiteral state value) then state else
     // TODO: assert variable is undefined
     match state.scopeStack with
@@ -70,7 +70,7 @@ let defineVar state (name, value) =
         {state with scopeStack = newHead :: tail}
     | [] -> failwithf "No scope to define variables in"
     
-let setVar state (name, value) =
+let internal setVar state (name, value) =
     if not (isLiteral state value) then state else
     // TODO: assert variable is defined, is same type
     match state.scopeStack |> List.tryFindIndex (Map.containsKey name) with
@@ -88,7 +88,7 @@ let rec private onTuple op state (names, values) =
         Seq.zip namesTuple (Seq.map (fun x -> x.Expression) valuesTuple) |> Seq.fold (onTuple op) state
     | _ -> state
 
-let defineVarTuple = onTuple defineVar
+let internal defineVarTuple = onTuple defineVar
 
-let setVarTuple = onTuple setVar
+let internal setVarTuple = onTuple setVar
 

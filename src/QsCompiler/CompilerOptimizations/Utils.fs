@@ -19,7 +19,7 @@ let internal (|?) = defaultArg
 
 
 /// Converts a range literal to a sequence of integers
-let rangeLiteralToSeq (r: Expr): seq<int64> =
+let internal rangeLiteralToSeq (r: Expr): seq<int64> =
     match r with
     | RangeLiteral (a, b) ->
         match a.Expression, b.Expression with
@@ -32,7 +32,7 @@ let rangeLiteralToSeq (r: Expr): seq<int64> =
 
 
 /// Converts a QsTuple to a SymbolTuple
-let rec toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): SymbolTuple =
+let rec internal toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): SymbolTuple =
     match x with
     | QsTupleItem item ->
         match item.VariableName with
@@ -46,18 +46,18 @@ let rec toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): Sym
 /// Wraps a QsExpressionType in a basic TypedExpression
 /// The returned TypedExpression has no type param / inferred info / range information,
 /// and it should not be used for any code step that requires this information.
-let wrapExpr (expr: Expr) (bt: TypeKind): TypedExpression =
+let internal wrapExpr (expr: Expr) (bt: TypeKind): TypedExpression =
     let ii = {IsMutable=false; HasLocalQuantumDependency=false}
     TypedExpression.New (expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
 
 /// Wraps a QsStatementKind in a basic QsStatement
-let wrapStmt (stmt: QsStatementKind): QsStatement =
+let internal wrapStmt (stmt: QsStatementKind): QsStatement =
     QsStatement.New QsComments.Empty Null (stmt, [])
 
 
 /// Returns a new array of the given type and length.
 /// Returns None if the type doesn't have a default value.
-let rec constructNewArray (bt: TypeKind) (length: int): Expr option =
+let rec internal constructNewArray (bt: TypeKind) (length: int): Expr option =
     defaultValue bt |> Option.map (fun x -> ImmutableArray.CreateRange (List.replicate length (wrapExpr x bt)) |> ValueArray)
 
 /// Returns the default value for a given type (from Q# documentation)
@@ -75,13 +75,13 @@ and private defaultValue (bt: TypeKind): Expr option =
     | _ -> None
 
 
-let rec hasMissingExprs (expr: TypedExpression): bool =
+let rec internal hasMissingExprs (expr: TypedExpression): bool =
     match expr.Expression with
     | MissingExpr -> true
     | ValueTuple vt -> Seq.exists hasMissingExprs vt
     | _ -> false
 
-let rec fillPartialArg (partialArg: TypedExpression, arg: TypedExpression): TypedExpression =
+let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpression): TypedExpression =
     match partialArg with
     | Missing -> arg
     | Tuple items ->
@@ -148,14 +148,14 @@ let rec private findAllBaseStatements (scope: QsScope): seq<QsStatementKind> =
         | x -> Seq.singleton x
     )
 
-let rec hasReturnStatement (scope: QsScope): bool =
+let rec internal hasReturnStatement (scope: QsScope): bool =
     scope |> findAllBaseStatements |> Seq.exists (function QsReturnStatement _ -> true | _ -> false)
 
-let rec scopeLength (scope: QsScope): int =
+let rec internal scopeLength (scope: QsScope): int =
     scope |> findAllBaseStatements |> Seq.length
 
 
-let tryInline (state: TransformationState) (ex: TypedExpression) =
+let internal tryInline (state: TransformationState) (ex: TypedExpression) =
     maybe {
         let! expr, arg =
             match ex.Expression with
@@ -186,7 +186,7 @@ let tryInline (state: TransformationState) (ex: TypedExpression) =
         return qualName, {scope with Statements = newStatements}
     }
 
-let rec findAllCalls (state: TransformationState) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
+let rec internal findAllCalls (state: TransformationState) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
     scope |> findAllBaseStatements |> Seq.map (function
         | QsExpressionStatement ex ->
             match tryInline state ex with

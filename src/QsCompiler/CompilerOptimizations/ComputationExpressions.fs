@@ -4,7 +4,7 @@ open System
 
 
 /// The maybe monad. Returns None if any of the lines are None.
-type MaybeBuilder() =
+type internal MaybeBuilder() =
 
     member this.Return(x) = Some x
 
@@ -40,12 +40,12 @@ type MaybeBuilder() =
         this.Using(sequence.GetEnumerator(),
             fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
 
-let maybe = MaybeBuilder()
+let internal maybe = MaybeBuilder()
 
-let check x = if x then Some () else None
+let internal check x = if x then Some () else None
 
 
-type ResultBuilder() =
+type internal ResultBuilder() =
 
     member this.Return(x) = Ok x
 
@@ -93,5 +93,5 @@ type ResultBuilder() =
         this.Using(sequence.GetEnumerator(),
             fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
 
-let result = ResultBuilder()
+let internal result = ResultBuilder()
 

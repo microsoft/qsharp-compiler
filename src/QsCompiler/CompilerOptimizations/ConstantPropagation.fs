@@ -76,7 +76,7 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
 
 
 /// The StatementKindTransformation used to simplify statements
-and [<AbstractClass>] StatementOptimizer(stateRef: TransformationState ref) =
+and [<AbstractClass>] private StatementOptimizer(stateRef: TransformationState ref) =
     inherit StatementKindTransformation()
 
 

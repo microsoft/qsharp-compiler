@@ -13,15 +13,15 @@ open Printer
 
 
 
-type FunctionInterrupt =
+type private FunctionInterrupt =
 | Returned of Expr
 | Failed of Expr
 | CouldNotEvaluate of string
-type FunctionState = Result<TransformationState, FunctionInterrupt>
+type private FunctionState = Result<TransformationState, FunctionInterrupt>
 
 
 /// Evaluates functions by stepping through their code
-type [<AbstractClass>] FunctionEvaluator() =
+type [<AbstractClass>] internal FunctionEvaluator() =
 
     /// Transforms a BoolLiteral into the corresponding bool
     let castToBool x =
@@ -33,7 +33,7 @@ type [<AbstractClass>] FunctionEvaluator() =
     abstract member evaluateExpression: TransformationState -> TypedExpression -> Expr
 
     /// Evaluates a single Q# statement
-    member this.evaluateStatement (state: TransformationState) (statement: QsStatement): FunctionState =
+    member private this.evaluateStatement (state: TransformationState) (statement: QsStatement): FunctionState =
         match statement.Statement with
         | QsExpressionStatement expr ->
             this.evaluateExpression state expr |> ignore; state |> Ok
@@ -109,7 +109,7 @@ type [<AbstractClass>] FunctionEvaluator() =
             this.evaluateScope state true s.Body
 
     /// Evaluates a list of Q# statements
-    member this.evaluateScope (state: TransformationState) (newScope: bool) (scope: QsScope): FunctionState =
+    member private this.evaluateScope (state: TransformationState) (newScope: bool) (scope: QsScope): FunctionState =
         result {
             let stateRef = ref state
             if newScope then
@@ -123,7 +123,7 @@ type [<AbstractClass>] FunctionEvaluator() =
         }
 
     /// Evaluates a Q# function
-    member this.evaluateFunction (state: TransformationState) (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): Expr option =
+    member internal this.evaluateFunction (state: TransformationState) (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): Expr option =
         let callable = getCallable state name
         QsCompilerError.Verify (
             callable.Specializations.Length = 1,

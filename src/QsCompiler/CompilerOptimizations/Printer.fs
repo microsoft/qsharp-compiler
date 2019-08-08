@@ -11,7 +11,7 @@ open TransformationState
 // Pretty-print various syntax elements
 
 
-let rec printExpr (expr: Expr): string =
+let rec internal printExpr (expr: Expr): string =
     match expr with
     | Identifier (LocalVariable a, _) -> "LocalVariable " + a.Value
     | Identifier (GlobalCallable a, _) -> "GlobalCallable " + a.Name.Value
@@ -43,7 +43,7 @@ let rec printExpr (expr: Expr): string =
     | a -> a.ToString()
 
 
-let rec printInitializer (kind: InitKind): string =
+let rec internal printInitializer (kind: InitKind): string =
     match kind with
     | SingleQubitAllocation -> "Qubit()"
     | QubitRegisterAllocation a -> sprintf "new Qubit[%O]" (printExpr a.Expression)
@@ -51,7 +51,7 @@ let rec printInitializer (kind: InitKind): string =
     | InvalidInitializer -> "__invalid__"
 
 
-let rec printSymbolTuple (st: SymbolTuple): string =
+let rec internal printSymbolTuple (st: SymbolTuple): string =
     match st with
     | VariableName n -> n.Value
     | VariableNameTuple vt -> "(" + String.Join(", ", Seq.map printSymbolTuple vt) + ")"
@@ -59,7 +59,7 @@ let rec printSymbolTuple (st: SymbolTuple): string =
     | InvalidItem -> "__invalid__"
 
 
-let rec printQsTuple (qt: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): string =
+let rec internal printQsTuple (qt: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): string =
     match qt with
     | QsTupleItem item ->
         match item.VariableName with
@@ -68,7 +68,7 @@ let rec printQsTuple (qt: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): str
     | QsTuple items -> "(" + String.Join(", ", Seq.map printQsTuple items) + ")"
 
 
-let rec printStm (indent: int) (stm: QsStatementKind): string =
+let rec internal printStm (indent: int) (stm: QsStatementKind): string =
     let ws = String.replicate indent "    "
     match stm with
     | QsReturnStatement a ->
@@ -100,14 +100,14 @@ let rec printStm (indent: int) (stm: QsStatementKind): string =
         ws + sprintf "%O (%O = %O) %O" a.Kind (printSymbolTuple a.Binding.Lhs) (printInitializer a.Binding.Rhs.Resolution) (printScope indent a.Body)
 
 
-and printScope (indent: int) (scope: QsScope): string =
+and internal printScope (indent: int) (scope: QsScope): string =
     if scope.Statements.IsEmpty then "{ EmptyScope }"
     else
         let ws = String.replicate indent "    "
         sprintf "{\n" + (String.Join("", scope.Statements |> Seq.map (fun x -> printStm (indent+1) x.Statement + "\n"))) + ws + "}"
 
 
-let printSpecialization (s: QsSpecialization): string =
+let internal printSpecialization (s: QsSpecialization): string =
     let impl =
         match s.Implementation with 
         | Provided (a, b) ->
@@ -116,7 +116,7 @@ let printSpecialization (s: QsSpecialization): string =
     sprintf "        %O %O\n" s.Kind impl
 
 
-let rec printTypeKind (kind: TypeKind): string =
+let rec internal printTypeKind (kind: TypeKind): string =
     match kind with
     | UserDefinedType a -> a.Name.Value
     | TypeParameter a -> a.TypeName.Value
@@ -127,7 +127,7 @@ let rec printTypeKind (kind: TypeKind): string =
     | _ -> kind.ToString()
 
 
-let printNamespaceElem (elem: QsNamespaceElement): string =
+let internal printNamespaceElem (elem: QsNamespaceElement): string =
     match elem with
     | QsCallable a ->
         sprintf

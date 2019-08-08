@@ -16,7 +16,7 @@ open Printer
 
 
 /// The ExpressionTransformation used to evaluate constant expressions
-type ExpressionEvaluator(stateRef: TransformationState ref, maxRecursiveDepth: int) =
+type internal ExpressionEvaluator(stateRef: TransformationState ref, maxRecursiveDepth: int) =
     inherit ExpressionTransformation()
 
     member this.getFE() = { new FunctionEvaluator() with 
@@ -29,7 +29,7 @@ type ExpressionEvaluator(stateRef: TransformationState ref, maxRecursiveDepth: i
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] ExpressionKindEvaluator(stateRef: TransformationState ref, fe: FunctionEvaluator, maxRecursiveDepth: int) =
+and [<AbstractClass>] private ExpressionKindEvaluator(stateRef: TransformationState ref, fe: FunctionEvaluator, maxRecursiveDepth: int) =
     inherit ExpressionKindTransformation()
 
     member private this.simplify e1 = this.ExpressionTransformation e1
