@@ -68,27 +68,13 @@
     <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="16.0.2264" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="BuildSystem\Rules\folder.xaml">
-      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
-    </Page>
-    <Page Include="BuildSystem\Rules\general.xaml">
-      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
-    </Page>
-    <Page Include="BuildSystem\Rules\general_file.xaml">
-      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
-    </Page>
-    <Page Include="BuildSystem\Rules\none.xaml">
-      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
-    </Page>
-    <Page Include="BuildSystem\Rules\ProjectItemsSchema.xaml">
-      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
-    </Page>
-    <Page Include="BuildSystem\Rules\qsharp.xaml">
-      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
-    </Page>
-    <Page Include="BuildSystem\Rules\SourceControl.xaml">
-      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
-    </Page>
+    <XamlPropertyRule Include="BuildSystem\Rules\folder.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\general.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\general_file.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\none.xaml" />
+    <None Include="BuildSystem\Rules\ProjectItemsSchema.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\qsharp.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\SourceControl.xaml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibraryTemplate\LibraryTemplate.csproj">
