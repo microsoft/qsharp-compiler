@@ -11,18 +11,12 @@ PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
 
 namespace Microsoft.Quantum.QsProjectSystem
 {
-    using System;
     using System.ComponentModel.Composition;
     using System.Diagnostics.CodeAnalysis;
-    using System.Threading.Tasks;
-    using System.Threading.Tasks.Dataflow;
     using Microsoft.VisualStudio.ProjectSystem;
-    using Microsoft.VisualStudio.Shell;
-    using Microsoft.VisualStudio.Shell.Interop;
-    using Task = System.Threading.Tasks.Task;
 
     [Export]
-    [AppliesTo(MyUnconfiguredProject.UniqueCapability)]
+    [AppliesTo(QsUnconfiguredProject.UniqueCapability)]
     internal class MyConfiguredProject
     {
         [Import, SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode", Justification = "MEF")]

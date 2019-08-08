@@ -146,13 +146,8 @@
   Resources for our new project system
   -->
   <ItemGroup>
-    <EmbeddedResource Include="Resources.resx">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="MyConfiguredProject.cs" />
-    <Compile Include="MyUnconfiguredProject.cs" />
+    <Compile Include="ConfiguredProject.cs" />
+    <Compile Include="UnconfiguredProject.cs" />
     <Compile Include="ProjectProperties.cs" />
     <Compile Include="VsPackage.cs" />
     <Compile Include="ScriptDebuggerLaunchProvider.cs" />

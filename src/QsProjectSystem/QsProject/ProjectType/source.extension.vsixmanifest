@@ -3,7 +3,7 @@
     <Metadata>
         <Identity Id="QsProject.ProjectType..6e3f6702-c884-49b7-b7b8-2218b4b280c9" Version="1.0" Language="en-US" Publisher="QsProject.ProjectType" />
         <DisplayName>QSharp VSIX</DisplayName>
-        <Description xml:space="preserve">A template for creating a QSharp project.</Description>
+        <Description xml:space="preserve">A template for creating a Q# project.</Description>
     </Metadata>
     <Installation>
         <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="15.0" />

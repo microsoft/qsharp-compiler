@@ -11,21 +11,15 @@ PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
 
 namespace Microsoft.Quantum.QsProjectSystem
 {
-    using System;
     using System.ComponentModel.Composition;
-    using System.Diagnostics.CodeAnalysis;
-    using System.Threading.Tasks;
-    using System.Threading.Tasks.Dataflow;
     using Microsoft.VisualStudio.ProjectSystem;
     using Microsoft.VisualStudio.ProjectSystem.VS;
-    using Microsoft.VisualStudio.Shell;
     using Microsoft.VisualStudio.Shell.Interop;
-    using Task = System.Threading.Tasks.Task;
 
     [Export]
-    [AppliesTo(MyUnconfiguredProject.UniqueCapability)]
-    [ProjectTypeRegistration(VsPackage.ProjectTypeGuid, "QSharp Project", "QSharp Project Project Files (*.qsproj);*.qsproj", ProjectExtension, Language, resourcePackageGuid: VsPackage.PackageGuid, PossibleProjectExtensions = ProjectExtension)]
-    internal class MyUnconfiguredProject
+    [AppliesTo(QsUnconfiguredProject.UniqueCapability)]
+    [ProjectTypeRegistration(VsPackage.ProjectTypeGuid, "Q# Project", "Q# Project Files (*.qsproj);*.qsproj", ProjectExtension, Language, resourcePackageGuid: VsPackage.PackageGuid, PossibleProjectExtensions = ProjectExtension)]
+    internal class QsUnconfiguredProject
     {
         /// <summary>
         /// The file extension used by your project type.
@@ -46,7 +40,7 @@ namespace Microsoft.Quantum.QsProjectSystem
         internal const string Language = "QSharp";
 
         [ImportingConstructor]
-        public MyUnconfiguredProject(UnconfiguredProject unconfiguredProject)
+        public QsUnconfiguredProject(UnconfiguredProject unconfiguredProject)
         {
             this.ProjectHierarchies = new OrderPrecedenceImportCollection<IVsHierarchy>(projectCapabilityCheckProvider: unconfiguredProject);
         }
@@ -71,7 +65,7 @@ namespace Microsoft.Quantum.QsProjectSystem
 
         internal IVsHierarchy ProjectHierarchy
         {
-            get { return this.ProjectHierarchies.Single().Value; }
+            get => this.ProjectHierarchies.Single().Value;
         }
     }
 }

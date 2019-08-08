@@ -11,17 +11,17 @@ using Microsoft.VisualStudio.ProjectSystem.VS.Debug;
 namespace Microsoft.Quantum.QsProjectSystem
 {
     [ExportDebugger(ScriptDebugger.SchemaName)]
-    [AppliesTo(MyUnconfiguredProject.UniqueCapability)]
-    public class ScriptDebuggerLaunchProvider : DebugLaunchProviderBase
+    [AppliesTo(QsUnconfiguredProject.UniqueCapability)]
+    public class DebuggerLaunchProvider : DebugLaunchProviderBase
     {
         [ImportingConstructor]
-        public ScriptDebuggerLaunchProvider(ConfiguredProject configuredProject)
+        public DebuggerLaunchProvider(ConfiguredProject configuredProject)
             : base(configuredProject)
         {
         }
 
         [ExportPropertyXamlRuleDefinition("Microsoft.Quantum.QsProjectSystem, Version=1.0.0.0, Culture=neutral, PublicKeyToken=9be6e469bc4921f1", "XamlRuleToCode:ScriptDebugger.xaml", "Project")]
-        [AppliesTo(MyUnconfiguredProject.UniqueCapability)]
+        [AppliesTo(QsUnconfiguredProject.UniqueCapability)]
         private object DebuggerXaml { get { throw new NotImplementedException(); } }
 
         /// <summary>
