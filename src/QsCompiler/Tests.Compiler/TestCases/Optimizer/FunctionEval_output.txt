@@ -1,0 +1,58 @@
+namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
+    Function ArcSinh (x) : Double {
+        QsBody Intrinsic
+    }
+
+    Function f (x, w) : Int {
+        QsBody (x, w) {
+            let y = IntLiteral 1L;
+            let z = [IntLiteral 0L, IntLiteral 0L, IntLiteral 0L, IntLiteral 0L, IntLiteral 0L];
+            set LocalVariable z = (LocalVariable z w/= IntLiteral 0L <- LocalVariable x);
+            while (LocalVariable z[IntLiteral 0L] > IntLiteral 0L) {
+                set LocalVariable y = (LocalVariable y + LocalVariable w);
+                set LocalVariable z = (LocalVariable z w/= IntLiteral 0L <- (LocalVariable z[IntLiteral 0L] / IntLiteral 2L));
+            }
+            let b = IntLiteral 0L;
+            for a in LocalVariable z {
+                set LocalVariable b = (LocalVariable b + LocalVariable a);
+            }
+            return (LocalVariable y + LocalVariable b);
+        }
+    }
+
+    Function g1 (x) : Int {
+        QsBody (x) {
+            if (LocalVariable x = IntLiteral 0L) {
+                return IntLiteral 0L;
+            }
+            if (LocalVariable x = IntLiteral 1L) {
+                return IntLiteral 1L;
+            }
+            return ((GlobalCallable g1 of (LocalVariable x - IntLiteral 1L)) + (GlobalCallable g1 of (LocalVariable x - IntLiteral 2L)));
+        }
+    }
+
+    Function g2 (x) : Int {
+        QsBody (x) {
+            return ((LocalVariable x = IntLiteral 0L) ? IntLiteral 0L | ((LocalVariable x = IntLiteral 1L) ? IntLiteral 1L | ((GlobalCallable g2 of (LocalVariable x - IntLiteral 1L)) + (GlobalCallable g2 of (LocalVariable x - IntLiteral 2L)))));
+        }
+    }
+
+    Function mySin (x) : Double {
+        QsBody (x) {
+            let y = (GlobalCallable ArcSinh of LocalVariable x);
+            if (LocalVariable y = DoubleLiteral 0.0) {
+                return DoubleLiteral 2.0;
+            }
+            return (GlobalCallable ArcSinh of LocalVariable y);
+        }
+    }
+
+    Operation Test () : UnitType {
+        QsBody () {
+            let b = IntLiteral 9L;
+            let (c, d, e) = (IntLiteral 2L, IntLiteral 3L, IntLiteral 5L);
+            let s = (GlobalCallable mySin of DoubleLiteral 2.0);
+        }
+    }
+}

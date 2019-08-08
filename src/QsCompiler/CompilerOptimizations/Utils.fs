@@ -19,6 +19,8 @@ let internal (|?) = defaultArg
 type internal Expr = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
 /// Shorthand for a QsTypeKind
 type internal TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+/// Shorthand for a QsInitializerKind
+type internal InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
 
 
 /// Represents the global dictionary that maps names to callables
@@ -55,19 +57,6 @@ let rec internal isLiteral (expr: Expr) (cd: CallableDict): bool =
     | _ -> false
 
 
-/// Helper method to improve expression readability
-let rec internal prettyPrint (expr: Expr): string =
-    match expr with
-    | Identifier (LocalVariable a, _) -> "LocalVariable " + a.Value
-    | Identifier (GlobalCallable a, _) -> "GlobalCallable " + a.Name.Value
-    | CallLikeExpression (f, x) -> "(" + (prettyPrint f.Expression) + " of " + (prettyPrint x.Expression) + ")"
-    | ValueTuple a -> "(" + String.Join(", ", a |> Seq.map (fun x -> x.Expression) |> Seq.map prettyPrint) + ")"
-    | ValueArray a -> "[" + String.Join(", ", a |> Seq.map (fun x -> x.Expression) |> Seq.map prettyPrint) + "]"
-    | ADD (a, b) -> "(" + (prettyPrint a.Expression) + " + " + (prettyPrint b.Expression) + ")"
-    | a -> a.ToString()
-
-
-/// Converts a range literal to a sequence of integers
 let internal rangeLiteralToSeq (r: Expr): seq<int64> =
     match r with
     | RangeLiteral (a, b) ->
@@ -109,13 +98,13 @@ type internal VariablesDict() =
             "{" + String.Join(", ", x |> Seq.map (fun y -> y.Key + "=" + y.Value.ToString())) + "}"
         )) + "]"
 
-        
+
 /// Represents a (possibly-nested) tuple of strings.
 /// Used as a way to compare QsTuples and SymbolTuples.
 type internal StringTuple =
 | SingleItem of string
 | MultipleItems of seq<StringTuple>
-        
+
     static member fromQsTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): StringTuple =
         match x with
         | QsTupleItem item ->
@@ -123,7 +112,7 @@ type internal StringTuple =
             | ValidName n -> SingleItem n.Value
             | InvalidName -> SingleItem "__invalid__"
         | QsTuple items -> MultipleItems (Seq.map StringTuple.fromQsTuple items)
-            
+
     static member fromSymbolTuple (x: SymbolTuple): StringTuple =
         match x with
         | InvalidItem -> SingleItem "__invalid__"
@@ -135,8 +124,8 @@ type internal StringTuple =
         match this with
         | SingleItem item -> item
         | MultipleItems items -> "(" + String.Join(", ", items) + ")"
-        
-        
+
+
 /// Modifies the VariablesDict by setting the given argument tuple to the given values
 let rec internal fillVars (vars: VariablesDict) (argTuple: StringTuple, arg: Expr): unit =
     match argTuple with
@@ -209,7 +198,7 @@ let rec private fillPartialArg (partialArg: TypedExpression, arg: list<TypedExpr
         let newPa = wrapExpr (ValueTuple (ImmutableArray.CreateRange newList)) partialArg.ResolvedType.Resolution
         newPa, newArg
     | _ -> partialArg, arg
-    
+
 /// Transforms a partially-application call by replacing missing values with the new arguments
 let internal partialApplyFunction (baseMethod: TypedExpression) (partialArg: TypedExpression) (arg: TypedExpression): Expr =
     let argsList =
@@ -217,9 +206,9 @@ let internal partialApplyFunction (baseMethod: TypedExpression) (partialArg: Typ
         match arg.Expression with
         | ValueTuple vt ->
             if countMissingExprs partialArg <> vt.Length
-            then failwithf "Invalid number of arguments: %O doesn't match %O" (prettyPrint arg.Expression) (prettyPrint partialArg.Expression)
+            then failwithf "Invalid number of arguments: %O doesn't match %O" arg.Expression partialArg.Expression
             else List.ofSeq vt
-        | _ -> failwithf "Invalid arg: %O" (prettyPrint arg.Expression)
+        | _ -> failwithf "Invalid arg: %O" arg.Expression
     CallLikeExpression (baseMethod, fst (fillPartialArg (partialArg, argsList)))
 
 
@@ -236,4 +225,16 @@ let internal longPow (a: int64) (b: int64): int64 =
         x <- x * x
         power <- power >>> 1
     returnValue
+
+
+/// Returns the intial part of the list that satisfies the given condition, just as List.takeWhile().
+/// Also returns the first item that doesn't satisfy the given condition, or if all items satisfy the condition, returns None.
+let rec internal takeWhilePlus1 (f: 'A -> bool) (l : list<'A>) =
+    match l with
+    | first :: rest ->
+        if f first then
+            let a, b = takeWhilePlus1 f rest
+            first :: a, b
+        else [], Some first
+    | [] -> [], None
 

@@ -1,18 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\Common\AssemblyCommon.props" />
+
   <PropertyGroup>
+    <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>Microsoft.Quantum.QsCompilerOptimizations</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Common\DelaySign.fs">
+      <Link>DelaySign.fs</Link>
+    </Compile>    
     <Compile Include="Utils.fs" />
+    <Compile Include="Printer.fs" />
     <Compile Include="FunctionEvaluation.fs" />
     <Compile Include="ExpressionEvaluation.fs" />
     <Compile Include="ConstantPropagation.fs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="NETStandard.Library" Version="2.0.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,4 +24,8 @@
     <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.6.2" />
+  </ItemGroup>
+  
 </Project>

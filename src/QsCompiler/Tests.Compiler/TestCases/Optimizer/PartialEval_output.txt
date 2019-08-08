@@ -1,0 +1,35 @@
+namespace Microsoft.Quantum.Testing.Optimization.PartialEval {
+    Function M (q) : Result {
+        QsBody Intrinsic
+    }
+
+    Function h (a, b, c) : Int {
+        QsBody (a, b, c) {
+            return ((LocalVariable a + LocalVariable b) + LocalVariable c);
+        }
+    }
+
+    Function k (a, fun) : Int {
+        QsBody (a, fun) {
+            return (LocalVariable fun of (LocalVariable a, LocalVariable a));
+        }
+    }
+
+    Operation Test () : UnitType {
+        QsBody () {
+            let t = (GlobalCallable k of (MissingExpr, (GlobalCallable h of (MissingExpr, IntLiteral 3L, MissingExpr))));
+            let u = IntLiteral 7L;
+            let v = IntLiteral 15L;
+            let m = (GlobalCallable MyInt of IntLiteral 5L);
+            let n = IntLiteral 5L;
+            let o = (GlobalCallable M of IntLiteral 2L);
+            let p = (LocalVariable o = ResultLiteral One);
+        }
+    }
+
+    TypeConstructor MyInt (__Item1__) : MyInt {
+        QsBody Intrinsic
+    }
+
+    newtype MyInt = Int;
+}
