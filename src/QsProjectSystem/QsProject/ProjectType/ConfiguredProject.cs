@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsProjectSystem
 
     [Export]
     [AppliesTo(QsUnconfiguredProject.UniqueCapability)]
-    internal class MyConfiguredProject
+    internal class QsConfiguredProject
     {
         [Import, SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode", Justification = "MEF")]
         internal ConfiguredProject ConfiguredProject { get; private set; }

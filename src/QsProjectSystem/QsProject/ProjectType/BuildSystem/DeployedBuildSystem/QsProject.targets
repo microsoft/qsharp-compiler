@@ -13,7 +13,7 @@
 
   <!-- Capabilities for this project.  Conditions should be based on platform|configuration only. -->
   <ItemGroup>
-    <ProjectCapability Include="QsProject" />
+    <ProjectCapability Include="QSharpProject" />
     <ProjectCapability Include="UseFileGlobs" />
     <ProjectCapability Include="OpenProjectFile" />
     <ProjectCapability Include="HandlesOwnReload" />

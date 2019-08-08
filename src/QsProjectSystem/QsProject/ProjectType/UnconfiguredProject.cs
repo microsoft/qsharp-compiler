@@ -18,9 +18,13 @@ namespace Microsoft.Quantum.QsProjectSystem
 
     [Export]
     [AppliesTo(QsUnconfiguredProject.UniqueCapability)]
-    [ProjectTypeRegistration(VsPackage.ProjectTypeGuid, "Q# Project", "Q# Project Files (*.qsproj);*.qsproj", ProjectExtension, Language, resourcePackageGuid: VsPackage.PackageGuid, PossibleProjectExtensions = ProjectExtension)]
+    [ProjectTypeRegistration(
+        VsPackage.ProjectTypeGuid, "Q# Project", "Q# Project Files (*.qsproj);*.qsproj", 
+        ProjectExtension, Language, resourcePackageGuid: VsPackage.PackageGuid, PossibleProjectExtensions = ProjectExtension)]
     internal class QsUnconfiguredProject
     {
+        internal const string Language = "Q♯";
+
         /// <summary>
         /// The file extension used by your project type.
         /// This does not include the leading period.
@@ -35,15 +39,11 @@ namespace Microsoft.Quantum.QsProjectSystem
         /// <remarks>
         /// This value should be kept in sync with the capability as actually defined in your .targets.
         /// </remarks>
-        internal const string UniqueCapability = "QsProject";
-
-        internal const string Language = "QSharp";
+        internal const string UniqueCapability = "QSharpProject";
 
         [ImportingConstructor]
-        public QsUnconfiguredProject(UnconfiguredProject unconfiguredProject)
-        {
+        public QsUnconfiguredProject(UnconfiguredProject unconfiguredProject) =>
             this.ProjectHierarchies = new OrderPrecedenceImportCollection<IVsHierarchy>(projectCapabilityCheckProvider: unconfiguredProject);
-        }
 
         [Import]
         internal UnconfiguredProject UnconfiguredProject { get; private set; }
@@ -58,14 +58,12 @@ namespace Microsoft.Quantum.QsProjectSystem
         internal ActiveConfiguredProject<ConfiguredProject> ActiveConfiguredProject { get; private set; }
 
         [Import]
-        internal ActiveConfiguredProject<MyConfiguredProject> MyActiveConfiguredProject { get; private set; }
+        internal ActiveConfiguredProject<QsConfiguredProject> MyActiveConfiguredProject { get; private set; }
 
         [ImportMany(ExportContractNames.VsTypes.IVsProject, typeof(IVsProject))]
         internal OrderPrecedenceImportCollection<IVsHierarchy> ProjectHierarchies { get; private set; }
 
-        internal IVsHierarchy ProjectHierarchy
-        {
-            get => this.ProjectHierarchies.Single().Value;
-        }
+        internal IVsHierarchy ProjectHierarchy =>
+            this.ProjectHierarchies.Single().Value;
     }
 }

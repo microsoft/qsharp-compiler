@@ -4,7 +4,7 @@
     <Name>Q# Library</Name>
     <Description>A template for creating a Q# Library project.</Description>
     <Icon>QsProject.ico</Icon>
-    <ProjectType>QSharp</ProjectType>
+    <ProjectType>Q♯</ProjectType>
     <RequiredFrameworkVersion>4.5.2</RequiredFrameworkVersion>
     <SortOrder>1</SortOrder>
     <TemplateID>{adb07300-8a0e-465d-9075-7bd42f2dd612}</TemplateID>
