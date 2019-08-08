@@ -25,13 +25,11 @@
                         ">
       <Context>Project</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="
-                        $(MSBuildThisFileDirectory)Rules\ProjectItemsSchema.xaml;
-                        "/>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ProjectItemsSchema.xaml"/>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\general_file.xaml">
       <Context>File</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\scc.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\SourceControl.xaml">
       <Context>Invisible</Context>
     </PropertyPageSchema>
 
@@ -42,15 +40,8 @@
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
 
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\general.browseobject.xaml">
-      <Context>BrowseObject</Context>
-    </PropertyPageSchema>
-
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\script.xaml;">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\Compile.xaml;">
       <Context>File</Context>
-    </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\script.browseobject.xaml;">
-      <Context>BrowseObject</Context>
     </PropertyPageSchema>
   </ItemGroup>
 

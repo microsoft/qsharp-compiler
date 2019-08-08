@@ -5,8 +5,8 @@
   </PropertyGroup>
   <Import Project="$(CustomProjectExtensionsPath)QsProject.props" />
   <ItemGroup>
-    <Script Include="**\*.js" />
-    <Script Include="**\*.vbs" />
+    <Compile Include="**\*.js" />
+    <Compile Include="**\*.vbs" />
   </ItemGroup>
   <Import Project="$(CustomProjectExtensionsPath)QsProject.targets" />
 </Project>

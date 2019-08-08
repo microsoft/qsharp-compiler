@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" xmlns:sdk="http://schemas.microsoft.com/developer/vstemplate-sdkextension/2010">
+  <TemplateData>
+    <Name>Q# Library</Name>
+    <Description>A template for creating a Q# Library project.</Description>
+    <Icon>mobius_strip_icon.png</Icon>
+    <ProjectType>Q♯</ProjectType>
+    <SortOrder>1000</SortOrder>
+    <TemplateID>b68c81b4-8929-433a-93a1-0d3ded332216</TemplateID>
+    <CreateNewFolder>true</CreateNewFolder>
+    <DefaultName>QuantumLibrary</DefaultName>
+    <ProvideDefaultName>true</ProvideDefaultName>
+  </TemplateData>
+  <TemplateContent>
+    <Project File="ProjectTemplate.qsproj" ReplaceParameters="true">
+      <ProjectItem ReplaceParameters="true" OpenInEditor="true">Operations.qs</ProjectItem>
+    </Project>
+  </TemplateContent>
+</VSTemplate>
+

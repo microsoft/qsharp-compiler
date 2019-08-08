@@ -68,11 +68,11 @@
     <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="16.0.2264" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="BuildSystem\Rules\folder.xaml">
+    <Page Include="BuildSystem\Rules\Compile.xaml">
       <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="BuildSystem\Rules\general.browseobject.xaml">
+    <Page Include="BuildSystem\Rules\folder.xaml">
       <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -92,23 +92,15 @@
       <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="BuildSystem\Rules\scc.xaml">
-      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\script.browseobject.xaml">
-      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\script.xaml">
+    <Page Include="BuildSystem\Rules\SourceControl.xaml">
       <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\QsProject.ProjectTemplate\QsProject.ProjectTemplate.csproj">
-      <Project>{66F44436-D10C-49C1-A867-57850004B07D}</Project>
-      <Name>QsProject.ProjectTemplate</Name>
+    <ProjectReference Include="..\LibraryTemplate\LibraryTemplate.csproj">
+      <Project>{1573B7C7-2392-40A0-87B4-7C70A98CE719}</Project>
+      <Name>LibraryTemplate</Name>
       <VSIXSubPath>ProjectTemplates</VSIXSubPath>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
