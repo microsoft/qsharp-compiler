@@ -429,7 +429,12 @@ namespace Microsoft.Quantum.QsCompiler
         {
             byte[] binary = File.ReadAllBytes(Path.GetFullPath(file));
             var ms = new MemoryStream(binary);
-            using (var reader = new BsonDataReader(ms))
+            return ReadBinary(ms);
+        }
+
+        public static IEnumerable<QsNamespace> ReadBinary(Stream stream)
+        {
+            using (var reader = new BsonDataReader(stream))
             {
                 reader.ReadRootValueAsArray = true;
                 var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
