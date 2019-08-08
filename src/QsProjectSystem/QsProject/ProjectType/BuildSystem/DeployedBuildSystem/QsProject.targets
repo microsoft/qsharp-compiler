@@ -29,11 +29,6 @@
     <PropertyPageSchema Include="
                         $(MSBuildThisFileDirectory)Rules\ProjectItemsSchema.xaml;
                         "/>
-    <PropertyPageSchema Include="
-                        $(MSBuildThisFileDirectory)Rules\debugger_general.xaml;
-                        ">
-      <Context>Project</Context>
-    </PropertyPageSchema>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\general_file.xaml">
       <Context>File</Context>
     </PropertyPageSchema>

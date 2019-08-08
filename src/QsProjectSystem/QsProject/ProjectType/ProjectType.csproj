@@ -150,7 +150,6 @@
     <Compile Include="UnconfiguredProject.cs" />
     <Compile Include="ProjectProperties.cs" />
     <Compile Include="VsPackage.cs" />
-    <Compile Include="ScriptDebuggerLaunchProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -196,9 +195,6 @@
     <XamlPropertyRule Include="BuildSystem\Rules\scc.xaml">
       <SubType>Designer</SubType>
     </XamlPropertyRule>
-    <XamlPropertyRule Include="BuildSystem\Rules\debugger_general.xaml">
-      <SubType>Designer</SubType>
-    </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\general.browseobject.xaml">
       <SubType>Designer</SubType>
     </XamlPropertyRule>
@@ -208,9 +204,6 @@
     <None Include="BuildSystem\Rules\script.browseobject.xaml">
       <SubType>Designer</SubType>
     </None>
-    <XamlPropertyRule Include="BuildSystem\Rules\ScriptDebugger.xaml">
-      <SubType>Designer</SubType>
-    </XamlPropertyRule>
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\..\packages\Microsoft.VisualStudio.ProjectSystem.Analyzers.15.8.243\analyzers\Microsoft.VisualStudio.ProjectSystem.Analyzers.dll" />
