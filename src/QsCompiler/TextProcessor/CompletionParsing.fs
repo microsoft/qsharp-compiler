@@ -87,6 +87,10 @@ let private (<|>@) p1 p2 =
 let private eot =
     pchar '\u0004'
 
+/// Parses EOT (or checks if EOT was the last character consumed), followed by EOF.
+let private eotEof =
+    previousCharSatisfies ((=) '\u0004') <|> (eot >>% ()) .>> eof
+
 /// Parses a symbol. Includes reserved keywords if the keyword is followed immediately by EOT without any whitespace
 /// (i.e., a possibly incomplete symbol that happens to start with a keyword). Does not consume whitespace.
 let private symbol =
@@ -258,7 +262,7 @@ let private namespaceTopLevel =
         operationDeclaration
         udtDeclaration
         openDirective
-    ]  // TODO: .>> eof
+    ] .>> eotEof
 
 /// Parses an expression.
 let (private expression, private expressionImpl) = createParserForwardedToRef()
@@ -367,7 +371,7 @@ do expressionImpl :=
 
 /// Parses a statement.
 let private statement =
-    expression  // TODO: .>> eof
+    expression .>> eotEof
 
 /// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
 /// of the text.
