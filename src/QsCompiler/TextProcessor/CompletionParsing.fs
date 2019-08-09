@@ -145,6 +145,11 @@ let private manyR p stream =
 let private manyLast p =
     many p |>> List.tryLast |>> Option.defaultValue []
 
+/// Parses zero or more occurrences of `p` separated by `sep` and returns only the result of the last item, or the empty
+/// list if no items were parsed.
+let private sepByLast p sep =
+    sepBy p sep |>> List.tryLast |>> Option.defaultValue []
+
 /// Parses brackets around `p`. The right bracket is optional if EOT occurs first.
 let private brackets (left, right) p =
     bracket left >>. p ?>> expected (bracket right)
@@ -218,7 +223,7 @@ let private callableSignature =
     let name = expectedId Declaration (term symbol)
     let typeAnnotation = expected colon ?>> qsType
     let typeParam = expected (pchar '\'') ?>> expectedId Declaration (term symbol)
-    let typeParamList = angleBrackets (sepBy typeParam comma |>> List.tryLast |>> Option.defaultValue [])
+    let typeParamList = angleBrackets (sepByLast typeParam comma)
     let argumentTuple = expected unitValue <|> tuple (name ?>> typeAnnotation)
     name ?>> (typeParamList <|>% []) ?>> argumentTuple ?>> typeAnnotation
 
@@ -253,7 +258,7 @@ let private namespaceTopLevel =
         operationDeclaration
         udtDeclaration
         openDirective
-    ]
+    ]  // TODO: .>> eof
 
 /// Parses an expression.
 let (private expression, private expressionImpl) = createParserForwardedToRef()
@@ -272,7 +277,6 @@ let private infixOp =
         operator qsBANDop.op None
         operator qsEQop.op None
         operator qsNEQop.op None
-        operator qsLTEop.op None
         operator qsGTEop.op None
         operator qsLTop.op (Some (notFollowedBy (pchar '-')))
         operator qsGTop.op None
@@ -297,6 +301,10 @@ let private postfixOp =
         expression ?>>
         expected (operator qsConditionalOp.cont None) ?>>
         expression
+    let typeParamListOrLessThan =
+        // This is a parsing hack for the < operator, which can be either less-than or the start of a type parameter
+        // list.
+        angleBrackets (sepByLast qsType comma) <|>@ (operator qsLTop.op None >>. expression)
     choice [
         operator qsUnwrapModifier.op (Some (notFollowedBy (pchar '=')))
         operator qsOpenRangeOp.op None .>> optional eot
@@ -306,6 +314,7 @@ let private postfixOp =
         (unitValue >>% [])
         tuple expression
         array expression
+        typeParamListOrLessThan
     ]
     
 /// Parses any expression term.
@@ -358,7 +367,7 @@ do expressionImpl :=
 
 /// Parses a statement.
 let private statement =
-    expression
+    expression  // TODO: .>> eof
 
 /// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
 /// of the text.

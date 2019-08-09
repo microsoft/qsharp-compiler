@@ -257,9 +257,9 @@ let ``Expression statement parser tests`` () =
     test "x > " expression
     test "x > y" expression
     test "x > y " infix
-    test "x <" expression
-    test "x < " expression
-    test "x < y" expression
+    test "x <" (expression @ types)
+    test "x < " (expression @ types)
+    test "x < y" (expression @ types)
     test "x < y " infix
     test "x &&&" expression
     test "x &&& " expression
@@ -285,6 +285,29 @@ let ``Expression statement parser tests`` () =
     test "Foo(1.2)" infix
     test "Foo(-0.111)" infix
     test "Foo(2, 1.2, -0.111)" infix
+    test "Foo<" (expression @ types)
+    test "Foo<>" infix
+    test "Foo<>(" expression
+    test "Foo<>(2" []
+    test "Foo<>(2," expression
+    test "Foo<>(2, " expression
+    test "Foo<>(2, f" expression
+    test "Foo<>(2, false" expression
+    test "Foo<>(2, false)" infix
+    test "Foo<I" (expression @ types)
+    test "Foo<Int" (expression @ types)
+    test "Foo<Int>" infix
+    test "Foo<Int," types
+    test "Foo<Int, " types
+    test "Foo<Int, B" types
+    test "Foo<Int, Bool>" infix
+    test "Foo<Int, Bool>(" expression
+    test "Foo<Int, Bool>(2" []
+    test "Foo<Int, Bool>(2," expression
+    test "Foo<Int, Bool>(2, " expression
+    test "Foo<Int, Bool>(2, f" expression
+    test "Foo<Int, Bool>(2, false" expression
+    test "Foo<Int, Bool>(2, false)" infix
     test "Adjoint" expression
     test "Adjoint " [Keyword "Adjoint"; Keyword "Controlled"; Variable]
     test "Adjoint Foo" [Keyword "Adjoint"; Keyword "Controlled"; Variable]
@@ -317,6 +340,7 @@ let ``Expression statement parser tests`` () =
     test "x[y]" infix
     test "x[Length" expression
     test "x[Length(" expression
+    test "x[Length(x" expression
     test "x[Length(x)" infix
     test "x[Length(x) -" expression
     test "x[Length(x) - " expression
@@ -337,6 +361,7 @@ let ``Expression statement parser tests`` () =
     test "(Foo())[y]" infix
     test "(Foo())[Length" expression
     test "(Foo())[Length(" expression
+    test "(Foo())[Length(x" expression
     test "(Foo())[Length(x)" infix
     test "(Foo())[Length(x) -" expression
     test "(Foo())[Length(x) - " expression
