@@ -20,7 +20,9 @@
     <None Include="TestCases\Optimizer\FunctionEval_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <Content Include="TestCases\Optimizer\Inlining_output.txt" />
+    <None Include="TestCases\Optimizer\Inlining_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\Optimizer\LoopUnrolling_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
