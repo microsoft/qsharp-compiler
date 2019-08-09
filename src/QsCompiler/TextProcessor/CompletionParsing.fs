@@ -48,6 +48,13 @@ exception CompletionParserError of detail : string * error : ParserError with
     override this.Message = this.error.ToString()
     override this.ToString() = this.detail
 
+/// Merges the error messages from all replies in the list.
+let rec private toErrorMessageList (replies : Reply<'a> list) =
+    match replies with
+    | reply :: tail when reply.Status = Ok -> toErrorMessageList tail
+    | reply :: tail -> ErrorMessageList.Merge (reply.Error, toErrorMessageList tail)
+    | [] -> null
+
 /// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and returns
 /// the result of `p2`.
 let private (?>>) p1 p2 =
@@ -63,13 +70,10 @@ let private (@>>) p1 p2 =
 /// The parser state after running this parser is the state after running the first parser in the sequence that
 /// succeeds.
 let private pcollect ps stream =
-    let successes =
-        ps |>
-        Seq.map (fun p -> (p, lookAhead p stream)) |>
-        Seq.filter (fun (_, reply) -> reply.Status = Ok) |>
-        Seq.toList
+    let replies = ps |> Seq.map (fun p -> (p, lookAhead p stream)) |> Seq.toList
+    let successes = replies |> List.filter (fun (_, reply) -> reply.Status = Ok)
     if List.isEmpty successes then
-        Reply (Error, ErrorMessageList (Message "No parser in pcollect succeeded"))
+        Reply (Error, toErrorMessageList (List.map snd replies))
     else
         let results = successes |> List.map snd |> List.collect (fun reply -> reply.Result)
         let p = List.head successes |> fst
