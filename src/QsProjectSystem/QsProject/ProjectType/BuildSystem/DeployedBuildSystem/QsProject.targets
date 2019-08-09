@@ -19,31 +19,24 @@
     <ProjectCapability Include="ProjectConfigurationsDeclaredAsItems" />
   </ItemGroup>
 
+  <!--see https://github.com/microsoft/VSProjectSystem/blob/master/doc/extensibility/adding_xaml_rules.md -->
   <ItemGroup>
-    <PropertyPageSchema Include="
-                        $(MSBuildThisFileDirectory)Rules\general.xaml;
-                        ">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ProjectItemsSchema.xaml"/>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\solution.xaml">
       <Context>Project</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ProjectItemsSchema.xaml"/>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\general_file.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\projectItem.xaml">
       <Context>File</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\SourceControl.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\sourceControl.xaml">
       <Context>Invisible</Context>
     </PropertyPageSchema>
-
-    <PropertyPageSchema Include="
-                        $(MSBuildThisFileDirectory)Rules\folder.xaml;
-                        $(MSBuildThisFileDirectory)Rules\none.xaml;
-                        ">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\folder.xaml;$(MSBuildThisFileDirectory)Rules\none.xaml;">
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
-
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\qsharp.xaml;">
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
-
   </ItemGroup>
 
   <Import Project="$(MSBuildProjectFullPath).user" Condition="Exists('$(MSBuildProjectFullPath).user')" />

@@ -4,11 +4,22 @@
 	Name="None"
 	DisplayName="General"
 	PageTemplate="generic"
-	Description="Non-build items"
+	Description="File Properties"
 	xmlns="http://schemas.microsoft.com/build/2009/properties">
     <Rule.DataSource>
         <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" ItemType="None" />
     </Rule.DataSource>
+
+    <!--StringProperty Name="BuildAction" DisplayName="Build Action" ReadOnly="true" Category="Advanced">
+        <StringProperty.DataSource>
+            <DataSource Persistence="Intrinsic" ItemType="QsCompile" PersistedName="Identity" />
+        </StringProperty.DataSource>
+    </StringProperty>
+    <StringProperty Name="CopyToOutput" DisplayName="Copy To Output Directory" ReadOnly="true" Category="Misc">
+        <StringProperty.DataSource>
+            <DataSource Persistence="Intrinsic" ItemType="QsCompile" PersistedName="Identity" />
+        </StringProperty.DataSource>
+    </StringProperty-->
 
     <StringProperty Name="Identity" DisplayName="File Name" ReadOnly="true" Category="Misc">
         <StringProperty.DataSource>

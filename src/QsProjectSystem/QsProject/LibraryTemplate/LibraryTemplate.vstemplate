@@ -5,15 +5,16 @@
     <Description>A template for creating a Q# Library project.</Description>
     <Icon>mobius_strip_icon.png</Icon>
     <ProjectType>Q♯</ProjectType>
-    <SortOrder>1000</SortOrder>
+    <SortOrder>1</SortOrder>
     <TemplateID>b68c81b4-8929-433a-93a1-0d3ded332216</TemplateID>
     <CreateNewFolder>true</CreateNewFolder>
     <DefaultName>QuantumLibrary</DefaultName>
     <ProvideDefaultName>true</ProvideDefaultName>
+    <CreateInPlace>true</CreateInPlace>
   </TemplateData>
   <TemplateContent>
-    <Project File="ProjectTemplate.qsproj" ReplaceParameters="true">
-      <ProjectItem ReplaceParameters="true" OpenInEditor="true">Operations.qs</ProjectItem>
+    <Project File="LibraryTemplate.qsproj" ReplaceParameters="true">
+      <ProjectItem ReplaceParameters="true" OpenInEditor="true" TargetFileName="$projectname$.qs">Transformation.qs</ProjectItem>
     </Project>
   </TemplateContent>
 </VSTemplate>

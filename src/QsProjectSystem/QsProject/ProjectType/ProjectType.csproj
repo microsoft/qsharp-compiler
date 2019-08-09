@@ -75,12 +75,12 @@
   </ItemGroup>
   <ItemGroup>
     <XamlPropertyRule Include="BuildSystem\Rules\folder.xaml" />
-    <XamlPropertyRule Include="BuildSystem\Rules\general.xaml" />
-    <XamlPropertyRule Include="BuildSystem\Rules\general_file.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\solution.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\projectItem.xaml" />
     <XamlPropertyRule Include="BuildSystem\Rules\none.xaml" />
     <None Include="BuildSystem\Rules\ProjectItemsSchema.xaml" />
     <XamlPropertyRule Include="BuildSystem\Rules\qsharp.xaml" />
-    <XamlPropertyRule Include="BuildSystem\Rules\SourceControl.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\sourceControl.xaml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FileTemplate\FileTemplate.csproj">

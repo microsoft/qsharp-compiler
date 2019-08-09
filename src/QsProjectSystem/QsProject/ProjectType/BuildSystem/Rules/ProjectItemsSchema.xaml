@@ -11,7 +11,7 @@
 
     <ContentType
         Name="Markdown"
-        DisplayName="Documentation file"
+        DisplayName="Documentation"
         ItemType="None">
     </ContentType>
 
