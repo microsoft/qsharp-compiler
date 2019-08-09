@@ -12,11 +12,12 @@ open Utils
 open Printer
 
 
-
+/// An interrupt that stops normal function evaluation
 type private FunctionInterrupt =
-| Returned of Expr
-| Failed of Expr
-| CouldNotEvaluate of string
+| Returned of Expr // The function is returning a value
+| Failed of Expr // The function is throwing an exception
+| CouldNotEvaluate of string // I couldn't evaluate the function
+/// The current state of a function evaluation
 type private FunctionState = Result<TransformationState, FunctionInterrupt>
 
 

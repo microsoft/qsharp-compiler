@@ -25,22 +25,27 @@ type internal TransformationState = {
     currentCallable: QsCallable option
 }
 
+/// Creates a new TransformationState with the given compiledCallables
 let internal newState compiledCallables =
     {compiledCallables = compiledCallables; scopeStack = []; currentCallable = None}
 
 
+/// Gets the QsCallable with the given qualified name
 let internal getCallable state qualName =
     state.compiledCallables.[qualName]
 
 
+/// Returns a TransformationState inside of a new scope
 let internal enterScope state =
     {state with scopeStack = Map.empty :: state.scopeStack}
 
+/// Returns a TransformationState outside of the current scope
 let internal exitScope state =
     match state.scopeStack with
     | _ :: tail -> {state with scopeStack = tail}
     | [] -> failwithf "No scope to exit"
 
+/// Gets the current value of the given variable
 let internal getVar state name =
     state.scopeStack |> List.tryPick (Map.tryFind name)
     
@@ -61,6 +66,7 @@ let rec internal isLiteral (state: TransformationState) (expr: Expr): bool =
     | _ -> false
 
 
+/// Returns a TransformationState with the given variable defined as the given value
 let internal defineVar state (name, value) =
     if not (isLiteral state value) then state else
     // TODO: assert variable is undefined
@@ -69,7 +75,8 @@ let internal defineVar state (name, value) =
         let newHead = head.Add (name, value)
         {state with scopeStack = newHead :: tail}
     | [] -> failwithf "No scope to define variables in"
-    
+
+/// Returns a TransformationState with the given variable set to the given value
 let internal setVar state (name, value) =
     if not (isLiteral state value) then state else
     // TODO: assert variable is defined, is same type
@@ -79,6 +86,7 @@ let internal setVar state (name, value) =
         {state with scopeStack = newScopeStack}
     | None -> failwithf "Variable %s is undefined" name
 
+/// Applies on of the operations above on a SymbolTuple, ValueTuple pair
 let rec private onTuple op state (names, values) =
     match names, values with
     | VariableName name, _ ->
@@ -88,7 +96,9 @@ let rec private onTuple op state (names, values) =
         Seq.zip namesTuple (Seq.map (fun x -> x.Expression) valuesTuple) |> Seq.fold (onTuple op) state
     | _ -> state
 
+/// Returns a TransformationState with the given variables defined as the given values
 let internal defineVarTuple = onTuple defineVar
 
+/// Returns a TransformationState with the given variables set to the given values
 let internal setVarTuple = onTuple setVar
 

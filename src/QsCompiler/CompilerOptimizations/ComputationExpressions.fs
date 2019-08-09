@@ -45,6 +45,7 @@ let internal maybe = MaybeBuilder()
 let internal check x = if x then Some () else None
 
 
+/// The continuation monad. Returns an Error if any of the lines are Errors.
 type internal ResultBuilder() =
 
     member this.Return(x) = Ok x

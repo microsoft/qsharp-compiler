@@ -75,12 +75,14 @@ and private defaultValue (bt: TypeKind): Expr option =
     | _ -> None
 
 
+/// Returns true if the given expression contains any MissingExprs
 let rec internal hasMissingExprs (expr: TypedExpression): bool =
     match expr.Expression with
     | MissingExpr -> true
     | ValueTuple vt -> Seq.exists hasMissingExprs vt
     | _ -> false
 
+/// Fills a partial argument by replacing MissingExprs with the corresponding values of a tuple
 let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpression): TypedExpression =
     match partialArg with
     | Missing -> arg
@@ -129,6 +131,9 @@ let rec internal takeWhilePlus1 (f: 'A -> bool) (l : list<'A>) =
     | [] -> [], None
 
 
+/// Returns all the "bottom-level" statements in the current scope.
+/// Bottom-level statements are defined as those that don't contain their own scopes.
+/// This function recurses through all the subscopes of the current scope.
 let rec private findAllBaseStatements (scope: QsScope): seq<QsStatementKind> =
     scope.Statements |> Seq.collect (fun s ->
         match s.Statement with
@@ -148,13 +153,17 @@ let rec private findAllBaseStatements (scope: QsScope): seq<QsStatementKind> =
         | x -> Seq.singleton x
     )
 
+/// Returns whether this scope contains any return statement
 let rec internal hasReturnStatement (scope: QsScope): bool =
     scope |> findAllBaseStatements |> Seq.exists (function QsReturnStatement _ -> true | _ -> false)
 
+/// Returns the number of "bottom-level" statements in this scope
 let rec internal scopeLength (scope: QsScope): int =
     scope |> findAllBaseStatements |> Seq.length
 
 
+/// Tries to inline the given expression, checking whether it's valid to do so.
+/// Returns the name of the callable and the modified scope after inlining.
 let internal tryInline (state: TransformationState) (ex: TypedExpression) =
     maybe {
         let! expr, arg =
@@ -186,6 +195,9 @@ let internal tryInline (state: TransformationState) (ex: TypedExpression) =
         return qualName, {scope with Statements = newStatements}
     }
 
+/// Finds all the callables that could appear below this scope in the call stack.
+/// Mutates the given HashSet by adding all the found callables to the set.
+/// Is used to prevent inlining recursive functions into themselves forever.
 let rec internal findAllCalls (state: TransformationState) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
     scope |> findAllBaseStatements |> Seq.map (function
         | QsExpressionStatement ex ->
