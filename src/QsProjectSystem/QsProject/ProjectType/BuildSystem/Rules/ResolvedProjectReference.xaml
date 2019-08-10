@@ -35,29 +35,7 @@
         </StringProperty.DataSource>
     </StringProperty>
 
-    <!--EnumProperty Name="PackageDirectory"
-                  DisplayName="Package directory"
-                  Category="Advanced"
-                  Description="The directory to receive the output of this reference.">
-        <EnumProperty.DataSource>
-            <DataSource Persistence="ProjectFile" ItemType="ProjectReference" HasConfigurationCondition="False" />
-        </EnumProperty.DataSource>
-        <EnumValue Name="Lib" DisplayName="lib" />
-        <EnumValue Name="Tools" DisplayName="tools" />
-        <EnumValue Name="Analyzers" DisplayName="analyzers" />
-    </>
-
-    <StringProperty Name="TargetSubdirectory"
-                    DisplayName="Target subdirectory"
-                    Category="Advanced"
-                    Description="The target subdirectory (usually under Package directory + Target framework) to receive the output of this reference.">
-        <StringProperty.DataSource>
-            <DataSource Persistence="ProjectFile" ItemType="ProjectReference" HasConfigurationCondition="False" />
-        </StringProperty.DataSource>
-    </StringProperty>
-
-
-    <StringProperty Name="Version"
+    <!--StringProperty Name="Version"
                     ReadOnly="true"
                     Visible="false" />
 
@@ -73,14 +51,8 @@
                   Visible="false" />
 
     <StringProperty Name="RequiredTargetFramework"
-                    Visible="false" />
-    <StringProperty Name="HintPath"
-                    Visible="false" />
-    <StringProperty Name="SDKIdentity"
-                    Visible="false" />
-    <StringProperty Name="FusionName"
-                    Visible="false"
-                    ReadOnly="true" /-->
+                    Visible="false" /-->
+    
     <StringProperty Name="Name"
                     Visible="false"
                     ReadOnly="True" />
