@@ -25,7 +25,7 @@ type CompletionEnvironment =
 type IdentifierKind =
     /// The identifier is the given keyword.
     | Keyword of string
-    /// The identifier is a variable name.
+    /// The identifier is a variable or callable name.
     | Variable
     /// The identifier is a user-defined type name.
     | UserDefinedType

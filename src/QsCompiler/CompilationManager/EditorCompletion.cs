@@ -163,12 +163,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var token = GetTokenAtOrBefore(file, position);
             var relativeIndentation = token.GetFragment().Indentation - file.IndentationAt(position);
-            var parent =
-                new[] { token }.Concat(token.GetNonEmptyParents()).Skip(relativeIndentation + 1).FirstOrDefault();
+            var parents = new[] { token }.Concat(token.GetNonEmptyParents()).Skip(relativeIndentation + 1);
 
-            // TODO: Support context-aware completions for additional environments.
-            if (parent != null && parent.GetFragment().Kind.IsNamespaceDeclaration)
+            if (!parents.Any())
+                return null;
+            if (parents.First().Kind.IsNamespaceDeclaration)
                 return CompletionEnvironment.NamespaceTopLevel;
+            if (parents.Where(parent => parent.Kind.IsOperationDeclaration || parent.Kind.IsFunctionDeclaration).Any())
+                return CompletionEnvironment.Statement;
             return null;
         }
 
@@ -203,12 +205,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 case IdentifierKind.Keyword keyword:
                     return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
             }
+            var namespaces =
+                namespacePrefix == "" ? GetOpenNamespaces(file, compilation, position) : new[] { namespacePrefix };
             switch (kind.Tag)
             {
                 case IdentifierKind.Tags.UserDefinedType:
-                    var namespaces = namespacePrefix == ""
-                        ? GetOpenNamespaces(file, compilation, position)
-                        : new[] { namespacePrefix };
                     return
                         GetTypeCompletions(file, compilation, namespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
@@ -219,6 +220,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
                 case IdentifierKind.Tags.Characteristic:
                     return characteristicKeywords;
+                case IdentifierKind.Tags.Variable:
+                    return
+                        GetLocalCompletions(file, compilation, position)
+                        .Concat(GetCallableCompletions(file, compilation, namespaces))
+                        .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
+                        .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
             }
             return Array.Empty<CompletionItem>();
         }
