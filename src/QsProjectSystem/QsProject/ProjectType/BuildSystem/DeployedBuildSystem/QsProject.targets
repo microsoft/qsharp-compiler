@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectCapability Include="QSharpProject" />
+    <ProjectCapability Include="ReferencesFolder" />
     <ProjectCapability Include="AssemblyReferences" />
     <ProjectCapability Include="ProjectReferences" />
     <ProjectCapability Include="PackageReferences" />
@@ -29,19 +30,28 @@
   <!--see https://github.com/microsoft/VSProjectSystem/blob/master/doc/extensibility/adding_xaml_rules.md -->
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ProjectItemsSchema.xaml"/>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\solution.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ProjectReference.xaml">
+      <Context>BrowseObject</Context>
+    </PropertyPageSchema>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ResolvedProjectReference.xaml">
+      <Context>ProjectSubscriptionService;BrowseObject</Context>
+    </PropertyPageSchema>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\Solution.xaml">
       <Context>Project</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\projectItem.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ProjectItem.xaml">
       <Context>File</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\sourceControl.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\SourceControl.xaml">
       <Context>Invisible</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\folder.xaml;$(MSBuildThisFileDirectory)Rules\none.xaml;">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\Folder.xaml">
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\qsharp.xaml;">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\Qsharp.xaml;">
+      <Context>File;BrowseObject</Context>
+    </PropertyPageSchema>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\None.xaml;">
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
   </ItemGroup>
@@ -49,4 +59,38 @@
   <Import Project="$(MSBuildProjectFullPath).user" Condition="Exists('$(MSBuildProjectFullPath).user')" />
   <!--Target Name="Build" />
   <Target Name="Rebuild" /-->
+
+
+  <PropertyGroup>
+    <AvailablePlatforms>Any CPU,x86,x64</AvailablePlatforms>
+    <!--DefaultContentType>Content</DefaultContentType-->
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+  <!--
+      MSBuildAllProjects is used to keep track of all projects the build depends on.
+      We make all targets depending on it to make sure everything rebuilds.
+  >
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="Exists('$(MSBuildProjectFullPath)')">$(MSBuildAllProjects);$(MSBuildProjectFullPath)</MSBuildAllProjects>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+  </PropertyGroup>
+
+
+  <PropertyGroup>
+    <ResolveAssemblyReferencesDependsOn>
+      $(ResolveAssemblyReferencesDependsOn);
+      ResolvePackageReference
+    </ResolveAssemblyReferencesDependsOn>
+  </PropertyGroup>
+
+  <Target Name="ResolveAssemblyReferences"
+          Returns="@(ReferencePath)"
+          DependsOnTargets="$(ResolveAssemblyReferencesDependsOn)">
+    <ItemGroup>
+      <ReferencePath Include="@(_ResolvedProjectReferencePaths)">
+        <ProjectReferenceOriginalItemSpec>%(OriginalProjectReferenceItemSpec)</ProjectReferenceOriginalItemSpec>
+      </ReferencePath>
+    </ItemGroup>
+  </Target-->  
 </Project>

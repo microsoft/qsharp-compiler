@@ -48,6 +48,7 @@
     <Compile Include="Package.cs" />
     <Compile Include="Project.cs" />
     <Compile Include="ProjectProperties.cs" />
+    <Compile Include="ProjectReferences.cs" />
     <Compile Include="ProjectTreePropertiesProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QsIconsMonikers.cs" />
@@ -74,13 +75,15 @@
     <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="16.0.2264" />
   </ItemGroup>
   <ItemGroup>
-    <XamlPropertyRule Include="BuildSystem\Rules\folder.xaml" />
-    <XamlPropertyRule Include="BuildSystem\Rules\solution.xaml" />
-    <XamlPropertyRule Include="BuildSystem\Rules\projectItem.xaml" />
-    <XamlPropertyRule Include="BuildSystem\Rules\none.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\Folder.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\Solution.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\ProjectItem.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\None.xaml" />
     <None Include="BuildSystem\Rules\ProjectItemsSchema.xaml" />
-    <XamlPropertyRule Include="BuildSystem\Rules\qsharp.xaml" />
-    <XamlPropertyRule Include="BuildSystem\Rules\sourceControl.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\Qsharp.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\SourceControl.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\ProjectReference.xaml" />
+    <XamlPropertyRule Include="BuildSystem\Rules\ResolvedProjectReference.xaml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FileTemplate\FileTemplate.csproj">
