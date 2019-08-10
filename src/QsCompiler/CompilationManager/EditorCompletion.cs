@@ -97,10 +97,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var env = GetCompletionEnvironment(file, position);
             if (env != null)
             {
-                var fragment = GetTokenAtOrBefore(file, position)?.GetFragment();
-                completions =
-                    GetExpectedIdentifiers(env, GetFragmentTextBeforePosition(file, fragment, position))
-                    .SelectMany(kind => GetCompletionsForKind(file, compilation, position, kind));
+                try
+                {
+                    var fragment = GetTokenAtOrBefore(file, position)?.GetFragment();
+                    completions =
+                        GetExpectedIdentifiers(env, GetFragmentTextBeforePosition(file, fragment, position))
+                        .SelectMany(kind => GetCompletionsForKind(file, compilation, position, kind));
+                }
+                catch (CompletionParserError)
+                {
+                    // If the fragment text can't be parsed, show all completions as a fallback.
+                    var openNamespaces = GetOpenNamespaces(file, compilation, position);
+                    completions =
+                        Keywords.ReservedKeywords
+                        .Select(keyword => new CompletionItem { Label = keyword, Kind = CompletionItemKind.Keyword })
+                        .Concat(GetLocalCompletions(file, compilation, position))
+                        .Concat(GetCallableCompletions(file, compilation, openNamespaces))
+                        .Concat(GetTypeCompletions(file, compilation, openNamespaces))
+                        .Concat(GetGlobalNamespaceCompletions(compilation))
+                        .Concat(GetNamespaceAliasCompletions(file, compilation, position));
+                }
             }
             else if (nsPath != null)
             {
