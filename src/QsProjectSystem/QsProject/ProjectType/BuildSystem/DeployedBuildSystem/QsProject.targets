@@ -13,6 +13,13 @@
 
   <ItemGroup>
     <ProjectCapability Include="QSharpProject" />
+    <ProjectCapability Include="AssemblyReferences" />
+    <ProjectCapability Include="ProjectReferences" />
+    <ProjectCapability Include="PackageReferences" />
+    <!--ProjectCapability Include="SDKReferences" /-->
+    <ProjectCapability Include="ReferenceManagerProjects" />
+    <ProjectCapability Include="ReferenceManagerAssemblies" />
+    <ProjectCapability Include="ReferenceManagerBrowse" />
     <ProjectCapability Include="UseFileGlobs" />
     <ProjectCapability Include="OpenProjectFile" />
     <ProjectCapability Include="HandlesOwnReload" />
@@ -40,6 +47,6 @@
   </ItemGroup>
 
   <Import Project="$(MSBuildProjectFullPath).user" Condition="Exists('$(MSBuildProjectFullPath).user')" />
-  <Target Name="Build" />
-  <Target Name="Rebuild" />
+  <!--Target Name="Build" />
+  <Target Name="Rebuild" /-->
 </Project>
