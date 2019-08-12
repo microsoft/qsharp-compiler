@@ -273,6 +273,7 @@ let private prefixOp =
 
 /// Parses any infix operator in an expression.
 let private infixOp =
+    // Do not include LT here; it is parsed as a postfix operator instead.
     choice [
         expectedKeyword andOperator <|>@ expectedKeyword orOperator
         operator qsRangeOp.op None
@@ -281,8 +282,8 @@ let private infixOp =
         operator qsBANDop.op None
         operator qsEQop.op None
         operator qsNEQop.op None
+        operator qsLTEop.op None
         operator qsGTEop.op None
-        operator qsLTop.op (Some (notFollowedBy (pchar '-')))
         operator qsGTop.op None
         operator qsRSHIFTop.op None
         operator qsADDop.op None
