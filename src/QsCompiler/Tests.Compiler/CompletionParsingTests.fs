@@ -276,6 +276,10 @@ let ``Expression statement parser tests`` () =
     test "foo! and bar " infix
     test "Foo(" expression
     test "Foo()" infix
+    test "Foo." [Member ("Foo", Variable)]
+    test "Foo.Bar" [Member ("Foo", Variable)]
+    test "Foo.Bar(" expression
+    test "Foo.Bar()" infix
     test "Foo(x" expression
     test "Foo(x," expression
     test "Foo(x, " expression

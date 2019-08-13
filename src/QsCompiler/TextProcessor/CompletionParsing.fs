@@ -362,7 +362,7 @@ let private expressionTerm =
         keywordLiteral
         numericLiteral >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
         stringLiteral
-        manyR functor @>> expectedId Variable (term symbol)
+        manyR functor @>> expectedQualifiedSymbol Variable
     ]
 
 /// Parses an expression.
