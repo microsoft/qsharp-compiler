@@ -21,38 +21,41 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     public class CompletionItemData
     {
         [DataMember(Name = "namespace")]
-        private string @namespace;
+        private readonly string @namespace;
 
         [DataMember(Name = "name")]
-        private string name;
+        private readonly string name;
 
         /// <summary>
         /// The text document that the original completion request was made from.
         /// </summary>
         [DataMember(Name = "textDocument")]
-        public TextDocumentIdentifier TextDocument { get; set; }
+        public TextDocumentIdentifier TextDocument { get; }
 
         /// <summary>
         /// The qualified name of the completion item.
         /// </summary>
         public QsQualifiedName QualifiedName
         {
-            get =>
-                @namespace == null || name == null
+            get => @namespace == null || name == null
                 ? null
                 : new QsQualifiedName(NonNullable<string>.New(@namespace), NonNullable<string>.New(name));
-            set
-            {
-                @namespace = value.Namespace.Value;
-                name = value.Name.Value;
-            }
         }
 
         /// <summary>
         /// The source file the completion item is declared in.
         /// </summary>
         [DataMember(Name = "sourceFile")]
-        public string SourceFile { get; set; }
+        public string SourceFile { get; }
+
+        public CompletionItemData(
+            TextDocumentIdentifier textDocument = null, QsQualifiedName qualifiedName = null, string sourceFile = null)
+        {
+            TextDocument = textDocument;
+            @namespace = qualifiedName?.Namespace.Value;
+            name = qualifiedName?.Name.Value;
+            SourceFile = sourceFile;
+        }
     }
 
     /// <summary>
@@ -328,12 +331,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Kind =
                         callable.Kind.IsTypeConstructor ? CompletionItemKind.Constructor : CompletionItemKind.Function,
                     Detail = callable.QualifiedName.Namespace.Value,
-                    Data = new CompletionItemData()
-                    {
-                        TextDocument = new TextDocumentIdentifier { Uri = file.Uri },
-                        QualifiedName = callable.QualifiedName,
-                        SourceFile = callable.SourceFile.Value
-                    }
+                    Data = new CompletionItemData(
+                        textDocument: new TextDocumentIdentifier { Uri = file.Uri },
+                        qualifiedName: callable.QualifiedName,
+                        sourceFile: callable.SourceFile.Value)
                 });
         }
 
@@ -359,12 +360,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Label = type.QualifiedName.Name.Value,
                     Kind = CompletionItemKind.Struct,
                     Detail = type.QualifiedName.Namespace.Value,
-                    Data = new CompletionItemData()
-                    {
-                        TextDocument = new TextDocumentIdentifier { Uri = file.Uri },
-                        QualifiedName = type.QualifiedName,
-                        SourceFile = type.SourceFile.Value
-                    }
+                    Data = new CompletionItemData(
+                        textDocument: new TextDocumentIdentifier { Uri = file.Uri },
+                        qualifiedName: type.QualifiedName,
+                        sourceFile: type.SourceFile.Value)
                 });
         }
 
