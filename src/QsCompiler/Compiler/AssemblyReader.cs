@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler
             return GetResources()[WellKnown.AST_RESOURCE_NAME];
         }
 
-        private IEnumerable<QsNamespace> GetAst()
+        public IEnumerable<QsNamespace> GetAst()
         {
             var resource = GetAstResource();
             if (!resource.Implementation.IsNil)
