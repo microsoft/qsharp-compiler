@@ -251,8 +251,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
     // routines for finding all symbols/identifiers
 
-    public class UsedIdentifiers :
-        ScopeTransformation<UsedIdentifiers.VariableReassignments, ExpressionTransformation<UsedIdentifiers.AccumulateIdentifiers>>
+    /// <summary>
+    /// Tracks a list of all used local variables and all local variables reassigned in any of the transformed scopes. 
+    /// </summary>
+    public class FindIdentifiers :
+        ScopeTransformation<FindIdentifiers.VariableReassignments, ExpressionTransformation<FindIdentifiers.AccumulateIdentifiers>>
     {
         private ImmutableHashSet<NonNullable<string>>.Builder UpdatedVariables;
         private static ExpressionTransformation<AccumulateIdentifiers> NewExpressionTransformation() =>
@@ -261,17 +264,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public ImmutableHashSet<NonNullable<string>> ReassignedVariables => UpdatedVariables.ToImmutableHashSet();
         public ImmutableHashSet<NonNullable<string>> UsedLocalVariables => this._Expression._Kind.LocalIdentifiers;
 
-        public UsedIdentifiers() :
-            base(scope => new VariableReassignments(scope as UsedIdentifiers), NewExpressionTransformation()) =>
+        public FindIdentifiers() :
+            base(scope => new VariableReassignments(scope as FindIdentifiers), NewExpressionTransformation()) =>
             this.UpdatedVariables = ImmutableHashSet.CreateBuilder<NonNullable<string>>();
 
 
         // helper classes
 
         public class VariableReassignments :
-            StatementKindTransformation<UsedIdentifiers>
+            StatementKindTransformation<FindIdentifiers>
         {
-            public VariableReassignments(UsedIdentifiers scope) 
+            public VariableReassignments(FindIdentifiers scope) 
                 : base(scope)
             { }
 
