@@ -1,4 +1,4 @@
-﻿/// This namespace contains test cases for arithmetic optimization
+﻿/// This namespace contains test cases for loop unrolling
 namespace Microsoft.Quantum.Testing.Optimization.LoopUnrolling {
     operation Test () : Int {
 		mutable r = 0;

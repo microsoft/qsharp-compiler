@@ -22,6 +22,85 @@ namespace Microsoft.Quantum.Testing {
         QsBody Intrinsic
     }
 
+    Operation Test () : UnitType {
+        QsBody () {
+            Allocate ((q1, q2, qs) = (Qubit(), Qubit(), new Qubit[IntLiteral 5L])) {
+                ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, LocalVariable qs[IntLiteral 0L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 0L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 0L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 0L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 1L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 1L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 1L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 2L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 2L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 2L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 3L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 3L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 3L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 4L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 4L]));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[IntLiteral 4L]));
+                let r = (GlobalCallable M of LocalVariable q1);
+                if (LocalVariable r = ResultLiteral One) {
+                    let _ = (GlobalCallable op0 of LocalVariable qs[IntLiteral 0L]);
+                    ((Adjoint GlobalCallable CNOT) of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 1L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 1L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 1L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 2L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 2L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 2L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 3L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 3L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 3L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 4L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 4L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 4L]));
+                    let _ = (GlobalCallable op0 of LocalVariable qs[IntLiteral 2L]);
+                    ((Adjoint GlobalCallable CNOT) of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 1L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 1L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 1L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 2L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 2L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 2L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 3L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 3L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 3L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 4L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 4L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 4L]));
+                    let _ = (GlobalCallable op0 of LocalVariable qs[IntLiteral 4L]);
+                    ((Adjoint GlobalCallable CNOT) of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 0L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 1L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 1L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 1L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 2L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 2L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 2L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 3L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 3L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 3L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 4L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 4L]));
+                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[IntLiteral 4L]));
+                } else {
+                    fail "r is supposed to be Zero";
+                }
+            }
+        }
+    }
+
     Operation op0 (q) : Result {
         QsBody (q) {
             repeat {
@@ -31,9 +110,7 @@ namespace Microsoft.Quantum.Testing {
             fixup {
                 set LocalVariable res = (LocalVariable res w/= IntLiteral 0L <- ResultLiteral One);
             }
-            Allocate (_ = new Qubit[IntLiteral 4L]) {
-                return ResultLiteral One;
-            }
+            return ResultLiteral One;
         }
     }
 

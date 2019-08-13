@@ -1,4 +1,4 @@
-﻿/// This namespace contains test cases for arithmetic optimization
+﻿/// This namespace contains test cases for partial evaluation
 namespace Microsoft.Quantum.Testing.Optimization.PartialEval {
     newtype MyInt = Int;
 	newtype MyFunc = (Int -> Int);

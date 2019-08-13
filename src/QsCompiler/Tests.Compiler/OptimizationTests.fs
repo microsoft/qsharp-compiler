@@ -50,12 +50,12 @@ let private assertOptimization path =
 let ``arithmetic evaluation`` () =
     // createTestCase "TestCases/Optimizer/Arithmetic"
     assertOptimization "TestCases/Optimizer/Arithmetic"
-    
+
 [<Fact>]
 let ``function evaluation`` () =
     // createTestCase "TestCases/Optimizer/FunctionEval"
     assertOptimization "TestCases/Optimizer/FunctionEval"
-    
+
 [<Fact>]
 let ``inlining`` () =
     // createTestCase "TestCases/Optimizer/Inlining"
@@ -75,3 +75,8 @@ let ``miscellaneous`` () =
 let ``partial evaluation`` () =
     // createTestCase "TestCases/Optimizer/PartialEval"
     assertOptimization "TestCases/Optimizer/PartialEval"
+
+[<Fact>]
+let ``reordering`` () =
+    // createTestCase "TestCases/Optimizer/Reordering"
+    assertOptimization "TestCases/Optimizer/Reordering"

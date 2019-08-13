@@ -1,4 +1,4 @@
-﻿/// This namespace contains test cases for arithmetic optimization
+﻿/// This namespace contains test cases for function evaluation
 namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
     operation Test () : (Int, Int, Int, Int, Double) {
 	    let b = f(1, 8);

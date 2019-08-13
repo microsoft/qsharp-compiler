@@ -17,6 +17,24 @@ let rec isAllDiscarded = function
 | VariableNameTuple items -> Seq.forall isAllDiscarded items
 | _ -> false
 
+let isPureClassical = function
+| QsVariableDeclaration s when not (s.Rhs.InferredInformation.HasLocalQuantumDependency) -> true
+| _ -> false
+
+let isPureQuantum = function
+| QsVariableDeclaration s when isAllDiscarded s.Lhs -> true
+| QsExpressionStatement _ -> true
+| _ -> false
+
+let rec reorderStatements (stmtList: QsStatement list): QsStatement list =
+    match stmtList with
+    | head1 :: head2 :: tail
+        when isPureQuantum head1.Statement && isPureClassical head2.Statement ->
+        head2 :: reorderStatements (head1 :: tail)
+    | head :: tail ->
+        head :: reorderStatements tail
+    | [] -> []
+
 
 type StatementRemover() =
     inherit OptimizingTransformation()
@@ -60,6 +78,7 @@ type StatementRemover() =
                 |> Seq.map this.onStatement
                 |> Seq.filter isStatementNeeded
                 |> Seq.collect splitStatement
+                |> List.ofSeq |> reorderStatements
             QsScope.New (statements, parentSymbols)
 
         override scope.StatementKind = { new StatementKindTransformation() with
@@ -79,5 +98,15 @@ type StatementRemover() =
                     } |? syms
                 | VariableNameTuple items -> Seq.map (this.onSymbolTuple) items |> ImmutableArray.CreateRange |> VariableNameTuple
                 | InvalidItem | DiscardedItem -> syms
+
+            override this.onQubitScope (stm : QsQubitScope) =
+                let kind = stm.Kind
+                let lhs = this.onSymbolTuple stm.Binding.Lhs
+                let rhs = this.onQubitInitializer stm.Binding.Rhs
+                let body = this.ScopeTransformation stm.Body
+                if isAllDiscarded lhs then
+                    QsScopeStatement.New body |> QsScopeStatement
+                else
+                    QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
         }
     }

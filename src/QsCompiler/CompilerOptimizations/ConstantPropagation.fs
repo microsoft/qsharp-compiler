@@ -1,5 +1,6 @@
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -96,5 +97,22 @@ type ConstantPropagator(compiledCallables) =
                 let result = base.onRepeatStatement stm
                 constants <- exitScope constants
                 result
+
+            override this.onQubitScope (stm : QsQubitScope) =
+                let kind = stm.Kind
+                let lhs = this.onSymbolTuple stm.Binding.Lhs
+                let rhs = this.onQubitInitializer stm.Binding.Rhs
+
+                jointFlatten (lhs, rhs) |> Seq.iter (fun (l, r) ->
+                    match l, r.Resolution with
+                    | VariableName name, QubitRegisterAllocation {Expression = IntLiteral num} ->
+                        let arrayIden = Identifier (LocalVariable name, Null) |> wrapExpr (ArrayType (ResolvedType.New Qubit))
+                        let elemI = fun i -> ArrayItem (arrayIden, IntLiteral (int64 i) |> wrapExpr Int)
+                        let expr = List.init (int num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray
+                        constants <- defineVar (fun _ -> true) constants (name.Value, expr)
+                    | _ -> ())
+
+                let body = this.ScopeTransformation stm.Body
+                QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
         }
     }

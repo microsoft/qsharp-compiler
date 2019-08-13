@@ -120,5 +120,11 @@ namespace Microsoft.Quantum.Testing {
         adjoint controlled (ctrls, ...) {
             Adjoint Controlled op1 (ctrls, (q2, b2));
         }
-    } 
+    }
+
+	operation Test () : Unit {
+		using ((q1, q2, qs) = (Qubit(), Qubit(), Qubit[5])) {
+			op2(q1, 5, BigEndianRegister(qs), QubitAlias(q2));
+		}
+	}
 }

@@ -15,6 +15,12 @@ open Types
 let internal (|?) = defaultArg
 
 
+let rec jointFlatten (v1, v2) =
+    match v1, v2 with
+    | Tuple t1, Tuple t2 -> Seq.zip t1 t2 |> Seq.collect jointFlatten
+    | _ -> Seq.singleton (v1, v2)
+
+
 /// Converts a range literal to a sequence of integers
 let internal rangeLiteralToSeq (r: Expr): seq<int64> =
     match r with

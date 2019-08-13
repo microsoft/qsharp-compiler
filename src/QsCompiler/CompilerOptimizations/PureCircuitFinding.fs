@@ -24,7 +24,10 @@ type PureCircuitFinder() =
         finishCircuit ()
         printfn "Analyzed provided implementation:"
         for circuit in pastCircuits do
-            printfn "Found circuit: %s" (String.Join (", ", List.map printExpr circuit))
+            printfn "  Found circuit:"
+            for op in circuit do
+                printfn "    %s"  (printExpr op)
+        printfn ""
         pastCircuits <- []
         result
 
@@ -45,9 +48,6 @@ type PureCircuitFinder() =
             override stmtKind.Transform kind =
                 match kind with
                 | QsExpressionStatement s -> currentCircuit <- currentCircuit @ [s.Expression]
-                | QsQubitScope _ -> ()
-                | QsScopeStatement _ -> ()
-                | QsVariableDeclaration s when s.Rhs.InferredInformation.HasLocalQuantumDependency |> not -> ()
                 | _ -> finishCircuit ()
                 base.Transform kind
         }

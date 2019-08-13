@@ -5,20 +5,20 @@ namespace Microsoft.Quantum.Testing.Optimization.Inlining {
 		f(q, 5);
     }
 
-    function X (q : Qubit) : Unit {
+    function T (q : Qubit) : Unit {
         body intrinsic;
     }
 
-	function f (q : Qubit, x : Int) : Unit {
-		if (x == 0) {
+	function f (q : Qubit, n : Int) : Unit {
+		if (n == 0) {
 			// Do nothing
 		}
-		elif (x == 1) {
-			X(q);
+		elif (n == 1) {
+			T(q);
 		}
 		else {
-			f(q, x-1);
-			f(q, x-2);
+			f(q, n-1);
+			f(q, n-2);
 		}
 	}
 }
