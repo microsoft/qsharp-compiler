@@ -249,6 +249,66 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     }
 
 
+    // routines for finding all symbols/identifiers
+
+    public class UsedIdentifiers :
+        ScopeTransformation<UsedIdentifiers.VariableReassignments, ExpressionTransformation<UsedIdentifiers.AccumulateIdentifiers>>
+    {
+        private ImmutableHashSet<NonNullable<string>>.Builder UpdatedVariables;
+        private static ExpressionTransformation<AccumulateIdentifiers> NewExpressionTransformation() =>
+            new ExpressionTransformation<AccumulateIdentifiers>(e => new AccumulateIdentifiers(e as ExpressionTransformation<AccumulateIdentifiers>));
+
+        public ImmutableHashSet<NonNullable<string>> ReassignedVariables => UpdatedVariables.ToImmutableHashSet();
+        public ImmutableHashSet<NonNullable<string>> UsedLocalVariables => this._Expression._Kind.LocalIdentifiers;
+
+        public UsedIdentifiers() :
+            base(scope => new VariableReassignments(scope as UsedIdentifiers), NewExpressionTransformation()) =>
+            this.UpdatedVariables = ImmutableHashSet.CreateBuilder<NonNullable<string>>();
+
+
+        // helper classes
+
+        public class VariableReassignments :
+            StatementKindTransformation<UsedIdentifiers>
+        {
+            public VariableReassignments(UsedIdentifiers scope) 
+                : base(scope)
+            { }
+
+            public override QsStatementKind onValueUpdate(QsValueUpdate stm)
+            {
+                var lhsVars = NewExpressionTransformation();
+                lhsVars.Transform(stm.Lhs);
+                this._Scope.UpdatedVariables.UnionWith(lhsVars._Kind.LocalIdentifiers);
+                this.ExpressionTransformation(stm.Rhs);
+                return QsStatementKind.NewQsValueUpdate(stm);
+            }
+        }
+
+        public class AccumulateIdentifiers :
+            ExpressionKindTransformation<ExpressionTransformation<AccumulateIdentifiers>>
+        {
+            private List<(Identifier, QsNullable<ImmutableArray<ResolvedType>>)> Identifiers;
+
+            public ImmutableHashSet<NonNullable<string>> LocalIdentifiers =>
+                this.Identifiers.Where(id => id.Item1.IsLocalVariable).Select(id => ((Identifier.LocalVariable)id.Item1).Item).ToImmutableHashSet();
+            public ImmutableArray<(QsQualifiedName, QsNullable<ImmutableArray<ResolvedType>>)> GlobalCallables =>
+                this.Identifiers.Where(id => id.Item1.IsGlobalCallable).Select(id => (((Identifier.GlobalCallable)id.Item1).Item, id.Item2)).ToImmutableArray();
+            public bool ContainsInvalidIdentifiers => this.Identifiers.Any(id => id.Item1.IsInvalidIdentifier);
+
+            public AccumulateIdentifiers(ExpressionTransformation<AccumulateIdentifiers> expression)
+                : base(expression) =>
+                this.Identifiers = new List<(Identifier, QsNullable<ImmutableArray<ResolvedType>>)>();
+
+            public override QsExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+            {
+                this.Identifiers.Add((sym, tArgs));
+                return base.onIdentifier(sym, tArgs);
+            }
+        }
+    }
+
+
     // routines for replacing symbols/identifiers
 
     /// <summary>
