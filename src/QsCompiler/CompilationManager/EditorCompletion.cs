@@ -653,12 +653,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (fragment.FollowedBy != CodeFragment.MissingDelimiter &&
                 GetDelimitingCharPosition(file, fragment).IsSmallerThan(position))
             {
-                switch (fragment.FollowedBy)
-                {
-                    case '}': return FragmentRelationship.InnerScope;
-                    case '{': return FragmentRelationship.EnclosingScope;
-                    case ';': return FragmentRelationship.SameScope;
-                }
+                var relativeIndentation = fragment.Indentation - file.IndentationAt(position);
+                if (relativeIndentation < 0)
+                    return FragmentRelationship.EnclosingScope;
+                else if (relativeIndentation == 0)
+                    return FragmentRelationship.SameScope;
+                else if (relativeIndentation > 0)
+                    return FragmentRelationship.InnerScope;
             }
             return FragmentRelationship.Self;
         }
