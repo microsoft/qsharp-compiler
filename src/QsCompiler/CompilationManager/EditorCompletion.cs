@@ -12,7 +12,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using static Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing;
 
-namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
+namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
 {
     /// <summary>
     /// Data associated with a completion item that is used for resolving additional information.
