@@ -127,12 +127,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a list of suggested completion items for the given position.
         /// <para/>
-        /// Returns null if any argument is null. Returns an empty enumerator if the position is invalid.
+        /// Returns null if any argument is null or the position is invalid.
         /// </summary>
         public static CompletionList Completions(
             this FileContentManager file, CompilationUnit compilation, Position position)
         {
-            if (file == null || compilation == null || position == null)
+            if (file == null || compilation == null || position == null || !Utils.IsValidPosition(position))
                 return null;
 
             // If the character at the position is a dot but no valid namespace path precedes it (for example, in a
@@ -210,12 +210,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// determined.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static CompletionEnvironment GetCompletionEnvironment(FileContentManager file, Position position)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
-            if (position == null)
-                throw new ArgumentNullException(nameof(position));
+            if (!Utils.IsValidPosition(position))
+                throw new ArgumentException(nameof(position));
 
             var relationship = GetFragmentAtOrBefore(file, position, out var index, out _);
             CodeFragment.TokenIndex parent = null;
@@ -236,6 +237,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns completion items that match the given identifier kind.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<CompletionItem> GetCompletionsForKind(
             FileContentManager file,
             CompilationUnit compilation,
@@ -247,8 +249,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (position == null)
-                throw new ArgumentNullException(nameof(position));
+            if (!Utils.IsValidPosition(position))
+                throw new ArgumentException(nameof(position));
             if (kind == null)
                 throw new ArgumentNullException(nameof(kind));
             if (namespacePrefix == null)
@@ -288,6 +290,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// is invalid.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<CompletionItem> GetLocalCompletions(
             FileContentManager file, CompilationUnit compilation, Position position)
         {
@@ -295,8 +298,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (position == null)
-                throw new ArgumentNullException(nameof(position));
+            if (!Utils.IsValidPosition(position))
+                throw new ArgumentException(nameof(position));
             return
                 compilation
                 .TryGetLocalDeclarations(file, position, out _)
@@ -403,6 +406,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// empty enumerator if the position is invalid.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<CompletionItem> GetNamespaceAliasCompletions(
             FileContentManager file, CompilationUnit compilation, Position position)
         {
@@ -410,8 +414,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (position == null)
-                throw new ArgumentNullException(nameof(position));
+            if (!Utils.IsValidPosition(position))
+                throw new ArgumentException(nameof(position));
 
             var @namespace = file.TryGetNamespaceAt(position);
             return
@@ -471,12 +475,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// invalid.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static bool IsDeclaringNewSymbol(FileContentManager file, Position position)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
-            if (position == null)
-                throw new ArgumentNullException(nameof(position));
+            if (!Utils.IsValidPosition(position))
+                throw new ArgumentException(nameof(position));
 
             var fragment = file.TryGetFragmentAt(position, includeEnd: true);
             if (fragment == null)
@@ -509,6 +514,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// position in the file. Returns an empty enumerator if the position is invalid.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<string> GetOpenNamespaces(
             FileContentManager file, CompilationUnit compilation, Position position)
         {
@@ -516,8 +522,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (position == null)
-                throw new ArgumentNullException(nameof(position));
+            if (!Utils.IsValidPosition(position))
+                throw new ArgumentException(nameof(position));
 
             var @namespace = file.TryGetNamespaceAt(position);
             return
@@ -535,12 +541,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// symbol.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static string GetSymbolNamespacePath(FileContentManager file, Position position)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
-            if (position == null)
-                throw new ArgumentNullException(nameof(position));
+            if (!Utils.IsValidPosition(position))
+                throw new ArgumentException(nameof(position));
 
             var fragment = file.TryGetFragmentAt(position, includeEnd: true);
             if (fragment == null)
@@ -584,6 +591,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// the alias unchanged.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static string ResolveNamespaceAlias(
             FileContentManager file, CompilationUnit compilation, Position position, string alias)
         {
@@ -591,8 +599,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (position == null)
-                throw new ArgumentNullException(nameof(position));
+            if (!Utils.IsValidPosition(position))
+                throw new ArgumentException(nameof(position));
             if (alias == null)
                 throw new ArgumentNullException(nameof(alias));
 
@@ -613,6 +621,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// parameters are set to null.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static FragmentRelationship GetFragmentAtOrBefore(
             FileContentManager file,
             Position position,
@@ -621,8 +630,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
-            if (position == null)
-                throw new ArgumentNullException(nameof(position));
+            if (!Utils.IsValidPosition(position))
+                throw new ArgumentException(nameof(position));
 
             var lineNumber = position.Line;
             var tokens = file.GetTokenizedLine(lineNumber);
