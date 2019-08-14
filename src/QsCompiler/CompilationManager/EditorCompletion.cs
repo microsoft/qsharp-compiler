@@ -569,7 +569,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the token index at, or the closest token index before, the given position.
+        /// Returns the token index at, or the closest token index before, the given position. Returns null if there is
+        /// no token at or before the given position.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
