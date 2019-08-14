@@ -261,6 +261,7 @@ let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) =
     let location = outer.Location |> function
         | Null -> ArgumentException "no location is set for the given within-block defining the conjugating transformation" |> raise
         | Value loc -> loc
+    // TODO: WE NEED TO GIVE PROPER ERRORS IF A VARIABLE THAT IS USED IN THE OUTER BLOCK IS REASSIGNED IN THE INNER BLOCK
     QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location []
 
 /// Given the location of the statement header as well as a symbol tracker containing all currently declared symbols, 
