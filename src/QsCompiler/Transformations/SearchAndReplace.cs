@@ -302,7 +302,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
 
-        // helper classes
+        // helper class
 
         public class VariableReassignments :
             StatementKindTransformation<AccumulateIdentifiers>
