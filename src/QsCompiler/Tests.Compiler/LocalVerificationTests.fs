@@ -116,3 +116,27 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "ItemUpdate21" []
         this.Expect "ItemUpdate22" []
 
+
+    [<Fact>]
+    member this.``Open-ended ranges`` () = 
+        this.Expect "ValidArraySlice1" []
+        this.Expect "ValidArraySlice2" []
+        this.Expect "ValidArraySlice3" []
+        this.Expect "ValidArraySlice4" []
+        this.Expect "ValidArraySlice5" []
+        this.Expect "ValidArraySlice6" []
+        this.Expect "ValidArraySlice7" []
+        this.Expect "ValidArraySlice8" []
+        this.Expect "ValidArraySlice9" []
+
+        this.Expect "InvalidArraySlice1" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice2" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice3" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice4" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice5" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice6" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice7" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice8" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice9" [Error ErrorCode.ItemAccessForNonArray]
+
+
