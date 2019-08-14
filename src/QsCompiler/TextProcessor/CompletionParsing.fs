@@ -198,10 +198,11 @@ let private operationDeclaration =
 /// Parses a user-defined type declaration.
 let private udtDeclaration = 
     let name = expectedId Declaration (term symbol)
-    let udtTuple =
+    let (udt, udtImpl) = createParserForwardedToRef ()
+    do udtImpl :=
         let namedItem = name ?>> expectedOp colon ?>> qsType
-        qsType <||> buildTuple (namedItem <||> qsType)
-    expectedKeyword typeDeclHeader ?>> name ?>> expectedOp equal ?>> udtTuple
+        qsType <||> buildTuple (namedItem <||> udt)
+    expectedKeyword typeDeclHeader ?>> name ?>> expectedOp equal ?>> udt
 
 /// Parses an open directive.
 let private openDirective =
