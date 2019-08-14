@@ -36,8 +36,7 @@ let private eot =
 /// (i.e., a possibly incomplete symbol that happens to start with a keyword). Does not consume whitespace.
 let private symbol =
     let qsIdentifier =
-        identifier <| IdentifierOptions (isAsciiIdStart = (fun c -> isAsciiLetter c || c = '_'),
-                                         isAsciiIdContinue = isSymbolContinuation)
+        identifier <| IdentifierOptions (isAsciiIdStart = isSymbolStart, isAsciiIdContinue = isSymbolContinuation)
     notFollowedBy qsReservedKeyword >>. qsIdentifier <|> (qsIdentifier .>> followedBy eot)
 
 /// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and returns
