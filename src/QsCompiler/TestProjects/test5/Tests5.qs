@@ -7,7 +7,7 @@ namespace test5 {
 
     operation AllocateQubitTest () : Unit {
         
-		using (qs = Qubit[1]) {
+        using (qs = Qubit[1]) {
             Assert([PauliZ], [qs[0]], Zero, "Newly allocated qubit must be in |0> state");
         }
             

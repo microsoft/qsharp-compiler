@@ -56,6 +56,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option("code", Required = false, Default = false,
             HelpText = "Specifies whether to print the Q# code generated based on the built syntax tree.")]
             public bool PrintCompiledCode { get; set; }
+
+            [Option("trim", Required = false, Default = false,
+            HelpText = "Specifies whether to trim the syntax tree to eliminate selective abstractions.")]
+            public bool TrimSyntaxTree { get; set; }
         }
 
         /// <summary>
@@ -209,7 +213,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
-            var loadOptions = new CompilationLoader.Configuration { GenerateFunctorSupport = true }; 
+            var loadOptions = new CompilationLoader.Configuration { GenerateFunctorSupport = true, TrimSyntaxTree = options.TrimSyntaxTree }; 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
             if (loaded.VerifiedCompilation == null) return ReturnCode.Status(loaded);
 

@@ -28,8 +28,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         private static readonly TypedExpression ControlQubits =
             SyntaxGenerator.ImmutableQubitArrayWithName(NonNullable<string>.New(InternalUse.ControlQubitsName));
 
+        public static readonly Func<QsScope, QsScope> ApplyAdjoint =
+            new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Transform;
 
-        // helper classes
+        public static readonly Func<QsScope, QsScope> ApplyControlled =
+            new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Transform;
+
+
+        // helper class
 
         /// <summary>
         /// Replaces each operation call with a call to the operation after application of the given functor. 
@@ -79,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         public override QsScope Transform(QsScope scope)
         {
-            var topStatements = new List<QsStatement>();
+            var topStatements = ImmutableArray.CreateBuilder<QsStatement>();
             var bottomStatements = new List<QsStatement>();
             foreach (var statement in scope.Statements)
             {
@@ -92,7 +98,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         }
 
 
-        // helper classes
+        // helper class
 
         /// <summary>
         /// Helper class for the scope transformation that reverses the order of all operation calls.
@@ -114,21 +120,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             public override QsStatementKind onWhileStatement(QsWhileStatement stm) =>
                 throw new InvalidOperationException("cannot reverse while-loops");
         }
-    }
-
-
-    /// <summary>
-    /// Applying the transformation sets all location information to Null.
-    /// </summary>
-    public class StripLocationInformation :
-        ScopeTransformation<StatementKindTransformation<StripLocationInformation>,NoExpressionTransformations>
-    {
-        public StripLocationInformation() :
-            base(s => new StatementKindTransformation<StripLocationInformation>(s as StripLocationInformation), new NoExpressionTransformations())
-        { }
-
-        public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> loc) =>
-            QsNullable<QsLocation>.Null;
     }
 }
 

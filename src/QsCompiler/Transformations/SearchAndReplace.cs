@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -12,6 +14,10 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 {
     using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    using QsExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+
+
+    // routines for finding occurrences of symbols/identifiers
 
     /// <summary>
     /// Class that allows to walk the syntax tree and find all locations where a certain identifier occurs.
@@ -239,6 +245,87 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             finder.RootLocation = rootLoc ?? throw new ArgumentNullException(nameof(rootLoc));
             finder.Transform(scope ?? throw new ArgumentNullException(nameof(scope)));
             return finder.Locations;
+        }
+    }
+
+
+    // routines for replacing symbols/identifiers
+
+    /// <summary>
+    /// Upon transformation, assigns each defined variable a unique name, independent on the scope, and replaces all references to it accordingly.
+    /// The original variable name can be recovered by using the static method StripUniqueName.  
+    /// This class is *not* threadsafe. 
+    /// </summary>
+    public class UniqueVariableNames
+        : ScopeTransformation<UniqueVariableNames.ReplaceDeclarations, ExpressionTransformation<UniqueVariableNames.ReplaceIdentifiers>>
+    {
+        private const string Prefix = "qsVar";
+        private const string OrigVarName = "origVarName";
+        private static Regex WrappedVarName = new Regex($"^__{Prefix}[0-9]*__(?<{OrigVarName}>.*)__$");
+
+        private int VariableNr;
+        private Dictionary<NonNullable<string>, NonNullable<string>> UniqueNames;
+
+        /// <summary>
+        /// Will overwrite the dictionary entry mapping a variable name to the corresponding unique name if the key already exists. 
+        /// </summary>
+        internal NonNullable<string> GenerateUniqueName(NonNullable<string> varName)
+        {
+            var unique = NonNullable<string>.New($"__{Prefix}{this.VariableNr++}__{varName.Value}__");
+            this.UniqueNames[varName] = unique;
+            return unique;
+        }
+
+        public NonNullable<string> StripUniqueName(NonNullable<string> uniqueName)
+        {
+            var matched = WrappedVarName.Match(uniqueName.Value).Groups[OrigVarName];
+            return matched.Success ? NonNullable<string>.New(matched.Value) : uniqueName;
+        }
+
+        private QsExpressionKind AdaptIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
+            sym is Identifier.LocalVariable varName && this.UniqueNames.TryGetValue(varName.Item, out var unique)
+                ? QsExpressionKind.NewIdentifier(Identifier.NewLocalVariable(unique), tArgs)
+                : QsExpressionKind.NewIdentifier(sym, tArgs);
+
+        public UniqueVariableNames(int initVarNr = 0) :
+            base(s => new ReplaceDeclarations(s as UniqueVariableNames),
+                new ExpressionTransformation<ReplaceIdentifiers>(e =>
+                    new ReplaceIdentifiers(e as ExpressionTransformation<ReplaceIdentifiers>)))
+        {
+            this._Expression._Kind.ReplaceId = this.AdaptIdentifier;
+            this.VariableNr = initVarNr;
+            this.UniqueNames = new Dictionary<NonNullable<string>, NonNullable<string>>();
+        }
+
+
+        // helper classes
+
+        public class ReplaceDeclarations
+            : StatementKindTransformation<UniqueVariableNames>
+        {
+            public ReplaceDeclarations(UniqueVariableNames scope)
+                : base(scope) { }
+
+            public override SymbolTuple onSymbolTuple(SymbolTuple syms) =>
+                syms is SymbolTuple.VariableNameTuple tuple
+                    ? SymbolTuple.NewVariableNameTuple(tuple.Item.Select(this.onSymbolTuple).ToImmutableArray())
+                    : syms is SymbolTuple.VariableName varName
+                    ? SymbolTuple.NewVariableName(this._Scope.GenerateUniqueName(varName.Item))
+                    : syms;
+        }
+
+        public class ReplaceIdentifiers
+            : ExpressionKindTransformation<ExpressionTransformation<ReplaceIdentifiers>>
+        {
+            internal Func<Identifier, QsNullable<ImmutableArray<ResolvedType>>, QsExpressionKind> ReplaceId;
+
+            public ReplaceIdentifiers(ExpressionTransformation<ReplaceIdentifiers> expression,
+                Func<Identifier, QsNullable<ImmutableArray<ResolvedType>>, QsExpressionKind> replaceId = null)
+                : base(expression) =>
+                this.ReplaceId = replaceId ?? ((sym, tArgs) => QsExpressionKind.NewIdentifier(sym, tArgs));
+
+            public override QsExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
+                this.ReplaceId(sym, tArgs);
         }
     }
 
