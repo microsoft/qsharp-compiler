@@ -37,9 +37,8 @@ let private eot =
 let private symbol =
     let qsIdentifier =
         identifier <| IdentifierOptions (isAsciiIdStart = (fun c -> isAsciiLetter c || c = '_'),
-                                            isAsciiIdContinue = isSymbolContinuation)
-    notFollowedBy qsReservedKeyword >>. qsIdentifier <|>
-    (qsIdentifier .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> followedBy eot)
+                                         isAsciiIdContinue = isSymbolContinuation)
+    notFollowedBy qsReservedKeyword >>. qsIdentifier <|> (qsIdentifier .>> followedBy eot)
 
 /// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and returns
 /// the result of `p2`.
