@@ -44,7 +44,8 @@ let private symbol =
 let private (?>>) p1 p2 =
     attempt (p1 .>> eof) <|> (p1 >>. p2)
 
-/// Parses an expected identifier of the given kind. The identifier is optional if EOT occurs first.
+/// Parses an expected identifier. The identifier is optional if EOT occurs first. Returns `[kind]` if EOT occurs first
+/// or if `p` did not end in whitespace; otherwise, returns `[]`.
 let private expectedId kind p =
     eot >>% [kind] <|>
     attempt (p >>. previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [kind]) <|>
@@ -59,7 +60,8 @@ let private expectedOp p =
 let private expectedKeyword keyword =
     expectedId (Keyword keyword.id) keyword.parse <|> (symbol >>. eot >>% [Keyword keyword.id])
 
-/// Parses an expected qualified symbol of the given kind.
+/// Parses an expected qualified symbol. The identifier is optional if EOT occurs first. Returns `[kind]` if EOT occurs
+/// first or there is no whitespace after the qualified symbol; otherwise, returns `[]`.
 let private expectedQualifiedSymbol kind =
     let withoutLast list = List.take (List.length list - 1) list
     let asMember = function
