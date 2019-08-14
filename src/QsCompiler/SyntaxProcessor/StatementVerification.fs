@@ -257,7 +257,8 @@ let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedB
 
 /// Given a positioned block of Q# statements specifying the transformation to conjugate (inner transformation V), 
 /// as well as a positioned block of Q# statements specifying the transformation to conjugate it with (outer transformation U), 
-/// builds and returns the corresponding conjugation statement representing the patter U*VU where the order of application is right to left and U* is the adjoint of U.  
+/// builds and returns the corresponding conjugation statement representing the patter U*VU where the order of application is right to left and U* is the adjoint of U. 
+/// Returns an array with diagnostics and the corresponding statement offset for all invalid variable reassignments in the apply-block. 
 /// Throws an ArgumentException if the given block specifying the outer transformation contains no location information. 
 let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
     let location = outer.Location |> function
@@ -271,9 +272,10 @@ let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) =
         let accumulate = new AccumulateIdentifiers()
         accumulate.Transform inner.Body |> ignore
         accumulate.ReassignedVariables
-    let updateErr = updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
-    // TODO: GENERATE DIAGNOSTICS
-    QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location []
+    let updateErrs = 
+        updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
+        |> Seq.map (fun loc -> (loc.Offset, loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))) |> Seq.toArray
+    QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location [], updateErrs
 
 /// Given the location of the statement header as well as a symbol tracker containing all currently declared symbols, 
 /// builds the Q# using- or borrowing-statement (depending on the given kind) at the given location

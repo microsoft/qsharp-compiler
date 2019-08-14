@@ -118,9 +118,6 @@ let private verifyStatement (context : SyntaxTokenContext) =
     let checkForNotValidInOperation = function
         | WhileLoopIntro _           -> false, [| (ErrorCode.WhileLoopInOperation |> Error, context.Range) |]
         | _                          -> true, [||]
-    let checkForNotValidInApplyBlock = function // we prevent variables used within the within-block from being reassigned in the apply-block
-        | ValueUpdate _              -> false, [| (ErrorCode.ValueUpdateWithinApplyBlock |> Error, context.Range) |] // TODO: we could be more permissive here (and move this to a later verification stage)
-        | _                          -> true, [||]
 
     let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation 
     let notWithinSpecialization = false, [| (ErrorCode.NotWithinSpecialization |> Error, context.Range) |]
@@ -128,7 +125,6 @@ let private verifyStatement (context : SyntaxTokenContext) =
         | [] -> notWithinSpecialization
         | parent :: tail -> parent |> function 
             // (potentially) valid parents for statements
-            | Value (ApplyBlockIntro) -> NullOr checkForNotValidInApplyBlock
             | Value (FunctionDeclaration _) -> NullOr checkForNotValidInFunction
             | Value (OperationDeclaration _) -> NullOr checkForNotValidInOperation
             | Value (BodyDeclaration _)

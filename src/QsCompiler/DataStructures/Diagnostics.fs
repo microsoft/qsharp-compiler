@@ -127,7 +127,6 @@ type ErrorCode =
     | InvalidReturnWithinAllocationScope = 4012
     | WhileLoopInOperation = 4013
     | ConjugationWithinFunction = 4014
-    | ValueUpdateWithinApplyBlock = 4015
 
     | MissingPrecedingIfOrElif = 4101
     | MissingContinuationUntil = 4102
@@ -237,6 +236,7 @@ type ErrorCode =
     | ValueUpdateWithinAutoInversion = 6314
     | RUSloopWithinAutoInversion = 6315
     | QuantumDependencyOutsideExprStatement = 6316
+    | InvalidReassignmentInApplyBlock = 6317
 
     | UnexpectedCommandLineCompilerException = 7001
     | MissingInputFileOrSnippet = 7002
@@ -443,7 +443,6 @@ type DiagnosticItem =
             | ErrorCode.InvalidReturnWithinAllocationScope      -> "Return statements may only occur at the end of a using- or borrowing-block."
             | ErrorCode.WhileLoopInOperation                    -> "While-loops cannot be used in operations. Avoid conditional loops in operations if possible, and use a repeat-until-success pattern otherwise."
             | ErrorCode.ConjugationWithinFunction               -> "Conjugations may only occur within operations, since they cannot add to the expressiveness within functions."
-            | ErrorCode.ValueUpdateWithinApplyBlock             -> "Set-statements may not occur within an apply-block."
                                                             
             | ErrorCode.MissingPrecedingIfOrElif                -> "An elif- or else-block must be preceded by an if- or elif-block."
             | ErrorCode.MissingContinuationUntil                -> "A repeat-block must be followed by an until-clause."
@@ -553,7 +552,8 @@ type DiagnosticItem =
             | ErrorCode.ValueUpdateWithinAutoInversion          -> "Auto-generation of inversions is not supported for operations that contain set-statements."
             | ErrorCode.RUSloopWithinAutoInversion              -> "Auto-generation of inversions is not supported for operations that contain repeat-until-success-loops."
             | ErrorCode.QuantumDependencyOutsideExprStatement   -> "Auto-generation of inversions is not supported for operations that contain operation calls outside expression statements."
-                               
+            | ErrorCode.InvalidReassignmentInApplyBlock         -> "Variables that are used in the within-block (specifying the outer transformation) cannot be reassigned in the apply-block (specifying the inner transformation)."
+
             | ErrorCode.UnexpectedCommandLineCompilerException  -> "The command line compiler threw an exception."
             | ErrorCode.MissingInputFileOrSnippet               -> "The command line compiler needs a list of files or a code snippet to process."
             | ErrorCode.SnippetAndInputArguments                -> "The command line compiler can accept a list of files or a code snippet, but not both."
