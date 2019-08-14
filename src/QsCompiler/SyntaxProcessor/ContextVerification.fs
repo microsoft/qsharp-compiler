@@ -108,16 +108,16 @@ let private verifySpecialization (context : SyntaxTokenContext) =
 /// Returns an array with suitable diagnostics.
 let private verifyStatement (context : SyntaxTokenContext) = 
     let checkForNotValidInFunction = function
-        | UsingBlockIntro _          -> false, [| (ErrorCode.UsingInFunction |> Error, context.Range) |]
-        | BorrowingBlockIntro _      -> false, [| (ErrorCode.BorrowingInFunction |> Error, context.Range) |]
-        | RepeatIntro _              -> true,  [| (WarningCode.DeprecatedRUSloopInFunction |> Warning, context.Range) |] // NOTE: if repeat is excluded, exlude the UntilSuccess below!
-        | UntilSuccess _             -> true,  [||] // no need to raise an error - the error comes either from the preceding repeat or because the latter is missing 
-        | WithinBlockIntro _         -> false, [| (ErrorCode.ConjugationWithinFunction |> Error, context.Range) |] 
-        | ApplyBlockIntro _          -> false, [||] // no need to raise an error - the error comes either from the preceding within or because the latter is missing 
-        | _                          -> true,  [||]
+        | UsingBlockIntro _        -> false, [| (ErrorCode.UsingInFunction |> Error, context.Range) |]
+        | BorrowingBlockIntro _    -> false, [| (ErrorCode.BorrowingInFunction |> Error, context.Range) |]
+        | RepeatIntro _            -> true,  [| (WarningCode.DeprecatedRUSloopInFunction |> Warning, context.Range) |] // NOTE: if repeat is excluded, exlude the UntilSuccess below!
+        | UntilSuccess _           -> true,  [||] // no need to raise an error - the error comes either from the preceding repeat or because the latter is missing 
+        | WithinBlockIntro _       -> false, [| (ErrorCode.ConjugationWithinFunction |> Error, context.Range) |] 
+        | ApplyBlockIntro _        -> false, [||] // no need to raise an error - the error comes either from the preceding within or because the latter is missing 
+        | _                        -> true,  [||]
     let checkForNotValidInOperation = function
-        | WhileLoopIntro _           -> false, [| (ErrorCode.WhileLoopInOperation |> Error, context.Range) |]
-        | _                          -> true, [||]
+        | WhileLoopIntro _         -> false, [| (ErrorCode.WhileLoopInOperation |> Error, context.Range) |]
+        | _                        -> true, [||]
 
     let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation 
     let notWithinSpecialization = false, [| (ErrorCode.NotWithinSpecialization |> Error, context.Range) |]
