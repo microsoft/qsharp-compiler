@@ -6,6 +6,7 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.Statements
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
+open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -15,6 +16,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SymbolTracker
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
 // some utils for type checking statements
@@ -261,6 +263,16 @@ let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) =
     let location = outer.Location |> function
         | Null -> ArgumentException "no location is set for the given within-block defining the conjugating transformation" |> raise
         | Value loc -> loc
+    let usedInOuter = 
+        let accumulate = new AccumulateIdentifiers()
+        accumulate.Transform outer.Body |> ignore
+        accumulate.UsedLocalVariables
+    let updatedInInner = 
+        let accumulate = new AccumulateIdentifiers()
+        accumulate.Transform inner.Body |> ignore
+        accumulate.ReassignedVariables
+    let updateErr = updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
+    // TODO: GENERATE DIAGNOSTICS
     QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location []
 
 /// Given the location of the statement header as well as a symbol tracker containing all currently declared symbols, 
