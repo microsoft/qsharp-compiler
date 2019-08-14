@@ -58,10 +58,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
     }
 
-    /// <summary>
-    /// Provides code completion for the language server.
-    /// </summary>
-    internal static class EditorCompletion
+    // Provides code completion for the language server.
+    internal static partial class EditorSupport
     {
         /// <summary>
         /// Describes the relationship between two code fragments.

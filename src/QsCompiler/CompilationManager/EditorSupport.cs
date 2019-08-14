@@ -19,7 +19,7 @@ using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensi
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
-    internal static class EditorSupport
+    internal static partial class EditorSupport
     {
         // utils for getting the necessary information for editor commands
 
