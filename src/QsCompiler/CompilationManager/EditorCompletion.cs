@@ -394,7 +394,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         Label = open.Key,
                         Kind = CompletionItemKind.Module,
-                        Detail = open.Count() == 1 ? open.Single().Item1.Value : prefix + open.Key
+                        Detail = open.Count() == 1 && prefix + open.Key == open.Single().Item2
+                            ? open.Single().Item1.Value
+                            : prefix + open.Key
                     });
         }
 
