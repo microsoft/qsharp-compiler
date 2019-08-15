@@ -496,4 +496,193 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         let _ = (OpPairArr([OpPair(arg, arg)]))::Array[0] w/ Op1 <- arg;
     }
 
+
+	// conjugations
+
+	operation ValidConjugation1 () : Unit {
+		mutable foo = 1;
+		within {}
+		apply {
+			set foo = 10;
+		}
+	}
+
+	operation ValidConjugation2 () : Unit {
+		mutable foo = 1;
+		mutable bar = -1;
+		within {
+			GenericAdjointable(bar);
+		}
+		apply {
+			set foo = 10;
+		}
+	}
+
+
+	operation ValidConjugation3 () : Unit {
+		mutable foo = 1;
+		within {}
+		apply {
+			set (_, foo) = (1, 10);
+		}
+	}
+
+	operation ValidConjugation4 () : Unit {
+		mutable foo = 1;
+		mutable bar = -1;
+		within {
+			GenericAdjointable(bar);
+		}
+		apply {
+			set (_, foo) = (1, 10);
+		}
+	}
+
+	operation ValidConjugation5 () : Unit {
+		mutable foo = 1;
+		mutable bar = -1;
+		within {
+			let _ = bar;
+		}
+		apply {
+			set (_, foo) = (1, 10);
+		}
+	}
+
+	operation ValidConjugation6 () : Unit {
+		mutable foo = 1;
+		mutable bar = -1;
+		within {
+			let _ = bar;
+		}
+		apply {
+			mutable nrIter = 0;
+			repeat {
+				set nrIter += 1;
+				GenericOperation();
+			}
+			until (false);
+		}
+	}
+
+	operation ValidConjugation7 (cond : Bool) : Unit {
+		mutable foo = 1;
+		within {
+			if (cond) {
+				fail "{foo}";
+			} 
+		}
+		apply {
+			if (not cond) {
+				set (_, (foo, _)) = (1, (10, ""));
+			}
+		}
+	}
+
+	operation ValidConjugation8 (cond : Bool) : Unit {
+		mutable foo = 1;
+		within {
+			for (i in 1 .. 10) {
+				GenericAdjointable(i, (i, foo));
+			} 
+		}
+		apply {
+			repeat {}
+			until (cond)
+			fixup {}
+		}
+	}
+
+
+	operation InvalidConjugation1 () : Unit {
+		mutable foo = 1;
+		within {
+			GenericAdjointable(foo); 
+		}
+		apply {
+			set foo = 10;
+		}
+	}
+
+	operation InvalidConjugation2 () : Unit {
+		mutable foo = 1;
+		within {
+			GenericAdjointable($"{foo}"); 
+		}
+		apply {
+			set foo = 10;
+		}
+	}
+
+	operation InvalidConjugation3 () : Unit {
+		mutable foo = 1;
+		within {
+			let _ = foo; 
+		}
+		apply {
+			set foo = 10;
+		}
+	}
+
+	operation InvalidConjugation4 () : Unit {
+		mutable foo = 1;
+		within {
+			let _ = foo; 
+		}
+		apply {
+			set (_, foo) = (1, 10);
+		}
+	}
+
+	operation InvalidConjugation5 () : Unit {
+		mutable foo = 1;
+		within {
+			if (foo + 1 > 0) {} 
+		}
+		apply {
+			set (_, foo) = (1, 10);
+		}
+	}
+
+	operation InvalidConjugation6 (cond : Bool) : Unit {
+		mutable foo = 1;
+		within {
+			if (cond) {
+				fail $"{foo}";
+			} 
+		}
+		apply {
+			set (_, (foo, _)) = (1, (10, ""));
+		}
+	}
+
+	operation InvalidConjugation7 (cond : Bool) : Unit {
+		mutable foo = 1;
+		within {
+			if (cond) {
+				fail $"{foo}";
+			} 
+		}
+		apply {
+			if (not cond) {
+				set (_, (foo, _)) = (1, (10, ""));
+			}
+		}
+	}
+
+	operation InvalidConjugation8 (cond : Bool) : Unit {
+		mutable foo = 1;
+		within {
+			for (i in 1 .. 10) {
+				GenericAdjointable(i, (i, foo));
+			} 
+		}
+		apply {
+			repeat {}
+			until (cond)
+			fixup {
+				set (_, (foo, _)) = (1, (10, ""));
+			}
+		}
+	}
 }
