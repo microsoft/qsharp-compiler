@@ -599,7 +599,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when the code fragment has a missing delimiter.</exception>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-        private static Position GetDelimitingCharPosition(FileContentManager file, CodeFragment fragment)
+        private static Position GetDelimiterPosition(FileContentManager file, CodeFragment fragment)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -609,17 +609,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException("Code fragment has a missing delimiter", nameof(fragment));
 
             var end = fragment.GetRange().End;
-            for (var lineNumber = end.Line; lineNumber < file.NrLines(); lineNumber++)
-            {
-                var start = lineNumber == end.Line ? end.Character : 0;
-                var line = file.GetLine(lineNumber);
-                var index = line.FindInCode(s => s.IndexOf(fragment.FollowedBy), start, line.Text.Length - start);
-                if (index != -1)
-                    return new Position(lineNumber, index);
-            }
-            
-            // This means the code fragment and file state are inconsistent...
-            throw new Exception("Code fragment was not followed by the specified delimiting character");
+            var position = file.FragmentEnd(ref end);
+            return new Position(position.Line, position.Character - 1);
         }
 
         /// <summary>
@@ -641,7 +632,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (fragment == null
                 || fragment.FollowedBy != CodeFragment.MissingDelimiter
-                && GetDelimitingCharPosition(file, fragment).IsSmallerThan(position))
+                && GetDelimiterPosition(file, fragment).IsSmallerThan(position))
             {
                 return "";
             }

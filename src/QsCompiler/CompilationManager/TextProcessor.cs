@@ -190,7 +190,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// Throws an ArgumentException if the given position is not within file.
         /// </summary>
-        private static Position FragmentEnd(this FileContentManager file, ref Position current)
+        internal static Position FragmentEnd(this FileContentManager file, ref Position current)
         {
             var lastInFile = LastInFile(file);
             if (!Utils.IsValidPosition(current, file)) throw new ArgumentException("given position is not within file");
