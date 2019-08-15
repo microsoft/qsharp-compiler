@@ -1,4 +1,9 @@
-﻿module Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
+﻿/// Parses incomplete fragment text and returns all of the possible kinds of identifiers that can follow.
+///
+/// This parser is designed to be used with code completion. It assumes that the text it has seen so far is
+/// syntactically valid but allows the fragment to end in the middle. For example, not all open brackets need to be
+/// closed if it is still valid for the bracket to be closed later.
+module Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 open System
 open FParsec
