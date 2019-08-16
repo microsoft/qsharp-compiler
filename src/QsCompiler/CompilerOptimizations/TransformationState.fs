@@ -95,7 +95,7 @@ let internal setVar state (name, value) =
         {state with scopeStack = newScopeStack}
     | None -> failwithf "Variable %s is undefined" name
 
-/// Applies on of the operations above on a SymbolTuple, ValueTuple pair
+/// Applies the given function op on a SymbolTuple, ValueTuple pair
 let rec private onTuple op state (names, values) =
     match names, values with
     | VariableName name, _ ->
