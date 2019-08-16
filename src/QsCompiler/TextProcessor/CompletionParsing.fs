@@ -214,8 +214,8 @@ and nonArrayType =
     let operationType =
         let inOutType = qsType >>. opArrow >>. qsType
         tupleBrackets (attempt (tupleBrackets inOutType ?>> characteristicsAnnotation) <|>
-                        attempt (inOutType ?>> characteristicsAnnotation) <|>
-                        inOutType)
+                       attempt (inOutType ?>> characteristicsAnnotation) <|>
+                       inOutType)
     let functionType = tupleBrackets (qsType >>. fctArrow >>. qsType)
     let keywordType =
         [
