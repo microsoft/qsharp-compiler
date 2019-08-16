@@ -82,7 +82,7 @@ let internal defineVar state (name, value) =
     | head :: tail ->
         let newHead = head.Add (name, value)
         {state with scopeStack = newHead :: tail}
-    | [] -> failwithf "No scope to define variables in"
+    | [] -> InvalidOperationException "No scope to define variables in" |> raise
 
 /// Returns a TransformationState with the given variable set to the given value.
 /// Throws an ArgumentException if no variable with the given name is defined in the given state. 
