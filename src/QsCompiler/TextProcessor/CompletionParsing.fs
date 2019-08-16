@@ -246,7 +246,7 @@ let private udtDeclaration =
     do udtImpl :=
         let namedItem = name ?>> expected colon ?>> qsType
         qsType <|>@ tuple (namedItem <|>@ udt)
-    expectedKeyword typeDeclHeader ?>> name ?>> expected equal ?>> udtTuple
+    expectedKeyword typeDeclHeader ?>> name ?>> expected equal ?>> udt
 
 /// Parses an open directive.
 let private openDirective =

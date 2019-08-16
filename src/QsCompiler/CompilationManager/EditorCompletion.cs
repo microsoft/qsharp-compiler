@@ -133,7 +133,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var token = GetTokenAtOrBefore(file, position);
             var relativeIndentation = token.GetFragment().Indentation - file.IndentationAt(position);
-            var parents = new[] { token }.Concat(token.GetNonEmptyParents()).Skip(relativeIndentation + 1);
+            var parents =
+                new[] { token }.Concat(token.GetNonEmptyParents())
+                .Skip(relativeIndentation + 1)
+                .Select(t => t.GetFragment());
 
             if (!parents.Any())
                 return null;
