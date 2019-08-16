@@ -59,7 +59,14 @@ let rec internal isLiteral (state: TransformationState) (expr: Expr): bool =
     | NewArray (_, a) -> isLiteral state a.Expression
     | Identifier (GlobalCallable _, _) | MissingExpr -> true
     | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, b)
-        when (getCallable state qualName).Kind = TypeConstructor -> isLiteral state b.Expression
+        when (getCallable state qualName).Kind = TypeConstructor -> 
+        QsCompilerError.Verify (
+            (cd.getCallable qualName).Specializations.Length = 1,
+            "Type constructors should have exactly one specialization")
+        QsCompilerError.Verify (
+            (cd.getCallable qualName).Specializations.[0].Implementation = Intrinsic,
+            "Type constructors should be implicit")        
+        isLiteral state b.Expression
     | CallLikeExpression (a, b) ->
         isLiteral state a.Expression && isLiteral state b.Expression &&
             TypedExpression.IsPartialApplication (CallLikeExpression (a, b))
