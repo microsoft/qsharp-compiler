@@ -55,12 +55,12 @@ let rec private toErrorMessageList (replies : Reply<'a> list) =
     | reply :: tail -> ErrorMessageList.Merge (reply.Error, toErrorMessageList tail)
     | [] -> null
 
-/// If `p1` succeeds and consumes all input, returns the result of `p1`. Otherwise, parses `p1` then `p2` and returns
-/// the result of `p2`.
+/// `p1 ?>> p2` attempts `p1`. If `p1` succeeds and consumes all input, it returns the result of `p1` without using
+/// `p2`. Otherwise, it continues parsing with `p2` and returns the result of `p2`.
 let private (?>>) p1 p2 =
     attempt (p1 .>> eof) <|> (p1 >>. p2)
 
-/// `p1 <@> p2` parses `p1` then `p2` and concatenates the results.
+/// `p1 @>> p2` parses `p1` then `p2` and concatenates the results.
 let private (@>>) p1 p2 =
     p1 .>>. p2 |>> fun (list1, list2) -> list1 @ list2
 
