@@ -234,6 +234,7 @@ let ``Expression statement parser tests`` () =
         Keyword "One"
         Keyword "true"
         Keyword "false"
+        Keyword "_"
     ]
     let infix = [Keyword "and"; Keyword "or"]
     test "" expression
@@ -290,6 +291,12 @@ let ``Expression statement parser tests`` () =
     test "Foo(1.2)" infix
     test "Foo(-0.111)" infix
     test "Foo(2, 1.2, -0.111)" infix
+    test "Foo(_" expression
+    test "Foo(_)" infix
+    test "Foo(_," expression
+    test "Foo(_, " expression
+    test "Foo(_, 2" []
+    test "Foo(_, 2)" infix
     test "Foo<" (expression @ types)
     test "Foo<>" infix
     test "Foo<>(" expression

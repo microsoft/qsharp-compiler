@@ -54,6 +54,10 @@ let rec private toErrorMessageList (replies : Reply<'a> list) =
     | reply :: tail -> ErrorMessageList.Merge (reply.Error, toErrorMessageList tail)
     | [] -> null
 
+/// The missing expression keyword.
+let private missingExpr =
+    { parse = keyword "_"; id = "_" }
+
 /// `p1 ?>> p2` attempts `p1`. If `p1` succeeds and consumes all input, it returns the result of `p1` without using
 /// `p2`. Otherwise, it continues parsing with `p2` and returns the result of `p2`.
 let private (?>>) p1 p2 =
@@ -345,6 +349,7 @@ let rec private expression = parse {
                 qsOne
                 qsTrue
                 qsFalse
+                missingExpr
             ] |> List.map expectedKeyword |> pcollect
         let stringLiteral =
             let unescaped p = previousCharSatisfies ((<>) '\\') >>. p
