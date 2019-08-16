@@ -43,7 +43,7 @@ let internal enterScope state =
 let internal exitScope state =
     match state.scopeStack with
     | _ :: tail -> {state with scopeStack = tail}
-    | [] -> failwithf "No scope to exit"
+    | [] -> InvalidOperationException "No scope to exit" |> raise
 
 /// Gets the current value of the given variable
 let internal getVar state name =
