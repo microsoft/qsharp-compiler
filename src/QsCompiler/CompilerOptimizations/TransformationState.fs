@@ -39,7 +39,8 @@ let internal getCallable state qualName =
 let internal enterScope state =
     {state with scopeStack = Map.empty :: state.scopeStack}
 
-/// Returns a TransformationState outside of the current scope
+/// Returns a TransformationState outside of the current scope.
+/// Throws an InvalidOperationException if the scope stack of the given state is empty. 
 let internal exitScope state =
     match state.scopeStack with
     | _ :: tail -> {state with scopeStack = tail}
