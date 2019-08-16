@@ -361,7 +361,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns completions for namespace aliases with the given prefix that are visible at the given position in
-        /// the file. Returns an empty enumerator if the position is invalid.
+        /// the file.
         /// <para/>
         /// Note: a dot will be added after the given prefix if it is not the empty string, and doesn't already end with
         /// a dot.
