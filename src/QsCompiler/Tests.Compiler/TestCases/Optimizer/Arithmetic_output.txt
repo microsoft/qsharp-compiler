@@ -1,7 +1,7 @@
 namespace Microsoft.Quantum.Testing.Optimization.Arithmetic {
     Operation Test () : Int {
         QsBody () {
-            return IntLiteral 4L;
+            return 4;
         }
     }
 }

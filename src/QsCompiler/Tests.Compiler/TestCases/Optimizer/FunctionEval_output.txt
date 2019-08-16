@@ -5,14 +5,14 @@ namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
 
     Function f (x, w) : Int {
         QsBody (x, w) {
-            mutable y = IntLiteral 1L;
-            mutable z = [IntLiteral 0L, IntLiteral 0L, IntLiteral 0L, IntLiteral 0L, IntLiteral 0L];
-            set LocalVariable z = (LocalVariable z w/= IntLiteral 0L <- LocalVariable x);
-            while (LocalVariable z[IntLiteral 0L] > IntLiteral 0L) {
+            mutable y = 1;
+            mutable z = [0, 0, 0, 0, 0];
+            set LocalVariable z = (LocalVariable z w/= 0 <- LocalVariable x);
+            while (LocalVariable z[0] > 0) {
                 set LocalVariable y = (LocalVariable y + LocalVariable w);
-                set LocalVariable z = (LocalVariable z w/= IntLiteral 0L <- (LocalVariable z[IntLiteral 0L] / IntLiteral 2L));
+                set LocalVariable z = (LocalVariable z w/= 0 <- (LocalVariable z[0] / 2));
             }
-            mutable b = IntLiteral 0L;
+            mutable b = 0;
             for a in LocalVariable z {
                 set LocalVariable b = (LocalVariable b + LocalVariable a);
             }
@@ -22,27 +22,27 @@ namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
 
     Function g1 (x) : Int {
         QsBody (x) {
-            if (LocalVariable x = IntLiteral 0L) {
-                return IntLiteral 0L;
+            if (LocalVariable x = 0) {
+                return 0;
             }
-            if (LocalVariable x = IntLiteral 1L) {
-                return IntLiteral 1L;
+            if (LocalVariable x = 1) {
+                return 1;
             }
-            return ((GlobalCallable g1 of (LocalVariable x - IntLiteral 1L)) + (GlobalCallable g1 of (LocalVariable x - IntLiteral 2L)));
+            return ((GlobalCallable g1 of (LocalVariable x - 1)) + (GlobalCallable g1 of (LocalVariable x - 2)));
         }
     }
 
     Function g2 (x) : Int {
         QsBody (x) {
-            return ((LocalVariable x = IntLiteral 0L) ? IntLiteral 0L | ((LocalVariable x = IntLiteral 1L) ? IntLiteral 1L | ((GlobalCallable g2 of (LocalVariable x - IntLiteral 1L)) + (GlobalCallable g2 of (LocalVariable x - IntLiteral 2L)))));
+            return ((LocalVariable x = 0) ? 0 | ((LocalVariable x = 1) ? 1 | ((GlobalCallable g2 of (LocalVariable x - 1)) + (GlobalCallable g2 of (LocalVariable x - 2)))));
         }
     }
 
     Function mySin (x) : Double {
         QsBody (x) {
             let y = (GlobalCallable ArcSinh of LocalVariable x);
-            if (LocalVariable y = DoubleLiteral 0.0) {
-                return DoubleLiteral 2.0;
+            if (LocalVariable y = 0.000000) {
+                return 2.000000;
             }
             return (GlobalCallable ArcSinh of LocalVariable y);
         }
@@ -50,8 +50,8 @@ namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
 
     Operation Test () : (Int, Int, Int, Int, Double) {
         QsBody () {
-            let s = (GlobalCallable mySin of DoubleLiteral 2.0);
-            return (IntLiteral 9L, IntLiteral 2L, IntLiteral 3L, IntLiteral 5L, LocalVariable s);
+            let s = (GlobalCallable mySin of 2.000000);
+            return (9, 2, 3, 5, LocalVariable s);
         }
     }
 }

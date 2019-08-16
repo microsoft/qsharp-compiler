@@ -1,8 +1,8 @@
 namespace Microsoft.Quantum.Testing.Optimization.Reordering {
     Operation Test (x) : UnitType {
         QsBody (x) {
-            let y = (LocalVariable x + IntLiteral 2L);
-            let z = (LocalVariable y + IntLiteral 2L);
+            let y = (LocalVariable x + 2);
+            let z = (LocalVariable y + 2);
             (GlobalCallable f of LocalVariable y);
             (GlobalCallable f of LocalVariable z);
         }

@@ -6,7 +6,6 @@ open Microsoft.Quantum.QsCompiler.CompilerOptimization.OptimizingTransformation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.LoopUnrolling
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRenaming
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementRemoving
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitFinding
 
@@ -19,7 +18,7 @@ type Optimizations() =
 
         let optimizers = [
             ConstantPropagator(callables) :> OptimizingTransformation
-            upcast LoopUnroller()
+            upcast LoopUnroller(callables)
             upcast CallableInliner(callables)
             upcast StatementRemover()
         ]

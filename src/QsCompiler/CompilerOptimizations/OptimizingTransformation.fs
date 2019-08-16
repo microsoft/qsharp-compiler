@@ -20,10 +20,11 @@ type OptimizingTransformation() =
     /// Checks whether the syntax tree changed at all
     override this.Transform x =
         let newX = base.Transform x
-        if x <> newX then
+        if not (x.Equals newX) then
             let s1 = printNamespace x
             let s2 = printNamespace newX
             if s1 <> s2 then
+                printfn "Made change! Size went from %d to %d" s1.Length s2.Length
                 changed <- true
             else
                 // this shouldn't happen, but sometimes does anyways

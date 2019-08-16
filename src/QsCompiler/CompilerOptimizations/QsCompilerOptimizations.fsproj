@@ -17,6 +17,7 @@
     <Compile Include="Utils.fs" />
     <Compile Include="Printer.fs" />
     <Compile Include="Evaluation.fs" />
+    <Compile Include="PureCircuitAPI.fs" />
     <Compile Include="OptimizingTransformation.fs" />
     <Compile Include="ConstantPropagation.fs" />
     <Compile Include="LoopUnrolling.fs" />

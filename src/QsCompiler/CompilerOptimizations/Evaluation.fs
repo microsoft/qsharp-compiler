@@ -212,7 +212,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! hasMissingExprs partialArg |> check
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
-            | _ -> ()
+            | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
     override this.onPartialApplication (method, arg) =
@@ -222,7 +222,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! hasMissingExprs partialArg |> check
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
-            | _ -> ()
+            | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
     override this.onUnwrapApplication ex =
@@ -244,6 +244,8 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         let arr, idx = this.simplify (arr, idx)
         match arr.Expression, idx.Expression with
         | ValueArray va, IntLiteral i -> va.[int i].Expression
+        | ValueArray va, RangeLiteral _ when isLiteral callables idx.Expression ->
+            rangeLiteralToSeq idx.Expression |> Seq.map (fun i -> va.[int i]) |> ImmutableArray.CreateRange |> ValueArray
         | _ -> ArrayItem (arr, idx)
 
     override this.onNewArray (bt, idx) =

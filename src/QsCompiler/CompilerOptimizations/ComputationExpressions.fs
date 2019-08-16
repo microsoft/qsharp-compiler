@@ -12,7 +12,7 @@ type internal MaybeBuilder() =
 
     member this.Bind(m, f) = Option.bind f m
 
-    member this.Zero() = None
+    member this.Zero() = Some ()
 
     member this.Combine(m, f) = Option.bind f m
 
@@ -32,9 +32,10 @@ type internal MaybeBuilder() =
         this.TryFinally(body res, fun () -> match res with null -> () | disp -> disp.Dispose())
 
     member this.While(guard, f) =
-        if not (guard()) then Some () else
-        do f() |> ignore
-        this.While(guard, f)
+        if not (guard())
+        then this.Zero()
+        else this.Bind(f(), fun () ->
+            this.While(guard, f))
 
     member this.For(sequence:seq<_>, body) =
         this.Using(sequence.GetEnumerator(),

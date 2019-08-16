@@ -1,8 +1,8 @@
 namespace Microsoft.Quantum.Testing.Optimization.LoopUnrolling {
     Operation Test () : Int {
         QsBody () {
-            mutable r = IntLiteral 0L;
-            set LocalVariable r = IntLiteral 3L;
+            mutable r = 0;
+            set LocalVariable r = 3;
             return LocalVariable r;
         }
     }

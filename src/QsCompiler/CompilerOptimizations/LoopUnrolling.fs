@@ -6,12 +6,15 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open ComputationExpressions
+open Types
 open Utils
 open OptimizingTransformation
 
 
-type LoopUnroller() =
+type LoopUnroller(compiledCallables) =
     inherit OptimizingTransformation()
+
+    let callables = makeCallables compiledCallables
 
     override syntaxTree.Scope = { new ScopeTransformation() with
         override scope.StatementKind = { new StatementKindTransformation() with
@@ -28,11 +31,11 @@ type LoopUnroller() =
                 maybe {
                     let! iterValsList =
                         match iterVals.Expression with
-                        | RangeLiteral _ ->
+                        | RangeLiteral _ when isLiteral callables iterVals.Expression ->
                             rangeLiteralToSeq iterVals.Expression |> Seq.map (IntLiteral >> wrapExpr Int) |> List.ofSeq |> Some
                         | ValueArray va -> va |> List.ofSeq |> Some
                         | _ -> None
-                    do! check (iterValsList.Length <= 100)
+                    do! check (iterValsList.Length <= 40)
                     let iterRange = iterValsList |> List.map (fun x ->
                         let variableDecl = QsBinding.New ImmutableBinding (loopVar, x) |> QsVariableDeclaration |> wrapStmt
                         let innerScope = { stm.Body with Statements = stm.Body.Statements.Insert(0, variableDecl) }

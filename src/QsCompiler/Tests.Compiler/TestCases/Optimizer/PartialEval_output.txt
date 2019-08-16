@@ -23,9 +23,9 @@ namespace Microsoft.Quantum.Testing.Optimization.PartialEval {
 
     Operation Test () : (Int, Int, Int, Int, Int, Int, Bool) {
         QsBody () {
-            let o = (GlobalCallable M of IntLiteral 2L);
-            let p = (LocalVariable o = ResultLiteral One);
-            return (IntLiteral 7L, IntLiteral 15L, IntLiteral 6L, IntLiteral 3L, IntLiteral 12L, IntLiteral 5L, LocalVariable p);
+            let o = (GlobalCallable M of 2);
+            let p = (LocalVariable o = One);
+            return (7, 15, 6, 3, 12, 5, LocalVariable p);
         }
     }
 

@@ -28,12 +28,14 @@ let isPureQuantum = function
 
 let rec reorderStatements (stmtList: QsStatement list): QsStatement list =
     match stmtList with
-    | head1 :: head2 :: tail
-        when isPureQuantum head1.Statement && isPureClassical head2.Statement ->
-        head2 :: reorderStatements (head1 :: tail)
-    | head :: tail ->
-        head :: reorderStatements tail
     | [] -> []
+    | head :: tail ->
+        let tail = reorderStatements tail
+        match head :: tail with
+        | head1 :: head2 :: tail
+            when isPureQuantum head1.Statement && isPureClassical head2.Statement ->
+            head2 :: reorderStatements (head1 :: tail)
+        | a -> a
 
 
 type StatementRemover() =

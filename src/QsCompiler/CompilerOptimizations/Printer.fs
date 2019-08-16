@@ -11,6 +11,13 @@ open Types
 // Pretty-print various syntax elements
 
 
+let internal printIdentifier (iden: Identifier): string =
+    match iden with
+    | LocalVariable a -> a.Value
+    | GlobalCallable a -> a.Name.Value
+    | InvalidIdentifier -> "__invalid__"
+
+
 let rec internal printExpr (expr: Expr): string =
     match expr with
     | Identifier (LocalVariable a, _) -> "LocalVariable " + a.Value
@@ -23,6 +30,8 @@ let rec internal printExpr (expr: Expr): string =
     | CONDITIONAL (a, b, c) -> sprintf "(%O ? %O | %O)" (printExpr a.Expression) (printExpr b.Expression) (printExpr c.Expression)
     | CopyAndUpdate (a, b, c) -> sprintf "(%O w/= %O <- %O)" (printExpr a.Expression) (printExpr b.Expression) (printExpr c.Expression)
     | ArrayItem (a, b) -> sprintf "%O[%O]" (printExpr a.Expression) (printExpr b.Expression)
+    | NamedItem (a, b) -> sprintf "%O[%O]" (printExpr a.Expression) (printIdentifier b)
+    | NewArray (a, b) -> sprintf "new %O[%O]" (a.ToString()) (printExpr b.Expression)
     | UnwrapApplication a -> "(Unwrap " + (printExpr a.Expression) + ")"
     | AdjointApplication a -> "(Adjoint " + (printExpr a.Expression) + ")"
     | ControlledApplication a -> "(Controlled " + (printExpr a.Expression) + ")"
@@ -30,17 +39,34 @@ let rec internal printExpr (expr: Expr): string =
     | SUB (a, b) -> "(" + (printExpr a.Expression) + " - " + (printExpr b.Expression) + ")"
     | MUL (a, b) -> "(" + (printExpr a.Expression) + " * " + (printExpr b.Expression) + ")"
     | DIV (a, b) -> "(" + (printExpr a.Expression) + " / " + (printExpr b.Expression) + ")"
+    | MOD (a, b) -> "(" + (printExpr a.Expression) + " % " + (printExpr b.Expression) + ")"
+    | POW (a, b) -> "(" + (printExpr a.Expression) + " ^ " + (printExpr b.Expression) + ")"
     | EQ (a, b) -> "(" + (printExpr a.Expression) + " = " + (printExpr b.Expression) + ")"
+    | NEQ (a, b) -> "(" + (printExpr a.Expression) + " = " + (printExpr b.Expression) + ")"
     | GT (a, b) -> "(" + (printExpr a.Expression) + " > " + (printExpr b.Expression) + ")"
     | GTE (a, b) -> "(" + (printExpr a.Expression) + " >= " + (printExpr b.Expression) + ")"
     | LT (a, b) -> "(" + (printExpr a.Expression) + " < " + (printExpr b.Expression) + ")"
+    | LTE (a, b) -> "(" + (printExpr a.Expression) + " <= " + (printExpr b.Expression) + ")"
     | AND (a, b) -> "(" + (printExpr a.Expression) + " and " + (printExpr b.Expression) + ")"
     | OR (a, b) -> "(" + (printExpr a.Expression) + " or " + (printExpr b.Expression) + ")"
-    | BAND (a, b) -> "(" + (printExpr a.Expression) + " & " + (printExpr b.Expression) + ")"
-    | BOR (a, b) -> "(" + (printExpr a.Expression) + " | " + (printExpr b.Expression) + ")"
+    | BAND (a, b) -> "(" + (printExpr a.Expression) + " &&& " + (printExpr b.Expression) + ")"
+    | BOR (a, b) -> "(" + (printExpr a.Expression) + " ||| " + (printExpr b.Expression) + ")"
+    | BXOR (a, b) -> "(" + (printExpr a.Expression) + " ^^^ " + (printExpr b.Expression) + ")"
+    | LSHIFT (a, b) -> "(" + (printExpr a.Expression) + " <<< " + (printExpr b.Expression) + ")"
+    | RSHIFT (a, b) -> "(" + (printExpr a.Expression) + " >>> " + (printExpr b.Expression) + ")"
     | NEG a -> "-(" + (printExpr a.Expression) + ")"
+    | BNOT a -> "~~~(" + (printExpr a.Expression) + ")"
+    | NOT a -> "not (" + (printExpr a.Expression) + ")"
     | StringLiteral (a, b) -> "\"" + a.Value + "\""
-    | a -> a.ToString()
+    | IntLiteral a -> sprintf "%d" a
+    | DoubleLiteral a -> sprintf "%f" a
+    | BigIntLiteral a -> a.ToString() + "L"
+    | BoolLiteral a -> a.ToString()
+    | PauliLiteral a -> a.ToString()
+    | ResultLiteral a -> a.ToString()
+    | UnitValue -> "()"
+    | InvalidExpr -> "__invalid__"
+    | MissingExpr -> "_"
 
 
 let rec internal printInitializer (kind: InitKind): string =

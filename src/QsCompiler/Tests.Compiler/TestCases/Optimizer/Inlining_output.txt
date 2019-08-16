@@ -5,11 +5,11 @@ namespace Microsoft.Quantum.Testing.Optimization.Inlining {
 
     Function f (q, n) : UnitType {
         QsBody (q, n) {
-            if (LocalVariable n = IntLiteral 0L) { EmptyScope } elif (LocalVariable n = IntLiteral 1L) {
+            if (LocalVariable n = 0) { EmptyScope } elif (LocalVariable n = 1) {
                 (GlobalCallable T of LocalVariable q);
             } else {
-                (GlobalCallable f of (LocalVariable q, (LocalVariable n - IntLiteral 1L)));
-                (GlobalCallable f of (LocalVariable q, (LocalVariable n - IntLiteral 2L)));
+                (GlobalCallable f of (LocalVariable q, (LocalVariable n - 1)));
+                (GlobalCallable f of (LocalVariable q, (LocalVariable n - 2)));
             }
         }
     }

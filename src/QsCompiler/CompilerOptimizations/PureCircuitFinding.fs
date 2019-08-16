@@ -1,54 +1,51 @@
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitFinding
 
-open System
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+open Utils
 open Printer
+open PureCircuitAPI
 open OptimizingTransformation
 
 
 type PureCircuitFinder() =
     inherit OptimizingTransformation()
 
-    let mutable pastCircuits = []
-    let mutable currentCircuit = []
-
-    let finishCircuit () =
-        if not (List.isEmpty currentCircuit) then
-            pastCircuits <- pastCircuits @ [currentCircuit]
-        currentCircuit <- []
-
-    override syntaxTree.onProvidedImplementation (argTuple, body) =
-        let result = base.onProvidedImplementation (argTuple, body)
-        finishCircuit ()
-        printfn "Analyzed provided implementation:"
-        for circuit in pastCircuits do
-            printfn "  Found circuit:"
-            for op in circuit do
-                printfn "    %s"  (printExpr op)
-        printfn ""
-        pastCircuits <- []
-        result
 
     override syntaxTree.Scope = { new ScopeTransformation() with
 
         override scope.Transform x =
-            finishCircuit ()
-            let result = base.Transform x
-            finishCircuit ()
-            result
+            let mutable circuit = []
+            let mutable newStatements = []
 
-        override scope.StatementKind = { new StatementKindTransformation() with
-            override stmtKind.ExpressionTransformation x = scope.Expression.Transform x
-            override stmtKind.LocationTransformation x = scope.onLocation x
-            override stmtKind.ScopeTransformation x = scope.Transform x
-            override stmtKind.TypeTransformation x = scope.Expression.Type.Transform x
+            let finishCircuit () =
+                if circuit <> [] then
+                    let newCircuit = optimizeExprList circuit
+                    (*if newCircuit <> circuit then
+                        printfn "Removed %d gates" (circuit.Length - newCircuit.Length)
+                        printfn "Old: %O" (List.map (fun x -> printExpr x.Expression) circuit)
+                        printfn "New: %O" (List.map (fun x -> printExpr x.Expression) newCircuit)
+                        printfn ""*)
+                    newStatements <- newStatements @ List.map (QsExpressionStatement >> wrapStmt) newCircuit
+                    circuit <- []
 
-            override stmtKind.Transform kind =
-                match kind with
-                | QsExpressionStatement s -> currentCircuit <- currentCircuit @ [s.Expression]
-                | _ -> finishCircuit ()
-                base.Transform kind
+            for stmt in x.Statements do
+                match stmt.Statement with
+                | QsExpressionStatement expr -> circuit <- circuit @ [expr]
+                | _ ->
+                    finishCircuit()
+                    newStatements <- newStatements @ [scope.onStatement stmt]
+            finishCircuit()
+
+            QsScope.New (newStatements, x.KnownSymbols)
+
+
+        override this.StatementKind = { new StatementKindTransformation () with 
+            override x.ScopeTransformation s = this.Transform s
+            override x.ExpressionTransformation ex = this.Expression.Transform ex
+            override x.TypeTransformation t = this.Expression.Type.Transform t
+            override x.LocationTransformation l = this.onLocation l
         }
     }
