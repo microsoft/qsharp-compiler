@@ -300,7 +300,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns an IEnumerable with the indices of the closest preceding non-empty tokens with increasingly lower indentation level.
         /// Throws an ArgumentNullException if tIndex is null.
         /// </summary>
-        private static IEnumerable<CodeFragment.TokenIndex> GetNonEmptyParents(this CodeFragment.TokenIndex tIndex)
+        internal static IEnumerable<CodeFragment.TokenIndex> GetNonEmptyParents(this CodeFragment.TokenIndex tIndex)
         {
             if (tIndex == null) throw new ArgumentNullException(nameof(tIndex));
             for (var current = tIndex.GetNonEmptyParent(); current != null; current = current.GetNonEmptyParent())
