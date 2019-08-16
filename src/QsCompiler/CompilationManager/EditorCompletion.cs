@@ -127,7 +127,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 completions =
                     GetCallableCompletions(file, compilation, new[] { resolvedNsPath })
                     .Concat(GetTypeCompletions(file, compilation, new[] { resolvedNsPath }))
-                    .Concat(GetGlobalNamespaceCompletions(compilation, resolvedNsPath));
+                    .Concat(GetGlobalNamespaceCompletions(compilation, resolvedNsPath))
+                    .Concat(GetNamespaceAliasCompletions(file, compilation, position, nsPath));  // unresolved NS path
             }
             else if (!IsDeclaringNewSymbol(file, position))
             {
@@ -231,11 +232,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         (namespacePrefix == "" ? typeKeywords : Array.Empty<CompletionItem>())
                         .Concat(GetTypeCompletions(file, compilation, namespaces))
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
-                        .Concat(GetNamespaceAliasCompletions(file, compilation, position));
+                        .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
                 case IdentifierKind.Tags.Namespace:
                     return
                         GetGlobalNamespaceCompletions(compilation, namespacePrefix)
-                        .Concat(GetNamespaceAliasCompletions(file, compilation, position));
+                        .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
                 case IdentifierKind.Tags.Characteristic:
                     return characteristicKeywords;
             }
@@ -348,24 +349,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return
                 compilation.GlobalSymbols.NamespaceNames()
                 .Where(name => name.Value.StartsWith(prefix))
-                .Select(name => String.Concat(name.Value.Substring(prefix.Length).TakeWhile(c => c != '.')))
+                .Select(name => NextNamespacePart(name.Value, prefix.Length))
                 .Distinct()
                 .Select(name => new CompletionItem()
                 {
                     Label = name,
                     Kind = CompletionItemKind.Module,
-                    Detail = prefix.TrimEnd('.')
+                    Detail = prefix + name
                 });
         }
 
         /// <summary>
-        /// Returns completions for namespace aliases that are visible at the given position in the file. Returns an
-        /// empty enumerator if the position is invalid.
+        /// Returns completions for namespace aliases with the given prefix that are visible at the given position in
+        /// the file.
+        /// <para/>
+        /// Note: a dot will be added after the given prefix if it is not the empty string, and doesn't already end with
+        /// a dot.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<CompletionItem> GetNamespaceAliasCompletions(
-            FileContentManager file, CompilationUnit compilation, Position position)
+            FileContentManager file, CompilationUnit compilation, Position position, string prefix = "")
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -373,19 +377,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(compilation));
             if (!Utils.IsValidPosition(position))
                 throw new ArgumentException(nameof(position));
+            if (prefix == null)
+                throw new ArgumentNullException(nameof(prefix));
 
+            if (prefix.Length != 0 && !prefix.EndsWith("."))
+                prefix += ".";
             var @namespace = file.TryGetNamespaceAt(position);
             return
                 @namespace == null
                 ? Array.Empty<CompletionItem>()
                 : compilation
                     .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
-                    .Where(open => open.Item2 != null)
+                    .Where(open => open.Item2 != null && open.Item2.StartsWith(prefix))
+                    .GroupBy(open => NextNamespacePart(open.Item2, prefix.Length))
                     .Select(open => new CompletionItem()
                     {
-                        Label = open.Item2,
+                        Label = open.Key,
                         Kind = CompletionItemKind.Module,
-                        Detail = open.Item1.Value
+                        Detail = open.Count() == 1 && prefix + open.Key == open.Single().Item2
+                            ? open.Single().Item1.Value
+                            : prefix + open.Key
                     });
         }
 
@@ -640,5 +651,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? fragment.Text + " "
                 : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
         }
+
+        /// <summary>
+        /// Returns the namespace part starting at the given starting position and ending at the next dot.
+        /// </summary>
+        private static string NextNamespacePart(string @namespace, int start) =>
+            String.Concat(@namespace.Substring(start).TakeWhile(c => c != '.'));
     }
 }
