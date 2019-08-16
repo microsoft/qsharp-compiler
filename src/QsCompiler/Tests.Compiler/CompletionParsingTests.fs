@@ -91,6 +91,7 @@ let ``Function declaration parser tests`` () =
 [<Fact>]
 let ``Operation declaration parser tests`` () =
     let test = testAs NamespaceTopLevel
+    let characteristics = [Keyword "Adj"; Keyword "Ctl"]
     test "operation " [Declaration]
     test "operation Foo" [Declaration]
     test "operation Foo " []
@@ -105,22 +106,21 @@ let ``Operation declaration parser tests`` () =
     test "operation Foo (q : Qubit) : Unit " [Keyword "is"]
     test "operation Foo (q : Qubit) : Unit i" [Keyword "is"]
     test "operation Foo (q : Qubit) : Unit is" [Keyword "is"]
-    test "operation Foo (q : Qubit) : Unit is " [Characteristic]
-    test "operation Foo (q : Qubit) : Unit is A" [Characteristic]
-    test "operation Foo (q : Qubit) : Unit is Adj" [Characteristic]
+    test "operation Foo (q : Qubit) : Unit is " characteristics
+    test "operation Foo (q : Qubit) : Unit is A" characteristics
+    test "operation Foo (q : Qubit) : Unit is Adj" characteristics
     test "operation Foo (q : Qubit) : Unit is Adj " []
-    test "operation Foo (q : Qubit) : Unit is Adj +" [Characteristic]
-    test "operation Foo (q : Qubit) : Unit is Adj + " [Characteristic]
-    test "operation Foo (q : Qubit) : Unit is Adj + Ctl" [Characteristic]
-    test "operation Foo (q : Qubit) : Unit is (" [Characteristic]
-    test "operation Foo (q : Qubit) : Unit is ( " [Characteristic]
-    test "operation Foo (q : Qubit) : Unit is (Adj" [Characteristic]
-    // TODO: test "operation Foo (q : Qubit) : Unit is (Adj " []
-    test "operation Foo (q : Qubit) : Unit is (Adj + " [Characteristic]
-    test "operation Foo (q : Qubit) : Unit is (Adj + Ctl" [Characteristic]
-    // TODO: test "operation Foo (q : Qubit) : Unit is (Adj + Ctl)" []    
+    test "operation Foo (q : Qubit) : Unit is Adj +" characteristics
+    test "operation Foo (q : Qubit) : Unit is Adj + " characteristics
+    test "operation Foo (q : Qubit) : Unit is Adj + Ctl" characteristics
+    test "operation Foo (q : Qubit) : Unit is (" characteristics
+    test "operation Foo (q : Qubit) : Unit is ( " characteristics
+    test "operation Foo (q : Qubit) : Unit is (Adj" characteristics
+    test "operation Foo (q : Qubit) : Unit is (Adj " []
+    test "operation Foo (q : Qubit) : Unit is (Adj + " characteristics
+    test "operation Foo (q : Qubit) : Unit is (Adj + Ctl" characteristics
+    test "operation Foo (q : Qubit) : Unit is (Adj + Ctl)" []    
     test "operation Foo (q : Qubit) : Unit is Adj + Ctl " []
-    test "operation Foo (q : Qubit) : Unit is Adj + Cat " []
     test "operation Foo (q : Qubit) : (Int, MyT" types
     test "operation Foo (q : Qubit) : (Int," types
     test "operation Foo (q : Qubit) : (Int, MyT " []
@@ -134,16 +134,16 @@ let ``Operation declaration parser tests`` () =
     test "operation Foo (q : (Qubit => " types
     test "operation Foo (q : (Qubit => Unit" types
     test "operation Foo (q : (Qubit => Unit " [Keyword "is"]
-    test "operation Foo (q : (Qubit => Unit is " [Characteristic]
-    test "operation Foo (q : (Qubit => Unit is Adj" [Characteristic]
+    test "operation Foo (q : (Qubit => Unit is " characteristics
+    test "operation Foo (q : (Qubit => Unit is Adj" characteristics
     test "operation Foo (q : (Qubit => Unit is Adj " []
-    test "operation Foo (q : (Qubit => Unit is Adj + " [Characteristic]
+    test "operation Foo (q : (Qubit => Unit is Adj + " characteristics
     test "operation Foo (q : (Qubit => Unit is Adj)" []
     test "operation Foo (q : (Qubit => Unit is Adj)) : Unit" types
     test "operation Foo (q : ((Qubit => Unit " []
     test "operation Foo (q : ((Qubit => Unit) " [Keyword "is"]
-    test "operation Foo (q : ((Qubit => Unit) is " [Characteristic]
-    test "operation Foo (q : ((Qubit => Unit) is Adj" [Characteristic]
+    test "operation Foo (q : ((Qubit => Unit) is " characteristics
+    test "operation Foo (q : ((Qubit => Unit) is Adj" characteristics
     test "operation Foo (q : ((Qubit => Unit) is Adj)" []
     test "operation Foo (q : ((Qubit => Unit) is Adj))" []
     test "operation Foo (q : ((Qubit => Unit) is Adj)) :" types

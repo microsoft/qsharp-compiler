@@ -1,6 +1,5 @@
 ﻿using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
@@ -60,17 +59,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     // Provides code completion for the language server.
     internal static partial class EditorSupport
     {
-        /// <summary>
-        /// Completion items for built-in characteristic keywords.
-        /// </summary>
-        private static readonly IEnumerable<CompletionItem> characteristicKeywords =
-            new[]
-            {
-                Types.AdjSet,
-                Types.CtlSet
-            }
-            .Select(characteristic => new CompletionItem { Label = characteristic, Kind = CompletionItemKind.Keyword });
-
         /// <summary>
         /// Returns a list of suggested completion items for the given position.
         /// <para/>
@@ -191,8 +179,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return
                         GetGlobalNamespaceCompletions(compilation, namespacePrefix)
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
-                case IdentifierKind.Tags.Characteristic:
-                    return characteristicKeywords;
                 case IdentifierKind.Tags.Variable:
                     return
                         GetLocalCompletions(file, compilation, position)

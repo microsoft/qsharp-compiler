@@ -5,13 +5,14 @@
 /// closed if it is still valid for the bracket to be closed later.
 module Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
+#nowarn "40"
+
 open System
 open FParsec
 open Microsoft.Quantum.QsCompiler.TextProcessing.ExpressionParsing
 open Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
 open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
-open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
 
 
 /// Describes the environment of a code fragment in terms of what kind of completions are available.
@@ -33,8 +34,6 @@ type IdentifierKind =
     | TypeParameter
     /// The identifier is a new symbol declaration.
     | Declaration
-    /// The identifier is a characteristic set name.
-    | Characteristic
     /// The identifier is a namespace.
     | Namespace
     /// The identifier is a member of the given namespace and has the given kind.
@@ -119,7 +118,6 @@ let private expectedId kind p =
 let private expectedKeyword keyword =
     expectedId (Keyword keyword.id) keyword.parse <|> attempt (symbol >>. eot >>% [Keyword keyword.id])
 
-
 /// Parses an expected qualified symbol. The identifier is optional if EOT occurs first. Returns `[kind]` if EOT occurs
 /// first or there is no whitespace after the qualified symbol; otherwise, returns `[]`.
 let private expectedQualifiedSymbol kind =
@@ -182,12 +180,26 @@ let private tuple p =
 let private array p =
     arrayBrackets (sepBy1 p comma |>> List.last)
 
+/// Creates an expression parser using the given prefix operator, infix operator, postfix operator, and term parsers.
+let private createExpressionParser prefixOp infixOp postfixOp expTerm =
+    let termBundle = manyR prefixOp @>> expTerm ?>> manyLast postfixOp
+    termBundle @>> manyLast (infixOp ?>> termBundle)
+
 /// Parses a type.
 let (private qsType, private qsTypeImpl) = createParserForwardedToRef()
 
 /// Parses the characteristics keyword followed by a characteristics expression.
 let private characteristicsAnnotation =
-    expectedKeyword qsCharacteristics ?>> expectedId Characteristic (expectedCharacteristics eof)
+    let rec characteristicsExpr = parse {
+        let infixOp = operator qsSetUnion.op None <|> operator qsSetIntersection.op None
+        let expTerm = pcollect [
+            tupleBrackets characteristicsExpr
+            expectedKeyword qsAdjSet
+            expectedKeyword qsCtlSet
+        ]
+        return! createExpressionParser pzero infixOp pzero expTerm
+    }
+    expectedKeyword qsCharacteristics ?>> characteristicsExpr
 
 /// Parses a type, except the top-level type cannot be an array type.
 let private nonArrayType =
@@ -265,110 +277,102 @@ let private namespaceTopLevel =
     ] .>> eotEof
 
 /// Parses an expression.
-let (private expression, private expressionImpl) = createParserForwardedToRef()
-
-/// Parses any prefix operator in an expression.
-let private prefixOp =
-    expectedKeyword notOperator <|> operator qsNEGop.op None <|> operator qsBNOTop.op None
-
-/// Parses any infix operator in an expression.
-let private infixOp =
-    // Do not include LT here; it is parsed as a postfix operator instead.
-    choice [
-        expectedKeyword andOperator <|>@ expectedKeyword orOperator
-        operator qsRangeOp.op None
-        operator qsBORop.op None
-        operator qsBXORop.op None
-        operator qsBANDop.op None
-        operator qsEQop.op None
-        operator qsNEQop.op None
-        operator qsLTEop.op None
-        operator qsGTEop.op None
-        operator qsGTop.op None
-        operator qsRSHIFTop.op None
-        operator qsADDop.op None
-        operator qsSUBop.op None
-        operator qsMULop.op None
-        operator qsMODop.op None
-        operator qsDIVop.op (Some (notFollowedBy (pchar '/')))
-        operator qsPOWop.op None
-    ]
-
-/// Parses any postfix operator in an expression.
-let private postfixOp =
-    let copyAndUpdate =
-        operator qsCopyAndUpdateOp.op None >>.
-        (expression <|>@ expectedId NamedItem (term symbol)) ?>>
-        expected (operator qsCopyAndUpdateOp.cont None) ?>>
-        expression
-    let conditional =
-        operator qsConditionalOp.op None >>.
-        expression ?>>
-        expected (operator qsConditionalOp.cont None) ?>>
-        expression
-    let typeParamListOrLessThan =
-        // This is a parsing hack for the < operator, which can be either less-than or the start of a type parameter
-        // list.
-        angleBrackets (sepByLast qsType comma) <|>@ (operator qsLTop.op None >>. expression)
-    choice [
-        operator qsUnwrapModifier.op (Some (notFollowedBy (pchar '=')))
-        operator qsOpenRangeOp.op None .>> optional eot
-        operator qsNamedItemCombinator.op None >>. expectedId NamedItem (term symbol)
-        copyAndUpdate
-        conditional
-        (unitValue >>% [])
-        tuple expression
-        array expression
-        typeParamListOrLessThan
-    ]
+let rec private expression = parse {
+    let prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op None <|> operator qsBNOTop.op None
     
-/// Parses any expression term.
-let private expressionTerm =
-    let newArray =
-        expectedKeyword arrayDecl ?>>
-        nonArrayType ?>>
-        manyR (arrayBrackets (emptySpace >>% [])) @>>
-        array expression
-    let keywordLiteral =
-        [
-            qsPauliX
-            qsPauliY
-            qsPauliZ
-            qsPauliI
-            qsZero
-            qsOne
-            qsTrue
-            qsFalse
-        ] |> List.map expectedKeyword |> pcollect
-    let stringLiteral =
-        let unescaped p = previousCharSatisfies ((<>) '\\') >>. p
-        let quote = pstring "\""
-        let interpolated =
-            let text =
-                manyChars (notFollowedBy (unescaped quote <|> unescaped lCurly) >>. anyChar) >>.
-                optional eot >>. preturn []
-            let code = curlyBrackets expression
-            pchar '$' >>. expected quote ?>> text ?>> manyLast (code ?>> text) ?>> expected quote
-        let uninterpolated =
-            let text = manyChars (notFollowedBy (unescaped quote) >>. anyChar) >>. optional eot >>. preturn []
-            quote >>. text ?>> expected quote
-        interpolated <|> uninterpolated
-    let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
-    pcollect [
-        operator qsOpenRangeOp.op None >>. opt expression |>> Option.defaultValue []
-        newArray
-        tuple expression
-        array expression
-        keywordLiteral
-        numericLiteral >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
-        stringLiteral
-        manyR functor @>> expectedQualifiedSymbol Variable
-    ]
-
-/// Parses an expression.
-do expressionImpl :=
-    let termBundle = manyR prefixOp @>> expressionTerm ?>> manyLast postfixOp
-    termBundle @>> manyLast (infixOp ?>> termBundle)
+    let infixOp =
+        // Do not include LT here; it is parsed as a postfix operator instead.
+        choice [
+            expectedKeyword andOperator <|>@ expectedKeyword orOperator
+            operator qsRangeOp.op None
+            operator qsBORop.op None
+            operator qsBXORop.op None
+            operator qsBANDop.op None
+            operator qsEQop.op None
+            operator qsNEQop.op None
+            operator qsLTEop.op None
+            operator qsGTEop.op None
+            operator qsGTop.op None
+            operator qsRSHIFTop.op None
+            operator qsADDop.op None
+            operator qsSUBop.op None
+            operator qsMULop.op None
+            operator qsMODop.op None
+            operator qsDIVop.op (Some (notFollowedBy (pchar '/')))
+            operator qsPOWop.op None
+        ]
+    
+    let postfixOp =
+        let copyAndUpdate =
+            operator qsCopyAndUpdateOp.op None >>.
+            (expression <|>@ expectedId NamedItem (term symbol)) ?>>
+            expected (operator qsCopyAndUpdateOp.cont None) ?>>
+            expression
+        let conditional =
+            operator qsConditionalOp.op None >>.
+            expression ?>>
+            expected (operator qsConditionalOp.cont None) ?>>
+            expression
+        let typeParamListOrLessThan =
+            // This is a parsing hack for the < operator, which can be either less-than or the start of a type parameter
+            // list.
+            angleBrackets (sepByLast qsType comma) <|>@ (operator qsLTop.op None >>. expression)
+        choice [
+            operator qsUnwrapModifier.op (Some (notFollowedBy (pchar '=')))
+            operator qsOpenRangeOp.op None .>> optional eot
+            operator qsNamedItemCombinator.op None >>. expectedId NamedItem (term symbol)
+            copyAndUpdate
+            conditional
+            (unitValue >>% [])
+            tuple expression
+            array expression
+            typeParamListOrLessThan
+        ]
+        
+    let expTerm =
+        let newArray =
+            expectedKeyword arrayDecl ?>>
+            nonArrayType ?>>
+            manyR (arrayBrackets (emptySpace >>% [])) @>>
+            array expression
+        let keywordLiteral =
+            [
+                qsPauliX
+                qsPauliY
+                qsPauliZ
+                qsPauliI
+                qsZero
+                qsOne
+                qsTrue
+                qsFalse
+            ] |> List.map expectedKeyword |> pcollect
+        let stringLiteral =
+            let unescaped p = previousCharSatisfies ((<>) '\\') >>. p
+            let quote = pstring "\""
+            let interpolated =
+                let text =
+                    manyChars (notFollowedBy (unescaped quote <|> unescaped lCurly) >>. anyChar) >>.
+                    optional eot >>. preturn []
+                let code = curlyBrackets expression
+                pchar '$' >>. expected quote ?>> text ?>> manyLast (code ?>> text) ?>> expected quote
+            let uninterpolated =
+                let text = manyChars (notFollowedBy (unescaped quote) >>. anyChar) >>. optional eot >>. preturn []
+                quote >>. text ?>> expected quote
+            interpolated <|> uninterpolated
+        let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
+        pcollect [
+            operator qsOpenRangeOp.op None >>. opt expression |>> Option.defaultValue []
+            newArray
+            tuple expression
+            array expression
+            keywordLiteral
+            numericLiteral >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
+            stringLiteral
+            manyR functor @>> expectedQualifiedSymbol Variable
+        ]
+    
+    return! createExpressionParser prefixOp infixOp postfixOp expTerm
+}
 
 /// Parses a statement.
 let private statement =
