@@ -6,6 +6,7 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.Statements
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
+open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -15,6 +16,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SymbolTracker
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
 // some utils for type checking statements
@@ -255,14 +257,25 @@ let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedB
 
 /// Given a positioned block of Q# statements specifying the transformation to conjugate (inner transformation V), 
 /// as well as a positioned block of Q# statements specifying the transformation to conjugate it with (outer transformation U), 
-/// builds and returns the corresponding conjugation statement representing the patter U*VU where the order of application is right to left and U* is the adjoint of U.  
+/// builds and returns the corresponding conjugation statement representing the patter U*VU where the order of application is right to left and U* is the adjoint of U. 
+/// Returns an array with diagnostics and the corresponding statement offset for all invalid variable reassignments in the apply-block. 
 /// Throws an ArgumentException if the given block specifying the outer transformation contains no location information. 
 let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
     let location = outer.Location |> function
         | Null -> ArgumentException "no location is set for the given within-block defining the conjugating transformation" |> raise
         | Value loc -> loc
-    // TODO: WE NEED TO GIVE PROPER ERRORS IF A VARIABLE THAT IS USED IN THE OUTER BLOCK IS REASSIGNED IN THE INNER BLOCK
-    QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location []
+    let usedInOuter = 
+        let accumulate = new AccumulateIdentifiers()
+        accumulate.Transform outer.Body |> ignore
+        accumulate.UsedLocalVariables
+    let updatedInInner = 
+        let accumulate = new AccumulateIdentifiers()
+        accumulate.Transform inner.Body |> ignore
+        accumulate.ReassignedVariables
+    let updateErrs = 
+        updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
+        |> Seq.map (fun loc -> (loc.Offset, loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))) |> Seq.toArray
+    QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location [], updateErrs
 
 /// Given the location of the statement header as well as a symbol tracker containing all currently declared symbols, 
 /// builds the Q# using- or borrowing-statement (depending on the given kind) at the given location

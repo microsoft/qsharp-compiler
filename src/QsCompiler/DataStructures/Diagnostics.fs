@@ -236,6 +236,7 @@ type ErrorCode =
     | ValueUpdateWithinAutoInversion = 6314
     | RUSloopWithinAutoInversion = 6315
     | QuantumDependencyOutsideExprStatement = 6316
+    | InvalidReassignmentInApplyBlock = 6317
 
     | UnexpectedCommandLineCompilerException = 7001
     | MissingInputFileOrSnippet = 7002
@@ -551,7 +552,8 @@ type DiagnosticItem =
             | ErrorCode.ValueUpdateWithinAutoInversion          -> "Auto-generation of inversions is not supported for operations that contain set-statements."
             | ErrorCode.RUSloopWithinAutoInversion              -> "Auto-generation of inversions is not supported for operations that contain repeat-until-success-loops."
             | ErrorCode.QuantumDependencyOutsideExprStatement   -> "Auto-generation of inversions is not supported for operations that contain operation calls outside expression statements."
-                               
+            | ErrorCode.InvalidReassignmentInApplyBlock         -> "Variables that are used in the within-block (specifying the outer transformation) cannot be reassigned in the apply-block (specifying the inner transformation)."
+
             | ErrorCode.UnexpectedCommandLineCompilerException  -> "The command line compiler threw an exception."
             | ErrorCode.MissingInputFileOrSnippet               -> "The command line compiler needs a list of files or a code snippet to process."
             | ErrorCode.SnippetAndInputArguments                -> "The command line compiler can accept a list of files or a code snippet, but not both."

@@ -803,8 +803,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     var innerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
+                    var built = Statements.NewConjugation(outer, inner);
+                    diagnostics.AddRange(built.Item2.Select(msg => Diagnostics.Generate(symbolTracker.SourceFile.Value, msg.Item2, nodes.Current.GetRootPosition())));
 
-                    statement = Statements.NewConjugation(outer, inner);
+                    statement = built.Item1;
                     proceed = nodes.MoveNext();
                     return true;
                 }

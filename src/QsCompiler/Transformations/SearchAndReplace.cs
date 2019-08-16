@@ -15,6 +15,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 {
     using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using QsExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using QsRangeInfo = QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>;
 
 
     // routines for finding occurrences of symbols/identifiers
@@ -149,9 +150,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             Core.ExpressionTypeTransformation
         {
             private readonly QsCodeOutput.ExpressionTypeToQs CodeOutput = new QsCodeOutput.ExpressionToQs()._Type;
-            internal Action<Identifier, QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>> OnIdentifier;
+            internal Action<Identifier, QsRangeInfo> OnIdentifier;
 
-            public TypeLocation(Action<Identifier, QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>> onIdentifier = null) :
+            public TypeLocation(Action<Identifier, QsRangeInfo> onIdentifier = null) :
                 base(true) =>
                 this.OnIdentifier = onIdentifier;
 
@@ -219,7 +220,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return base.onLocation(loc);
         }
 
-        private void LogIdentifierLocation(Identifier id, QsNullable<Tuple<QsPositionInfo, QsPositionInfo>> range)
+        private void LogIdentifierLocation(Identifier id, QsRangeInfo range)
         {
             if (this.TrackIdentifier(id) && this.CurrentLocation?.Offset != null && range.IsValue)
             {
@@ -245,6 +246,77 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             finder.RootLocation = rootLoc ?? throw new ArgumentNullException(nameof(rootLoc));
             finder.Transform(scope ?? throw new ArgumentNullException(nameof(scope)));
             return finder.Locations;
+        }
+    }
+
+
+    // routines for finding all symbols/identifiers
+
+    /// <summary>
+    /// Generates a look-up for all used local variables and their location in any of the transformed scopes, 
+    /// as well as one for all local variables reassigned in any of the transformed scopes and their locations. 
+    /// Note that the location information is relative to the root node, i.e. the start position of the containing specialization declaration. 
+    /// </summary>
+    public class AccumulateIdentifiers :
+        ScopeTransformation<AccumulateIdentifiers.VariableReassignments, OnTypedExpression<Core.ExpressionTypeTransformation>>
+    {
+        private QsLocation StatementLocation;
+        private Func<TypedExpression, TypedExpression> UpdatedExpression;
+
+        private List<(NonNullable<string>, QsLocation)> UpdatedLocals;
+        private List<(NonNullable<string>, QsLocation)> UsedLocals;
+
+        public ILookup<NonNullable<string>, QsLocation> ReassignedVariables => 
+            this.UpdatedLocals.ToLookup(var => var.Item1, var => var.Item2);
+
+        public ILookup<NonNullable<string>, QsLocation> UsedLocalVariables =>
+            this.UsedLocals.ToLookup(var => var.Item1, var => var.Item2);
+
+
+        public AccumulateIdentifiers() :
+            base(
+                scope => new VariableReassignments(scope as AccumulateIdentifiers),
+                new OnTypedExpression<Core.ExpressionTypeTransformation>(recur: true))
+        {
+            this.UpdatedLocals = new List<(NonNullable<string>, QsLocation)>();
+            this.UsedLocals = new List<(NonNullable<string>, QsLocation)>();
+            this._Expression.OnExpression = this.onLocal(this.UsedLocals);
+            this.UpdatedExpression = new OnTypedExpression<Core.ExpressionTypeTransformation>(this.onLocal(this.UpdatedLocals), recur: true).Transform;
+        }
+
+        private Action<TypedExpression> onLocal(List<(NonNullable<string>, QsLocation)> accumulate) => (TypedExpression ex) =>
+        {
+            if (ex.Expression is QsExpressionKind.Identifier id &&
+                id.Item1 is Identifier.LocalVariable var)
+            {
+                var range = ex.Range.IsValue ? ex.Range.Item : this.StatementLocation.Range;
+                accumulate.Add((var.Item, new QsLocation(this.StatementLocation.Offset, range)));
+            }
+        };
+
+        public override QsStatement onStatement(QsStatement stm)
+        {
+            this.StatementLocation = stm.Location.IsNull ? null : stm.Location.Item;
+            this.StatementKind.Transform(stm.Statement);
+            return stm;
+        }
+
+
+        // helper class
+
+        public class VariableReassignments :
+            StatementKindTransformation<AccumulateIdentifiers>
+        {
+            public VariableReassignments(AccumulateIdentifiers scope)
+                : base(scope)
+            { }
+
+            public override QsStatementKind onValueUpdate(QsValueUpdate stm)
+            {
+                this._Scope.UpdatedExpression(stm.Lhs);
+                this.ExpressionTransformation(stm.Rhs);
+                return QsStatementKind.NewQsValueUpdate(stm);
+            }
         }
     }
 
