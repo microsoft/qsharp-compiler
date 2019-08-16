@@ -189,9 +189,6 @@ let private createExpressionParser prefixOp infixOp postfixOp expTerm =
     let termBundle = manyR prefixOp @>> expTerm ?>> manyLast postfixOp
     termBundle @>> manyLast (infixOp ?>> termBundle)
 
-/// Parses a type.
-let (private qsType, private qsTypeImpl) = createParserForwardedToRef()
-
 /// Parses the characteristics keyword followed by a characteristics expression.
 let private characteristicsAnnotation =
     let rec characteristicsExpr = parse {
@@ -205,14 +202,20 @@ let private characteristicsAnnotation =
     }
     expectedKeyword qsCharacteristics ?>> characteristicsExpr
 
-/// Parses a type, except the top-level type cannot be an array type.
-let private nonArrayType =
+/// Parses a type.
+let rec private qsType =
+    parse {
+        return! nonArrayType .>> many (arrayBrackets (emptySpace >>% []))
+    }
+
+/// Parses types where the top-level type is not an array type.
+and nonArrayType =
     let typeParameter = pchar '\'' >>. expectedId TypeParameter (term symbol)
     let operationType =
         let inOutType = qsType >>. opArrow >>. qsType
         tupleBrackets (attempt (tupleBrackets inOutType ?>> characteristicsAnnotation) <|>
-                       attempt (inOutType ?>> characteristicsAnnotation) <|>
-                       inOutType)
+                        attempt (inOutType ?>> characteristicsAnnotation) <|>
+                        inOutType)
     let functionType = tupleBrackets (qsType >>. fctArrow >>. qsType)
     let keywordType =
         [
@@ -235,9 +238,6 @@ let private nonArrayType =
         keywordType <|>@ expectedQualifiedSymbol UserDefinedType
     ]
 
-do qsTypeImpl :=
-    nonArrayType .>> many (arrayBrackets (emptySpace >>% []))
-
 /// Parses a callable signature.
 let private callableSignature =
     let name = expectedId Declaration (term symbol)
@@ -258,10 +258,10 @@ let private operationDeclaration =
 /// Parses a user-defined type declaration.
 let private udtDeclaration = 
     let name = expectedId Declaration (term symbol)
-    let (udt, udtImpl) = createParserForwardedToRef ()
-    do udtImpl :=
+    let rec udt = parse {
         let namedItem = name ?>> expected colon ?>> qsType
-        qsType <|>@ tuple (namedItem <|>@ udt)
+        return! qsType <|>@ tuple (namedItem <|>@ udt)
+    }
     expectedKeyword typeDeclHeader ?>> name ?>> expected equal ?>> udt
 
 /// Parses an open directive.
