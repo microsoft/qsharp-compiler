@@ -83,7 +83,8 @@ let internal defineVar state (name, value) =
         {state with scopeStack = newHead :: tail}
     | [] -> failwithf "No scope to define variables in"
 
-/// Returns a TransformationState with the given variable set to the given value
+/// Returns a TransformationState with the given variable set to the given value.
+/// Throws an ArgumentException if no variable with the given name is defined in the given state. 
 let internal setVar state (name, value) =
     if not (isLiteral state value) then state else
     // TODO: assert variable is defined, is same type
