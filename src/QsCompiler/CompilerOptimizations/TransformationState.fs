@@ -1,11 +1,7 @@
 ﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.TransformationState
 
 open System
-open System.Collections.Generic
-open System.Collections.Immutable
-open System.Numerics
-open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
@@ -62,10 +58,10 @@ let rec internal isLiteral (state: TransformationState) (expr: Expr): bool =
     | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, b)
         when (getCallable state qualName).Kind = TypeConstructor -> 
         QsCompilerError.Verify (
-            (cd.getCallable qualName).Specializations.Length = 1,
+            (getCallable state qualName).Specializations.Length = 1,
             "Type constructors should have exactly one specialization")
         QsCompilerError.Verify (
-            (cd.getCallable qualName).Specializations.[0].Implementation = Intrinsic,
+            (getCallable state qualName).Specializations.[0].Implementation = Intrinsic,
             "Type constructors should be implicit")        
         isLiteral state b.Expression
     | CallLikeExpression (a, b) ->
