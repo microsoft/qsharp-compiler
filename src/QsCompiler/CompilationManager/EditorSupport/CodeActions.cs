@@ -133,5 +133,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(SuggestedOpenDirective);
             return suggestionsForIds.Concat(suggestionsForTypes);
         }
+
+        /// <summary>
+        /// Returns a sequence of suggestions on how deprecated syntax can be updated based on the generated diagnostics, 
+        /// and given the file for which those diagnostics were generated. 
+        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// </summary>
+        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForDeprecatedSyntax
+            (this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
+        {
+            if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
+            var deprecatedUnitTypes = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedUnitType));
+            if (!deprecatedUnitTypes.Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
+
+            // Suggestion for replacing deprecated unit types
+            (string, WorkspaceEdit) EditAtPosition(string text, Position start, Position end)
+            {
+                var edit = new TextEdit { Range = new Range { Start = start, End = end }, NewText = text };
+                return ("Replace with \"" + $"{text}" + "\"", file.GetWorkspaceEdit(edit));
+            }
+
+            var suggestionsForUnitType = deprecatedUnitTypes
+                .Select(d => EditAtPosition(Keywords.qsUnit.id, d.Range.Start, d.Range.End));
+            return suggestionsForUnitType;
+        }
     }
 }
