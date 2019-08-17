@@ -8,10 +8,12 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
+using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions.SymbolInformation;
@@ -368,6 +370,41 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var unknownCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
             var ambiguousTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousType));
             var unknownTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
+            var deprecatedOpCharacteristics = context.Diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedOpCharacteristics));
+
+            // update deprecated operation characteristics syntax
+            WorkspaceEdit UpdateOperationCharacteristics(Diagnostic diagnostic)
+            {
+                var fragment = file.TryGetFragmentAt(diagnostic.Range.Start);
+                QsTuple<Tuple<QsSymbol, QsType>> argument;
+                if (fragment.Kind is QsFragmentKind.FunctionDeclaration function)
+                    argument = function.Item2.Argument;
+                else if (fragment.Kind is QsFragmentKind.OperationDeclaration operation)
+                    argument = operation.Item2.Argument;
+                else if (fragment.Kind is QsFragmentKind.TypeDefinition type)
+                    argument = type.Item2;
+                else
+                    return null;
+
+                var characteristics =
+                    argument.GetCharacteristicsInArgumentTuple()
+                    .Where(c =>
+                        DiagnosticTools.GetAbsoluteRange(fragment.GetRange().Start, c.Range.Item)
+                        .Overlaps(diagnostic.Range))
+                    .Single();
+                var typeToQs = new ExpressionTypeToQs(new ExpressionToQs());
+                typeToQs.onCharacteristicsExpression(SymbolResolution.ResolveCharacteristics(characteristics));
+                return GetWorkspaceEdit(new TextEdit
+                {
+                    Range = diagnostic.Range,
+                    NewText = $"{Types.Characteristics} {typeToQs.Output}"
+                });
+            }
+            var updatedOpCharacteristics =
+                deprecatedOpCharacteristics
+                .Select(UpdateOperationCharacteristics)
+                .Where(edit => edit != null)
+                .Select(edit => ("Update operation characteristics syntax", edit));
 
             // suggestions for ambiguous ids and types
 
@@ -385,7 +422,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(ns => SuggestedNameQualification(ns, id, pos)));
 
             if (!unknownCallables.Any() && !unknownTypes.Any())
-            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
+            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).Concat(updatedOpCharacteristics).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
 
             // suggestions for unknown ids and types
 
@@ -418,6 +455,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return suggestionsForIds.Concat(suggestionsForTypes)
                 .Concat(suggestedIdQualifications).Concat(suggestedTypeQualifications)
+                .Concat(updatedOpCharacteristics)
                 .ToImmutableDictionary(s => s.Item1, s => s.Item2);
         }
 

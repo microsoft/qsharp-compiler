@@ -369,3 +369,21 @@ let GlobalCallableResolutions (syntaxTree : IEnumerable<QsNamespace>) =
         | _ -> None))
     callables.ToImmutableDictionary(fst, snd)
     
+/// Returns all of the operation characteristics found in the given type.
+[<Extension>]
+let rec GetCharacteristicsInType (qsType : QsType) =
+    match qsType.Type with
+    | ArrayType arrayType -> GetCharacteristicsInType arrayType
+    | TupleType types -> types.SelectMany GetCharacteristicsInType
+    | SyntaxTokens.Operation ((input, output), characteristics) ->
+        (GetCharacteristicsInType input).Concat(GetCharacteristicsInType output).Append(characteristics)
+    | SyntaxTokens.Function (input, output) ->
+        (GetCharacteristicsInType input).Concat(GetCharacteristicsInType output)
+    | _ -> Seq.empty
+
+/// Returns all of the operation characteristics found in the given argument tuple.
+[<Extension>]
+let rec GetCharacteristicsInArgumentTuple (tuple : QsTuple<QsSymbol * QsType>) =
+    match tuple with
+    | QsTupleItem (_, qsType) -> GetCharacteristicsInType qsType
+    | QsTuple items -> items.SelectMany GetCharacteristicsInArgumentTuple
