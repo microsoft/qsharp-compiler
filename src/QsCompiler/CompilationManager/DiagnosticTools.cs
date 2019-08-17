@@ -202,7 +202,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static Func<Diagnostic, bool> WarningType(params WarningCode[] types)
         {
-            var codes = types.Select(err => err.Code());
+            var codes = types.Select(war => war.Code());
             return m => m.Severity == DiagnosticSeverity.Warning && codes.Contains(m.Code);
         }
 

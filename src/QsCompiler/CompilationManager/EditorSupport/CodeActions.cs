@@ -144,18 +144,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
             var deprecatedUnitTypes = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedUnitType));
-            if (!deprecatedUnitTypes.Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
+            var deprecatedNOToperators = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedNOToperator));
+            var deprecatedANDoperators = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedANDoperator));
+            var deprecatedORoperators = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedORoperator));
 
-            // Suggestion for replacing deprecated unit types
-            (string, WorkspaceEdit) EditAtPosition(string text, Position start, Position end)
+            (string, WorkspaceEdit) ReplaceWith(string text, Range range)
             {
-                var edit = new TextEdit { Range = new Range { Start = start, End = end }, NewText = text };
-                return ("Replace with \"" + $"{text}" + "\"", file.GetWorkspaceEdit(edit));
+                var edit = new TextEdit { Range = range.Copy(), NewText = text };
+                return ($"Replace with \"{text.Trim()}\".", file.GetWorkspaceEdit(edit));
             }
 
-            var suggestionsForUnitType = deprecatedUnitTypes
-                .Select(d => EditAtPosition(Keywords.qsUnit.id, d.Range.Start, d.Range.End));
-            return suggestionsForUnitType;
+            var suggestionsForUnitType = deprecatedUnitTypes.Select(d => ReplaceWith(Keywords.qsUnit.id, d.Range));
+            var suggestionsForNOT = deprecatedNOToperators.Select(d => ReplaceWith(Keywords.qsNOTop.op + " ", d.Range));
+            var suggestionsForAND = deprecatedANDoperators.Select(d => ReplaceWith(Keywords.qsANDop.op, d.Range));
+            var suggestionsForOR = deprecatedORoperators.Select(d => ReplaceWith(Keywords.qsORop.op, d.Range));
+            return suggestionsForUnitType.Concat(suggestionsForNOT).Concat(suggestionsForAND).Concat(suggestionsForOR);
         }
     }
 }
