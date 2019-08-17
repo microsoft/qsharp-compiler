@@ -112,7 +112,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (range?.Start == null || range.End == null || file == null || !Utils.IsValidRange(range, file)) return null;
             var suggestionsForUnknownIds = file.SuggestionsForUnknownIdentifiers(compilation, range.Start.Line, context?.Diagnostics);
             var suggestionsForAmbiguousIds = file.SuggestionsForAmbiguousIdentifiers(compilation, context?.Diagnostics);
-            return suggestionsForUnknownIds.Concat(suggestionsForAmbiguousIds)
+            var suggestionsForDeprecatedSyntax = file.SuggestionsForDeprecatedSyntax(context?.Diagnostics);
+            return suggestionsForUnknownIds.Concat(suggestionsForAmbiguousIds).Concat(suggestionsForDeprecatedSyntax)
                 .ToImmutableDictionary(s => s.Item1, s => s.Item2);
         }
 
