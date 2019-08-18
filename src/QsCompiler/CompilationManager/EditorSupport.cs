@@ -368,6 +368,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var unknownCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
             var ambiguousTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousType));
             var unknownTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
+            var updateOfArrayItemExprs = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UpdateOfArrayItemExpr));
 
             // suggestions for ambiguous ids and types
 
@@ -384,8 +385,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .SelectMany(pos => file.NamespaceSuggestionsForTypeAtPosition(pos, compilation, out var id)
                 .Select(ns => SuggestedNameQualification(ns, id, pos)));
 
+            // suggestions for array item update errors
+            (string, WorkspaceEdit) SuggestedCopyAndUpdateExpr(CodeFragment fragment)
+            {
+                var exprInfo = Parsing.ProcessUpdateOfArrayItemExpr.Invoke(fragment.Text);
+                // Skip if the statement did not match patterns the code action supports
+                if(exprInfo == null || (exprInfo.Item1.Line == 1 && exprInfo.Item1.Column == 1))
+                {
+                    return ("", null);
+                }
+                // Convert: set <identifier>[<index>] = <rhs> -> set <identifier> w/= <index> <- <rhs>
+                string outputStr = "set " + exprInfo.Item2 + " w/= " + exprInfo.Item3 + " <- " + exprInfo.Item4;
+                var fragmentRange = fragment.GetRange();
+                var edit = new TextEdit { Range = fragmentRange.Copy(), NewText = outputStr };
+                return ("Use copy-and-update expression instead of array item update", GetWorkspaceEdit(edit));
+            }
+
+            var suggestedArrayItemUpdates = updateOfArrayItemExprs
+                .Select(d => file?.TryGetFragmentAt(d.Range.Start, true))
+                .Where(frag => frag != null)
+                .Select(frag => SuggestedCopyAndUpdateExpr(frag))
+                .Where(s => s.Item2 != null);
+
             if (!unknownCallables.Any() && !unknownTypes.Any())
-            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
+            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).Concat(suggestedArrayItemUpdates).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
 
             // suggestions for unknown ids and types
 
@@ -418,7 +441,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return suggestionsForIds.Concat(suggestionsForTypes)
                 .Concat(suggestedIdQualifications).Concat(suggestedTypeQualifications)
-                .ToImmutableDictionary(s => s.Item1, s => s.Item2);
+                .Concat(suggestedArrayItemUpdates).ToImmutableDictionary(s => s.Item1, s => s.Item2);
         }
 
         /// <summary>
