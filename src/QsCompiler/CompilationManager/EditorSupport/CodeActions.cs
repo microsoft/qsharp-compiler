@@ -152,14 +152,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             (string, WorkspaceEdit) ReplaceWith(string text, Range range)
             {
-                var edit = new TextEdit { Range = range.Copy(), NewText = text };
+                bool NeedsWsBefore(Char ch) => Char.IsLetterOrDigit(ch) || ch == '_';
+                if (range?.Start != null && range.End != null)
+                {
+                    var beforeEdit = file.GetLine(range.Start.Line).Text.Substring(0, range.Start.Character);
+                    var afterEdit = file.GetLine(range.End.Line).Text.Substring(range.End.Character);
+                    if (beforeEdit.Any() && !Char.IsWhiteSpace(beforeEdit.Last())) text = $" {text}";
+                    if (afterEdit.Any() && NeedsWsBefore(afterEdit.First())) text = $"{text} ";
+                }
+                var edit = new TextEdit { Range = range?.Copy(), NewText = text };
                 return ($"Replace with \"{text.Trim()}\".", file.GetWorkspaceEdit(edit));
             }
 
             // update deprecated keywords and operators
 
             var suggestionsForUnitType = deprecatedUnitTypes.Select(d => ReplaceWith(Keywords.qsUnit.id, d.Range));
-            var suggestionsForNOT = deprecatedNOToperators.Select(d => ReplaceWith(Keywords.qsNOTop.op + " ", d.Range));
+            var suggestionsForNOT = deprecatedNOToperators.Select(d => ReplaceWith(Keywords.qsNOTop.op, d.Range));
             var suggestionsForAND = deprecatedANDoperators.Select(d => ReplaceWith(Keywords.qsANDop.op, d.Range));
             var suggestionsForOR = deprecatedORoperators.Select(d => ReplaceWith(Keywords.qsORop.op, d.Range));
 
@@ -180,15 +188,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
                     SyntaxGenerator.ExtractItems(argTuple).SelectMany(item => item.Item2.ExtractCharacteristics()).Distinct();
                 var characteristicsInFragment =
-                    fragment.Kind is QsFragmentKind.FunctionDeclaration function ? GetCharacteristics(function.Item2.Argument) :
-                    fragment.Kind is QsFragmentKind.OperationDeclaration operation ? GetCharacteristics(operation.Item2.Argument) :
-                    fragment.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item2) :
+                    fragment?.Kind is QsFragmentKind.FunctionDeclaration function ? GetCharacteristics(function.Item2.Argument) :
+                    fragment?.Kind is QsFragmentKind.OperationDeclaration operation ? GetCharacteristics(operation.Item2.Argument) :
+                    fragment?.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item2) :
                     Enumerable.Empty<Characteristics>();
 
                 //var symbolInfo = file.TryGetQsSymbolInfo(d.Range.Start, false, out var fragment);
                 //var characteristicsInFragment = (symbolInfo?.UsedTypes ?? Enumerable.Empty<QsType>())
                 //    .SelectMany(t => t.ExtractCharacteristics()).Distinct();
-                var fragmentStart = fragment.GetRange().Start;
+                var fragmentStart = fragment?.GetRange()?.Start;
                 return characteristicsInFragment
                     .Where(c => c.Range.IsValue && DiagnosticTools.GetAbsoluteRange(fragmentStart, c.Range.Item).Overlaps(d.Range))
                     .Select(c => ReplaceWith(CharacteristicsAnnotation(c), d.Range));
