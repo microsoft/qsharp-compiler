@@ -165,7 +165,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given file or position is null. 
         /// Throws an ArgumentException if the given position is not a valid position within the given file. 
         /// </summary>
-        private static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos)
+        internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos)
         {
             if (!Utils.IsValidPosition(pos, file)) throw new ArgumentException(nameof(pos));
             var docs = new List<string>();

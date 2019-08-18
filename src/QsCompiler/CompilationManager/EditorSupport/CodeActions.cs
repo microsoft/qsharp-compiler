@@ -10,6 +10,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -207,6 +208,51 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(suggestionsForNOT)
                 .Concat(suggestionsForAND)
                 .Concat(suggestionsForOR);
+        }
+
+        public static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(this FileContentManager file, Range range)
+        {
+            if (file == null || range?.Start == null || range.End == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
+            var (start, end) = (range.Start.Line, range.End.Line);
+
+            var fragAtStart = file.TryGetFragmentAt(range?.Start, includeEnd: true);
+            var inRange = file.GetTokenizedLine(start).Select(t => t.WithUpdatedLineNumber(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
+            inRange = start == end
+                ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
+                : inRange.Concat(file.GetTokenizedLines(start + 1, end - start - 1).SelectMany((x, i) => x.Select(t => t.WithUpdatedLineNumber(start + 1 + i))))
+                    .Concat(file.GetTokenizedLine(end).Select(t => t.WithUpdatedLineNumber(end)).Where(ContextBuilder.TokensStartingBefore(range.End)));
+            var fragment = 
+                fragAtStart != null && !inRange.Any() ? fragAtStart :
+                fragAtStart == null ? inRange.FirstOrDefault() : null;
+            var declRange = fragment?.GetRange();
+
+            if (fragment == null) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
+            var (nsDecl, callableDecl, typeDecl) = (fragment.Kind.DeclaredNamespace(), fragment.Kind.DeclaredCallable(), fragment.Kind.DeclaredType());
+            if ((nsDecl.IsNull && callableDecl.IsNull && typeDecl.IsNull) || file.DocumentingComments(declRange.Start).Any())
+            { return Enumerable.Empty<(string, WorkspaceEdit)>(); }
+
+            var docPrefix = "///";
+            var endLine = $"{Environment.NewLine}{file.GetLine(declRange.Start.Line).Text.Substring(0, declRange.Start.Character)}";
+            var docString = $"{docPrefix}# Summary{endLine}{docPrefix}{endLine}";
+
+            var (argTuple, typeParams) =
+                callableDecl.IsValue ? (callableDecl.Item.Item2.Item2.Argument, callableDecl.Item.Item2.Item2.TypeParameters) :
+                typeDecl.IsValue ? (typeDecl.Item.Item2, ImmutableArray<QsSymbol>.Empty) :
+                (null, ImmutableArray<QsSymbol>.Empty);
+
+            var args = argTuple == null ? ImmutableArray<Tuple<QsSymbol, QsType>>.Empty : SyntaxGenerator.ExtractItems(argTuple);
+            docString = String.Concat(
+                docString,
+                // Document Input Parameters
+                args.Any() ? $"{docPrefix}# Input{endLine}" : String.Empty,
+                String.Concat(args.Select(x => $"{docPrefix}## {x.Item1.Symbol.AsDeclarationName(null)}{endLine}{docPrefix}{endLine}")),
+                // Document Type Parameters
+                typeParams.Any() ? $"{docPrefix}# Type Parameters{endLine}" : String.Empty,
+                String.Concat(typeParams.Select(x => $"{docPrefix}## {x.Symbol.AsDeclarationName(null)}{endLine}{docPrefix}{endLine}"))
+            );
+
+            var suggestedEdit = file.GetWorkspaceEdit(new TextEdit { Range = new Range { Start = declRange.Start, End = declRange.Start }, NewText = docString });
+            return new[] { ($"Add documentation at {(declRange.Start.Line, declRange.Start.Character)}.", suggestedEdit) };
         }
     }
 }
