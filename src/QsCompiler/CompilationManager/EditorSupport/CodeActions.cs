@@ -210,7 +210,46 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(suggestionsForOR);
         }
 
-        public static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(this FileContentManager file, Range range)
+        /// <summary>
+        /// Returns a sequence of suggestions for update-and-reassign statements based on the generated diagnostics, 
+        /// and given the file for which those diagnostics were generated. 
+        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// </summary>
+        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUpdateAndReassignStatements
+            (this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
+        {
+            if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
+            var updateOfArrayItemExprs = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UpdateOfArrayItemExpr));
+
+            (string, WorkspaceEdit) SuggestedCopyAndUpdateExpr(CodeFragment fragment)
+            {
+                var exprInfo = Parsing.ProcessUpdateOfArrayItemExpr.Invoke(fragment.Text);
+                // Skip if the statement did not match a pattern for which we can give a code action
+                if (exprInfo == null || (exprInfo.Item1.Line == 1 && exprInfo.Item1.Column == 1)) return ("", null);
+
+                // Convert set <identifier>[<index>] = <rhs> to set <identifier> w/= <index> <- <rhs>
+                var rhs = $"{exprInfo.Item3} {Keywords.qsCopyAndUpdateOp.cont} {exprInfo.Item4}";
+                var outputStr = $"{Keywords.qsValueUpdate.id} {exprInfo.Item2} {Keywords.qsCopyAndUpdateOp.op}= {rhs}";
+                var fragmentRange = fragment.GetRange();
+                var edit = new TextEdit { Range = fragmentRange.Copy(), NewText = outputStr };
+                return ("Replace with an update-and-reassign statement.", file.GetWorkspaceEdit(edit));
+            }
+
+            return updateOfArrayItemExprs
+                .Select(d => file?.TryGetFragmentAt(d.Range.Start, true))
+                .Where(frag => frag != null)
+                .Select(frag => SuggestedCopyAndUpdateExpr(frag))
+                .Where(s => s.Item2 != null);
+        }
+
+        /// <summary>
+        /// Returns a sequence of suggestions to insert doc comments for an undocumented declaration that overlap with the given range in the given file. 
+        /// Returns an empty enumerable if more than one code fragment overlaps with the given range,
+        /// or the overlapping fragment does not contain a declaration,
+        /// or the overlapping fragment contains a declaration that is already documented,
+        /// or if any of the given arguments is null. 
+        /// </summary>
+        internal static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(this FileContentManager file, Range range)
         {
             if (file == null || range?.Start == null || range.End == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
             var (start, end) = (range.Start.Line, range.End.Line);
@@ -228,8 +267,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (fragment == null) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
             var (nsDecl, callableDecl, typeDecl) = (fragment.Kind.DeclaredNamespace(), fragment.Kind.DeclaredCallable(), fragment.Kind.DeclaredType());
-            if ((nsDecl.IsNull && callableDecl.IsNull && typeDecl.IsNull) || file.DocumentingComments(declRange.Start).Any())
-            { return Enumerable.Empty<(string, WorkspaceEdit)>(); }
+            var declSymbol = nsDecl.IsValue ? nsDecl.Item.Item1.Symbol 
+                : callableDecl.IsValue ? callableDecl.Item.Item1.Symbol
+                : typeDecl.IsValue ? typeDecl.Item.Item1.Symbol : null;
+            if (declSymbol == null || file.DocumentingComments(declRange.Start).Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
 
             var docPrefix = "///";
             var endLine = $"{Environment.NewLine}{file.GetLine(declRange.Start.Line).Text.Substring(0, declRange.Start.Character)}";
@@ -251,8 +292,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 String.Concat(typeParams.Select(x => $"{docPrefix}## {x.Symbol.AsDeclarationName(null)}{endLine}{docPrefix}{endLine}"))
             );
 
+            var whichDecl = $" for {declSymbol.AsDeclarationName(null)}";
             var suggestedEdit = file.GetWorkspaceEdit(new TextEdit { Range = new Range { Start = declRange.Start, End = declRange.Start }, NewText = docString });
-            return new[] { ($"Add documentation at {(declRange.Start.Line, declRange.Start.Character)}.", suggestedEdit) };
+            return new[] { ($"Add documentation{whichDecl}.", suggestedEdit) };
         }
     }
 }
