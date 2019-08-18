@@ -71,6 +71,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Returns true if the given ranges overlap.
+        /// Throws the corresponding exception if any of the given ranges is invalid.
+        /// </summary>
+        internal static bool Overlaps(this Range range1, Range range2)
+        {
+            var (first, second) = range1.Start.IsSmallerThan(range2.Start) ? (range1, range2) : (range2, range1);
+            return second.Start.IsSmallerThan(first.End);
+        }
+
+        /// <summary>
         /// Given the location information for a declared symbol,
         /// as well as the position of the declaration within which the symbol is declared, 
         /// returns the zero-based line and character index indicating the position of the symbol in the file.
@@ -189,12 +199,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if the ErrorType of the given Diagnostic is one of the given types.
+        /// Returns a function that returns true if the ErrorType of the given Diagnostic is one of the given types.
         /// </summary>
         internal static Func<Diagnostic, bool> ErrorType(params ErrorCode[] types)
         {
             var codes = types.Select(err => err.Code());
-            return m => m.Severity == DiagnosticSeverity.Error && codes.Contains(m.Code);
+            return m => m.IsError() && codes.Contains(m.Code);
+        }
+
+        /// <summary>
+        /// Returns a function that returns true if the WarningType of the given Diagnostic is one of the given types.
+        /// </summary>
+        internal static Func<Diagnostic, bool> WarningType(params WarningCode[] types)
+        {
+            var codes = types.Select(warn => warn.Code());
+            return m => m.IsWarning() && codes.Contains(m.Code);
         }
 
         /// <summary>
