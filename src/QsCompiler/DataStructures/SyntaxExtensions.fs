@@ -71,19 +71,6 @@ type SymbolTuple with
         | VariableName _ -> Some [this]
 
 
-type QsType with 
-
-    // utils for tuple matching
-
-    static member private OnTupleItems = OnTupleItems (fun (single : QsType) -> single.TupleItems) "QsType"
-    member internal this.TupleItems = 
-        match this.Type with
-        | InvalidType -> None
-        | MissingType -> Some []
-        | TupleType items -> items |> QsType.OnTupleItems
-        | _ -> Some [this]
-
-
 type ResolvedType with 
 
     // utils for internal use only
@@ -126,19 +113,48 @@ type ResolvedType with
         | QsTypeKind.TupleType ts -> ts |> Seq.map recur |> Seq.contains true
         | _ -> false
 
-    /// Walks the given resolved type, 
-    /// and applies the given extraction function to each contained type, 
-    /// including array base types, tuple item types, and argument and result types of functions and operations.
-    /// Returns an enumerable of all extracted return values. 
-    member this.ExtractAll (extract : _ -> IEnumerable<_>) : IEnumerable<_> = 
-        let recur (t : ResolvedType) = t.ExtractAll extract
-        match this.Resolution with 
+    /// Recursively applies the given function inner to the given item and  
+    /// applies the given extraction function to each contained subitem of the returned type kind.
+    /// Returns an enumerable of all extracted items. 
+    static member private ExtractAll (inner : _ -> QsTypeKind<_,_,_,_>, extract : _ -> IEnumerable<_>) this : IEnumerable<_> = 
+        let recur = ResolvedType.ExtractAll (inner, extract)
+        match inner this with 
         | QsTypeKind.ArrayType bt -> bt |> recur
         | QsTypeKind.Function (it, ot) 
         | QsTypeKind.Operation ((it, ot), _) -> (it |> recur).Concat (ot |> recur)
         | QsTypeKind.TupleType ts -> ts |> Seq.collect recur 
         | _ -> Enumerable.Empty()
-        |> (extract this.Resolution).Concat
+        |> (extract this).Concat
+
+    /// Walks the given resolved type, 
+    /// and applies the given extraction function to each contained type, 
+    /// including array base types, tuple item types, and argument and result types of functions and operations.
+    /// Returns an enumerable of all extracted return values. 
+    member this.ExtractAll (extract : _ -> IEnumerable<_>) : IEnumerable<_> = 
+        let inner (t : ResolvedType) = t.Resolution
+        ResolvedType.ExtractAll (inner, extract) this
+
+
+type QsType with 
+
+    // utils for tuple matching
+
+    static member private OnTupleItems = OnTupleItems (fun (single : QsType) -> single.TupleItems) "QsType"
+    member internal this.TupleItems = 
+        match this.Type with
+        | InvalidType -> None
+        | MissingType -> Some []
+        | TupleType items -> items |> QsType.OnTupleItems
+        | _ -> Some [this]
+
+    // utils for walking the data structure
+
+    /// Walks the given QsType, 
+    /// and applies the given extraction function to each contained type.
+    /// Returns an enumerable of all extracted types. 
+    member public this.ExtractAll (extract : _ -> IEnumerable<_>) = 
+        let inner (t : QsType) = t.Type
+        ResolvedType.ExtractAll (inner, extract) this
 
 
 type TypedExpression with 
@@ -369,21 +385,3 @@ let GlobalCallableResolutions (syntaxTree : IEnumerable<QsNamespace>) =
         | _ -> None))
     callables.ToImmutableDictionary(fst, snd)
     
-/// Returns all of the operation characteristics found in the given type.
-[<Extension>]
-let rec GetCharacteristicsInType (qsType : QsType) =
-    match qsType.Type with
-    | ArrayType arrayType -> GetCharacteristicsInType arrayType
-    | TupleType types -> types.SelectMany GetCharacteristicsInType
-    | SyntaxTokens.Operation ((input, output), characteristics) ->
-        (GetCharacteristicsInType input).Concat(GetCharacteristicsInType output).Append(characteristics)
-    | SyntaxTokens.Function (input, output) ->
-        (GetCharacteristicsInType input).Concat(GetCharacteristicsInType output)
-    | _ -> Seq.empty
-
-/// Returns all of the operation characteristics found in the given argument tuple.
-[<Extension>]
-let rec GetCharacteristicsInArgumentTuple (tuple : QsTuple<QsSymbol * QsType>) =
-    match tuple with
-    | QsTupleItem (_, qsType) -> GetCharacteristicsInType qsType
-    | QsTuple items -> items.SelectMany GetCharacteristicsInArgumentTuple

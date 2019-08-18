@@ -71,18 +71,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if this range overlaps the given range.
+        /// Returns true if the given ranges overlap.
+        /// Throws the corresponding exception if any of the given ranges is invalid.
         /// </summary>
         internal static bool Overlaps(this Range range1, Range range2)
         {
-            Range first, second;
-            if (range1.Start.Line <= range2.Start.Line && range1.Start.Character <= range2.Start.Character)
-                (first, second) = (range1, range2);
-            else
-                (first, second) = (range2, range1);
-            return
-                first.End.Line > second.Start.Line ||
-                first.End.Line == second.Start.Line && first.End.Character > second.Start.Character;
+            var (first, second) = range1.Start.IsSmallerThan(range2.Start) ? (range1, range2) : (range2, range1);
+            return second.Start.IsSmallerThan(first.End);
         }
 
         /// <summary>
@@ -204,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if the ErrorType of the given Diagnostic is one of the given types.
+        /// Returns a function that returns true if the ErrorType of the given Diagnostic is one of the given types.
         /// </summary>
         internal static Func<Diagnostic, bool> ErrorType(params ErrorCode[] types)
         {

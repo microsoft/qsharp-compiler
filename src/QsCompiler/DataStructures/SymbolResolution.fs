@@ -81,7 +81,8 @@ module SymbolResolution =
     let private TypeParameterResolutionWarnings (argumentType : ResolvedType) (returnType : ResolvedType, range) typeParams = 
         // FIXME: this verification needs to be done for each specialization individually once type specializations are fully supported
         let typeParamsResolvedByArg = 
-            let getTypeParams = function 
+            let getTypeParams (t : ResolvedType) = 
+                match t.Resolution with 
                 | QsTypeKind.TypeParameter (tp : QsTypeParameter) -> [tp.TypeName].AsEnumerable() 
                 | _ -> Enumerable.Empty()
             argumentType.ExtractAll getTypeParams |> Seq.toList
