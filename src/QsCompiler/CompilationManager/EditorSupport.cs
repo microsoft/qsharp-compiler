@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading.Tasks;
+using Markdig.Syntax.Inlines;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -14,6 +16,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using YamlDotNet.Core.Tokens;
 using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions.SymbolInformation;
 
 
@@ -21,6 +24,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     internal static class EditorSupport
     {
+        // ToDo: replace references to these constants with programmatic references method names
+        private const string LENGTH_METHOD_NAME = "Length";
+        private const string INDEXRANGE_METHOD_NAME = "IndexRange";
+
         // utils for getting the necessary information for editor commands
 
         /// <summary>
@@ -106,6 +113,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return typeName != null && compilation != null
                 ? compilation.GlobalSymbols.NamespacesContainingType(NonNullable<string>.New(typeName))
                 : ImmutableArray<NonNullable<string>>.Empty;
+        }
+
+        /// <summary>
+        /// Returns the CodeFragment token that represents the namespace
+        /// declaration for the namespace surrounding the given position.
+        /// </summary>
+        private static CodeFragment.TokenIndex GetNamespaceToken(FileContentManager file, Position position)
+        {
+            // going by line here is fine - I am ok with a failure if someone has multiple namespace and callable declarations on the same line...
+            return file.NamespaceDeclarationTokens()
+                .TakeWhile(t => t.Line <= position.Line)
+                .LastOrDefault();
         }
 
         /// <summary>
@@ -347,51 +366,183 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Creates a returns a function that can be used to get an appropriate module name for an
+        /// unknown callable in the given namespace, or an empty string if the callable is known.
+        /// The function returned is specific to the given file content manager, compilation unit,
+        /// and namespace.
+        /// </summary>
+        /// <returns></returns>
+        private static Func<NonNullable<string>, string> getNsForUnknownCallableFactory(FileContentManager file, CompilationUnit compilation, CodeFragment.TokenIndex namespaceToken)
+        {
+            return (callableName) =>
+            {
+                // get namespace string
+                string namespaceString = string.Empty;
+                var currNs = namespaceToken?.GetFragment();
+                if (currNs != null && currNs.Kind is QsFragmentKind.NamespaceDeclaration namespaceFrag)
+                {
+                    namespaceString = ((QsSymbolKind<QsSymbol>.Symbol)namespaceFrag.Item.Symbol).Item.Value;
+                }
+                if (namespaceString != string.Empty)
+                {
+                    var opens = compilation.GlobalSymbols.OpenDirectives(NonNullable<string>.New(namespaceString));
+                    var possibleNamespaces = compilation.GlobalSymbols.NamespacesContainingCallable(callableName);
+                    var currentOpenNamespaces = opens[file.FileName].Select(i => i.Item1);
+
+                    // if there is not a namespace opened that has the callable, add open directive to edit
+                    if (!possibleNamespaces.Intersect(currentOpenNamespaces).Any())
+                    {
+                        return possibleNamespaces.FirstOrDefault().Value;
+                    }
+                }
+
+                return string.Empty;
+            };
+        }
+
+        /// <summary>
+        /// Processes the index range replace code action. It first checks if the current fragment
+        /// is a valid match for the code action's targeted expression pattern. If so, it will
+        /// create edits that will change something of the form "for (i in 0 .. Length(ary)-1)" to
+        /// "for (i in IndexRange(ary))". It will then check if IndexRange is known in the current
+        /// namespace, and if it is not, it will create an edit to add the appropriate open directive.
+        /// </summary>
+        /// <param name="currentFrag">Fragment the code action is triggered from</param>
+        /// <param name="makeWorkspaceEdit">Function for creating workspace edits</param>
+        /// <param name="getNsForUnknownCallable">Function that provides an appropriate namespace if the given callable is not known</param>
+        /// <param name="makeOpenDirectiveEdit">Function for creating appropriate edits for adding open directives</param>
+        /// <returns>The workspace edit appropriate for this code action, or null if the code action is not applicable</returns>
+        private static WorkspaceEdit IndexRangeReplaceCodeAction(CodeFragment currentFrag, Func<TextEdit[], WorkspaceEdit> makeWorkspaceEdit,
+            Func<NonNullable<string>, string> getNsForUnknownCallable, Func<NonNullable<string>, TextEdit> makeOpenDirectiveEdit)
+        {
+            Position fragStart = currentFrag.GetRange().Start;
+
+            Position beforeArgsStart = null;
+            Position beforeArgsEnd = null;
+            Position afterArgsStart = null;
+            Position afterArgsEnd = null;
+
+            Position ConvertFragPosToGlobalPos(QsPositionInfo posToConvert) => new Position
+            (
+                fragStart.Line + posToConvert.Line - 1,
+                (posToConvert.Line == 1 ? fragStart.Character : 0) + posToConvert.Column - 1
+            );
+
+            // ToDo: need to use a better method for matching fragments to expression patterns
+
+            // all the checks for if the fragment matches the target pattern
+            bool checkStartWithZero = false;
+            bool checkHasLengthCall = false;
+            bool checkSubOne = false;
+            if (currentFrag.Kind is QsFragmentKind.ForLoopIntro forLoopIntroExpression)
+            {
+                if (!forLoopIntroExpression.Item2.Range.IsNull)
+                {
+                    var rangeStart = ((QsFragmentKind.ForLoopIntro)currentFrag.Kind).Item2.Range.Item.Item1;
+                    var rangeEnd = ((QsFragmentKind.ForLoopIntro)currentFrag.Kind).Item2.Range.Item.Item2;
+
+                    beforeArgsStart = ConvertFragPosToGlobalPos(rangeStart);
+                    afterArgsEnd = ConvertFragPosToGlobalPos(rangeEnd);
+                }
+
+                if (forLoopIntroExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.RangeLiteral rangeExpression)
+                {
+                    if (rangeExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral intLiteralExpression)
+                    {
+                        checkStartWithZero = intLiteralExpression.Item == 0L;
+                    }
+
+                    if (rangeExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.SUB SUBExpression)
+                    {
+                        if (SUBExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.CallLikeExpression callLikeExression)
+                        {
+                            if (callLikeExression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.Identifier identifier)
+                            {
+                                var identifierSub = (QsSymbolKind<QsSymbol>.Symbol)identifier.Item1.Symbol;
+                                checkHasLengthCall = identifierSub.Item.Value == LENGTH_METHOD_NAME;
+                            }
+
+                            if (callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple)
+                            {
+                                if (!callLikeExression.Item2.Range.IsNull)
+                                {
+                                    var argRangeStart = callLikeExression.Item2.Range.Item.Item1;
+                                    var argRangeEnd = callLikeExression.Item2.Range.Item.Item2;
+
+                                    beforeArgsEnd = ConvertFragPosToGlobalPos(argRangeStart);
+                                    afterArgsStart = ConvertFragPosToGlobalPos(argRangeEnd);
+                                }
+                            }
+                        }
+
+                        if (SUBExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral subIntLiteralExpression)
+                        {
+                            checkSubOne = subIntLiteralExpression.Item == 1L;
+                        }
+                    }
+                }
+            }
+
+            bool positionsAreNonNull =
+                beforeArgsStart != null &&
+                beforeArgsEnd != null &&
+                afterArgsStart != null &&
+                afterArgsEnd != null;
+            if (positionsAreNonNull && checkStartWithZero && checkHasLengthCall && checkSubOne)
+            {
+                // build WorkspaceEdit
+                var edits = new List<TextEdit>();
+                edits.Add( new TextEdit() { Range = new Range() { Start = beforeArgsStart, End = beforeArgsEnd }, NewText = INDEXRANGE_METHOD_NAME } );
+                edits.Add( new TextEdit() { Range = new Range() { Start = afterArgsStart, End = afterArgsEnd }, NewText = "" } );
+
+                // get namespace edit, if necessary
+                // this method will return empty string if the given callable is already found in the current namespace
+                string ns = getNsForUnknownCallable(NonNullable<string>.New(INDEXRANGE_METHOD_NAME));
+                if (ns != string.Empty)
+                {
+                    var namespaceTextEdit = makeOpenDirectiveEdit(NonNullable<string>.New(ns));
+                    if (namespaceTextEdit != null)
+                    {
+                        edits.Add(namespaceTextEdit);
+                    }
+                }
+
+                return makeWorkspaceEdit(edits.ToArray());
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Returns a dictionary of workspace edits suggested by the compiler for the given location and context.
         /// The keys of the dictionary are suitable titles for each edit that can be presented to the user. 
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </summary>
         public static ImmutableDictionary<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
         {
+            /* ToDo: Method Needs Refactoring
+             * 
+             * Each code action type should know how to check if it is valid for the code fragment, and should know
+             * how to create the appropriate description and workspace edit combo. Maybe a code action class would
+             * be useful? This handler should be little more than a list of calls for each code action to return
+             * a description/edit combo if the code action is applicable.
+             */
+
             if (range?.Start == null || range.End == null || file == null || !Utils.IsValidRange(range, file)) return null;
             if (compilation == null || context?.Diagnostics == null) return null;
             var versionedFileId = new VersionedTextDocumentIdentifier { Uri = file.Uri, Version = 1 }; // setting version to null here won't work in VS Code ...
 
-            WorkspaceEdit GetWorkspaceEdit(TextEdit edit) => new WorkspaceEdit
+            CodeFragment frag = file?.TryGetFragmentAt(range.Start, true);
+            CodeFragment.TokenIndex currNsToken = GetNamespaceToken(file, range.Start);
+
+            WorkspaceEdit GetWorkspaceEdit(TextEdit[] edits) => new WorkspaceEdit
             {
-                DocumentChanges = new[] { new TextDocumentEdit { TextDocument = versionedFileId, Edits = new[] { edit } } },
-                Changes = new Dictionary<string, TextEdit[]> { { file.FileName.Value, new[] { edit } } }
+                DocumentChanges = new[] { new TextDocumentEdit { TextDocument = versionedFileId, Edits = edits.ToArray() } },
+                Changes = new Dictionary<string, TextEdit[]> { { file.FileName.Value, edits.ToArray() } }
             };
 
-            // diagnostics based on which suggestions are given
-            var ambiguousCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousCallable));
-            var unknownCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
-            var ambiguousTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousType));
-            var unknownTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
-
-            // suggestions for ambiguous ids and types
-
-            (string, WorkspaceEdit) SuggestedNameQualification(NonNullable<string> suggestedNS, string id, Position pos)
-            {
-                var edit = new TextEdit { Range = new Range { Start = pos, End = pos }, NewText = $"{suggestedNS.Value}." };
-                return ($"{suggestedNS.Value}.{id}", GetWorkspaceEdit(edit));
-            }
-
-            var suggestedIdQualifications = ambiguousCallables.Select(d => d.Range.Start)
-                .SelectMany(pos => file.NamespaceSuggestionsForIdAtPosition(pos, compilation, out var id)
-                .Select(ns => SuggestedNameQualification(ns, id, pos)));
-            var suggestedTypeQualifications = ambiguousTypes.Select(d => d.Range.Start)
-                .SelectMany(pos => file.NamespaceSuggestionsForTypeAtPosition(pos, compilation, out var id)
-                .Select(ns => SuggestedNameQualification(ns, id, pos)));
-
-            if (!unknownCallables.Any() && !unknownTypes.Any())
-            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
-
-            // suggestions for unknown ids and types
-
             // determine the first fragment in the containing namespace
-            var firstInNs = file.NamespaceDeclarationTokens()
-                .TakeWhile(t => t.Line <= range.Start.Line).LastOrDefault() // going by line here is fine - I am ok with a failure if someone has muliple namespace and callable declarations on the same line...
+            var firstInNs = currNsToken
                 ?.GetChildren(deep: false)?.FirstOrDefault()?.GetFragment();
             if (firstInNs == null) return null;
             var insertOpenDirAt = firstInNs.GetRange().Start;
@@ -402,12 +553,54 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var additionalLinesAfterOpenDir = firstInNs.Kind.OpenedNamespace().IsNull ? $"{Environment.NewLine}{Environment.NewLine}" : "";
             var whitespaceAfterOpenDir = $"{Environment.NewLine}{additionalLinesAfterOpenDir}{indentationAfterOpenDir}";
 
+            TextEdit SuggestedOpenDirectiveEdit(NonNullable<string> suggestedNS)
+            {
+                var directive = $"{Keywords.importDirectiveHeader.id} {suggestedNS.Value}";
+                return new TextEdit { Range = openDirEditRange, NewText = $"{directive};{whitespaceAfterOpenDir}" };
+            }
+
             (string, WorkspaceEdit) SuggestedOpenDirective(NonNullable<string> suggestedNS)
             {
                 var directive = $"{Keywords.importDirectiveHeader.id} {suggestedNS.Value}";
-                var edit = new TextEdit { Range = openDirEditRange, NewText = $"{directive};{whitespaceAfterOpenDir}" };
-                return (directive, GetWorkspaceEdit(edit));
+                return (directive, GetWorkspaceEdit(new[] { SuggestedOpenDirectiveEdit(suggestedNS) }));
             }
+
+            (string, WorkspaceEdit) SuggestedNameQualification(NonNullable<string> suggestedNS, string id, Position pos)
+            {
+                var edit = new TextEdit { Range = new Range { Start = pos, End = pos }, NewText = $"{suggestedNS.Value}." };
+                return ($"{suggestedNS.Value}.{id}", GetWorkspaceEdit(new[] { edit }));
+            }
+
+            // diagnostics based on which suggestions are given
+            var ambiguousCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousCallable));
+            var unknownCallables = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
+            var ambiguousTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousType));
+            var unknownTypes = context.Diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
+
+            // suggestions for index range replacements
+
+            var suggestionedIndexRangeReplaces = new List<(string, WorkspaceEdit)>();
+            WorkspaceEdit indexRangeRaplaceEdit = IndexRangeReplaceCodeAction(frag, GetWorkspaceEdit,
+                getNsForUnknownCallableFactory(file, compilation, currNsToken), SuggestedOpenDirectiveEdit);
+                
+            if (indexRangeRaplaceEdit != null)
+            {
+                suggestionedIndexRangeReplaces.Add(("Use IndexRange instead of Length", indexRangeRaplaceEdit));
+            }
+
+            // suggestions for ambiguous ids and types
+
+            var suggestedIdQualifications = ambiguousCallables.Select(d => d.Range.Start)
+                .SelectMany(pos => file.NamespaceSuggestionsForIdAtPosition(pos, compilation, out var id)
+                .Select(ns => SuggestedNameQualification(ns, id, pos)));
+            var suggestedTypeQualifications = ambiguousTypes.Select(d => d.Range.Start)
+                .SelectMany(pos => file.NamespaceSuggestionsForTypeAtPosition(pos, compilation, out var id)
+                .Select(ns => SuggestedNameQualification(ns, id, pos)));
+
+            if (!unknownCallables.Any() && !unknownTypes.Any())
+            { return suggestedIdQualifications.Concat(suggestedTypeQualifications).Concat(suggestionedIndexRangeReplaces).ToImmutableDictionary(s => s.Item1, s => s.Item2); }
+
+            // suggestions for unknown ids and types
 
             var suggestionsForIds = unknownCallables.Select(d => d.Range.Start)
                 .SelectMany(pos => file.NamespaceSuggestionsForIdAtPosition(pos, compilation, out var _))
@@ -418,6 +611,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return suggestionsForIds.Concat(suggestionsForTypes)
                 .Concat(suggestedIdQualifications).Concat(suggestedTypeQualifications)
+                .Concat(suggestionedIndexRangeReplaces)
                 .ToImmutableDictionary(s => s.Item1, s => s.Item2);
         }
 
