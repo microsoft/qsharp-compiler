@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -113,11 +114,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if the given file or the specified position is null,
         /// or if the specified position is not within the current Content range.
         /// </summary>
-        public static CodeFragment TryGetFragmentAt(this FileContentManager file, Position pos, bool includeEnd = false)
+        public static CodeFragment TryGetFragmentAt(this FileContentManager file, Position pos,
+            out CodeFragment.TokenIndex tIndex, bool includeEnd = false)
         {
+            tIndex = null;
             if (file == null || pos == null || !Utils.IsValidPosition(pos, file)) return null;
             var start = pos.Line;
-            var previous = file.GetTokenizedLine(start).Where(token => token.GetRange().Start.IsSmallerThanOrEqualTo(new Position(0, pos.Character)));
+            var previous = file.GetTokenizedLine(start).Where(token => token.GetRange().Start.Character <= pos.Character).ToImmutableArray();
             while (!previous.Any() && --start >= 0) previous = file.GetTokenizedLine(start);
             if (!previous.Any()) return null;
 
@@ -125,6 +128,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var overlaps = includeEnd
                 ? pos.IsSmallerThanOrEqualTo(lastPreceding.GetRange().End) 
                 : pos.IsSmallerThan(lastPreceding.GetRange().End);
+            tIndex = overlaps ? new CodeFragment.TokenIndex(file, start, previous.Length - 1) : null;
             return overlaps ? lastPreceding : null;
         }
 
@@ -214,7 +218,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return true;
             }
 
-            var overlapsWithStart = file.TryGetFragmentAt(range.Start);
+            var overlapsWithStart = file.TryGetFragmentAt(range.Start, out var _);
             return overlapsWithStart != null;
         }
 

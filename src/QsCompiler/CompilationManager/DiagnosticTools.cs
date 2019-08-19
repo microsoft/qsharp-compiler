@@ -222,7 +222,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static bool IsError(this Diagnostic m) =>
             m.Severity == DiagnosticSeverity.Error;
 
-
         /// <summary>
         /// Returns true if the given diagnostics is a warning.
         /// </summary>

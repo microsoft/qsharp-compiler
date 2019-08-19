@@ -185,7 +185,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 // TODO: TryGetQsSymbolInfo currently only returns information about the inner most leafs rather than all types etc. 
                 // Once it returns indeed all types in the fragment, the following code block should be replaced by the commented out code below. 
-                var fragment = file.TryGetFragmentAt(d.Range.Start);
+                var fragment = file.TryGetFragmentAt(d.Range.Start, out var _);
                 IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
                     SyntaxGenerator.ExtractItems(argTuple).SelectMany(item => item.Item2.ExtractCharacteristics()).Distinct();
                 var characteristicsInFragment =
@@ -236,7 +236,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             return updateOfArrayItemExprs
-                .Select(d => file?.TryGetFragmentAt(d.Range.Start, true))
+                .Select(d => file?.TryGetFragmentAt(d.Range.Start, out var _, includeEnd: true))
                 .Where(frag => frag != null)
                 .Select(frag => SuggestedCopyAndUpdateExpr(frag))
                 .Where(s => s.Item2 != null);
@@ -253,11 +253,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
             var unreachableCode = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.UnreachableCode));
 
-            (string, WorkspaceEdit) SuggestedRemoveText(CodeFragment fragment)
+            WorkspaceEdit SuggestedRemoveText(Position pos)
             {
-                Position eraseStart = fragment.GetRange().Start;
-                CodeFragment.TokenIndex currentFragToken = new CodeFragment.TokenIndex(file, fragment.GetRange().Start);
-                CodeFragment.TokenIndex lastFragToken = new CodeFragment.TokenIndex(currentFragToken);
+                var fragment = file.TryGetFragmentAt(pos, out var currentFragToken);
+                if (fragment == null) return null;
+
+                var eraseStart = fragment.GetRange().Start;
+                var lastFragToken = new CodeFragment.TokenIndex(currentFragToken);
                 --lastFragToken;
                 CodeFragment tempFrag = null;
                 string lastFollowedBy = "";
@@ -280,7 +282,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Position eraseEnd = tempFrag.GetRange().End;
 
                 // Build replace string
-                string replaceString = $"{lastFollowedBy}";
+                string replaceString = lastFollowedBy;
                 if (eraseStart.Line != eraseEnd.Line)
                 {
                     replaceString += $"{Environment.NewLine}";
@@ -295,13 +297,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // Create and Return Edit
                 var edit = new TextEdit { Range = new Range { Start = eraseStart, End = eraseEnd }, NewText = replaceString };
-                return ($"Remove unreachable code", file.GetWorkspaceEdit(edit));
+                return file.GetWorkspaceEdit(edit);
             }
 
             return unreachableCode
-                .Select(d => file?.TryGetFragmentAt(d.Range.Start, true))
-                .Where(frag => frag != null)
-                .Select(frag => SuggestedRemoveText(frag));
+                .Select(d => SuggestedRemoveText(d.Range?.Start))
+                .Where(edit => edit != null)
+                .Select(edit => ("Remove unreachable code.", edit));
         }
 
         /// <summary>
@@ -316,7 +318,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || range?.Start == null || range.End == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
             var (start, end) = (range.Start.Line, range.End.Line);
 
-            var fragAtStart = file.TryGetFragmentAt(range?.Start, includeEnd: true);
+            var fragAtStart = file.TryGetFragmentAt(range?.Start, out var _, includeEnd: true);
             var inRange = file.GetTokenizedLine(start).Select(t => t.WithUpdatedLineNumber(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
             inRange = start == end
                 ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
