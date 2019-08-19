@@ -203,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             // getting the relevant token (if any)
 
-            var fragment = file?.TryGetFragmentAt(position, true);
+            var fragment = file?.TryGetFragmentAt(position, out var _, includeEnd: true);
             if (fragment?.Kind == null || compilation == null) return null;
             var fragmentStart = fragment.GetRange().Start;
 
