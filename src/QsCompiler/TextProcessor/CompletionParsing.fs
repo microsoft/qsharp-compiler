@@ -171,29 +171,13 @@ let private brackets (left, right) p =
 let private expectedBrackets (left, right) p =
     expected (bracket left) ?>> p ?>> expected (bracket right)
 
-/// Parses tuple brackets around `p`.
-let private tupleBrackets p =
-    brackets (lTuple, rTuple) p
-
-/// Parses array brackets around `p`.
-let private arrayBrackets p =
-    brackets (lArray, rArray) p
-
-/// Parses angle brackets around `p`.
-let private angleBrackets p =
-    brackets (lAngle, rAngle) p
-
-/// Parses curly brackets around `p`.
-let private curlyBrackets p =
-    brackets (lCurly, rCurly) p
-
 /// Parses a tuple of items each parsed by `p`.
 let private tuple p =
-    tupleBrackets (sepBy1 p comma |>> List.last)
+    brackets (lTuple, rTuple) (sepBy1 p comma |>> List.last)
 
 /// Parses an array of items each parsed by `p`.
 let private array p =
-    arrayBrackets (sepBy1 p comma |>> List.last)
+    brackets (lArray, rArray) (sepBy1 p comma |>> List.last)
 
 /// Creates an expression parser using the given prefix operator, infix operator, postfix operator, and term parsers.
 let private createExpressionParser prefixOp infixOp postfixOp expTerm =
@@ -205,7 +189,7 @@ let private characteristicsAnnotation =
     let rec characteristicsExpr = parse {
         let infixOp = operator qsSetUnion.op None <|> operator qsSetIntersection.op None
         let expTerm = pcollect [
-            tupleBrackets characteristicsExpr
+            brackets (lTuple, rTuple) characteristicsExpr
             expectedKeyword qsAdjSet
             expectedKeyword qsCtlSet
         ]
@@ -216,7 +200,7 @@ let private characteristicsAnnotation =
 /// Parses a type.
 let rec private qsType =
     parse {
-        return! nonArrayType .>> many (arrayBrackets (emptySpace >>% []))
+        return! nonArrayType .>> many (brackets (lArray, rArray) (emptySpace >>% []))
     }
 
 /// Parses types where the top-level type is not an array type.
@@ -224,10 +208,10 @@ and nonArrayType =
     let typeParameter = pchar '\'' >>. expectedId TypeParameter (term symbol)
     let operationType =
         let inOutType = qsType >>. opArrow >>. qsType
-        tupleBrackets (attempt (tupleBrackets inOutType ?>> characteristicsAnnotation) <|>
-                       attempt (inOutType ?>> characteristicsAnnotation) <|>
-                       inOutType)
-    let functionType = tupleBrackets (qsType >>. fctArrow >>. qsType)
+        brackets (lTuple, rTuple) (attempt (brackets (lTuple, rTuple) inOutType ?>> characteristicsAnnotation) <|>
+                                   attempt (inOutType ?>> characteristicsAnnotation) <|>
+                                   inOutType)
+    let functionType = brackets (lTuple, rTuple) (qsType >>. fctArrow >>. qsType)
     let keywordType =
         [
             qsBigInt
@@ -254,7 +238,7 @@ let private callableSignature =
     let name = expectedId Declaration (term symbol)
     let typeAnnotation = expected colon ?>> qsType
     let typeParam = expected (pchar '\'') ?>> expectedId Declaration (term symbol)
-    let typeParamList = angleBrackets (sepByLast typeParam comma)
+    let typeParamList = brackets (lAngle, rAngle) (sepByLast typeParam comma)
     let argumentTuple = expected unitValue <|> tuple (name ?>> typeAnnotation)
     name ?>> (typeParamList <|>% []) ?>> argumentTuple ?>> typeAnnotation
 
@@ -331,7 +315,7 @@ let rec private expression = parse {
         let typeParamListOrLessThan =
             // This is a parsing hack for the < operator, which can be either less-than or the start of a type parameter
             // list.
-            angleBrackets (sepByLast qsType comma) <|>@ (operator qsLTop.op None >>. expression)
+            brackets (lAngle, rAngle) (sepByLast qsType comma) <|>@ (operator qsLTop.op None >>. expression)
         choice [
             operator qsUnwrapModifier.op (Some (notFollowedBy (pchar '=')))
             operator qsOpenRangeOp.op None .>> optional eot
@@ -348,7 +332,7 @@ let rec private expression = parse {
         let newArray =
             expectedKeyword arrayDecl ?>>
             nonArrayType ?>>
-            manyR (arrayBrackets (emptySpace >>% [])) @>>
+            manyR (brackets (lArray, rArray) (emptySpace >>% [])) @>>
             array expression
         let keywordLiteral =
             [
@@ -369,7 +353,7 @@ let rec private expression = parse {
                 let text =
                     manyChars (notFollowedBy (unescaped quote <|> unescaped lCurly) >>. anyChar) >>.
                     optional eot >>. preturn []
-                let code = curlyBrackets expression
+                let code = brackets (lCurly, rCurly) expression
                 pchar '$' >>. expected quote ?>> text ?>> manyLast (code ?>> text) ?>> expected quote
             let uninterpolated =
                 let text = manyChars (notFollowedBy (unescaped quote) >>. anyChar) >>. optional eot >>. preturn []
