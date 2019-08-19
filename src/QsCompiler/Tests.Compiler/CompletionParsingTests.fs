@@ -16,20 +16,19 @@ let private fails env text =
     | Success _ -> raise <| Exception (String.Format("Input: {0}\nParser succeeded when it was expected to fail", text))
     | Failure _ -> ()
 
-let private types =
-    [
-        Keyword "BigInt"
-        Keyword "Bool"
-        Keyword "Double"
-        Keyword "Int"
-        Keyword "Pauli"
-        Keyword "Qubit"
-        Keyword "Range"
-        Keyword "Result"
-        Keyword "String"
-        Keyword "Unit"
-        UserDefinedType
-    ]
+let private types = [
+    Keyword "BigInt"
+    Keyword "Bool"
+    Keyword "Double"
+    Keyword "Int"
+    Keyword "Pauli"
+    Keyword "Qubit"
+    Keyword "Range"
+    Keyword "Result"
+    Keyword "String"
+    Keyword "Unit"
+    UserDefinedType
+]
 
 let private expression = [
     Variable
@@ -69,7 +68,9 @@ let private functionStatement =
     ]
 
 let private operationStatement =
-    callableStatement
+    callableStatement @ [
+        Keyword "repeat"
+    ]
 
 [<Fact>]
 let ``Inside namespace parser tests`` () =
@@ -365,6 +366,12 @@ let ``Function statement parser tests`` () =
         ("while (Foo() and not Bar()", infix)
         ("while (Foo() and not Bar() or ", expression)
         ("while (Foo() and not Bar() or false)", [])
+    ]
+
+[<Fact>]
+let ``Operation statement parser tests`` () =
+    List.iter (matches OperationStatement) [
+        ("repeat ", [])
     ]
 
 [<Fact>]

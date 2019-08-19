@@ -411,6 +411,10 @@ let private forHeader =
 let private whileHeader =
     expectedKeyword qsWhile ?>> expectedBrackets (lTuple, rTuple) expression
 
+/// Parses a repeat-until-success block intro.
+let private repeatHeader =
+    expectedKeyword qsRepeat
+
 /// Parses statements that are valid in both functions and operations.
 let private callableStatement =
     pcollect [
@@ -429,7 +433,7 @@ let private functionStatement =
 
 /// Parses a statement in an operation.
 let private operationStatement =
-    callableStatement
+    repeatHeader .>> eotEof <|>@ callableStatement
 
 /// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
 /// of the text.
