@@ -329,7 +329,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 fragAtStart == null ? inRange.FirstOrDefault() : null;
             var declRange = fragment?.GetRange();
 
-            if (fragment == null) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
+            if (fragment?.Kind == null) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
             var (nsDecl, callableDecl, typeDecl) = (fragment.Kind.DeclaredNamespace(), fragment.Kind.DeclaredCallable(), fragment.Kind.DeclaredType());
             var declSymbol = nsDecl.IsValue ? nsDecl.Item.Item1.Symbol 
                 : callableDecl.IsValue ? callableDecl.Item.Item1.Symbol
