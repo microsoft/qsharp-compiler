@@ -111,6 +111,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the CodeFragment at the given position if such a fragment exists and null otherwise.
         /// If the given position is equal to the end of the fragment, that fragment is returned if includeEnd is set to true.
+        /// If a fragment is determined for the given position, returns the corresponding token index as out parameter. 
+        /// Note that token indices are no longer valid as soon as the file is modified (possibly e.g. by queued background processing). 
+        /// Any query or attempt operation on the returned token index may result in an exception once it lost its validity. 
         /// Returns null if the given file or the specified position is null,
         /// or if the specified position is not within the current Content range.
         /// </summary>
