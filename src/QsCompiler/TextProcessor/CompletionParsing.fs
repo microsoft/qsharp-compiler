@@ -159,9 +159,17 @@ let private manyLast p =
 let private sepByLast p sep =
     sepBy p sep |>> List.tryLast |>> Option.defaultValue []
 
-/// Parses brackets around `p`. The right bracket is optional if EOT occurs first.
+/// Parses brackets around `p`. The right bracket is optional if EOT occurs first. Use `brackets` instead of
+/// `expectedBrackets` if there are other parsers besides a left bracket that can follow and you want this parser to
+/// fail if the stream has ended.
 let private brackets (left, right) p =
     bracket left >>. p ?>> expected (bracket right)
+
+/// Parses brackets around `p`. Both the left and right brackets are optional if EOT occurs first. Use
+/// `expectedBrackets` instead of `brackets` if a left bracket is the only thing that can follow and you want this
+/// parser to still succeed if the stream has ended.
+let private expectedBrackets (left, right) p =
+    expected (bracket left) ?>> p ?>> expected (bracket right)
 
 /// Parses tuple brackets around `p`.
 let private tupleBrackets p =
@@ -404,6 +412,10 @@ let private returnStatement =
 let private failStatement =
     expectedKeyword qsFail ?>> expression
 
+/// Parses an if clause.
+let private ifClause =
+    expectedKeyword qsIf ?>> expectedBrackets (lTuple, rTuple) expression
+
 /// Parses a statement.
 let private statement =
     pcollect [
@@ -411,6 +423,7 @@ let private statement =
         mutableStatement
         returnStatement
         failStatement
+        ifClause
         expression
     ] .>> eotEof
 

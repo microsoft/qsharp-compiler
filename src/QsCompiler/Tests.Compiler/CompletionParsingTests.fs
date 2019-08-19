@@ -59,6 +59,7 @@ let private statement =
         Keyword "mutable"
         Keyword "return"
         Keyword "fail"
+        Keyword "if"
     ]
 
 [<Fact>]
@@ -326,6 +327,11 @@ let ``Statement parser tests`` () =
         ("fail \"", [])
         ("fail \"foo", [])
         ("fail \"foo\"", infix)
+        ("if ", [])
+        ("if (", expression)
+        ("if (x ", infix)
+        ("if (x and ", expression)
+        ("if (x and y)", [])
     ]
 
 let ``Expression parser tests`` () =
