@@ -253,55 +253,41 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
             var unreachableCode = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.UnreachableCode));
 
-            WorkspaceEdit SuggestedRemoveText(Position pos)
+            WorkspaceEdit SuggestedRemoval(Position pos)
             {
                 var fragment = file.TryGetFragmentAt(pos, out var currentFragToken);
-                if (fragment == null) return null;
-
-                var eraseStart = fragment.GetRange().Start;
                 var lastFragToken = new CodeFragment.TokenIndex(currentFragToken);
-                --lastFragToken;
-                CodeFragment tempFrag = null;
-                string lastFollowedBy = "";
+                if (fragment == null || --lastFragToken == null) return null;
 
-                // Work off of the last reachable fragment, if there is one
-                if (lastFragToken != null)
-                {
-                    tempFrag = lastFragToken.GetFragment();
-                    lastFollowedBy = $"{tempFrag.FollowedBy}";
-                    eraseStart = tempFrag.GetRange().End;
-                }
+                // work off of the last reachable fragment, if there is one
+                var lastBeforeErase = lastFragToken.GetFragment();
+                var eraseStart = lastBeforeErase.GetRange().End;
 
-                // Find the last fragment in the scope
+                // find the last fragment in the scope
                 while (currentFragToken != null)
                 {
                     lastFragToken = currentFragToken;
                     currentFragToken = currentFragToken.NextOnScope(true);
                 }
-                tempFrag = lastFragToken.GetFragment();
-                Position eraseEnd = tempFrag.GetRange().End;
+                var lastInScope = lastFragToken.GetFragment();
+                var eraseEnd = lastInScope.GetRange().End;
 
-                // Build replace string
-                string replaceString = lastFollowedBy;
-                if (eraseStart.Line != eraseEnd.Line)
-                {
-                    replaceString += $"{Environment.NewLine}";
-                    // Give it the indentation of the parent scope
-                    // ToDo: Support the tab style specified by the editor
-                    replaceString += String.Concat(Enumerable.Repeat("\t", tempFrag.Indentation - 1));
-                }
-                else
-                {
-                    replaceString += " ";
-                }
+                // determine the whitespace for the replacement string
+                var lastLine = file.GetLine(lastFragToken.Line).Text.Substring(0, lastInScope.GetRange().Start.Character);
+                var trimmedLastLine = lastLine.TrimEnd();
+                var whitespace = lastLine.Substring(trimmedLastLine.Length, lastLine.Length - trimmedLastLine.Length);
 
-                // Create and Return Edit
+                // build the replacement string
+                var replaceString = lastBeforeErase.FollowedBy == CodeFragment.MissingDelimiter ? "" : $"{lastBeforeErase.FollowedBy}";
+                replaceString += eraseStart.Line == eraseEnd.Line ? " " : $"{Environment.NewLine}{whitespace}";
+
+                // create and return a suitable edit
                 var edit = new TextEdit { Range = new Range { Start = eraseStart, End = eraseEnd }, NewText = replaceString };
                 return file.GetWorkspaceEdit(edit);
             }
 
             return unreachableCode
-                .Select(d => SuggestedRemoveText(d.Range?.Start))
+                .Select(d => SuggestedRemoval(d.Range?.Start))
                 .Where(edit => edit != null)
                 .Select(edit => ("Remove unreachable code.", edit));
         }
