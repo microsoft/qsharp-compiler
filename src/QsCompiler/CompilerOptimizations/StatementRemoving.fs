@@ -1,8 +1,8 @@
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementRemoving
 
+open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
@@ -12,21 +12,27 @@ open OptimizingTransformation
 open VariableRenaming
 
 
-let rec isAllDiscarded = function
+/// Returns whether all variables in a symbol tuple are discarded
+let rec private isAllDiscarded = function
 | DiscardedItem -> true
 | VariableNameTuple items -> Seq.forall isAllDiscarded items
 | _ -> false
 
-let isPureClassical = function
+/// Returns whether a statements is purely classical.
+/// The statement must have no classical or quantum side effects other than defining a variable.
+let private isPureClassical = function
 | QsVariableDeclaration s when not (s.Rhs.InferredInformation.HasLocalQuantumDependency) -> true
 | _ -> false
 
-let isPureQuantum = function
+/// Returns whether a statement is purely quantum.
+/// The statement must have no classical side effects, but can have quantum side effects.
+let private isPureQuantum = function
 | QsVariableDeclaration s when isAllDiscarded s.Lhs -> true
 | QsExpressionStatement _ -> true
 | _ -> false
 
-let rec reorderStatements (stmtList: QsStatement list): QsStatement list =
+/// Reorders a list of statements such that the pure classical statements occur before the pure quantum statements
+let rec private reorderStatements (stmtList: QsStatement list): QsStatement list =
     match stmtList with
     | [] -> []
     | head :: tail ->
@@ -38,11 +44,15 @@ let rec reorderStatements (stmtList: QsStatement list): QsStatement list =
         | a -> a
 
 
-type StatementRemover() =
+/// The SyntaxTreeTransformation used to remove useless statements
+type internal StatementRemover() =
     inherit OptimizingTransformation()
 
+    /// The VariableRenamed used to ensure unique variable names
     let mutable renamer = None
 
+    /// Returns whether the given statement is needed.
+    /// If this returns false, the given statement can be removed without changing the code.
     let isStatementNeeded stmt =
         match stmt.Statement with
         | QsVariableDeclaration s when isAllDiscarded s.Lhs && not (s.Rhs.InferredInformation.HasLocalQuantumDependency) -> false
@@ -51,11 +61,16 @@ type StatementRemover() =
         | QsWhileStatement s when s.Body.Statements.IsEmpty -> false
         | _ -> true
 
+    /// Splits a single statement into a sequence of statements.
+    /// Used to split variable declarations across lines, and to remove scope statements.
+    /// If a statement should not be split, returns a sequence with a single element.
     let splitStatement stmt =
         match stmt.Statement with
         | QsVariableDeclaration s ->
             match s.Lhs, s.Rhs with
             | Tuple l, Tuple r ->
+                if l.Length <> r.Length then
+                    ArgumentException "Tuple lenghts do not match" |> raise
                 Seq.zip l r |> Seq.map (QsBinding.New s.Kind >> QsVariableDeclaration >> wrapStmt)
             | _ -> Seq.singleton stmt
         | QsScopeStatement s -> s.Body.Statements |> Seq.cast

@@ -6,13 +6,13 @@ open Printer
 
 
 /// Represents a transformation meant to optimize a syntax tree
-type OptimizingTransformation() =
+type internal OptimizingTransformation() =
     inherit SyntaxTreeTransformation()
 
     let mutable changed = false
 
     /// Returns whether the syntax tree has been modified since this function was last called
-    member this.checkChanged() =
+    member internal this.checkChanged() =
         let x = changed
         changed <- false
         x
@@ -27,7 +27,8 @@ type OptimizingTransformation() =
                 printfn "Made change! Size went from %d to %d" s1.Length s2.Length
                 changed <- true
             else
-                // this shouldn't happen, but sometimes does anyways
+                // This block shouldn't execute in theory, but it does in practice
+                // TODO - figure out what causes this and fix it
                 ()
         newX
 

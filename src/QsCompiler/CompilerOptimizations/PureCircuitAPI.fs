@@ -3,10 +3,8 @@
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open ComputationExpressions
 open Types
@@ -14,8 +12,10 @@ open Utils
 open Printer
 
 
+/// An identifier for a qubit or for an array of qubits
 type QubitReference = Qubit of int | QubitArray of int
 
+/// Any constant expression
 type Const =
 | UnitValue
 | ValueTuple            of Const list
@@ -31,6 +31,7 @@ type Const =
 | ArrayItem             of Const * Const
 | QubitReference        of QubitReference
 
+/// A call to a quantum gate, with the given functors and arguments
 type GateCall = {
     gate:     QsQualifiedName
     adjoint:  bool
@@ -38,27 +39,20 @@ type GateCall = {
     arg:      Const
 }
 
+/// A pure, parameter-free quantum circuit
 type Circuit = {
     numQubitRefs: int
     gates: GateCall list
 }
 
+/// Metadata used for constructing circuits
 type private CircuitContext = {
     qubitReferences: string list
 }
 
 
-let rec optionListToListOption l =
-    match l with
-    | [] -> Some []
-    | None :: _ -> None
-    | Some head :: tail -> Option.map (fun t2 -> head :: t2) (optionListToListOption tail)
-
-
-let rec removeIndices i l =
-    List.indexed l |> List.filter (fun (a, _) -> not (Seq.contains a i)) |> List.map snd
-
-
+/// Converts a TypedExpression to a Const, mutating the given CircuitContext as needed.
+/// Returns None if the given expression cannot be converted to a constant.
 let rec private exprToConst (cc: CircuitContext ref) (expr: TypedExpression): Const option =
     match expr.Expression with
     | Expr.UnitValue -> UnitValue |> Some
@@ -89,6 +83,8 @@ let rec private exprToConst (cc: CircuitContext ref) (expr: TypedExpression): Co
     | _ -> None
 
 
+/// Converts a TypedExpression to a GateCall, mutating the given CircuitContext as needed.
+/// Returns None if the given expression cannot be converted to a gate call.
 let private exprToGateCall (cc: CircuitContext ref) (expr: TypedExpression): GateCall option =
     let rec helper method arg: GateCall option = maybe {
         match method.Expression with
@@ -116,6 +112,8 @@ let private exprToGateCall (cc: CircuitContext ref) (expr: TypedExpression): Gat
         None
 
 
+/// Converts a list of TypedExpressions to a Circuit, CircuitContext pair.
+/// Returns None if the given expression list cannot be converted to a pure circuit.
 let private exprListToCircuit (exprList: TypedExpression list): (Circuit * CircuitContext) option =
     let s = exprList |> List.map (fun x -> printExpr x.Expression)
     let cc = ref { qubitReferences = [] }
@@ -123,6 +121,7 @@ let private exprListToCircuit (exprList: TypedExpression list): (Circuit * Circu
     gates |> Option.map (fun x -> { numQubitRefs = (!cc).qubitReferences.Length; gates = x }, !cc)
 
 
+/// Returns the Q# type corresponding to the given Const
 let rec private constToType (c: Const): ResolvedType =
     let constToTypeKind = function
     | UnitValue -> UnitType
@@ -146,6 +145,7 @@ let rec private constToType (c: Const): ResolvedType =
     constToTypeKind c |> ResolvedType.New
 
 
+/// Returns the Q# expression corresponding to the given Const
 let rec private constToExpr (cc: CircuitContext) (c: Const): TypedExpression =
     let constToExprKind = function
     | UnitValue -> Expr.UnitValue
@@ -165,6 +165,7 @@ let rec private constToExpr (cc: CircuitContext) (c: Const): TypedExpression =
     wrapExpr (constToType c).Resolution (constToExprKind c)
 
 
+/// Returns the Q# expression correponding to the given gate call
 let private gateCallToExpr (cc: CircuitContext) (gc: GateCall): TypedExpression =
     let mutable method = wrapExpr UnitType (Identifier (GlobalCallable gc.gate, Null))
     let mutable arg = constToExpr cc gc.arg
@@ -178,10 +179,12 @@ let private gateCallToExpr (cc: CircuitContext) (gc: GateCall): TypedExpression 
     wrapExpr UnitType (CallLikeExpression (method, arg))
 
 
+/// Returns the list of Q# expressions corresponding to the given circuit
 let private circuitToExprList (cc: CircuitContext) (circuit: Circuit): TypedExpression list =
     List.map (gateCallToExpr cc) circuit.gates
 
 
+/// Given a pure circuit, performs basic optimizations and returns the new circuit
 let private optimizeCircuit (circuit: Circuit): Circuit =
     let mutable circuit = circuit
     let mutable i = 0
@@ -195,6 +198,9 @@ let private optimizeCircuit (circuit: Circuit): Circuit =
     circuit
 
 
+/// Given a list of Q# expressions, tries to convert it to a pure circuit.
+/// If this succeeds, optimizes the circuit and returns the new list of Q# expressions.
+/// Otherwise, returns the given list.
 let optimizeExprList (exprList: TypedExpression list): TypedExpression list =
     let s = List.map (fun x -> printExpr x.Expression) exprList
     if exprList.Length >= 5 then

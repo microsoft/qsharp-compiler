@@ -11,10 +11,9 @@ open Utils
 open OptimizingTransformation
 
 
-type LoopUnroller(compiledCallables) =
+/// The SyntaxTreeTransformation used to unroll loops
+type internal LoopUnroller(callables, maxSize) =
     inherit OptimizingTransformation()
-
-    let callables = makeCallables compiledCallables
 
     override syntaxTree.Scope = { new ScopeTransformation() with
         override scope.StatementKind = { new StatementKindTransformation() with
@@ -35,7 +34,7 @@ type LoopUnroller(compiledCallables) =
                             rangeLiteralToSeq iterVals.Expression |> Seq.map (IntLiteral >> wrapExpr Int) |> List.ofSeq |> Some
                         | ValueArray va -> va |> List.ofSeq |> Some
                         | _ -> None
-                    do! check (iterValsList.Length <= 40)
+                    do! check (iterValsList.Length <= maxSize)
                     let iterRange = iterValsList |> List.map (fun x ->
                         let variableDecl = QsBinding.New ImmutableBinding (loopVar, x) |> QsVariableDeclaration |> wrapStmt
                         let innerScope = { stm.Body with Statements = stm.Body.Statements.Insert(0, variableDecl) }

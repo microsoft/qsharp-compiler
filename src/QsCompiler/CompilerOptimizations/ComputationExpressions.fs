@@ -41,12 +41,15 @@ type internal MaybeBuilder() =
         this.Using(sequence.GetEnumerator(),
             fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
 
+/// The maybe monad. Returns None if any of the lines are None.
 let internal maybe = MaybeBuilder()
 
+/// Returns Some () if x is true, and returns None otherwise.
+/// Normally used after a do! in the Maybe monad, which makes this act as an assertion.
 let internal check x = if x then Some () else None
 
 
-/// The continuation monad. Returns an Error if any of the lines are Errors.
+/// The exception monad. Returns an Error if any of the lines are Errors.
 type internal ResultBuilder() =
 
     member this.Return(x) = Ok x
@@ -95,5 +98,5 @@ type internal ResultBuilder() =
         this.Using(sequence.GetEnumerator(),
             fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
 
+/// The exception monad. Returns an Error if any of the lines are Errors.
 let internal result = ResultBuilder()
-

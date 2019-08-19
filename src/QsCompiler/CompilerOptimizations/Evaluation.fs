@@ -1,6 +1,5 @@
 ﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.Evaluation
 
-
 open System
 open System.Collections.Immutable
 open System.Numerics
@@ -16,16 +15,16 @@ open Utils
 open Printer
 
 
-type FunctionInterrupt =
+type private FunctionInterrupt =
 | Returned of Expr
 | Failed of Expr
 | CouldNotEvaluate of string
 
-type FunctionState = Result<Constants<Expr>, FunctionInterrupt>
+type private FunctionState = Result<Constants<Expr>, FunctionInterrupt>
 
 
 /// Evaluates functions by stepping through their code
-type FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
+type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
 
     /// Transforms a BoolLiteral into the corresponding bool
     let castToBool x =
@@ -34,11 +33,11 @@ type FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
         | _ -> "Not a BoolLiteral: " + (printExpr x) |> CouldNotEvaluate |> Error
 
     /// The callback for the subroutine that evaluates and simplifies an expression
-    member this.evaluateExpression constants expr =
+    member internal this.evaluateExpression constants expr =
         (ExpressionEvaluator(callables, constants, maxRecursiveDepth - 1).Transform expr).Expression
 
     /// Evaluates a single Q# statement
-    member this.evaluateStatement (constants: Constants<Expr>) (statement: QsStatement): FunctionState =
+    member private this.evaluateStatement (constants: Constants<Expr>) (statement: QsStatement): FunctionState =
         match statement.Statement with
         | QsExpressionStatement expr ->
             this.evaluateExpression constants expr |> ignore; constants |> Ok
@@ -50,7 +49,7 @@ type FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
             defineVarTuple (isLiteral callables) constants (s.Lhs, this.evaluateExpression constants s.Rhs) |> Ok
         | QsValueUpdate s ->
             match s.Lhs.Expression with
-            | Identifier (LocalVariable name, tArgs) -> setVar (isLiteral callables) constants (name.Value, this.evaluateExpression constants s.Rhs) |> Ok
+            | LocalVarTuple vt -> setVarTuple (isLiteral callables) constants (vt, this.evaluateExpression constants s.Rhs) |> Ok
             | _ -> "Unknown LHS of value update statement: " + (printExpr s.Lhs.Expression) |> CouldNotEvaluate |> Error
         | QsConditionalStatement s ->
             let firstEval =
@@ -61,35 +60,28 @@ type FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
             | Some (Error s, _), _ -> s |> Error
             | Some (Ok _, block), _ | None, Value block -> this.evaluateScope constants true block.Body
             | None, Null -> Ok constants
-        | QsForStatement s ->
-            let iterValues = this.evaluateExpression constants s.IterationValues
-            let iterSeqOpt =
-                match iterValues with
-                | RangeLiteral _ -> rangeLiteralToSeq iterValues |> Seq.map IntLiteral |> Some
-                | ValueArray va -> va |> Seq.map (fun x -> x.Expression) |> Some
-                | _ -> None
-            match iterSeqOpt with
-            | None -> 
-                "Unknown IterationValue in for loop: " + (printExpr iterValues) |> CouldNotEvaluate |> Error
-            | Some iterSeq ->
-                iterSeq |> Seq.fold (fun result loopValue ->
-                    match result with
-                    | Ok constants ->
-                        let constants = enterScope constants
-                        let constants = defineVarTuple (isLiteral callables) constants (fst s.LoopItem, loopValue)
-                        let result = this.evaluateScope constants true s.Body
-                        match result with
-                        | Ok constants -> exitScope constants |> Ok
-                        | x -> x
-                    | _ -> result
-                ) (Ok constants)
+        | QsForStatement stmt ->
+            result {
+                let iterValues = this.evaluateExpression constants stmt.IterationValues
+                let! iterSeq =
+                    match iterValues with
+                    | RangeLiteral _ when isLiteral callables iterValues -> rangeLiteralToSeq iterValues |> Seq.map IntLiteral |> Ok
+                    | ValueArray va -> va |> Seq.map (fun x -> x.Expression) |> Ok
+                    | _ -> "Unknown IterationValue in for loop: " + (printExpr iterValues) |> CouldNotEvaluate |> Error
+                let constantsRef = ref constants
+                for loopValue in iterSeq do
+                    constantsRef := enterScope !constantsRef
+                    constantsRef := defineVarTuple (isLiteral callables) !constantsRef (fst stmt.LoopItem, loopValue)
+                    let! s = this.evaluateScope !constantsRef true stmt.Body
+                    constantsRef := exitScope s
+                return constantsRef.Value
+            }
         | QsWhileStatement stmt ->
             result {
                 let constantsRef = ref constants
                 while this.evaluateExpression !constantsRef stmt.Condition |> castToBool do
                     let! s = this.evaluateScope !constantsRef true stmt.Body
                     constantsRef := s
-                // set constantsRef (this.evaluateScope !constantsRef true stmt.Body)
                 return constantsRef.Value
             }
         | QsRepeatStatement stmt ->
@@ -112,7 +104,7 @@ type FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
             this.evaluateScope constants true s.Body
 
     /// Evaluates a list of Q# statements
-    member this.evaluateScope (constants: Constants<Expr>) (newScope: bool) (scope: QsScope): FunctionState =
+    member private this.evaluateScope (constants: Constants<Expr>) (newScope: bool) (scope: QsScope): FunctionState =
         result {
             let constantsRef = ref constants
             if newScope then
@@ -126,15 +118,15 @@ type FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
         }
 
     /// Evaluates a Q# function
-    member this.evaluateFunction (constants: Constants<Expr>) (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): Expr option =
-        // TODO: assert compiledCallables contains name
+    member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): Expr option =
         let callable = getCallable callables name
-        // TODO: assert callable.Specializations.Length == 1
+        if callable.Specializations.Length <> 1 then
+            Exception "Functions must have exactly one specialization" |> raise
         let impl = callable.Specializations.[0].Implementation
         match impl with
         | Provided (specArgs, scope) ->
-            let constants = enterScope constants
-            let constants = defineVarTuple (isLiteral callables) constants (toSymbolTuple callable.ArgumentTuple, arg.Expression)
+            let constants = enterScope (Constants [])
+            let constants = defineVarTuple (isLiteral callables) constants (toSymbolTuple specArgs, arg.Expression)
             match this.evaluateScope constants true scope with
             | Ok _ ->
                 // printfn "Function %O didn't return anything" name.Name.Value
@@ -198,7 +190,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
 
     override this.onIdentifier (sym, tArgs) =
         match sym with
-        | LocalVariable name -> getVar constants name.Value |? Identifier (sym, tArgs)
+        | LocalVariable name -> tryGetVar constants name.Value |? Identifier (sym, tArgs)
         | _ -> Identifier (sym, tArgs)
 
     override this.onFunctionCall (method, arg) =
@@ -208,9 +200,9 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
             | Identifier (GlobalCallable qualName, types) ->
                 do! check (maxRecursiveDepth > 0 && isLiteral callables arg.Expression)
                 let fe = FunctionEvaluator (callables, maxRecursiveDepth)
-                return! fe.evaluateFunction constants qualName arg types
+                return! fe.evaluateFunction qualName arg types
             | CallLikeExpression (baseMethod, partialArg) ->
-                do! hasMissingExprs partialArg |> check
+                do! check (TypedExpression.containsMissing partialArg)
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
@@ -220,7 +212,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         maybe {
             match method.Expression with
             | CallLikeExpression (baseMethod, partialArg) ->
-                do! hasMissingExprs partialArg |> check
+                do! check (TypedExpression.containsMissing partialArg)
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)

@@ -13,7 +13,10 @@ open Evaluation
 open OptimizingTransformation
 
 
-let rec shouldPropagate callables expr =
+/// Returns whether the given expression should be propagated as a constant.
+/// For a statement of the form "let x = [expr];", if shouldPropagate(expr) is true,
+/// then we should substitute [expr] for x wherever x occurs in future code.
+let rec private shouldPropagate callables expr =
     isLiteral callables expr ||
     match expr with
     | ValueTuple a | StringLiteral (_, a) | ValueArray a -> Seq.forall (fun x -> shouldPropagate callables x.Expression) a
@@ -29,12 +32,12 @@ let rec shouldPropagate callables expr =
 
 
 /// The SyntaxTreeTransformation used to evaluate constants
-type ConstantPropagator(compiledCallables) =
+type internal ConstantPropagator(callables) =
     inherit OptimizingTransformation()
-
-    let callables = makeCallables compiledCallables
     
+    /// The current dictionary of values to substitute for variables
     let mutable constants = Constants []
+    /// Whether we should skip entering the next scope we encounter
     let mutable skipScope = false
 
 

@@ -5,12 +5,12 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open Utils
-open Printer
 open PureCircuitAPI
 open OptimizingTransformation
 
 
-type PureCircuitFinder() =
+/// The SyntaxTreeTransformation used to find and optimize pure circuits
+type internal PureCircuitFinder() =
     inherit OptimizingTransformation()
 
 

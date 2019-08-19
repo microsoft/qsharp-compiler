@@ -1,45 +1,55 @@
 ﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.Types
 
+open System
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
 /// Shorthand for a QsExpressionKind
-type Expr = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
+type internal Expr = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
 /// Shorthand for a QsTypeKind
-type TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+type internal TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 /// Shorthand for a QsInitializerKind
-type InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
+type internal InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
 
 
 /// Represents the dictionary of all callables in the program
-type Callables = Callables of Map<QsQualifiedName, QsCallable>
+type internal Callables = Callables of Map<QsQualifiedName, QsCallable>
 
-let makeCallables compiledCallables =
+/// Makes an instance of Callables from the given dictionary
+let internal makeCallables (compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
     compiledCallables |> Seq.map (function KeyValue(a, b) -> a, b) |> Map.ofSeq |> Callables
     
-let getCallable callables qualName =
+/// Gets the QsCallable with the given qualified name.
+/// Throws an KeyNotFoundException if no such callable exists.
+let internal getCallable callables qualName =
     match callables with Callables c -> c.[qualName]
 
 
-/// Represents the current state of a constant propagation pass
-type Constants<'T> = Constants of list<Map<string, 'T>>
+/// Represents a map whose keys are local variables, with support for scopes.
+type internal Constants<'T> = Constants of list<Map<string, 'T>>
 
-let enterScope constants =
+/// Returns a Constants inside of a new scope
+let internal enterScope constants =
     match constants with Constants c -> Constants (Map.empty :: c)
 
-let exitScope constants =
+/// Returns a Constants outside of the current scope.
+/// Throws an InvalidOperationException if the scope stack of the given state is empty.
+let internal exitScope constants =
     match constants with
     | Constants (_ :: tail) -> Constants tail
-    | Constants [] -> failwithf "No scope to exit"
+    | Constants [] -> InvalidOperationException "No scope to exit" |> raise
 
-let getVar constants name =
+/// Gets the value associated with the given variable.
+/// Returns None if the given variable is undefined.
+let internal tryGetVar constants name =
     match constants with Constants c -> List.tryPick (Map.tryFind name) c
 
 
 /// Returns whether a given expression is a literal (and thus a constant)
-let rec isLiteral (callables: Callables) (expr: Expr): bool =
+let rec internal isLiteral (callables: Callables) (expr: Expr): bool =
     match expr with
     | UnitValue | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ -> true
     | ValueTuple a | StringLiteral (_, a) | ValueArray a -> Seq.forall (fun x -> isLiteral callables x.Expression) a
@@ -54,34 +64,43 @@ let rec isLiteral (callables: Callables) (expr: Expr): bool =
     | _ -> false
 
 
-let defineVar check constants (name, value) =
+/// If check(value) is true, returns a Constants with the given variable defined as the given value.
+/// Otherwise, returns constants without any changes.
+/// If the given variable is already defined, its name is shadowed in the current scope.
+/// Throws an InvalidOperationException if there aren't any scopes on the stack.
+let internal defineVar check constants (name, value) =
     if not (check value) then constants else
-    // TODO: assert variable is undefined
     match constants with
     | Constants (head :: tail) -> Constants (head.Add (name, value) :: tail)
-    | Constants [] -> failwithf "No scope to define variables in"
+    | Constants [] -> InvalidOperationException "No scope to define variables in" |> raise
     
-let setVar check constants (name, value) =
+/// If check(value) is true, returns a Constants with the given variable set to the given value.
+/// Otherwise, returns constants without any changes.
+/// Throws an ArgumentException if trying to set an undefined variable.
+let internal setVar check constants (name, value) =
     if not (check value) then constants else
-    // TODO: assert variable is defined, is same type
     match constants with
     Constants c ->
         match List.tryFindIndex (Map.containsKey name) c with
         | Some index ->
             let updateFunc = fun i -> if i = index then Map.add name value else id
             Constants (List.mapi updateFunc c)
-        | None -> failwithf "Variable %s is undefined" name
+        | None -> sprintf "Variable %s is undefined" name |> ArgumentException |> raise
 
-let rec private onTuple op check constants (names, values) =
+/// Applies the given function op on a SymbolTuple, ValueTuple pair
+let rec private onTuple op constants (names, values) =
     match names, values with
     | VariableName name, _ ->
-        op check constants (name.Value, values)
+        op constants (name.Value, values)
     | VariableNameTuple namesTuple, ValueTuple valuesTuple ->
         // TODO: assert items and vt are same length
-        Seq.zip namesTuple (Seq.map (fun x -> x.Expression) valuesTuple) |> Seq.fold (onTuple op check) constants
+        if namesTuple.Length <> valuesTuple.Length then
+            ArgumentException "names and values have different lengths" |> raise
+        Seq.zip namesTuple (Seq.map (fun x -> x.Expression) valuesTuple) |> Seq.fold (onTuple op) constants
     | _ -> constants
 
-let defineVarTuple = onTuple defineVar
+/// Returns a Constants<Expr> with the given variables defined as the given values
+let internal defineVarTuple check = onTuple (defineVar check)
 
-let setVarTuple = onTuple setVar
-
+/// Returns a Constants<Expr> with the given variables set to the given values
+let internal setVarTuple check = onTuple (setVar check)

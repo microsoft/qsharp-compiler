@@ -155,16 +155,20 @@ type TypedExpression with
 
     // utils for walking the data structure
 
+    /// Returns true if the expression contains any missing expression.
+    /// Returns false otherwise.
+    static member public containsMissing (ex : TypedExpression) =
+        // we only need to check for top-level missing items
+        match ex.TupleItems with
+        | Some items when items.Length > 1 -> items |> List.exists TypedExpression.containsMissing
+        | Some [] -> true
+        | _ -> false
+
     /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
-    /// Returns false otherwise. 
-    static member public IsPartialApplication kind = 
-        let rec containsMissing (ex : TypedExpression) = 
-            match ex.TupleItems with // we only need to check for top-level missing items
-            | Some items when items.Length > 1 -> items |> List.map containsMissing |> List.contains true
-            | Some [] -> true
-            | _ -> false
-        kind |> function 
-        | CallLikeExpression (_, args) -> args |> containsMissing
+    /// Returns false otherwise.
+    static member public IsPartialApplication kind =
+        match kind with
+        | CallLikeExpression (_, args) -> args |> TypedExpression.containsMissing
         | _ -> false
 
     /// Returns true if the expression contains a sub-expression satisfying the given condition.

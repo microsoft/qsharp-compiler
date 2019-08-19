@@ -12,75 +12,125 @@ open Utils
 open OptimizingTransformation
 
 
-let getMethodArg expr =
-    match expr with
-    | CallLikeExpression (method, arg) -> Some (method, arg)
-    | _ -> None
+/// Represents all the functors applied to an operation call
+type private Functors = {
+    adjoint: bool
+    controlled: int
+} with
+    static member None = { adjoint = false; controlled = 0 }
+    member this.toSpecKind =
+        match this.adjoint, this.controlled with
+        | false, 0 -> QsBody
+        | true, 0 -> QsAdjoint
+        | false, _ -> QsControlled
+        | true, _ -> QsControlledAdjoint
+    member this.withAdjoint = { this with adjoint = not this.adjoint }
+    member this.withControlled = { this with controlled = this.controlled + 1 }
 
-let getQualNameAndSpecKind method =
+
+/// Tries to decompose a method expression into the method name and the functors applied.
+/// Returns None if the input is not a valid method expression.
+let rec private tryGetQualNameAndFunctors method =
     match method.Expression with
-    | Identifier (GlobalCallable qualName, _) -> Some (qualName, QsBody)
-    | AdjointApplication {Expression = Identifier (GlobalCallable qualName, _)} -> Some (qualName, QsAdjoint)
-    | ControlledApplication {Expression = Identifier (GlobalCallable qualName, _)} -> Some (qualName, QsControlled)
-    | AdjointApplication {Expression = ControlledApplication {Expression = Identifier (GlobalCallable qualName, _)}} -> Some (qualName, QsControlledAdjoint)
-    | ControlledApplication {Expression = AdjointApplication {Expression = Identifier (GlobalCallable qualName, _)}} -> Some (qualName, QsControlledAdjoint)
+    | Identifier (GlobalCallable qualName, _) -> Some (qualName, Functors.None)
+    | AdjointApplication ex ->
+        tryGetQualNameAndFunctors ex |> Option.map (fun (qualName, functors) -> qualName, functors.withAdjoint)
+    | ControlledApplication ex ->
+        tryGetQualNameAndFunctors ex |> Option.map (fun (qualName, functors) -> qualName, functors.withControlled)
     | _ -> None
 
-let getScope callable specKind =
-    match callable.Specializations |> Seq.tryFind (fun s -> s.Kind = specKind) with
-    | Some {Implementation = Provided (specArgs, scope)} -> Some (specArgs, scope)
-    | Some {Implementation = Generated SelfInverse} ->
-        let newKind = match specKind with QsAdjoint -> Some QsBody | QsControlledAdjoint -> Some QsControlled | _ -> None
-        match callable.Specializations |> Seq.tryFind (fun s -> Some s.Kind = newKind) with
-        | Some {Implementation = Provided (specArgs, scope)} -> Some (specArgs, scope)
-        | _ -> None
+
+/// Tries to split a callable invocation into the functors applied, the callable, and the argument.
+/// Returns None if the input is not a valid callable invocation.
+let private trySplitCall callables = function
+    | CallLikeExpression (method, arg) ->
+        tryGetQualNameAndFunctors method |> Option.map (fun (qualName, functors) ->
+            functors, getCallable callables qualName, arg)
     | _ -> None
 
-let tryInline (callables: Callables) (expr: Expr) =
+
+/// Tries to find a specialization of the given callable that matches the given functors.
+/// If such a specialization is found, returns the implementation of that specialization.
+/// If no such specialization is found, returns None.
+let private tryGetImpl callable (functors: Functors) =
+    callable.Specializations
+    |> Seq.tryFind (fun s -> s.Kind = functors.toSpecKind)
+    |> Option.map (fun s -> s.Implementation)
+
+/// Tries to find a provided implementation for the given callable with the given specialization kind.
+/// Returns None if unable to find a provided implementation of the desired kind.
+let private tryGetProvidedImpl callable functors =
+    match tryGetImpl callable functors, tryGetImpl callable functors.withAdjoint with
+    | Some (Provided (specArgs, body)), _
+    | Some (Generated SelfInverse), Some (Provided (specArgs, body)) -> Some (specArgs, body)
+    | _ -> None
+
+
+/// Stores all the data needed to inline a callable
+type private InliningInfo = {
+    functors: Functors
+    callable: QsCallable
+    arg: TypedExpression
+    specArgs: QsArgumentTuple
+    body: QsScope
+}
+
+/// Tries to construct an InliningInfo from the given expression.
+/// Returns None if the expression is not a callable invocation that can be inlining.
+let private tryGetInliningInfo callables expr =
     maybe {
-        let! method, arg = getMethodArg expr
-        let! qualName, specKind = getQualNameAndSpecKind method
-        let callable = getCallable callables qualName
-        let! specArgs, scope = getScope callable specKind
-        return callable, arg, specArgs, scope
+        let! functors, callable, arg = trySplitCall callables expr
+        let! specArgs, body = tryGetProvidedImpl callable functors
+        return { functors = functors; callable = callable; arg = arg; specArgs = specArgs; body = body }
     }
 
-let rec findAllCalls (callables: Callables) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
-    scope |> findAllBaseStatements |> Seq.map (function
-        | QsExpressionStatement ex ->
-            match tryInline callables ex.Expression with
-            | Some (callable, _, _, newScope) ->
-                if found.Add callable.FullName then
-                    findAllCalls callables newScope found
-            | None -> ()
-        | _ -> ()
-    ) |> List.ofSeq |> ignore
 
-let callableCannotReach (callables: Callables) (scope: QsScope) (cannotReach: QsQualifiedName) =
+/// Recursively finds all the callables that could be inlined into the given scope.
+/// Includes callables that could be indirectly called or inlined into this scope.
+/// Mutates the given HashSet by adding all the found callables to the set.
+/// Is used to prevent inlining recursive functions into themselves forever.
+let rec private findAllCalls (callables: Callables) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
+    scope |> findAllBaseStatements |> Seq.iter (function
+        | QsExpressionStatement ex ->
+            match tryGetInliningInfo callables ex.Expression with
+            | Some ii ->
+                // Only recurse if we haven't processed this callable yet
+                if found.Add ii.callable.FullName then
+                    findAllCalls callables ii.body found
+            | None -> ()
+        | _ -> ())
+
+/// Returns whether the given callable could eventually inline the given callable.
+/// Is used to prevent inlining recursive functions into themselves forever.
+let private cannotReachCallable (callables: Callables) (scope: QsScope) (cannotReach: QsQualifiedName) =
     let mySet = HashSet()
     findAllCalls callables scope mySet
     not (mySet.Contains cannotReach)
 
-
-type CallableInliner(compiledCallables) =
-    inherit OptimizingTransformation()
     
-    let callables = makeCallables compiledCallables
+/// The SyntaxTreeTransformation used to inline callables
+type internal CallableInliner(callables) =
+    inherit OptimizingTransformation()
 
+    // The current callable we're in the process of transforming
     let mutable currentCallable: QsCallable option = None
+    // The list of new statements to add
     let mutable statementsToAdd = []
 
+    /// Inline an expression as a ScopeStatement, with many checks to ensure correctness.
+    /// Returns None if the expression cannot be safely inlined.
     let safeInline expr =
         maybe {
-            let! callable, arg, specArgs, scope = tryInline callables expr
+            let! ii = tryGetInliningInfo callables expr
             
-            do! check (countReturnStatements scope = 0)
+            do! check (countReturnStatements ii.body = 0)
             let! current = currentCallable
-            do! check (callableCannotReach callables scope current.FullName)
+            do! check (cannotReachCallable callables ii.body current.FullName)
+            do! check (ii.functors.controlled < 2)
             
-            let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple specArgs, arg)
-            let newStatements = scope.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
-            return {scope with Statements = newStatements} |> QsScopeStatement.New |> QsScopeStatement
+            let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
+            let newStatements = ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
+            return {ii.body with Statements = newStatements} |> QsScopeStatement.New |> QsScopeStatement
         }
 
 
@@ -105,6 +155,8 @@ type CallableInliner(compiledCallables) =
                         statementsToAdd <- statementsToAdd @ [wrapStmt scopeStatement]
                         return UnitValue
                     } |? expr
+
+                // The functions before are overriden to prevent inlining of lazily evaluated operations
 
                 override this.onConditionalExpression (cond, ifTrue, ifFalse) =
                     CONDITIONAL (this.ExpressionTransformation cond, ifTrue, ifFalse)

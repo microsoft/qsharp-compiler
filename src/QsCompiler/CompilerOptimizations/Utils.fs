@@ -1,5 +1,6 @@
 ﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.Utils
 
+open System
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -15,13 +16,21 @@ open Types
 let internal (|?) = defaultArg
 
 
-let rec jointFlatten (v1, v2) =
+/// Flattens a pair of nested tuples by pairing the base items of each tuple.
+/// Returns a seqence of pairs, one element from each side.
+/// It is guaranteed that at most one element of a pair will be a Tuple.
+/// Throws an ArgumentException if the lengths of the tuples do not match.
+let rec internal jointFlatten (v1, v2) =
     match v1, v2 with
-    | Tuple t1, Tuple t2 -> Seq.zip t1 t2 |> Seq.collect jointFlatten
+    | Tuple t1, Tuple t2 ->
+        if t1.Length <> t2.Length then
+            ArgumentException "The lengths of the given tuples do not match" |> raise
+        Seq.zip t1 t2 |> Seq.collect jointFlatten
     | _ -> Seq.singleton (v1, v2)
 
 
-/// Converts a range literal to a sequence of integers
+/// Converts a range literal to a sequence of integers.
+/// Throws an ArgumentException if the input isn't a valid range literal.
 let internal rangeLiteralToSeq (r: Expr): seq<int64> =
     match r with
     | RangeLiteral (a, b) ->
@@ -30,8 +39,22 @@ let internal rangeLiteralToSeq (r: Expr): seq<int64> =
             seq { start .. stop }
         | RangeLiteral ({Expression = IntLiteral start}, {Expression = IntLiteral step}), IntLiteral stop ->
             seq { start .. step .. stop }
-        | _ -> failwithf "Invalid range literal: %O" r
-    | _ -> failwithf "Not a range literal: %O" r
+        | _ -> ArgumentException "Invalid range literal" |> raise
+    | _ -> ArgumentException "Not a range literal" |> raise
+
+
+/// Returns None if any of the elements of the given list is None.
+/// Otherwise, returns the given list, casting each option to its Some case.
+let rec internal optionListToListOption l =
+    match l with
+    | [] -> Some []
+    | None :: _ -> None
+    | Some head :: tail -> Option.map (fun t2 -> head :: t2) (optionListToListOption tail)
+
+
+/// Returns the given list without the elements at the given indices
+let rec internal removeIndices idx l =
+    List.indexed l |> List.filter (fun (i, _) -> not (List.contains i idx)) |> List.map snd
 
 
 /// Converts a QsTuple to a SymbolTuple
@@ -44,7 +67,20 @@ let rec internal toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbo
     | QsTuple items when items.Length = 1 ->
         toSymbolTuple items.[0]
     | QsTuple items ->
-        VariableNameTuple ((Seq.map toSymbolTuple items).ToImmutableArray())
+        Seq.map toSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
+
+/// Matches a TypedExpression as a SymbolTuple
+let rec internal (|LocalVarTuple|_|) (expr: Expr) =
+    match expr with
+    | Identifier (LocalVariable name, _) -> VariableName name |> Some
+    | MissingExpr -> DiscardedItem |> Some
+    | InvalidExpr -> InvalidItem |> Some
+    | ValueTuple va ->
+        va |> Seq.map (function {Expression = LocalVarTuple t} -> Some t | _ -> None)
+        |> List.ofSeq |> optionListToListOption
+        |> Option.map (ImmutableArray.CreateRange >> VariableNameTuple)
+    | _ -> None
+
 
 /// Wraps a QsExpressionType in a basic TypedExpression
 /// The returned TypedExpression has no type param / inferred info / range information,
@@ -59,12 +95,12 @@ let internal wrapStmt (stmt: QsStatementKind): QsStatement =
 
 
 /// Returns a new array of the given type and length.
-/// Returns None if the type doesn't have a default value.
+/// Returns None if the type doesn't have a default value as an expression.
 let rec internal constructNewArray (bt: TypeKind) (length: int): Expr option =
     defaultValue bt |> Option.map (fun x -> ImmutableArray.CreateRange (List.replicate length (wrapExpr bt x)) |> ValueArray)
-
-
-/// Returns the default value for a given type (from Q# documentation)
+    
+/// Returns the default value for a given type (from Q# documentation).
+/// Returns None for types whose default values are not representable as expressions.
 and private defaultValue (bt: TypeKind): Expr option =
     match bt with
     | Int -> IntLiteral 0L |> Some
@@ -79,26 +115,19 @@ and private defaultValue (bt: TypeKind): Expr option =
     | _ -> None
 
 
-/// Returns true if the given expression contains any MissingExprs
-let rec internal hasMissingExprs (expr: TypedExpression): bool =
-    match expr.Expression with
-    | MissingExpr -> true
-    | ValueTuple vt -> Seq.exists hasMissingExprs vt
-    | _ -> false
-
 /// Fills a partial argument by replacing MissingExprs with the corresponding values of a tuple
 let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpression): TypedExpression =
     match partialArg with
     | Missing -> arg
     | Tuple items ->
         let argsList =
-            match List.filter hasMissingExprs items, arg with
+            match List.filter TypedExpression.containsMissing items, arg with
             | [_], _ -> [arg]
             | _, Tuple args -> args
             | _ -> failwithf "args must be a tuple"
         // assert items2.Length = items3.Length
         items |> List.mapFold (fun args t1 ->
-            if hasMissingExprs t1 then
+            if TypedExpression.containsMissing t1 then
                 match args with
                 | [] -> failwithf "ran out of args"
                 | head :: tail -> fillPartialArg (t1, head), tail
@@ -157,11 +186,9 @@ let rec internal findAllBaseStatements (scope: QsScope): seq<QsStatementKind> =
         | x -> Seq.singleton x
     )
 
-
 /// Returns the number of return statements this scope contains
 let rec internal countReturnStatements (scope: QsScope): int =
     scope |> findAllBaseStatements |> Seq.sumBy (function QsReturnStatement _ -> 1 | _ -> 0)
-
 
 /// Returns the number of "bottom-level" statements in this scope
 let rec internal scopeLength (scope: QsScope): int =

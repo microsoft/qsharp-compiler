@@ -13,17 +13,23 @@ open Types
 open Utils
 
 
+/// The ScopeTransformation used to ensure unique variable names
 type VariableRenamer(argTuple: QsArgumentTuple) =
     inherit ScopeTransformation()
 
+    /// The number of times a variable is referenced
     let mutable numUses = Map.empty
+    /// The current dictionary of new names to substitute for variables
     let mutable constants = enterScope (Constants [])
+    /// Whether we should skip entering the next scope we encounter
     let mutable skipScope = false
 
+    /// Given a possibly-mangled variable name, returns the original variable name
     let demangle varName =
         let m = Regex.Match (varName, "^__qsVar\d+__(.+)__$")
         if m.Success then m.Groups.[1].Value else varName
 
+    /// Given a new variable name, generates a new unique name and updates the state accordingly
     let generateUniqueName varName =
         let baseName = demangle varName
         let mutable num, newName = 0, baseName
@@ -34,6 +40,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
         constants <- defineVar (fun _ -> true) constants (varName, newName)
         newName
 
+    /// Processes the initial argument tuple from the function declaration
     let rec processArgTuple args =
         match args with
         | QsTupleItem item ->
@@ -44,7 +51,8 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
 
     do processArgTuple argTuple
 
-    member this.getNumUses name =
+    /// Returns the number of times a variable is referenced
+    member internal this.getNumUses name =
         Map.tryFind name numUses
 
 
@@ -69,7 +77,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
                         match sym with
                         | LocalVariable name -> Some name.Value
                         | _ -> None
-                    let! newName = getVar constants name
+                    let! newName = tryGetVar constants name
                     numUses <- Map.add newName (Map.find newName numUses + 1) numUses
                     return Identifier (LocalVariable (NonNullable<_>.New newName), tArgs)
                 } |? Identifier (sym, tArgs)
