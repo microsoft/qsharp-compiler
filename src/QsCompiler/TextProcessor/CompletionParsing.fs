@@ -396,11 +396,21 @@ let private letStatement =
 let private mutableStatement =
     expectedKeyword qsMutableBinding ?>> symbolTuple ?>> expected equal ?>> expression
 
+/// Parses a return statement.
+let private returnStatement =
+    expectedKeyword qsReturn ?>> expression
+
+/// Parses a fail statement.
+let private failStatement =
+    expectedKeyword qsFail ?>> expression
+
 /// Parses a statement.
 let private statement =
     pcollect [
         letStatement
         mutableStatement
+        returnStatement
+        failStatement
         expression
     ] .>> eotEof
 

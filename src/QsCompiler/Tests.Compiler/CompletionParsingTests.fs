@@ -57,6 +57,8 @@ let private statement =
     expression @ [
         Keyword "let"
         Keyword "mutable"
+        Keyword "return"
+        Keyword "fail"
     ]
 
 [<Fact>]
@@ -315,9 +317,18 @@ let ``Statement parser tests`` () =
         ("mutable (x, _, (y, z)) = Foo", expression)
         ("mutable (x, _, (y, z)) = Foo(", expression)
         ("mutable (x, _, (y, z)) = Foo()", infix)
+        ("return ", expression)
+        ("return x", expression)
+        ("return x ", infix)
+        ("return x +", expression)
+        ("return x + 1", [])
+        ("fail ", expression)
+        ("fail \"", [])
+        ("fail \"foo", [])
+        ("fail \"foo\"", infix)
     ]
 
-let ``Expression statement parser tests`` () =
+let ``Expression parser tests`` () =
     List.iter (matches Statement) [
         ("", expression)
         ("x", expression)
