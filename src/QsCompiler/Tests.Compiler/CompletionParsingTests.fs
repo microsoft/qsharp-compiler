@@ -53,7 +53,7 @@ let private infix = [
     Keyword "or"
 ]
 
-let private statement =
+let private callableStatement =
     expression @ [
         Keyword "let"
         Keyword "mutable"
@@ -62,6 +62,14 @@ let private statement =
         Keyword "if"
         Keyword "for"
     ]
+
+let private functionStatement =
+    callableStatement @ [
+        Keyword "while"
+    ]
+
+let private operationStatement =
+    callableStatement
 
 [<Fact>]
 let ``Inside namespace parser tests`` () =
@@ -276,9 +284,9 @@ let ``Open directive parser tests`` () =
     ]
 
 [<Fact>]
-let ``Statement parser tests`` () =
-    List.iter (matches Statement) [
-        ("", statement)
+let ``Function statement parser tests`` () =
+    List.iter (matches FunctionStatement) [
+        ("", functionStatement)
         ("let ", [Declaration])
         ("let x ", [])
         ("let x =", expression)
@@ -349,12 +357,21 @@ let ``Statement parser tests`` () =
         ("for ((x, y) in ", expression)
         ("for ((x, y) in Foo()", infix)
         ("for ((x, y) in Foo())", [])
+        ("while ", [])
+        ("while (", expression)
+        ("while (Foo()", infix)
+        ("while (Foo() and ", expression)
+        ("while (Foo() and not ", expression)
+        ("while (Foo() and not Bar()", infix)
+        ("while (Foo() and not Bar() or ", expression)
+        ("while (Foo() and not Bar() or false)", [])
     ]
 
+[<Fact>]
 let ``Expression parser tests`` () =
-    List.iter (matches Statement) [
-        ("", expression)
-        ("x", expression)
+    List.iter (matches OperationStatement) [
+        ("", operationStatement)
+        ("x", operationStatement)
         ("x ", infix)
         ("2 ", infix)
         ("x or", infix)
@@ -437,7 +454,7 @@ let ``Expression parser tests`` () =
         ("Foo<Int, Bool>(2, f", expression)
         ("Foo<Int, Bool>(2, false", expression)
         ("Foo<Int, Bool>(2, false)", infix)
-        ("Adjoint", expression)
+        ("Adjoint", operationStatement)
         ("Adjoint ", [Keyword "Adjoint"; Keyword "Controlled"; Variable])
         ("Adjoint Foo", [Keyword "Adjoint"; Keyword "Controlled"; Variable])
         ("Adjoint Foo ", infix)
@@ -499,7 +516,7 @@ let ``Expression parser tests`` () =
         ("(Foo())[1 .. ", expression)
         ("(Foo())[1 ...", [])
         ("(Foo())[1 ...]", infix)
-        ("new", expression)
+        ("new", operationStatement)
         ("new ", types)
         ("new Int", types)
         ("new Int[", expression)

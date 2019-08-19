@@ -20,8 +20,10 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 type CompletionEnvironment =
     /// The code fragment is inside a namespace but outside any callable.
     | NamespaceTopLevel
-    /// The code fragment is a statement inside a callable.
-    | Statement
+    /// The code fragment is a statement inside a function.
+    | FunctionStatement
+    /// The code fragment is a statement inside an operation.
+    | OperationStatement
 
 /// Describes the kind of identifier that is expected at a particular position in the source code.
 type IdentifierKind =
@@ -405,8 +407,12 @@ let private forHeader =
     let binding = symbolTuple ?>> expectedKeyword qsRangeIter ?>> expression
     expectedKeyword qsFor ?>> expectedBrackets (lTuple, rTuple) binding
 
-/// Parses a statement.
-let private statement =
+/// Parses a while-block intro.
+let private whileHeader =
+    expectedKeyword qsWhile ?>> expectedBrackets (lTuple, rTuple) expression
+
+/// Parses statements that are valid in both functions and operations.
+let private callableStatement =
     pcollect [
         letStatement
         mutableStatement
@@ -417,6 +423,14 @@ let private statement =
         expression
     ] .>> eotEof
 
+/// Parses a statement in a function.
+let private functionStatement =
+    whileHeader .>> eotEof <|>@ callableStatement
+
+/// Parses a statement in an operation.
+let private operationStatement =
+    callableStatement
+
 /// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
 /// of the text.
 ///
@@ -425,7 +439,8 @@ let GetExpectedIdentifiers env text =
     let parser =
         match env with
         | NamespaceTopLevel -> namespaceTopLevel
-        | Statement -> statement
+        | FunctionStatement -> functionStatement
+        | OperationStatement -> operationStatement
     match runParserOnString parser [] "" (text + "\u0004") with
     | ParserResult.Success (result, _, _) -> Success (Set.ofList result)
     | ParserResult.Failure (detail, _, _) -> Failure detail

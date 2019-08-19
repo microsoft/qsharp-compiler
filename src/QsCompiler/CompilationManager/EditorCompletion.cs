@@ -126,8 +126,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             if (parents.First().Kind.IsNamespaceDeclaration)
                 return CompletionEnvironment.NamespaceTopLevel;
-            if (parents.Where(parent => parent.Kind.IsOperationDeclaration || parent.Kind.IsFunctionDeclaration).Any())
-                return CompletionEnvironment.Statement;
+            if (parents.Where(parent => parent.Kind.IsFunctionDeclaration).Any())
+                return CompletionEnvironment.FunctionStatement;
+            if (parents.Where(parent => parent.Kind.IsOperationDeclaration).Any())
+                return CompletionEnvironment.OperationStatement;
             return null;
         }
 
