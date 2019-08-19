@@ -185,7 +185,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 // TODO: TryGetQsSymbolInfo currently only returns information about the inner most leafs rather than all types etc. 
                 // Once it returns indeed all types in the fragment, the following code block should be replaced by the commented out code below. 
-                var fragment = file.TryGetFragmentAt(d.Range.Start);
+                var fragment = file.TryGetFragmentAt(d.Range.Start, out var _);
                 IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
                     SyntaxGenerator.ExtractItems(argTuple).SelectMany(item => item.Item2.ExtractCharacteristics()).Distinct();
                 var characteristicsInFragment =
@@ -236,10 +236,60 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             return updateOfArrayItemExprs
-                .Select(d => file?.TryGetFragmentAt(d.Range.Start, true))
+                .Select(d => file?.TryGetFragmentAt(d.Range.Start, out var _, includeEnd: true))
                 .Where(frag => frag != null)
                 .Select(frag => SuggestedCopyAndUpdateExpr(frag))
                 .Where(s => s.Item2 != null);
+        }
+
+        /// <summary>
+        /// Returns a sequence of suggestions for removing code that is never executed based on the generated diagnostics, 
+        /// and given the file for which those diagnostics were generated. 
+        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// </summary>
+        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnreachableCode
+            (this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
+        {
+            if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
+            var unreachableCode = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.UnreachableCode));
+
+            WorkspaceEdit SuggestedRemoval(Position pos)
+            {
+                var fragment = file.TryGetFragmentAt(pos, out var currentFragToken);
+                var lastFragToken = new CodeFragment.TokenIndex(currentFragToken);
+                if (fragment == null || --lastFragToken == null) return null;
+
+                // work off of the last reachable fragment, if there is one
+                var lastBeforeErase = lastFragToken.GetFragment();
+                var eraseStart = lastBeforeErase.GetRange().End;
+
+                // find the last fragment in the scope
+                while (currentFragToken != null)
+                {
+                    lastFragToken = currentFragToken;
+                    currentFragToken = currentFragToken.NextOnScope(true);
+                }
+                var lastInScope = lastFragToken.GetFragment();
+                var eraseEnd = lastInScope.GetRange().End;
+
+                // determine the whitespace for the replacement string
+                var lastLine = file.GetLine(lastFragToken.Line).Text.Substring(0, lastInScope.GetRange().Start.Character);
+                var trimmedLastLine = lastLine.TrimEnd();
+                var whitespace = lastLine.Substring(trimmedLastLine.Length, lastLine.Length - trimmedLastLine.Length);
+
+                // build the replacement string
+                var replaceString = lastBeforeErase.FollowedBy == CodeFragment.MissingDelimiter ? "" : $"{lastBeforeErase.FollowedBy}";
+                replaceString += eraseStart.Line == eraseEnd.Line ? " " : $"{Environment.NewLine}{whitespace}";
+
+                // create and return a suitable edit
+                var edit = new TextEdit { Range = new Range { Start = eraseStart, End = eraseEnd }, NewText = replaceString };
+                return file.GetWorkspaceEdit(edit);
+            }
+
+            return unreachableCode
+                .Select(d => SuggestedRemoval(d.Range?.Start))
+                .Where(edit => edit != null)
+                .Select(edit => ("Remove unreachable code.", edit));
         }
 
         /// <summary>
@@ -254,7 +304,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || range?.Start == null || range.End == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
             var (start, end) = (range.Start.Line, range.End.Line);
 
-            var fragAtStart = file.TryGetFragmentAt(range?.Start, includeEnd: true);
+            var fragAtStart = file.TryGetFragmentAt(range?.Start, out var _, includeEnd: true);
             var inRange = file.GetTokenizedLine(start).Select(t => t.WithUpdatedLineNumber(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
             inRange = start == end
                 ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
@@ -265,7 +315,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 fragAtStart == null ? inRange.FirstOrDefault() : null;
             var declRange = fragment?.GetRange();
 
-            if (fragment == null) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
+            if (fragment?.Kind == null) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
             var (nsDecl, callableDecl, typeDecl) = (fragment.Kind.DeclaredNamespace(), fragment.Kind.DeclaredCallable(), fragment.Kind.DeclaredType());
             var declSymbol = nsDecl.IsValue ? nsDecl.Item.Item1.Symbol 
                 : callableDecl.IsValue ? callableDecl.Item.Item1.Symbol

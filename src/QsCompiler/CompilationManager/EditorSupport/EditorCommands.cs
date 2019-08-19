@@ -114,11 +114,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var suggestionsForAmbiguousIds = file.SuggestionsForAmbiguousIdentifiers(compilation, context?.Diagnostics);
             var suggestionsForDeprecatedSyntax = file.SuggestionsForDeprecatedSyntax(context?.Diagnostics);
             var suggestionsForUpdateAndReassign = file.SuggestionsForUpdateAndReassignStatements(context?.Diagnostics);
+            var suggestionsForUnreachableCode = file.SuggestionsForUnreachableCode(context?.Diagnostics);
             var suggestionsForDocComments = file.DocCommentSuggestions(range);
             return suggestionsForUnknownIds
                 .Concat(suggestionsForAmbiguousIds)
                 .Concat(suggestionsForDeprecatedSyntax)
                 .Concat(suggestionsForUpdateAndReassign)
+                .Concat(suggestionsForUnreachableCode)
                 .Concat(suggestionsForDocComments)
                 .ToImmutableDictionary(s => s.Item1, s => s.Item2);
         }
@@ -201,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             // getting the relevant token (if any)
 
-            var fragment = file?.TryGetFragmentAt(position, true);
+            var fragment = file?.TryGetFragmentAt(position, out var _, includeEnd: true);
             if (fragment?.Kind == null || compilation == null) return null;
             var fragmentStart = fragment.GetRange().Start;
 
