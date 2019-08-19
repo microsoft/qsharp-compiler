@@ -382,9 +382,27 @@ let rec private expression = parse {
     return! createExpressionParser prefixOp infixOp postfixOp expTerm
 }
 
+/// Parses a symbol declaration tuple.
+let rec private symbolTuple = parse {
+    let declaration = expectedId Declaration (term symbol)
+    return! declaration <|> tuple (declaration <|> symbolTuple)
+}
+
+/// Parses a let statement.
+let private letStatement =
+    expectedKeyword qsImmutableBinding ?>> symbolTuple ?>> expected equal ?>> expression
+
+/// Parses a mutable statement.
+let private mutableStatement =
+    expectedKeyword qsMutableBinding ?>> symbolTuple ?>> expected equal ?>> expression
+
 /// Parses a statement.
 let private statement =
-    expression .>> eotEof
+    pcollect [
+        letStatement
+        mutableStatement
+        expression
+    ] .>> eotEof
 
 /// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
 /// of the text.

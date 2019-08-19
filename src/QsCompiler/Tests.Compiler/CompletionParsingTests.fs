@@ -31,6 +31,34 @@ let private types =
         UserDefinedType
     ]
 
+let private expression = [
+    Variable
+    Keyword "new"
+    Keyword "not"
+    Keyword "Adjoint"
+    Keyword "Controlled"
+    Keyword "PauliX"
+    Keyword "PauliY"
+    Keyword "PauliZ"
+    Keyword "PauliI"
+    Keyword "Zero"
+    Keyword "One"
+    Keyword "true"
+    Keyword "false"
+    Keyword "_"
+]
+
+let private infix = [
+    Keyword "and"
+    Keyword "or"
+]
+
+let private statement =
+    expression @ [
+        Keyword "let"
+        Keyword "mutable"
+    ]
+
 [<Fact>]
 let ``Inside namespace parser tests`` () =
     let keywords = [
@@ -244,27 +272,52 @@ let ``Open directive parser tests`` () =
     ]
 
 [<Fact>]
+let ``Statement parser tests`` () =
+    List.iter (matches Statement) [
+        ("", statement)
+        ("let ", [Declaration])
+        ("let x ", [])
+        ("let x =", expression)
+        ("let x = ", expression)
+        ("let x = y", expression)
+        ("let x = y ", infix)
+        ("let (", [Declaration])
+        ("let (x", [Declaration])
+        ("let (x ", [])
+        ("let (x,", [Declaration])
+        ("let (x, _", [Declaration])
+        ("let (x, _, ", [Declaration])
+        ("let (x, _, (", [Declaration])
+        ("let (x, _, (y,", [Declaration])
+        ("let (x, _, (y, z)", [])
+        ("let (x, _, (y, z))", [])
+        ("let (x, _, (y, z)) =", expression)
+        ("let (x, _, (y, z)) = Foo", expression)
+        ("let (x, _, (y, z)) = Foo(", expression)
+        ("let (x, _, (y, z)) = Foo()", infix)
+        ("mutable ", [Declaration])
+        ("mutable x ", [])
+        ("mutable x =", expression)
+        ("mutable x = ", expression)
+        ("mutable x = y", expression)
+        ("mutable x = y ", infix)
+        ("mutable (", [Declaration])
+        ("mutable (x", [Declaration])
+        ("mutable (x ", [])
+        ("mutable (x,", [Declaration])
+        ("mutable (x, _", [Declaration])
+        ("mutable (x, _, ", [Declaration])
+        ("mutable (x, _, (", [Declaration])
+        ("mutable (x, _, (y,", [Declaration])
+        ("mutable (x, _, (y, z)", [])
+        ("mutable (x, _, (y, z))", [])
+        ("mutable (x, _, (y, z)) =", expression)
+        ("mutable (x, _, (y, z)) = Foo", expression)
+        ("mutable (x, _, (y, z)) = Foo(", expression)
+        ("mutable (x, _, (y, z)) = Foo()", infix)
+    ]
+
 let ``Expression statement parser tests`` () =
-    let expression = [
-        Variable
-        Keyword "new"
-        Keyword "not"
-        Keyword "Adjoint"
-        Keyword "Controlled"
-        Keyword "PauliX"
-        Keyword "PauliY"
-        Keyword "PauliZ"
-        Keyword "PauliI"
-        Keyword "Zero"
-        Keyword "One"
-        Keyword "true"
-        Keyword "false"
-        Keyword "_"
-    ]
-    let infix = [
-        Keyword "and"
-        Keyword "or"
-    ]
     List.iter (matches Statement) [
         ("", expression)
         ("x", expression)
