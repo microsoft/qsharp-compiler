@@ -10,53 +10,15 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
+open ComputationExpressions
+open TransformationState
+
 
 /// Option default value operator
 let internal (|?) = defaultArg
 
 
-/// Shorthand for a QsExpressionKind
-type internal Expr = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
-/// Shorthand for a QsTypeKind
-type internal TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
-/// Shorthand for a QsInitializerKind
-type internal InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
-
-
-/// Represents the global dictionary that maps names to callables
-type internal CallableDict = {
-        compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>
-} with
-    member this.getCallable (name: QsQualifiedName): QsCallable =
-        QsCompilerError.Verify (
-            this.compiledCallables.ContainsKey name,
-            "Trying to access unknown callable")
-        this.compiledCallables.[name]
-
-
-/// Returns whether a given expression is a literal (and thus a constant)
-let rec internal isLiteral (expr: Expr) (cd: CallableDict): bool =
-    match expr with
-    | UnitValue | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ -> true
-    | ValueTuple a | StringLiteral (_, a) | ValueArray a -> Seq.forall (fun x -> isLiteral x.Expression cd) a
-    | RangeLiteral (a, b) -> isLiteral a.Expression cd && isLiteral b.Expression cd
-    | NewArray (_, a) -> isLiteral a.Expression cd
-    | Identifier (GlobalCallable _, _) | MissingExpr -> true
-    | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, b)
-        when (cd.getCallable qualName).Kind = TypeConstructor ->
-        QsCompilerError.Verify (
-            (cd.getCallable qualName).Specializations.Length = 1,
-            "Type constructors should have exactly one specialization")
-        QsCompilerError.Verify (
-            (cd.getCallable qualName).Specializations.[0].Implementation = Intrinsic,
-            "Type constructors should be implicit")
-        isLiteral b.Expression cd
-    | CallLikeExpression (a, b) ->
-        isLiteral a.Expression cd && isLiteral b.Expression cd &&
-            TypedExpression.IsPartialApplication (CallLikeExpression (a, b))
-    | _ -> false
-
-
+/// Converts a range literal to a sequence of integers
 let internal rangeLiteralToSeq (r: Expr): seq<int64> =
     match r with
     | RangeLiteral (a, b) ->
@@ -69,88 +31,34 @@ let internal rangeLiteralToSeq (r: Expr): seq<int64> =
     | _ -> failwithf "Not a range literal: %O" r
 
 
-/// Represents the current state of all the local variables in a function
-type internal VariablesDict() =
-    let scopeStack = new Stack<Dictionary<string, Expr>>()
+/// Converts a QsTuple to a SymbolTuple
+let rec internal toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): SymbolTuple =
+    match x with
+    | QsTupleItem item ->
+        match item.VariableName with
+        | ValidName n -> VariableName n
+        | InvalidName -> InvalidItem
+    | QsTuple items when items.Length = 1 ->
+        toSymbolTuple items.[0]
+    | QsTuple items ->
+        VariableNameTuple ((Seq.map toSymbolTuple items).ToImmutableArray())
 
-    member this.enterScope(): unit =
-        scopeStack.Push (new Dictionary<string, Expr>())
+/// Wraps a QsExpressionType in a basic TypedExpression
+/// The returned TypedExpression has no type param / inferred info / range information,
+/// and it should not be used for any code step that requires this information.
+let internal wrapExpr (expr: Expr) (bt: TypeKind): TypedExpression =
+    let ii = {IsMutable=false; HasLocalQuantumDependency=false}
+    TypedExpression.New (expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
 
-    member this.exitScope(): unit =
-        // TODO: assert scopeStack is nonempty
-        scopeStack.Pop () |> ignore
-
-    member this.defineVar(name: string, value: Expr): unit =
-        // TODO: assert variable is undefined
-        scopeStack.Peek().[name] <- value
-
-    member this.setVar(name: string, value: Expr): unit =
-        // TODO: assert variable is defined, is same type
-        (scopeStack |> Seq.find (fun x -> x.ContainsKey name)).[name] <- value
-
-    member this.getVar(name: string): Expr option =
-        match scopeStack |> Seq.tryFind (fun x -> x.ContainsKey name) with
-        | Some dict -> Some dict.[name]
-        | None -> None
-
-    override this.ToString(): string =
-        "[" + String.Join("\n", scopeStack |> Seq.map (fun x ->
-            "{" + String.Join(", ", x |> Seq.map (fun y -> y.Key + "=" + y.Value.ToString())) + "}"
-        )) + "]"
-
-
-/// Represents a (possibly-nested) tuple of strings.
-/// Used as a way to compare QsTuples and SymbolTuples.
-type internal StringTuple =
-| SingleItem of string
-| MultipleItems of seq<StringTuple>
-
-    static member fromQsTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): StringTuple =
-        match x with
-        | QsTupleItem item ->
-            match item.VariableName with
-            | ValidName n -> SingleItem n.Value
-            | InvalidName -> SingleItem "__invalid__"
-        | QsTuple items -> MultipleItems (Seq.map StringTuple.fromQsTuple items)
-
-    static member fromSymbolTuple (x: SymbolTuple): StringTuple =
-        match x with
-        | InvalidItem -> SingleItem "__invalid__"
-        | VariableName n -> SingleItem n.Value
-        | VariableNameTuple items -> MultipleItems (Seq.map StringTuple.fromSymbolTuple items)
-        | DiscardedItem -> SingleItem "__discarded__"
-
-    override this.ToString() =
-        match this with
-        | SingleItem item -> item
-        | MultipleItems items -> "(" + String.Join(", ", items) + ")"
-
-
-/// Modifies the VariablesDict by setting the given argument tuple to the given values
-let rec internal fillVars (vars: VariablesDict) (argTuple: StringTuple, arg: Expr): unit =
-    match argTuple with
-    | SingleItem item -> vars.defineVar(item, arg)
-    | MultipleItems items ->
-        match arg with
-        | ValueTuple vt ->
-            QsCompilerError.Verify (
-                vt.Length = Seq.length items,
-                "Matched tuples must have the same length")
-            vt |> Seq.map (fun x -> x.Expression) |>
-            Seq.zip items |> Seq.map (fillVars vars) |> List.ofSeq |> ignore
-        | _ ->
-            QsCompilerError.Verify (
-                1 = Seq.length items,
-                "Expecting a single-element tuple")
-            Seq.zip items [arg] |> Seq.map (fillVars vars) |> List.ofSeq |> ignore
+/// Wraps a QsStatementKind in a basic QsStatement
+let internal wrapStmt (stmt: QsStatementKind): QsStatement =
+    QsStatement.New QsComments.Empty Null (stmt, [])
 
 
 /// Returns a new array of the given type and length.
 /// Returns None if the type doesn't have a default value.
 let rec internal constructNewArray (bt: TypeKind) (length: int): Expr option =
-    match defaultValue bt with
-    | Some x -> ImmutableArray.CreateRange (List.replicate length (wrapExpr x bt)) |> ValueArray |> Some
-    | None -> None
+    defaultValue bt |> Option.map (fun x -> ImmutableArray.CreateRange (List.replicate length (wrapExpr x bt)) |> ValueArray)
 
 /// Returns the default value for a given type (from Q# documentation)
 and private defaultValue (bt: TypeKind): Expr option =
@@ -166,50 +74,34 @@ and private defaultValue (bt: TypeKind): Expr option =
     | ArrayType t -> constructNewArray t.Resolution 0
     | _ -> None
 
-/// Wraps a QsExpressionType in a basic TypedExpression.
-/// The returned TypedExpression has no type param / inferred info / range information,
-/// and it should not be used for any code step that requires this information.
-and internal wrapExpr (expr: Expr) (bt: TypeKind): TypedExpression =
-    let ii = {IsMutable=false; HasLocalQuantumDependency=false}
-    TypedExpression.New (expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
 
-
-/// Counts the number of MissingExprs in the given tuple
-let rec private countMissingExprs (expr: TypedExpression): int =
+/// Returns true if the given expression contains any MissingExprs
+let rec internal hasMissingExprs (expr: TypedExpression): bool =
     match expr.Expression with
-    | MissingExpr -> 1
-    | ValueTuple vt -> Seq.map countMissingExprs vt |> Seq.sum
-    | _ -> 0
-    
-/// Replaces any MissingExprs in the given tuple with the first elements of the given list.
-/// Returns the new values of the partial-argument tuple and the argument list.
-let rec private fillPartialArg (partialArg: TypedExpression, arg: list<TypedExpression>): TypedExpression * list<TypedExpression> =
-    match partialArg.Expression with
-    | MissingExpr ->
-        match arg with
-        | first::rest -> first, rest
-        | _ -> failwithf "Not enough remaining arguments"
-    | ValueTuple vt ->
-        let newList, newArg =
-            Seq.fold (fun (cpa, ca) v ->
-                let newPa, newCa = fillPartialArg (v, ca)
-                cpa @ [newPa], newCa
-            ) ([], arg) vt
-        let newPa = wrapExpr (ValueTuple (ImmutableArray.CreateRange newList)) partialArg.ResolvedType.Resolution
-        newPa, newArg
-    | _ -> partialArg, arg
+    | MissingExpr -> true
+    | ValueTuple vt -> Seq.exists hasMissingExprs vt
+    | _ -> false
 
-/// Transforms a partially-application call by replacing missing values with the new arguments
-let internal partialApplyFunction (baseMethod: TypedExpression) (partialArg: TypedExpression) (arg: TypedExpression): Expr =
-    let argsList =
-        if countMissingExprs partialArg = 1 then [arg] else
-        match arg.Expression with
-        | ValueTuple vt ->
-            if countMissingExprs partialArg <> vt.Length
-            then failwithf "Invalid number of arguments: %O doesn't match %O" arg.Expression partialArg.Expression
-            else List.ofSeq vt
-        | _ -> failwithf "Invalid arg: %O" arg.Expression
-    CallLikeExpression (baseMethod, fst (fillPartialArg (partialArg, argsList)))
+/// Fills a partial argument by replacing MissingExprs with the corresponding values of a tuple
+let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpression): TypedExpression =
+    match partialArg with
+    | Missing -> arg
+    | Tuple items ->
+        let argsList =
+            match List.filter hasMissingExprs items, arg with
+            | [_], _ -> [arg]
+            | _, Tuple args -> args
+            | _ -> failwithf "args must be a tuple"
+        // assert items2.Length = items3.Length
+        items |> List.mapFold (fun args t1 ->
+            if hasMissingExprs t1 then
+                match args with
+                | [] -> failwithf "ran out of args"
+                | head :: tail -> fillPartialArg (t1, head), tail
+            else t1, args
+        ) argsList |> fst |> ImmutableArray.CreateRange
+        |> ValueTuple |> wrapExpr <| partialArg.ResolvedType.Resolution
+    | _ -> failwithf "unknown partialArgs"
 
 
 /// Computes exponentiation for 64-bit integers
@@ -237,4 +129,83 @@ let rec internal takeWhilePlus1 (f: 'A -> bool) (l : list<'A>) =
             first :: a, b
         else [], Some first
     | [] -> [], None
+
+
+/// Returns all the "bottom-level" statements in the current scope.
+/// Bottom-level statements are defined as those that don't contain their own scopes.
+/// This function recurses through all the subscopes of the current scope.
+let rec private findAllBaseStatements (scope: QsScope): seq<QsStatementKind> =
+    scope.Statements |> Seq.collect (fun s ->
+        match s.Statement with
+        | QsConditionalStatement cond ->
+            seq {
+                for _, b in cond.ConditionalBlocks do yield b.Body
+                match cond.Default with
+                | Value b -> yield b.Body
+                | _ -> ()
+            } |> Seq.collect findAllBaseStatements
+        | QsForStatement {Body = scope}
+        | QsWhileStatement {Body = scope}
+        | QsQubitScope {Body = scope}
+        | QsScopeStatement {Body = scope} -> findAllBaseStatements scope
+        | QsRepeatStatement {RepeatBlock = scope1; FixupBlock = scope2} ->
+            Seq.concat [findAllBaseStatements scope1.Body; findAllBaseStatements scope2.Body]
+        | x -> Seq.singleton x
+    )
+
+/// Returns whether this scope contains any return statement
+let rec internal hasReturnStatement (scope: QsScope): bool =
+    scope |> findAllBaseStatements |> Seq.exists (function QsReturnStatement _ -> true | _ -> false)
+
+/// Returns the number of "bottom-level" statements in this scope
+let rec internal scopeLength (scope: QsScope): int =
+    scope |> findAllBaseStatements |> Seq.length
+
+
+/// Tries to inline the given expression, checking whether it's valid to do so.
+/// Returns the name of the callable and the modified scope after inlining.
+let internal tryInline (state: TransformationState) (ex: TypedExpression) =
+    maybe {
+        let! expr, arg =
+            match ex.Expression with
+            | CallLikeExpression ({Expression = expr}, arg) -> Some (expr, arg)
+            | _ -> None
+        let! qualName, specKind =
+            match expr with
+            | Identifier (GlobalCallable qualName, _) -> Some (qualName, QsBody)
+            | AdjointApplication {Expression = Identifier (GlobalCallable qualName, _)} -> Some (qualName, QsAdjoint)
+            | ControlledApplication {Expression = Identifier (GlobalCallable qualName, _)} -> Some (qualName, QsControlled)
+            | AdjointApplication {Expression = ControlledApplication {Expression = Identifier (GlobalCallable qualName, _)}} -> Some (qualName, QsControlledAdjoint)
+            | ControlledApplication {Expression = AdjointApplication {Expression = Identifier (GlobalCallable qualName, _)}} -> Some (qualName, QsControlledAdjoint)
+            | _ -> None
+        let callable = getCallable state qualName
+        let! impl = callable.Specializations |> Seq.tryFind (fun s -> s.Kind = specKind)
+        let! specArgs, scope =
+            match impl with
+            | {Implementation = Provided (specArgs, scope)} -> Some (specArgs, scope)
+            | {Implementation = Generated SelfInverse} ->
+                let newKind = match specKind with QsAdjoint -> Some QsBody | QsControlledAdjoint -> Some QsControlled | _ -> None
+                match callable.Specializations |> Seq.tryFind (fun s -> Some s.Kind = newKind) with
+                | Some {Implementation = Provided (specArgs, scope)} -> Some (specArgs, scope)
+                | _ -> None
+            | _ -> None
+        do! not (hasReturnStatement scope) |> check
+        let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple callable.ArgumentTuple, arg)
+        let newStatements = scope.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
+        return qualName, {scope with Statements = newStatements}
+    }
+
+/// Finds all the callables that could appear below this scope in the call stack.
+/// Mutates the given HashSet by adding all the found callables to the set.
+/// Is used to prevent inlining recursive functions into themselves forever.
+let rec internal findAllCalls (state: TransformationState) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
+    scope |> findAllBaseStatements |> Seq.map (function
+        | QsExpressionStatement ex ->
+            match tryInline state ex with
+            | Some (qualName, newScope) ->
+                if found.Add qualName then
+                    findAllCalls state newScope found
+            | None -> ()
+        | _ -> ()
+    ) |> List.ofSeq |> ignore
 

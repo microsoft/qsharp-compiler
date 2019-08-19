@@ -1,0 +1,98 @@
+namespace Microsoft.Quantum.Testing.Optimization.Inlining {
+    Function X (q) : UnitType {
+        QsBody Intrinsic
+    }
+
+    Function f (q, x) : UnitType {
+        QsBody (q, x) {
+            if (LocalVariable x = IntLiteral 0L) { EmptyScope } elif (LocalVariable x = IntLiteral 1L) {
+                (GlobalCallable X of LocalVariable q);
+            } else {
+                (GlobalCallable f of (LocalVariable q, (LocalVariable x - IntLiteral 1L)));
+                (GlobalCallable f of (LocalVariable q, (LocalVariable x - IntLiteral 2L)));
+            }
+        }
+    }
+
+    Operation Test (q) : UnitType {
+        QsBody (q) {
+            {
+                let (q, x) = (LocalVariable q, IntLiteral 5L);
+                {
+                    {
+                        let (q, x) = (LocalVariable q, IntLiteral 4L);
+                        {
+                            {
+                                let (q, x) = (LocalVariable q, IntLiteral 3L);
+                                {
+                                    {
+                                        let (q, x) = (LocalVariable q, IntLiteral 2L);
+                                        {
+                                            {
+                                                let (q, x) = (LocalVariable q, IntLiteral 1L);
+                                                {
+                                                    (GlobalCallable X of LocalVariable q);
+                                                }
+                                            }
+                                            {
+                                                let (q, x) = (LocalVariable q, IntLiteral 0L);
+                                                { EmptyScope }
+                                            }
+                                        }
+                                    }
+                                    {
+                                        let (q, x) = (LocalVariable q, IntLiteral 1L);
+                                        {
+                                            (GlobalCallable X of LocalVariable q);
+                                        }
+                                    }
+                                }
+                            }
+                            {
+                                let (q, x) = (LocalVariable q, IntLiteral 2L);
+                                {
+                                    {
+                                        let (q, x) = (LocalVariable q, IntLiteral 1L);
+                                        {
+                                            (GlobalCallable X of LocalVariable q);
+                                        }
+                                    }
+                                    {
+                                        let (q, x) = (LocalVariable q, IntLiteral 0L);
+                                        { EmptyScope }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    {
+                        let (q, x) = (LocalVariable q, IntLiteral 3L);
+                        {
+                            {
+                                let (q, x) = (LocalVariable q, IntLiteral 2L);
+                                {
+                                    {
+                                        let (q, x) = (LocalVariable q, IntLiteral 1L);
+                                        {
+                                            (GlobalCallable X of LocalVariable q);
+                                        }
+                                    }
+                                    {
+                                        let (q, x) = (LocalVariable q, IntLiteral 0L);
+                                        { EmptyScope }
+                                    }
+                                }
+                            }
+                            {
+                                let (q, x) = (LocalVariable q, IntLiteral 1L);
+                                {
+                                    (GlobalCallable X of LocalVariable q);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

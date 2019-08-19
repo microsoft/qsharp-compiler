@@ -1,5 +1,6 @@
 namespace Microsoft.Quantum.QsCompiler.CompilerOptimization
 
+open System.Collections.Generic
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -7,18 +8,19 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.TransformationState
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.Utils
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.ExpressionEvaluation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.ExpressionEvaluation
 
 
 /// The SyntaxTreeTransformation used to evaluate constants
 type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
     inherit SyntaxTreeTransformation()
-    let vars = VariablesDict()
-    let callableDict = {compiledCallables = compiledCallables}
 
-    // For determining if constant folding should be rerun
+    let callableDict = compiledCallables |> Seq.map (function KeyValue(a, b) -> a, b) |> Map.ofSeq
+    let stateRef = callableDict |> newState |> ref
     let mutable changed = true
 
     /// Returns whether the syntax tree has been modified since this function was last called
@@ -27,101 +29,129 @@ type ConstantPropagator(compiledCallables: ImmutableDictionary<QsQualifiedName, 
           changed <- false
           x
 
-    /// Marks the syntax tree as having changed
-    member this.markChanged() =
-        changed <- true
+    /// Checks whether the syntax tree changed at all
+    override this.Transform x =
+        let newX = base.Transform x
+        if x <> newX then
+            let s1 = printNamespace x
+            let s2 = printNamespace newX
+            if s1 <> s2 then
+                changed <- true
+        newX
+
+    override this.onCallableImplementation c =
+        let prev = (!stateRef).currentCallable
+        stateRef := {!stateRef with currentCallable = Some c}
+        let result = base.onCallableImplementation c
+        stateRef := {!stateRef with currentCallable = prev}
+        result
 
     /// The ScopeTransformation used to evaluate constants
     override syntaxTree.Scope = { new ScopeTransformation() with
 
         override scope.Transform x =
-            vars.enterScope()
+            stateRef := enterScope !stateRef
             let result = base.Transform x
-            vars.exitScope()
+            stateRef := exitScope !stateRef
             result
-            
+
         /// The ExpressionTransformation used to evaluate constant expressions
-        override scope.Expression = upcast { new ExpressionEvaluator(vars, callableDict, 10) with
-            override ee.Transform x =
-                let newX = base.Transform x
-                if x <> newX then changed <- true
-                newX }
-                
+        override scope.Expression = upcast ExpressionEvaluator(stateRef, 10)
+
         /// The StatementKindTransformation used to evaluate constants
-        override scope.StatementKind = { new StatementKindTransformation() with 
-            override statementKind.ExpressionTransformation x = scope.Expression.Transform x
-            override statementKind.LocationTransformation x = scope.onLocation x
-            override statementKind.ScopeTransformation x = scope.Transform x
-            override statementKind.TypeTransformation x = scope.Expression.Type.Transform x
+        override scope.StatementKind = upcast { new StatementOptimizer(stateRef) with 
+            override so.ExpressionTransformation x = scope.Expression.Transform x
+            override so.LocationTransformation x = scope.onLocation x
+            override so.ScopeTransformation x = scope.Transform x
+            override so.TypeTransformation x = scope.Expression.Type.Transform x
 
-            override statementKind.onVariableDeclaration stm =
-                let lhs = statementKind.onSymbolTuple stm.Lhs
-                let rhs = statementKind.ExpressionTransformation stm.Rhs
+            override so.onVariableDeclaration stm =
+                let lhs = so.onSymbolTuple stm.Lhs
+                let rhs = so.ExpressionTransformation stm.Rhs
                 if stm.Kind = ImmutableBinding then
-                    if isLiteral rhs.Expression callableDict then
-                        fillVars vars (StringTuple.fromSymbolTuple lhs, rhs.Expression)
-                        // printfn "Found constant declaration: %O = %O" (StringTuple.fromSymbolTuple lhs) (prettyPrint rhs.Expression)
+                    stateRef := defineVarTuple !stateRef (lhs, rhs.Expression)
                 QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
-
-            override statementKind.onConditionalStatement stm = 
-                let cbList, cbListEnd =
-                    stm.ConditionalBlocks |> Seq.fold (fun s (c, b) ->
-                        let cond, block = statementKind.onPositionedBlock (Some c, b)
-                        match cond.Value.Expression with
-                        | BoolLiteral true -> s @ [None, block]
-                        | BoolLiteral false -> s
-                        | _ -> s @ [cond, block]
-                    ) [] |> List.ofSeq |> takeWhilePlus1 (fun (c, b) -> c <> None)
-                let defaultCase = stm.Default |> QsNullable<_>.Map (fun b -> statementKind.onPositionedBlock (None, b) |> snd)
-
-                let newDefault =
-                    match cbListEnd, defaultCase with
-                    | Some (_, a), _ -> Value a
-                    | _, Value a -> Value a
-                    | _ -> Null
-                match cbList, newDefault with
-                | [], Value x ->
-                    x.Body |> QsScopeStatement.New |> QsScopeStatement
-                | [], Null ->
-                    QsScope.New ([], LocalDeclarations.New []) |> QsScopeStatement.New |> QsScopeStatement
-                | _ ->
-                    let cases = cbList |> Seq.map (fun (c, b) -> (Option.get c, b))
-                    QsConditionalStatement.New (cases, defaultCase) |> QsConditionalStatement
-
-            override statementKind.onForStatement stm =
-                let loopVar = fst stm.LoopItem |> statementKind.onSymbolTuple
-                let iterVals = statementKind.ExpressionTransformation stm.IterationValues
-                let iterValsAsSeq =
-                    match iterVals.Expression with
-                    | RangeLiteral _ -> 
-                        rangeLiteralToSeq iterVals.Expression |> Seq.map (fun x -> wrapExpr (IntLiteral x) Int) |> Some
-                    | ValueArray va -> va :> seq<_> |> Some
-                    | _ -> None
-
-                match iterValsAsSeq with
-                | Some s ->
-                    let iterRange = 
-                        s |> Seq.map (fun x ->
-                            let variableDecl = QsBinding.New ImmutableBinding (loopVar, x) |> QsVariableDeclaration
-                            let variableDeclStatement = {
-                                Statement = variableDecl
-                                SymbolDeclarations = stm.Body.KnownSymbols
-                                Location = Null
-                                Comments = QsComments.New ([], []) }
-                            let innerScope =
-                                { stm.Body with 
-                                    Statements = stm.Body.Statements.Insert(0, variableDeclStatement) }
-                            {   Statement = innerScope |> QsScopeStatement.New |> QsScopeStatement
-                                SymbolDeclarations = stm.Body.KnownSymbols
-                                Location = Null
-                                Comments = QsComments.New ([], []) })
-                    let outerScope = QsScope.New (iterRange, stm.Body.KnownSymbols)
-                    let result = outerScope |> QsScopeStatement.New |> QsScopeStatement |> statementKind.Transform
-                    // printfn "Unrolled for loop!\nOld statement was:\n%O\nNew statement is:\n%O" (printStm 0 (QsForStatement stm)) (printStm 0 result)
-                    result
-                | None ->
-                    let loopVarType = statementKind.TypeTransformation (snd stm.LoopItem)
-                    let body = statementKind.ScopeTransformation stm.Body
-                    QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement
         }
     }
+
+
+/// The StatementKindTransformation used to simplify statements
+and [<AbstractClass>] private StatementOptimizer(stateRef: TransformationState ref) =
+    inherit StatementKindTransformation()
+
+
+    override this.onExpressionStatement ex =
+        let ex = this.ExpressionTransformation ex
+        maybe {
+            let! qualName, newScope = tryInline !stateRef ex
+            let mySet = HashSet()
+            findAllCalls !stateRef newScope mySet
+            let! currentCallable = (!stateRef).currentCallable
+            do! not (mySet.Contains currentCallable.FullName) |> check
+            let s1 = printNamespaceElem (QsCallable currentCallable)
+            let s2 = printScope 0 newScope
+            let newScope2 = this.ScopeTransformation newScope
+            return newScope2 |> QsScopeStatement.New |> QsScopeStatement
+            // return newScope |> QsScopeStatement.New |> QsScopeStatement
+        } |? QsExpressionStatement ex
+
+
+    override this.onConditionalStatement stm = 
+        let cbList, cbListEnd =
+            stm.ConditionalBlocks |> Seq.fold (fun s (cond, block) ->
+                let newCond = this.ExpressionTransformation cond
+                match newCond.Expression with
+                | BoolLiteral true -> s @ [None, block]
+                | BoolLiteral false -> s
+                | _ -> s @ [Some cond, block]
+            ) [] |> List.ofSeq |> takeWhilePlus1 (fun (c, _) -> c <> None)
+        let newDefault = cbListEnd |> Option.map (snd >> Value) |? stm.Default
+
+        let cbList = cbList |> List.map (fun (c, b) -> this.onPositionedBlock (c, b))
+        let newDefault = match newDefault with Value x -> this.onPositionedBlock (None, x) |> snd |> Value | Null -> Null
+
+        match cbList, newDefault with
+        | [], Value x ->
+            x.Body |> QsScopeStatement.New |> QsScopeStatement
+        | [], Null ->
+            QsScope.New ([], LocalDeclarations.New []) |> QsScopeStatement.New |> QsScopeStatement
+        | _ ->
+            let cases = cbList |> Seq.map (fun (c, b) -> (Option.get c, b))
+            QsConditionalStatement.New (cases, newDefault) |> QsConditionalStatement
+
+
+    override this.onForStatement stm =
+        let loopVar = fst stm.LoopItem |> this.onSymbolTuple
+        let iterVals = this.ExpressionTransformation stm.IterationValues
+        let iterValsAsSeq =
+            match iterVals.Expression with
+            | RangeLiteral _ -> 
+                rangeLiteralToSeq iterVals.Expression |> Seq.map (fun x -> wrapExpr (IntLiteral x) Int) |> Some
+            | ValueArray va -> va :> seq<_> |> Some
+            | _ -> None
+
+        match iterValsAsSeq with
+        | Some s ->
+            let iterRange = 
+                s |> Seq.map (fun x ->
+                    let variableDecl = QsBinding.New ImmutableBinding (loopVar, x) |> QsVariableDeclaration
+                    let variableDeclStatement = {
+                        Statement = variableDecl
+                        SymbolDeclarations = stm.Body.KnownSymbols
+                        Location = Null
+                        Comments = QsComments.New ([], []) }
+                    let innerScope =
+                        { stm.Body with 
+                            Statements = stm.Body.Statements.Insert(0, variableDeclStatement) }
+                    {   Statement = innerScope |> QsScopeStatement.New |> QsScopeStatement
+                        SymbolDeclarations = stm.Body.KnownSymbols
+                        Location = Null
+                        Comments = QsComments.New ([], []) })
+            let outerScope = QsScope.New (iterRange, stm.Body.KnownSymbols)
+            let result = outerScope |> QsScopeStatement.New |> QsScopeStatement |> this.Transform
+            result
+        | None ->
+            let loopVarType = this.TypeTransformation (snd stm.LoopItem)
+            let body = this.ScopeTransformation stm.Body
+            QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement
+

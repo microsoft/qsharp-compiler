@@ -57,6 +57,11 @@ let ``arithmetic evaluation`` () =
 let ``function evaluation`` () =
     // createTestCase "TestCases/Optimizer/FunctionEval"
     assertOptimization "TestCases/Optimizer/FunctionEval"
+    
+[<Fact>]
+let ``inlining`` () =
+    // createTestCase "TestCases/Optimizer/Inlining"
+    assertOptimization "TestCases/Optimizer/Inlining"
 
 [<Fact>]
 let ``loop unrolling`` () =
