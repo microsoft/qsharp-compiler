@@ -400,6 +400,11 @@ let private failStatement =
 let private ifClause =
     expectedKeyword qsIf ?>> expectedBrackets (lTuple, rTuple) expression
 
+/// Parses a for-block intro.
+let private forHeader =
+    let binding = symbolTuple ?>> expectedKeyword qsRangeIter ?>> expression
+    expectedKeyword qsFor ?>> expectedBrackets (lTuple, rTuple) binding
+
 /// Parses a statement.
 let private statement =
     pcollect [
@@ -408,6 +413,7 @@ let private statement =
         returnStatement
         failStatement
         ifClause
+        forHeader
         expression
     ] .>> eotEof
 

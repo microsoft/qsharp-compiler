@@ -60,6 +60,7 @@ let private statement =
         Keyword "return"
         Keyword "fail"
         Keyword "if"
+        Keyword "for"
     ]
 
 [<Fact>]
@@ -332,6 +333,22 @@ let ``Statement parser tests`` () =
         ("if (x ", infix)
         ("if (x and ", expression)
         ("if (x and y)", [])
+        ("for ", [])
+        ("for (", [Declaration])
+        ("for (x ", [Keyword "in"])
+        ("for (x in ", expression)
+        ("for (x in 0 ", infix)
+        ("for (x in 0 ..", expression)
+        ("for (x in 0 .. 10", [])
+        ("for (x in 0 .. 10)", [])
+        ("for ((", [Declaration])
+        ("for ((x,", [Declaration])
+        ("for ((x, y", [Declaration])
+        ("for ((x, y)", [Keyword "in"])
+        ("for ((x, y) ", [Keyword "in"])
+        ("for ((x, y) in ", expression)
+        ("for ((x, y) in Foo()", infix)
+        ("for ((x, y) in Foo())", [])
     ]
 
 let ``Expression parser tests`` () =
