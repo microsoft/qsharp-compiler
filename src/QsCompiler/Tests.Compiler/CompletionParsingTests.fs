@@ -289,6 +289,7 @@ let ``Expression statement parser tests`` () =
     test "Foo(true, Zero)" infix
     test "Foo(2)" infix
     test "Foo(1.2)" infix
+    test "Foo(1." []
     test "Foo(-0.111)" infix
     test "Foo(2, 1.2, -0.111)" infix
     test "Foo(_" expression
