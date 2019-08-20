@@ -402,15 +402,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions to insert doc comments for an undocumented declaration that overlap with the given range in the given file. 
-        /// Returns an empty enumerable if more than one code fragment overlaps with the given range,
-        /// or the overlapping fragment does not contain a declaration,
-        /// or the overlapping fragment contains a declaration that is already documented,
-        /// or if any of the given arguments is null. 
+        /// Returns all code fragments in the specified file that overlap with the given range. 
+        /// Returns an empty sequence if any of the given arguments is null. 
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(this FileContentManager file, Range range)
+        private static IEnumerable<CodeFragment> FragmentsOverlappingWithRange(this FileContentManager file, Range range)
         {
-            if (file == null || range?.Start == null || range.End == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
+            if (file == null || range?.Start == null || range.End == null) return Enumerable.Empty<CodeFragment>();
             var (start, end) = (range.Start.Line, range.End.Line);
 
             var fragAtStart = file.TryGetFragmentAt(range?.Start, out var _, includeEnd: true);
@@ -419,16 +416,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
                 : inRange.Concat(file.GetTokenizedLines(start + 1, end - start - 1).SelectMany((x, i) => x.Select(t => t.WithUpdatedLineNumber(start + 1 + i))))
                     .Concat(file.GetTokenizedLine(end).Select(t => t.WithUpdatedLineNumber(end)).Where(ContextBuilder.TokensStartingBefore(range.End)));
-            var fragment = 
-                fragAtStart != null && !inRange.Any() ? fragAtStart :
-                fragAtStart == null ? inRange.FirstOrDefault() : null;
-            var declRange = fragment?.GetRange();
 
-            if (fragment?.Kind == null) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
+            var fragments = ImmutableArray.CreateBuilder<CodeFragment>();
+            if (fragAtStart != null) fragments.Add(fragAtStart);
+            fragments.AddRange(inRange);
+            return fragments.ToImmutableArray();
+        }
+
+        /// <summary>
+        /// Returns a sequence of suggestions to insert doc comments for an undocumented declaration that overlap with the given range in the given file. 
+        /// Returns an empty enumerable if more than one code fragment overlaps with the given range,
+        /// or the overlapping fragment does not contain a declaration,
+        /// or the overlapping fragment contains a declaration that is already documented,
+        /// or if any of the given arguments is null. 
+        /// </summary>
+        internal static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(this FileContentManager file, Range range)
+        {
+            var overlapping = file?.FragmentsOverlappingWithRange(range);
+            var fragment = overlapping?.FirstOrDefault();
+            if (fragment?.Kind == null || overlapping.Count() > 1) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
+
             var (nsDecl, callableDecl, typeDecl) = (fragment.Kind.DeclaredNamespace(), fragment.Kind.DeclaredCallable(), fragment.Kind.DeclaredType());
             var declSymbol = nsDecl.IsValue ? nsDecl.Item.Item1.Symbol 
                 : callableDecl.IsValue ? callableDecl.Item.Item1.Symbol
                 : typeDecl.IsValue ? typeDecl.Item.Item1.Symbol : null;
+            var declRange = fragment?.GetRange();
             if (declSymbol == null || file.DocumentingComments(declRange.Start).Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
 
             var docPrefix = "///";
