@@ -496,4 +496,80 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 		let _ = (OpPairArr([OpPair(arg, arg)]))::Array[0] w/ Op1 <- arg;
 	}
 
+
+	// open-ended ranges in array slicing expressions
+
+	function ValidArraySlice1 (arr : Int[]) : Int[] {
+		return arr[3...];			
+	} 
+
+	function ValidArraySlice2 (arr : Int[]) : Int[] {
+		return arr [0 .. 2 ... ];	
+	} 
+
+	function ValidArraySlice3 (arr : Int[]) : Int[] {
+		return arr[...2];			
+	} 
+
+	function ValidArraySlice4 (arr : Int[]) : Int[] {
+		return arr[...2..3];		
+	} 
+
+	function ValidArraySlice5 (arr : Int[]) : Int[] {
+		return arr[...2...];		
+	} 
+
+	function ValidArraySlice6 (arr : Int[]) : Int[] {
+		return arr[...];			
+	} 
+
+	function ValidArraySlice7 (arr : Int[]) : Int[] {
+		return arr [4 .. -2 ... ];
+	} 
+
+	function ValidArraySlice8 (arr : Int[]) : Int[] {
+		return arr[ ... -1 .. 3];	
+	} 
+
+	function ValidArraySlice9 (arr : Int[]) : Int[] {
+		return arr[...-1...];		
+	} 
+
+
+	function InvalidArraySlice1 (arr : BigEndian) : Int[] {
+		return arr[3...];			
+	} 
+
+	function InvalidArraySlice2 (arr : BigEndian) : Int[] {
+		return arr [0 .. 2 ... ];	
+	} 
+
+	function InvalidArraySlice3 (arr : BigEndian) : Int[] {
+		return arr[...2];			
+	} 
+
+	function InvalidArraySlice4 (arr : BigEndian) : Int[] {
+		return arr[...2..3];		
+	} 
+
+	function InvalidArraySlice5 (arr : BigEndian) : Int[] {
+		return arr[...2...];		
+	} 
+
+	function InvalidArraySlice6 (arr : BigEndian) : Int[] {
+		return arr[...];			
+	} 
+
+	function InvalidArraySlice7 (arr : BigEndian) : Int[] {
+		return arr [4 .. -2 ... ];
+	} 
+
+	function InvalidArraySlice8 (arr : BigEndian) : Int[] {
+		return arr[ ... -1 .. 3];	
+	} 
+
+	function InvalidArraySlice9 (arr : BigEndian) : Int[] {
+		return arr[...-1...];		
+	} 
+
 }
