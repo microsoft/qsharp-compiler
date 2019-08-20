@@ -99,19 +99,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Return a suitable open directive for the namespace with the given name, if no such directive already exists. 
-        /// Returns null if that namespace is already open or an alias has been defined for it, or if a suitable edit could not be determined. 
+        /// Return an enumerable of suitable open directives for all given namespaces for which no open directive already exists. 
+        /// Returns an empty enumerable if suitable edits could not be determined. 
         /// </summary>
         private static IEnumerable<(string, TextEdit)> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, IEnumerable<NonNullable<string>> namespaces)
         {
             // FIXME: GIVE EDIT FOR ALIAS IF ALIAS IS DEFINED
 
             // determine the first fragment in the containing namespace
-            var firstInNs = file.NamespaceDeclarationTokens()
+            var nsElements = file?.NamespaceDeclarationTokens()
                 .TakeWhile(t => t.Line <= lineNr).LastOrDefault() // going by line here is fine - inaccuracies if someone has multiple namespace and callable declarations on the same line seem acceptable...
-                ?.GetChildren(deep: false)?.FirstOrDefault()?.GetFragment();
-            if (firstInNs == null) return null;
+                ?.GetChildren(deep: false);
+            var firstInNs = nsElements?.FirstOrDefault()?.GetFragment();
+            if (firstInNs == null) return Enumerable.Empty<(string, TextEdit)>();
+
             var insertOpenDirAt = firstInNs.GetRange().Start;
+            var openDirs = nsElements.Select(t => t.GetFragment().Kind?.OpenedNamespace())
+                .TakeWhile(opened => opened?.IsValue ?? false)
+                .Select(opened => (
+                    opened.Value.Item.Item1.Symbol.AsDeclarationName(null), 
+                    opened.Value.Item.Item2.IsValue ? opened.Value.Item.Item2.Item.Symbol.AsDeclarationName("") : null))
+                .Where(opened => opened.Item1 != null)
+                .ToImmutableDictionary(opened => opened.Item1, opened => opened.Item2);
 
             // range and whitespace info for inserting open directives
             var openDirEditRange = new Range { Start = insertOpenDirAt, End = insertOpenDirAt };
@@ -127,7 +136,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // TODO: CHECK WHICH OF THESE DIRECTIVES ALREADY EXIST
-            return namespaces.Select(SuggestedOpenDirective);
+            return namespaces.Distinct()
+                .Where(ns => !openDirs.Contains(ns.Value, null)) // filter all namespaces that are already open
+                .Select(SuggestedOpenDirective);
         }
 
         /// <summary>
