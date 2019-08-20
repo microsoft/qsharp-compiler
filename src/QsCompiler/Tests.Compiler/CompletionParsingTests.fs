@@ -1,15 +1,20 @@
 ﻿module Microsoft.Quantum.QsCompiler.Testing.CompletionParsingTests
 
+open System
 open System.Collections.Generic
 open Xunit
 open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 
 let private matches env (text, expected) =
-    Assert.Equal<IEnumerable<IdentifierKind>>(Set.ofList expected, GetExpectedIdentifiers env text)
+    match GetExpectedIdentifiers env text with
+    | Success actual -> Assert.Equal<IEnumerable<IdentifierKind>>(Set.ofList expected, actual)
+    | Failure message -> raise (Exception message)
 
 let private fails env text =
-    Assert.Throws<CompletionParserError>(fun () -> GetExpectedIdentifiers env text |> ignore) |> ignore
+    match GetExpectedIdentifiers env text with
+    | Success _ -> raise <| Exception (String.Format("Input: {0}\nParser succeeded when it was expected to fail", text))
+    | Failure _ -> ()
 
 let private types =
     [

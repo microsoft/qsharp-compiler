@@ -8,6 +8,7 @@ module Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 #nowarn "40"
 
 open System
+open System.Collections.Generic
 open FParsec
 open Microsoft.Quantum.QsCompiler.TextProcessing.ExpressionParsing
 open Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
@@ -42,9 +43,12 @@ type IdentifierKind =
     // TODO: Add information so completion knows the type being accessed.
     | NamedItem
 
-/// The exception that is thrown when the completion parser can't parse the text of a fragment.
-exception CompletionParserError of message : string with
-    override this.Message = this.message
+/// The result of parsing a code fragment for completions.
+type CompletionResult =
+    /// The set of identifier kinds is expected at the end of the code fragment.
+    | Success of IEnumerable<IdentifierKind>
+    /// Parsing failed with an error message.
+    | Failure of string
 
 /// Merges the error messages from all replies in the list.
 let rec private toErrorMessageList (replies : Reply<'a> list) =
@@ -392,5 +396,5 @@ let GetExpectedIdentifiers env text =
         | NamespaceTopLevel -> namespaceTopLevel
         | Statement -> statement
     match runParserOnString parser [] "" (text + "\u0004") with
-    | Success (result, _, _) -> Set.ofList result
-    | Failure (detail, _, _) -> raise (CompletionParserError detail)
+    | ParserResult.Success (result, _, _) -> Success (Set.ofList result)
+    | ParserResult.Failure (detail, _, _) -> Failure detail

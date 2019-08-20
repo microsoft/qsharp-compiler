@@ -74,18 +74,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (env == null)
                 return GetFallbackCompletions(file, compilation, position).ToCompletionList(false);
 
-            try
-            {
-                var fragment = GetTokenAtOrBefore(file, position)?.GetFragment();
-                return
-                    GetExpectedIdentifiers(env, GetFragmentTextBeforePosition(file, fragment, position))
+            var fragment = GetTokenAtOrBefore(file, position)?.GetFragment();
+            var result = GetExpectedIdentifiers(env, GetFragmentTextBeforePosition(file, fragment, position));
+            if (result is CompletionResult.Success success)
+                return success.Item
                     .SelectMany(kind => GetCompletionsForKind(file, compilation, position, kind))
                     .ToCompletionList(false);
-            }
-            catch (CompletionParserError)
-            {
+            else
                 return GetFallbackCompletions(file, compilation, position).ToCompletionList(false);
-            }
         }
 
         /// <summary>
