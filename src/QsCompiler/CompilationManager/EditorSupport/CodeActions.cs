@@ -278,19 +278,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the CodeFragment token that represents the namespace
-        /// declaration for the namespace surrounding the given position.
-        /// </summary>
-        private static CodeFragment.TokenIndex GetNamespaceToken(FileContentManager file, Position position)
-        {
-            // going by line here is fine - I am ok with a failure if someone has multiple namespace and callable declarations on the same line...
-            return file.NamespaceDeclarationTokens()
-                .TakeWhile(t => t.Line <= position.Line)
-                .LastOrDefault();
-        }
-
-
-        /// <summary>
         /// Processes the index range replace code action. It first checks if the current fragment
         /// is a valid match for the code action's targeted expression pattern. If so, it will
         /// create edits that will change something of the form "for (i in 0 .. Length(ary)-1)" to
@@ -305,91 +292,44 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static WorkspaceEdit IndexRangeReplaceCodeAction(CodeFragment currentFrag, Func<TextEdit[], WorkspaceEdit> makeWorkspaceEdit,
             Func<NonNullable<string>, string> getNsForUnknownCallable, Func<NonNullable<string>, TextEdit> makeOpenDirectiveEdit)
         {
-            Position fragStart = currentFrag.GetRange().Start;
+            // checks that the iterable expression is of the form "0 .. Length(args) - 1"
+            bool IsIndexRange(QsExpression iterExpr, out Range exprRange, out Range argRange)
+            {
+                if (iterExpr.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.RangeLiteral rangeExpression && iterExpr.Range.IsValue &&                               // iterable expression is a valid range literal
+                    rangeExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral intLiteralExpression && intLiteralExpression.Item == 0L &&      // .. starting at 0 ..
+                    rangeExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.SUB SUBExpression &&                                                       // .. and ending in subracting ..
+                    SUBExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral subIntLiteralExpression && subIntLiteralExpression.Item == 1L &&  // .. 1 from ..
+                    SUBExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.CallLikeExpression callLikeExression &&                                      // .. a call ..
+                    callLikeExression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.Identifier identifier &&                                                 // .. to and identifier ..
+                    identifier.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol symName && symName.Item.Value == SyntaxGenerator.BuiltInCallables.Length.Name.Value &&                 // .. "Length" called with ..
+                    callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple && callLikeExression.Item2.Range.IsValue)          // .. a valid argument tuple
+                {
+                    Position fragStart = currentFrag.GetRange().Start;
+                    exprRange = DiagnosticTools.GetAbsoluteRange(fragStart, iterExpr.Range.Item);
+                    argRange = DiagnosticTools.GetAbsoluteRange(fragStart, callLikeExression.Item2.Range.Item);
+                    return true;
+                }
 
-            Position beforeArgsStart = null;
-            Position beforeArgsEnd = null;
-            Position afterArgsStart = null;
-            Position afterArgsEnd = null;
+                (exprRange, argRange) = (null, null);
+                return false;
+            }
 
-            Position ConvertFragPosToGlobalPos(QsPositionInfo posToConvert) => new Position
-            (
-                fragStart.Line + posToConvert.Line - 1,
-                (posToConvert.Line == 1 ? fragStart.Character : 0) + posToConvert.Column - 1
-            );
 
             // ToDo: need to use a better method for matching fragments to expression patterns
 
-            // all the checks for if the fragment matches the target pattern
-            bool checkStartWithZero = false;
-            bool checkHasLengthCall = false;
-            bool checkSubOne = false;
-            if (currentFrag.Kind is QsFragmentKind.ForLoopIntro forLoopIntroExpression)
-            {
-                if (!forLoopIntroExpression.Item2.Range.IsNull)
-                {
-                    var rangeStart = ((QsFragmentKind.ForLoopIntro)currentFrag.Kind).Item2.Range.Item.Item1;
-                    var rangeEnd = ((QsFragmentKind.ForLoopIntro)currentFrag.Kind).Item2.Range.Item.Item2;
-
-                    beforeArgsStart = ConvertFragPosToGlobalPos(rangeStart);
-                    afterArgsEnd = ConvertFragPosToGlobalPos(rangeEnd);
-                }
-
-                if (forLoopIntroExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.RangeLiteral rangeExpression)
-                {
-                    if (rangeExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral intLiteralExpression)
-                    {
-                        checkStartWithZero = intLiteralExpression.Item == 0L;
-                    }
-
-                    if (rangeExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.SUB SUBExpression)
-                    {
-                        if (SUBExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.CallLikeExpression callLikeExression)
-                        {
-                            if (callLikeExression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.Identifier identifier)
-                            {
-                                var identifierSub = (QsSymbolKind<QsSymbol>.Symbol)identifier.Item1.Symbol;
-                                checkHasLengthCall = identifierSub.Item.Value == SyntaxGenerator.BuiltInCallables.Length.Name.Value;
-                            }
-
-                            if (callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple)
-                            {
-                                if (!callLikeExression.Item2.Range.IsNull)
-                                {
-                                    var argRangeStart = callLikeExression.Item2.Range.Item.Item1;
-                                    var argRangeEnd = callLikeExression.Item2.Range.Item.Item2;
-
-                                    beforeArgsEnd = ConvertFragPosToGlobalPos(argRangeStart);
-                                    afterArgsStart = ConvertFragPosToGlobalPos(argRangeEnd);
-                                }
-                            }
-                        }
-
-                        if (SUBExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral subIntLiteralExpression)
-                        {
-                            checkSubOne = subIntLiteralExpression.Item == 1L;
-                        }
-                    }
-                }
-            }
-
-            bool positionsAreNonNull =
-                beforeArgsStart != null &&
-                beforeArgsEnd != null &&
-                afterArgsStart != null &&
-                afterArgsEnd != null;
-            if (positionsAreNonNull && checkStartWithZero && checkHasLengthCall && checkSubOne)
+            if (currentFrag.Kind is QsFragmentKind.ForLoopIntro forLoopIntro && 
+                IsIndexRange(forLoopIntro.Item2, out var iterExprRange, out var argTupleRange))
             {
                 // build WorkspaceEdit
                 var edits = new List<TextEdit>();
                 edits.Add(new TextEdit()
                 {
-                    Range = new Range() { Start = beforeArgsStart, End = beforeArgsEnd },
+                    Range = new Range() { Start = iterExprRange.Start, End = argTupleRange.Start },
                     NewText = SyntaxGenerator.BuiltInCallables.IndexRange.Name.Value
                 });
                 edits.Add(new TextEdit()
                 {
-                    Range = new Range() { Start = afterArgsStart, End = afterArgsEnd },
+                    Range = new Range() { Start = argTupleRange.End, End = iterExprRange.End },
                     NewText = ""
                 });
 
