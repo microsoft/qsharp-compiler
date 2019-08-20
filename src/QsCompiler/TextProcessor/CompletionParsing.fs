@@ -10,6 +10,7 @@ module Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 open System
 open System.Collections.Generic
 open FParsec
+open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.TextProcessing.ExpressionParsing
 open Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
 open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
@@ -141,6 +142,10 @@ let private expectedQualifiedSymbol kind =
     attempt (term qualifiedSymbol |>> fst .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> optional eot) <|>
     (term qualifiedSymbol >>% [])
 
+/// Parses the unit value. The right bracket is optional if EOT occurs first.
+let private unitValue : Parser<IdentifierKind list, QsCompilerDiagnostic list> =
+    term (pchar '(' >>. emptySpace >>. expected (pchar ')')) |>> fst
+
 /// `manyR p` is like `many p` but is reentrant on the last item if the last item is followed by EOT. This is useful if,
 /// for example, the last item is incomplete such that it is ambiguous whether the last item is part of the list or is
 /// actually a delimiter.
@@ -173,8 +178,12 @@ let private brackets (left, right) p =
 let private expectedBrackets (left, right) p =
     expected (bracket left) ?>> p ?>> expected (bracket right)
 
-/// Parses a tuple of items each parsed by `p`.
+/// Parses a tuple of zero or more items each parsed by `p`.
 let private tuple p =
+    brackets (lTuple, rTuple) (sepBy p comma |>> List.tryLast |>> Option.defaultValue [])
+
+/// Parses a tuple of one or more items each parsed by `p`.
+let private tuple1 p =
     brackets (lTuple, rTuple) (sepBy1 p comma |>> List.last)
 
 /// Parses an array of items each parsed by `p`.
@@ -231,7 +240,7 @@ and nonArrayType =
         attempt typeParameter
         attempt operationType
         attempt functionType
-        attempt (tuple qsType)
+        attempt (tuple1 qsType)
         keywordType <|>@ expectedQualifiedSymbol UserDefinedType
     ]
 
@@ -241,8 +250,8 @@ let private callableSignature =
     let typeAnnotation = expected colon ?>> qsType
     let typeParam = expected (pchar '\'') ?>> expectedId Declaration (term symbol)
     let typeParamList = brackets (lAngle, rAngle) (sepByLast typeParam comma)
-    let argumentTuple = expected unitValue <|> tuple (name ?>> typeAnnotation)
-    name ?>> (typeParamList <|>% []) ?>> argumentTuple ?>> typeAnnotation
+    let argumentTuple = tuple (name ?>> typeAnnotation)
+    name ?>> (typeParamList <|> (optional eot >>% [])) ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
 let private functionDeclaration =
@@ -257,7 +266,7 @@ let private udtDeclaration =
     let name = expectedId Declaration (term symbol)
     let rec udt = parse {
         let namedItem = name ?>> expected colon ?>> qsType
-        return! qsType <|>@ tuple (namedItem <|>@ udt)
+        return! qsType <|>@ tuple1 (namedItem <|>@ udt)
     }
     expectedKeyword typeDeclHeader ?>> name ?>> expected equal ?>> udt
 
@@ -324,7 +333,6 @@ let rec private expression = parse {
             operator qsNamedItemCombinator.op None >>. expectedId NamedItem (term symbol)
             copyAndUpdate
             conditional
-            (unitValue >>% [])
             tuple expression
             array expression
             typeParamListOrLessThan
@@ -365,7 +373,7 @@ let rec private expression = parse {
         pcollect [
             operator qsOpenRangeOp.op None >>. opt expression |>> Option.defaultValue []
             newArray
-            tuple expression
+            tuple1 expression
             array expression
             keywordLiteral
             numericLiteral >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
@@ -379,7 +387,7 @@ let rec private expression = parse {
 /// Parses a symbol declaration tuple.
 let rec private symbolTuple = parse {
     let declaration = expectedId Declaration (term symbol)
-    return! declaration <|> tuple (declaration <|> symbolTuple)
+    return! declaration <|> tuple1 (declaration <|> symbolTuple)
 }
 
 /// Parses a let statement.
@@ -415,6 +423,22 @@ let private whileHeader =
 let private repeatHeader =
     expectedKeyword qsRepeat
 
+/// Parses a qubit initializer tuple used to allocate qubits in using- and borrowing-blocks.
+let rec private qubitInitializerTuple = parse {
+    let item = expectedKeyword qsQubit ?>> (expected unitValue <|> expectedBrackets (lArray, rArray) expression)
+    return! item <|> (tuple1 item <|> qubitInitializerTuple)
+}
+
+/// Parses a using-block intro.
+let private usingHeader =
+    let binding = symbolTuple ?>> expected equal ?>> qubitInitializerTuple
+    expectedKeyword qsUsing ?>> expectedBrackets (lTuple, rTuple) binding
+
+/// Parses a borrowing-block intro.
+let private borrowingHeader =
+    let binding = symbolTuple ?>> expected equal ?>> qubitInitializerTuple
+    expectedKeyword qsBorrowing ?>> expectedBrackets (lTuple, rTuple) binding
+
 /// Parses statements that are valid in both functions and operations.
 let private callableStatement =
     pcollect [
@@ -433,7 +457,11 @@ let private functionStatement =
 
 /// Parses a statement in an operation.
 let private operationStatement =
-    repeatHeader .>> eotEof <|>@ callableStatement
+    pcollect [
+        repeatHeader
+        usingHeader
+        borrowingHeader
+    ] .>> eotEof <|>@ callableStatement
 
 /// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
 /// of the text.

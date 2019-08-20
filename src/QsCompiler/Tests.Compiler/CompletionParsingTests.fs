@@ -1,14 +1,18 @@
 ﻿module Microsoft.Quantum.QsCompiler.Testing.CompletionParsingTests
 
 open System
-open System.Collections.Generic
 open Xunit
 open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 
 let private matches env (text, expected) =
     match GetExpectedIdentifiers env text with
-    | Success actual -> Assert.Equal<IEnumerable<IdentifierKind>>(Set.ofList expected, actual)
+    | Success actual ->
+        Assert.True(Set.ofList expected = Set.ofSeq actual,
+                    String.Format("Input:    {0}\n" +
+                                  "Expected: {1}\n" +
+                                  "Actual:   {2}",
+                                  text, Set.ofList expected, actual))
     | Failure message -> raise (Exception message)
 
 let private fails env text =
@@ -70,6 +74,8 @@ let private functionStatement =
 let private operationStatement =
     callableStatement @ [
         Keyword "repeat"
+        Keyword "using"
+        Keyword "borrowing"
     ]
 
 [<Fact>]
@@ -372,6 +378,61 @@ let ``Function statement parser tests`` () =
 let ``Operation statement parser tests`` () =
     List.iter (matches OperationStatement) [
         ("repeat ", [])
+        ("using ", [])
+        ("using (", [Declaration])
+        ("using (q ", [])
+        ("using (q =", [Keyword "Qubit"])
+        ("using (q = Qubit", [Keyword "Qubit"])
+        ("using (q = Qubit(", [])
+        ("using (q = Qubit()", [])
+        ("using (q = Qubit())", [])
+        ("using (q = Qubit[", expression)
+        ("using (q = Qubit[5", [])
+        ("using (q = Qubit[5]", [])
+        ("using (q = Qubit[5])", [])
+        ("using (q = Qubit[n", expression)
+        ("using (q = Qubit[n ", infix)
+        ("using (q = Qubit[n +", expression)
+        ("using (q = Qubit[n + 1", [])
+        ("using (q = Qubit[n + 1]", [])
+        ("using (q = Qubit[n + 1])", [])
+        ("using ((", [Declaration])
+        ("using ((q,", [Declaration])
+        ("using ((q, r)", [])
+        ("using ((q, r) =", [Keyword "Qubit"])
+        ("using ((q, r) = (", [Keyword "Qubit"])
+        ("using ((q, r) = (Qubit(", [])
+        ("using ((q, r) = (Qubit()", [])
+        ("using ((q, r) = (Qubit(),", [Keyword "Qubit"])
+        ("using ((q, r) = (Qubit(), Qubit()", [])
+        ("using ((q, r) = (Qubit(), Qubit())", [])
+        ("borrowing (", [Declaration])
+        ("borrowing (q ", [])
+        ("borrowing (q =", [Keyword "Qubit"])
+        ("borrowing (q = Qubit", [Keyword "Qubit"])
+        ("borrowing (q = Qubit(", [])
+        ("borrowing (q = Qubit()", [])
+        ("borrowing (q = Qubit())", [])
+        ("borrowing (q = Qubit[", expression)
+        ("borrowing (q = Qubit[5", [])
+        ("borrowing (q = Qubit[5]", [])
+        ("borrowing (q = Qubit[5])", [])
+        ("borrowing (q = Qubit[n", expression)
+        ("borrowing (q = Qubit[n ", infix)
+        ("borrowing (q = Qubit[n +", expression)
+        ("borrowing (q = Qubit[n + 1", [])
+        ("borrowing (q = Qubit[n + 1]", [])
+        ("borrowing (q = Qubit[n + 1])", [])
+        ("borrowing ((", [Declaration])
+        ("borrowing ((q,", [Declaration])
+        ("borrowing ((q, r)", [])
+        ("borrowing ((q, r) =", [Keyword "Qubit"])
+        ("borrowing ((q, r) = (", [Keyword "Qubit"])
+        ("borrowing ((q, r) = (Qubit(", [])
+        ("borrowing ((q, r) = (Qubit()", [])
+        ("borrowing ((q, r) = (Qubit(),", [Keyword "Qubit"])
+        ("borrowing ((q, r) = (Qubit(), Qubit()", [])
+        ("borrowing ((q, r) = (Qubit(), Qubit())", [])
     ]
 
 [<Fact>]
