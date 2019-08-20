@@ -5,8 +5,11 @@ open Xunit
 open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 
-let private testAs env text expected =
+let private matches env (text, expected) =
     Assert.Equal<IEnumerable<IdentifierKind>>(Set.ofList expected, GetExpectedIdentifiers env text)
+
+let private fails env text =
+    Assert.Throws<CompletionParserError>(fun () -> GetExpectedIdentifiers env text |> ignore) |> ignore
 
 let private types =
     [
@@ -25,201 +28,218 @@ let private types =
 
 [<Fact>]
 let ``Inside namespace parser tests`` () =
-    let test = testAs NamespaceTopLevel
-    let keywords = [Keyword "function"; Keyword "operation"; Keyword "newtype"; Keyword "open"]
-    test "" keywords
-    test "f" keywords
-    test "fun" keywords
-    test "function" keywords
-    test "o" keywords
-    test "ope" keywords
-    test "opera" keywords
-    test "operation" keywords
-    test "n" keywords
-    test "newt" keywords
-    test "newtype" keywords
-    test "open" keywords
+    let keywords = [
+        Keyword "function"
+        Keyword "operation"
+        Keyword "newtype"
+        Keyword "open"
+    ]
+    List.iter (matches NamespaceTopLevel) [
+        ("", keywords)
+        ("f", keywords)
+        ("fun", keywords)
+        ("function", keywords)
+        ("o", keywords)
+        ("ope", keywords)
+        ("opera", keywords)
+        ("operation", keywords)
+        ("n", keywords)
+        ("newt", keywords)
+        ("newtype", keywords)
+        ("open", keywords)
+    ]
 
 [<Fact>]
 let ``Function declaration parser tests`` () =
-    let test = testAs NamespaceTopLevel
-    test "function " [Declaration]
-    test "function Foo" [Declaration]
-    test "function Foo " []
-    test "function Foo (" [Declaration]
-    test "function Foo (x" [Declaration]
-    test "function Foo (x " []
-    test "function Foo (x :" types
-    test "function Foo (x : Int" types
-    test "function Foo (x : Int " []
-    test "function Foo (x : Int)" []
-    test "function Foo (x : Int) :" types
-    test "function Foo (x : Int) : " types
-    test "function Foo (x : Int) : Unit" types
-    test "function Foo (x : Int) : Unit " []
-    test "function Foo (x : Int) : (Int, MyT" types
-    test "function Foo (x : Int) : (Int," types
-    test "function Foo (x : Int) : (Int, " types
-    test "function Foo (x : Int) : (Int, MyT " []
-    test "function Foo (x : (" types
-    test "function Foo (x : (Int" types
-    test "function Foo (x : (Int," types
-    test "function Foo (x : (Int, " types
-    test "function Foo (x : (Int, Int" types
-    test "function Foo (x : (Int, Int " []
-    test "function Foo (x : (Int, Int), " [Declaration]
-    test "function Foo (f : (Int -> " types
-    test "function Foo (f : (Int -> Int" types
-    test "function Foo (f : (Int -> Int " []
-    test "function Foo (f : (Int -> Int)" []
-    test "function Foo (f : (Int -> Int)) : Unit" types
-    test "function Foo (f : (Int -> Int)) : Unit " []
-    test "function Foo (q : ((Int -> Int) -> " types
-    test "function Foo (q : ((Int -> Int) -> Int " []
-    test "function Foo (q : ((Int -> Int) -> Int)) : Unit" types
-    test "function Foo (q : ((Int->Int)->Int)) : Unit" types
-    test "function Foo (q : ((Int -> Int) -> Int)) : Unit" types
-    test "function Foo<" []
-    test "function Foo<'" [Declaration]
-    test "function Foo<> (q : 'T) : Unit" types
-    test "function Foo<'T> (q : '" [TypeParameter]
-    test "function Foo<'T> (q : 'T) : Unit" types
-    test "function Foo<'T> (q : ('T -> Int)) : Unit" types
-    test "function Foo<'T> (q : ('T->Int)) : Unit" types
-    test "function Foo<'T> (q : (MyType -> Int)) : Unit" types
+    List.iter (matches NamespaceTopLevel) [
+        ("function ", [Declaration])
+        ("function Foo", [Declaration])
+        ("function Foo ", [])
+        ("function Foo (", [Declaration])
+        ("function Foo (x", [Declaration])
+        ("function Foo (x ", [])
+        ("function Foo (x :", types)
+        ("function Foo (x : Int", types)
+        ("function Foo (x : Int ", [])
+        ("function Foo (x : Int)", [])
+        ("function Foo (x : Int) :", types)
+        ("function Foo (x : Int) : ", types)
+        ("function Foo (x : Int) : Unit", types)
+        ("function Foo (x : Int) : Unit ", [])
+        ("function Foo (x : Int) : (Int, MyT", types)
+        ("function Foo (x : Int) : (Int,", types)
+        ("function Foo (x : Int) : (Int, ", types)
+        ("function Foo (x : Int) : (Int, MyT ", [])
+        ("function Foo (x : (", types)
+        ("function Foo (x : (Int", types)
+        ("function Foo (x : (Int,", types)
+        ("function Foo (x : (Int, ", types)
+        ("function Foo (x : (Int, Int", types)
+        ("function Foo (x : (Int, Int ", [])
+        ("function Foo (x : (Int, Int), ", [Declaration])
+        ("function Foo (f : (Int -> ", types)
+        ("function Foo (f : (Int -> Int", types)
+        ("function Foo (f : (Int -> Int ", [])
+        ("function Foo (f : (Int -> Int)", [])
+        ("function Foo (f : (Int -> Int)) : Unit", types)
+        ("function Foo (f : (Int -> Int)) : Unit ", [])
+        ("function Foo (q : ((Int -> Int) -> ", types)
+        ("function Foo (q : ((Int -> Int) -> Int ", [])
+        ("function Foo (q : ((Int -> Int) -> Int)) : Unit", types)
+        ("function Foo (q : ((Int->Int)->Int)) : Unit", types)
+        ("function Foo (q : ((Int -> Int) -> Int)) : Unit", types)
+        ("function Foo<", [])
+        ("function Foo<'", [Declaration])
+        ("function Foo<> (q : 'T) : Unit", types)
+        ("function Foo<'T> (q : '", [TypeParameter])
+        ("function Foo<'T> (q : 'T) : Unit", types)
+        ("function Foo<'T> (q : ('T -> Int)) : Unit", types)
+        ("function Foo<'T> (q : ('T->Int)) : Unit", types)
+        ("function Foo<'T> (q : (MyType -> Int)) : Unit", types)
+    ]
 
 [<Fact>]
 let ``Operation declaration parser tests`` () =
-    let test = testAs NamespaceTopLevel
-    let characteristics = [Keyword "Adj"; Keyword "Ctl"]
-    test "operation " [Declaration]
-    test "operation Foo" [Declaration]
-    test "operation Foo " []
-    test "operation Foo (" [Declaration]
-    test "operation Foo (q" [Declaration]
-    test "operation Foo (q :" types
-    test "operation Foo (q : Qubit" types
-    test "operation Foo (q : Qubit)" []
-    test "operation Foo (q : Qubit) :" types
-    test "operation Foo (q : Qubit) : " types
-    test "operation Foo (q : Qubit) : Unit" types
-    test "operation Foo (q : Qubit) : Unit " [Keyword "is"]
-    test "operation Foo (q : Qubit) : Unit i" [Keyword "is"]
-    test "operation Foo (q : Qubit) : Unit is" [Keyword "is"]
-    test "operation Foo (q : Qubit) : Unit is " characteristics
-    test "operation Foo (q : Qubit) : Unit is A" characteristics
-    test "operation Foo (q : Qubit) : Unit is Adj" characteristics
-    test "operation Foo (q : Qubit) : Unit is Adj " []
-    test "operation Foo (q : Qubit) : Unit is Adj +" characteristics
-    test "operation Foo (q : Qubit) : Unit is Adj + " characteristics
-    test "operation Foo (q : Qubit) : Unit is Adj + Ctl" characteristics
-    test "operation Foo (q : Qubit) : Unit is (" characteristics
-    test "operation Foo (q : Qubit) : Unit is ( " characteristics
-    test "operation Foo (q : Qubit) : Unit is (Adj" characteristics
-    test "operation Foo (q : Qubit) : Unit is (Adj " []
-    test "operation Foo (q : Qubit) : Unit is (Adj + " characteristics
-    test "operation Foo (q : Qubit) : Unit is (Adj + Ctl" characteristics
-    test "operation Foo (q : Qubit) : Unit is (Adj + Ctl)" []    
-    test "operation Foo (q : Qubit) : Unit is Adj + Ctl " []
-    test "operation Foo (q : Qubit) : (Int, MyT" types
-    test "operation Foo (q : Qubit) : (Int," types
-    test "operation Foo (q : Qubit) : (Int, MyT " []
-    test "operation Foo (q : (" types
-    test "operation Foo (q : (Qubit" types
-    test "operation Foo (q : (Qubit," types
-    test "operation Foo (q : (Qubit, " types
-    test "operation Foo (q : (Qubit, Qubit" types
-    test "operation Foo (q : (Qubit, Qubit " []
-    test "operation Foo (q : (Qubit, Qubit), " [Declaration]
-    test "operation Foo (q : (Qubit => " types
-    test "operation Foo (q : (Qubit => Unit" types
-    test "operation Foo (q : (Qubit => Unit " [Keyword "is"]
-    test "operation Foo (q : (Qubit => Unit is " characteristics
-    test "operation Foo (q : (Qubit => Unit is Adj" characteristics
-    test "operation Foo (q : (Qubit => Unit is Adj " []
-    test "operation Foo (q : (Qubit => Unit is Adj + " characteristics
-    test "operation Foo (q : (Qubit => Unit is Adj)" []
-    test "operation Foo (q : (Qubit => Unit is Adj)) : Unit" types
-    test "operation Foo (q : ((Qubit => Unit " []
-    test "operation Foo (q : ((Qubit => Unit) " [Keyword "is"]
-    test "operation Foo (q : ((Qubit => Unit) is " characteristics
-    test "operation Foo (q : ((Qubit => Unit) is Adj" characteristics
-    test "operation Foo (q : ((Qubit => Unit) is Adj)" []
-    test "operation Foo (q : ((Qubit => Unit) is Adj))" []
-    test "operation Foo (q : ((Qubit => Unit) is Adj)) :" types
-    test "operation Foo (f : (Int -> " types
-    test "operation Foo (f : (Int -> Int)) : Unit" types
-    test "operation Foo (f : (Int -> Int)) : Unit " [Keyword "is"]
-    test "operation Foo (q : (Int => Int)) : Unit" types
-    test "operation Foo (q : ((Int -> Int) => " types
-    test "operation Foo (q : ((Int -> Int) => Int " [Keyword "is"]
-    test "operation Foo (q : ((Int -> Int) => Int)) : Unit" types
-    test "operation Foo (q : ((Int->Int)=>Int)) : Unit" types
-    test "operation Foo (q : ((Int -> Int) -> Int)) : Unit" types
-    test "operation Foo (q : ((Int => Int) => Int)) : Unit" types
-    test "operation Foo<'T> (q : 'T) : Unit" types
-    test "operation Foo<'T> (q : ('T => Int)) : Unit" types
-    test "operation Foo<'T> (q : ('T -> Int)) : Unit" types
-    test "operation Foo<'T> (q : ('T->Int)) : Unit" types
-    test "operation Foo<'T> (q : (MyType -> Int)) : Unit" types
+    let characteristics = [
+        Keyword "Adj"
+        Keyword "Ctl"
+    ]
+    List.iter (matches NamespaceTopLevel) [
+        ("operation ", [Declaration])
+        ("operation Foo", [Declaration])
+        ("operation Foo ", [])
+        ("operation Foo (", [Declaration])
+        ("operation Foo (q", [Declaration])
+        ("operation Foo (q :", types)
+        ("operation Foo (q : Qubit", types)
+        ("operation Foo (q : Qubit)", [])
+        ("operation Foo (q : Qubit) :", types)
+        ("operation Foo (q : Qubit) : ", types)
+        ("operation Foo (q : Qubit) : Unit", types)
+        ("operation Foo (q : Qubit) : Unit ", [Keyword "is"])
+        ("operation Foo (q : Qubit) : Unit i", [Keyword "is"])
+        ("operation Foo (q : Qubit) : Unit is", [Keyword "is"])
+        ("operation Foo (q : Qubit) : Unit is ", characteristics)
+        ("operation Foo (q : Qubit) : Unit is A", characteristics)
+        ("operation Foo (q : Qubit) : Unit is Adj", characteristics)
+        ("operation Foo (q : Qubit) : Unit is Adj ", [])
+        ("operation Foo (q : Qubit) : Unit is Adj +", characteristics)
+        ("operation Foo (q : Qubit) : Unit is Adj + ", characteristics)
+        ("operation Foo (q : Qubit) : Unit is Adj + Ctl", characteristics)
+        ("operation Foo (q : Qubit) : Unit is (", characteristics)
+        ("operation Foo (q : Qubit) : Unit is ( ", characteristics)
+        ("operation Foo (q : Qubit) : Unit is (Adj", characteristics)
+        ("operation Foo (q : Qubit) : Unit is (Adj ", [])
+        ("operation Foo (q : Qubit) : Unit is (Adj + ", characteristics)
+        ("operation Foo (q : Qubit) : Unit is (Adj + Ctl", characteristics)
+        ("operation Foo (q : Qubit) : Unit is (Adj + Ctl)", [])
+        ("operation Foo (q : Qubit) : Unit is Adj + Ctl ", [])
+        ("operation Foo (q : Qubit) : (Int, MyT", types)
+        ("operation Foo (q : Qubit) : (Int,", types)
+        ("operation Foo (q : Qubit) : (Int, MyT ", [])
+        ("operation Foo (q : (", types)
+        ("operation Foo (q : (Qubit", types)
+        ("operation Foo (q : (Qubit,", types)
+        ("operation Foo (q : (Qubit, ", types)
+        ("operation Foo (q : (Qubit, Qubit", types)
+        ("operation Foo (q : (Qubit, Qubit ", [])
+        ("operation Foo (q : (Qubit, Qubit), ", [Declaration])
+        ("operation Foo (q : (Qubit => ", types)
+        ("operation Foo (q : (Qubit => Unit", types)
+        ("operation Foo (q : (Qubit => Unit ", [Keyword "is"])
+        ("operation Foo (q : (Qubit => Unit is ", characteristics)
+        ("operation Foo (q : (Qubit => Unit is Adj", characteristics)
+        ("operation Foo (q : (Qubit => Unit is Adj ", [])
+        ("operation Foo (q : (Qubit => Unit is Adj + ", characteristics)
+        ("operation Foo (q : (Qubit => Unit is Adj)", [])
+        ("operation Foo (q : (Qubit => Unit is Adj)) : Unit", types)
+        ("operation Foo (q : ((Qubit => Unit ", [])
+        ("operation Foo (q : ((Qubit => Unit) ", [Keyword "is"])
+        ("operation Foo (q : ((Qubit => Unit) is ", characteristics)
+        ("operation Foo (q : ((Qubit => Unit) is Adj", characteristics)
+        ("operation Foo (q : ((Qubit => Unit) is Adj)", [])
+        ("operation Foo (q : ((Qubit => Unit) is Adj))", [])
+        ("operation Foo (q : ((Qubit => Unit) is Adj)) :", types)
+        ("operation Foo (f : (Int -> ", types)
+        ("operation Foo (f : (Int -> Int)) : Unit", types)
+        ("operation Foo (f : (Int -> Int)) : Unit ", [Keyword "is"])
+        ("operation Foo (q : (Int => Int)) : Unit", types)
+        ("operation Foo (q : ((Int -> Int) => ", types)
+        ("operation Foo (q : ((Int -> Int) => Int ", [Keyword "is"])
+        ("operation Foo (q : ((Int -> Int) => Int)) : Unit", types)
+        ("operation Foo (q : ((Int->Int)=>Int)) : Unit", types)
+        ("operation Foo (q : ((Int -> Int) -> Int)) : Unit", types)
+        ("operation Foo (q : ((Int => Int) => Int)) : Unit", types)
+        ("operation Foo<'T> (q : 'T) : Unit", types)
+        ("operation Foo<'T> (q : ('T => Int)) : Unit", types)
+        ("operation Foo<'T> (q : ('T -> Int)) : Unit", types)
+        ("operation Foo<'T> (q : ('T->Int)) : Unit", types)
+        ("operation Foo<'T> (q : (MyType -> Int)) : Unit", types)
+    ]
+    List.iter (fails NamespaceTopLevel) [
+        "operation Foo (q : Qubit) : Unit is Adj + Cat "
+        "operation Foo (q : Qubit) : (Int, MyT is Adj"
+        "operation Foo (q : Qubit) : (Int, MyT is Adj "
+    ]
 
 [<Fact>]
 let ``Type declaration parser tests`` () =
-    let test = testAs NamespaceTopLevel
-    test "newtype " [Declaration]
-    test "newtype MyType" [Declaration]
-    test "newtype MyType " []
-    test "newtype MyType =" types
-    test "newtype MyType = " types
-    test "newtype MyType = Int" types
-    test "newtype MyType = Int " []
-    test "newtype MyType = (" (Declaration :: types)
-    test "newtype MyType = (In" (Declaration :: types)
-    test "newtype MyType = (Int" (Declaration :: types)
-    test "newtype MyType = (Int " []
-    test "newtype MyType = (Int," (Declaration :: types)
-    test "newtype MyType = (Int, Boo" (Declaration :: types)
-    test "newtype MyType = (Int, Bool" (Declaration :: types)
-    test "newtype MyType = (Int, Bool)" []
-    test "newtype MyType = (MyItem :" types
-    test "newtype MyType = (MyItem : " types
-    test "newtype MyType = (MyItem : In" types
-    test "newtype MyType = (MyItem : Int" types
-    test "newtype MyType = (MyItem : Int," (Declaration :: types)
-    test "newtype MyType = (MyItem : Int, " (Declaration :: types)
-    test "newtype MyType = (MyItem : Int, Boo" (Declaration :: types)
-    test "newtype MyType = (MyItem : Int, Bool" (Declaration :: types)
-    test "newtype MyType = (MyItem : Int, Bool)" []
-    test "newtype MyType = (MyItem : Int, (" (Declaration :: types)
-    test "newtype MyType = (MyItem : Int, (Item2" (Declaration :: types)
-    test "newtype MyType = (MyItem : Int, (Item2 " []
-    test "newtype MyType = (MyItem : Int, (Item2, " (Declaration :: types)
-    test "newtype MyType = (MyItem : Int, (Item2, Item3 :" types
-    test "newtype MyType = (MyItem : Int, (Item2, Item3 : Int)" []
-    test "newtype MyType = (MyItem : Int, (Item2, Item3 : Int))" []
+    List.iter (matches NamespaceTopLevel) [
+        ("newtype ", [Declaration])
+        ("newtype MyType", [Declaration])
+        ("newtype MyType ", [])
+        ("newtype MyType =", types)
+        ("newtype MyType = ", types)
+        ("newtype MyType = Int", types)
+        ("newtype MyType = Int ", [])
+        ("newtype MyType = (", Declaration :: types)
+        ("newtype MyType = (In", Declaration :: types)
+        ("newtype MyType = (Int", Declaration :: types)
+        ("newtype MyType = (Int ", [])
+        ("newtype MyType = (Int,", Declaration :: types)
+        ("newtype MyType = (Int, Boo", Declaration :: types)
+        ("newtype MyType = (Int, Bool", Declaration :: types)
+        ("newtype MyType = (Int, Bool)", [])
+        ("newtype MyType = (MyItem :", types)
+        ("newtype MyType = (MyItem : ", types)
+        ("newtype MyType = (MyItem : In", types)
+        ("newtype MyType = (MyItem : Int", types)
+        ("newtype MyType = (MyItem : Int,", Declaration :: types)
+        ("newtype MyType = (MyItem : Int, ", Declaration :: types)
+        ("newtype MyType = (MyItem : Int, Boo", Declaration :: types)
+        ("newtype MyType = (MyItem : Int, Bool", Declaration :: types)
+        ("newtype MyType = (MyItem : Int, Bool)", [])
+        ("newtype MyType = (MyItem : Int, (", Declaration :: types)
+        ("newtype MyType = (MyItem : Int, (Item2", Declaration :: types)
+        ("newtype MyType = (MyItem : Int, (Item2 ", [])
+        ("newtype MyType = (MyItem : Int, (Item2, ", Declaration :: types)
+        ("newtype MyType = (MyItem : Int, (Item2, Item3 :", types)
+        ("newtype MyType = (MyItem : Int, (Item2, Item3 : Int)", [])
+        ("newtype MyType = (MyItem : Int, (Item2, Item3 : Int))", [])
+    ]
 
 [<Fact>]
 let ``Open directive parser tests`` () =
-    let test = testAs NamespaceTopLevel
-    test "open " [Namespace]
-    test "open Microsoft" [Namespace]
-    test "open Microsoft." [Member ("Microsoft", Namespace)]
-    test "open Microsoft.Quantum" [Member ("Microsoft", Namespace)]
-    test "open Microsoft.Quantum." [Member ("Microsoft.Quantum", Namespace)]
-    test "open Microsoft.Quantum.Math" [Member ("Microsoft.Quantum", Namespace)]
-    test "open Microsoft.Quantum.Math " [Keyword "as"]
-    test "open Microsoft.Quantum.Math as" [Keyword "as"]
-    test "open Microsoft.Quantum.Math as " [Declaration]
-    test "open Microsoft.Quantum.Math as Math" [Declaration]
-    test "open Microsoft.Quantum.Math as Math " []
-    test "open Microsoft.Quantum.Math as My" [Declaration]
-    test "open Microsoft.Quantum.Math as My." [Member ("My", Declaration)]
-    test "open Microsoft.Quantum.Math as My.Math" [Member ("My", Declaration)]
-    test "open Microsoft.Quantum.Math as My.Math " []
+    List.iter (matches NamespaceTopLevel) [
+        ("open ", [Namespace])
+        ("open Microsoft", [Namespace])
+        ("open Microsoft.", [Member ("Microsoft", Namespace)])
+        ("open Microsoft.Quantum", [Member ("Microsoft", Namespace)])
+        ("open Microsoft.Quantum.", [Member ("Microsoft.Quantum", Namespace)])
+        ("open Microsoft.Quantum.Math", [Member ("Microsoft.Quantum", Namespace)])
+        ("open Microsoft.Quantum.Math ", [Keyword "as"])
+        ("open Microsoft.Quantum.Math as", [Keyword "as"])
+        ("open Microsoft.Quantum.Math as ", [Declaration])
+        ("open Microsoft.Quantum.Math as Math", [Declaration])
+        ("open Microsoft.Quantum.Math as Math ", [])
+        ("open Microsoft.Quantum.Math as My", [Declaration])
+        ("open Microsoft.Quantum.Math as My.", [Member ("My", Declaration)])
+        ("open Microsoft.Quantum.Math as My.Math", [Member ("My", Declaration)])
+        ("open Microsoft.Quantum.Math as My.Math ", [])
+    ]
 
 [<Fact>]
 let ``Expression statement parser tests`` () =
-    let test = testAs Statement
     let expression = [
         Variable
         Keyword "new"
@@ -236,209 +256,214 @@ let ``Expression statement parser tests`` () =
         Keyword "false"
         Keyword "_"
     ]
-    let infix = [Keyword "and"; Keyword "or"]
-    test "" expression
-    test "x" expression
-    test "x " infix
-    test "2 " infix
-    test "x or" infix
-    test "x or " expression
-    test "x or y" expression
-    test "x or y " infix
-    test "x or y and" infix
-    test "x or y and " expression
-    test "x or y and not" expression
-    test "x or y and not " expression
-    test "x or y and not z" expression
-    test "x or y and not not " expression
-    test "x or y and not not z" expression
-    test "x +" expression
-    test "x + " expression
-    test "x + 2" []
-    test "x >" expression
-    test "x > " expression
-    test "x > y" expression
-    test "x > y " infix
-    test "x <" (expression @ types)
-    test "x < " (expression @ types)
-    test "x < y" (expression @ types)
-    test "x < y " infix
-    test "x &&&" expression
-    test "x &&& " expression
-    test "x &&& y" expression
-    test "~~~" expression
-    test "~~~x" expression
-    test "~~~x " infix
-    test "foo!" infix
-    test "foo! " infix
-    test "foo! and" infix
-    test "foo! and " expression
-    test "foo! and bar" expression
-    test "foo! and bar " infix
-    test "Foo(" expression
-    test "Foo()" infix
-    test "Foo." [Member ("Foo", Variable)]
-    test "Foo.Bar" [Member ("Foo", Variable)]
-    test "Foo.Bar(" expression
-    test "Foo.Bar()" infix
-    test "Foo(x" expression
-    test "Foo(x," expression
-    test "Foo(x, " expression
-    test "Foo(x, y" expression
-    test "Foo(x, y)" infix
-    test "Foo(true, Zero)" infix
-    test "Foo(2)" infix
-    test "Foo(1.2)" infix
-    test "Foo(1." []
-    test "Foo(-0.111)" infix
-    test "Foo(2, 1.2, -0.111)" infix
-    test "Foo(_" expression
-    test "Foo(_)" infix
-    test "Foo(_," expression
-    test "Foo(_, " expression
-    test "Foo(_, 2" []
-    test "Foo(_, 2)" infix
-    test "Foo<" (expression @ types)
-    test "Foo<>" infix
-    test "Foo<>(" expression
-    test "Foo<>(2" []
-    test "Foo<>(2," expression
-    test "Foo<>(2, " expression
-    test "Foo<>(2, f" expression
-    test "Foo<>(2, false" expression
-    test "Foo<>(2, false)" infix
-    test "Foo<I" (expression @ types)
-    test "Foo<Int" (expression @ types)
-    test "Foo<Int>" infix
-    test "Foo<Int," types
-    test "Foo<Int, " types
-    test "Foo<Int, B" types
-    test "Foo<Int, Bool>" infix
-    test "Foo<Int, Bool>(" expression
-    test "Foo<Int, Bool>(2" []
-    test "Foo<Int, Bool>(2," expression
-    test "Foo<Int, Bool>(2, " expression
-    test "Foo<Int, Bool>(2, f" expression
-    test "Foo<Int, Bool>(2, false" expression
-    test "Foo<Int, Bool>(2, false)" infix
-    test "Adjoint" expression
-    test "Adjoint " [Keyword "Adjoint"; Keyword "Controlled"; Variable]
-    test "Adjoint Foo" [Keyword "Adjoint"; Keyword "Controlled"; Variable]
-    test "Adjoint Foo " infix
-    test "Adjoint Foo(q)" infix
-    test "[" expression
-    test "[x" expression
-    test "[x]" infix
-    test "[x " infix
-    test "[x a" infix
-    test "[x and" infix
-    test "[x and " expression
-    test "[x and y," expression
-    test "[x and y, z" expression
-    test "[x and y, z]" infix
-    test "(" expression
-    test "(x" expression
-    test "(x)" infix
-    test "(x " infix
-    test "(x a" infix
-    test "(x and" infix
-    test "(x and " expression
-    test "(x and y," expression
-    test "(x and y, z" expression
-    test "(x and y, z)" infix
-    test "x[" expression
-    test "x[y " infix
-    test "x[2 + " expression
-    test "x[2]" infix
-    test "x[y]" infix
-    test "x[Length" expression
-    test "x[Length(" expression
-    test "x[Length(x" expression
-    test "x[Length(x)" infix
-    test "x[Length(x) -" expression
-    test "x[Length(x) - " expression
-    test "x[Length(x) - 1" []
-    test "x[Length(x) - 1]" infix
-    test "x[1 .. " expression
-    test "x[1 ..." []
-    test "x[1..." []
-    test "x[..." expression
-    test "x[...2" []
-    test "x[...2]" infix
-    test "x[...2..." []
-    test "x[...2...]" infix
-    test "x[1 ...]" infix
-    test "x[...]" infix
-    test "(Foo())[" expression
-    test "(Foo())[2]" infix
-    test "(Foo())[y]" infix
-    test "(Foo())[Length" expression
-    test "(Foo())[Length(" expression
-    test "(Foo())[Length(x" expression
-    test "(Foo())[Length(x)" infix
-    test "(Foo())[Length(x) -" expression
-    test "(Foo())[Length(x) - " expression
-    test "(Foo())[Length(x) - 1" []
-    test "(Foo())[Length(x) - 1]" infix
-    test "(Foo())[1 .. " expression
-    test "(Foo())[1 ..." []
-    test "(Foo())[1 ...]" infix
-    test "new" expression
-    test "new " types
-    test "new Int" types
-    test "new Int[" expression
-    test "new Int[x" expression
-    test "new Int[x " infix
-    test "new Int[x +" expression
-    test "new Int[x + 1" []
-    test "new Int[x + 1]" infix
-    test "new Int[][" expression
-    test "new Int[][2" []
-    test "new Int[][2]" infix
-    test "x::" [NamedItem]
-    test "x::Foo" [NamedItem]
-    test "x::Foo " infix
-    test "(Foo())::" [NamedItem]
-    test "(Foo())::Foo" [NamedItem]
-    test "(Foo())::Foo " infix
-    test "arr w" infix
-    test "arr w/" (NamedItem :: expression)
-    test "arr w/ 2" []
-    test "arr w/ 2 " infix
-    test "arr w/ 2.." expression
-    test "arr w/ 2..4" []
-    test "arr w/ 2..4 <-" expression
-    test "arr w/ 2..4 <- true" expression
-    test "x w/ Foo" (NamedItem :: expression)
-    test "x w/ Foo " infix
-    test "x w/ Foo <-" expression
-    test "x w/ Foo <- false" expression
-    test "Foo() ?" expression
-    test "Foo() ? 1 + 2 |" expression
-    test "Foo() ? 1 + 2 | 4" []
-    test "Foo() ? 1 + 2 | 4 " infix
-    test "\"" []
-    test "\"hello" []
-    test "\"hello\"" infix
-    test "\"hello\\\"" []
-    test "\"hello\\\"world" []
-    test "\"hello\\\"world\"" infix
-    test "$\"hello" []
-    test "$\"hello {" expression
-    test "$\"hello {x " infix
-    test "$\"hello {x +" expression
-    test "$\"hello {x + " expression
-    test "$\"hello {x + y" expression
-    test "$\"hello {x + y}" []
-    test "$\"hello {x + y}\"" infix
-    test "$\"hello \\{" []
-    test "$\"hello \\{x " []
-    test "$\"hello \\{x +" []
-    test "$\"hello \\{x + " []
-    test "$\"hello \\{x + y" []
-    test "$\"hello \\{x + y}" []
-    test "$\"hello \\{x + y}\"" infix
-    test "$\"hello {$\"" []
-    test "$\"hello {$\"hi\"" infix
-    test "$\"hello {$\"hi\"}" []
-    test "$\"hello {$\"hi\"}\"" infix
+    let infix = [
+        Keyword "and"
+        Keyword "or"
+    ]
+    List.iter (matches Statement) [
+        ("", expression)
+        ("x", expression)
+        ("x ", infix)
+        ("2 ", infix)
+        ("x or", infix)
+        ("x or ", expression)
+        ("x or y", expression)
+        ("x or y ", infix)
+        ("x or y and", infix)
+        ("x or y and ", expression)
+        ("x or y and not", expression)
+        ("x or y and not ", expression)
+        ("x or y and not z", expression)
+        ("x or y and not not ", expression)
+        ("x or y and not not z", expression)
+        ("x +", expression)
+        ("x + ", expression)
+        ("x + 2", [])
+        ("x >", expression)
+        ("x > ", expression)
+        ("x > y", expression)
+        ("x > y ", infix)
+        ("x <", expression @ types)
+        ("x < ", expression @ types)
+        ("x < y", expression @ types)
+        ("x < y ", infix)
+        ("x &&&", expression)
+        ("x &&& ", expression)
+        ("x &&& y", expression)
+        ("~~~", expression)
+        ("~~~x", expression)
+        ("~~~x ", infix)
+        ("foo!", infix)
+        ("foo! ", infix)
+        ("foo! and", infix)
+        ("foo! and ", expression)
+        ("foo! and bar", expression)
+        ("foo! and bar ", infix)
+        ("Foo(", expression)
+        ("Foo()", infix)
+        ("Foo.", [Member ("Foo", Variable)])
+        ("Foo.Bar", [Member ("Foo", Variable)])
+        ("Foo.Bar(", expression)
+        ("Foo.Bar()", infix)
+        ("Foo(x", expression)
+        ("Foo(x,", expression)
+        ("Foo(x, ", expression)
+        ("Foo(x, y", expression)
+        ("Foo(x, y)", infix)
+        ("Foo(true, Zero)", infix)
+        ("Foo(2)", infix)
+        ("Foo(1.2)", infix)
+        ("Foo(1.", [])
+        ("Foo(-0.111)", infix)
+        ("Foo(2, 1.2, -0.111)", infix)
+        ("Foo(_", expression)
+        ("Foo(_)", infix)
+        ("Foo(_,", expression)
+        ("Foo(_, ", expression)
+        ("Foo(_, 2", [])
+        ("Foo(_, 2)", infix)
+        ("Foo<", expression @ types)
+        ("Foo<>", infix)
+        ("Foo<>(", expression)
+        ("Foo<>(2", [])
+        ("Foo<>(2,", expression)
+        ("Foo<>(2, ", expression)
+        ("Foo<>(2, f", expression)
+        ("Foo<>(2, false", expression)
+        ("Foo<>(2, false)", infix)
+        ("Foo<I", expression @ types)
+        ("Foo<Int", expression @ types)
+        ("Foo<Int>", infix)
+        ("Foo<Int,", types)
+        ("Foo<Int, ", types)
+        ("Foo<Int, B", types)
+        ("Foo<Int, Bool>", infix)
+        ("Foo<Int, Bool>(", expression)
+        ("Foo<Int, Bool>(2", [])
+        ("Foo<Int, Bool>(2,", expression)
+        ("Foo<Int, Bool>(2, ", expression)
+        ("Foo<Int, Bool>(2, f", expression)
+        ("Foo<Int, Bool>(2, false", expression)
+        ("Foo<Int, Bool>(2, false)", infix)
+        ("Adjoint", expression)
+        ("Adjoint ", [Keyword "Adjoint"; Keyword "Controlled"; Variable])
+        ("Adjoint Foo", [Keyword "Adjoint"; Keyword "Controlled"; Variable])
+        ("Adjoint Foo ", infix)
+        ("Adjoint Foo(q)", infix)
+        ("[", expression)
+        ("[x", expression)
+        ("[x]", infix)
+        ("[x ", infix)
+        ("[x a", infix)
+        ("[x and", infix)
+        ("[x and ", expression)
+        ("[x and y,", expression)
+        ("[x and y, z", expression)
+        ("[x and y, z]", infix)
+        ("(", expression)
+        ("(x", expression)
+        ("(x)", infix)
+        ("(x ", infix)
+        ("(x a", infix)
+        ("(x and", infix)
+        ("(x and ", expression)
+        ("(x and y,", expression)
+        ("(x and y, z", expression)
+        ("(x and y, z)", infix)
+        ("x[", expression)
+        ("x[y ", infix)
+        ("x[2 + ", expression)
+        ("x[2]", infix)
+        ("x[y]", infix)
+        ("x[Length", expression)
+        ("x[Length(", expression)
+        ("x[Length(x", expression)
+        ("x[Length(x)", infix)
+        ("x[Length(x) -", expression)
+        ("x[Length(x) - ", expression)
+        ("x[Length(x) - 1", [])
+        ("x[Length(x) - 1]", infix)
+        ("x[1 .. ", expression)
+        ("x[1 ...", [])
+        ("x[1...", [])
+        ("x[...", expression)
+        ("x[...2", [])
+        ("x[...2]", infix)
+        ("x[...2...", [])
+        ("x[...2...]", infix)
+        ("x[1 ...]", infix)
+        ("x[...]", infix)
+        ("(Foo())[", expression)
+        ("(Foo())[2]", infix)
+        ("(Foo())[y]", infix)
+        ("(Foo())[Length", expression)
+        ("(Foo())[Length(", expression)
+        ("(Foo())[Length(x", expression)
+        ("(Foo())[Length(x)", infix)
+        ("(Foo())[Length(x) -", expression)
+        ("(Foo())[Length(x) - ", expression)
+        ("(Foo())[Length(x) - 1", [])
+        ("(Foo())[Length(x) - 1]", infix)
+        ("(Foo())[1 .. ", expression)
+        ("(Foo())[1 ...", [])
+        ("(Foo())[1 ...]", infix)
+        ("new", expression)
+        ("new ", types)
+        ("new Int", types)
+        ("new Int[", expression)
+        ("new Int[x", expression)
+        ("new Int[x ", infix)
+        ("new Int[x +", expression)
+        ("new Int[x + 1", [])
+        ("new Int[x + 1]", infix)
+        ("new Int[][", expression)
+        ("new Int[][2", [])
+        ("new Int[][2]", infix)
+        ("x::", [NamedItem])
+        ("x::Foo", [NamedItem])
+        ("x::Foo ", infix)
+        ("(Foo())::", [NamedItem])
+        ("(Foo())::Foo", [NamedItem])
+        ("(Foo())::Foo ", infix)
+        ("arr w", infix)
+        ("arr w/", NamedItem :: expression)
+        ("arr w/ 2", [])
+        ("arr w/ 2 ", infix)
+        ("arr w/ 2..", expression)
+        ("arr w/ 2..4", [])
+        ("arr w/ 2..4 <-", expression)
+        ("arr w/ 2..4 <- true", expression)
+        ("x w/ Foo", NamedItem :: expression)
+        ("x w/ Foo ", infix)
+        ("x w/ Foo <-", expression)
+        ("x w/ Foo <- false", expression)
+        ("Foo() ?", expression)
+        ("Foo() ? 1 + 2 |", expression)
+        ("Foo() ? 1 + 2 | 4", [])
+        ("Foo() ? 1 + 2 | 4 ", infix)
+        ("\"", [])
+        ("\"hello", [])
+        ("\"hello\"", infix)
+        ("\"hello\\\"", [])
+        ("\"hello\\\"world", [])
+        ("\"hello\\\"world\"", infix)
+        ("$\"hello", [])
+        ("$\"hello {", expression)
+        ("$\"hello {x ", infix)
+        ("$\"hello {x +", expression)
+        ("$\"hello {x + ", expression)
+        ("$\"hello {x + y", expression)
+        ("$\"hello {x + y}", [])
+        ("$\"hello {x + y}\"", infix)
+        ("$\"hello \\{", [])
+        ("$\"hello \\{x ", [])
+        ("$\"hello \\{x +", [])
+        ("$\"hello \\{x + ", [])
+        ("$\"hello \\{x + y", [])
+        ("$\"hello \\{x + y}", [])
+        ("$\"hello \\{x + y}\"", infix)
+        ("$\"hello {$\"", [])
+        ("$\"hello {$\"hi\"", infix)
+        ("$\"hello {$\"hi\"}", [])
+        ("$\"hello {$\"hi\"}\"", infix)
+    ]

@@ -43,9 +43,8 @@ type IdentifierKind =
     | NamedItem
 
 /// The exception that is thrown when the completion parser can't parse the text of a fragment.
-exception CompletionParserError of detail : string * error : ParserError with
-    override this.Message = this.error.ToString()
-    override this.ToString() = this.detail
+exception CompletionParserError of message : string with
+    override this.Message = this.message
 
 /// Merges the error messages from all replies in the list.
 let rec private toErrorMessageList (replies : Reply<'a> list) =
@@ -394,4 +393,4 @@ let GetExpectedIdentifiers env text =
         | Statement -> statement
     match runParserOnString parser [] "" (text + "\u0004") with
     | Success (result, _, _) -> Set.ofList result
-    | Failure (detail, error, _) -> raise <| CompletionParserError (detail, error)
+    | Failure (detail, _, _) -> raise (CompletionParserError detail)
