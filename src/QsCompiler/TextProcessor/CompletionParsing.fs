@@ -439,6 +439,24 @@ let private borrowingHeader =
     let binding = symbolTuple ?>> expected equal ?>> qubitInitializerTuple
     expectedKeyword qsBorrowing ?>> expectedBrackets (lTuple, rTuple) binding
 
+/// Parses an operation functor declaration.
+let private functorDeclaration =
+    let argumentTuple = tuple (expectedId Declaration (term symbol) <|> expected omittedSymbols)
+    let generator = 
+        pcollect [
+            expectedKeyword intrinsicFunctorGenDirective
+            expectedKeyword autoFunctorGenDirective
+            expectedKeyword selfFunctorGenDirective
+            expectedKeyword invertFunctorGenDirective
+            expectedKeyword distributeFunctorGenDirective
+            argumentTuple
+        ]
+    pcollect [
+        expectedKeyword ctrlDeclHeader ?>> (expectedKeyword adjDeclHeader ?>> generator <|>@ generator)
+        expectedKeyword adjDeclHeader ?>> (expectedKeyword ctrlDeclHeader ?>> generator <|>@ generator)
+        expectedKeyword bodyDeclHeader ?>> generator
+    ]
+
 /// Parses statements that are valid in both functions and operations.
 let private callableStatement =
     pcollect [
@@ -461,6 +479,7 @@ let private operationStatement =
         repeatHeader
         usingHeader
         borrowingHeader
+        functorDeclaration  // TODO: This is only valid at the top level of an operation.
     ] .>> eotEof <|>@ callableStatement
 
 /// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end

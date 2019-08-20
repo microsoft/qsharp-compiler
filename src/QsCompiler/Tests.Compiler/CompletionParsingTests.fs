@@ -76,6 +76,9 @@ let private operationStatement =
         Keyword "repeat"
         Keyword "using"
         Keyword "borrowing"
+        Keyword "body"
+        Keyword "adjoint"
+        Keyword "controlled"
     ]
 
 [<Fact>]
@@ -376,6 +379,13 @@ let ``Function statement parser tests`` () =
 
 [<Fact>]
 let ``Operation statement parser tests`` () =
+    let functorGen = [
+        Keyword "intrinsic"
+        Keyword "auto"
+        Keyword "self"
+        Keyword "invert"
+        Keyword "distribute"
+    ]
     List.iter (matches OperationStatement) [
         ("repeat ", [])
         ("using ", [])
@@ -433,6 +443,27 @@ let ``Operation statement parser tests`` () =
         ("borrowing ((q, r) = (Qubit(),", [Keyword "Qubit"])
         ("borrowing ((q, r) = (Qubit(), Qubit()", [])
         ("borrowing ((q, r) = (Qubit(), Qubit())", [])
+        ("body ", functorGen)
+        ("body intrinsic ", [])
+        ("body (", [Declaration])
+        // TODO: ("body (.", [])
+        // TODO: ("body (..", [])
+        ("body (...", [])
+        ("body (...)", [])
+        ("adjoint ", Keyword "controlled" :: functorGen)
+        ("adjoint self ", [])
+        ("adjoint invert ", [])
+        ("adjoint auto ", [])
+        ("controlled ", Keyword "adjoint" :: functorGen)
+        ("controlled auto ", [])
+        ("controlled distribute ", [])
+        ("controlled (", [Declaration])
+        ("controlled (cs,", [Declaration])
+        // TODO: ("controlled (cs, .", [])
+        // TODO: ("controlled (cs, ..", [])
+        ("controlled (cs, ...", [])
+        ("controlled (cs, ...)", [])
+        ("controlled adjoint ", functorGen)
     ]
 
 [<Fact>]
