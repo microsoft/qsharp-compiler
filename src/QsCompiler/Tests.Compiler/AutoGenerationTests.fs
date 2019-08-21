@@ -196,7 +196,7 @@ type FunctorAutoGenTests (output:ITestOutputHelper) =
         this.Expect "ValidInversion2"        []
         this.Expect "ValidInversion3"        []
         this.Expect "ValidInversion4"        []
-        this.Expect "ValidInversion5"        []
+        this.Expect "ValidInversion5"        [Error ErrorCode.ReturnFromWithinApplyBlock]
         this.Expect "ValidInversion6"        []
         this.Expect "ValidInversion7"        []
         this.Expect "ValidInversion8"        []
