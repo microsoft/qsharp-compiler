@@ -167,6 +167,21 @@ type TypedExpression with
         | CallLikeExpression (_, args) -> args |> containsMissing
         | _ -> false
 
+    /// Returns true if the expression kind does not contain any inner expressions. 
+    static member private IsAtomic (kind : QsExpressionKind<'E, _, _>) = 
+        match kind with
+        | UnitValue
+        | Identifier _ 
+        | IntLiteral _
+        | BigIntLiteral _ 
+        | DoubleLiteral _ 
+        | BoolLiteral _ 
+        | ResultLiteral _ 
+        | PauliLiteral _ 
+        | MissingExpr
+        | InvalidExpr -> true
+        | _ -> false
+
     /// Returns true if the expression contains a sub-expression satisfying the given condition.
     /// Returns false otherwise.
     member public this.Exists (condition : TypedExpression -> bool) =
@@ -176,8 +191,9 @@ type TypedExpression with
             | NOT ex  
             | AdjointApplication ex             
             | ControlledApplication ex          
-            | UnwrapApplication ex              
-            | NewArray (_, ex)                   -> ex.Exists condition
+            | UnwrapApplication ex 
+            | NamedItem (ex, _)
+            | NewArray (_, ex)                        -> ex.Exists condition
             | ADD (lhs,rhs)                     
             | SUB (lhs,rhs)                     
             | MUL (lhs,rhs)                     
@@ -199,12 +215,14 @@ type TypedExpression with
             | NEQ (lhs,rhs)
             | RangeLiteral (lhs, rhs)    
             | ArrayItem (lhs, rhs)              
-            | CallLikeExpression (lhs,rhs)       -> lhs.Exists condition || rhs.Exists condition
-            | CONDITIONAL(cond, ifTrue, ifFalse) -> cond.Exists condition || ifTrue.Exists condition || ifFalse.Exists condition
+            | CallLikeExpression (lhs,rhs)            -> lhs.Exists condition || rhs.Exists condition
+            | CopyAndUpdate(ex1, ex2, ex3)
+            | CONDITIONAL(ex1, ex2, ex3)              -> ex1.Exists condition || ex2.Exists condition || ex3.Exists condition
             | StringLiteral (_,items)            
             | ValueTuple items                  
-            | ValueArray items                   -> items |> Seq.map (fun item -> item.Exists condition) |> Seq.contains true            
-            | _                                  -> false
+            | ValueArray items                        -> items |> Seq.map (fun item -> item.Exists condition) |> Seq.contains true 
+            | kind when TypedExpression.IsAtomic kind -> false
+            | _  -> NotImplementedException "missing implementation for the given expression kind" |> raise
 
     /// Recursively applies the given function inner to the given item and  
     /// applies the given extraction function to each contained subitem of the returned expression kind.
@@ -217,8 +235,9 @@ type TypedExpression with
         | NOT ex  
         | AdjointApplication ex             
         | ControlledApplication ex          
-        | UnwrapApplication ex              
-        | NewArray (_, ex)                   -> ex |> recur
+        | UnwrapApplication ex  
+        | NamedItem (ex, _)
+        | NewArray (_, ex)                        -> ex |> recur
         | ADD (lhs,rhs)                     
         | SUB (lhs,rhs)                     
         | MUL (lhs,rhs)                     
@@ -240,12 +259,14 @@ type TypedExpression with
         | NEQ (lhs,rhs)
         | RangeLiteral (lhs, rhs)    
         | ArrayItem (lhs, rhs)              
-        | CallLikeExpression (lhs,rhs)       -> (lhs |> recur).Concat (rhs |> recur)
-        | CONDITIONAL(cond, ifTrue, ifFalse) -> ((cond |> recur).Concat (ifTrue |> recur)).Concat (ifFalse |> recur)
+        | CallLikeExpression (lhs,rhs)            -> (lhs |> recur).Concat (rhs |> recur)
+        | CopyAndUpdate(ex1, ex2, ex3)
+        | CONDITIONAL(ex1, ex2, ex3)              -> ((ex1 |> recur).Concat (ex2 |> recur)).Concat (ex3 |> recur)
         | StringLiteral (_,items)            
         | ValueTuple items                  
-        | ValueArray items                   -> items |> Seq.collect recur            
-        | _                                  -> Seq.empty
+        | ValueArray items                        -> items |> Seq.collect recur
+        | kind when TypedExpression.IsAtomic kind -> Seq.empty
+        | _  -> NotImplementedException "missing implementation for the given expression kind" |> raise
         |> (extract this).Concat
 
     /// Walks the given expression, 

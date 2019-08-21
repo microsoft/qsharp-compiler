@@ -207,7 +207,7 @@ module private SymbolResolution =
         | ArrayType baseType -> [baseType] |> AccumulateInner resolve (buildWith (fun ts -> ArrayType ts.[0]))
         | TupleType items    -> items |> AccumulateInner resolve (buildWith TupleType) 
         | QsTypeKind.TypeParameter sym -> sym.Symbol |> function 
-            | Symbol name -> processTypeParameter (name, range) |> fun (k, errs) -> k |> asResolvedType, errs
+            | Symbol name -> processTypeParameter (name, sym.Range) |> fun (k, errs) -> k |> asResolvedType, errs
             | InvalidSymbol -> invalid, [||]
             | _ -> invalid, [| range |> QsCompilerDiagnostic.Error (ErrorCode.ExpectingUnqualifiedSymbol, []) |]
         | QsTypeKind.Operation ((arg,res), characteristics) -> 
@@ -216,8 +216,8 @@ module private SymbolResolution =
             [arg; res] |> AccumulateInner resolve (buildWith builder)
         | QsTypeKind.Function (arg,res) -> [arg; res] |> AccumulateInner resolve (buildWith (fun ts -> QsTypeKind.Function (ts.[0], ts.[1])))
         | UserDefinedType name -> name.Symbol |> function
-            | Symbol sym -> processUDT ((None, sym), range) |> fun (k, errs) -> k |> asResolvedType, errs
-            | QualifiedSymbol (ns, sym) -> processUDT ((Some ns, sym), range) |> fun (k, errs) -> k |> asResolvedType, errs
+            | Symbol sym -> processUDT ((None, sym), name.Range) |> fun (k, errs) -> k |> asResolvedType, errs
+            | QualifiedSymbol (ns, sym) -> processUDT ((Some ns, sym), name.Range) |> fun (k, errs) -> k |> asResolvedType, errs
             | InvalidSymbol -> invalid, [||]
             | MissingSymbol | OmittedSymbols | SymbolTuple _ -> invalid, [| range |> QsCompilerDiagnostic.Error (ErrorCode.ExpectingIdentifier, []) |]
         | UnitType    -> QsTypeKind.UnitType    |> asResolvedType, [||] 
