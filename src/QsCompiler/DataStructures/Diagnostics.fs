@@ -133,14 +133,15 @@ type ErrorCode =
     | MissingPrecedingRepeat = 4103
     | MissingPrecedingWithin = 4104
     | MissingContinuationApply = 4105
-    | DistributedAdjointGenerator = 4106
-    | InvalidBodyGenerator = 4107
-    | BodyGenArgMismatch = 4108
-    | AdjointGenArgMismatch = 4109
-    | SelfControlledGenerator = 4110
-    | InvertControlledGenerator = 4111
-    | ControlledGenArgMismatch = 4112
-    | ControlledAdjointGenArgMismatch = 4113
+    | ReturnFromWithinApplyBlock = 4106 // temporary restriction
+    | DistributedAdjointGenerator = 4107
+    | InvalidBodyGenerator = 4108
+    | BodyGenArgMismatch = 4109
+    | AdjointGenArgMismatch = 4110
+    | SelfControlledGenerator = 4111
+    | InvertControlledGenerator = 4112
+    | ControlledGenArgMismatch = 4113
+    | ControlledAdjointGenArgMismatch = 4114
 
     | MissingExprInArray = 5001
     | MultipleTypesInArray = 5002
@@ -440,7 +441,7 @@ type DiagnosticItem =
             | ErrorCode.AdjointDeclInFunction                   -> "Adjoint specializations can only be defined for operations."
             | ErrorCode.ControlledDeclInFunction                -> "Controlled specializations can only be defined for operations."
             | ErrorCode.ControlledAdjointDeclInFunction         -> "Controlled-adjoint specializations can only be defined for operations."
-            | ErrorCode.InvalidReturnWithinAllocationScope      -> "Return statements may only occur at the end of a using- or borrowing-block."
+            | ErrorCode.InvalidReturnWithinAllocationScope      -> "Return-statements may only occur at the end of a using- or borrowing-block."
             | ErrorCode.WhileLoopInOperation                    -> "While-loops cannot be used in operations. Avoid conditional loops in operations if possible, and use a repeat-until-success pattern otherwise."
             | ErrorCode.ConjugationWithinFunction               -> "Conjugations may only occur within operations, since they cannot add to the expressiveness within functions."
                                                             
@@ -449,6 +450,7 @@ type DiagnosticItem =
             | ErrorCode.MissingPrecedingRepeat                  -> "An until-clause must be preceded by a repeat-block."
             | ErrorCode.MissingPrecedingWithin                  -> "An apply-block must be preceded by the within-block."
             | ErrorCode.MissingContinuationApply                -> "A within-block must be followed by an apply-block."
+            | ErrorCode.ReturnFromWithinApplyBlock              -> "Return-statements may not occur in an apply-block." 
             | ErrorCode.DistributedAdjointGenerator             -> "Invalid generator for adjoint specialization. Valid generators are \"invert\", \"self\" and \"auto\"."
             | ErrorCode.InvalidBodyGenerator                    -> "Invalid generator for body specialization. A body specialization must be user defined (\"body (...)\"), or specified as intrinsic (\"body intrinsic\")."
             | ErrorCode.BodyGenArgMismatch                      -> "The argument to a user-defined body specialization must be of the form \"(...)\"."

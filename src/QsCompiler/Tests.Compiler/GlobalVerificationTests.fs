@@ -132,7 +132,7 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
         this.Expect "AllPathsReturnValue11"    []
         this.Expect "AllPathsReturnValue12"    []
         this.Expect "AllPathsReturnValue13"    [Error ErrorCode.ReturnStatementWithinAutoInversion]
-        this.Expect "AllPathsReturnValue14"    []
+        this.Expect "AllPathsReturnValue14"    [Error ErrorCode.ReturnFromWithinApplyBlock; Error ErrorCode.MissingReturnOrFailStatement] // these are both due to temporary restrictions
 
         this.Expect "AllPathsFail1"     []
         this.Expect "AllPathsFail2"     []
@@ -196,7 +196,7 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
         this.Expect "InvalidReturnFromWithinUsing4"      [Error ErrorCode.InvalidReturnWithinAllocationScope; Warning WarningCode.UnreachableCode]
         this.Expect "InvalidReturnFromWithinUsing5"      [Error ErrorCode.InvalidReturnWithinAllocationScope]
         this.Expect "InvalidReturnFromWithinUsing6"      [Error ErrorCode.ReturnStatementWithinAutoInversion; Error ErrorCode.InvalidReturnWithinAllocationScope]
-        this.Expect "InvalidReturnFromWithinUsing7"      [Error ErrorCode.InvalidReturnWithinAllocationScope]
+        this.Expect "InvalidReturnFromWithinUsing7"      [Error ErrorCode.ReturnFromWithinApplyBlock]
         this.Expect "InvalidReturnFromWithinUsing8"      [Error ErrorCode.InvalidReturnWithinAllocationScope; Warning WarningCode.UnreachableCode]
         this.Expect "InvalidReturnFromWithinUsing9"      [Error ErrorCode.InvalidReturnWithinAllocationScope]
         this.Expect "InvalidReturnFromWithinUsing10"     [Error ErrorCode.InvalidReturnWithinAllocationScope; Error ErrorCode.InvalidReturnWithinAllocationScope]
@@ -222,7 +222,7 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
         this.Expect "InvalidReturnFromWithinBorrowing6"  [Error ErrorCode.InvalidReturnWithinAllocationScope; Warning WarningCode.UnreachableCode; Warning WarningCode.UnreachableCode]
         this.Expect "InvalidReturnFromWithinBorrowing7"  [Error ErrorCode.InvalidReturnWithinAllocationScope; Warning WarningCode.UnreachableCode]
         this.Expect "InvalidReturnFromWithinBorrowing8"  [Error ErrorCode.ReturnStatementWithinAutoInversion; Error ErrorCode.InvalidReturnWithinAllocationScope]
-        this.Expect "InvalidReturnFromWithinBorrowing9"  [Error ErrorCode.InvalidReturnWithinAllocationScope]
+        this.Expect "InvalidReturnFromWithinBorrowing9"  [Error ErrorCode.ReturnFromWithinApplyBlock]
         this.Expect "InvalidReturnFromWithinBorrowing10" [Error ErrorCode.InvalidReturnWithinAllocationScope; Warning WarningCode.UnreachableCode]
         this.Expect "InvalidReturnFromWithinBorrowing11" [Error ErrorCode.InvalidReturnWithinAllocationScope]
         this.Expect "InvalidReturnFromWithinBorrowing12" [Error ErrorCode.InvalidReturnWithinAllocationScope]
@@ -262,9 +262,9 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
         this.Expect "InvalidReturnPlacement13"           [Error ErrorCode.InvalidReturnWithinAllocationScope]
         this.Expect "InvalidReturnPlacement14"           [Error ErrorCode.InvalidReturnWithinAllocationScope]
         this.Expect "InvalidReturnPlacement15"           [Error ErrorCode.InvalidReturnWithinAllocationScope]
-        this.Expect "InvalidReturnPlacement16"           [Error ErrorCode.InvalidReturnWithinAllocationScope]
+        this.Expect "InvalidReturnPlacement16"           [Error ErrorCode.ReturnFromWithinApplyBlock]
         this.Expect "InvalidReturnPlacement17"           [Error ErrorCode.ReturnStatementWithinAutoInversion; Error ErrorCode.InvalidReturnWithinAllocationScope]
-        this.Expect "InvalidReturnPlacement18"           [Error ErrorCode.InvalidReturnWithinAllocationScope]
+        this.Expect "InvalidReturnPlacement18"           [Error ErrorCode.ReturnFromWithinApplyBlock]
         this.Expect "InvalidReturnPlacement19"           [Error ErrorCode.ReturnStatementWithinAutoInversion; Error ErrorCode.InvalidReturnWithinAllocationScope]
         this.Expect "InvalidReturnPlacement20"           [Error ErrorCode.ReturnStatementWithinAutoInversion; Error ErrorCode.InvalidReturnWithinAllocationScope; Warning WarningCode.UnreachableCode]
 
