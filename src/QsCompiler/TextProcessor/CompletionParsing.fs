@@ -304,6 +304,7 @@ let rec private expression = parse {
             operator qsGTEop.op None
             operator qsGTop.op None
             operator qsRSHIFTop.op None
+            operator qsLSHIFTop.op None
             operator qsADDop.op None
             operator qsSUBop.op None
             operator qsMULop.op None
