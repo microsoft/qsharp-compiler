@@ -642,26 +642,27 @@ and NamespaceManager
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations. 
     /// Throws a NonSupportedException if the QsType to resolve contains a MissingType. 
     member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>) (qsType : QsType) : ResolvedType * QsCompilerDiagnostic[] = 
+        let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
         let tryResolveTypeName (tName, tRange) = 
             match (parent.Namespace, source) |> PossibleResolutions (fun ns -> ns.ContainsType tName) with 
-            | [] -> Null, [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, []) |]
+            | [] -> Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, []) |]
             | [res] -> Value res, [||]
             | resolutions -> 
                 let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
-                Null, [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
-        let processUDT ((nsName, symName), range) = 
+                Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
+        let processUDT ((nsName, symName), symRange) = 
             match nsName with 
-            | None -> tryResolveTypeName (symName, range) |> function
-                | Value (ns, _), errs -> UserDefinedType {Namespace = ns; Name = symName; Range = qsType.Range}, errs 
+            | None -> tryResolveTypeName (symName, symRange) |> function
+                | Value (ns, _), errs -> UserDefinedType {Namespace = ns; Name = symName; Range = symRange}, errs 
                 | Null, errs -> InvalidType, errs
             | Some qualifier -> (parent.Namespace, source) |> TryResolveQualifier qualifier |> function
-                | None -> InvalidType, [| range |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |] 
+                | None -> InvalidType, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |] 
                 | Some ns -> ns.ContainsType symName |> function
-                    | Value _ -> UserDefinedType {Namespace = ns.Name; Name = symName; Range = qsType.Range}, [||]
-                    | Null -> InvalidType, [| range |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, []) |]
-        let processTP (symName, range) = 
-            if tpNames |> Seq.contains symName then TypeParameter {Origin = parent; TypeName = symName; Range = qsType.Range}, [||]
-            else InvalidType, [| range |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, []) |]
+                    | Value _ -> UserDefinedType {Namespace = ns.Name; Name = symName; Range = symRange}, [||]
+                    | Null -> InvalidType, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, []) |]
+        let processTP (symName, symRange) = 
+            if tpNames |> Seq.contains symName then TypeParameter {Origin = parent; TypeName = symName; Range = symRange}, [||]
+            else InvalidType, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, []) |]
         SymbolResolution.ResolveType (processUDT, processTP) qsType
 
     /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the specified source file. 

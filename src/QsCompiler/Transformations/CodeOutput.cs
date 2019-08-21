@@ -1287,7 +1287,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             generator.SetAllInvalid(this);
 
             generator.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name.Value}");
-            this.AddBlock(() => generator.ProcessNamespaceElements(ns.Elements));
+            generator.AddBlock(() => generator.ProcessNamespaceElements(ns.Elements));
             this._Output.AddRange(generator._Output);
             return ns;
         }
