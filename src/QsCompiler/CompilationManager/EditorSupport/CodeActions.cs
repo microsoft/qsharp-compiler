@@ -21,16 +21,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         /// <summary>
         /// Returns the given edit for the specified file as WorkspaceEdit.
-        /// Filters any edits that are null. 
-        /// Throws an ArgumentNullException if any of the given arguments is null. 
+        /// Throws an ArgumentNullException if the given file or any of the given edits is null. 
         /// </summary>
         private static WorkspaceEdit GetWorkspaceEdit(this FileContentManager file, params TextEdit[] edits) 
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
-            if (edits == null) throw new ArgumentNullException(nameof(edits));
+            if (edits == null || edits.Any(edit => edit == null)) throw new ArgumentNullException(nameof(edits));
 
             var versionedFileId = new VersionedTextDocumentIdentifier { Uri = file.Uri, Version = 1 }; // setting version to null here won't work in VS Code ...
-            edits = edits.Where(edit => edit != null).ToArray();
             return new WorkspaceEdit
             {
                 DocumentChanges = new[] { new TextDocumentEdit { TextDocument = versionedFileId, Edits = edits } },
@@ -71,6 +69,67 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Returns all code fragments in the specified file that overlap with the given range. 
+        /// Returns an empty sequence if any of the given arguments is null. 
+        /// </summary>
+        private static IEnumerable<CodeFragment> FragmentsOverlappingWithRange(this FileContentManager file, Range range)
+        {
+            if (file == null || range?.Start == null || range.End == null) return Enumerable.Empty<CodeFragment>();
+            var (start, end) = (range.Start.Line, range.End.Line);
+
+            var fragAtStart = file.TryGetFragmentAt(range?.Start, out var _, includeEnd: true);
+            var inRange = file.GetTokenizedLine(start).Select(t => t.WithUpdatedLineNumber(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
+            inRange = start == end
+                ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
+                : inRange.Concat(file.GetTokenizedLines(start + 1, end - start - 1).SelectMany((x, i) => x.Select(t => t.WithUpdatedLineNumber(start + 1 + i))))
+                    .Concat(file.GetTokenizedLine(end).Select(t => t.WithUpdatedLineNumber(end)).Where(ContextBuilder.TokensStartingBefore(range.End)));
+
+            var fragments = ImmutableArray.CreateBuilder<CodeFragment>();
+            if (fragAtStart != null) fragments.Add(fragAtStart);
+            fragments.AddRange(inRange);
+            return fragments.ToImmutableArray();
+        }
+
+        /// <summary>
+        /// Return an enumerable of suitable edits to add open directives for all given namespaces for which no open directive already exists. 
+        /// Returns an edit for opening a given namespace even if an alias is already defined for that namespace. 
+        /// Returns an empty enumerable if suitable edits could not be determined. 
+        /// </summary>
+        private static IEnumerable<TextEdit> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, params NonNullable<string>[] namespaces)
+        {
+            // determine the first fragment in the containing namespace
+            var nsElements = file?.NamespaceDeclarationTokens()
+                .TakeWhile(t => t.Line <= lineNr).LastOrDefault() // going by line here is fine - inaccuracies if someone has multiple namespace and callable declarations on the same line seem acceptable...
+                ?.GetChildren(deep: false);
+            var firstInNs = nsElements?.FirstOrDefault()?.GetFragment();
+            if (firstInNs == null) return Enumerable.Empty<TextEdit>();
+
+            // determine what open directives already exist
+            var insertOpenDirAt = firstInNs.GetRange().Start;
+            var openDirs = nsElements.Select(t => t.GetFragment().Kind?.OpenedNamespace())
+                .TakeWhile(opened => opened?.IsValue ?? false)
+                .Select(opened => (
+                    opened.Value.Item.Item1.Symbol.AsDeclarationName(null),
+                    opened.Value.Item.Item2.IsValue ? opened.Value.Item.Item2.Item.Symbol.AsDeclarationName("") : null))
+                .Where(opened => opened.Item1 != null)
+                .GroupBy(opened => opened.Item1, opened => opened.Item2) // in case there are duplicate open directives...
+                .ToImmutableDictionary(opened => opened.Key, opened => opened.First());
+
+            // range and whitespace info for inserting open directives
+            var openDirEditRange = new Range { Start = insertOpenDirAt, End = insertOpenDirAt };
+            var additionalLinesAfterOpenDir = firstInNs.Kind.OpenedNamespace().IsNull ? $"{Environment.NewLine}{Environment.NewLine}" : "";
+            var indentationAfterOpenDir = file.GetLine(insertOpenDirAt.Line).Text.Substring(0, insertOpenDirAt.Character);
+            var whitespaceAfterOpenDir = $"{Environment.NewLine}{additionalLinesAfterOpenDir}{(String.IsNullOrWhiteSpace(indentationAfterOpenDir) ? indentationAfterOpenDir : "    ")}";
+
+            // construct a suitable edit
+            return namespaces.Distinct().Where(ns => !openDirs.Contains(ns.Value, null)).Select(suggestedNS =>  // filter all namespaces that are already open
+            {
+                var directive = $"{Keywords.importDirectiveHeader.id} {suggestedNS.Value}";
+                return new TextEdit { Range = openDirEditRange, NewText = $"{directive};{whitespaceAfterOpenDir}" };
+            });
+        }
+
+        /// <summary>
         /// Returns a sequence of suggestions on how errors for ambiguous types and callable in the given diagnostics can be fixed, 
         /// given the file for which those diagnostics were generated and the corresponding compilation. 
         /// Returns an empty enumerable if any of the given arguments is null. 
@@ -99,50 +158,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Return an enumerable of suitable open directives for all given namespaces for which no open directive already exists. 
-        /// Returns an edit for opening a given namespace even if an alias is already defined for that namespace. 
-        /// Returns an empty enumerable if suitable edits could not be determined. 
-        /// </summary>
-        private static IEnumerable<(string, TextEdit)> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, IEnumerable<NonNullable<string>> namespaces)
-        {
-            // determine the first fragment in the containing namespace
-            var nsElements = file?.NamespaceDeclarationTokens()
-                .TakeWhile(t => t.Line <= lineNr).LastOrDefault() // going by line here is fine - inaccuracies if someone has multiple namespace and callable declarations on the same line seem acceptable...
-                ?.GetChildren(deep: false);
-            var firstInNs = nsElements?.FirstOrDefault()?.GetFragment();
-            if (firstInNs == null) return Enumerable.Empty<(string, TextEdit)>();
-
-            // determine what open directives already exist
-            var insertOpenDirAt = firstInNs.GetRange().Start;
-            var openDirs = nsElements.Select(t => t.GetFragment().Kind?.OpenedNamespace())
-                .TakeWhile(opened => opened?.IsValue ?? false)
-                .Select(opened => (
-                    opened.Value.Item.Item1.Symbol.AsDeclarationName(null), 
-                    opened.Value.Item.Item2.IsValue ? opened.Value.Item.Item2.Item.Symbol.AsDeclarationName("") : null))
-                .Where(opened => opened.Item1 != null)
-                .GroupBy(opened => opened.Item1, opened => opened.Item2) // in case there are duplicate open directives...
-                .ToImmutableDictionary(opened => opened.Key, opened => opened.First());
-
-            // range and whitespace info for inserting open directives
-            var openDirEditRange = new Range { Start = insertOpenDirAt, End = insertOpenDirAt };
-            var indentationAfterOpenDir = file.GetLine(insertOpenDirAt.Line).Text.Substring(0, insertOpenDirAt.Character);
-            var additionalLinesAfterOpenDir = firstInNs.Kind.OpenedNamespace().IsNull ? $"{Environment.NewLine}{Environment.NewLine}" : "";
-            var whitespaceAfterOpenDir = $"{Environment.NewLine}{additionalLinesAfterOpenDir}{indentationAfterOpenDir}";
-
-            // construct a suitable edit
-            (string, TextEdit) SuggestedOpenDirective(NonNullable<string> suggestedNS)
-            {
-                var directive = $"{Keywords.importDirectiveHeader.id} {suggestedNS.Value}";
-                var edit = new TextEdit { Range = openDirEditRange, NewText = $"{directive};{whitespaceAfterOpenDir}" };
-                return (directive, edit);
-            }
-
-            return namespaces.Distinct()
-                .Where(ns => !openDirs.Contains(ns.Value, null)) // filter all namespaces that are already open
-                .Select(SuggestedOpenDirective);
-        }
-
-        /// <summary>
         /// Returns a sequence of suggestions on how errors for unknown types and callable in the given diagnostics can be fixed, 
         /// given the file for which those diagnostics were generated and the corresponding compilation. 
         /// The given line number is used to determine the containing namespace. 
@@ -160,8 +175,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .SelectMany(pos => file.NamespaceSuggestionsForIdAtPosition(pos, compilation, out var _));
             var suggestionsForTypes = unknownTypes.Select(d => d.Range.Start)
                 .SelectMany(pos => file.NamespaceSuggestionsForTypeAtPosition(pos, compilation, out var _));
-            return file.OpenDirectiveSuggestions(lineNr, suggestionsForIds.Concat(suggestionsForTypes))
-                .Select(edit => (edit.Item1, file.GetWorkspaceEdit(edit.Item2)));
+            return file.OpenDirectiveSuggestions(lineNr, suggestionsForIds.Concat(suggestionsForTypes).ToArray())
+                .Select(edit => (edit.NewText.Trim().Trim(';'), file.GetWorkspaceEdit(edit)));
         }
 
         /// <summary>
@@ -271,20 +286,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Processes the index range replace code action. It first checks if the current fragment
-        /// is a valid match for the code action's targeted expression pattern. If so, it will
-        /// create edits that will change something of the form "for (i in 0 .. Length(ary)-1)" to
-        /// "for (i in IndexRange(ary))". It will then check if IndexRange is known in the current
-        /// namespace, and if it is not, it will create an edit to add the appropriate open directive.
+        /// Returns a sequence of suggestions for replacing ranges over array indices with the corresponding library call, 
+        /// provided the corresponding library is referenced. 
+        /// Returns an empty enumerable if this is not the case or any of the given arguments is null. 
         /// </summary>
-        /// <returns>The workspace edit appropriate for this code action, or null if the code action is not applicable</returns>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForIndexRange
             (this FileContentManager file, CompilationUnit compilation, Range range)
         {
             if (file == null || compilation == null || range?.Start == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
             var indexRangeNamespaces = compilation.GlobalSymbols.NamespacesContainingCallable(SyntaxGenerator.BuiltInCallables.IndexRange.Name);
             if (!indexRangeNamespaces.Contains(SyntaxGenerator.BuiltInCallables.IndexRange.Namespace)) return Enumerable.Empty<(string, WorkspaceEdit)>();
-            var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, new[] { SyntaxGenerator.BuiltInCallables.IndexRange.Namespace }).Select(edit => edit.Item2);
+            var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, SyntaxGenerator.BuiltInCallables.IndexRange.Namespace);
 
             /// Returns true the given expression is of the form "0 .. Length(args) - 1", 
             /// as well as the range of the entire expression and the argument tuple "(args)" as out parameters. 
@@ -312,7 +324,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// The returned edits do *not* include an edit for adding the corresponding open-directive if necessary. 
             IEnumerable<TextEdit> IndexRangeEdits(CodeFragment fragment)
             {
-                if (fragment.Kind is QsFragmentKind.ForLoopIntro forLoopIntro &&
+                if (fragment.Kind is QsFragmentKind.ForLoopIntro forLoopIntro && // todo: in principle we could give these suggestions for any index range
                     IsIndexRange(forLoopIntro.Item2, fragment.GetRange().Start, out var iterExprRange, out var argTupleRange))
                 {
                     yield return new TextEdit()
@@ -383,28 +395,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(d => SuggestedRemoval(d.Range?.Start))
                 .Where(edit => edit != null)
                 .Select(edit => ("Remove unreachable code.", edit));
-        }
-
-        /// <summary>
-        /// Returns all code fragments in the specified file that overlap with the given range. 
-        /// Returns an empty sequence if any of the given arguments is null. 
-        /// </summary>
-        private static IEnumerable<CodeFragment> FragmentsOverlappingWithRange(this FileContentManager file, Range range)
-        {
-            if (file == null || range?.Start == null || range.End == null) return Enumerable.Empty<CodeFragment>();
-            var (start, end) = (range.Start.Line, range.End.Line);
-
-            var fragAtStart = file.TryGetFragmentAt(range?.Start, out var _, includeEnd: true);
-            var inRange = file.GetTokenizedLine(start).Select(t => t.WithUpdatedLineNumber(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
-            inRange = start == end
-                ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
-                : inRange.Concat(file.GetTokenizedLines(start + 1, end - start - 1).SelectMany((x, i) => x.Select(t => t.WithUpdatedLineNumber(start + 1 + i))))
-                    .Concat(file.GetTokenizedLine(end).Select(t => t.WithUpdatedLineNumber(end)).Where(ContextBuilder.TokensStartingBefore(range.End)));
-
-            var fragments = ImmutableArray.CreateBuilder<CodeFragment>();
-            if (fragAtStart != null) fragments.Add(fragAtStart);
-            fragments.AddRange(inRange);
-            return fragments.ToImmutableArray();
         }
 
         /// <summary>
