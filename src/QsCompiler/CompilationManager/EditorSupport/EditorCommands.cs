@@ -114,12 +114,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var suggestionsForAmbiguousIds = file.SuggestionsForAmbiguousIdentifiers(compilation, context?.Diagnostics);
             var suggestionsForDeprecatedSyntax = file.SuggestionsForDeprecatedSyntax(context?.Diagnostics);
             var suggestionsForUpdateAndReassign = file.SuggestionsForUpdateAndReassignStatements(context?.Diagnostics);
+            var suggestionsForIndexRange = file.SuggestionsForIndexRange(compilation, range);
             var suggestionsForUnreachableCode = file.SuggestionsForUnreachableCode(context?.Diagnostics);
             var suggestionsForDocComments = file.DocCommentSuggestions(range);
             return suggestionsForUnknownIds
                 .Concat(suggestionsForAmbiguousIds)
                 .Concat(suggestionsForDeprecatedSyntax)
                 .Concat(suggestionsForUpdateAndReassign)
+                .Concat(suggestionsForIndexRange)
                 .Concat(suggestionsForUnreachableCode)
                 .Concat(suggestionsForDocComments)
                 .ToImmutableDictionary(s => s.Item1, s => s.Item2);
