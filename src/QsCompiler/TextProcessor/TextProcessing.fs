@@ -8,8 +8,11 @@ open FParsec
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens 
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.TextProcessing.CodeFragments
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
+open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 
 
 // some utils for text processing
@@ -115,3 +118,22 @@ let HeaderDelimiters nrHeaders =
     |>> fun ((pos1, following), pos2) -> 
         if nrHeaders <= following.Length then (pos1, following.[nrHeaders-1]) else (pos1, pos2)
     |> GetDelimiters
+
+/// Parse an illegal array item update set statement for use by the copy-and-update recommendation code action.
+/// Returns the ending position, array identifier and index, and right-hand side.
+let ProcessUpdateOfArrayItemExpr =
+    let ParseUpdateOfArrayItemExpr parser text = 
+        let onError _ = streamStart, "", "", ""
+        text |> ParseWith parser onError
+    // Parses a single-line, single-dimension array item update, ex: set arr[0] = i
+    let parseSimpleUpdateOfArrayItem =
+        let nonNewLineChars = many1Satisfy (fun c -> c <> '\n' && c <> '\r')
+        let setStatement = spaces >>. pstring Statements.Set .>> spaces
+        let arrIdentifier = many1Satisfy (isSymbolContinuation) .>> spaces
+        let equalOrWs = spaces >>. equal
+        let simpleArrIndex = (arrayBrackets nonNewLineChars |>> fst) .>> followedBy equalOrWs
+        let rhsContents = equalOrWs >>. (remainingText |>> snd)
+        setStatement >>. arrIdentifier .>>. simpleArrIndex .>>. rhsContents .>>. posInfo
+    parseSimpleUpdateOfArrayItem
+    |>> fun (((ident, idx), rhs), pos4) -> (pos4, ident, idx, rhs)
+    |> ParseUpdateOfArrayItemExpr

@@ -578,7 +578,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 for (var i = start + 1; i < end; ++i) FilterAndMarkEdited(i, _ => false); // remove all
                 if (start != end) FilterAndMarkEdited(end, ContextBuilder.TokensAfter(new Position(0, range.End.Character)));
 
-                var enveloppingFragment = this.TryGetFragmentAt(range.Start);
+                var enveloppingFragment = this.TryGetFragmentAt(range.Start, out var _);
                 if (enveloppingFragment != null)
                 {
                     start = enveloppingFragment.GetRange().Start.Line;
