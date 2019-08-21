@@ -71,16 +71,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if the given ranges overlap.
-        /// Throws the corresponding exception if any of the given ranges is invalid.
-        /// </summary>
-        internal static bool Overlaps(this Range range1, Range range2)
-        {
-            var (first, second) = range1.Start.IsSmallerThan(range2.Start) ? (range1, range2) : (range2, range1);
-            return second.Start.IsSmallerThan(first.End);
-        }
-
-        /// <summary>
         /// Given the location information for a declared symbol,
         /// as well as the position of the declaration within which the symbol is declared, 
         /// returns the zero-based line and character index indicating the position of the symbol in the file.
