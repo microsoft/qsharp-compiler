@@ -69,9 +69,9 @@ let private missingExpr =
 let private (?>>) p1 p2 =
     attempt (p1 .>> eof) <|> (p1 >>. p2)
 
-/// `p1 @>> p2` parses `p1` then `p2` and concatenates the results.
+/// `p1 @>> p2` parses `p1`, then `p2` (if `p1` did not consume all input), and concatenates the results.
 let private (@>>) p1 p2 =
-    p1 .>>. p2 |>> fun (list1, list2) -> list1 @ list2
+    p1 .>>. (eof >>% [] <|> p2) |>> fun (list1, list2) -> list1 @ list2
 
 /// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
 /// results from all parsers that succeeded into a single list.
@@ -107,10 +107,25 @@ let private symbol =
         identifier <| IdentifierOptions (isAsciiIdStart = isSymbolStart, isAsciiIdContinue = isSymbolContinuation)
     notFollowedBy qsReservedKeyword >>. qsIdentifier <|> (qsIdentifier .>> followedBy eot)
 
-/// Parses an operator. The `after` parser (if specified) must also succeed after the operator string `op` is parsed.
+/// Parses an operator one character at a time. Shows completions for the items following the operator as soon as all
+/// characters have been parsed, even without a space following the operator, but parsing fails if the operator is
+/// followed by any of the characters in `notAfter`.
+///
 /// Returns the empty list.
-let private operator op after =
-    term (pstring op >>. Option.defaultValue (preturn ()) after) >>% []
+let private eagerOperator (op: string) notAfter =
+    // For operators that start with letters (e.g., "w/"), group the letters together with the first operator character
+    // to avoid a conflict with keyword or symbol parsers.
+    let numLetters = Seq.length (Seq.takeWhile Char.IsLetter op)
+    let charByChar p c = p ?>> ((eot >>% ()) <|> (pchar c >>% ()))
+    let p = Seq.fold charByChar (pstring op.[..numLetters] >>% ()) op.[numLetters + 1..]
+    attempt (p ?>> nextCharSatisfiesNot (fun c -> Seq.contains c notAfter)) >>. (emptySpace >>% ()) >>% []
+
+/// Parses an operator one character at a time. Completions will not be shown for the items following the operator if
+/// the operator is not followed by a space, to avoid ambiguity with other operators that have the same prefix.
+///
+/// Returns the empty list.
+let private operator op =
+    eagerOperator op "" >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot <|> preturn ()) >>% []
 
 /// Parses `p` unless EOT occurs first. Returns the empty list.
 let private expected p =
@@ -146,15 +161,22 @@ let private expectedQualifiedSymbol kind =
 let private unitValue : Parser<IdentifierKind list, QsCompilerDiagnostic list> =
     term (pchar '(' >>. emptySpace >>. expected (pchar ')')) |>> fst
 
-/// `manyR p` is like `many p` but is reentrant on the last item if the last item is followed by EOT. This is useful if,
-/// for example, the last item is incomplete such that it is ambiguous whether the last item is part of the list or is
-/// actually a delimiter.
-let private manyR p stream =
-    let last = (p .>> previousCharSatisfies ((<>) '\u0004') |> attempt |> many1 |>> List.last) stream
-    let next = (p .>> previousCharSatisfies ((=) '\u0004') |> lookAhead) stream
-    if next.Status = Ok then next
-    elif last.Status = Ok then last
-    else Reply []
+/// `manyR p shouldBacktrack` is like `many p` but is reentrant on the last item if
+///     1. The last item is followed by EOT; and
+///     2. `shouldBacktrack` succeeds at the beginning of the last item, or the last item consists of only EOT.
+///
+/// This is useful if it is ambiguous whether the last item belongs to `p` or the parser that comes after `manyR`.
+let private manyR p shouldBacktrack stream =
+    let last = (many1 (getCharStreamState .>>. attempt p) |>> List.last) stream
+    if last.Status <> Ok then
+        Reply []
+    else
+        let after = (getCharStreamState stream).Result
+        let consumedEot = (previousCharSatisfies ((<>) '\u0004') stream).Status = Ok
+        stream.BacktrackTo (fst last.Result)
+        if ((notFollowedBy shouldBacktrack >>. notFollowedBy eot) stream).Status = Ok || consumedEot then
+            stream.BacktrackTo after |> ignore
+        Reply (snd last.Result)
 
 /// `manyLast p` is like `many p` but returns only the result of the last item, or the empty list if no items were
 /// parsed.
@@ -192,13 +214,13 @@ let private array p =
 
 /// Creates an expression parser using the given prefix operator, infix operator, postfix operator, and term parsers.
 let private createExpressionParser prefixOp infixOp postfixOp expTerm =
-    let termBundle = manyR prefixOp @>> expTerm ?>> manyLast postfixOp
+    let termBundle = manyR prefixOp symbol @>> expTerm ?>> manyLast postfixOp
     termBundle @>> manyLast (infixOp ?>> termBundle)
 
 /// Parses the characteristics keyword followed by a characteristics expression.
 let private characteristicsAnnotation =
     let rec characteristicsExpr = parse {
-        let infixOp = operator qsSetUnion.op None <|> operator qsSetIntersection.op None
+        let infixOp = operator qsSetUnion.op <|> operator qsSetIntersection.op
         let expTerm = pcollect [
             brackets (lTuple, rTuple) characteristicsExpr
             expectedKeyword qsAdjSet
@@ -288,52 +310,32 @@ let private namespaceTopLevel =
 
 /// Parses an expression.
 let rec private expression = parse {
-    let prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op None <|> operator qsBNOTop.op None
+    let prefixOp = expectedKeyword notOperator <|> eagerOperator qsNEGop.op "" <|> eagerOperator qsBNOTop.op ""
     
     let infixOp =
-        // Do not include LT here; it is parsed as a postfix operator instead.
         choice [
-            expectedKeyword andOperator <|>@ expectedKeyword orOperator
-            operator qsRangeOp.op None
-            operator qsBORop.op None
-            operator qsBXORop.op None
-            operator qsBANDop.op None
-            operator qsEQop.op None
-            operator qsNEQop.op None
-            operator qsLTEop.op None
-            operator qsGTEop.op None
-            operator qsGTop.op None
-            operator qsRSHIFTop.op None
-            operator qsLSHIFTop.op None
-            operator qsADDop.op None
-            operator qsSUBop.op None
-            operator qsMULop.op None
-            operator qsMODop.op None
-            operator qsDIVop.op (Some (notFollowedBy (pchar '/')))
-            operator qsPOWop.op None
+            many1Chars (anyOf "-!?.*/&%^+<=>|") >>. optional eot >>. emptySpace >>% []
+            pcollect [
+                expectedKeyword andOperator
+                expectedKeyword orOperator
+            ]
         ]
     
     let postfixOp =
         let copyAndUpdate =
-            operator qsCopyAndUpdateOp.op None >>.
+            operator qsCopyAndUpdateOp.op >>.
             (expression <|>@ expectedId NamedItem (term symbol)) ?>>
-            expected (operator qsCopyAndUpdateOp.cont None) ?>>
-            expression
-        let conditional =
-            operator qsConditionalOp.op None >>.
-            expression ?>>
-            expected (operator qsConditionalOp.cont None) ?>>
+            expected (operator qsCopyAndUpdateOp.cont) ?>>
             expression
         let typeParamListOrLessThan =
             // This is a parsing hack for the < operator, which can be either less-than or the start of a type parameter
             // list.
-            brackets (lAngle, rAngle) (sepByLast qsType comma) <|>@ (operator qsLTop.op None >>. expression)
+            eagerOperator qsLTop.op "=-" ?>> ((sepByLast qsType comma ?>> expected (bracket rAngle)) <|>@ expression)
         choice [
-            operator qsUnwrapModifier.op (Some (notFollowedBy (pchar '=')))
-            operator qsOpenRangeOp.op None .>> optional eot
-            operator qsNamedItemCombinator.op None >>. expectedId NamedItem (term symbol)
+            operator qsUnwrapModifier.op
+            operator qsOpenRangeOp.op
+            eagerOperator qsNamedItemCombinator.op "" ?>> expectedId NamedItem (term symbol)
             copyAndUpdate
-            conditional
             tuple expression
             array expression
             typeParamListOrLessThan
@@ -343,7 +345,7 @@ let rec private expression = parse {
         let newArray =
             expectedKeyword arrayDecl ?>>
             nonArrayType ?>>
-            manyR (brackets (lArray, rArray) (emptySpace >>% [])) @>>
+            manyR (brackets (lArray, rArray) (emptySpace >>% [])) (preturn ()) @>>
             array expression
         let keywordLiteral =
             [
@@ -372,14 +374,14 @@ let rec private expression = parse {
             interpolated <|> uninterpolated
         let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
         pcollect [
-            operator qsOpenRangeOp.op None >>. opt expression |>> Option.defaultValue []
+            operator qsOpenRangeOp.op >>. opt expression |>> Option.defaultValue []
             newArray
             tuple1 expression
             array expression
             keywordLiteral
             numericLiteral >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
             stringLiteral
-            manyR functor @>> expectedQualifiedSymbol Variable
+            manyR functor symbol @>> expectedQualifiedSymbol Variable
         ]
     
     return! createExpressionParser prefixOp infixOp postfixOp expTerm
