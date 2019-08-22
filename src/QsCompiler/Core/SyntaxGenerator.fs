@@ -47,7 +47,7 @@ type private StripRangeInfoFromType () =
 type private StripRangeInfoFromExpression () = 
     inherit ExpressionTransformation()
     let typeTransformation = new StripRangeInfoFromType() :> ExpressionTypeTransformation
-    override this.onRange _ = QsRangeInfo.Null
+    override this.onRangeInformation _ = QsRangeInfo.Null
     override this.Type = typeTransformation
 
 type private StripRangeInfoFromScope() = 

@@ -313,7 +313,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (f.IsControlled) signatureLabel = $"{Keywords.qsControlledFunctor.id} {signatureLabel}";
             }
                 
-            var doc = documentation.PrintSummary(format == MarkupKind.Markdown).TrimStart();
+            var doc = documentation.PrintSummary(format == MarkupKind.Markdown).Trim();
             var info = new SignatureInformation
             {
                 Documentation = AsMarkupContent(doc),

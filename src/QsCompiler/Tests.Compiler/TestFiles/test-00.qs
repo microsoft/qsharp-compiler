@@ -10,7 +10,7 @@ namespace Microsoft.Quantum.Testing {
 
     // First comment
     operation CNOT (q1 : Qubit, q2 : Qubit) : Unit 
-	is Ctl + Adj {
+    is Ctl + Adj {
         body intrinsic;
     }
 
@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.Testing {
         }
 
         using (qs = Qubit [4]) {
-			return One;
+            return One;
         }
     }
 
@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.Testing {
 
 
     operation op1 (q1 : Qubit, r1 : BigEndianRegister) : Unit 
-	is Ctl + Adj {   
+    is Ctl + Adj {   
         adjoint self;
         body (...) {
             let q2 = r1![0];
@@ -80,7 +80,7 @@ namespace Microsoft.Quantum.Testing {
                     }
                 }
             } 
-			else {
+            else {
                 fail "r is supposed to be Zero";
             }
         }

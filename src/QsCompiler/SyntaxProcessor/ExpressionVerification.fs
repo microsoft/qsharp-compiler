@@ -42,7 +42,7 @@ let private ExprWithoutTypeArgs isMutable (ex, t, dep, range) =
     let inferred = InferredExpressionInformation.New (isMutable = isMutable, quantumDep = dep)
     TypedExpression.New (ex, ImmutableDictionary.Empty, t, inferred, range)  
 
-let private missingFunctors (target : ImmutableHashSet<_>, given) =
+let private missingFunctors (target : _ seq, given) =
     let mapFunctors fs = fs |> Seq.map (function | Adjoint -> qsAdjointFunctor.id | Controlled -> qsControlledFunctor.id) |> Seq.toList
     match given with 
     | Some fList -> target.Except(fList) |> mapFunctors

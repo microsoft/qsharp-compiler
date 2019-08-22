@@ -12,6 +12,7 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
@@ -54,6 +55,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool GenerateFunctorSupport;
             /// <summary>
+            /// If set to true, the syntax tree rewrite step that eliminated selective abstractions is executed during compilation. 
+            /// In particular, all conjugations are inlined. 
+            /// </summary>
+            public bool TrimSyntaxTree;
+            /// <summary>
             /// If the output folder is not null, 
             /// documentation is generated in the specified folder based on doc comments in the source code. 
             /// </summary>
@@ -76,6 +82,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal int ReferenceLoading = -1;
             internal int Validation = -1;
             internal int FunctorSupport = -1;
+            internal int TreeTrimming = -1;
             internal int Documentation = -1;
             internal int BinaryFormat = -1;
             internal Dictionary<string, int> BuildTargets;
@@ -91,6 +98,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
+                WasSuccessful(options.TrimSyntaxTree, this.TreeTrimming) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 !this.BuildTargets.Values.Any(status => !WasSuccessful(true, status))
@@ -213,8 +221,16 @@ namespace Microsoft.Quantum.QsCompiler
             if (this.Config.GenerateFunctorSupport)
             {
                 this.CompilationStatus.FunctorSupport = 0;
-                var functorSpecGenerated = this.VerifiedCompilation != null && FunctorGeneration.GenerateFunctorSpecializations(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree);
+                var functorSpecGenerated = this.GeneratedSyntaxTree != null && FunctorGeneration.GenerateFunctorSpecializations(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree);
                 if (!functorSpecGenerated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
+            }
+
+            if (this.Config.TrimSyntaxTree)
+            {
+                this.CompilationStatus.TreeTrimming = 0;
+                var rewrite = new InlineConjugations(onException: ex => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex));
+                this.GeneratedSyntaxTree = this.GeneratedSyntaxTree?.Select(ns => rewrite.Transform(ns))?.ToImmutableArray();
+                if (this.GeneratedSyntaxTree == null || !rewrite.Success) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
             }
 
             // generating the compiled binary

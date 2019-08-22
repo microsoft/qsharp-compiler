@@ -46,11 +46,11 @@
       "patterns": [
         {
           "name": "keyword.control.qsharp",
-          "match": "\\b(if|elif|else|repeat|until|fixup|for|while|in|\\.\\.|w\/|return|fail)\\b"
+          "match": "\\b(using|borrowing|mutable|let|set|if|elif|else|repeat|until|fixup|for|in|while|return|fail|within|apply)\\b"
         },
         {
           "name": "keyword.other.qsharp",
-          "match": "\\b(let|set|new|not|and|or|using|borrowing|newtype|mutable|is)\\b"
+          "match": "\\b(new|not|and|or|\\.\\.|w\/)\\b"
         },
         {
           "comment": "C# reserved words which can't be used in Q#, A-D",
@@ -60,7 +60,7 @@
         {
           "comment": "C# reserved words which can't be used in Q#, E-L",
           "name": "invalid.illegal.el.qsharp",
-          "match": "\\b(enum|event|explicit|extern|finally|fixed|float|foreach|goto|implicit|int|interface|internal|is|lock|long)\\b"
+          "match": "\\b(enum|event|explicit|extern|finally|fixed|float|foreach|goto|implicit|int|interface|internal|lock|long)\\b"
         },
         {
           "comment": "C# reserved words which can't be used in Q#, N-S",
@@ -78,7 +78,7 @@
       "patterns": [
         {
           "name": "keyword.other.qsharp",
-          "match": "\\b(namespace|open|as|operation|function|body|(a|A)djoint|(c|C)ontrolled|Ctl|Adj|self|auto|distribute|invert|intrinsic)\\b"
+          "match": "\\b(namespace|open|as|newtype|operation|function|body|(a|A)djoint|(c|C)ontrolled|self|auto|distribute|invert|intrinsic)\\b"
         }
       ]
     },
@@ -86,7 +86,7 @@
       "patterns": [
         {
           "name": "storage.type.qsharp",
-          "match": "\\b(Int|BigInt|Double|Bool|Qubit|Pauli|Result|Range|String|Unit)\\b"
+          "match": "\\b(Int|BigInt|Double|Bool|Qubit|Pauli|Result|Range|String|Unit|Ctl|Adj|is)\\b"
         }
       ]
     },

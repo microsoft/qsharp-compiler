@@ -211,7 +211,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 var instance = project.CreateProjectInstance();
                 succeed = instance.Build("ResolveAssemblyReferencesDesignTime", loggers);
                 if (!succeed) this.Log($"Failed to resolve assembly references for project '{projectFile}'.", MessageType.Error);
-                return succeed && instance.Targets.ContainsKey("QsharpCompile") ? instance : null;
+                return instance.Targets.ContainsKey("QsharpCompile") ? instance : null;
             });
         }
 
