@@ -435,6 +435,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws the corresponding exception if the given path does not correspond to a suitable binary file.
         /// Potentially throws an exception in particular also if the given binary file has been compiled with a different compiler version. 
         /// </summary>
+        public static IEnumerable<QsNamespace> ReadBinary(string file)
+        {
+            byte[] binary = File.ReadAllBytes(Path.GetFullPath(file));
+            var ms = new MemoryStream(binary);
+            return ReadBinary(ms);
+        }
+
         public static IEnumerable<QsNamespace> ReadBinary(Stream stream)
         {
             using (var reader = new BsonDataReader(stream))
