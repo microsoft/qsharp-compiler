@@ -157,10 +157,10 @@ type TypedExpression with
 
     /// Returns true if the expression contains any missing expression.
     /// Returns false otherwise.
-    static member public containsMissing (ex : TypedExpression) =
+    static member public ContainsMissing (ex : TypedExpression) =
         // we only need to check for top-level missing items
         match ex.TupleItems with
-        | Some items when items.Length > 1 -> items |> List.exists TypedExpression.containsMissing
+        | Some items when items.Length > 1 -> items |> List.exists TypedExpression.ContainsMissing
         | Some [] -> true
         | _ -> false
 
@@ -168,7 +168,7 @@ type TypedExpression with
     /// Returns false otherwise.
     static member public IsPartialApplication kind =
         match kind with
-        | CallLikeExpression (_, args) -> args |> TypedExpression.containsMissing
+        | CallLikeExpression (_, args) -> args |> TypedExpression.ContainsMissing
         | _ -> false
 
     /// Returns true if the expression contains a sub-expression satisfying the given condition.

@@ -121,13 +121,13 @@ let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpressi
     | Missing -> arg
     | Tuple items ->
         let argsList =
-            match List.filter TypedExpression.containsMissing items, arg with
+            match List.filter TypedExpression.ContainsMissing items, arg with
             | [_], _ -> [arg]
             | _, Tuple args -> args
             | _ -> failwithf "args must be a tuple"
         // assert items2.Length = items3.Length
         items |> List.mapFold (fun args t1 ->
-            if TypedExpression.containsMissing t1 then
+            if TypedExpression.ContainsMissing t1 then
                 match args with
                 | [] -> failwithf "ran out of args"
                 | head :: tail -> fillPartialArg (t1, head), tail

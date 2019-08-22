@@ -29,7 +29,8 @@ type private Functors = {
 
 
 /// Tries to decompose a method expression into the method name and the functors applied.
-/// Returns None if the input is not a valid method expression.
+/// Assumes the input is zero or more functors applied to a global callable identifier.
+/// Returns None if the input is not a valid expression of this form.
 let rec private tryGetQualNameAndFunctors method =
     match method.Expression with
     | Identifier (GlobalCallable qualName, _) -> Some (qualName, Functors.None)
@@ -41,7 +42,9 @@ let rec private tryGetQualNameAndFunctors method =
 
 
 /// Tries to split a callable invocation into the functors applied, the callable, and the argument.
-/// Returns None if the input is not a valid callable invocation.
+/// Assumes the input is zero or more functors applied to a global callable identifier,
+/// applied to an expression representing the argument to the callable.
+/// Returns None if the input is not a valid expression of this form.
 let private trySplitCall callables = function
     | CallLikeExpression (method, arg) ->
         tryGetQualNameAndFunctors method |> Option.map (fun (qualName, functors) ->
@@ -76,7 +79,7 @@ type private InliningInfo = {
 }
 
 /// Tries to construct an InliningInfo from the given expression.
-/// Returns None if the expression is not a callable invocation that can be inlining.
+/// Returns None if the expression is not a callable invocation that can be inlined.
 let private tryGetInliningInfo callables expr =
     maybe {
         let! functors, callable, arg = trySplitCall callables expr
@@ -86,7 +89,9 @@ let private tryGetInliningInfo callables expr =
 
 
 /// Recursively finds all the callables that could be inlined into the given scope.
-/// Includes callables that could be indirectly called or inlined into this scope.
+/// Includes callables that are invoked within the implementation of another call.
+/// Eg. if function f invokes function g, and function g invokes function h,
+/// then findAllCalls f will include both g and h (and possibly other callables).
 /// Mutates the given HashSet by adding all the found callables to the set.
 /// Is used to prevent inlining recursive functions into themselves forever.
 let rec private findAllCalls (callables: Callables) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =

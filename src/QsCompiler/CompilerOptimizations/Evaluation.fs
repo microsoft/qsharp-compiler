@@ -202,7 +202,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
                 let fe = FunctionEvaluator (callables, maxRecursiveDepth)
                 return! fe.evaluateFunction qualName arg types
             | CallLikeExpression (baseMethod, partialArg) ->
-                do! check (TypedExpression.containsMissing partialArg)
+                do! check (TypedExpression.ContainsMissing partialArg)
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
@@ -212,7 +212,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         maybe {
             match method.Expression with
             | CallLikeExpression (baseMethod, partialArg) ->
-                do! check (TypedExpression.containsMissing partialArg)
+                do! check (TypedExpression.ContainsMissing partialArg)
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
@@ -321,7 +321,10 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
     override this.onExponentiate (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
-        | BigIntLiteral a, IntLiteral b -> BigIntLiteral (BigInteger.Pow(a, Convert.ToInt32(b)))
+        | BigIntLiteral a, IntLiteral b ->
+            if Math.Abs(b) > int64 (1 <<< 30) then
+                ArgumentException "Integer is too large for an exponent" |> raise
+            BigIntLiteral (BigInteger.Pow(a, Convert.ToInt32(b)))
         | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (Math.Pow(a, b))
         | IntLiteral a, IntLiteral b -> IntLiteral (longPow a b)
         | _ -> POW (lhs, rhs)

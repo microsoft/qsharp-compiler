@@ -1,5 +1,6 @@
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 
+open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -35,19 +36,21 @@ let rec private shouldPropagate callables expr =
 type internal ConstantPropagator(callables) =
     inherit OptimizingTransformation()
     
-    /// The current dictionary of values to substitute for variables
+    /// The current dictionary that maps variables to the values we substitute for them
     let mutable constants = Constants []
-    /// Whether we should skip entering the next scope we encounter
-    let mutable skipScope = false
+    /// How many times we should skip entering the next scope we encounter
+    let mutable skipScopes = 0
 
 
     /// The ScopeTransformation used to evaluate constants
     override syntaxTree.Scope = { new ScopeTransformation() with
 
         override scope.Transform x =
-            if skipScope then
-                skipScope <- false
-                base.Transform x
+            if skipScopes > 0 then
+                skipScopes <- skipScopes - 1
+                let result = base.Transform x
+                skipScopes <- skipScopes + 1
+                result
             else
                 constants <- enterScope constants
                 let result = base.Transform x
@@ -96,8 +99,9 @@ type internal ConstantPropagator(callables) =
 
             override this.onRepeatStatement stm =
                 constants <- enterScope constants
-                skipScope <- true
+                skipScopes <- skipScopes + 1
                 let result = base.onRepeatStatement stm
+                skipScopes <- skipScopes - 1
                 constants <- exitScope constants
                 result
 
@@ -109,9 +113,11 @@ type internal ConstantPropagator(callables) =
                 jointFlatten (lhs, rhs) |> Seq.iter (fun (l, r) ->
                     match l, r.Resolution with
                     | VariableName name, QubitRegisterAllocation {Expression = IntLiteral num} ->
+                        if num > int64 (1 <<< 30) then
+                            ArgumentException "Cannot allocate qubit arrays of this size" |> raise
                         let arrayIden = Identifier (LocalVariable name, Null) |> wrapExpr (ArrayType (ResolvedType.New Qubit))
                         let elemI = fun i -> ArrayItem (arrayIden, IntLiteral (int64 i) |> wrapExpr Int)
-                        let expr = List.init (int num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray
+                        let expr = Seq.init (int num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray
                         constants <- defineVar (fun _ -> true) constants (name.Value, expr)
                     | _ -> ())
 
