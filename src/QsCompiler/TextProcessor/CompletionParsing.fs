@@ -107,25 +107,15 @@ let private symbol =
         identifier <| IdentifierOptions (isAsciiIdStart = isSymbolStart, isAsciiIdContinue = isSymbolContinuation)
     notFollowedBy qsReservedKeyword >>. qsIdentifier <|> (qsIdentifier .>> followedBy eot)
 
-/// Parses an operator one character at a time. Shows completions for the items following the operator as soon as all
-/// characters have been parsed, even without a space following the operator, but parsing fails if the operator is
-/// followed by any of the characters in `notAfter`.
-///
-/// Returns the empty list.
-let private eagerOperator (op: string) notAfter =
+/// Parses an operator one character at a time. Fails if the operator is followed by any of the characters in
+/// `notAfter`. Returns the empty list.
+let private operator (op: string) notAfter =
     // For operators that start with letters (e.g., "w/"), group the letters together with the first operator character
     // to avoid a conflict with keyword or symbol parsers.
     let numLetters = Seq.length (Seq.takeWhile Char.IsLetter op)
     let charByChar p c = p ?>> ((eot >>% ()) <|> (pchar c >>% ()))
     let p = Seq.fold charByChar (pstring op.[..numLetters] >>% ()) op.[numLetters + 1..]
     attempt (p ?>> nextCharSatisfiesNot (fun c -> Seq.contains c notAfter)) >>. (emptySpace >>% ()) >>% []
-
-/// Parses an operator one character at a time. Completions will not be shown for the items following the operator if
-/// the operator is not followed by a space, to avoid ambiguity with other operators that have the same prefix.
-///
-/// Returns the empty list.
-let private operator op =
-    eagerOperator op "" >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot <|> preturn ()) >>% []
 
 /// Parses `p` unless EOT occurs first. Returns the empty list.
 let private expected p =
@@ -220,7 +210,7 @@ let private createExpressionParser prefixOp infixOp postfixOp expTerm =
 /// Parses the characteristics keyword followed by a characteristics expression.
 let private characteristicsAnnotation =
     let rec characteristicsExpr = parse {
-        let infixOp = operator qsSetUnion.op <|> operator qsSetIntersection.op
+        let infixOp = operator qsSetUnion.op "" <|> operator qsSetIntersection.op ""
         let expTerm = pcollect [
             brackets (lTuple, rTuple) characteristicsExpr
             expectedKeyword qsAdjSet
@@ -310,11 +300,11 @@ let private namespaceTopLevel =
 
 /// Parses an expression.
 let rec private expression = parse {
-    let prefixOp = expectedKeyword notOperator <|> eagerOperator qsNEGop.op "" <|> eagerOperator qsBNOTop.op ""
+    let prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
     
     let infixOp =
         choice [
-            many1Chars (anyOf "-!?.*/&%^+<=>|") >>. optional eot >>. emptySpace >>% []
+            many1Chars (anyOf "-!?.*/&%^+<=>|") >>. emptySpace >>% []
             pcollect [
                 expectedKeyword andOperator
                 expectedKeyword orOperator
@@ -323,18 +313,18 @@ let rec private expression = parse {
     
     let postfixOp =
         let copyAndUpdate =
-            operator qsCopyAndUpdateOp.op >>.
+            operator qsCopyAndUpdateOp.op "" >>.
             (expression <|>@ expectedId NamedItem (term symbol)) ?>>
-            expected (operator qsCopyAndUpdateOp.cont) ?>>
+            expected (operator qsCopyAndUpdateOp.cont "") ?>>
             expression
         let typeParamListOrLessThan =
             // This is a parsing hack for the < operator, which can be either less-than or the start of a type parameter
             // list.
-            eagerOperator qsLTop.op "=-" ?>> ((sepByLast qsType comma ?>> expected (bracket rAngle)) <|>@ expression)
+            operator qsLTop.op "=-" ?>> ((sepByLast qsType comma ?>> expected (bracket rAngle)) <|>@ expression)
         choice [
-            operator qsUnwrapModifier.op
-            operator qsOpenRangeOp.op
-            eagerOperator qsNamedItemCombinator.op "" ?>> expectedId NamedItem (term symbol)
+            operator qsUnwrapModifier.op ""
+            pstring qsOpenRangeOp.op .>> emptySpace >>. optional eot >>% []
+            operator qsNamedItemCombinator.op "" ?>> expectedId NamedItem (term symbol)
             copyAndUpdate
             tuple expression
             array expression
@@ -374,7 +364,7 @@ let rec private expression = parse {
             interpolated <|> uninterpolated
         let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
         pcollect [
-            operator qsOpenRangeOp.op >>. opt expression |>> Option.defaultValue []
+            operator qsOpenRangeOp.op "" >>. opt expression |>> Option.defaultValue []
             newArray
             tuple1 expression
             array expression
