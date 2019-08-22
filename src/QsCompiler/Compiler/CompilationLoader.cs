@@ -425,11 +425,19 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws the corresponding exception if the given path does not correspond to a suitable binary file.
         /// Potentially throws an exception in particular also if the given binary file has been compiled with a different compiler version. 
         /// </summary>
-        public static IEnumerable<QsNamespace> ReadBinary(string file)
+        public static IEnumerable<QsNamespace> ReadBinary(string file) =>
+            ReadBinary(
+                new MemoryStream(File.ReadAllBytes(Path.GetFullPath(file)))
+            );
+
+        /// <summary>
+        /// Given a stream for reading a Q# binary file, reads the content of that file and returns the corresponding syntax tree. 
+        /// Throws the corresponding exception if the given path does not correspond to a suitable binary file.
+        /// Potentially throws an exception in particular also if the given binary file has been compiled with a different compiler version. 
+        /// </summary>
+        public static IEnumerable<QsNamespace> ReadBinary(Stream stream)
         {
-            byte[] binary = File.ReadAllBytes(Path.GetFullPath(file));
-            var ms = new MemoryStream(binary);
-            using (var reader = new BsonDataReader(ms))
+            using (var reader = new BsonDataReader(stream))
             {
                 reader.ReadRootValueAsArray = true;
                 var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
