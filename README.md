@@ -86,3 +86,31 @@ For more information see the [Code of Conduct FAQ](https://opensource.microsoft.
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 For more details, please see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## [Optional] Using Prerelease Versions ##
+
+If you're interested in helping test the Q# compiler, or if you want to try out new features before they are released, you can add the [Quantum Development Kit prerelease feed](https://dev.azure.com/ms-quantum-public/Microsoft%20Quantum%20(public)/_packaging?_a=feed&feed=alpha) to your .NET Core SDK configuration.
+Packages on the prerelease feed are marked with `-alpha` in their version number, so that projects built using released versions of Quantum Development Kit libraries will not be affected.
+Note that the prerelease feed is used automatically when building libraries in this repository.
+
+To use the prerelease feed, edit your `NuGet.Config` file to include the prerelease feed URL (`https://pkgs.dev.azure.com/ms-quantum-public/Microsoft Quantum (public)/_packaging/alpha/nuget/v3/index.json`) as a package source.
+The location of this file varies depending on your operating system:
+
+| OS | NuGet config file location |
+|----|----------------------------|
+| Windows | `$Env:APPDATA/Roaming/NuGet/NuGet.Config` |
+| macOS / Linux | `~/.config/NuGet/NuGet.Config` or `~/.nuget/NuGet/NuGet.Config` |
+
+Note that this file may not already exist, depending on your configuration.
+
+For example, the following `NuGet.Config` file includes both the main NuGet package feed, and the Quantum Development Kit prerelease feed:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+    <add key="qdk-alpha" value="https://pkgs.dev.azure.com/ms-quantum-public/Microsoft Quantum (public)/_packaging/alpha/nuget/v3/index.json" protocolVersion="3" />
+  </packageSources>
+</configuration>
+```
