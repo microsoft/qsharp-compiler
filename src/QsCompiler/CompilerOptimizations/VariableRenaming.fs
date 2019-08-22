@@ -66,7 +66,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
             constants <- exitScope constants
             result
 
-    override scope.Expression = { new ExpressionTransformation() with 
+    override scope.Expression = { new ExpressionTransformation() with
         override expr.Kind = { new ExpressionKindTransformation() with
             override exprKind.ExpressionTransformation ex = expr.Transform ex
             override exprKind.TypeTransformation t = expr.Type.Transform t
@@ -96,12 +96,12 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
             | VariableNameTuple items -> Seq.map this.onSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
             | InvalidItem | DiscardedItem -> syms
 
-        override this.onVariableDeclaration stm = 
+        override this.onVariableDeclaration stm =
             let rhs = this.ExpressionTransformation stm.Rhs
             let lhs = this.onSymbolTuple stm.Lhs
             QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
 
-        override this.onForStatement stm = 
+        override this.onForStatement stm =
             let iterVals = this.ExpressionTransformation stm.IterationValues
             let loopVar = fst stm.LoopItem |> this.onSymbolTuple
             let loopVarType = this.TypeTransformation (snd stm.LoopItem)
@@ -115,7 +115,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
             constants <- exitScope constants
             result
 
-        override this.onQubitScope (stm : QsQubitScope) = 
+        override this.onQubitScope (stm : QsQubitScope) =
             let kind = stm.Kind
             let rhs = this.onQubitInitializer stm.Binding.Rhs
             let lhs = this.onSymbolTuple stm.Binding.Lhs

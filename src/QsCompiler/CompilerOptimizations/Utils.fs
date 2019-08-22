@@ -98,7 +98,7 @@ let internal wrapStmt (stmt: QsStatementKind): QsStatement =
 /// Returns None if the type doesn't have a default value as an expression.
 let rec internal constructNewArray (bt: TypeKind) (length: int): Expr option =
     defaultValue bt |> Option.map (fun x -> ImmutableArray.CreateRange (List.replicate length (wrapExpr bt x)) |> ValueArray)
-    
+
 /// Returns the default value for a given type (from Q# documentation).
 /// Returns None for types whose default values are not representable as expressions.
 and private defaultValue (bt: TypeKind): Expr option =
@@ -175,4 +175,3 @@ let internal countReturnStatements (scope: QsScope): int =
 /// Returns the number of statements in this scope
 let internal scopeLength (scope: QsScope): int =
     scope |> findAllBaseStatements |> Seq.length
-

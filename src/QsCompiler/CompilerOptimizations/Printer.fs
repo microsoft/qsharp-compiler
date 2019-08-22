@@ -136,7 +136,7 @@ and internal printScope (indent: int) (scope: QsScope): string =
 
 let internal printSpecialization (s: QsSpecialization): string =
     let impl =
-        match s.Implementation with 
+        match s.Implementation with
         | Provided (a, b) ->
             sprintf "%O %O" (a |> printQsTuple) (printScope 2 b)
         | _ -> s.Implementation.ToString()
@@ -170,4 +170,3 @@ let internal printNamespaceElem (elem: QsNamespaceElement): string =
 
 let printNamespace (ns: QsNamespace): string =
     sprintf "namespace %O {\n    %O\n}" ns.Name.Value (String.Join("\n\n    ", ns.Elements |> Seq.map printNamespaceElem |> List.ofSeq |> List.sort))
-

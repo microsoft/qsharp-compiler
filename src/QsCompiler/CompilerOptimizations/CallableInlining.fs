@@ -112,7 +112,7 @@ let private cannotReachCallable (callables: Callables) (scope: QsScope) (cannotR
     findAllCalls callables scope mySet
     not (mySet.Contains cannotReach)
 
-    
+
 /// The SyntaxTreeTransformation used to inline callables
 type internal CallableInliner(callables) =
     inherit OptimizingTransformation()
@@ -127,12 +127,12 @@ type internal CallableInliner(callables) =
     let safeInline expr =
         maybe {
             let! ii = tryGetInliningInfo callables expr
-            
+
             do! check (countReturnStatements ii.body = 0)
             let! current = currentCallable
             do! check (cannotReachCallable callables ii.body current.FullName)
             do! check (ii.functors.controlled < 2)
-            
+
             let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
             let newStatements = ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
             return {ii.body with Statements = newStatements} |> QsScopeStatement.New |> QsScopeStatement
@@ -149,7 +149,7 @@ type internal CallableInliner(callables) =
     override syntaxTree.Scope = { new ScopeTransformation() with
 
         override scope.Expression = { new ExpressionTransformation() with
-            override expr.Kind = { new ExpressionKindTransformation() with 
+            override expr.Kind = { new ExpressionKindTransformation() with
                 override exprKind.ExpressionTransformation ex = expr.Transform ex
                 override exprKind.TypeTransformation t = expr.Type.Transform t
 

@@ -42,7 +42,7 @@ type internal PureCircuitFinder() =
             QsScope.New (newStatements, x.KnownSymbols)
 
 
-        override this.StatementKind = { new StatementKindTransformation () with 
+        override this.StatementKind = { new StatementKindTransformation () with
             override x.ScopeTransformation s = this.Transform s
             override x.ExpressionTransformation ex = this.Expression.Transform ex
             override x.TypeTransformation t = this.Expression.Type.Transform t

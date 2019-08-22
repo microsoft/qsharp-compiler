@@ -31,4 +31,3 @@ type internal OptimizingTransformation() =
                 // TODO - figure out what causes this and fix it
                 ()
         newX
-

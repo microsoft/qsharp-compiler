@@ -77,7 +77,7 @@ type internal StatementRemover() =
         | _ -> Seq.singleton stmt
 
 
-    override syntaxTree.onProvidedImplementation (argTuple, body) = 
+    override syntaxTree.onProvidedImplementation (argTuple, body) =
         let renamerVal = VariableRenamer(argTuple)
         renamer <- Some renamerVal
         let body = renamerVal.Transform body
@@ -103,7 +103,7 @@ type internal StatementRemover() =
             override stmtKind.LocationTransformation x = scope.onLocation x
             override stmtKind.ScopeTransformation x = scope.Transform x
             override stmtKind.TypeTransformation x = scope.Expression.Type.Transform x
-        
+
             override this.onSymbolTuple syms =
                 match syms with
                 | VariableName item ->

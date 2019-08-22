@@ -21,7 +21,7 @@ type internal Callables = Callables of Map<QsQualifiedName, QsCallable>
 /// Makes an instance of Callables from the given dictionary
 let internal makeCallables (compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
     compiledCallables |> Seq.map (function KeyValue(a, b) -> a, b) |> Map.ofSeq |> Callables
-    
+
 /// Gets the QsCallable with the given qualified name.
 /// Throws an KeyNotFoundException if no such callable exists.
 let internal getCallable callables qualName =
@@ -73,7 +73,7 @@ let internal defineVar check constants (name, value) =
     match constants with
     | Constants (head :: tail) -> Constants (head.Add (name, value) :: tail)
     | Constants [] -> InvalidOperationException "No scope to define variables in" |> raise
-    
+
 /// If check(value) is true, returns a Constants with the given variable set to the given value.
 /// Otherwise, returns constants without any changes.
 /// Throws an ArgumentException if trying to set an undefined variable.

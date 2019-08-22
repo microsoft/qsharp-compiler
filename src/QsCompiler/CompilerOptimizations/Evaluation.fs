@@ -148,15 +148,15 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
 and internal ExpressionEvaluator(callables: Callables, constants: Constants<Expr>, maxRecursiveDepth: int) =
     inherit ExpressionTransformation()
 
-    override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, maxRecursiveDepth) with 
-        override exprKind.ExpressionTransformation x = this.Transform x 
+    override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, maxRecursiveDepth) with
+        override exprKind.ExpressionTransformation x = this.Transform x
         override exprKind.TypeTransformation x = this.Type.Transform x }
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
 and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, constants: Constants<Expr>, maxRecursiveDepth: int) =
     inherit ExpressionKindTransformation()
-    
+
     member private this.simplify e1 = this.ExpressionTransformation e1
 
     member private this.simplify (e1, e2) =
@@ -172,7 +172,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         | DoubleLiteral a, DoubleLiteral b -> BoolLiteral (doubleOp a b)
         | IntLiteral a, IntLiteral b -> BoolLiteral (intOp a b)
         | _ -> qop (lhs, rhs)
-        
+
     member private this.arithNumBinaryOp qop bigIntOp doubleOp intOp lhs rhs =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
@@ -180,7 +180,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (doubleOp a b)
         | IntLiteral a, IntLiteral b -> IntLiteral (intOp a b)
         | _ -> qop (lhs, rhs)
-                
+
     member private this.intBinaryOp qop bigIntOp intOp lhs rhs =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
@@ -246,7 +246,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         | IntLiteral i -> constructNewArray bt.Resolution (int i) |? NewArray (bt, idx)
         // TODO - handle array slicing
         | _ -> NewArray (bt, idx)
- 
+
     override this.onCopyAndUpdateExpression (lhs, accEx, rhs) =
         let lhs, accEx, rhs = this.simplify (lhs, accEx, rhs)
         match lhs.Expression, accEx.Expression with
@@ -366,4 +366,3 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         match expr.Expression with
         | IntLiteral a -> IntLiteral (~~~a)
         | _ -> BNOT expr
-

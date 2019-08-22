@@ -35,7 +35,7 @@ let rec private shouldPropagate callables expr =
 /// The SyntaxTreeTransformation used to evaluate constants
 type internal ConstantPropagator(callables) =
     inherit OptimizingTransformation()
-    
+
     /// The current dictionary that maps variables to the values we substitute for them
     let mutable constants = Constants []
     /// How many times we should skip entering the next scope we encounter
@@ -61,7 +61,7 @@ type internal ConstantPropagator(callables) =
         override scope.Expression = upcast ExpressionEvaluator(callables, constants, 10)
 
         /// The StatementKindTransformation used to evaluate constants
-        override scope.StatementKind = { new StatementKindTransformation() with 
+        override scope.StatementKind = { new StatementKindTransformation() with
             override so.ExpressionTransformation x = scope.Expression.Transform x
             override so.LocationTransformation x = scope.onLocation x
             override so.ScopeTransformation x = scope.Transform x

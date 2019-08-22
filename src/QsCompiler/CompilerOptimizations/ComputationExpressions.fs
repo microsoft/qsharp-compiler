@@ -86,7 +86,7 @@ type internal ResultBuilder() =
         then this.Zero()
         else this.Bind(f(), fun () ->
             this.While(guard, f))
-        
+
     member this.While(guard, f) =
         match guard() with
         | Ok false -> this.Zero()

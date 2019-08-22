@@ -32,4 +32,3 @@ type Optimizations() =
             Optimizations.optimize tree
         else
             List.map (PureCircuitFinder().Transform) tree
-
