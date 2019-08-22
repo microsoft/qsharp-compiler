@@ -164,33 +164,15 @@ let rec internal takeWhilePlus1 (f: 'A -> bool) (l : list<'A>) =
     | [] -> [], None
 
 
-/// Returns all the "bottom-level" statements in the current scope.
-/// Bottom-level statements are defined as those that don't contain their own scopes.
-/// This function recurses through all the subscopes of the current scope.
-let rec internal findAllBaseStatements (scope: QsScope): seq<QsStatementKind> =
-    scope.Statements |> Seq.collect (fun s ->
-        match s.Statement with
-        | QsConditionalStatement cond ->
-            seq {
-                for _, b in cond.ConditionalBlocks do yield b.Body
-                match cond.Default with
-                | Value b -> yield b.Body
-                | _ -> ()
-            } |> Seq.collect findAllBaseStatements
-        | QsForStatement {Body = scope}
-        | QsWhileStatement {Body = scope}
-        | QsQubitScope {Body = scope}
-        | QsScopeStatement {Body = scope} -> findAllBaseStatements scope
-        | QsRepeatStatement {RepeatBlock = scope1; FixupBlock = scope2} ->
-            Seq.concat [findAllBaseStatements scope1.Body; findAllBaseStatements scope2.Body]
-        | x -> Seq.singleton x
-    )
+/// Returns a sequence of all statements contained directly or indirectly in this scope
+let internal findAllBaseStatements (scope: QsScope) =
+    scope.Statements |> Seq.collect (QsStatement.ExtractAll (fun s -> [s.Statement]))
 
-/// Returns the number of return statements this scope contains
-let rec internal countReturnStatements (scope: QsScope): int =
+/// Returns the number of return statements in this scope
+let internal countReturnStatements (scope: QsScope): int =
     scope |> findAllBaseStatements |> Seq.sumBy (function QsReturnStatement _ -> 1 | _ -> 0)
 
-/// Returns the number of "bottom-level" statements in this scope
-let rec internal scopeLength (scope: QsScope): int =
+/// Returns the number of statements in this scope
+let internal scopeLength (scope: QsScope): int =
     scope |> findAllBaseStatements |> Seq.length
 
