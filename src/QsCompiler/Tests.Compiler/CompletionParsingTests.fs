@@ -38,6 +38,7 @@ let private types = [
 
 let private expression = [
     Variable
+    Callable
     Keyword "new"
     Keyword "not"
     Keyword "Adjoint"
@@ -646,8 +647,8 @@ let ``Expression parser tests`` () =
         ("foo!= ", expression)
         ("Foo(", expression)
         ("Foo()", infix)
-        ("Foo.", [Member ("Foo", Variable)])
-        ("Foo.Bar", [Member ("Foo", Variable)])
+        ("Foo.", [Member ("Foo", Callable)])
+        ("Foo.Bar", [Member ("Foo", Callable)])
         ("Foo.Bar(", expression)
         ("Foo.Bar()", infix)
         ("Foo(x", expression)
@@ -691,8 +692,8 @@ let ``Expression parser tests`` () =
         ("Foo<Int, Bool>(2, false", expression)
         ("Foo<Int, Bool>(2, false)", infix)
         ("Adjoint", operationStatement)
-        ("Adjoint ", [Keyword "Adjoint"; Keyword "Controlled"; Variable])
-        ("Adjoint Foo", [Keyword "Adjoint"; Keyword "Controlled"; Variable])
+        ("Adjoint ", [Keyword "Adjoint"; Keyword "Controlled"; Callable])
+        ("Adjoint Foo", [Keyword "Adjoint"; Keyword "Controlled"; Callable])
         ("Adjoint Foo ", infix)
         ("Adjoint Foo(q)", infix)
         ("[", expression)

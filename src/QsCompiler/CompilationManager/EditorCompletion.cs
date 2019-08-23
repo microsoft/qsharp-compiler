@@ -198,9 +198,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         GetGlobalNamespaceCompletions(compilation, namespacePrefix)
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
                 case IdentifierKind.Tags.Variable:
+                    return GetLocalCompletions(file, compilation, position);
+                case IdentifierKind.Tags.Callable:
                     return
-                        GetLocalCompletions(file, compilation, position)
-                        .Concat(GetCallableCompletions(file, compilation, namespaces))
+                        GetCallableCompletions(file, compilation, namespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
             }

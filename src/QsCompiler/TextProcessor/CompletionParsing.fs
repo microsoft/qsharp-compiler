@@ -33,9 +33,11 @@ type CompletionScope =
 type IdentifierKind =
     /// The identifier is the given keyword.
     | Keyword of string
-    /// The identifier is a variable or callable name.
+    /// The identifier is a variable.
     | Variable
-    /// The identifier is a user-defined type name.
+    /// The identifier is a callable.
+    | Callable
+    /// The identifier is a user-defined type.
     | UserDefinedType
     /// The identifier is a type parameter.
     | TypeParameter
@@ -376,7 +378,8 @@ let rec private expression = parse {
             keywordLiteral
             numericLiteral >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
             stringLiteral
-            manyR functor symbol @>> expectedQualifiedSymbol Variable
+            manyR functor symbol @>> expectedQualifiedSymbol Callable
+            expectedId Variable (term symbol) .>> nextCharSatisfiesNot ((=) '.')
         ]
     
     return! createExpressionParser prefixOp infixOp postfixOp expTerm
