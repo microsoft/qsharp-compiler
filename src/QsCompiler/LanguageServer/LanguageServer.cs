@@ -363,9 +363,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             try
             {
                 return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.CodeActions(param) ?? ImmutableDictionary<string, WorkspaceEdit>.Empty,
+                this.EditorState.CodeActions(param)
+                    ?.SelectMany(vs => vs.Select(v => BuildCommand(vs.Key, v))) 
+                    ?? Enumerable.Empty<Command>(),
                 "CodeAction threw an exception")
-                .Select(kv => BuildCommand(kv.Key, kv.Value)).ToArray();
+                .ToArray();
             }
             catch { return new Command[0]; }
         }
