@@ -65,6 +65,10 @@ let rec private toErrorMessageList (replies : Reply<'a> list) =
 let private missingExpr =
     { parse = keyword "_"; id = "_" }
 
+/// The omitted symbols keyword.
+let private omittedSymbols =
+    { parse = keyword "..."; id = "..." }
+
 /// `p1 ?>> p2` attempts `p1`. If `p1` succeeds and consumes all input, it returns the result of `p1` without using
 /// `p2`. Otherwise, it continues parsing with `p2` and returns the result of `p2`.
 let private (?>>) p1 p2 =
@@ -447,7 +451,7 @@ let private borrowingHeader =
 
 /// Parses an operation functor declaration.
 let private functorDeclaration =
-    let argumentTuple = tuple (expectedId Declaration (term symbol) <|> expected omittedSymbols)
+    let argumentTuple = tuple (expectedId Declaration (term symbol) <|> operator omittedSymbols.id "")
     let generator = 
         pcollect [
             expectedKeyword intrinsicFunctorGenDirective
