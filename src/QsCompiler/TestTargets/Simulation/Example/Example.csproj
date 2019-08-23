@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Quantum.Standard" Version="0.8.1907.1701" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Target\Simulation.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <GenFilesDir>generated\</GenFilesDir>
+    <SimulationTarget>"..\Target\bin\$(Configuration)\netcoreapp2.1\Simulation.dll"</SimulationTarget>
+    <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="$(GenFilesDir)" />
+  </ItemGroup>
+
+  <Target Name="QsharpCompile" DependsOnTargets="ResolveAssemblyReferences" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <GenFiles Include="$(GenFilesDir)**\*.*" />
+      <QsReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
+      <QsSourceFiles Include="**\*.qs" />
+    </ItemGroup>
+    <PropertyGroup>
+      <QscCommand>$(QscExe) build -v --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) -t $(SimulationTarget)</QscCommand>
+      <!--QscCommand>$(QscExe) -i &quot;@(QsSourceFiles,'&quot; &quot;')&quot; -r &quot;@(QsReferences,'&quot; &quot;')&quot; -o $(GenFilesDir) -t $(SimulationTarget)</QscCommand-->
+    </PropertyGroup>
+    <MakeDir Directories="$(GenFilesDir)" />
+    <Delete Condition="'$(DesignTimeBuild)' != 'true'" Files="@(GenFiles)" />
+    <Exec Condition="'$(DesignTimeBuild)' != 'true'" Command="$(QscCommand)" />
+    <ItemGroup>
+      <Compile Include="$(GenFilesDir)**\*.g.cs" />
+    </ItemGroup>
+  </Target>    
+</Project>
