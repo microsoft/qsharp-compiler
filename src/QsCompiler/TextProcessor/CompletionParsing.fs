@@ -425,6 +425,10 @@ let private whileHeader =
 let private repeatHeader =
     expectedKeyword qsRepeat
 
+/// Parses a repeat-until success block outro.
+let private untilFixup =
+    expectedKeyword qsUntil ?>> expectedBrackets (lTuple, rTuple) expression ?>> expectedKeyword qsRUSfixup
+
 /// Parses a qubit initializer tuple used to allocate qubits in using- and borrowing-blocks.
 let rec private qubitInitializerTuple = parse {
     let item = expectedKeyword qsQubit ?>> (expected unitValue <|> expectedBrackets (lArray, rArray) expression)
@@ -498,6 +502,10 @@ let private operationStatementFollowingIf =
         elseClause
     ] .>> eotEof <|>@ operationStatement
 
+/// Parses a statement in an operation that follows a repeat header in the same scope.
+let private operationStatementFollowingRepeat =
+    untilFixup .>> eotEof
+
 /// Parses the fragment text assuming that it is in the given scope and follows a previous fragment of the given kind in
 /// the same scope (or null if it is the first statement in the scope). Returns the set of possible identifiers expected
 /// at the end of the text.
@@ -510,6 +518,7 @@ let GetExpectedIdentifiers scope previous text =
         | (FunctionStatement, _) -> functionStatement
         | (OperationStatement, Value (IfClause _))
         | (OperationStatement, Value (ElifClause _)) -> operationStatementFollowingIf
+        | (OperationStatement, Value (RepeatIntro _)) -> operationStatementFollowingRepeat
         | (OperationStatement, _) -> operationStatement
     match runParserOnString parser [] "" (text + "\u0004") with
     | ParserResult.Success (result, _, _) -> Success (Set.ofList result)
