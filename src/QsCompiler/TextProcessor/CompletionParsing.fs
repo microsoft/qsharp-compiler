@@ -310,14 +310,12 @@ let rec private expression = parse {
     let prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
     
     let infixOp =
-        choice [
-            many1Chars (anyOf "-!?.*/&%^+<=>|") >>. emptySpace >>% []
-            pcollect [
-                expectedKeyword andOperator
-                expectedKeyword orOperator
-            ]
+        many1Chars (anyOf "-!?.*/&%^+<=>|") >>. emptySpace >>% [] <|>
+        pcollect [
+            expectedKeyword andOperator
+            expectedKeyword orOperator
         ]
-    
+
     let postfixOp =
         let copyAndUpdate =
             operator qsCopyAndUpdateOp.op "" >>.
@@ -384,19 +382,37 @@ let rec private expression = parse {
     return! createExpressionParser prefixOp infixOp postfixOp expTerm
 }
 
-/// Parses a symbol declaration tuple.
-let rec private symbolTuple = parse {
-    let declaration = expectedId Declaration (term symbol)
-    return! declaration <|> tuple1 (declaration <|> symbolTuple)
+/// Parses a symbol tuple containing identifiers of the given kind.
+let rec private symbolTuple kind = parse {
+    let declaration = expectedId kind (term symbol)
+    return! declaration <|> tuple1 (declaration <|> symbolTuple kind)
 }
 
 /// Parses a let statement.
 let private letStatement =
-    expectedKeyword qsImmutableBinding ?>> symbolTuple ?>> expected equal ?>> expression
+    expectedKeyword qsImmutableBinding ?>> symbolTuple Declaration ?>> expected equal ?>> expression
 
 /// Parses a mutable statement.
 let private mutableStatement =
-    expectedKeyword qsMutableBinding ?>> symbolTuple ?>> expected equal ?>> expression
+    expectedKeyword qsMutableBinding ?>> symbolTuple Declaration ?>> expected equal ?>> expression
+
+/// Parses a set statement.
+let private setStatement =
+    let op =
+        many1Chars (anyOf "-.*/&%^+|") >>. emptySpace >>% [] <|>
+        pcollect [
+            expectedKeyword andOperator
+            expectedKeyword orOperator
+        ]
+    let assignment = symbolTuple Variable ?>> (opt op |>> Option.defaultValue []) ?>> expected equal ?>> expression
+    let copyAndUpdate =
+        expectedId Variable (term symbol) ?>>
+        expected (operator qsCopyAndUpdateOp.op "") ?>>
+        expected equal ?>>
+        (expression <|>@ expectedId NamedItem (term symbol)) ?>>
+        expected (operator qsCopyAndUpdateOp.cont "") ?>>
+        expression
+    expectedKeyword qsValueUpdate ?>> (attempt assignment <|> copyAndUpdate)
 
 /// Parses a return statement.
 let private returnStatement =
@@ -420,7 +436,7 @@ let private elseClause =
 
 /// Parses a for-block intro.
 let private forHeader =
-    let binding = symbolTuple ?>> expectedKeyword qsRangeIter ?>> expression
+    let binding = symbolTuple Declaration ?>> expectedKeyword qsRangeIter ?>> expression
     expectedKeyword qsFor ?>> expectedBrackets (lTuple, rTuple) binding
 
 /// Parses a while-block intro.
@@ -443,12 +459,12 @@ let rec private qubitInitializerTuple = parse {
 
 /// Parses a using-block intro.
 let private usingHeader =
-    let binding = symbolTuple ?>> expected equal ?>> qubitInitializerTuple
+    let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
     expectedKeyword qsUsing ?>> expectedBrackets (lTuple, rTuple) binding
 
 /// Parses a borrowing-block intro.
 let private borrowingHeader =
-    let binding = symbolTuple ?>> expected equal ?>> qubitInitializerTuple
+    let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
     expectedKeyword qsBorrowing ?>> expectedBrackets (lTuple, rTuple) binding
 
 /// Parses an operation functor declaration.
@@ -474,6 +490,7 @@ let private callableStatement =
     pcollect [
         letStatement
         mutableStatement
+        setStatement
         returnStatement
         failStatement
         ifClause
