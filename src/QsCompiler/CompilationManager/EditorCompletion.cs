@@ -124,18 +124,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (token == null)
                 return (null, null);
 
-            var relativeIndentation = token.GetFragment().Indentation - file.IndentationAt(position);
+            var fragment = token.GetFragment();
+            var relativeIndentation = fragment.Indentation - file.IndentationAt(position);
             QsCompilerError.Verify(Math.Abs(relativeIndentation) <= 1);
             var parents =
                 new[] { token }.Concat(token.GetNonEmptyParents())
                 .Skip(relativeIndentation + 1)
                 .Select(t => t.GetFragment());
-
-            QsFragmentKind previous = null;
-            if (relativeIndentation == 0)
-                previous = token.PreviousOnScope()?.GetFragment().Kind;
-            else if (relativeIndentation == 1)
-                previous = token.GetNonEmptyParent()?.GetFragment().Kind;
 
             CompletionScope scope = null;
             if (parents.Any() && parents.First().Kind.IsNamespaceDeclaration)
@@ -144,6 +139,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 scope = CompletionScope.FunctionStatement;
             if (parents.Where(parent => parent.Kind.IsOperationDeclaration).Any())
                 scope = CompletionScope.OperationStatement;
+
+            QsFragmentKind previous = null;
+            if (relativeIndentation == 0 && IsPositionAfterDelimiter(file, fragment, position))
+                previous = fragment.Kind;
+            else if (relativeIndentation == 0)
+                previous = token.PreviousOnScope()?.GetFragment().Kind;
+            else if (relativeIndentation == 1)
+                previous = token.GetNonEmptyParent()?.GetFragment().Kind;
 
             return (scope, previous);
         }
@@ -591,6 +594,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Returns true if the fragment has a delimiting character and the given position occurs after it.
+        /// </summary>
+        private static bool IsPositionAfterDelimiter(FileContentManager file,
+                                                     CodeFragment fragment,
+                                                     Position position) =>
+            fragment.FollowedBy != CodeFragment.MissingDelimiter
+            && GetDelimiterPosition(file, fragment).IsSmallerThan(position);
+
+        /// <summary>
         /// Returns a substring of the fragment text before the given position.
         /// <para/>
         /// If the fragment is null or the position is after the fragment's delimiter, returns the empty string. If the
@@ -607,12 +619,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (!Utils.IsValidPosition(position))
                 throw new ArgumentException(nameof(position));
 
-            if (fragment == null
-                || fragment.FollowedBy != CodeFragment.MissingDelimiter
-                && GetDelimiterPosition(file, fragment).IsSmallerThan(position))
-            {
+            if (fragment == null || IsPositionAfterDelimiter(file, fragment, position))
                 return "";
-            }
             return fragment.GetRange().End.IsSmallerThan(position)
                 ? fragment.Text + " "
                 : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
