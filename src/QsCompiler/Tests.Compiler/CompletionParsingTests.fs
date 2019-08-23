@@ -553,6 +553,16 @@ let ``Operation statement parser tests`` () =
         ("else ", [])
     ]
     matches Operation (Value ElseClause) ("", operationStatement)
+    List.iter (matches OperationTopLevel (Value RepeatIntro)) [
+        ("", [Keyword "until"])
+        ("until ", [])
+        ("until (", expression)
+        ("until (false", expression)
+        ("until (false)", [Keyword "fixup"])
+        ("until (false) ", [Keyword "fixup"])
+        ("until (false) fixup", [Keyword "fixup"])
+        ("until (false) fixup ", [])
+    ]
     List.iter (matches Operation (Value RepeatIntro)) [
         ("", [Keyword "until"])
         ("until ", [])

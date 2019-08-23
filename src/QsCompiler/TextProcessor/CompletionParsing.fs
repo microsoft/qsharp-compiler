@@ -553,10 +553,10 @@ let GetExpectedIdentifiers scope previous text =
         | (Function, _) -> functionStatement
         | (OperationTopLevel, Value (IfClause _))
         | (OperationTopLevel, Value (ElifClause _)) -> operationTopLevelFollowingIf
-        | (OperationTopLevel, _) -> operationTopLevel
-        | (Operation, Value (IfClause _)) | (Operation, Value (ElifClause _)) -> operationStatementFollowingIf
         | (OperationTopLevel, Value (RepeatIntro _)) | (Operation, Value (RepeatIntro _)) ->
             operationStatementFollowingRepeat
+        | (OperationTopLevel, _) -> operationTopLevel
+        | (Operation, Value (IfClause _)) | (Operation, Value (ElifClause _)) -> operationStatementFollowingIf
         | (Operation, _) -> operationStatement
     match runParserOnString parser [] "" (text + "\u0004") with
     | ParserResult.Success (result, _, _) -> Success (Set.ofList result)
