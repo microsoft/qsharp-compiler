@@ -2,11 +2,13 @@
 
 open System
 open Xunit
+open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 
-let private matches env (text, expected) =
-    match GetExpectedIdentifiers env text with
+let private matches scope previous (text, expected) =
+    match GetExpectedIdentifiers scope previous text with
     | Success actual ->
         Assert.True(Set.ofList expected = Set.ofSeq actual,
                     String.Format("Input:    {0}\n" +
@@ -15,8 +17,8 @@ let private matches env (text, expected) =
                                   text, Set.ofList expected, actual))
     | Failure message -> raise (Exception message)
 
-let private fails env text =
-    match GetExpectedIdentifiers env text with
+let private fails scope previous text =
+    match GetExpectedIdentifiers scope previous text with
     | Success _ -> raise <| Exception (String.Format("Input: {0}\nParser succeeded when it was expected to fail", text))
     | Failure _ -> ()
 
@@ -89,7 +91,7 @@ let ``Inside namespace parser tests`` () =
         Keyword "newtype"
         Keyword "open"
     ]
-    List.iter (matches NamespaceTopLevel) [
+    List.iter (matches NamespaceTopLevel Null) [
         ("", keywords)
         ("f", keywords)
         ("fun", keywords)
@@ -106,7 +108,7 @@ let ``Inside namespace parser tests`` () =
 
 [<Fact>]
 let ``Function declaration parser tests`` () =
-    List.iter (matches NamespaceTopLevel) [
+    List.iter (matches NamespaceTopLevel Null) [
         ("function ", [Declaration])
         ("function Foo", [Declaration])
         ("function Foo ", [])
@@ -159,7 +161,7 @@ let ``Operation declaration parser tests`` () =
         Keyword "Adj"
         Keyword "Ctl"
     ]
-    List.iter (matches NamespaceTopLevel) [
+    List.iter (matches NamespaceTopLevel Null) [
         ("operation ", [Declaration])
         ("operation Foo", [Declaration])
         ("operation Foo ", [])
@@ -232,7 +234,7 @@ let ``Operation declaration parser tests`` () =
         ("operation Foo<'T> (q : ('T->Int)) : Unit", types)
         ("operation Foo<'T> (q : (MyType -> Int)) : Unit", types)
     ]
-    List.iter (fails NamespaceTopLevel) [
+    List.iter (fails NamespaceTopLevel Null) [
         "operation Foo (q : Qubit) : Unit is Adj + Cat "
         "operation Foo (q : Qubit) : (Int, MyT is Adj"
         "operation Foo (q : Qubit) : (Int, MyT is Adj "
@@ -240,7 +242,7 @@ let ``Operation declaration parser tests`` () =
 
 [<Fact>]
 let ``Type declaration parser tests`` () =
-    List.iter (matches NamespaceTopLevel) [
+    List.iter (matches NamespaceTopLevel Null) [
         ("newtype ", [Declaration])
         ("newtype MyType", [Declaration])
         ("newtype MyType ", [])
@@ -276,7 +278,7 @@ let ``Type declaration parser tests`` () =
 
 [<Fact>]
 let ``Open directive parser tests`` () =
-    List.iter (matches NamespaceTopLevel) [
+    List.iter (matches NamespaceTopLevel Null) [
         ("open ", [Namespace])
         ("open Microsoft", [Namespace])
         ("open Microsoft.", [Member ("Microsoft", Namespace)])
@@ -296,7 +298,7 @@ let ``Open directive parser tests`` () =
 
 [<Fact>]
 let ``Function statement parser tests`` () =
-    List.iter (matches FunctionStatement) [
+    List.iter (matches FunctionStatement Null) [
         ("", functionStatement)
         ("let ", [Declaration])
         ("let x ", [])
@@ -379,6 +381,23 @@ let ``Function statement parser tests`` () =
         ("while (Foo() and not Bar() or ", expression)
         ("while (Foo() and not Bar() or false)", [])
     ]
+    List.iter (matches FunctionStatement (Value (IfClause { Expression = InvalidExpr; Range = Null }))) [
+        ("", [Keyword "elif"; Keyword "else"] @ functionStatement)
+        ("elif ", [])
+        ("elif (", expression)
+        ("elif (true", expression)
+        ("elif (true)", [])
+        ("else ", [])
+    ]
+    List.iter (matches FunctionStatement (Value (ElifClause { Expression = InvalidExpr; Range = Null }))) [
+        ("", [Keyword "elif"; Keyword "else"] @ functionStatement)
+        ("elif ", [])
+        ("elif (", expression)
+        ("elif (true", expression)
+        ("elif (true)", [])
+        ("else ", [])
+    ]
+    matches FunctionStatement (Value ElseClause) ("", functionStatement)
 
 [<Fact>]
 let ``Operation statement parser tests`` () =
@@ -389,7 +408,7 @@ let ``Operation statement parser tests`` () =
         Keyword "invert"
         Keyword "distribute"
     ]
-    List.iter (matches OperationStatement) [
+    List.iter (matches OperationStatement Null) [
         ("repeat ", [])
         ("using ", [])
         ("using (", [Declaration])
@@ -473,10 +492,27 @@ let ``Operation statement parser tests`` () =
         ("controlled (cs, ...)", [])
         ("controlled adjoint ", functorGen)
     ]
+    List.iter (matches OperationStatement (Value (IfClause { Expression = InvalidExpr; Range = Null }))) [
+        ("", [Keyword "elif"; Keyword "else"] @ operationStatement)
+        ("elif ", [])
+        ("elif (", expression)
+        ("elif (true", expression)
+        ("elif (true)", [])
+        ("else ", [])
+    ]
+    List.iter (matches OperationStatement (Value (ElifClause { Expression = InvalidExpr; Range = Null }))) [
+        ("", [Keyword "elif"; Keyword "else"] @ operationStatement)
+        ("elif ", [])
+        ("elif (", expression)
+        ("elif (true", expression)
+        ("elif (true)", [])
+        ("else ", [])
+    ]
+    matches OperationStatement (Value ElseClause) ("", operationStatement)
 
 [<Fact>]
 let ``Expression parser tests`` () =
-    List.iter (matches OperationStatement) [
+    List.iter (matches OperationStatement Null) [
         ("", operationStatement)
         ("x", operationStatement)
         ("x ", infix)

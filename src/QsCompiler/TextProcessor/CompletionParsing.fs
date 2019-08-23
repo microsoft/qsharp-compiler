@@ -5,20 +5,21 @@
 /// closed if it is still valid for the bracket to be closed later.
 module Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
-#nowarn "40"
-
 open System
 open System.Collections.Generic
 open FParsec
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.TextProcessing.ExpressionParsing
 open Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
 open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 
+#nowarn "40"
 
-/// Describes the environment of a code fragment in terms of what kind of completions are available.
-type CompletionEnvironment =
+
+/// Describes the scope of a code fragment in terms of what kind of completions are available.
+type CompletionScope =
     /// The code fragment is inside a namespace but outside any callable.
     | NamespaceTopLevel
     /// The code fragment is a statement inside a function.
@@ -403,6 +404,14 @@ let private failStatement =
 let private ifClause =
     expectedKeyword qsIf ?>> expectedBrackets (lTuple, rTuple) expression
 
+/// Parses an elif clause.
+let private elifClause =
+    expectedKeyword qsElif ?>> expectedBrackets (lTuple, rTuple) expression
+
+/// Parses an else clause.
+let private elseClause =
+    expectedKeyword qsElse
+
 /// Parses a for-block intro.
 let private forHeader =
     let binding = symbolTuple ?>> expectedKeyword qsRangeIter ?>> expression
@@ -466,6 +475,13 @@ let private callableStatement =
 let private functionStatement =
     whileHeader .>> eotEof <|>@ callableStatement
 
+/// Parses a statement in a function that follows an if or elif clause in the same scope.
+let private functionStatementFollowingIf =
+    pcollect [
+        elifClause
+        elseClause
+    ] .>> eotEof <|>@ functionStatement
+
 /// Parses a statement in an operation.
 let private operationStatement =
     pcollect [
@@ -475,16 +491,26 @@ let private operationStatement =
         functorDeclaration  // TODO: This is only valid at the top level of an operation.
     ] .>> eotEof <|>@ callableStatement
 
-/// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
-/// of the text.
-///
-/// Raises a CompletionParseError if the text cannot be parsed.
-let GetExpectedIdentifiers env text =
+/// Parses a statement in an operation that follows an if or elif clause in the same scope.
+let private operationStatementFollowingIf =
+    pcollect [
+        elifClause
+        elseClause
+    ] .>> eotEof <|>@ operationStatement
+
+/// Parses the fragment text assuming that it is in the given scope and follows a previous fragment of the given kind in
+/// the same scope (or null if it is the first statement in the scope). Returns the set of possible identifiers expected
+/// at the end of the text.
+let GetExpectedIdentifiers scope previous text =
     let parser =
-        match env with
-        | NamespaceTopLevel -> namespaceTopLevel
-        | FunctionStatement -> functionStatement
-        | OperationStatement -> operationStatement
+        match (scope, previous) with
+        | (NamespaceTopLevel, _) -> namespaceTopLevel
+        | (FunctionStatement, Value (IfClause _))
+        | (FunctionStatement, Value (ElifClause _)) -> functionStatementFollowingIf
+        | (FunctionStatement, _) -> functionStatement
+        | (OperationStatement, Value (IfClause _))
+        | (OperationStatement, Value (ElifClause _)) -> operationStatementFollowingIf
+        | (OperationStatement, _) -> operationStatement
     match runParserOnString parser [] "" (text + "\u0004") with
     | ParserResult.Success (result, _, _) -> Success (Set.ofList result)
     | ParserResult.Failure (detail, _, _) -> Failure detail

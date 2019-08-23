@@ -282,7 +282,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if no such token exists.
         /// Throws an ArgumentNullException if tIndex is null.
         /// </summary>
-        private static CodeFragment.TokenIndex GetNonEmptyParent(this CodeFragment.TokenIndex tIndex)
+        internal static CodeFragment.TokenIndex GetNonEmptyParent(this CodeFragment.TokenIndex tIndex)
         {
             if (tIndex == null) throw new ArgumentNullException(nameof(tIndex));
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -70,12 +71,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || compilation == null || position == null || !Utils.IsValidPosition(position))
                 return null;
 
-            var env = GetCompletionEnvironment(file, position);
-            if (env == null)
+            var (scope, previous) = GetCompletionEnvironment(file, position);
+            if (scope == null)
                 return GetFallbackCompletions(file, compilation, position).ToCompletionList(false);
 
-            var fragment = GetTokenAtOrBefore(file, position)?.GetFragment();
-            var result = GetExpectedIdentifiers(env, GetFragmentTextBeforePosition(file, fragment, position));
+            var token = GetTokenAtOrBefore(file, position);
+            var result = GetExpectedIdentifiers(
+                scope,
+                previous != null ? QsNullable<QsFragmentKind>.NewValue(previous) : QsNullable<QsFragmentKind>.Null,
+                GetFragmentTextBeforePosition(file, token?.GetFragment(), position));
             if (result is CompletionResult.Success success)
                 return success.Item
                     .SelectMany(kind => GetCompletionsForKind(file, compilation, position, kind))
@@ -108,7 +112,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
-        private static CompletionEnvironment GetCompletionEnvironment(FileContentManager file, Position position)
+        private static (CompletionScope, QsFragmentKind) GetCompletionEnvironment(
+            FileContentManager file, Position position)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -116,21 +121,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException(nameof(position));
 
             var token = GetTokenAtOrBefore(file, position);
+            if (token == null)
+                return (null, null);
+
             var relativeIndentation = token.GetFragment().Indentation - file.IndentationAt(position);
+            QsCompilerError.Verify(Math.Abs(relativeIndentation) <= 1);
             var parents =
                 new[] { token }.Concat(token.GetNonEmptyParents())
                 .Skip(relativeIndentation + 1)
                 .Select(t => t.GetFragment());
 
-            if (!parents.Any())
-                return null;
-            if (parents.First().Kind.IsNamespaceDeclaration)
-                return CompletionEnvironment.NamespaceTopLevel;
+            QsFragmentKind previous = null;
+            if (relativeIndentation == 0)
+                previous = token.PreviousOnScope()?.GetFragment().Kind;
+            else if (relativeIndentation == 1)
+                previous = token.GetNonEmptyParent()?.GetFragment().Kind;
+
+            CompletionScope scope = null;
+            if (parents.Any() && parents.First().Kind.IsNamespaceDeclaration)
+                scope = CompletionScope.NamespaceTopLevel;
             if (parents.Where(parent => parent.Kind.IsFunctionDeclaration).Any())
-                return CompletionEnvironment.FunctionStatement;
+                scope = CompletionScope.FunctionStatement;
             if (parents.Where(parent => parent.Kind.IsOperationDeclaration).Any())
-                return CompletionEnvironment.OperationStatement;
-            return null;
+                scope = CompletionScope.OperationStatement;
+
+            return (scope, previous);
         }
 
         /// <summary>
