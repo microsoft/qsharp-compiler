@@ -78,6 +78,10 @@ let private operationStatement =
         Keyword "repeat"
         Keyword "using"
         Keyword "borrowing"
+    ]
+
+let private operationTopLevelStatement =
+    operationStatement @ [
         Keyword "body"
         Keyword "adjoint"
         Keyword "controlled"
@@ -298,7 +302,7 @@ let ``Open directive parser tests`` () =
 
 [<Fact>]
 let ``Function statement parser tests`` () =
-    List.iter (matches FunctionStatement Null) [
+    List.iter (matches Function Null) [
         ("", functionStatement)
         ("let ", [Declaration])
         ("let x ", [])
@@ -381,7 +385,7 @@ let ``Function statement parser tests`` () =
         ("while (Foo() and not Bar() or ", expression)
         ("while (Foo() and not Bar() or false)", [])
     ]
-    List.iter (matches FunctionStatement (Value (IfClause { Expression = InvalidExpr; Range = Null }))) [
+    List.iter (matches Function (Value (IfClause { Expression = InvalidExpr; Range = Null }))) [
         ("", [Keyword "elif"; Keyword "else"] @ functionStatement)
         ("elif ", [])
         ("elif (", expression)
@@ -389,7 +393,7 @@ let ``Function statement parser tests`` () =
         ("elif (true)", [])
         ("else ", [])
     ]
-    List.iter (matches FunctionStatement (Value (ElifClause { Expression = InvalidExpr; Range = Null }))) [
+    List.iter (matches Function (Value (ElifClause { Expression = InvalidExpr; Range = Null }))) [
         ("", [Keyword "elif"; Keyword "else"] @ functionStatement)
         ("elif ", [])
         ("elif (", expression)
@@ -397,7 +401,7 @@ let ``Function statement parser tests`` () =
         ("elif (true)", [])
         ("else ", [])
     ]
-    matches FunctionStatement (Value ElseClause) ("", functionStatement)
+    matches Function (Value ElseClause) ("", functionStatement)
 
 [<Fact>]
 let ``Operation statement parser tests`` () =
@@ -408,7 +412,7 @@ let ``Operation statement parser tests`` () =
         Keyword "invert"
         Keyword "distribute"
     ]
-    List.iter (matches OperationStatement Null) [
+    List.iter (matches Operation Null) [
         ("repeat ", [])
         ("using ", [])
         ("using (", [Declaration])
@@ -470,6 +474,36 @@ let ``Operation statement parser tests`` () =
         ("borrowing ((q, r) = (Qubit(),", [Keyword "Qubit"])
         ("borrowing ((q, r) = (Qubit(), Qubit()", [])
         ("borrowing ((q, r) = (Qubit(), Qubit())", [])
+    ]
+    List.iter (matches Operation (Value (IfClause { Expression = InvalidExpr; Range = Null }))) [
+        ("", [Keyword "elif"; Keyword "else"] @ operationStatement)
+        ("elif ", [])
+        ("elif (", expression)
+        ("elif (true", expression)
+        ("elif (true)", [])
+        ("else ", [])
+    ]
+    List.iter (matches Operation (Value (ElifClause { Expression = InvalidExpr; Range = Null }))) [
+        ("", [Keyword "elif"; Keyword "else"] @ operationStatement)
+        ("elif ", [])
+        ("elif (", expression)
+        ("elif (true", expression)
+        ("elif (true)", [])
+        ("else ", [])
+    ]
+    matches Operation (Value ElseClause) ("", operationStatement)
+    List.iter (matches Operation (Value RepeatIntro)) [
+        ("", [Keyword "until"])
+        ("until ", [])
+        ("until (", expression)
+        ("until (false", expression)
+        ("until (false)", [Keyword "fixup"])
+        ("until (false) ", [Keyword "fixup"])
+        ("until (false) fixup", [Keyword "fixup"])
+        ("until (false) fixup ", [])
+    ]
+    List.iter (matches OperationTopLevel Null) [
+        ("", operationTopLevelStatement)
         ("body ", functorGen)
         ("body intrinsic ", [])
         ("body (", [Declaration])
@@ -492,37 +526,10 @@ let ``Operation statement parser tests`` () =
         ("controlled (cs, ...)", [])
         ("controlled adjoint ", functorGen)
     ]
-    List.iter (matches OperationStatement (Value (IfClause { Expression = InvalidExpr; Range = Null }))) [
-        ("", [Keyword "elif"; Keyword "else"] @ operationStatement)
-        ("elif ", [])
-        ("elif (", expression)
-        ("elif (true", expression)
-        ("elif (true)", [])
-        ("else ", [])
-    ]
-    List.iter (matches OperationStatement (Value (ElifClause { Expression = InvalidExpr; Range = Null }))) [
-        ("", [Keyword "elif"; Keyword "else"] @ operationStatement)
-        ("elif ", [])
-        ("elif (", expression)
-        ("elif (true", expression)
-        ("elif (true)", [])
-        ("else ", [])
-    ]
-    matches OperationStatement (Value ElseClause) ("", operationStatement)
-    List.iter (matches OperationStatement (Value RepeatIntro)) [
-        ("", [Keyword "until"])
-        ("until ", [])
-        ("until (", expression)
-        ("until (false", expression)
-        ("until (false)", [Keyword "fixup"])
-        ("until (false) ", [Keyword "fixup"])
-        ("until (false) fixup", [Keyword "fixup"])
-        ("until (false) fixup ", [])
-    ]
 
 [<Fact>]
 let ``Expression parser tests`` () =
-    List.iter (matches OperationStatement Null) [
+    List.iter (matches Operation Null) [
         ("", operationStatement)
         ("x", operationStatement)
         ("x ", infix)

@@ -135,10 +135,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             CompletionScope scope = null;
             if (parents.Any() && parents.First().Kind.IsNamespaceDeclaration)
                 scope = CompletionScope.NamespaceTopLevel;
-            if (parents.Where(parent => parent.Kind.IsFunctionDeclaration).Any())
-                scope = CompletionScope.FunctionStatement;
-            if (parents.Where(parent => parent.Kind.IsOperationDeclaration).Any())
-                scope = CompletionScope.OperationStatement;
+            else if (parents.Where(parent => parent.Kind.IsFunctionDeclaration).Any())
+                scope = CompletionScope.Function;
+            else if (parents.Any() && parents.First().Kind.IsOperationDeclaration)
+                scope = CompletionScope.OperationTopLevel;
+            else if (parents.Where(parent => parent.Kind.IsOperationDeclaration).Any())
+                scope = CompletionScope.Operation;
 
             QsFragmentKind previous = null;
             if (relativeIndentation == 0 && IsPositionAfterDelimiter(file, fragment, position))

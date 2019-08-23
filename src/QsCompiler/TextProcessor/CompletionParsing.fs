@@ -22,10 +22,12 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 type CompletionScope =
     /// The code fragment is inside a namespace but outside any callable.
     | NamespaceTopLevel
-    /// The code fragment is a statement inside a function.
-    | FunctionStatement
-    /// The code fragment is a statement inside an operation.
-    | OperationStatement
+    /// The code fragment is inside a function.
+    | Function
+    /// The code fragment is inside an operation at the top-level scope.
+    | OperationTopLevel
+    /// The code fragment is inside another scope within an operation.
+    | Operation
 
 /// Describes the kind of identifier that is expected at a particular position in the source code.
 type IdentifierKind =
@@ -496,7 +498,6 @@ let private operationStatement =
         repeatHeader
         usingHeader
         borrowingHeader
-        functorDeclaration  // TODO: This is only valid at the top level of an operation.
     ] .>> eotEof <|>@ callableStatement
 
 /// Parses a statement in an operation that follows an if or elif clause in the same scope.
@@ -505,6 +506,17 @@ let private operationStatementFollowingIf =
         elifClause
         elseClause
     ] .>> eotEof <|>@ operationStatement
+
+/// Parses a statement in the top-level scope of an operation.
+let private operationTopLevel =
+    functorDeclaration .>> eotEof <|>@ operationStatement
+
+/// Parses a statement in the top-level scope of an operation that follows an if or elif clause.
+let private operationTopLevelFollowingIf =
+    pcollect [
+        elifClause
+        elseClause
+    ] .>> eotEof <|>@ operationTopLevel
 
 /// Parses a statement in an operation that follows a repeat header in the same scope.
 let private operationStatementFollowingRepeat =
@@ -517,13 +529,15 @@ let GetExpectedIdentifiers scope previous text =
     let parser =
         match (scope, previous) with
         | (NamespaceTopLevel, _) -> namespaceTopLevel
-        | (FunctionStatement, Value (IfClause _))
-        | (FunctionStatement, Value (ElifClause _)) -> functionStatementFollowingIf
-        | (FunctionStatement, _) -> functionStatement
-        | (OperationStatement, Value (IfClause _))
-        | (OperationStatement, Value (ElifClause _)) -> operationStatementFollowingIf
-        | (OperationStatement, Value (RepeatIntro _)) -> operationStatementFollowingRepeat
-        | (OperationStatement, _) -> operationStatement
+        | (Function, Value (IfClause _)) | (Function, Value (ElifClause _)) -> functionStatementFollowingIf
+        | (Function, _) -> functionStatement
+        | (OperationTopLevel, Value (IfClause _))
+        | (OperationTopLevel, Value (ElifClause _)) -> operationTopLevelFollowingIf
+        | (OperationTopLevel, _) -> operationTopLevel
+        | (Operation, Value (IfClause _)) | (Operation, Value (ElifClause _)) -> operationStatementFollowingIf
+        | (OperationTopLevel, Value (RepeatIntro _)) | (Operation, Value (RepeatIntro _)) ->
+            operationStatementFollowingRepeat
+        | (Operation, _) -> operationStatement
     match runParserOnString parser [] "" (text + "\u0004") with
     | ParserResult.Success (result, _, _) -> Success (Set.ofList result)
     | ParserResult.Failure (detail, _, _) -> Failure detail
