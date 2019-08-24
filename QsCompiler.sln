@@ -3,26 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.28809.33
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsCompilationManager", "src\QsCompiler\CompilationManager\QsCompilationManager.csproj", "{8990670B-B9D2-4485-AA5B-34A301A11CD3}"
-	ProjectSection(ProjectDependencies) = postProject
-		{57F1310F-9210-47A2-AEC5-DE2CF345D754} = {57F1310F-9210-47A2-AEC5-DE2CF345D754}
-		{FFFCD77D-A353-4C89-9006-01A64D82A422} = {FFFCD77D-A353-4C89-9006-01A64D82A422}
-		{AC28EABE-1D21-401B-9379-EC1064F3B0FF} = {AC28EABE-1D21-401B-9379-EC1064F3B0FF}
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsCompiler", "src\QsCompiler\Compiler\QsCompiler.csproj", "{B7B3C72B-894A-4AEA-BA77-6512C2B01309}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsDataStructures", "src\QsCompiler\DataStructures\QsDataStructures.fsproj", "{FFFCD77D-A353-4C89-9006-01A64D82A422}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsSyntaxProcessor", "src\QsCompiler\SyntaxProcessor\QsSyntaxProcessor.fsproj", "{AC28EABE-1D21-401B-9379-EC1064F3B0FF}"
-	ProjectSection(ProjectDependencies) = postProject
-		{57F1310F-9210-47A2-AEC5-DE2CF345D754} = {57F1310F-9210-47A2-AEC5-DE2CF345D754}
-		{FFFCD77D-A353-4C89-9006-01A64D82A422} = {FFFCD77D-A353-4C89-9006-01A64D82A422}
-	EndProjectSection
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsTextProcessor", "src\QsCompiler\TextProcessor\QsTextProcessor.fsproj", "{57F1310F-9210-47A2-AEC5-DE2CF345D754}"
-	ProjectSection(ProjectDependencies) = postProject
-		{FFFCD77D-A353-4C89-9006-01A64D82A422} = {FFFCD77D-A353-4C89-9006-01A64D82A422}
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsDocumentationParser", "src\QsCompiler\DocumentationParser\QsDocumentationParser.csproj", "{EB06DB1E-2B86-4279-81F9-D39B62B4AE0A}"
 EndProject
@@ -47,9 +35,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Simulation", "src\QsCompiler\TestTargets\Simulation\Target\Simulation.csproj", "{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Example", "src\QsCompiler\TestTargets\Simulation\Example\Example.csproj", "{2E331781-F7ED-4EF1-8451-896636C6D93A}"
-	ProjectSection(ProjectDependencies) = postProject
-		{B15C4786-0D35-4E66-907F-94DA85FD5576} = {B15C4786-0D35-4E66-907F-94DA85FD5576}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
