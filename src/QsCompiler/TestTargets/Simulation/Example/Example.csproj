@@ -21,23 +21,36 @@
 
   <ItemGroup>
     <Folder Include="$(GenFilesDir)" />
+    <Compile Remove="Driver.cs" />
+    <Compile Include="Driver.cs" >
+      <Visible>false</Visible>
+    </Compile>
   </ItemGroup>
 
-  <Target Name="QsharpCompile" DependsOnTargets="ResolveAssemblyReferences" BeforeTargets="CoreCompile">
+
+  <Target Name="QsharpClean" BeforeTargets="Clean">
     <ItemGroup>
-      <GenFiles Include="$(GenFilesDir)**\*.*" />
+      <RemoveFiles Include="$(GenFilesDir)**\*.*" />
+    </ItemGroup>
+    <Delete Files="@(RemoveFiles)" />
+  </Target>  
+  
+  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveAssemblyReferences;Clean" BeforeTargets="CoreCompile">
+    <MakeDir Directories="$(GenFilesDir)" />
+    <ItemGroup>
       <QsReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
       <QsSourceFiles Include="**\*.qs" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) build -v --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) -t $(SimulationTarget)</QscCommand>
-      <!--QscCommand>$(QscExe) -i &quot;@(QsSourceFiles,'&quot; &quot;')&quot; -r &quot;@(QsReferences,'&quot; &quot;')&quot; -o $(GenFilesDir) -t $(SimulationTarget)</QscCommand-->
+      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) -t "$(SimulationTarget)"</QscCommand>
     </PropertyGroup>
-    <MakeDir Directories="$(GenFilesDir)" />
-    <Delete Condition="'$(DesignTimeBuild)' != 'true'" Files="@(GenFiles)" />
-    <Exec Condition="'$(DesignTimeBuild)' != 'true'" Command="$(QscCommand)" />
     <ItemGroup>
-      <Compile Include="$(GenFilesDir)**\*.g.cs" />
+      <Compile Remove="$(GenFilesDir)**" />
+    </ItemGroup>
+    <Exec Command="$(QscCommand)" IgnoreExitCode="true" />
+    <Delete Files="$(GenFilesDir)$(MSBuildProjectName).bson" />
+    <ItemGroup>
+      <Compile Include="$(GenFilesDir)**\*.g.cs" Exclude="@(Compile)" />
     </ItemGroup>
   </Target>    
 </Project>

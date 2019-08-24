@@ -4,16 +4,14 @@
 using Microsoft.Quantum.Simulation.Simulators;
 
 
-namespace Quantum.Example
+namespace Microsoft.Quantum.Testing.Simulation
 {
-    class Driver
+    internal static class Driver
     {
         static void Main(string[] args)
         {
             using (var qsim = new QuantumSimulator())
-            {
-                HelloQ.Run(qsim).Wait();
-            }
+            { Simulation.Main.Run(qsim).Wait(); }
         }
     }
 }
