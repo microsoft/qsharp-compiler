@@ -103,11 +103,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a dictionary of workspace edits suggested by the compiler for the given location and context.
-        /// The keys of the dictionary are suitable titles for each edit that can be presented to the user. 
+        /// Returns a look-up of workspace edits suggested by the compiler for the given location and context.
+        /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user. 
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </summary>
-        public static ImmutableDictionary<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
+        public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
         {
             if (range?.Start == null || range.End == null || file == null || !Utils.IsValidRange(range, file)) return null;
             var suggestionsForUnknownIds = file.SuggestionsForUnknownIdentifiers(compilation, range.Start.Line, context?.Diagnostics);
@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(suggestionsForIndexRange)
                 .Concat(suggestionsForUnreachableCode)
                 .Concat(suggestionsForDocComments)
-                .ToImmutableDictionary(s => s.Item1, s => s.Item2);
+                .ToLookup(s => s.Item1, s => s.Item2);
         }
 
         /// <summary>

@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .TakeWhile(t => t.Line <= lineNr).LastOrDefault() // going by line here is fine - inaccuracies if someone has multiple namespace and callable declarations on the same line seem acceptable...
                 ?.GetChildren(deep: false);
             var firstInNs = nsElements?.FirstOrDefault()?.GetFragment();
-            if (firstInNs == null) return Enumerable.Empty<TextEdit>();
+            if (firstInNs?.Kind == null) return Enumerable.Empty<TextEdit>();
 
             // determine what open directives already exist
             var insertOpenDirAt = firstInNs.GetRange().Start;

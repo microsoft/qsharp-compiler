@@ -497,269 +497,269 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
 
-	// conjugations
+    // conjugations
 
-	operation ValidConjugation1 () : Unit {
-		mutable foo = 1;
-		within {}
-		apply {
-			set foo = 10;
-		}
-	}
+    operation ValidConjugation1 () : Unit {
+        mutable foo = 1;
+        within {}
+        apply {
+            set foo = 10;
+        }
+    }
 
-	operation ValidConjugation2 () : Unit {
-		mutable foo = 1;
-		mutable bar = -1;
-		within {
-			GenericAdjointable(bar);
-		}
-		apply {
-			set foo = 10;
-		}
-	}
-
-
-	operation ValidConjugation3 () : Unit {
-		mutable foo = 1;
-		within {}
-		apply {
-			set (_, foo) = (1, 10);
-		}
-	}
-
-	operation ValidConjugation4 () : Unit {
-		mutable foo = 1;
-		mutable bar = -1;
-		within {
-			GenericAdjointable(bar);
-		}
-		apply {
-			set (_, foo) = (1, 10);
-		}
-	}
-
-	operation ValidConjugation5 () : Unit {
-		mutable foo = 1;
-		mutable bar = -1;
-		within {
-			let _ = bar;
-		}
-		apply {
-			set (_, foo) = (1, 10);
-		}
-	}
-
-	operation ValidConjugation6 () : Unit {
-		mutable foo = 1;
-		mutable bar = -1;
-		within {
-			let _ = bar;
-		}
-		apply {
-			mutable nrIter = 0;
-			repeat {
-				set nrIter += 1;
-				GenericOperation();
-			}
-			until (false);
-		}
-	}
-
-	operation ValidConjugation7 (cond : Bool) : Unit {
-		mutable foo = 1;
-		within {
-			if (cond) {
-				fail "{foo}";
-			} 
-		}
-		apply {
-			if (not cond) {
-				set (_, (foo, _)) = (1, (10, ""));
-			}
-		}
-	}
-
-	operation ValidConjugation8 (cond : Bool) : Unit {
-		mutable foo = 1;
-		within {
-			for (i in 1 .. 10) {
-				GenericAdjointable(i, (i, foo));
-			} 
-		}
-		apply {
-			repeat {}
-			until (cond)
-			fixup {}
-		}
-	}
+    operation ValidConjugation2 () : Unit {
+        mutable foo = 1;
+        mutable bar = -1;
+        within {
+            GenericAdjointable(bar);
+        }
+        apply {
+            set foo = 10;
+        }
+    }
 
 
-	operation InvalidConjugation1 () : Unit {
-		mutable foo = 1;
-		within {
-			GenericAdjointable(foo); 
-		}
-		apply {
-			set foo = 10;
-		}
-	}
+    operation ValidConjugation3 () : Unit {
+        mutable foo = 1;
+        within {}
+        apply {
+            set (_, foo) = (1, 10);
+        }
+    }
 
-	operation InvalidConjugation2 () : Unit {
-		mutable foo = 1;
-		within {
-			GenericAdjointable($"{foo}"); 
-		}
-		apply {
-			set foo = 10;
-		}
-	}
+    operation ValidConjugation4 () : Unit {
+        mutable foo = 1;
+        mutable bar = -1;
+        within {
+            GenericAdjointable(bar);
+        }
+        apply {
+            set (_, foo) = (1, 10);
+        }
+    }
 
-	operation InvalidConjugation3 () : Unit {
-		mutable foo = 1;
-		within {
-			let _ = foo; 
-		}
-		apply {
-			set foo = 10;
-		}
-	}
+    operation ValidConjugation5 () : Unit {
+        mutable foo = 1;
+        mutable bar = -1;
+        within {
+            let _ = bar;
+        }
+        apply {
+            set (_, foo) = (1, 10);
+        }
+    }
 
-	operation InvalidConjugation4 () : Unit {
-		mutable foo = 1;
-		within {
-			let _ = foo; 
-		}
-		apply {
-			set (_, foo) = (1, 10);
-		}
-	}
+    operation ValidConjugation6 () : Unit {
+        mutable foo = 1;
+        mutable bar = -1;
+        within {
+            let _ = bar;
+        }
+        apply {
+            mutable nrIter = 0;
+            repeat {
+                set nrIter += 1;
+                GenericOperation();
+            }
+            until (false);
+        }
+    }
 
-	operation InvalidConjugation5 () : Unit {
-		mutable foo = 1;
-		within {
-			if (foo + 1 > 0) {} 
-		}
-		apply {
-			set (_, foo) = (1, 10);
-		}
-	}
+    operation ValidConjugation7 (cond : Bool) : Unit {
+        mutable foo = 1;
+        within {
+            if (cond) {
+                fail "{foo}";
+            } 
+        }
+        apply {
+            if (not cond) {
+                set (_, (foo, _)) = (1, (10, ""));
+            }
+        }
+    }
 
-	operation InvalidConjugation6 (cond : Bool) : Unit {
-		mutable foo = 1;
-		within {
-			if (cond) {
-				fail $"{foo}";
-			} 
-		}
-		apply {
-			set (_, (foo, _)) = (1, (10, ""));
-		}
-	}
-
-	operation InvalidConjugation7 (cond : Bool) : Unit {
-		mutable foo = 1;
-		within {
-			if (cond) {
-				fail $"{foo}";
-			} 
-		}
-		apply {
-			if (not cond) {
-				set (_, (foo, _)) = (1, (10, ""));
-			}
-		}
-	}
-
-	operation InvalidConjugation8 (cond : Bool) : Unit {
-		mutable foo = 1;
-		within {
-			for (i in 1 .. 10) {
-				GenericAdjointable(i, (i, foo));
-			} 
-		}
-		apply {
-			repeat {}
-			until (cond)
-			fixup {
-				set (_, (foo, _)) = (1, (10, ""));
-			}
-		}
-	}
-
-	
-	// open-ended ranges in array slicing expressions
-
-	function ValidArraySlice1 (arr : Int[]) : Int[] {
-		return arr[3...];			
-	} 
-
-	function ValidArraySlice2 (arr : Int[]) : Int[] {
-		return arr [0 .. 2 ... ];	
-	} 
-
-	function ValidArraySlice3 (arr : Int[]) : Int[] {
-		return arr[...2];			
-	} 
-
-	function ValidArraySlice4 (arr : Int[]) : Int[] {
-		return arr[...2..3];		
-	} 
-
-	function ValidArraySlice5 (arr : Int[]) : Int[] {
-		return arr[...2...];		
-	} 
-
-	function ValidArraySlice6 (arr : Int[]) : Int[] {
-		return arr[...];			
-	} 
-
-	function ValidArraySlice7 (arr : Int[]) : Int[] {
-		return arr [4 .. -2 ... ];
-	} 
-
-	function ValidArraySlice8 (arr : Int[]) : Int[] {
-		return arr[ ... -1 .. 3];	
-	} 
-
-	function ValidArraySlice9 (arr : Int[]) : Int[] {
-		return arr[...-1...];		
-	} 
+    operation ValidConjugation8 (cond : Bool) : Unit {
+        mutable foo = 1;
+        within {
+            for (i in 1 .. 10) {
+                GenericAdjointable(i, (i, foo));
+            } 
+        }
+        apply {
+            repeat {}
+            until (cond)
+            fixup {}
+        }
+    }
 
 
-	function InvalidArraySlice1 (arr : BigEndian) : Int[] {
-		return arr[3...];			
-	} 
+    operation InvalidConjugation1 () : Unit {
+        mutable foo = 1;
+        within {
+            GenericAdjointable(foo); 
+        }
+        apply {
+            set foo = 10;
+        }
+    }
 
-	function InvalidArraySlice2 (arr : BigEndian) : Int[] {
-		return arr [0 .. 2 ... ];	
-	} 
+    operation InvalidConjugation2 () : Unit {
+        mutable foo = 1;
+        within {
+            GenericAdjointable($"{foo}"); 
+        }
+        apply {
+            set foo = 10;
+        }
+    }
 
-	function InvalidArraySlice3 (arr : BigEndian) : Int[] {
-		return arr[...2];			
-	} 
+    operation InvalidConjugation3 () : Unit {
+        mutable foo = 1;
+        within {
+            let _ = foo; 
+        }
+        apply {
+            set foo = 10;
+        }
+    }
 
-	function InvalidArraySlice4 (arr : BigEndian) : Int[] {
-		return arr[...2..3];		
-	} 
+    operation InvalidConjugation4 () : Unit {
+        mutable foo = 1;
+        within {
+            let _ = foo; 
+        }
+        apply {
+            set (_, foo) = (1, 10);
+        }
+    }
 
-	function InvalidArraySlice5 (arr : BigEndian) : Int[] {
-		return arr[...2...];		
-	} 
+    operation InvalidConjugation5 () : Unit {
+        mutable foo = 1;
+        within {
+            if (foo + 1 > 0) {} 
+        }
+        apply {
+            set (_, foo) = (1, 10);
+        }
+    }
 
-	function InvalidArraySlice6 (arr : BigEndian) : Int[] {
-		return arr[...];			
-	} 
+    operation InvalidConjugation6 (cond : Bool) : Unit {
+        mutable foo = 1;
+        within {
+            if (cond) {
+                fail $"{foo}";
+            } 
+        }
+        apply {
+            set (_, (foo, _)) = (1, (10, ""));
+        }
+    }
 
-	function InvalidArraySlice7 (arr : BigEndian) : Int[] {
-		return arr [4 .. -2 ... ];
-	} 
+    operation InvalidConjugation7 (cond : Bool) : Unit {
+        mutable foo = 1;
+        within {
+            if (cond) {
+                fail $"{foo}";
+            } 
+        }
+        apply {
+            if (not cond) {
+                set (_, (foo, _)) = (1, (10, ""));
+            }
+        }
+    }
 
-	function InvalidArraySlice8 (arr : BigEndian) : Int[] {
-		return arr[ ... -1 .. 3];	
-	} 
+    operation InvalidConjugation8 (cond : Bool) : Unit {
+        mutable foo = 1;
+        within {
+            for (i in 1 .. 10) {
+                GenericAdjointable(i, (i, foo));
+            } 
+        }
+        apply {
+            repeat {}
+            until (cond)
+            fixup {
+                set (_, (foo, _)) = (1, (10, ""));
+            }
+        }
+    }
 
-	function InvalidArraySlice9 (arr : BigEndian) : Int[] {
-		return arr[...-1...];		
-	} 
+    
+    // open-ended ranges in array slicing expressions
+
+    function ValidArraySlice1 (arr : Int[]) : Int[] {
+        return arr[3...];            
+    } 
+
+    function ValidArraySlice2 (arr : Int[]) : Int[] {
+        return arr [0 .. 2 ... ];    
+    } 
+
+    function ValidArraySlice3 (arr : Int[]) : Int[] {
+        return arr[...2];            
+    } 
+
+    function ValidArraySlice4 (arr : Int[]) : Int[] {
+        return arr[...2..3];        
+    } 
+
+    function ValidArraySlice5 (arr : Int[]) : Int[] {
+        return arr[...2...];        
+    } 
+
+    function ValidArraySlice6 (arr : Int[]) : Int[] {
+        return arr[...];            
+    } 
+
+    function ValidArraySlice7 (arr : Int[]) : Int[] {
+        return arr [4 .. -2 ... ];
+    } 
+
+    function ValidArraySlice8 (arr : Int[]) : Int[] {
+        return arr[ ... -1 .. 3];    
+    } 
+
+    function ValidArraySlice9 (arr : Int[]) : Int[] {
+        return arr[...-1...];        
+    } 
+
+
+    function InvalidArraySlice1 (arr : BigEndian) : Int[] {
+        return arr[3...];            
+    } 
+
+    function InvalidArraySlice2 (arr : BigEndian) : Int[] {
+        return arr [0 .. 2 ... ];    
+    } 
+
+    function InvalidArraySlice3 (arr : BigEndian) : Int[] {
+        return arr[...2];            
+    } 
+
+    function InvalidArraySlice4 (arr : BigEndian) : Int[] {
+        return arr[...2..3];        
+    } 
+
+    function InvalidArraySlice5 (arr : BigEndian) : Int[] {
+        return arr[...2...];        
+    } 
+
+    function InvalidArraySlice6 (arr : BigEndian) : Int[] {
+        return arr[...];            
+    } 
+
+    function InvalidArraySlice7 (arr : BigEndian) : Int[] {
+        return arr [4 .. -2 ... ];
+    } 
+
+    function InvalidArraySlice8 (arr : BigEndian) : Int[] {
+        return arr[ ... -1 .. 3];    
+    } 
+
+    function InvalidArraySlice9 (arr : BigEndian) : Int[] {
+        return arr[...-1...];        
+    } 
 
 }
