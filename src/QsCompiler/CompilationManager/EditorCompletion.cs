@@ -119,6 +119,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (!Utils.IsValidPosition(position))
                 throw new ArgumentException(nameof(position));
+            if (!Utils.IsValidPosition(position, file))
+                // FileContentManager.IndentationAt will fail if the position is not within the file.
+                return (null, null);
 
             var token = GetTokenAtOrBefore(file, position);
             if (token == null)
