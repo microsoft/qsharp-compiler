@@ -16,11 +16,11 @@ open Printer
 
 
 type private FunctionInterrupt =
-| Returned of Expr
-| Failed of Expr
+| Returned of TypedExpression
+| Failed of TypedExpression
 | CouldNotEvaluate of string
 
-type private FunctionState = Result<Constants<Expr>, FunctionInterrupt>
+type private FunctionState = Result<Constants<TypedExpression>, FunctionInterrupt>
 
 
 /// Evaluates functions by stepping through their code
@@ -28,16 +28,16 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
 
     /// Transforms a BoolLiteral into the corresponding bool
     let castToBool x =
-        match x with
+        match x.Expression with
         | BoolLiteral b -> Ok b
-        | _ -> "Not a BoolLiteral: " + (printExpr x) |> CouldNotEvaluate |> Error
+        | _ -> "Not a BoolLiteral: " + (printExpr x.Expression) |> CouldNotEvaluate |> Error
 
     /// The callback for the subroutine that evaluates and simplifies an expression
     member internal this.evaluateExpression constants expr =
-        (ExpressionEvaluator(callables, constants, maxRecursiveDepth - 1).Transform expr).Expression
+        ExpressionEvaluator(callables, constants, maxRecursiveDepth - 1).Transform expr
 
     /// Evaluates a single Q# statement
-    member private this.evaluateStatement (constants: Constants<Expr>) (statement: QsStatement): FunctionState =
+    member private this.evaluateStatement (constants: Constants<TypedExpression>) (statement: QsStatement): FunctionState =
         match statement.Statement with
         | QsExpressionStatement expr ->
             this.evaluateExpression constants expr |> ignore; constants |> Ok
@@ -64,10 +64,10 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
             result {
                 let iterValues = this.evaluateExpression constants stmt.IterationValues
                 let! iterSeq =
-                    match iterValues with
-                    | RangeLiteral _ when isLiteral callables iterValues -> rangeLiteralToSeq iterValues |> Seq.map IntLiteral |> Ok
-                    | ValueArray va -> va |> Seq.map (fun x -> x.Expression) |> Ok
-                    | _ -> "Unknown IterationValue in for loop: " + (printExpr iterValues) |> CouldNotEvaluate |> Error
+                    match iterValues.Expression with
+                    | RangeLiteral _ when isLiteral callables iterValues -> rangeLiteralToSeq iterValues.Expression |> Seq.map (IntLiteral >> wrapExpr Int) |> Ok
+                    | ValueArray va -> va :> seq<_> |> Ok
+                    | _ -> "Unknown IterationValue in for loop: " + (printExpr iterValues.Expression) |> CouldNotEvaluate |> Error
                 let constantsRef = ref constants
                 for loopValue in iterSeq do
                     constantsRef := enterScope !constantsRef
@@ -104,7 +104,7 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
             this.evaluateScope constants true s.Body
 
     /// Evaluates a list of Q# statements
-    member private this.evaluateScope (constants: Constants<Expr>) (newScope: bool) (scope: QsScope): FunctionState =
+    member private this.evaluateScope (constants: Constants<TypedExpression>) (newScope: bool) (scope: QsScope): FunctionState =
         result {
             let constantsRef = ref constants
             if newScope then
@@ -118,7 +118,7 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
         }
 
     /// Evaluates a Q# function
-    member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): Expr option =
+    member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): TypedExpression option =
         let callable = getCallable callables name
         if callable.Specializations.Length <> 1 then
             Exception "Functions must have exactly one specialization" |> raise
@@ -126,7 +126,7 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
         match impl with
         | Provided (specArgs, scope) ->
             let constants = enterScope (Constants [])
-            let constants = defineVarTuple (isLiteral callables) constants (toSymbolTuple specArgs, arg.Expression)
+            let constants = defineVarTuple (isLiteral callables) constants (toSymbolTuple specArgs, arg)
             match this.evaluateScope constants true scope with
             | Ok _ ->
                 // printfn "Function %O didn't return anything" name.Name.Value
@@ -145,7 +145,7 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
             None
 
 
-and internal ExpressionEvaluator(callables: Callables, constants: Constants<Expr>, maxRecursiveDepth: int) =
+and internal ExpressionEvaluator(callables: Callables, constants: Constants<TypedExpression>, maxRecursiveDepth: int) =
     inherit ExpressionTransformation()
 
     override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, maxRecursiveDepth) with
@@ -154,7 +154,7 @@ and internal ExpressionEvaluator(callables: Callables, constants: Constants<Expr
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, constants: Constants<Expr>, maxRecursiveDepth: int) =
+and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, constants: Constants<TypedExpression>, maxRecursiveDepth: int) =
     inherit ExpressionKindTransformation()
 
     member private this.simplify e1 = this.ExpressionTransformation e1
@@ -190,7 +190,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
 
     override this.onIdentifier (sym, tArgs) =
         match sym with
-        | LocalVariable name -> tryGetVar constants name.Value |? Identifier (sym, tArgs)
+        | LocalVariable name -> tryGetVar constants name.Value |> Option.map (fun x -> x.Expression) |? Identifier (sym, tArgs)
         | _ -> Identifier (sym, tArgs)
 
     override this.onFunctionCall (method, arg) =
@@ -198,9 +198,9 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         maybe {
             match method.Expression with
             | Identifier (GlobalCallable qualName, types) ->
-                do! check (maxRecursiveDepth > 0 && isLiteral callables arg.Expression)
+                do! check (maxRecursiveDepth > 0 && isLiteral callables arg)
                 let fe = FunctionEvaluator (callables, maxRecursiveDepth)
-                return! fe.evaluateFunction qualName arg types
+                return! fe.evaluateFunction qualName arg types |> Option.map (fun x -> x.Expression)
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.ContainsMissing partialArg)
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
@@ -236,7 +236,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         let arr, idx = this.simplify (arr, idx)
         match arr.Expression, idx.Expression with
         | ValueArray va, IntLiteral i -> va.[int i].Expression
-        | ValueArray va, RangeLiteral _ when isLiteral callables idx.Expression ->
+        | ValueArray va, RangeLiteral _ when isLiteral callables idx ->
             rangeLiteralToSeq idx.Expression |> Seq.map (fun i -> va.[int i]) |> ImmutableArray.CreateRange |> ValueArray
         | _ -> ArrayItem (arr, idx)
 
@@ -263,13 +263,13 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
 
     override this.onEquality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
-        match isLiteral callables lhs.Expression && isLiteral callables rhs.Expression with
+        match isLiteral callables lhs && isLiteral callables rhs with
         | true -> BoolLiteral (lhs.Expression = rhs.Expression)
         | false -> EQ (lhs, rhs)
 
     override this.onInequality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
-        match isLiteral callables lhs.Expression && isLiteral callables rhs.Expression with
+        match isLiteral callables lhs && isLiteral callables rhs with
         | true -> BoolLiteral (lhs.Expression <> rhs.Expression)
         | false -> NEQ (lhs, rhs)
 

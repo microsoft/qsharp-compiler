@@ -119,8 +119,6 @@ type internal CallableInliner(callables) =
 
     // The current callable we're in the process of transforming
     let mutable currentCallable: QsCallable option = None
-    // The list of new statements to add
-    let mutable statementsToAdd = []
 
     /// Inline an expression as a ScopeStatement, with many checks to ensure correctness.
     /// Returns None if the expression cannot be safely inlined.
@@ -132,6 +130,7 @@ type internal CallableInliner(callables) =
             let! current = currentCallable
             do! check (cannotReachCallable callables ii.body current.FullName)
             do! check (ii.functors.controlled < 2)
+            // TODO - support multiple Controlled functors
 
             let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
             let newStatements = ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
@@ -148,32 +147,6 @@ type internal CallableInliner(callables) =
 
     override syntaxTree.Scope = { new ScopeTransformation() with
 
-        override scope.Expression = { new ExpressionTransformation() with
-            override expr.Kind = { new ExpressionKindTransformation() with
-                override exprKind.ExpressionTransformation ex = expr.Transform ex
-                override exprKind.TypeTransformation t = expr.Type.Transform t
-
-                override exprKind.onOperationCall (method, arg) =
-                    let expr = CallLikeExpression (exprKind.ExpressionTransformation method, exprKind.ExpressionTransformation arg)
-                    maybe {
-                        let! scopeStatement = safeInline expr
-                        statementsToAdd <- statementsToAdd @ [wrapStmt scopeStatement]
-                        return UnitValue
-                    } |? expr
-
-                // The functions before are overriden to prevent inlining of lazily evaluated operations
-
-                override this.onConditionalExpression (cond, ifTrue, ifFalse) =
-                    CONDITIONAL (this.ExpressionTransformation cond, ifTrue, ifFalse)
-
-                override this.onLogicalAnd (lhs, rhs) =
-                    AND (this.ExpressionTransformation lhs, rhs)
-
-                override this.onLogicalOr (lhs, rhs) =
-                    OR (this.ExpressionTransformation lhs, rhs)
-            }
-        }
-
         override scope.StatementKind = { new StatementKindTransformation() with
             override stmtKind.ExpressionTransformation x = scope.Expression.Transform x
             override stmtKind.LocationTransformation x = scope.onLocation x
@@ -181,8 +154,6 @@ type internal CallableInliner(callables) =
             override stmtKind.TypeTransformation x = scope.Expression.Type.Transform x
 
             override this.onExpressionStatement ex =
-                match safeInline ex.Expression with
-                | Some result -> result
-                | None -> QsExpressionStatement (this.ExpressionTransformation ex)
+                safeInline ex.Expression |? QsExpressionStatement ex
         }
     }

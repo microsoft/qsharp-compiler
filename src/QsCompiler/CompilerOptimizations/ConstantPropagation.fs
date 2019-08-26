@@ -18,18 +18,12 @@ open OptimizingTransformation
 /// For a statement of the form "let x = [expr];", if shouldPropagate(expr) is true,
 /// then we should substitute [expr] for x wherever x occurs in future code.
 let rec private shouldPropagate callables expr =
-    isLiteral callables expr ||
-    match expr with
-    | ValueTuple a | StringLiteral (_, a) | ValueArray a -> Seq.forall (fun x -> shouldPropagate callables x.Expression) a
-    | RangeLiteral (a, b) | ArrayItem (a, b) -> shouldPropagate callables a.Expression && shouldPropagate callables b.Expression
-    | NewArray (_, a) | UnwrapApplication a -> shouldPropagate callables a.Expression
-    | Identifier _ -> true
-    | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, b)
-        when (getCallable callables qualName).Kind = TypeConstructor -> shouldPropagate callables b.Expression
-    | CallLikeExpression (a, b) ->
-        shouldPropagate callables a.Expression && shouldPropagate callables b.Expression &&
-            TypedExpression.IsPartialApplication (CallLikeExpression (a, b))
-    | _ -> false
+    expr |> TypedExpression.MapFold (fun ex -> ex.Expression) (fun sub ex ->
+        isLiteral callables ex ||
+        (match ex.Expression with
+        | Identifier _ | ArrayItem _ | NewArray _ | UnwrapApplication _ -> true
+        | _ -> false
+        && Seq.forall id sub))
 
 
 /// The SyntaxTreeTransformation used to evaluate constants
@@ -71,7 +65,7 @@ type internal ConstantPropagator(callables) =
                 let lhs = so.onSymbolTuple stm.Lhs
                 let rhs = so.ExpressionTransformation stm.Rhs
                 if stm.Kind = ImmutableBinding then
-                    constants <- defineVarTuple (shouldPropagate callables) constants (lhs, rhs.Expression)
+                    constants <- defineVarTuple (shouldPropagate callables) constants (lhs, rhs)
                 QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
 
             override this.onConditionalStatement stm =
@@ -117,7 +111,7 @@ type internal ConstantPropagator(callables) =
                             ArgumentException "Cannot allocate qubit arrays of this size" |> raise
                         let arrayIden = Identifier (LocalVariable name, Null) |> wrapExpr (ArrayType (ResolvedType.New Qubit))
                         let elemI = fun i -> ArrayItem (arrayIden, IntLiteral (int64 i) |> wrapExpr Int)
-                        let expr = Seq.init (int num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray
+                        let expr = Seq.init (int num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray |> wrapExpr (ArrayType (ResolvedType.New Qubit))
                         constants <- defineVar (fun _ -> true) constants (name.Value, expr)
                     | _ -> ())
 

@@ -49,19 +49,16 @@ let internal tryGetVar constants name =
 
 
 /// Returns whether a given expression is a literal (and thus a constant)
-let rec internal isLiteral (callables: Callables) (expr: Expr): bool =
-    match expr with
-    | UnitValue | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ -> true
-    | ValueTuple a | StringLiteral (_, a) | ValueArray a -> Seq.forall (fun x -> isLiteral callables x.Expression) a
-    | RangeLiteral (a, b) -> isLiteral callables a.Expression && isLiteral callables b.Expression
-    | NewArray (_, a) -> isLiteral callables a.Expression
-    | Identifier (GlobalCallable _, _) | MissingExpr -> true
-    | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, b)
-        when (getCallable callables qualName).Kind = TypeConstructor -> isLiteral callables b.Expression
-    | CallLikeExpression (a, b) ->
-        isLiteral callables a.Expression && isLiteral callables b.Expression &&
-            TypedExpression.IsPartialApplication (CallLikeExpression (a, b))
-    | _ -> false
+let rec internal isLiteral (callables: Callables) (expr: TypedExpression): bool =
+    expr |> TypedExpression.MapFold (fun ex -> ex.Expression) (fun sub ex ->
+        match ex.Expression with
+        | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _
+        | UnitValue | MissingExpr | Identifier (GlobalCallable _, _) -> true
+        | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
+            when (getCallable callables qualName).Kind = TypeConstructor -> true
+        | a when TypedExpression.IsPartialApplication a -> true
+        | _ -> false
+        && Seq.forall id sub)
 
 
 /// If check(value) is true, returns a Constants with the given variable defined as the given value.
@@ -92,11 +89,11 @@ let rec private onTuple op constants (names, values) =
     match names, values with
     | VariableName name, _ ->
         op constants (name.Value, values)
-    | VariableNameTuple namesTuple, ValueTuple valuesTuple ->
+    | VariableNameTuple namesTuple, Tuple valuesTuple ->
         // TODO: assert items and vt are same length
         if namesTuple.Length <> valuesTuple.Length then
             ArgumentException "names and values have different lengths" |> raise
-        Seq.zip namesTuple (Seq.map (fun x -> x.Expression) valuesTuple) |> Seq.fold (onTuple op) constants
+        Seq.zip namesTuple valuesTuple |> Seq.fold (onTuple op) constants
     | _ -> constants
 
 /// Returns a Constants<Expr> with the given variables defined as the given values
