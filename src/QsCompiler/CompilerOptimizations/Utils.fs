@@ -95,7 +95,19 @@ let internal wrapExpr (bt: TypeKind) (expr: Expr): TypedExpression =
 
 /// Wraps a QsStatementKind in a basic QsStatement
 let internal wrapStmt (stmt: QsStatementKind): QsStatement =
-    QsStatement.New QsComments.Empty Null (stmt, [])
+    let symbolDecl =
+        match stmt with
+        | QsVariableDeclaration x ->
+            let isMutable = x.Kind = MutableBinding
+            let posInfo = (Null, (QsPositionInfo.Zero, QsPositionInfo.Zero))
+            seq {
+                for lhs, rhs in jointFlatten (x.Lhs, x.Rhs) do
+                    match lhs with
+                    | VariableName name ->
+                        yield LocalVariableDeclaration.New isMutable (posInfo, name, rhs.ResolvedType, false)
+                    | _ -> () }
+        | _ -> Seq.empty
+    QsStatement.New QsComments.Empty Null (stmt, symbolDecl)
 
 
 /// Returns a new array of the given type and length.
