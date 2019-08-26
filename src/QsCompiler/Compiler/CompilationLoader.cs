@@ -55,6 +55,10 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool GenerateFunctorSupport;
             /// <summary>
+            /// If set to true, the syntax tree rewrite steps that optimize the code are executed during compilation.
+            /// </summary>
+            public bool DoOptimizationSteps;
+            /// <summary>
             /// If the output folder is not null, 
             /// documentation is generated in the specified folder based on doc comments in the source code. 
             /// </summary>
@@ -77,6 +81,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal int ReferenceLoading = -1;
             internal int Validation = -1;
             internal int FunctorSupport = -1;
+            internal int Optimizations = -1;
             internal int Documentation = -1;
             internal int BinaryFormat = -1;
             internal Dictionary<string, int> BuildTargets;
@@ -92,6 +97,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
+                WasSuccessful(options.DoOptimizationSteps, this.Optimizations) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 !this.BuildTargets.Values.Any(status => !WasSuccessful(true, status))
@@ -220,7 +226,18 @@ namespace Microsoft.Quantum.QsCompiler
 
             // executing the specified optimization steps
 
-            this.GeneratedSyntaxTree = Optimizations.optimize(this.GeneratedSyntaxTree);
+            if (this.Config.DoOptimizationSteps)
+            {
+                this.CompilationStatus.Optimizations = 0;
+                try
+                {
+                    this.GeneratedSyntaxTree = Optimizations.optimize(this.GeneratedSyntaxTree);
+                }
+                catch (Exception ex)
+                {
+                    this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ex);
+                }
+            }
 
             // generating the compiled binary
 
