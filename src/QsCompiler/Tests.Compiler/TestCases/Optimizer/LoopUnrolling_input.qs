@@ -1,4 +1,7 @@
-﻿/// This namespace contains test cases for loop unrolling
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+/// This namespace contains test cases for loop unrolling
 namespace Microsoft.Quantum.Testing.Optimization.LoopUnrolling {
     operation Test () : Int {
         mutable r = 0;

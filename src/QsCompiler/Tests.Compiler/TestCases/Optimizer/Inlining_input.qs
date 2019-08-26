@@ -1,4 +1,7 @@
-﻿/// This namespace contains test cases for operation inlining
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+/// This namespace contains test cases for operation inlining
 namespace Microsoft.Quantum.Testing.Optimization.Inlining {
 
     operation Test (q : Qubit) : Unit {

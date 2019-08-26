@@ -1,4 +1,7 @@
-﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
 
 open System
 open Microsoft.Quantum.QsCompiler.DataTypes

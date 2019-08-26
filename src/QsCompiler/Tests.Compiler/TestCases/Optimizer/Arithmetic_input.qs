@@ -1,4 +1,7 @@
-﻿/// This namespace contains test cases for arithmetic optimization
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+/// This namespace contains test cases for arithmetic optimization
 namespace Microsoft.Quantum.Testing.Optimization.Arithmetic {
     operation Test () : Int {
         let x = 5;

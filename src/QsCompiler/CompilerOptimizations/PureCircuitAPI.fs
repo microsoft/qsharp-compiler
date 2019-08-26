@@ -1,4 +1,7 @@
-﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitAPI
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitAPI
 
 open System.Collections.Immutable
 open System.Numerics

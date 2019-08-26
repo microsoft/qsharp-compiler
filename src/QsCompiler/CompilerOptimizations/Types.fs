@@ -1,4 +1,7 @@
-﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.Types
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.CompilerOptimization.Types
 
 open System
 open System.Collections.Immutable

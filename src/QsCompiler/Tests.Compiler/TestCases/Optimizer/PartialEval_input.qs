@@ -1,4 +1,7 @@
-﻿/// This namespace contains test cases for partial evaluation
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+/// This namespace contains test cases for partial evaluation
 namespace Microsoft.Quantum.Testing.Optimization.PartialEval {
     newtype MyInt = Int;
     newtype MyFunc = (Int -> Int);

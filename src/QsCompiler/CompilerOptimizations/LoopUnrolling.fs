@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.LoopUnrolling
 
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions

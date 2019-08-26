@@ -1,4 +1,7 @@
-﻿/// This namespace contains test cases where no optimizations can be done
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+/// This namespace contains test cases where no optimizations can be done
 namespace Microsoft.Quantum.Testing.Optimization.NoOp {
     operation Test (x : Int) : Unit {
         mutable y = 0;

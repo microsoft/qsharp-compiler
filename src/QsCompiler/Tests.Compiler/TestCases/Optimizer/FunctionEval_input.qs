@@ -1,4 +1,7 @@
-﻿/// This namespace contains test cases for function evaluation
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+/// This namespace contains test cases for function evaluation
 namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
     operation Test () : (Int, Int, Int, Int, Double) {
         let b = f(1, 8);
