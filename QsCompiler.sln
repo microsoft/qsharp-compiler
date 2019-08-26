@@ -3,26 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.28809.33
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsCompilationManager", "src\QsCompiler\CompilationManager\QsCompilationManager.csproj", "{8990670B-B9D2-4485-AA5B-34A301A11CD3}"
-	ProjectSection(ProjectDependencies) = postProject
-		{57F1310F-9210-47A2-AEC5-DE2CF345D754} = {57F1310F-9210-47A2-AEC5-DE2CF345D754}
-		{FFFCD77D-A353-4C89-9006-01A64D82A422} = {FFFCD77D-A353-4C89-9006-01A64D82A422}
-		{AC28EABE-1D21-401B-9379-EC1064F3B0FF} = {AC28EABE-1D21-401B-9379-EC1064F3B0FF}
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsCompiler", "src\QsCompiler\Compiler\QsCompiler.csproj", "{B7B3C72B-894A-4AEA-BA77-6512C2B01309}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsDataStructures", "src\QsCompiler\DataStructures\QsDataStructures.fsproj", "{FFFCD77D-A353-4C89-9006-01A64D82A422}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsSyntaxProcessor", "src\QsCompiler\SyntaxProcessor\QsSyntaxProcessor.fsproj", "{AC28EABE-1D21-401B-9379-EC1064F3B0FF}"
-	ProjectSection(ProjectDependencies) = postProject
-		{57F1310F-9210-47A2-AEC5-DE2CF345D754} = {57F1310F-9210-47A2-AEC5-DE2CF345D754}
-		{FFFCD77D-A353-4C89-9006-01A64D82A422} = {FFFCD77D-A353-4C89-9006-01A64D82A422}
-	EndProjectSection
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsTextProcessor", "src\QsCompiler\TextProcessor\QsTextProcessor.fsproj", "{57F1310F-9210-47A2-AEC5-DE2CF345D754}"
-	ProjectSection(ProjectDependencies) = postProject
-		{FFFCD77D-A353-4C89-9006-01A64D82A422} = {FFFCD77D-A353-4C89-9006-01A64D82A422}
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsDocumentationParser", "src\QsCompiler\DocumentationParser\QsDocumentationParser.csproj", "{EB06DB1E-2B86-4279-81F9-D39B62B4AE0A}"
 EndProject
@@ -39,6 +27,14 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests.DocGenerator", "src\QsCompiler\Tests.DocGenerator\Tests.DocGenerator.csproj", "{256A6275-FC7F-42E9-9931-BC6EA6D0F31A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsCommandLineTool", "src\QsCompiler\CommandLineTool\QsCommandLineTool.csproj", "{B15C4786-0D35-4E66-907F-94DA85FD5576}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestTargets", "TestTargets", "{6077A717-50BF-4F87-B439-CA549AF6A4AE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Simulation", "Simulation", "{76BA96DA-DC1E-4315-A3ED-5F0700A79812}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Simulation", "src\QsCompiler\TestTargets\Simulation\Target\Simulation.csproj", "{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Example", "src\QsCompiler\TestTargets\Simulation\Example\Example.csproj", "{2E331781-F7ED-4EF1-8451-896636C6D93A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -206,9 +202,38 @@ Global
 		{B15C4786-0D35-4E66-907F-94DA85FD5576}.Release|x64.Build.0 = Release|Any CPU
 		{B15C4786-0D35-4E66-907F-94DA85FD5576}.Release|x86.ActiveCfg = Release|Any CPU
 		{B15C4786-0D35-4E66-907F-94DA85FD5576}.Release|x86.Build.0 = Release|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Debug|x64.Build.0 = Debug|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Debug|x86.Build.0 = Debug|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Release|x64.ActiveCfg = Release|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Release|x64.Build.0 = Release|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Release|x86.ActiveCfg = Release|Any CPU
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1}.Release|x86.Build.0 = Release|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Debug|x64.Build.0 = Debug|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Debug|x86.Build.0 = Debug|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Release|x64.ActiveCfg = Release|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Release|x64.Build.0 = Release|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Release|x86.ActiveCfg = Release|Any CPU
+		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{76BA96DA-DC1E-4315-A3ED-5F0700A79812} = {6077A717-50BF-4F87-B439-CA549AF6A4AE}
+		{D50583DF-FBEF-45EF-B523-70B2CDBE1DD1} = {76BA96DA-DC1E-4315-A3ED-5F0700A79812}
+		{2E331781-F7ED-4EF1-8451-896636C6D93A} = {76BA96DA-DC1E-4315-A3ED-5F0700A79812}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B921C36B-4574-4025-8FE3-E5BD2D3D2B81}

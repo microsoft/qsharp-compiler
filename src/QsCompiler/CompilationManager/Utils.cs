@@ -136,7 +136,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
 
-        // utils for verifying arguments 
+        // utils for dealing with positions and ranges
 
         /// <summary>
         /// Returns true if the given position is valid, i.e. if both the line and character are positive.
@@ -176,7 +176,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if a given position is not valid.
         /// </summary>
         internal static bool IsSmallerThanOrEqualTo(this Position first, Position second) =>
-            !second.IsSmallerThan(first); 
+            !second.IsSmallerThan(first);
+
+        /// <summary>
+        /// Returns true if the given ranges overlap.
+        /// Throws an ArgumentNullException if any of the given ranges is null.
+        /// Throws an ArgumentException if any of the given ranges is not valid.
+        /// </summary>
+        internal static bool Overlaps(this Range range1, Range range2)
+        {
+            if (!IsValidRange(range1) || !IsValidRange(range2)) throw new ArgumentException("invalid range given for comparison");
+            var (first, second) = range1.Start.IsSmallerThan(range2.Start) ? (range1, range2) : (range2, range1);
+            return second.Start.IsSmallerThan(first.End);
+        }
 
         /// <summary>
         /// Verifies the given position and range, and returns true if the given position lays within the given range.

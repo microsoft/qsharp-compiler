@@ -6,6 +6,7 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.Statements
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
+open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -15,6 +16,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SymbolTracker
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
 // some utils for type checking statements
@@ -40,14 +42,14 @@ let private Verify symbols expr =
 /// If it does, returns an array with suitable diagnostics. Returns an empty array otherwise. 
 /// Remark: inversions can only be auto-generated if the only quantum dependencies occur within expresssion statements. 
 let private onAutoInvertCheckQuantumDependency (symbols : SymbolTracker<_>) (ex : TypedExpression, range) = 
-    if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint && ex.InferredInformation.HasLocalQuantumDependency) then [||]
+    if not (symbols.RequiredFunctorSupport |> Seq.contains QsFunctor.Adjoint && ex.InferredInformation.HasLocalQuantumDependency) then [||]
     else [| range |> QsCompilerDiagnostic.Error (ErrorCode.QuantumDependencyOutsideExprStatement, []) |] 
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested, 
 /// returns an array with containing a diagnostic for the given range with the given error code.
 /// Returns an empty array otherwise.
 let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker<_>) = 
-    if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint) then [||]
+    if not (symbols.RequiredFunctorSupport |> Seq.contains QsFunctor.Adjoint) then [||]
     else [| range |> QsCompilerDiagnostic.Error errCode |] 
 
 
@@ -225,7 +227,7 @@ let NewWhileStatement comments (location : QsLocation) (symbols : SymbolTracker<
 /// Resolves and verifies the given Q# expression given a symbol tracker containing all currently declared symbols.
 /// Verifies that the type of the resolved expression is indeed of kind Bool.
 /// Returns an array of all diagnostics generated during resolution and verification,
-/// as well as a delegate that given a Q# scope returns the corresponding conditional block. 
+/// as well as a delegate that given a positioned block of Q# statements returns the corresponding conditional block. 
 let NewConditionalBlock comments location (symbols : SymbolTracker<_>) (qsExpr : QsExpression) = 
     let condition, _, errs = VerifyWith VerifyIsBoolean symbols qsExpr
     let autoGenErrs = (condition, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency symbols
@@ -233,7 +235,7 @@ let NewConditionalBlock comments location (symbols : SymbolTracker<_>) (qsExpr :
     new BlockStatement<_>(block), Array.concat [errs; autoGenErrs]
 
 /// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses, 
-/// as well as optionally a Q# scope and its location for the else-clause, builds and returns the complete if-statement.  
+/// as well as optionally a positioned block of Q# statements and its location for the else-clause, builds and returns the complete if-statement.  
 /// Throws an ArgumentException if the given if-block contains no location information. 
 let NewIfStatement (ifBlock : TypedExpression * QsPositionedBlock, elifBlocks, elseBlock : QsNullable<QsPositionedBlock>) = 
     let location = (snd ifBlock).Location |> function 
@@ -242,8 +244,8 @@ let NewIfStatement (ifBlock : TypedExpression * QsPositionedBlock, elifBlocks, e
     let condBlocks = seq { yield ifBlock; yield! elifBlocks; }
     QsConditionalStatement.New (condBlocks, elseBlock) |> QsConditionalStatement |> asStatement QsComments.Empty location []
 
-/// Given a Q# scope for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
-/// as well as a Q# scope for the fixup-block, builds the complete RUS-statement at the given location and returns it.
+/// Given a positioned block of Q# statements for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
+/// as well as a positioned block of Q# statements for the fixup-block, builds the complete RUS-statement at the given location and returns it.
 /// Returns an array with diagnostics generated if the statement does not satisfy the necessary conditions 
 /// for the required auto-generation of specializations (specified by the given SymbolTracker). 
 let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedBlock, successCondition, fixupBlock) = 
@@ -252,6 +254,28 @@ let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedB
         | Value loc -> loc 
     let autoGenErrs = symbols |> onAutoInvertGenerateError ((ErrorCode.RUSloopWithinAutoInversion, []), location.Range) 
     QsRepeatStatement.New (repeatBlock, successCondition, fixupBlock) |> QsRepeatStatement |> asStatement QsComments.Empty location [], autoGenErrs
+
+/// Given a positioned block of Q# statements specifying the transformation to conjugate (inner transformation V), 
+/// as well as a positioned block of Q# statements specifying the transformation to conjugate it with (outer transformation U), 
+/// builds and returns the corresponding conjugation statement representing the patter U*VU where the order of application is right to left and U* is the adjoint of U. 
+/// Returns an array with diagnostics and the corresponding statement offset for all invalid variable reassignments in the apply-block. 
+/// Throws an ArgumentException if the given block specifying the outer transformation contains no location information. 
+let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) = 
+    let location = outer.Location |> function
+        | Null -> ArgumentException "no location is set for the given within-block defining the conjugating transformation" |> raise
+        | Value loc -> loc
+    let usedInOuter = 
+        let accumulate = new AccumulateIdentifiers()
+        accumulate.Transform outer.Body |> ignore
+        accumulate.UsedLocalVariables
+    let updatedInInner = 
+        let accumulate = new AccumulateIdentifiers()
+        accumulate.Transform inner.Body |> ignore
+        accumulate.ReassignedVariables
+    let updateErrs = 
+        updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
+        |> Seq.map (fun loc -> (loc.Offset, loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))) |> Seq.toArray
+    QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location [], updateErrs
 
 /// Given the location of the statement header as well as a symbol tracker containing all currently declared symbols, 
 /// builds the Q# using- or borrowing-statement (depending on the given kind) at the given location
