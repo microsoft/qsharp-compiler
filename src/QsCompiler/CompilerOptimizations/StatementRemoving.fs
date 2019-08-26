@@ -8,8 +8,8 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open ComputationExpressions
 open Utils
-open OptimizingTransformation
 open VariableRenaming
+open OptimizingTransformation
 
 
 /// Returns whether all variables in a symbol tuple are discarded

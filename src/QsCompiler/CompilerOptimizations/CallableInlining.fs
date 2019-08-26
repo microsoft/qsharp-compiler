@@ -9,6 +9,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open ComputationExpressions
 open Types
 open Utils
+open VariableRenaming
 open OptimizingTransformation
 
 
@@ -137,6 +138,13 @@ type internal CallableInliner(callables) =
             return {ii.body with Statements = newStatements} |> QsScopeStatement.New |> QsScopeStatement
         }
 
+
+    override syntaxTree.onProvidedImplementation (argTuple, body) =
+        let argTuple = syntaxTree.onArgumentTuple argTuple
+        let body = syntaxTree.Scope.Transform body
+        let renamer = VariableRenamer(argTuple)
+        let body = renamer.Transform body
+        argTuple, body
 
     override this.onCallableImplementation c =
         let prev = currentCallable
