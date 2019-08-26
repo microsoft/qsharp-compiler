@@ -229,7 +229,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // decimal number), then no completions are valid here.
             var nsPath = GetSymbolNamespacePath(file, position);
             if (nsPath == null &&
-                position.Character < file.GetLine(position.Line).Text.Length &&
+                position.Character > 0 &&
+                position.Character <= file.GetLine(position.Line).Text.Length &&
                 file.GetLine(position.Line).Text[position.Character - 1] == '.')
             {
                 return Array.Empty<CompletionItem>();
