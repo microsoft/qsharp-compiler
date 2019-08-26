@@ -202,6 +202,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
                 case IdentifierKind.Tags.Variable:
                     return GetLocalCompletions(file, compilation, position);
+                case IdentifierKind.Tags.MutableVariable:
+                    return GetLocalCompletions(file, compilation, position, mutableOnly: true);
                 case IdentifierKind.Tags.Callable:
                     return
                         GetCallableCompletions(file, compilation, namespaces)
@@ -259,13 +261,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for local variables at the given position. Returns an empty enumerator if the position
-        /// is invalid.
+        /// Returns completions for local variables at the given position. If <paramref name="mutableOnly"/> is true,
+        /// shows only completions for mutable local variables. Returns an empty enumerator if the position is invalid.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<CompletionItem> GetLocalCompletions(
-            FileContentManager file, CompilationUnit compilation, Position position)
+            FileContentManager file, CompilationUnit compilation, Position position, bool mutableOnly = false)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -277,6 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 compilation
                 .TryGetLocalDeclarations(file, position, out _)
                 .Variables
+                .Where(variable => !mutableOnly || variable.InferredInformation.IsMutable)
                 .Select(variable => new CompletionItem()
                 {
                     Label = variable.VariableName.Value,

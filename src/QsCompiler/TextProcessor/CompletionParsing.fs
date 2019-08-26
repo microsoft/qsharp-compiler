@@ -35,6 +35,8 @@ type IdentifierKind =
     | Keyword of string
     /// The identifier is a variable.
     | Variable
+    /// The identifier is a mutable variable.
+    | MutableVariable
     /// The identifier is a callable.
     | Callable
     /// The identifier is a user-defined type.
@@ -407,9 +409,10 @@ let private setStatement =
             expectedKeyword andOperator
             expectedKeyword orOperator
         ]
-    let assignment = symbolTuple Variable ?>> (opt op |>> Option.defaultValue []) ?>> expected equal ?>> expression
+    let assignment =
+        symbolTuple MutableVariable ?>> (opt op |>> Option.defaultValue []) ?>> expected equal ?>> expression
     let copyAndUpdate =
-        expectedId Variable (term symbol) ?>>
+        expectedId MutableVariable (term symbol) ?>>
         expected (operator qsCopyAndUpdateOp.op "") ?>>
         expected equal ?>>
         (expression <|>@ expectedId NamedItem (term symbol)) ?>>
