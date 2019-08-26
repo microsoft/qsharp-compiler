@@ -69,7 +69,8 @@ let rec internal toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbo
     | QsTuple items ->
         Seq.map toSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
 
-/// Matches a TypedExpression as a SymbolTuple
+/// Matches a TypedExpression as a tuple of identifiers, represented as a SymbolTuple.
+/// If the TypedExpression is not a tuple of identifiers, the pattern does not match.
 let rec internal (|LocalVarTuple|_|) (expr: Expr) =
     match expr with
     | Identifier (LocalVariable name, _) -> VariableName name |> Some
@@ -175,3 +176,14 @@ let internal countReturnStatements (scope: QsScope): int =
 /// Returns the number of statements in this scope
 let internal scopeLength (scope: QsScope): int =
     scope |> findAllBaseStatements |> Seq.length
+
+
+let internal safeCastInt64 (i: int64): int =
+    if Math.Abs(i) > int64 (1 <<< 30) then
+        ArgumentException "Integer is too large for 32 bits" |> raise
+    int i
+
+let internal safeCastBigInt (i: BigInteger): int =
+    if BigInteger.Abs(i) > BigInteger (1 <<< 30) then
+        ArgumentException "Integer is too large for 32 bits" |> raise
+    int i

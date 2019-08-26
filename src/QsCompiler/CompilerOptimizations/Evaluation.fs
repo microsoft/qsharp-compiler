@@ -244,14 +244,15 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         let idx = this.simplify idx
         match idx.Expression with
         | IntLiteral i -> constructNewArray bt.Resolution (int i) |? NewArray (bt, idx)
-        // TODO - handle array slicing
         | _ -> NewArray (bt, idx)
 
     override this.onCopyAndUpdateExpression (lhs, accEx, rhs) =
         let lhs, accEx, rhs = this.simplify (lhs, accEx, rhs)
-        match lhs.Expression, accEx.Expression with
-        | ValueArray va, IntLiteral i -> ValueArray (va.SetItem(int i, rhs))
-        // TODO - handle array slicing
+        match lhs.Expression, accEx.Expression, rhs.Expression with
+        | ValueArray va, IntLiteral i, _ -> ValueArray (va.SetItem(safeCastInt64 i, rhs))
+        | ValueArray va, RangeLiteral _, ValueArray vb when isLiteral callables accEx ->
+            rangeLiteralToSeq accEx.Expression |> Seq.map safeCastInt64 |> Seq.indexed
+            |> (va |> Seq.fold (fun st (i1, i2) -> st.SetItem(i2, vb.[i1]))) |> ValueArray
         // TODO - handle named items in user-defined types
         | _ -> CopyAndUpdate (lhs, accEx, rhs)
 
@@ -321,10 +322,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
     override this.onExponentiate (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
-        | BigIntLiteral a, IntLiteral b ->
-            if Math.Abs(b) > int64 (1 <<< 30) then
-                ArgumentException "Integer is too large for an exponent" |> raise
-            BigIntLiteral (BigInteger.Pow(a, Convert.ToInt32(b)))
+        | BigIntLiteral a, IntLiteral b -> BigIntLiteral (BigInteger.Pow(a, safeCastInt64 b))
         | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (Math.Pow(a, b))
         | IntLiteral a, IntLiteral b -> IntLiteral (longPow a b)
         | _ -> POW (lhs, rhs)
@@ -333,10 +331,10 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         this.intBinaryOp MOD (%) (%) lhs rhs
 
     override this.onLeftShift (lhs, rhs) =
-        this.intBinaryOp LSHIFT (fun l r -> l <<< int r) (fun l r -> l <<< int r) lhs rhs
+        this.intBinaryOp LSHIFT (fun l r -> l <<< safeCastBigInt r) (fun l r -> l <<< safeCastInt64 r) lhs rhs
 
     override this.onRightShift (lhs, rhs) =
-        this.intBinaryOp RSHIFT (fun l r -> l >>> int r) (fun l r -> l >>> int r) lhs rhs
+        this.intBinaryOp RSHIFT (fun l r -> l >>> safeCastBigInt r) (fun l r -> l >>> safeCastInt64 r) lhs rhs
 
     override this.onBitwiseExclusiveOr (lhs, rhs) =
         this.intBinaryOp BXOR (^^^) (^^^) lhs rhs
