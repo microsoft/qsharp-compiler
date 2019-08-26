@@ -30,7 +30,7 @@ type internal LoopUnroller(callables, maxSize) =
                 maybe {
                     let! iterValsList =
                         match iterVals.Expression with
-                        | RangeLiteral _ when isLiteral callables iterVals.Expression ->
+                        | RangeLiteral _ when isLiteral callables iterVals ->
                             rangeLiteralToSeq iterVals.Expression |> Seq.map (IntLiteral >> wrapExpr Int) |> List.ofSeq |> Some
                         | ValueArray va -> va |> List.ofSeq |> Some
                         | _ -> None

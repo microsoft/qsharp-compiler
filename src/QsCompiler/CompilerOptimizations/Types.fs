@@ -53,7 +53,8 @@ let rec internal isLiteral (callables: Callables) (expr: TypedExpression): bool 
     expr |> TypedExpression.MapFold (fun ex -> ex.Expression) (fun sub ex ->
         match ex.Expression with
         | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _
-        | UnitValue | MissingExpr | Identifier (GlobalCallable _, _) -> true
+        | UnitValue | MissingExpr | Identifier (GlobalCallable _, _)
+        | ValueTuple _ | ValueArray _ | RangeLiteral _ | NewArray _ -> true
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
             when (getCallable callables qualName).Kind = TypeConstructor -> true
         | a when TypedExpression.IsPartialApplication a -> true

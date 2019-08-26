@@ -14,8 +14,8 @@ open Xunit
 
 /// Given a string of valid Q# code, outputs the AST and the callables dictionary
 let private buildSyntaxTree code =
-    let fileId = new Uri(Path.GetFullPath "test-file.qs") 
-    let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message) 
+    let fileId = new Uri(Path.GetFullPath "test-file.qs")
+    let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message)
     let file = CompilationUnitManager.InitializeFileManager(fileId, code)
     compilationUnit.AddOrUpdateSourceFileAsync file |> ignore  // spawns a task that modifies the current compilation
     let mutable syntaxTree = compilationUnit.GetSyntaxTree()   // will wait for any current tasks to finish
@@ -70,6 +70,11 @@ let ``loop unrolling`` () =
 let ``miscellaneous`` () =
     // createTestCase "TestCases/Optimizer/Miscellaneous"
     assertOptimization "TestCases/Optimizer/Miscellaneous"
+
+[<Fact>]
+let ``no op`` () =
+    // createTestCase "TestCases/Optimizer/NoOp"
+    assertOptimization "TestCases/Optimizer/NoOp"
 
 [<Fact>]
 let ``partial evaluation`` () =

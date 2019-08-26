@@ -21,7 +21,11 @@ let rec private shouldPropagate callables expr =
     expr |> TypedExpression.MapFold (fun ex -> ex.Expression) (fun sub ex ->
         isLiteral callables ex ||
         (match ex.Expression with
-        | Identifier _ | ArrayItem _ | NewArray _ | UnwrapApplication _ -> true
+        | Identifier _ | ArrayItem _ | UnwrapApplication _
+        | ValueTuple _ | ValueArray _ | RangeLiteral _ | NewArray _ -> true
+        | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
+            when (getCallable callables qualName).Kind = TypeConstructor -> true
+        | a when TypedExpression.IsPartialApplication a -> true
         | _ -> false
         && Seq.forall id sub))
 
