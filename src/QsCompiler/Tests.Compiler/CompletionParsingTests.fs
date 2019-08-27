@@ -359,6 +359,7 @@ let ``Function statement parser tests`` () =
         ("set x &&&=", expression)
         ("set x &&&= ", expression)
         ("set x &&&= 2", [])
+        ("set x &&&= 2 ", infix)
         ("set x and", infix)
         ("set x and=", expression)
         ("set x and= ", expression)
