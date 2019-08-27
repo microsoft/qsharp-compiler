@@ -89,6 +89,21 @@ let private operationTopLevelStatement =
         Keyword "controlled"
     ]
 
+let testElifElse scope previous =
+    let statement =
+        match scope with
+        | Operation | OperationTopLevel -> operationStatement
+        | Function -> functionStatement
+        | _ -> raise (Exception "Scope is not in a function or operation")
+    List.iter (matches scope previous) [
+        ("", [Keyword "elif"; Keyword "else"] @ statement)
+        ("elif ", [])
+        ("elif (", expression)
+        ("elif (true", expression)
+        ("elif (true)", [])
+        ("else ", [])
+    ]
+
 [<Fact>]
 let ``Inside namespace parser tests`` () =
     let keywords = [
@@ -448,22 +463,8 @@ let ``Function statement parser tests`` () =
         ("while (Foo() and not Bar() or ", expression)
         ("while (Foo() and not Bar() or false)", [])
     ]
-    List.iter (matches Function (Value (IfClause { Expression = InvalidExpr; Range = Null }))) [
-        ("", [Keyword "elif"; Keyword "else"] @ functionStatement)
-        ("elif ", [])
-        ("elif (", expression)
-        ("elif (true", expression)
-        ("elif (true)", [])
-        ("else ", [])
-    ]
-    List.iter (matches Function (Value (ElifClause { Expression = InvalidExpr; Range = Null }))) [
-        ("", [Keyword "elif"; Keyword "else"] @ functionStatement)
-        ("elif ", [])
-        ("elif (", expression)
-        ("elif (true", expression)
-        ("elif (true)", [])
-        ("else ", [])
-    ]
+    testElifElse Function (Value (IfClause { Expression = InvalidExpr; Range = Null }))
+    testElifElse Function (Value (ElifClause { Expression = InvalidExpr; Range = Null }))
     matches Function (Value ElseClause) ("", functionStatement)
 
 [<Fact>]
@@ -538,22 +539,8 @@ let ``Operation statement parser tests`` () =
         ("borrowing ((q, r) = (Qubit(), Qubit()", [])
         ("borrowing ((q, r) = (Qubit(), Qubit())", [])
     ]
-    List.iter (matches Operation (Value (IfClause { Expression = InvalidExpr; Range = Null }))) [
-        ("", [Keyword "elif"; Keyword "else"] @ operationStatement)
-        ("elif ", [])
-        ("elif (", expression)
-        ("elif (true", expression)
-        ("elif (true)", [])
-        ("else ", [])
-    ]
-    List.iter (matches Operation (Value (ElifClause { Expression = InvalidExpr; Range = Null }))) [
-        ("", [Keyword "elif"; Keyword "else"] @ operationStatement)
-        ("elif ", [])
-        ("elif (", expression)
-        ("elif (true", expression)
-        ("elif (true)", [])
-        ("else ", [])
-    ]
+    testElifElse Operation (Value (IfClause { Expression = InvalidExpr; Range = Null }))
+    testElifElse Operation (Value (ElifClause { Expression = InvalidExpr; Range = Null }))
     matches Operation (Value ElseClause) ("", operationStatement)
     List.iter (matches OperationTopLevel (Value RepeatIntro)) [
         ("", [Keyword "until"])
