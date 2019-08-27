@@ -68,10 +68,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.CompilationUnit = new CompilationUnit();
             this.FileContentManagers = new ConcurrentDictionary<NonNullable<string>, FileContentManager>();
             this.ChangedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
-            this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
+            this.PublishDiagnostics = publishDiagnostics != null ? DebounceDiagnostics(500, publishDiagnostics) : _ => { };
             this.LogException = exceptionLogger ?? Console.Error.WriteLine;
             this.Processing = new ProcessingQueue(this.LogException);
             this.WaitForTypeCheck = new CancellationTokenSource();
+        }
+
+        private static Action<PublishDiagnosticParams> DebounceDiagnostics(
+            double interval, Action<PublishDiagnosticParams> action)
+        {
+            // TODO: Clean this up.
+            var waiting = new Dictionary<Uri, PublishDiagnosticParams>();
+            var timer = new System.Timers.Timer(interval)
+            {
+                AutoReset = false,
+                Enabled = false
+            };
+            timer.Elapsed += (sender, e) =>
+            {
+                foreach (var diagnostic in waiting.Values)
+                    action(diagnostic);
+                waiting.Clear();
+            };
+            return diagnostic =>
+            {
+                waiting[diagnostic.Uri] = diagnostic;
+                timer.Stop();
+                timer.Start();
+            };
         }
 
 
