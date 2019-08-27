@@ -473,8 +473,8 @@ let private borrowingHeader =
     let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
     expectedKeyword qsBorrowing ?>> expectedBrackets (lTuple, rTuple) binding
 
-/// Parses an operation functor declaration.
-let private functorDeclaration =
+/// Parses an operation specialization declaration.
+let private specializationDeclaration =
     let argumentTuple = tuple (expectedId Declaration (term symbol) <|> operator omittedSymbols.id "")
     let generator = 
         pcollect [
@@ -532,7 +532,7 @@ let private operationStatementFollowingIf =
 
 /// Parses a statement in the top-level scope of an operation.
 let private operationTopLevel =
-    functorDeclaration .>> eotEof <|>@ operationStatement
+    specializationDeclaration .>> eotEof <|>@ operationStatement
 
 /// Parses a statement in the top-level scope of an operation that follows an if or elif clause.
 let private operationTopLevelFollowingIf =
