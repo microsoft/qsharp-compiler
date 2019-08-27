@@ -393,6 +393,7 @@ let ``Function statement parser tests`` () =
         ("set x w/= 0", [])
         ("set x w/= 0 ", infix)
         ("set x w/= 0 <-", expression)
+        ("set x w/= 0 <", types @ expression)
         ("set x w/= 0 <- ", expression)
         ("set x w/= 0 <- One", expression)
         ("set x w/= 0..", expression)
