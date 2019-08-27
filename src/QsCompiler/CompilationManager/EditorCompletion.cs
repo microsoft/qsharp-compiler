@@ -71,15 +71,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || compilation == null || position == null || !Utils.IsValidPosition(position))
                 return null;
 
-            var (scope, previous) = GetCompletionEnvironment(file, position);
+            var (scope, previous) = GetCompletionEnvironment(file, position, out var fragment);
             if (scope == null)
                 return GetFallbackCompletions(file, compilation, position).ToCompletionList(false);
 
-            var token = GetTokenAtOrBefore(file, position);
             var result = GetExpectedIdentifiers(
                 scope,
                 previous != null ? QsNullable<QsFragmentKind>.NewValue(previous) : QsNullable<QsFragmentKind>.Null,
-                GetFragmentTextBeforePosition(file, token?.GetFragment(), position));
+                GetFragmentTextBeforePosition(file, fragment, position));
             if (result is CompletionResult.Success success)
                 return success.Item
                     .SelectMany(kind => GetCompletionsForKind(file, compilation, position, kind))
@@ -108,26 +107,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the completion environment at the given position in the file or null if the environment cannot be
-        /// determined.
+        /// determined. Stores the code fragment found at or before the given position into an out parameter.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static (CompletionScope, QsFragmentKind) GetCompletionEnvironment(
-            FileContentManager file, Position position)
+            FileContentManager file, Position position, out CodeFragment fragment)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
             if (!Utils.IsValidPosition(position))
                 throw new ArgumentException(nameof(position));
             if (!Utils.IsValidPosition(position, file))
+            {
                 // FileContentManager.IndentationAt will fail if the position is not within the file.
+                fragment = null;
                 return (null, null);
+            }
 
             var token = GetTokenAtOrBefore(file, position);
             if (token == null)
+            {
+                fragment = null;
                 return (null, null);
+            }
 
-            var fragment = token.GetFragment();
+            fragment = token.GetFragment();
             var relativeIndentation = fragment.Indentation - file.IndentationAt(position);
             QsCompilerError.Verify(Math.Abs(relativeIndentation) <= 1);
             var parents =
