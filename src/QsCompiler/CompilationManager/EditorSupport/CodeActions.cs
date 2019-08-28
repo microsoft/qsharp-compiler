@@ -196,13 +196,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             (string, WorkspaceEdit) ReplaceWith(string text, Range range)
             {
-                bool NeedsWsBefore(Char ch) => Char.IsLetterOrDigit(ch) || ch == '_';
+                bool NeedsWs(Char ch) => Char.IsLetterOrDigit(ch) || ch == '_';
                 if (range?.Start != null && range.End != null)
                 {
                     var beforeEdit = file.GetLine(range.Start.Line).Text.Substring(0, range.Start.Character);
                     var afterEdit = file.GetLine(range.End.Line).Text.Substring(range.End.Character);
-                    if (beforeEdit.Any() && !Char.IsWhiteSpace(beforeEdit.Last())) text = $" {text}";
-                    if (afterEdit.Any() && NeedsWsBefore(afterEdit.First())) text = $"{text} ";
+                    if (beforeEdit.Any() && NeedsWs(beforeEdit.Last())) text = $" {text}";
+                    if (afterEdit.Any() && NeedsWs(afterEdit.First())) text = $"{text} ";
                 }
                 var edit = new TextEdit { Range = range?.Copy(), NewText = text };
                 return ($"Replace with \"{text.Trim()}\".", file.GetWorkspaceEdit(edit));
@@ -417,7 +417,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var declRange = fragment?.GetRange();
             if (declSymbol == null || file.DocumentingComments(declRange.Start).Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
 
-            var docPrefix = "///";
+            var docPrefix = "/// ";
             var endLine = $"{Environment.NewLine}{file.GetLine(declRange.Start.Line).Text.Substring(0, declRange.Start.Character)}";
             var docString = $"{docPrefix}# Summary{endLine}{docPrefix}{endLine}";
 

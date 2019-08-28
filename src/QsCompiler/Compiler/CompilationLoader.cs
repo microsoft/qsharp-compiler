@@ -55,10 +55,10 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool GenerateFunctorSupport;
             /// <summary>
-            /// If set to true, the syntax tree rewrite step that eliminated selective abstractions is executed during compilation. 
+            /// Unless this is set to true, the syntax tree rewrite step that eliminates selective abstractions is executed during compilation. 
             /// In particular, all conjugations are inlined. 
             /// </summary>
-            public bool TrimSyntaxTree;
+            public bool SkipSyntaxTreeTrimming;
             /// <summary>
             /// If the output folder is not null, 
             /// documentation is generated in the specified folder based on doc comments in the source code. 
@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
-                WasSuccessful(options.TrimSyntaxTree, this.TreeTrimming) &&
+                WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 !this.BuildTargets.Values.Any(status => !WasSuccessful(true, status))
@@ -225,7 +225,7 @@ namespace Microsoft.Quantum.QsCompiler
                 if (!functorSpecGenerated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
             }
 
-            if (this.Config.TrimSyntaxTree)
+            if (!this.Config.SkipSyntaxTreeTrimming)
             {
                 this.CompilationStatus.TreeTrimming = 0;
                 var rewrite = new InlineConjugations(onException: ex => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex));

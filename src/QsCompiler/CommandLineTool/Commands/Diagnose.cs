@@ -213,7 +213,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
-            var loadOptions = new CompilationLoader.Configuration { GenerateFunctorSupport = true, TrimSyntaxTree = options.TrimSyntaxTree }; 
+            var loadOptions = new CompilationLoader.Configuration { GenerateFunctorSupport = true, SkipSyntaxTreeTrimming = !options.TrimSyntaxTree }; 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
             if (loaded.VerifiedCompilation == null) return ReturnCode.Status(loaded);
 
