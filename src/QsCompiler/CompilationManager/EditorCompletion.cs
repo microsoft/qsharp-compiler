@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (scope == null)
                 return GetFallbackCompletions(file, compilation, position).ToCompletionList(false);
 
-            var result = GetExpectedIdentifiers(
+            var result = GetCompletionKinds(
                 scope,
                 previous != null ? QsNullable<QsFragmentKind>.NewValue(previous) : QsNullable<QsFragmentKind>.Null,
                 GetFragmentTextBeforePosition(file, fragment, position));
@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completion items that match the given identifier kind.
+        /// Returns completion items that match the given kind.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
@@ -170,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             FileContentManager file,
             CompilationUnit compilation,
             Position position,
-            IdentifierKind kind,
+            CompletionKind kind,
             string namespacePrefix = "")
         {
             if (file == null)
@@ -186,30 +186,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             switch (kind)
             {
-                case IdentifierKind.Member member:
+                case CompletionKind.Member member:
                     return GetCompletionsForKind(file, compilation, position, member.Item2,
                                                  ResolveNamespaceAlias(file, compilation, position, member.Item1));
-                case IdentifierKind.Keyword keyword:
+                case CompletionKind.Keyword keyword:
                     return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
             }
             var namespaces =
                 namespacePrefix == "" ? GetOpenNamespaces(file, compilation, position) : new[] { namespacePrefix };
             switch (kind.Tag)
             {
-                case IdentifierKind.Tags.UserDefinedType:
+                case CompletionKind.Tags.UserDefinedType:
                     return
                         GetTypeCompletions(file, compilation, namespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
-                case IdentifierKind.Tags.Namespace:
+                case CompletionKind.Tags.Namespace:
                     return
                         GetGlobalNamespaceCompletions(compilation, namespacePrefix)
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
-                case IdentifierKind.Tags.Variable:
+                case CompletionKind.Tags.Variable:
                     return GetLocalCompletions(file, compilation, position);
-                case IdentifierKind.Tags.MutableVariable:
+                case CompletionKind.Tags.MutableVariable:
                     return GetLocalCompletions(file, compilation, position, mutableOnly: true);
-                case IdentifierKind.Tags.Callable:
+                case CompletionKind.Tags.Callable:
                     return
                         GetCallableCompletions(file, compilation, namespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))

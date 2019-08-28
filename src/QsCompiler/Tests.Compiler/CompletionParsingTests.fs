@@ -8,7 +8,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 
 let private matches scope previous (text, expected) =
-    match GetExpectedIdentifiers scope previous text with
+    match GetCompletionKinds scope previous text with
     | Success actual ->
         Assert.True(Set.ofList expected = Set.ofSeq actual,
                     String.Format("Input:    {0}\n" +
@@ -18,7 +18,7 @@ let private matches scope previous (text, expected) =
     | Failure message -> raise (Exception message)
 
 let private fails scope previous text =
-    match GetExpectedIdentifiers scope previous text with
+    match GetCompletionKinds scope previous text with
     | Success _ -> raise <| Exception (String.Format("Input: {0}\nParser succeeded when it was expected to fail", text))
     | Failure _ -> ()
 

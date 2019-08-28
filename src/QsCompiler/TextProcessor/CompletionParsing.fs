@@ -29,34 +29,34 @@ type CompletionScope =
     /// The code fragment is inside another scope within an operation.
     | Operation
 
-/// Describes the kind of identifier that is expected at a particular position in the source code.
-type IdentifierKind =
-    /// The identifier is the given keyword.
+/// Describes the kind of completion that is expected at a position in the source code.
+type CompletionKind =
+    /// The completion is the given keyword.
     | Keyword of string
-    /// The identifier is a variable.
+    /// The completion is a variable.
     | Variable
-    /// The identifier is a mutable variable.
+    /// The completion is a mutable variable.
     | MutableVariable
-    /// The identifier is a callable.
+    /// The completion is a callable.
     | Callable
-    /// The identifier is a user-defined type.
+    /// The completion is a user-defined type.
     | UserDefinedType
-    /// The identifier is a type parameter.
+    /// The completion is a type parameter.
     | TypeParameter
-    /// The identifier is a new symbol declaration.
+    /// The completion is a new symbol declaration.
     | Declaration
-    /// The identifier is a namespace.
+    /// The completion is a namespace.
     | Namespace
-    /// The identifier is a member of the given namespace and has the given kind.
-    | Member of string * IdentifierKind
-    /// The identifier is a named item in a user-defined type.
+    /// The completion is a member of the given namespace and has the given kind.
+    | Member of string * CompletionKind
+    /// The completion is a named item in a user-defined type.
     // TODO: Add information so completion knows the type being accessed.
     | NamedItem
 
 /// The result of parsing a code fragment for completions.
 type CompletionResult =
-    /// The set of identifier kinds is expected at the end of the code fragment.
-    | Success of IEnumerable<IdentifierKind>
+    /// The set of completion kinds is expected at the end of the code fragment.
+    | Success of IEnumerable<CompletionKind>
     /// Parsing failed with an error message.
     | Failure of string
 
@@ -159,7 +159,7 @@ let private expectedQualifiedSymbol kind =
     (term qualifiedSymbol >>% [])
 
 /// Parses the unit value. The right bracket is optional if EOT occurs first.
-let private unitValue : Parser<IdentifierKind list, QsCompilerDiagnostic list> =
+let private unitValue : Parser<CompletionKind list, QsCompilerDiagnostic list> =
     term (pchar '(' >>. emptySpace >>. expected (pchar ')')) |>> fst
 
 /// `manyR p shouldBacktrack` is like `many p` but is reentrant on the last item if
@@ -545,10 +545,10 @@ let private operationTopLevelFollowingIf =
 let private operationStatementFollowingRepeat =
     untilFixup .>> eotEof
 
-/// Parses the fragment text assuming that it is in the given scope and follows a previous fragment of the given kind in
-/// the same scope (or null if it is the first statement in the scope). Returns the set of possible identifiers expected
+/// Parses the fragment text assuming that it is in the given scope and follows the given previous fragment kind in the
+/// same scope (or null if it is the first statement in the scope). Returns the set of completion kinds that are valid
 /// at the end of the text.
-let GetExpectedIdentifiers scope previous text =
+let GetCompletionKinds scope previous text =
     let parser =
         match (scope, previous) with
         | (NamespaceTopLevel, _) -> namespaceTopLevel
