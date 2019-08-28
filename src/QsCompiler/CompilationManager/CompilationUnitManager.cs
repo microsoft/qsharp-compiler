@@ -44,6 +44,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly Action<PublishDiagnosticParams> PublishDiagnostics;
 
         /// <summary>
+        /// Temporarily stores diagnostics that will be published after a delay.
+        /// </summary>
+        private readonly IDictionary<Uri, PublishDiagnosticParams> PendingDiagnostics =
+            new Dictionary<Uri, PublishDiagnosticParams>();
+        /// <summary>
+        /// Used to delay publishing diagnostics until a certain amount of time has elapsed since the last update.
+        /// </summary>
+        private readonly System.Timers.Timer DiagnosticsTimer = new System.Timers.Timer(500)
+        {
+            AutoReset = false,
+            Enabled = false
+        };
+
+        /// <summary>
         /// WaitForTypeCheck is null if a global type checking has been queued but is not yet running.
         /// If WaitForTypeCheck is not null then a global type checking may be running and can be cancelled via WaitForTypeCheck.
         /// </summary>
@@ -68,36 +82,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.CompilationUnit = new CompilationUnit();
             this.FileContentManagers = new ConcurrentDictionary<NonNullable<string>, FileContentManager>();
             this.ChangedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
-            this.PublishDiagnostics = publishDiagnostics != null ? DebounceDiagnostics(500, publishDiagnostics) : _ => { };
+            this.PublishDiagnostics = diagnostic =>
+            {
+                this.PendingDiagnostics.Remove(diagnostic.Uri);
+                publishDiagnostics?.Invoke(diagnostic);
+            };
+            this.DiagnosticsTimer.Elapsed += (sender, e) =>
+            {
+                foreach (var diagnostic in this.PendingDiagnostics.Values)
+                    publishDiagnostics?.Invoke(diagnostic);
+                this.PendingDiagnostics.Clear();
+            };
             this.LogException = exceptionLogger ?? Console.Error.WriteLine;
             this.Processing = new ProcessingQueue(this.LogException);
             this.WaitForTypeCheck = new CancellationTokenSource();
         }
 
-        private static Action<PublishDiagnosticParams> DebounceDiagnostics(
-            double interval, Action<PublishDiagnosticParams> action)
+        /// <summary>
+        /// Adds the diagnostics to a queue to published later.
+        /// </summary>
+        private void PublishDelayedDiagnostics(PublishDiagnosticParams diagnostic)
         {
-            // TODO: Clean this up.
-            var waiting = new Dictionary<Uri, PublishDiagnosticParams>();
-            var timer = new System.Timers.Timer(interval)
-            {
-                AutoReset = false,
-                Enabled = false
-            };
-            timer.Elapsed += (sender, e) =>
-            {
-                foreach (var diagnostic in waiting.Values)
-                    action(diagnostic);
-                waiting.Clear();
-            };
-            return diagnostic =>
-            {
-                waiting[diagnostic.Uri] = diagnostic;
-                timer.Stop();
-                timer.Start();
-            };
+            this.PendingDiagnostics[diagnostic.Uri] = diagnostic;
+            this.DiagnosticsTimer.Stop();
+            this.DiagnosticsTimer.Start();
         }
-
 
         /// <summary>
         /// Cancels any asynchronously running, ongoing global type checking and sets WaitForTypeCheck to null,
@@ -148,6 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 this.WaitForTypeCheck?.Dispose();
                 this.CompilationUnit.Dispose();
+                this.DiagnosticsTimer.Dispose();
                 foreach (var file in this.FileContentManagers.Values) 
                 {
                     // do *not* dispose of the FileContentManagers!
@@ -314,7 +324,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 if (this.EnableVerification && this.WaitForTypeCheck != null)
                 { file.AddTimerTriggeredUpdateEvent(); }
-                this.PublishDiagnostics(file.Diagnostics());
+                this.PublishDelayedDiagnostics(file.Diagnostics());
             });
         }
 
