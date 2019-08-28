@@ -11,6 +11,7 @@ open Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.LoopUnrolling
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementRemoving
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementReordering
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitFinding
 
 
@@ -27,6 +28,7 @@ type Optimizations() =
             upcast LoopUnroller(callables, 40)
             upcast CallableInliner(callables)
             upcast StatementRemover()
+            upcast StatementReorderer()
         ]
         for opt in optimizers do
             tree <- List.map opt.Transform tree

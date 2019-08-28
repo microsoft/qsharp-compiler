@@ -74,13 +74,13 @@ let rec internal toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbo
 
 /// Matches a TypedExpression as a tuple of identifiers, represented as a SymbolTuple.
 /// If the TypedExpression is not a tuple of identifiers, the pattern does not match.
-let rec internal (|LocalVarTuple|_|) (expr: Expr) =
-    match expr with
+let rec internal (|LocalVarTuple|_|) (expr: TypedExpression) =
+    match expr.Expression with
     | Identifier (LocalVariable name, _) -> VariableName name |> Some
     | MissingExpr -> DiscardedItem |> Some
     | InvalidExpr -> InvalidItem |> Some
     | ValueTuple va ->
-        va |> Seq.map (function {Expression = LocalVarTuple t} -> Some t | _ -> None)
+        va |> Seq.map (function LocalVarTuple t -> Some t | _ -> None)
         |> List.ofSeq |> optionListToListOption
         |> Option.map (ImmutableArray.CreateRange >> VariableNameTuple)
     | _ -> None
@@ -191,6 +191,13 @@ let internal countReturnStatements (scope: QsScope): int =
 /// Returns the number of statements in this scope
 let internal scopeLength (scope: QsScope): int =
     scope |> findAllBaseStatements |> Seq.length
+
+
+/// Returns whether all variables in a symbol tuple are discarded
+let rec internal isAllDiscarded = function
+| DiscardedItem -> true
+| VariableNameTuple items -> Seq.forall isAllDiscarded items
+| _ -> false
 
 
 let internal safeCastInt64 (i: int64): int =

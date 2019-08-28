@@ -8,11 +8,11 @@ namespace Microsoft.Quantum.Testing.Optimization.Inlining {
         f(q, 5);
     }
 
-    function T (q : Qubit) : Unit {
+    operation T (q : Qubit) : Unit {
         body intrinsic;
     }
 
-    function f (q : Qubit, n : Int) : Unit {
+    operation f (q : Qubit, n : Int) : Unit {
         if (n == 0) {
             // Do nothing
         }

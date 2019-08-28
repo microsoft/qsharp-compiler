@@ -1,17 +1,6 @@
 namespace Microsoft.Quantum.Testing.Optimization.Inlining {
-    Function T (q) : UnitType {
+    Operation T (q) : UnitType {
         QsBody Intrinsic
-    }
-
-    Function f (q, n) : UnitType {
-        QsBody (q, n) {
-            if (LocalVariable n = 0) { EmptyScope } elif (LocalVariable n = 1) {
-                (GlobalCallable T of LocalVariable q);
-            } else {
-                (GlobalCallable f of (LocalVariable q, (LocalVariable n - 1)));
-                (GlobalCallable f of (LocalVariable q, (LocalVariable n - 2)));
-            }
-        }
     }
 
     Operation Test (q) : UnitType {
@@ -21,6 +10,17 @@ namespace Microsoft.Quantum.Testing.Optimization.Inlining {
             (GlobalCallable T of LocalVariable q);
             (GlobalCallable T of LocalVariable q);
             (GlobalCallable T of LocalVariable q);
+        }
+    }
+
+    Operation f (q, n) : UnitType {
+        QsBody (q, n) {
+            if (LocalVariable n = 0) { EmptyScope } elif (LocalVariable n = 1) {
+                (GlobalCallable T of LocalVariable q);
+            } else {
+                (GlobalCallable f of (LocalVariable q, (LocalVariable n - 1)));
+                (GlobalCallable f of (LocalVariable q, (LocalVariable n - 2)));
+            }
         }
     }
 }

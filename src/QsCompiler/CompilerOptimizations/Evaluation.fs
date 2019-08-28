@@ -51,7 +51,7 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
         | QsVariableDeclaration s ->
             defineVarTuple (isLiteral callables) constants (s.Lhs, this.evaluateExpression constants s.Rhs) |> Ok
         | QsValueUpdate s ->
-            match s.Lhs.Expression with
+            match s.Lhs with
             | LocalVarTuple vt -> setVarTuple (isLiteral callables) constants (vt, this.evaluateExpression constants s.Rhs) |> Ok
             | _ -> "Unknown LHS of value update statement: " + (printExpr s.Lhs.Expression) |> CouldNotEvaluate |> Error
         | QsConditionalStatement s ->

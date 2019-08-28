@@ -176,9 +176,9 @@ type TypedExpression with
     /// then by finding all the subexpressions of the expression, then by applying MapFold to each subexpression,
     /// then combining all the results with the "folder" function. Returns the output of the "folder" function.
     /// Is used as a general way to traverse any expression, simplifying the code for the Exists and ExtractAll functions.
-    static member public MapFold (mapper: 'E -> QsExpressionKind<'E, _, _>) (folder : 'A seq -> 'E -> 'A) (ex: 'E): 'A =
+    static member public MapFold (mapper: 'E -> QsExpressionKind<'E, _, _>) (folder : 'A seq -> 'E -> 'A) (expr: 'E): 'A =
         let subExprs =
-            match mapper ex with
+            match mapper expr with
             | NEG ex                             
             | BNOT ex                            
             | NOT ex                             
@@ -213,7 +213,7 @@ type TypedExpression with
             | ValueTuple items                   
             | ValueArray items                   -> upcast items
             | _                                  -> Seq.empty
-        folder (Seq.map (TypedExpression.MapFold mapper folder) subExprs) ex
+        folder (Seq.map (TypedExpression.MapFold mapper folder) subExprs) expr
 
     /// Returns true if the expression contains a sub-expression satisfying the given condition.
     /// Returns false otherwise.
