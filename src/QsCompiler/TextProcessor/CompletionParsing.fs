@@ -309,16 +309,19 @@ let private namespaceTopLevel =
         openDirective
     ] .>> eotEof
 
+/// Parses a sequence of operator-like characters (even if those characters are not a valid operator), excluding
+/// characters in `excluded`. Consumes whitespace.
+let private operatorLike excluded =
+    let isOperatorChar c =
+        not (isSymbolContinuation c || Char.IsWhiteSpace c || Seq.exists ((=) c) "()[]{}\u0004") &&
+        not (Seq.exists ((=) c) excluded)
+    many1Chars (satisfy isOperatorChar) >>. emptySpace >>% []
+
 /// Parses an expression.
 let rec private expression = parse {
     let prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
     
-    let infixOp =
-        many1Chars (anyOf "-!?.*/&%^+<=>|") >>. emptySpace >>% [] <|>
-        pcollect [
-            expectedKeyword andOperator
-            expectedKeyword orOperator
-        ]
+    let infixOp = operatorLike "" <|> pcollect [expectedKeyword andOperator; expectedKeyword orOperator]
 
     let postfixOp =
         let copyAndUpdate =
@@ -403,14 +406,9 @@ let private mutableStatement =
 
 /// Parses a set statement.
 let private setStatement =
-    let op =
-        many1Chars (anyOf "-.*/&%^+|") >>. emptySpace >>% [] <|>
-        pcollect [
-            expectedKeyword andOperator
-            expectedKeyword orOperator
-        ]
+    let infixOp = operatorLike "=" <|> pcollect [expectedKeyword andOperator; expectedKeyword orOperator]
     let assignment =
-        symbolTuple MutableVariable ?>> (opt op |>> Option.defaultValue []) ?>> expected equal ?>> expression
+        symbolTuple MutableVariable ?>> (opt infixOp |>> Option.defaultValue []) ?>> expected equal ?>> expression
     let copyAndUpdate =
         expectedId MutableVariable (term symbol) ?>>
         expected (operator qsCopyAndUpdateOp.op "") ?>>
