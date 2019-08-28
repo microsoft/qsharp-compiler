@@ -84,14 +84,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.ChangedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
             this.PublishDiagnostics = diagnostic =>
             {
-                this.PendingDiagnostics.Remove(diagnostic.Uri);
-                publishDiagnostics?.Invoke(diagnostic);
+                lock (this.PendingDiagnostics)
+                {
+                    this.PendingDiagnostics.Remove(diagnostic.Uri);
+                    publishDiagnostics?.Invoke(diagnostic);
+                }
             };
             this.DiagnosticsTimer.Elapsed += (sender, e) =>
             {
-                foreach (var diagnostic in this.PendingDiagnostics.Values)
-                    publishDiagnostics?.Invoke(diagnostic);
-                this.PendingDiagnostics.Clear();
+                lock (this.PendingDiagnostics)
+                {
+                    foreach (var diagnostic in this.PendingDiagnostics.Values)
+                        publishDiagnostics?.Invoke(diagnostic);
+                    this.PendingDiagnostics.Clear();
+                }
             };
             this.LogException = exceptionLogger ?? Console.Error.WriteLine;
             this.Processing = new ProcessingQueue(this.LogException);
@@ -103,9 +109,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private void PublishDelayedDiagnostics(PublishDiagnosticParams diagnostic)
         {
-            this.PendingDiagnostics[diagnostic.Uri] = diagnostic;
-            this.DiagnosticsTimer.Stop();
-            this.DiagnosticsTimer.Start();
+            lock (this.PendingDiagnostics)
+            {
+                this.PendingDiagnostics[diagnostic.Uri] = diagnostic;
+                this.DiagnosticsTimer.Stop();
+                this.DiagnosticsTimer.Start();
+            }
         }
 
         /// <summary>
