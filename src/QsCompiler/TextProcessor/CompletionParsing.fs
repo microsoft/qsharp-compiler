@@ -20,6 +20,8 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 
 /// Describes the scope of a code fragment in terms of what kind of completions are available.
 type CompletionScope =
+    /// The code fragment is at the top level of a file (outside a namespace).
+    | TopLevel
     /// The code fragment is inside a namespace but outside any callable.
     | NamespaceTopLevel
     /// The code fragment is inside a function.
@@ -543,12 +545,17 @@ let private operationTopLevelFollowingIf =
 let private operationStatementFollowingRepeat =
     untilFixup .>> eotEof
 
+/// Parses a namespace declaration.
+let private namespaceDeclaration =
+    expectedKeyword namespaceDeclHeader ?>> expectedQualifiedSymbol Namespace
+
 /// Parses the fragment text assuming that it is in the given scope and follows the given previous fragment kind in the
 /// same scope (or null if it is the first statement in the scope). Returns the set of completion kinds that are valid
 /// at the end of the text.
 let GetCompletionKinds scope previous text =
     let parser =
         match (scope, previous) with
+        | (TopLevel, _) -> namespaceDeclaration
         | (NamespaceTopLevel, _) -> namespaceTopLevel
         | (Function, Value (IfClause _)) | (Function, Value (ElifClause _)) -> functionStatementFollowingIf
         | (Function, _) -> functionStatement

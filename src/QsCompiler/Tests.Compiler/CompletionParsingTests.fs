@@ -105,7 +105,20 @@ let testElifElse scope previous =
     ]
 
 [<Fact>]
-let ``Inside namespace parser tests`` () =
+let ``Top-level parser tests`` () =
+    List.iter (matches TopLevel Null) [
+        ("", [Keyword "namespace"])
+        ("namespace ", [Namespace])
+        ("namespace Foo", [Namespace])
+        ("namespace Foo.", [Member ("Foo", Namespace)])
+        ("namespace Foo.Bar", [Member ("Foo", Namespace)])
+        ("namespace Foo.Bar.", [Member ("Foo.Bar", Namespace)])
+        ("namespace Foo.Bar.Baz", [Member ("Foo.Bar", Namespace)])
+        ("namespace Foo.Bar.Baz ", [])
+    ]
+
+[<Fact>]
+let ``Namespace top-level parser tests`` () =
     let keywords = [
         Keyword "function"
         Keyword "operation"

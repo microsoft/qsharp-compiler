@@ -141,7 +141,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(t => t.GetFragment());
 
             CompletionScope scope = null;
-            if (parents.Any() && parents.First().Kind.IsNamespaceDeclaration)
+            if (!parents.Any())
+                scope = CompletionScope.TopLevel;
+            else if (parents.Any() && parents.First().Kind.IsNamespaceDeclaration)
                 scope = CompletionScope.NamespaceTopLevel;
             else if (parents.Where(parent => parent.Kind.IsFunctionDeclaration).Any())
                 scope = CompletionScope.Function;
@@ -406,21 +408,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (prefix.Length != 0 && !prefix.EndsWith("."))
                 prefix += ".";
             var @namespace = file.TryGetNamespaceAt(position);
-            return
-                @namespace == null
-                ? Array.Empty<CompletionItem>()
-                : compilation
-                    .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
-                    .Where(open => open.Item2 != null && open.Item2.StartsWith(prefix))
-                    .GroupBy(open => NextNamespacePart(open.Item2, prefix.Length))
-                    .Select(open => new CompletionItem()
-                    {
-                        Label = open.Key,
-                        Kind = CompletionItemKind.Module,
-                        Detail = open.Count() == 1 && prefix + open.Key == open.Single().Item2
-                            ? open.Single().Item1.Value
-                            : prefix + open.Key
-                    });
+            if (@namespace == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(@namespace)))
+                return Array.Empty<CompletionItem>();
+            return compilation
+                .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
+                .Where(open => open.Item2 != null && open.Item2.StartsWith(prefix))
+                .GroupBy(open => NextNamespacePart(open.Item2, prefix.Length))
+                .Select(open => new CompletionItem()
+                {
+                    Label = open.Key,
+                    Kind = CompletionItemKind.Module,
+                    Detail = open.Count() == 1 && prefix + open.Key == open.Single().Item2
+                        ? open.Single().Item1.Value
+                        : prefix + open.Key
+                });
         }
 
         /// <summary>
@@ -478,14 +479,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException(nameof(position));
 
             var @namespace = file.TryGetNamespaceAt(position);
-            return
-                @namespace == null
-                ? Array.Empty<string>()
-                : compilation
-                    .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
-                    .Where(open => open.Item2 == null)  // Only include open directives without an alias.
-                    .Select(open => open.Item1.Value)
-                    .Concat(new[] { @namespace });
+            if (@namespace == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(@namespace)))
+                return Array.Empty<string>();
+            return compilation
+                .GetOpenDirectives(NonNullable<string>.New(@namespace))[file.FileName]
+                .Where(open => open.Item2 == null)  // Only include open directives without an alias.
+                .Select(open => open.Item1.Value)
+                .Concat(new[] { @namespace });
         }
 
         /// <summary>
@@ -557,7 +557,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(alias));
 
             var nsName = file.TryGetNamespaceAt(position);
-            if (nsName == null)
+            if (nsName == null || !compilation.GlobalSymbols.NamespaceExists(NonNullable<string>.New(nsName)))
                 return alias;
             return compilation.GlobalSymbols.TryResolveNamespaceAlias(
                 NonNullable<string>.New(alias), NonNullable<string>.New(nsName), file.FileName) ?? alias;
