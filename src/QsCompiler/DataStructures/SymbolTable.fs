@@ -1201,3 +1201,6 @@ and NamespaceManager
             hash (callablesHash, typesHash), importsHash
         finally syncRoot.ExitReadLock() 
 
+    /// Returns true if the given namespace name exists in the symbol table.
+    member this.NamespaceExists nsName =
+        Namespaces.ContainsKey nsName
