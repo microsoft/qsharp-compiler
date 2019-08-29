@@ -48,7 +48,9 @@ type Circuit = {
     gates: GateCall list
 }
 
-/// Metadata used for constructing circuits
+/// Metadata used for constructing circuits.
+/// Currently just stores the variable names corresponding to each qubit reference.
+/// In the future, this will include a map from all symbols to their Q# representation.
 type private CircuitContext = {
     qubitReferences: string list
 }

@@ -94,7 +94,6 @@ let rec private onTuple op constants (names, values) =
     | VariableName name, _ ->
         op constants (name.Value, values)
     | VariableNameTuple namesTuple, Tuple valuesTuple ->
-        // TODO: assert items and vt are same length
         if namesTuple.Length <> valuesTuple.Length then
             ArgumentException "names and values have different lengths" |> raise
         Seq.zip namesTuple valuesTuple |> Seq.fold (onTuple op) constants

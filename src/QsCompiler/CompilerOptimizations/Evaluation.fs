@@ -18,11 +18,22 @@ open Utils
 open Printer
 
 
+/// Represents any interrupt to the normal control flow of a function evaluation.
+/// Includes return statements, errors, and (if they were added) break/continue statements.
 type private FunctionInterrupt =
+/// Represents the function invoking a return statement
 | Returned of TypedExpression
+/// Represents the function invoking a fail statement
 | Failed of TypedExpression
+/// We were unable to evaluate the function for some reason
 | CouldNotEvaluate of string
 
+/// The current state of a function evaluation.
+/// The Ok case means that we are evaluating the function, inside normal control flow.
+/// The Ok case stores a map from all local variables to their current values.
+/// The Error case means that we are outside normal control flow, in some kind of interrupt.
+/// The Error case stores a FunctionInterrupt that describes the cause of the interrupt.
+/// I use the Result type to match the common design pattern of railway-oreiented programming.
 type private FunctionState = Result<Constants<TypedExpression>, FunctionInterrupt>
 
 
@@ -120,11 +131,16 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
             return !constantsRef
         }
 
-    /// Evaluates a Q# function
+    /// Evaluates the given Q# function on the given argument.
+    /// Returns Some ([expr]) if we successfully evaluate the function as [expr].
+    /// Returns None if we were unable to evaluate the function.
+    /// Throws an ArgumentException if the input is not a function, or if the function is invalid.
     member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): TypedExpression option =
         let callable = getCallable callables name
+        if callable.Kind <> Function then
+            ArgumentException "Input is not a function" |> raise
         if callable.Specializations.Length <> 1 then
-            Exception "Functions must have exactly one specialization" |> raise
+            ArgumentException "Functions must have exactly one specialization" |> raise
         let impl = callable.Specializations.[0].Implementation
         match impl with
         | Provided (specArgs, scope) ->
