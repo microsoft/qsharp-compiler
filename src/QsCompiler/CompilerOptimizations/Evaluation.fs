@@ -137,7 +137,7 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
     /// Throws an ArgumentException if the input is not a function, or if the function is invalid.
     member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): TypedExpression option =
         let callable = getCallable callables name
-        if callable.Kind <> Function then
+        if callable.Kind = Operation then
             ArgumentException "Input is not a function" |> raise
         if callable.Specializations.Length <> 1 then
             ArgumentException "Functions must have exactly one specialization" |> raise
