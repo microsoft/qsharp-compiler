@@ -1,6 +1,7 @@
 ﻿using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -70,12 +71,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || compilation == null || position == null || !Utils.IsValidPosition(position))
                 return null;
 
-            var env = GetCompletionEnvironment(file, position);
-            if (env == null)
+            var (scope, previous) = GetCompletionEnvironment(file, position, out var fragment);
+            if (scope == null)
                 return GetFallbackCompletions(file, compilation, position).ToCompletionList(false);
 
-            var fragment = GetTokenAtOrBefore(file, position)?.GetFragment();
-            var result = GetExpectedIdentifiers(env, GetFragmentTextBeforePosition(file, fragment, position));
+            var result = GetCompletionKinds(
+                scope,
+                previous != null ? QsNullable<QsFragmentKind>.NewValue(previous) : QsNullable<QsFragmentKind>.Null,
+                GetFragmentTextBeforePosition(file, fragment, position));
             if (result is CompletionResult.Success success)
                 return success.Item
                     .SelectMany(kind => GetCompletionsForKind(file, compilation, position, kind))
@@ -104,35 +107,62 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the completion environment at the given position in the file or null if the environment cannot be
-        /// determined.
+        /// determined. Stores the code fragment found at or before the given position into an out parameter.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
-        private static CompletionEnvironment GetCompletionEnvironment(FileContentManager file, Position position)
+        private static (CompletionScope, QsFragmentKind) GetCompletionEnvironment(
+            FileContentManager file, Position position, out CodeFragment fragment)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
             if (!Utils.IsValidPosition(position))
                 throw new ArgumentException(nameof(position));
+            if (!Utils.IsValidPosition(position, file))
+            {
+                // FileContentManager.IndentationAt will fail if the position is not within the file.
+                fragment = null;
+                return (null, null);
+            }
 
             var token = GetTokenAtOrBefore(file, position);
-            var relativeIndentation = token.GetFragment().Indentation - file.IndentationAt(position);
+            if (token == null)
+            {
+                fragment = null;
+                return (null, null);
+            }
+
+            fragment = token.GetFragment();
+            var relativeIndentation = fragment.Indentation - file.IndentationAt(position);
+            QsCompilerError.Verify(Math.Abs(relativeIndentation) <= 1);
             var parents =
                 new[] { token }.Concat(token.GetNonEmptyParents())
                 .Skip(relativeIndentation + 1)
                 .Select(t => t.GetFragment());
 
-            if (!parents.Any())
-                return null;
-            if (parents.First().Kind.IsNamespaceDeclaration)
-                return CompletionEnvironment.NamespaceTopLevel;
-            if (parents.Where(parent => parent.Kind.IsOperationDeclaration || parent.Kind.IsFunctionDeclaration).Any())
-                return CompletionEnvironment.Statement;
-            return null;
+            CompletionScope scope = null;
+            if (parents.Any() && parents.First().Kind.IsNamespaceDeclaration)
+                scope = CompletionScope.NamespaceTopLevel;
+            else if (parents.Where(parent => parent.Kind.IsFunctionDeclaration).Any())
+                scope = CompletionScope.Function;
+            else if (parents.Any() && parents.First().Kind.IsOperationDeclaration)
+                scope = CompletionScope.OperationTopLevel;
+            else if (parents.Where(parent => parent.Kind.IsOperationDeclaration).Any())
+                scope = CompletionScope.Operation;
+
+            QsFragmentKind previous = null;
+            if (relativeIndentation == 0 && IsPositionAfterDelimiter(file, fragment, position))
+                previous = fragment.Kind;
+            else if (relativeIndentation == 0)
+                previous = token.PreviousOnScope()?.GetFragment().Kind;
+            else if (relativeIndentation == 1)
+                previous = token.GetNonEmptyParent()?.GetFragment().Kind;
+
+            return (scope, previous);
         }
 
         /// <summary>
-        /// Returns completion items that match the given identifier kind.
+        /// Returns completion items that match the given kind.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
@@ -140,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             FileContentManager file,
             CompilationUnit compilation,
             Position position,
-            IdentifierKind kind,
+            CompletionKind kind,
             string namespacePrefix = "")
         {
             if (file == null)
@@ -156,29 +186,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             switch (kind)
             {
-                case IdentifierKind.Member member:
+                case CompletionKind.Member member:
                     return GetCompletionsForKind(file, compilation, position, member.Item2,
                                                  ResolveNamespaceAlias(file, compilation, position, member.Item1));
-                case IdentifierKind.Keyword keyword:
+                case CompletionKind.Keyword keyword:
                     return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
             }
             var namespaces =
                 namespacePrefix == "" ? GetOpenNamespaces(file, compilation, position) : new[] { namespacePrefix };
             switch (kind.Tag)
             {
-                case IdentifierKind.Tags.UserDefinedType:
+                case CompletionKind.Tags.UserDefinedType:
                     return
                         GetTypeCompletions(file, compilation, namespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
-                case IdentifierKind.Tags.Namespace:
+                case CompletionKind.Tags.Namespace:
                     return
                         GetGlobalNamespaceCompletions(compilation, namespacePrefix)
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
-                case IdentifierKind.Tags.Variable:
+                case CompletionKind.Tags.Variable:
+                    return GetLocalCompletions(file, compilation, position);
+                case CompletionKind.Tags.MutableVariable:
+                    return GetLocalCompletions(file, compilation, position, mutableOnly: true);
+                case CompletionKind.Tags.Callable:
                     return
-                        GetLocalCompletions(file, compilation, position)
-                        .Concat(GetCallableCompletions(file, compilation, namespaces))
+                        GetCallableCompletions(file, compilation, namespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
             }
@@ -206,7 +239,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // decimal number), then no completions are valid here.
             var nsPath = GetSymbolNamespacePath(file, position);
             if (nsPath == null &&
-                position.Character < file.GetLine(position.Line).Text.Length &&
+                position.Character > 0 &&
+                position.Character <= file.GetLine(position.Line).Text.Length &&
                 file.GetLine(position.Line).Text[position.Character - 1] == '.')
             {
                 return Array.Empty<CompletionItem>();
@@ -232,13 +266,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for local variables at the given position. Returns an empty enumerator if the position
-        /// is invalid.
+        /// Returns completions for local variables at the given position. If <paramref name="mutableOnly"/> is true,
+        /// shows only completions for mutable local variables. Returns an empty enumerator if the position is invalid.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the position is invalid.</exception>
         private static IEnumerable<CompletionItem> GetLocalCompletions(
-            FileContentManager file, CompilationUnit compilation, Position position)
+            FileContentManager file, CompilationUnit compilation, Position position, bool mutableOnly = false)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
@@ -250,6 +284,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 compilation
                 .TryGetLocalDeclarations(file, position, out _)
                 .Variables
+                .Where(variable => !mutableOnly || variable.InferredInformation.IsMutable)
                 .Select(variable => new CompletionItem()
                 {
                     Label = variable.VariableName.Value,
@@ -574,6 +609,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Returns true if the fragment has a delimiting character and the given position occurs after it.
+        /// </summary>
+        private static bool IsPositionAfterDelimiter(FileContentManager file,
+                                                     CodeFragment fragment,
+                                                     Position position) =>
+            fragment.FollowedBy != CodeFragment.MissingDelimiter
+            && GetDelimiterPosition(file, fragment).IsSmallerThan(position);
+
+        /// <summary>
         /// Returns a substring of the fragment text before the given position.
         /// <para/>
         /// If the fragment is null or the position is after the fragment's delimiter, returns the empty string. If the
@@ -590,12 +634,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (!Utils.IsValidPosition(position))
                 throw new ArgumentException(nameof(position));
 
-            if (fragment == null
-                || fragment.FollowedBy != CodeFragment.MissingDelimiter
-                && GetDelimiterPosition(file, fragment).IsSmallerThan(position))
-            {
+            if (fragment == null || IsPositionAfterDelimiter(file, fragment, position))
                 return "";
-            }
             return fragment.GetRange().End.IsSmallerThan(position)
                 ? fragment.Text + " "
                 : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));

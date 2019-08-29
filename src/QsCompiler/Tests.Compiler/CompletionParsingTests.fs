@@ -1,34 +1,107 @@
 ﻿module Microsoft.Quantum.QsCompiler.Testing.CompletionParsingTests
 
 open System
-open System.Collections.Generic
 open Xunit
+open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
 
-let private matches env (text, expected) =
-    match GetExpectedIdentifiers env text with
-    | Success actual -> Assert.Equal<IEnumerable<IdentifierKind>>(Set.ofList expected, actual)
+let private matches scope previous (text, expected) =
+    match GetCompletionKinds scope previous text with
+    | Success actual ->
+        Assert.True(Set.ofList expected = Set.ofSeq actual,
+                    String.Format("Input:    {0}\n" +
+                                  "Expected: {1}\n" +
+                                  "Actual:   {2}",
+                                  text, Set.ofList expected, actual))
     | Failure message -> raise (Exception message)
 
-let private fails env text =
-    match GetExpectedIdentifiers env text with
+let private fails scope previous text =
+    match GetCompletionKinds scope previous text with
     | Success _ -> raise <| Exception (String.Format("Input: {0}\nParser succeeded when it was expected to fail", text))
     | Failure _ -> ()
 
-let private types =
-    [
-        Keyword "BigInt"
-        Keyword "Bool"
-        Keyword "Double"
-        Keyword "Int"
-        Keyword "Pauli"
-        Keyword "Qubit"
-        Keyword "Range"
-        Keyword "Result"
-        Keyword "String"
-        Keyword "Unit"
-        UserDefinedType
+let private types = [
+    Keyword "BigInt"
+    Keyword "Bool"
+    Keyword "Double"
+    Keyword "Int"
+    Keyword "Pauli"
+    Keyword "Qubit"
+    Keyword "Range"
+    Keyword "Result"
+    Keyword "String"
+    Keyword "Unit"
+    UserDefinedType
+]
+
+let private expression = [
+    Variable
+    Callable
+    Keyword "new"
+    Keyword "not"
+    Keyword "Adjoint"
+    Keyword "Controlled"
+    Keyword "PauliX"
+    Keyword "PauliY"
+    Keyword "PauliZ"
+    Keyword "PauliI"
+    Keyword "Zero"
+    Keyword "One"
+    Keyword "true"
+    Keyword "false"
+    Keyword "_"
+]
+
+let private infix = [
+    Keyword "and"
+    Keyword "or"
+]
+
+let private callableStatement =
+    expression @ [
+        Keyword "let"
+        Keyword "mutable"
+        Keyword "return"
+        Keyword "set"
+        Keyword "fail"
+        Keyword "if"
+        Keyword "for"
+    ]
+
+let private functionStatement =
+    callableStatement @ [
+        Keyword "while"
+    ]
+
+let private operationStatement =
+    callableStatement @ [
+        Keyword "repeat"
+        Keyword "using"
+        Keyword "borrowing"
+    ]
+
+let private operationTopLevelStatement =
+    operationStatement @ [
+        Keyword "body"
+        Keyword "adjoint"
+        Keyword "controlled"
+    ]
+
+let testElifElse scope previous =
+    let statement =
+        match scope with
+        | Operation | OperationTopLevel -> operationStatement
+        | Function -> functionStatement
+        | _ -> raise (Exception "Scope is not in a function or operation")
+    List.iter (matches scope previous) [
+        ("", [Keyword "elif"; Keyword "else"] @ statement)
+        ("elif ", [])
+        ("elif (", expression)
+        ("elif (true", expression)
+        ("elif (true)", [])
+        ("else ", [])
     ]
 
 [<Fact>]
@@ -39,7 +112,7 @@ let ``Inside namespace parser tests`` () =
         Keyword "newtype"
         Keyword "open"
     ]
-    List.iter (matches NamespaceTopLevel) [
+    List.iter (matches NamespaceTopLevel Null) [
         ("", keywords)
         ("f", keywords)
         ("fun", keywords)
@@ -56,7 +129,7 @@ let ``Inside namespace parser tests`` () =
 
 [<Fact>]
 let ``Function declaration parser tests`` () =
-    List.iter (matches NamespaceTopLevel) [
+    List.iter (matches NamespaceTopLevel Null) [
         ("function ", [Declaration])
         ("function Foo", [Declaration])
         ("function Foo ", [])
@@ -109,7 +182,7 @@ let ``Operation declaration parser tests`` () =
         Keyword "Adj"
         Keyword "Ctl"
     ]
-    List.iter (matches NamespaceTopLevel) [
+    List.iter (matches NamespaceTopLevel Null) [
         ("operation ", [Declaration])
         ("operation Foo", [Declaration])
         ("operation Foo ", [])
@@ -129,6 +202,7 @@ let ``Operation declaration parser tests`` () =
         ("operation Foo (q : Qubit) : Unit is Adj", characteristics)
         ("operation Foo (q : Qubit) : Unit is Adj ", [])
         ("operation Foo (q : Qubit) : Unit is Adj +", characteristics)
+        ("operation Foo (q : Qubit) : Unit is Adj +C", characteristics)
         ("operation Foo (q : Qubit) : Unit is Adj + ", characteristics)
         ("operation Foo (q : Qubit) : Unit is Adj + Ctl", characteristics)
         ("operation Foo (q : Qubit) : Unit is (", characteristics)
@@ -181,7 +255,7 @@ let ``Operation declaration parser tests`` () =
         ("operation Foo<'T> (q : ('T->Int)) : Unit", types)
         ("operation Foo<'T> (q : (MyType -> Int)) : Unit", types)
     ]
-    List.iter (fails NamespaceTopLevel) [
+    List.iter (fails NamespaceTopLevel Null) [
         "operation Foo (q : Qubit) : Unit is Adj + Cat "
         "operation Foo (q : Qubit) : (Int, MyT is Adj"
         "operation Foo (q : Qubit) : (Int, MyT is Adj "
@@ -189,7 +263,7 @@ let ``Operation declaration parser tests`` () =
 
 [<Fact>]
 let ``Type declaration parser tests`` () =
-    List.iter (matches NamespaceTopLevel) [
+    List.iter (matches NamespaceTopLevel Null) [
         ("newtype ", [Declaration])
         ("newtype MyType", [Declaration])
         ("newtype MyType ", [])
@@ -225,7 +299,7 @@ let ``Type declaration parser tests`` () =
 
 [<Fact>]
 let ``Open directive parser tests`` () =
-    List.iter (matches NamespaceTopLevel) [
+    List.iter (matches NamespaceTopLevel Null) [
         ("open ", [Namespace])
         ("open Microsoft", [Namespace])
         ("open Microsoft.", [Member ("Microsoft", Namespace)])
@@ -244,30 +318,280 @@ let ``Open directive parser tests`` () =
     ]
 
 [<Fact>]
-let ``Expression statement parser tests`` () =
-    let expression = [
-        Variable
-        Keyword "new"
-        Keyword "not"
-        Keyword "Adjoint"
-        Keyword "Controlled"
-        Keyword "PauliX"
-        Keyword "PauliY"
-        Keyword "PauliZ"
-        Keyword "PauliI"
-        Keyword "Zero"
-        Keyword "One"
-        Keyword "true"
-        Keyword "false"
-        Keyword "_"
+let ``Function statement parser tests`` () =
+    List.iter (matches Function Null) [
+        ("", functionStatement)
+        ("let ", [Declaration])
+        ("let x ", [])
+        ("let x =", expression)
+        ("let x = ", expression)
+        ("let x = y", expression)
+        ("let x = y ", infix)
+        ("let (", [Declaration])
+        ("let (x", [Declaration])
+        ("let (x ", [])
+        ("let (x,", [Declaration])
+        ("let (x, _", [Declaration])
+        ("let (x, _, ", [Declaration])
+        ("let (x, _, (", [Declaration])
+        ("let (x, _, (y,", [Declaration])
+        ("let (x, _, (y, z)", [])
+        ("let (x, _, (y, z))", [])
+        ("let (x, _, (y, z)) =", expression)
+        ("let (x, _, (y, z)) = Foo", expression)
+        ("let (x, _, (y, z)) = Foo(", expression)
+        ("let (x, _, (y, z)) = Foo()", infix)
+        ("mutable ", [Declaration])
+        ("mutable x ", [])
+        ("mutable x =", expression)
+        ("mutable x = ", expression)
+        ("mutable x = y", expression)
+        ("mutable x = y ", infix)
+        ("mutable (", [Declaration])
+        ("mutable (x", [Declaration])
+        ("mutable (x ", [])
+        ("mutable (x,", [Declaration])
+        ("mutable (x, _", [Declaration])
+        ("mutable (x, _, ", [Declaration])
+        ("mutable (x, _, (", [Declaration])
+        ("mutable (x, _, (y,", [Declaration])
+        ("mutable (x, _, (y, z)", [])
+        ("mutable (x, _, (y, z))", [])
+        ("mutable (x, _, (y, z)) =", expression)
+        ("mutable (x, _, (y, z)) = Foo", expression)
+        ("mutable (x, _, (y, z)) = Foo(", expression)
+        ("mutable (x, _, (y, z)) = Foo()", infix)
+        ("set ", [MutableVariable])
+        ("set x", [MutableVariable])
+        ("set x ", infix)
+        ("set x =", expression)
+        ("set x = ", expression)
+        ("set x = y", expression)
+        ("set x = y ", infix)
+        ("set x &", [])
+        ("set x &&", [])
+        ("set x &&&", [])
+        ("set x &&&=", expression)
+        ("set x &&&= ", expression)
+        ("set x &&&= 2", [])
+        ("set x &&&= 2 ", infix)
+        ("set x and", infix)
+        ("set x and=", expression)
+        ("set x and= ", expression)
+        ("set x and= y", expression)
+        ("set x and= y ", infix)
+        ("set (", [MutableVariable])
+        ("set (x", [MutableVariable])
+        ("set (x,", [MutableVariable])
+        ("set (x, ", [MutableVariable])
+        ("set (x, y", [MutableVariable])
+        ("set (x, y)", infix)
+        ("set (x, y) ", infix)
+        ("set (x, y) =", expression)
+        ("set (x, y) = ", expression)
+        ("set (x, y) = (", expression)
+        ("set (x, y) = (1", [])
+        ("set (x, y) = (1,", expression)
+        ("set (x, y) = (1, ", expression)
+        ("set (x, y) = (1, 2", [])
+        ("set (x, y) = (1, 2)", infix)
+        ("set x w", infix)
+        ("set x w/", [])
+        ("set x w/=", NamedItem :: expression)
+        ("set x w/= ", NamedItem :: expression)
+        ("set x w/= Foo", NamedItem :: expression)
+        ("set x w/= Foo ", infix)
+        ("set x w/= Foo <", types @ expression)
+        ("set x w/= Foo <-", expression)
+        ("set x w/= Foo <- ", expression)
+        ("set x w/= Foo <- y", expression)
+        ("set x w/= 0", [])
+        ("set x w/= 0 ", infix)
+        ("set x w/= 0 <-", expression)
+        ("set x w/= 0 <", types @ expression)
+        ("set x w/= 0 <- ", expression)
+        ("set x w/= 0 <- One", expression)
+        ("set x w/= 0..", expression)
+        ("set x w/= 0..2", [])
+        ("set x w/= 0..2 ", infix)
+        ("set x w/= 0..2 <-", expression)
+        ("set x w/= 0..2 <- ", expression)
+        ("set x w/= 0..2 <- [", expression)
+        ("set x w/= 0..2 <- [One", expression)
+        ("set x w/= 0..2 <- [One,", expression)
+        ("set x w/= 0..2 <- [One, Zero,", expression)
+        ("set x w/= 0..2 <- [One, Zero, One", expression)
+        ("set x w/= 0..2 <- [One, Zero, One]", infix)
+        ("return ", expression)
+        ("return x", expression)
+        ("return x ", infix)
+        ("return x +", expression)
+        ("return x + ", expression)
+        ("return x + 1", [])
+        ("fail ", expression)
+        ("fail \"", [])
+        ("fail \"foo", [])
+        ("fail \"foo\"", infix)
+        ("if ", [])
+        ("if (", expression)
+        ("if (x ", infix)
+        ("if (x and ", expression)
+        ("if (x and y)", [])
+        ("for ", [])
+        ("for (", [Declaration])
+        ("for (x ", [Keyword "in"])
+        ("for (x in ", expression)
+        ("for (x in 0 ", infix)
+        ("for (x in 0 ..", expression)
+        ("for (x in 0 .. ", expression)
+        ("for (x in 0 .. 10", [])
+        ("for (x in 0 .. 10)", [])
+        ("for ((", [Declaration])
+        ("for ((x,", [Declaration])
+        ("for ((x, y", [Declaration])
+        ("for ((x, y)", [Keyword "in"])
+        ("for ((x, y) ", [Keyword "in"])
+        ("for ((x, y) in ", expression)
+        ("for ((x, y) in Foo()", infix)
+        ("for ((x, y) in Foo())", [])
+        ("while ", [])
+        ("while (", expression)
+        ("while (Foo()", infix)
+        ("while (Foo() and ", expression)
+        ("while (Foo() and not ", expression)
+        ("while (Foo() and not Bar()", infix)
+        ("while (Foo() and not Bar() or ", expression)
+        ("while (Foo() and not Bar() or false)", [])
     ]
-    let infix = [
-        Keyword "and"
-        Keyword "or"
+    testElifElse Function (Value (IfClause { Expression = InvalidExpr; Range = Null }))
+    testElifElse Function (Value (ElifClause { Expression = InvalidExpr; Range = Null }))
+    matches Function (Value ElseClause) ("", functionStatement)
+
+[<Fact>]
+let ``Operation statement parser tests`` () =
+    let functorGen = [
+        Keyword "intrinsic"
+        Keyword "auto"
+        Keyword "self"
+        Keyword "invert"
+        Keyword "distribute"
     ]
-    List.iter (matches Statement) [
-        ("", expression)
-        ("x", expression)
+    List.iter (matches Operation Null) [
+        ("repeat ", [])
+        ("using ", [])
+        ("using (", [Declaration])
+        ("using (q ", [])
+        ("using (q =", [Keyword "Qubit"])
+        ("using (q = Qubit", [Keyword "Qubit"])
+        ("using (q = Qubit(", [])
+        ("using (q = Qubit()", [])
+        ("using (q = Qubit())", [])
+        ("using (q = Qubit[", expression)
+        ("using (q = Qubit[5", [])
+        ("using (q = Qubit[5]", [])
+        ("using (q = Qubit[5])", [])
+        ("using (q = Qubit[n", expression)
+        ("using (q = Qubit[n ", infix)
+        ("using (q = Qubit[n +", expression)
+        ("using (q = Qubit[n +1", [])
+        ("using (q = Qubit[n +x", expression)
+        ("using (q = Qubit[n + ", expression)
+        ("using (q = Qubit[n + 1", [])
+        ("using (q = Qubit[n + 1]", [])
+        ("using (q = Qubit[n + 1])", [])
+        ("using ((", [Declaration])
+        ("using ((q,", [Declaration])
+        ("using ((q, r)", [])
+        ("using ((q, r) =", [Keyword "Qubit"])
+        ("using ((q, r) = (", [Keyword "Qubit"])
+        ("using ((q, r) = (Qubit(", [])
+        ("using ((q, r) = (Qubit()", [])
+        ("using ((q, r) = (Qubit(),", [Keyword "Qubit"])
+        ("using ((q, r) = (Qubit(), Qubit()", [])
+        ("using ((q, r) = (Qubit(), Qubit())", [])
+        ("borrowing (", [Declaration])
+        ("borrowing (q ", [])
+        ("borrowing (q =", [Keyword "Qubit"])
+        ("borrowing (q = Qubit", [Keyword "Qubit"])
+        ("borrowing (q = Qubit(", [])
+        ("borrowing (q = Qubit()", [])
+        ("borrowing (q = Qubit())", [])
+        ("borrowing (q = Qubit[", expression)
+        ("borrowing (q = Qubit[5", [])
+        ("borrowing (q = Qubit[5]", [])
+        ("borrowing (q = Qubit[5])", [])
+        ("borrowing (q = Qubit[n", expression)
+        ("borrowing (q = Qubit[n ", infix)
+        ("borrowing (q = Qubit[n +", expression)
+        ("borrowing (q = Qubit[n +1", [])
+        ("borrowing (q = Qubit[n +x", expression)
+        ("borrowing (q = Qubit[n + ", expression)
+        ("borrowing (q = Qubit[n + 1]", [])
+        ("borrowing (q = Qubit[n + 1])", [])
+        ("borrowing ((", [Declaration])
+        ("borrowing ((q,", [Declaration])
+        ("borrowing ((q, r)", [])
+        ("borrowing ((q, r) =", [Keyword "Qubit"])
+        ("borrowing ((q, r) = (", [Keyword "Qubit"])
+        ("borrowing ((q, r) = (Qubit(", [])
+        ("borrowing ((q, r) = (Qubit()", [])
+        ("borrowing ((q, r) = (Qubit(),", [Keyword "Qubit"])
+        ("borrowing ((q, r) = (Qubit(), Qubit()", [])
+        ("borrowing ((q, r) = (Qubit(), Qubit())", [])
+    ]
+    testElifElse Operation (Value (IfClause { Expression = InvalidExpr; Range = Null }))
+    testElifElse Operation (Value (ElifClause { Expression = InvalidExpr; Range = Null }))
+    matches Operation (Value ElseClause) ("", operationStatement)
+    List.iter (matches OperationTopLevel (Value RepeatIntro)) [
+        ("", [Keyword "until"])
+        ("until ", [])
+        ("until (", expression)
+        ("until (false", expression)
+        ("until (false)", [Keyword "fixup"])
+        ("until (false) ", [Keyword "fixup"])
+        ("until (false) fixup", [Keyword "fixup"])
+        ("until (false) fixup ", [])
+    ]
+    List.iter (matches Operation (Value RepeatIntro)) [
+        ("", [Keyword "until"])
+        ("until ", [])
+        ("until (", expression)
+        ("until (false", expression)
+        ("until (false)", [Keyword "fixup"])
+        ("until (false) ", [Keyword "fixup"])
+        ("until (false) fixup", [Keyword "fixup"])
+        ("until (false) fixup ", [])
+    ]
+    List.iter (matches OperationTopLevel Null) [
+        ("", operationTopLevelStatement)
+        ("body ", functorGen)
+        ("body intrinsic ", [])
+        ("body (", [Declaration])
+        ("body (.", [])
+        ("body (..", [])
+        ("body (...", [])
+        ("body (...)", [])
+        ("adjoint ", Keyword "controlled" :: functorGen)
+        ("adjoint self ", [])
+        ("adjoint invert ", [])
+        ("adjoint auto ", [])
+        ("controlled ", Keyword "adjoint" :: functorGen)
+        ("controlled auto ", [])
+        ("controlled distribute ", [])
+        ("controlled (", [Declaration])
+        ("controlled (cs,", [Declaration])
+        ("controlled (cs, .", [])
+        ("controlled (cs, ..", [])
+        ("controlled (cs, ...", [])
+        ("controlled (cs, ...)", [])
+        ("controlled adjoint ", functorGen)
+    ]
+
+[<Fact>]
+let ``Expression parser tests`` () =
+    List.iter (matches Operation Null) [
+        ("", operationStatement)
+        ("x", operationStatement)
         ("x ", infix)
         ("2 ", infix)
         ("x or", infix)
@@ -279,9 +603,11 @@ let ``Expression statement parser tests`` () =
         ("x or y and not", expression)
         ("x or y and not ", expression)
         ("x or y and not z", expression)
+        ("x or y and not not", expression)
         ("x or y and not not ", expression)
         ("x or y and not not z", expression)
         ("x +", expression)
+        ("x +y", expression)
         ("x + ", expression)
         ("x + 2", [])
         ("x >", expression)
@@ -292,9 +618,20 @@ let ``Expression statement parser tests`` () =
         ("x < ", expression @ types)
         ("x < y", expression @ types)
         ("x < y ", infix)
+        ("x <=", expression)
+        ("x <= ", expression)
+        ("x &", expression)
+        ("x &&", expression)
         ("x &&&", expression)
         ("x &&& ", expression)
         ("x &&& y", expression)
+        ("x |", expression)
+        ("x ||", expression)
+        ("x |||", expression)
+        ("x ||| ", expression)
+        ("x ||| y", expression)
+        ("~", [])
+        ("~~", [])
         ("~~~", expression)
         ("~~~x", expression)
         ("~~~x ", infix)
@@ -304,10 +641,13 @@ let ``Expression statement parser tests`` () =
         ("foo! and ", expression)
         ("foo! and bar", expression)
         ("foo! and bar ", infix)
+        ("foo!=", expression)
+        ("foo!=b", expression)
+        ("foo!= ", expression)
         ("Foo(", expression)
         ("Foo()", infix)
-        ("Foo.", [Member ("Foo", Variable)])
-        ("Foo.Bar", [Member ("Foo", Variable)])
+        ("Foo.", [Member ("Foo", Callable)])
+        ("Foo.Bar", [Member ("Foo", Callable)])
         ("Foo.Bar(", expression)
         ("Foo.Bar()", infix)
         ("Foo(x", expression)
@@ -350,9 +690,9 @@ let ``Expression statement parser tests`` () =
         ("Foo<Int, Bool>(2, f", expression)
         ("Foo<Int, Bool>(2, false", expression)
         ("Foo<Int, Bool>(2, false)", infix)
-        ("Adjoint", expression)
-        ("Adjoint ", [Keyword "Adjoint"; Keyword "Controlled"; Variable])
-        ("Adjoint Foo", [Keyword "Adjoint"; Keyword "Controlled"; Variable])
+        ("Adjoint", operationStatement)
+        ("Adjoint ", [Keyword "Adjoint"; Keyword "Controlled"; Callable])
+        ("Adjoint Foo", [Keyword "Adjoint"; Keyword "Controlled"; Callable])
         ("Adjoint Foo ", infix)
         ("Adjoint Foo(q)", infix)
         ("[", expression)
@@ -385,6 +725,7 @@ let ``Expression statement parser tests`` () =
         ("x[Length(x", expression)
         ("x[Length(x)", infix)
         ("x[Length(x) -", expression)
+        ("x[Length(x) -y", expression)
         ("x[Length(x) - ", expression)
         ("x[Length(x) - 1", [])
         ("x[Length(x) - 1]", infix)
@@ -392,6 +733,7 @@ let ``Expression statement parser tests`` () =
         ("x[1 ...", [])
         ("x[1...", [])
         ("x[...", expression)
+        ("x[...x", expression)
         ("x[...2", [])
         ("x[...2]", infix)
         ("x[...2...", [])
@@ -406,24 +748,27 @@ let ``Expression statement parser tests`` () =
         ("(Foo())[Length(x", expression)
         ("(Foo())[Length(x)", infix)
         ("(Foo())[Length(x) -", expression)
+        ("(Foo())[Length(x) -y", expression)
         ("(Foo())[Length(x) - ", expression)
         ("(Foo())[Length(x) - 1", [])
         ("(Foo())[Length(x) - 1]", infix)
         ("(Foo())[1 .. ", expression)
         ("(Foo())[1 ...", [])
         ("(Foo())[1 ...]", infix)
-        ("new", expression)
+        ("new", operationStatement)
         ("new ", types)
         ("new Int", types)
         ("new Int[", expression)
         ("new Int[x", expression)
         ("new Int[x ", infix)
         ("new Int[x +", expression)
+        ("new Int[x +y", expression)
         ("new Int[x + 1", [])
         ("new Int[x + 1]", infix)
         ("new Int[][", expression)
         ("new Int[][2", [])
         ("new Int[][2]", infix)
+        ("x:", [])
         ("x::", [NamedItem])
         ("x::Foo", [NamedItem])
         ("x::Foo ", infix)
@@ -432,18 +777,29 @@ let ``Expression statement parser tests`` () =
         ("(Foo())::Foo ", infix)
         ("arr w", infix)
         ("arr w/", NamedItem :: expression)
+        ("arr w/ ", NamedItem :: expression)
         ("arr w/ 2", [])
         ("arr w/ 2 ", infix)
+        ("arr w/ 2 ..", expression)
+        ("arr w/ 2 .. ", expression)
         ("arr w/ 2..", expression)
+        ("arr w/ 2..x", expression)
         ("arr w/ 2..4", [])
         ("arr w/ 2..4 <-", expression)
+        ("arr w/ 2..4 <- ", expression)
         ("arr w/ 2..4 <- true", expression)
         ("x w/ Foo", NamedItem :: expression)
         ("x w/ Foo ", infix)
+        ("x w/ Foo <", types @ expression)
         ("x w/ Foo <-", expression)
+        ("x w/ Foo <- ", expression)
         ("x w/ Foo <- false", expression)
         ("Foo() ?", expression)
+        ("Foo() ? ", expression)
+        ("Foo() ?x", expression)
         ("Foo() ? 1 + 2 |", expression)
+        ("Foo() ? 1 + 2 |x", expression)
+        ("Foo() ? 1 + 2 | ", expression)
         ("Foo() ? 1 + 2 | 4", [])
         ("Foo() ? 1 + 2 | 4 ", infix)
         ("\"", [])
@@ -456,6 +812,7 @@ let ``Expression statement parser tests`` () =
         ("$\"hello {", expression)
         ("$\"hello {x ", infix)
         ("$\"hello {x +", expression)
+        ("$\"hello {x +y", expression)
         ("$\"hello {x + ", expression)
         ("$\"hello {x + y", expression)
         ("$\"hello {x + y}", [])

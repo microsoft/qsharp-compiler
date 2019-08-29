@@ -5,48 +5,58 @@
 /// closed if it is still valid for the bracket to be closed later.
 module Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
 
-#nowarn "40"
-
 open System
 open System.Collections.Generic
 open FParsec
+open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.TextProcessing.ExpressionParsing
 open Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
 open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 
+#nowarn "40"
 
-/// Describes the environment of a code fragment in terms of what kind of completions are available.
-type CompletionEnvironment =
+
+/// Describes the scope of a code fragment in terms of what kind of completions are available.
+type CompletionScope =
     /// The code fragment is inside a namespace but outside any callable.
     | NamespaceTopLevel
-    /// The code fragment is a statement inside a callable.
-    | Statement
+    /// The code fragment is inside a function.
+    | Function
+    /// The code fragment is inside an operation at the top-level scope.
+    | OperationTopLevel
+    /// The code fragment is inside another scope within an operation.
+    | Operation
 
-/// Describes the kind of identifier that is expected at a particular position in the source code.
-type IdentifierKind =
-    /// The identifier is the given keyword.
+/// Describes the kind of completion that is expected at a position in the source code.
+type CompletionKind =
+    /// The completion is the given keyword.
     | Keyword of string
-    /// The identifier is a variable or callable name.
+    /// The completion is a variable.
     | Variable
-    /// The identifier is a user-defined type name.
+    /// The completion is a mutable variable.
+    | MutableVariable
+    /// The completion is a callable.
+    | Callable
+    /// The completion is a user-defined type.
     | UserDefinedType
-    /// The identifier is a type parameter.
+    /// The completion is a type parameter.
     | TypeParameter
-    /// The identifier is a new symbol declaration.
+    /// The completion is a new symbol declaration.
     | Declaration
-    /// The identifier is a namespace.
+    /// The completion is a namespace.
     | Namespace
-    /// The identifier is a member of the given namespace and has the given kind.
-    | Member of string * IdentifierKind
-    /// The identifier is a named item in a user-defined type.
+    /// The completion is a member of the given namespace and has the given kind.
+    | Member of string * CompletionKind
+    /// The completion is a named item in a user-defined type.
     // TODO: Add information so completion knows the type being accessed.
     | NamedItem
 
 /// The result of parsing a code fragment for completions.
 type CompletionResult =
-    /// The set of identifier kinds is expected at the end of the code fragment.
-    | Success of IEnumerable<IdentifierKind>
+    /// The set of completion kinds is expected at the end of the code fragment.
+    | Success of IEnumerable<CompletionKind>
     /// Parsing failed with an error message.
     | Failure of string
 
@@ -61,14 +71,18 @@ let rec private toErrorMessageList (replies : Reply<'a> list) =
 let private missingExpr =
     { parse = keyword "_"; id = "_" }
 
+/// The omitted symbols keyword.
+let private omittedSymbols =
+    { parse = keyword "..."; id = "..." }
+
 /// `p1 ?>> p2` attempts `p1`. If `p1` succeeds and consumes all input, it returns the result of `p1` without using
 /// `p2`. Otherwise, it continues parsing with `p2` and returns the result of `p2`.
 let private (?>>) p1 p2 =
     attempt (p1 .>> eof) <|> (p1 >>. p2)
 
-/// `p1 @>> p2` parses `p1` then `p2` and concatenates the results.
+/// `p1 @>> p2` parses `p1`, then `p2` (if `p1` did not consume all input), and concatenates the results.
 let private (@>>) p1 p2 =
-    p1 .>>. p2 |>> fun (list1, list2) -> list1 @ list2
+    p1 .>>. (eof >>% [] <|> p2) |>> fun (list1, list2) -> list1 @ list2
 
 /// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
 /// results from all parsers that succeeded into a single list.
@@ -104,10 +118,15 @@ let private symbol =
         identifier <| IdentifierOptions (isAsciiIdStart = isSymbolStart, isAsciiIdContinue = isSymbolContinuation)
     notFollowedBy qsReservedKeyword >>. qsIdentifier <|> (qsIdentifier .>> followedBy eot)
 
-/// Parses an operator. The `after` parser (if specified) must also succeed after the operator string `op` is parsed.
-/// Returns the empty list.
-let private operator op after =
-    term (pstring op >>. Option.defaultValue (preturn ()) after) >>% []
+/// Parses an operator one character at a time. Fails if the operator is followed by any of the characters in
+/// `notAfter`. Returns the empty list.
+let private operator (op: string) notAfter =
+    // For operators that start with letters (e.g., "w/"), group the letters together with the first operator character
+    // to avoid a conflict with keyword or symbol parsers.
+    let numLetters = Seq.length (Seq.takeWhile Char.IsLetter op)
+    let charByChar p c = p ?>> ((eot >>% ()) <|> (pchar c >>% ()))
+    let p = Seq.fold charByChar (pstring op.[..numLetters] >>% ()) op.[numLetters + 1..]
+    attempt (p ?>> nextCharSatisfiesNot (fun c -> Seq.contains c notAfter)) >>. (emptySpace >>% ()) >>% []
 
 /// Parses `p` unless EOT occurs first. Returns the empty list.
 let private expected p =
@@ -139,15 +158,26 @@ let private expectedQualifiedSymbol kind =
     attempt (term qualifiedSymbol |>> fst .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> optional eot) <|>
     (term qualifiedSymbol >>% [])
 
-/// `manyR p` is like `many p` but is reentrant on the last item if the last item is followed by EOT. This is useful if,
-/// for example, the last item is incomplete such that it is ambiguous whether the last item is part of the list or is
-/// actually a delimiter.
-let private manyR p stream =
-    let last = (p .>> previousCharSatisfies ((<>) '\u0004') |> attempt |> many1 |>> List.last) stream
-    let next = (p .>> previousCharSatisfies ((=) '\u0004') |> lookAhead) stream
-    if next.Status = Ok then next
-    elif last.Status = Ok then last
-    else Reply []
+/// Parses the unit value. The right bracket is optional if EOT occurs first.
+let private unitValue : Parser<CompletionKind list, QsCompilerDiagnostic list> =
+    term (pchar '(' >>. emptySpace >>. expected (pchar ')')) |>> fst
+
+/// `manyR p shouldBacktrack` is like `many p` but is reentrant on the last item if
+///     1. The last item is followed by EOT; and
+///     2. `shouldBacktrack` succeeds at the beginning of the last item, or the last item consists of only EOT.
+///
+/// This is useful if it is ambiguous whether the last item belongs to `p` or the parser that comes after `manyR`.
+let private manyR p shouldBacktrack stream =
+    let last = (many1 (getCharStreamState .>>. attempt p) |>> List.last) stream
+    if last.Status <> Ok then
+        Reply []
+    else
+        let after = (getCharStreamState stream).Result
+        let consumedEot = (previousCharSatisfies ((<>) '\u0004') stream).Status = Ok
+        stream.BacktrackTo (fst last.Result)
+        if ((notFollowedBy shouldBacktrack >>. notFollowedBy eot) stream).Status = Ok || consumedEot then
+            stream.BacktrackTo after |> ignore
+        Reply (snd last.Result)
 
 /// `manyLast p` is like `many p` but returns only the result of the last item, or the empty list if no items were
 /// parsed.
@@ -159,45 +189,41 @@ let private manyLast p =
 let private sepByLast p sep =
     sepBy p sep |>> List.tryLast |>> Option.defaultValue []
 
-/// Parses brackets around `p`. The right bracket is optional if EOT occurs first.
+/// Parses brackets around `p`. The right bracket is optional if EOT occurs first. Use `brackets` instead of
+/// `expectedBrackets` if there are other parsers besides a left bracket that can follow and you want this parser to
+/// fail if the stream has ended.
 let private brackets (left, right) p =
     bracket left >>. p ?>> expected (bracket right)
 
-/// Parses tuple brackets around `p`.
-let private tupleBrackets p =
-    brackets (lTuple, rTuple) p
+/// Parses brackets around `p`. Both the left and right brackets are optional if EOT occurs first. Use
+/// `expectedBrackets` instead of `brackets` if a left bracket is the only thing that can follow and you want this
+/// parser to still succeed if the stream has ended.
+let private expectedBrackets (left, right) p =
+    expected (bracket left) ?>> p ?>> expected (bracket right)
 
-/// Parses array brackets around `p`.
-let private arrayBrackets p =
-    brackets (lArray, rArray) p
-
-/// Parses angle brackets around `p`.
-let private angleBrackets p =
-    brackets (lAngle, rAngle) p
-
-/// Parses curly brackets around `p`.
-let private curlyBrackets p =
-    brackets (lCurly, rCurly) p
-
-/// Parses a tuple of items each parsed by `p`.
+/// Parses a tuple of zero or more items each parsed by `p`.
 let private tuple p =
-    tupleBrackets (sepBy1 p comma |>> List.last)
+    brackets (lTuple, rTuple) (sepBy p comma |>> List.tryLast |>> Option.defaultValue [])
+
+/// Parses a tuple of one or more items each parsed by `p`.
+let private tuple1 p =
+    brackets (lTuple, rTuple) (sepBy1 p comma |>> List.last)
 
 /// Parses an array of items each parsed by `p`.
 let private array p =
-    arrayBrackets (sepBy1 p comma |>> List.last)
+    brackets (lArray, rArray) (sepBy1 p comma |>> List.last)
 
 /// Creates an expression parser using the given prefix operator, infix operator, postfix operator, and term parsers.
 let private createExpressionParser prefixOp infixOp postfixOp expTerm =
-    let termBundle = manyR prefixOp @>> expTerm ?>> manyLast postfixOp
+    let termBundle = manyR prefixOp symbol @>> expTerm ?>> manyLast postfixOp
     termBundle @>> manyLast (infixOp ?>> termBundle)
 
 /// Parses the characteristics keyword followed by a characteristics expression.
 let private characteristicsAnnotation =
     let rec characteristicsExpr = parse {
-        let infixOp = operator qsSetUnion.op None <|> operator qsSetIntersection.op None
+        let infixOp = operator qsSetUnion.op "" <|> operator qsSetIntersection.op ""
         let expTerm = pcollect [
-            tupleBrackets characteristicsExpr
+            brackets (lTuple, rTuple) characteristicsExpr
             expectedKeyword qsAdjSet
             expectedKeyword qsCtlSet
         ]
@@ -208,7 +234,7 @@ let private characteristicsAnnotation =
 /// Parses a type.
 let rec private qsType =
     parse {
-        return! nonArrayType .>> many (arrayBrackets (emptySpace >>% []))
+        return! nonArrayType .>> many (brackets (lArray, rArray) (emptySpace >>% []))
     }
 
 /// Parses types where the top-level type is not an array type.
@@ -216,10 +242,10 @@ and nonArrayType =
     let typeParameter = pchar '\'' >>. expectedId TypeParameter (term symbol)
     let operationType =
         let inOutType = qsType >>. opArrow >>. qsType
-        tupleBrackets (attempt (tupleBrackets inOutType ?>> characteristicsAnnotation) <|>
-                       attempt (inOutType ?>> characteristicsAnnotation) <|>
-                       inOutType)
-    let functionType = tupleBrackets (qsType >>. fctArrow >>. qsType)
+        brackets (lTuple, rTuple) (attempt (brackets (lTuple, rTuple) inOutType ?>> characteristicsAnnotation) <|>
+                                   attempt (inOutType ?>> characteristicsAnnotation) <|>
+                                   inOutType)
+    let functionType = brackets (lTuple, rTuple) (qsType >>. fctArrow >>. qsType)
     let keywordType =
         [
             qsBigInt
@@ -237,7 +263,7 @@ and nonArrayType =
         attempt typeParameter
         attempt operationType
         attempt functionType
-        attempt (tuple qsType)
+        attempt (tuple1 qsType)
         keywordType <|>@ expectedQualifiedSymbol UserDefinedType
     ]
 
@@ -246,9 +272,9 @@ let private callableSignature =
     let name = expectedId Declaration (term symbol)
     let typeAnnotation = expected colon ?>> qsType
     let typeParam = expected (pchar '\'') ?>> expectedId Declaration (term symbol)
-    let typeParamList = angleBrackets (sepByLast typeParam comma)
-    let argumentTuple = expected unitValue <|> tuple (name ?>> typeAnnotation)
-    name ?>> (typeParamList <|>% []) ?>> argumentTuple ?>> typeAnnotation
+    let typeParamList = brackets (lAngle, rAngle) (sepByLast typeParam comma)
+    let argumentTuple = tuple (name ?>> typeAnnotation)
+    name ?>> (typeParamList <|> (optional eot >>% [])) ?>> argumentTuple ?>> typeAnnotation
 
 /// Parses a function declaration.
 let private functionDeclaration =
@@ -263,7 +289,7 @@ let private udtDeclaration =
     let name = expectedId Declaration (term symbol)
     let rec udt = parse {
         let namedItem = name ?>> expected colon ?>> qsType
-        return! qsType <|>@ tuple (namedItem <|>@ udt)
+        return! qsType <|>@ tuple1 (namedItem <|>@ udt)
     }
     expectedKeyword typeDeclHeader ?>> name ?>> expected equal ?>> udt
 
@@ -283,54 +309,35 @@ let private namespaceTopLevel =
         openDirective
     ] .>> eotEof
 
+/// Parses a sequence of operator-like characters (even if those characters are not a valid operator), excluding
+/// characters in `excluded`. Consumes whitespace.
+let private operatorLike excluded =
+    let isOperatorChar c =
+        not (isSymbolContinuation c || Char.IsWhiteSpace c || Seq.exists ((=) c) "()[]{}\u0004") &&
+        not (Seq.exists ((=) c) excluded)
+    many1Chars (satisfy isOperatorChar) >>. emptySpace >>% []
+
 /// Parses an expression.
 let rec private expression = parse {
-    let prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op None <|> operator qsBNOTop.op None
+    let prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
     
-    let infixOp =
-        // Do not include LT here; it is parsed as a postfix operator instead.
-        choice [
-            expectedKeyword andOperator <|>@ expectedKeyword orOperator
-            operator qsRangeOp.op None
-            operator qsBORop.op None
-            operator qsBXORop.op None
-            operator qsBANDop.op None
-            operator qsEQop.op None
-            operator qsNEQop.op None
-            operator qsLTEop.op None
-            operator qsGTEop.op None
-            operator qsGTop.op None
-            operator qsRSHIFTop.op None
-            operator qsADDop.op None
-            operator qsSUBop.op None
-            operator qsMULop.op None
-            operator qsMODop.op None
-            operator qsDIVop.op (Some (notFollowedBy (pchar '/')))
-            operator qsPOWop.op None
-        ]
-    
+    let infixOp = operatorLike "" <|> pcollect [expectedKeyword andOperator; expectedKeyword orOperator]
+
     let postfixOp =
         let copyAndUpdate =
-            operator qsCopyAndUpdateOp.op None >>.
+            operator qsCopyAndUpdateOp.op "" >>.
             (expression <|>@ expectedId NamedItem (term symbol)) ?>>
-            expected (operator qsCopyAndUpdateOp.cont None) ?>>
-            expression
-        let conditional =
-            operator qsConditionalOp.op None >>.
-            expression ?>>
-            expected (operator qsConditionalOp.cont None) ?>>
+            expected (operator qsCopyAndUpdateOp.cont "") ?>>
             expression
         let typeParamListOrLessThan =
             // This is a parsing hack for the < operator, which can be either less-than or the start of a type parameter
             // list.
-            angleBrackets (sepByLast qsType comma) <|>@ (operator qsLTop.op None >>. expression)
+            operator qsLTop.op "=-" ?>> ((sepByLast qsType comma ?>> expected (bracket rAngle)) <|>@ expression)
         choice [
-            operator qsUnwrapModifier.op (Some (notFollowedBy (pchar '=')))
-            operator qsOpenRangeOp.op None .>> optional eot
-            operator qsNamedItemCombinator.op None >>. expectedId NamedItem (term symbol)
+            operator qsUnwrapModifier.op ""
+            pstring qsOpenRangeOp.op .>> emptySpace >>. optional eot >>% []
+            operator qsNamedItemCombinator.op "" ?>> expectedId NamedItem (term symbol)
             copyAndUpdate
-            conditional
-            (unitValue >>% [])
             tuple expression
             array expression
             typeParamListOrLessThan
@@ -340,7 +347,7 @@ let rec private expression = parse {
         let newArray =
             expectedKeyword arrayDecl ?>>
             nonArrayType ?>>
-            manyR (arrayBrackets (emptySpace >>% [])) @>>
+            manyR (brackets (lArray, rArray) (emptySpace >>% [])) (preturn ()) @>>
             array expression
         let keywordLiteral =
             [
@@ -361,7 +368,7 @@ let rec private expression = parse {
                 let text =
                     manyChars (notFollowedBy (unescaped quote <|> unescaped lCurly) >>. anyChar) >>.
                     optional eot >>. preturn []
-                let code = curlyBrackets expression
+                let code = brackets (lCurly, rCurly) expression
                 pchar '$' >>. expected quote ?>> text ?>> manyLast (code ?>> text) ?>> expected quote
             let uninterpolated =
                 let text = manyChars (notFollowedBy (unescaped quote) >>. anyChar) >>. optional eot >>. preturn []
@@ -369,32 +376,189 @@ let rec private expression = parse {
             interpolated <|> uninterpolated
         let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
         pcollect [
-            operator qsOpenRangeOp.op None >>. opt expression |>> Option.defaultValue []
+            operator qsOpenRangeOp.op "" >>. opt expression |>> Option.defaultValue []
             newArray
-            tuple expression
+            tuple1 expression
             array expression
             keywordLiteral
             numericLiteral >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
             stringLiteral
-            manyR functor @>> expectedQualifiedSymbol Variable
+            manyR functor symbol @>> expectedQualifiedSymbol Callable
+            expectedId Variable (term symbol) .>> nextCharSatisfiesNot ((=) '.')
         ]
     
     return! createExpressionParser prefixOp infixOp postfixOp expTerm
 }
 
-/// Parses a statement.
-let private statement =
-    expression .>> eotEof
+/// Parses a symbol tuple containing identifiers of the given kind.
+let rec private symbolTuple kind = parse {
+    let declaration = expectedId kind (term symbol)
+    return! declaration <|> tuple1 (declaration <|> symbolTuple kind)
+}
 
-/// Parses the fragment text, which may be incomplete, and returns the set of possible identifiers expected at the end
-/// of the text.
-///
-/// Raises a CompletionParseError if the text cannot be parsed.
-let GetExpectedIdentifiers env text =
+/// Parses a let statement.
+let private letStatement =
+    expectedKeyword qsImmutableBinding ?>> symbolTuple Declaration ?>> expected equal ?>> expression
+
+/// Parses a mutable statement.
+let private mutableStatement =
+    expectedKeyword qsMutableBinding ?>> symbolTuple Declaration ?>> expected equal ?>> expression
+
+/// Parses a set statement.
+let private setStatement =
+    let infixOp = operatorLike "=" <|> pcollect [expectedKeyword andOperator; expectedKeyword orOperator]
+    let assignment =
+        symbolTuple MutableVariable ?>> (opt infixOp |>> Option.defaultValue []) ?>> expected equal ?>> expression
+    let copyAndUpdate =
+        expectedId MutableVariable (term symbol) ?>>
+        expected (operator qsCopyAndUpdateOp.op "") ?>>
+        expected equal ?>>
+        (expression <|>@ expectedId NamedItem (term symbol)) ?>>
+        expected (operator qsCopyAndUpdateOp.cont "") ?>>
+        expression
+    expectedKeyword qsValueUpdate ?>> (attempt assignment <|> copyAndUpdate)
+
+/// Parses a return statement.
+let private returnStatement =
+    expectedKeyword qsReturn ?>> expression
+
+/// Parses a fail statement.
+let private failStatement =
+    expectedKeyword qsFail ?>> expression
+
+/// Parses an if clause.
+let private ifClause =
+    expectedKeyword qsIf ?>> expectedBrackets (lTuple, rTuple) expression
+
+/// Parses an elif clause.
+let private elifClause =
+    expectedKeyword qsElif ?>> expectedBrackets (lTuple, rTuple) expression
+
+/// Parses an else clause.
+let private elseClause =
+    expectedKeyword qsElse
+
+/// Parses a for-block intro.
+let private forHeader =
+    let binding = symbolTuple Declaration ?>> expectedKeyword qsRangeIter ?>> expression
+    expectedKeyword qsFor ?>> expectedBrackets (lTuple, rTuple) binding
+
+/// Parses a while-block intro.
+let private whileHeader =
+    expectedKeyword qsWhile ?>> expectedBrackets (lTuple, rTuple) expression
+
+/// Parses a repeat-until-success block intro.
+let private repeatHeader =
+    expectedKeyword qsRepeat
+
+/// Parses a repeat-until success block outro.
+let private untilFixup =
+    expectedKeyword qsUntil ?>> expectedBrackets (lTuple, rTuple) expression ?>> expectedKeyword qsRUSfixup
+
+/// Parses a qubit initializer tuple used to allocate qubits in using- and borrowing-blocks.
+let rec private qubitInitializerTuple = parse {
+    let item = expectedKeyword qsQubit ?>> (expected unitValue <|> expectedBrackets (lArray, rArray) expression)
+    return! item <|> (tuple1 item <|> qubitInitializerTuple)
+}
+
+/// Parses a using-block intro.
+let private usingHeader =
+    let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
+    expectedKeyword qsUsing ?>> expectedBrackets (lTuple, rTuple) binding
+
+/// Parses a borrowing-block intro.
+let private borrowingHeader =
+    let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
+    expectedKeyword qsBorrowing ?>> expectedBrackets (lTuple, rTuple) binding
+
+/// Parses an operation specialization declaration.
+let private specializationDeclaration =
+    let argumentTuple = tuple (expectedId Declaration (term symbol) <|> operator omittedSymbols.id "")
+    let generator = 
+        pcollect [
+            expectedKeyword intrinsicFunctorGenDirective
+            expectedKeyword autoFunctorGenDirective
+            expectedKeyword selfFunctorGenDirective
+            expectedKeyword invertFunctorGenDirective
+            expectedKeyword distributeFunctorGenDirective
+            argumentTuple
+        ]
+    pcollect [
+        expectedKeyword ctrlDeclHeader ?>> (expectedKeyword adjDeclHeader ?>> generator <|>@ generator)
+        expectedKeyword adjDeclHeader ?>> (expectedKeyword ctrlDeclHeader ?>> generator <|>@ generator)
+        expectedKeyword bodyDeclHeader ?>> generator
+    ]
+
+/// Parses statements that are valid in both functions and operations.
+let private callableStatement =
+    pcollect [
+        letStatement
+        mutableStatement
+        setStatement
+        returnStatement
+        failStatement
+        ifClause
+        forHeader
+        expression
+    ] .>> eotEof
+
+/// Parses a statement in a function.
+let private functionStatement =
+    whileHeader .>> eotEof <|>@ callableStatement
+
+/// Parses a statement in a function that follows an if or elif clause in the same scope.
+let private functionStatementFollowingIf =
+    pcollect [
+        elifClause
+        elseClause
+    ] .>> eotEof <|>@ functionStatement
+
+/// Parses a statement in an operation.
+let private operationStatement =
+    pcollect [
+        repeatHeader
+        usingHeader
+        borrowingHeader
+    ] .>> eotEof <|>@ callableStatement
+
+/// Parses a statement in an operation that follows an if or elif clause in the same scope.
+let private operationStatementFollowingIf =
+    pcollect [
+        elifClause
+        elseClause
+    ] .>> eotEof <|>@ operationStatement
+
+/// Parses a statement in the top-level scope of an operation.
+let private operationTopLevel =
+    specializationDeclaration .>> eotEof <|>@ operationStatement
+
+/// Parses a statement in the top-level scope of an operation that follows an if or elif clause.
+let private operationTopLevelFollowingIf =
+    pcollect [
+        elifClause
+        elseClause
+    ] .>> eotEof <|>@ operationTopLevel
+
+/// Parses a statement in an operation that follows a repeat header in the same scope.
+let private operationStatementFollowingRepeat =
+    untilFixup .>> eotEof
+
+/// Parses the fragment text assuming that it is in the given scope and follows the given previous fragment kind in the
+/// same scope (or null if it is the first statement in the scope). Returns the set of completion kinds that are valid
+/// at the end of the text.
+let GetCompletionKinds scope previous text =
     let parser =
-        match env with
-        | NamespaceTopLevel -> namespaceTopLevel
-        | Statement -> statement
+        match (scope, previous) with
+        | (NamespaceTopLevel, _) -> namespaceTopLevel
+        | (Function, Value (IfClause _)) | (Function, Value (ElifClause _)) -> functionStatementFollowingIf
+        | (Function, _) -> functionStatement
+        | (OperationTopLevel, Value (IfClause _))
+        | (OperationTopLevel, Value (ElifClause _)) -> operationTopLevelFollowingIf
+        | (OperationTopLevel, Value (RepeatIntro _)) | (Operation, Value (RepeatIntro _)) ->
+            operationStatementFollowingRepeat
+        | (OperationTopLevel, _) -> operationTopLevel
+        | (Operation, Value (IfClause _)) | (Operation, Value (ElifClause _)) -> operationStatementFollowingIf
+        | (Operation, _) -> operationStatement
     match runParserOnString parser [] "" (text + "\u0004") with
     | ParserResult.Success (result, _, _) -> Success (Set.ofList result)
     | ParserResult.Failure (detail, _, _) -> Failure detail
