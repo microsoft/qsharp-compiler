@@ -425,6 +425,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 callableDecl.IsValue ? (callableDecl.Item.Item2.Item2.Argument, callableDecl.Item.Item2.Item2.TypeParameters) :
                 typeDecl.IsValue ? (typeDecl.Item.Item2, ImmutableArray<QsSymbol>.Empty) :
                 (null, ImmutableArray<QsSymbol>.Empty);
+            var hasOutput = callableDecl.IsValue && !callableDecl.Item.Item2.Item2.ReturnType.Type.IsUnitType;
 
             var args = argTuple == null ? ImmutableArray<Tuple<QsSymbol, QsType>>.Empty : SyntaxGenerator.ExtractItems(argTuple);
             docString = String.Concat(
@@ -432,9 +433,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // Document Input Parameters
                 args.Any() ? $"{docPrefix}# Input{endLine}" : String.Empty,
                 String.Concat(args.Select(x => $"{docPrefix}## {x.Item1.Symbol.AsDeclarationName(null)}{endLine}{docPrefix}{endLine}")),
+                // Document Output 
+                hasOutput ? $"{docPrefix}# Output{endLine}{docPrefix}{endLine}" : String.Empty,
                 // Document Type Parameters
                 typeParams.Any() ? $"{docPrefix}# Type Parameters{endLine}" : String.Empty,
-                String.Concat(typeParams.Select(x => $"{docPrefix}## {x.Symbol.AsDeclarationName(null)}{endLine}{docPrefix}{endLine}"))
+                String.Concat(typeParams.Select(x => $"{docPrefix}## '{x.Symbol.AsDeclarationName(null)}{endLine}{docPrefix}{endLine}"))
             );
 
             var whichDecl = $" for {declSymbol.AsDeclarationName(null)}";
