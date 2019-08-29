@@ -44,10 +44,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly Action<PublishDiagnosticParams> PublishDiagnostics;
 
         /// <summary>
-        /// Temporarily stores diagnostics that will be published after a delay.
+        /// Temporarily stores files with diagnostics that will be published after a delay.
         /// </summary>
-        private readonly IDictionary<Uri, PublishDiagnosticParams> PendingDiagnostics =
-            new Dictionary<Uri, PublishDiagnosticParams>();
+        private readonly ISet<FileContentManager> PendingDiagnostics = new HashSet<FileContentManager>();
         /// <summary>
         /// Used to delay publishing diagnostics until a certain amount of time has elapsed since the last update.
         /// </summary>
@@ -82,20 +81,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.CompilationUnit = new CompilationUnit();
             this.FileContentManagers = new ConcurrentDictionary<NonNullable<string>, FileContentManager>();
             this.ChangedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
-            this.PublishDiagnostics = diagnostic =>
-            {
-                lock (this.PendingDiagnostics)
-                {
-                    this.PendingDiagnostics.Remove(diagnostic.Uri);
-                    publishDiagnostics?.Invoke(diagnostic);
-                }
-            };
+            this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
             this.DiagnosticsTimer.Elapsed += (sender, e) =>
             {
                 lock (this.PendingDiagnostics)
                 {
-                    foreach (var diagnostic in this.PendingDiagnostics.Values)
-                        publishDiagnostics?.Invoke(diagnostic);
+                    foreach (var file in this.PendingDiagnostics)
+                        this.PublishDiagnostics(file.Diagnostics());
                     this.PendingDiagnostics.Clear();
                 }
             };
@@ -105,13 +97,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Adds the diagnostics to a queue to published later.
+        /// Adds the file to a queue where its diagnostics will be published after a delay.
         /// </summary>
-        private void PublishDelayedDiagnostics(PublishDiagnosticParams diagnostic)
+        private void PublishDelayedDiagnostics(FileContentManager file)
         {
             lock (this.PendingDiagnostics)
             {
-                this.PendingDiagnostics[diagnostic.Uri] = diagnostic;
+                this.PendingDiagnostics.Add(file);
                 this.DiagnosticsTimer.Stop();
                 this.DiagnosticsTimer.Start();
             }
@@ -333,7 +325,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 if (this.EnableVerification && this.WaitForTypeCheck != null)
                 { file.AddTimerTriggeredUpdateEvent(); }
-                this.PublishDelayedDiagnostics(file.Diagnostics());
+                this.PublishDelayedDiagnostics(file);
             });
         }
 
