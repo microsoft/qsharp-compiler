@@ -176,10 +176,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Given the position where the syntax check starts and ends relative to the original file content before the update, and the lineNrChange,
         /// removes all diagnostics that are no longer valid due to that change, and
         /// updates the line numbers of the remaining diagnostics if needed.
-        /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null. 
+        /// Throws an ArgumentNullException if the given diagnostics to update or if the syntax check delimiters are null. 
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, Range syntaxCheckDelimiters, int lineNrChange)
+        private static void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, Range syntaxCheckDelimiters, int lineNrChange)
         {
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
             if (!Utils.IsValidRange(syntaxCheckDelimiters)) throw new ArgumentException(nameof(syntaxCheckDelimiters));
@@ -194,6 +194,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (lineNrChange != 0) diagnostics.Transform(updateLineNrs);
             }
             finally { diagnostics.SyncRoot.ExitWriteLock(); }
+        }
+
+        /// <summary>
+        /// Replaces the given list of latest diagnostics with a copy of the current ones, 
+        /// Updates the line numbers for both the current and latest diagnostics that start after the syntax check end delimiter, 
+        /// and removes all diagnostics that overlap with the given range for teh syntax check update in the latest diagnostics only. 
+        /// Throws an ArgumentNullException if the given current and/or latest diagnostics are null, or if the syntax check delimiters are null. 
+        /// Throws an ArgumentException if the given start and end position do not denote a valid range.
+        /// </summary>
+        private static void DelayInvalidateOrUpdate(ManagedList<Diagnostic> current, ManagedList<Diagnostic> latest,
+            Range syntaxCheckDelimiters, int lineNrChange)
+        {
+            if (current == null) throw new ArgumentNullException(nameof(current));
+            if (latest == null) throw new ArgumentNullException(nameof(latest));
+
+            latest.ReplaceAll(current);
+            InvalidateOrUpdateBySyntaxCheckDelimeters(latest, syntaxCheckDelimiters, lineNrChange);
+            Diagnostic updateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
+            if (lineNrChange != 0) current.Transform(updateLineNrs);
         }
 
 
@@ -246,7 +265,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
         private void InvalidateOrUpdateSyntaxDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
-            this.InvalidateOrUpdateBySyntaxCheckDelimeters(this.SyntaxDiagnostics, syntaxCheckDelimiters, lineNrChange);
+            InvalidateOrUpdateBySyntaxCheckDelimeters(this.SyntaxDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
 
         /// <summary>
@@ -296,7 +315,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { this.ContextDiagnostics.SyncRoot.ExitWriteLock(); }
         }
 
-
         /// <summary>
         /// Replaces the current header diagnostics with the given sequence and pushes the updated header diagnostics.
         /// </summary>
@@ -313,13 +331,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null. 
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateHeaderDiagnostics(Range syntaxCheckDelimiters, int lineNrChange)
-        {
-            this.UpdatedHeaderDiagnostics.ReplaceAll(this.HeaderDiagnostics);
-            this.InvalidateOrUpdateBySyntaxCheckDelimeters(this.UpdatedHeaderDiagnostics, syntaxCheckDelimiters, lineNrChange);
-            Diagnostic updateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
-            if (lineNrChange != 0) this.HeaderDiagnostics.Transform(updateLineNrs);
-        }
+        private void InvalidateOrUpdateHeaderDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
+            DelayInvalidateOrUpdate(this.HeaderDiagnostics, this.UpdatedHeaderDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
 
         /// <summary>
@@ -347,13 +360,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null. 
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateSemanticDiagnostics(Range syntaxCheckDelimiters, int lineNrChange)
-        {
-            this.UpdatedSemanticDiagnostics.ReplaceAll(this.SemanticDiagnostics);
-            this.InvalidateOrUpdateBySyntaxCheckDelimeters(this.UpdatedSemanticDiagnostics, syntaxCheckDelimiters, lineNrChange);
-            Diagnostic updateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
-            if (lineNrChange != 0) this.SemanticDiagnostics.Transform(updateLineNrs);
-        }
+        private void InvalidateOrUpdateSemanticDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
+            DelayInvalidateOrUpdate(this.SemanticDiagnostics, this.UpdatedSemanticDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
 
         /// <summary>
@@ -736,7 +744,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             foreach (var (range, callableName) in edited)
             {
-                this.InvalidateOrUpdateBySyntaxCheckDelimeters(this.UpdatedSemanticDiagnostics, range, 0);
+                InvalidateOrUpdateBySyntaxCheckDelimeters(this.UpdatedSemanticDiagnostics, range, 0);
                 this.EditedCallables.Add(callableName);
             }
         }
