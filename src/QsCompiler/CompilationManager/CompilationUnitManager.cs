@@ -237,8 +237,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.FileContentManagers.AddOrUpdate(file.FileName, file, (k, v) => file);
                 if (updatedContent != null) file.ReplaceFileContent(updatedContent);
                 this.ChangedFiles.Add(file.FileName);
-                if (this.EnableVerification && this.WaitForTypeCheck != null) file.Verify(this.CompilationUnit);
-                this.PublishDiagnostics(file.Diagnostics());
+                if (this.EnableVerification && this.WaitForTypeCheck != null) file._Verify(this.CompilationUnit);
+                this.PublishDiagnostics(file.CurrentDiagnostics());
             });
         }
 
@@ -317,8 +317,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // when the global type checking results are pushed back in
                 this.ChangedFiles.Add(docKey);
                 file.Flush();
-                if (this.EnableVerification && this.WaitForTypeCheck != null) file.Verify(this.CompilationUnit);
-                this.PublishDiagnostics(file.Diagnostics());
+                if (this.EnableVerification && this.WaitForTypeCheck != null) file._Verify(this.CompilationUnit);
+                this.PublishDiagnostics(file.CurrentDiagnostics());
             });
         }
 
@@ -434,8 +434,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var sourceFiles = this.FileContentManagers.Values;
             this.ChangedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
             var compilation = new CompilationUnit(this.CompilationUnit.Externals, sourceFiles.Select(file => file.SyncRoot));
-            var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
-            foreach (var file in sourceFiles) this.PublishDiagnostics(file.Diagnostics());
+            var content = compilation._UpdateGlobalSymbolsFor(sourceFiles);
+            foreach (var file in sourceFiles) this.PublishDiagnostics(file.CurrentDiagnostics());
 
             // move the content of symbols over to the Compilation
             this.CompilationUnit.EnterWriteLock();
@@ -454,7 +454,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {   // Do *not* remove the RaiseOnFailure! 
                     // -> keep it here, such that all internal exceptions are being piped through one central routine (in QsCompilerError)
                     QsCompilerError.RaiseOnFailure(() =>
-                        this.RunGlobalTypeChecking(compilation, content, cancellationToken),
+                        this._RunGlobalTypeChecking(compilation, content, cancellationToken),
                         "error while running global type checking");
                 }
                 catch (Exception ex) { this.LogException(ex); }
@@ -503,13 +503,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         if (changedFiles.Contains(file.FileName)) continue;
                         file._ReplaceSemanticDiagnostics(allDiagnostics[file.FileName]);
-                        this.PublishDiagnostics(file.Diagnostics());
+                        this.PublishDiagnostics(file.CurrentDiagnostics());
                     }
 
                     foreach (var docKey in changedFiles) 
                     {
                         this.Processing.QueueForExecutionAsync(() =>
-                            QsCompilerError.RaiseOnFailure(() => this.TypeCheckFile(docKey, cancellationToken),
+                            QsCompilerError.RaiseOnFailure(() => this._TypeCheckFile(docKey, cancellationToken),
                             "error while re-doing the type checking for an source file that had been modified during a global type check update"));
                     }
                 }
@@ -547,7 +547,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 diagnostics = TypeChecking.RunTypeChecking(this.CompilationUnit, file.GetDeclarationTrees(contentToCompile), new CancellationToken());
                 file._ReplaceSemanticDiagnostics(diagnostics);
-                this.PublishDiagnostics(file.Diagnostics());
+                this.PublishDiagnostics(file.CurrentDiagnostics());
             }
             finally {
                 file.SyncRoot.ExitUpgradeableReadLock();

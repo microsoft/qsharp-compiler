@@ -380,23 +380,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { this.SyncRoot.ExitReadLock(); }
         }
 
-        /// <summary>
-        /// Pushes all updates to header and semantic diagnostics 
-        /// under the assumption that no more computations are pending. 
-        /// Returns all diagnostic as PublishDiagnosticParams.
-        /// </summary>
-        public PublishDiagnosticParams FinalizeDiagnostics()
-        {
-            this.SyncRoot.EnterReadLock();
-            try
-            {
-                this._HeaderDiagnostics.ReplaceAll(this.UpdatedHeaderDiagnostics);
-                this._SemanticDiagnostics.ReplaceAll(this.UpdatedSemanticDiagnostics);
-                return this.CurrentDiagnostics();
-            }
-            finally { this.SyncRoot.ExitReadLock(); }
-        }
-
 
         // external access to content & routines related to content updates
 
@@ -816,6 +799,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Does the semantic verification of everything that has not yet been verified.
+        /// Updates and all header and semantic diagnostics. 
+        /// Pushes the updated diagnostics if no further computation is needed. 
+        /// If a global type checking is needed, triggers the corresponding event 
+        /// and does not push updates to semantic diagnostic. 
         /// </summary>
         internal void _Verify(CompilationUnit compilation) =>
             QsCompilerError.RaiseOnFailure(() => this._UpdateTypeChecking(compilation), "error during type checking update");

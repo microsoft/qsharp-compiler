@@ -404,8 +404,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Updates and resolves all global symbols in each given file, 
         /// and modifies the given CompilationUnit accordingly in the process.
-        /// Replaces all HeaderDiagnostics in the given files with the newly computed diagnostics, 
-        /// and clear all semantic diagnostics in the given files. 
+        /// Updates and pushes all HeaderDiagnostics in the given files, 
+        /// and clears all semantic diagnostics without pushing them. 
         /// If the given Action for publishing diagnostics is not null, 
         /// invokes it for the diagnostics of each given file after updating them. 
         /// Throws an ArgumentNullException if the given compilation is null, 
