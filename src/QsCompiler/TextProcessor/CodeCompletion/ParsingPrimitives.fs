@@ -9,13 +9,6 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 
 
-/// Merges the error messages from all replies in the list.
-let rec toErrorMessageList (replies : Reply<'a> list) =
-    match replies with
-    | reply :: tail when reply.Status = Ok -> toErrorMessageList tail
-    | reply :: tail -> ErrorMessageList.Merge (reply.Error, toErrorMessageList tail)
-    | [] -> null
-
 /// `p1 ?>> p2` attempts `p1`. If `p1` succeeds and consumes all input, it returns the result of `p1` without using
 /// `p2`. Otherwise, it continues parsing with `p2` and returns the result of `p2`.
 let (?>>) p1 p2 =
@@ -24,6 +17,13 @@ let (?>>) p1 p2 =
 /// `p1 @>> p2` parses `p1`, then `p2` (if `p1` did not consume all input), and concatenates the results.
 let (@>>) p1 p2 =
     p1 .>>. (eof >>% [] <|> p2) |>> fun (list1, list2) -> list1 @ list2
+
+/// Merges the error messages from all replies in the list.
+let rec private toErrorMessageList (replies : Reply<'a> list) =
+    match replies with
+    | reply :: tail when reply.Status = Ok -> toErrorMessageList tail
+    | reply :: tail -> ErrorMessageList.Merge (reply.Error, toErrorMessageList tail)
+    | [] -> null
 
 /// Tries all parsers in the sequence `ps`, backtracking to the initial state after each parser. Concatenates the
 /// results from all parsers that succeeded into a single list.
