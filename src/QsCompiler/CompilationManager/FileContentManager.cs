@@ -330,7 +330,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Adds the given sequence of semantic diagnostics to the current list.
+        /// Adds the given sequence of semantic diagnostics to the current list and pushes the updated semantic diagnostics.
         /// </summary>
         internal void _AddAndFinalizeSemanticDiagnostics(IEnumerable<Diagnostic> updates)
         {
