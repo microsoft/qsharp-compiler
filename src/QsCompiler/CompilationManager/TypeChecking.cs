@@ -1463,7 +1463,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// since the type checking for the entire compilation unit and all compilation units depending on it needs to be recomputed. 
         /// Throws an ArgumentNullException if the given file or compilation unit is null. 
         /// </summary>
-        internal static void _UpdateTypeChecking(this FileContentManager file, CompilationUnit compilation)
+        internal static void UpdateTypeChecking(this FileContentManager file, CompilationUnit compilation)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));

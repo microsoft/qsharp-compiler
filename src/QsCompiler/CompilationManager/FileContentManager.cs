@@ -806,8 +806,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If a global type checking is needed, triggers the corresponding event 
         /// and does not push updates to semantic diagnostic. 
         /// </summary>
-        internal void _Verify(CompilationUnit compilation) =>
-            QsCompilerError.RaiseOnFailure(() => this._UpdateTypeChecking(compilation), "error during type checking update");
+        internal void Verify(CompilationUnit compilation) =>
+            QsCompilerError.RaiseOnFailure(() => this.UpdateTypeChecking(compilation), "error during type checking update");
 
         /// <summary>
         /// Clears all Header and SemanticDiagnostics, 

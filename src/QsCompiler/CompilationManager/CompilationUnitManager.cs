@@ -237,7 +237,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.FileContentManagers.AddOrUpdate(file.FileName, file, (k, v) => file);
                 if (updatedContent != null) file.ReplaceFileContent(updatedContent);
                 this.ChangedFiles.Add(file.FileName);
-                if (this.EnableVerification && this.WaitForTypeCheck != null) file._Verify(this.CompilationUnit);
+                if (this.EnableVerification && this.WaitForTypeCheck != null) file.Verify(this.CompilationUnit);
                 this.PublishDiagnostics(file.Diagnostics());
             });
         }
@@ -317,7 +317,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // when the global type checking results are pushed back in
                 this.ChangedFiles.Add(docKey);
                 file.Flush();
-                if (this.EnableVerification && this.WaitForTypeCheck != null) file._Verify(this.CompilationUnit);
+                if (this.EnableVerification && this.WaitForTypeCheck != null) file.Verify(this.CompilationUnit);
                 this.PublishDiagnostics(file.Diagnostics());
             });
         }
@@ -454,7 +454,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {   // Do *not* remove the RaiseOnFailure! 
                     // -> keep it here, such that all internal exceptions are being piped through one central routine (in QsCompilerError)
                     QsCompilerError.RaiseOnFailure(() =>
-                        this._RunGlobalTypeChecking(compilation, content, cancellationToken),
+                        this.RunGlobalTypeChecking(compilation, content, cancellationToken),
                         "error while running global type checking");
                 }
                 catch (Exception ex) { this.LogException(ex); }
@@ -473,7 +473,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// queues a task calling TypeCheckFile on that file with the given cancellationToken.
         /// Throws an ArgumentNullException if any of the given arguments is null. 
         /// </summary>
-        private void _RunGlobalTypeChecking(CompilationUnit compilation, ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> content, CancellationToken cancellationToken)
+        private void RunGlobalTypeChecking(CompilationUnit compilation, ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> content, CancellationToken cancellationToken)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             if (content == null) throw new ArgumentNullException(nameof(content));
@@ -509,7 +509,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     foreach (var docKey in changedFiles) 
                     {
                         this.Processing.QueueForExecutionAsync(() =>
-                            QsCompilerError.RaiseOnFailure(() => this._TypeCheckFile(docKey, cancellationToken),
+                            QsCompilerError.RaiseOnFailure(() => this.TypeCheckFile(docKey, cancellationToken),
                             "error while re-doing the type checking for an source file that had been modified during a global type check update"));
                     }
                 }
@@ -527,7 +527,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Replaces the header diagnostics and the semantic diagnostics in the file with the obtained diagnostics, and publishes them. 
         /// Throws an ArgumentNullException if the given cancellation token is null.
         /// </summary>
-        private void _TypeCheckFile(NonNullable<string> fileId, CancellationToken cancellationToken)
+        private void TypeCheckFile(NonNullable<string> fileId, CancellationToken cancellationToken)
         {
             if (cancellationToken == null) throw new ArgumentNullException(nameof(cancellationToken));
             var isSource = this.FileContentManagers.TryGetValue(fileId, out FileContentManager file);
