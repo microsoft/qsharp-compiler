@@ -358,8 +358,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns all current diagnostic as PublishDiagnosticParams.
-        /// Note that updates to header or semantic diagnostics since the last call to FinalizeDiagnostics 
-        /// are *not* reflected in the returned diagnostics. 
         /// </summary>
         public PublishDiagnosticParams Diagnostics()
         {

@@ -434,7 +434,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var sourceFiles = this.FileContentManagers.Values;
             this.ChangedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
             var compilation = new CompilationUnit(this.CompilationUnit.Externals, sourceFiles.Select(file => file.SyncRoot));
-            var content = compilation._UpdateGlobalSymbolsFor(sourceFiles);
+            var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
             foreach (var file in sourceFiles) this.PublishDiagnostics(file.Diagnostics());
 
             // move the content of symbols over to the Compilation

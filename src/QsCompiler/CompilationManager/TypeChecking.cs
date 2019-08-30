@@ -411,7 +411,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given compilation is null, 
         /// or if the given files, or any file contained in files, is null.
         /// </summary>
-        internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> _UpdateGlobalSymbolsFor
+        internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> UpdateGlobalSymbolsFor
             (this CompilationUnit compilation, IEnumerable<FileContentManager> files)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
