@@ -509,7 +509,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 QsCompilerError.RaiseOnFailure(() =>
                 {
                     var verifiedLines = file.VerifyContext(changedLines, out List<Diagnostic> diagnostics);
-                    file._UpdateContextDiagnostics(verifiedLines, diagnostics);
+                    file.UpdateContextDiagnostics(verifiedLines, diagnostics);
                 }, "updating the ContextDiagnostics failed");
 
                 var edited = file.CallablesWithContentModifications(changedLines);

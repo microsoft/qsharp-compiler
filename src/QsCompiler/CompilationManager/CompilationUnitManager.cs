@@ -100,7 +100,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 foreach (var file in this.FileContentManagers.Values)
                 {
                     file.Flush();
-                    this.PublishDiagnostics(file.CurrentDiagnostics());
+                    this.PublishDiagnostics(file.Diagnostics());
                 }
                 var task =  this.EnableVerification ? this.SpawnGlobalTypeCheckingAsync(runSynchronously: true) : Task.CompletedTask;
                 QsCompilerError.Verify(task.IsCompleted, "global type checking hasn't completed"); 
@@ -195,7 +195,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var file = new FileContentManager(uri, docKey);
             try { file.ReplaceFileContent(fileContent); }
             catch (Exception ex) { onException?.Invoke(ex); }
-            publishDiagnostics?.Invoke(file.CurrentDiagnostics());
+            publishDiagnostics?.Invoke(file.Diagnostics());
             return file;
         }
 
@@ -238,7 +238,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (updatedContent != null) file.ReplaceFileContent(updatedContent);
                 this.ChangedFiles.Add(file.FileName);
                 if (this.EnableVerification && this.WaitForTypeCheck != null) file._Verify(this.CompilationUnit);
-                this.PublishDiagnostics(file.CurrentDiagnostics());
+                this.PublishDiagnostics(file.Diagnostics());
             });
         }
 
@@ -261,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.SubscribeToFileManagerEvents(file);
                     this.FileContentManagers.AddOrUpdate(file.FileName, file, (k, v) => file);
                     this.ChangedFiles.Add(file.FileName);
-                    this.PublishDiagnostics(file.CurrentDiagnostics());
+                    this.PublishDiagnostics(file.Diagnostics());
                 }
                 if (this.EnableVerification && !suppressVerification) this.QueueGlobalTypeCheckingAsync();
             });
@@ -290,7 +290,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 if (this.EnableVerification && this.WaitForTypeCheck != null)
                 { file.AddTimerTriggeredUpdateEvent(); }
-                this.PublishDiagnostics(file.CurrentDiagnostics());
+                this.PublishDiagnostics(file.Diagnostics());
             });
         }
 
@@ -318,7 +318,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.ChangedFiles.Add(docKey);
                 file.Flush();
                 if (this.EnableVerification && this.WaitForTypeCheck != null) file._Verify(this.CompilationUnit);
-                this.PublishDiagnostics(file.CurrentDiagnostics());
+                this.PublishDiagnostics(file.Diagnostics());
             });
         }
 
@@ -435,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.ChangedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
             var compilation = new CompilationUnit(this.CompilationUnit.Externals, sourceFiles.Select(file => file.SyncRoot));
             var content = compilation._UpdateGlobalSymbolsFor(sourceFiles);
-            foreach (var file in sourceFiles) this.PublishDiagnostics(file.CurrentDiagnostics());
+            foreach (var file in sourceFiles) this.PublishDiagnostics(file.Diagnostics());
 
             // move the content of symbols over to the Compilation
             this.CompilationUnit.EnterWriteLock();
@@ -502,8 +502,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     foreach (var file in this.FileContentManagers.Values)
                     {
                         if (changedFiles.Contains(file.FileName)) continue;
-                        file._ReplaceSemanticDiagnostics(allDiagnostics[file.FileName]);
-                        this.PublishDiagnostics(file.CurrentDiagnostics());
+                        file.ReplaceSemanticDiagnostics(allDiagnostics[file.FileName]);
+                        this.PublishDiagnostics(file.Diagnostics());
                     }
 
                     foreach (var docKey in changedFiles) 
@@ -543,11 +543,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var contentToCompile = file.UpdateGlobalSymbols(this.CompilationUnit, diagnostics);
                 file.ImportGlobalSymbols(this.CompilationUnit, diagnostics);
                 TypeChecking.ResolveGlobalSymbols(this.CompilationUnit.GlobalSymbols, diagnostics, file.FileName.Value);
-                file._ReplaceHeaderDiagnostics(diagnostics);
+                file.ReplaceHeaderDiagnostics(diagnostics);
 
                 diagnostics = TypeChecking.RunTypeChecking(this.CompilationUnit, file.GetDeclarationTrees(contentToCompile), new CancellationToken());
-                file._ReplaceSemanticDiagnostics(diagnostics);
-                this.PublishDiagnostics(file.CurrentDiagnostics());
+                file.ReplaceSemanticDiagnostics(diagnostics);
+                this.PublishDiagnostics(file.Diagnostics());
             }
             finally {
                 file.SyncRoot.ExitUpgradeableReadLock();
@@ -621,8 +621,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public PublishDiagnosticParams[] GetDiagnostics(TextDocumentIdentifier textDocument = null) =>
             this.FlushAndExecute(() =>
                 textDocument != null
-                    ? this.FileQuery(textDocument, (file, _) => new PublishDiagnosticParams[] { file.CurrentDiagnostics() })
-                    : this.FileContentManagers.Values.Select(file => file.CurrentDiagnostics()).ToArray());
+                    ? this.FileQuery(textDocument, (file, _) => new PublishDiagnosticParams[] { file.Diagnostics() })
+                    : this.FileContentManagers.Values.Select(file => file.Diagnostics()).ToArray());
 
         /// <summary>
         /// Returns a sequence of all source files that are currently contained in this compilation unit.
@@ -816,19 +816,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.Types = this.SyntaxTree.Values.GlobalTypeResolutions();
 
                     this.ScopeDiagnostics = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file]._CurrentScopeDiagnostics()))
+                        .Select(file => (file, manager.FileContentManagers[file].CurrentScopeDiagnostics()))
                         .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
                     this.SyntaxDiagnostics = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file]._CurrentSyntaxDiagnostics()))
+                        .Select(file => (file, manager.FileContentManagers[file].CurrentSyntaxDiagnostics()))
                         .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
                     this.ContextDiagnostics = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file]._CurrentContextDiagnostics()))
+                        .Select(file => (file, manager.FileContentManagers[file].CurrentContextDiagnostics()))
                         .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
                     this.HeaderDiagnostics = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file]._CurrentHeaderDiagnostics()))
+                        .Select(file => (file, manager.FileContentManagers[file].CurrentHeaderDiagnostics()))
                         .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
                     this.SemanticDiagnostics = this.SourceFiles
-                        .Select(file => (file, manager.FileContentManagers[file]._CurrentSemanticDiagnostics()))
+                        .Select(file => (file, manager.FileContentManagers[file].CurrentSemanticDiagnostics()))
                         .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
                 }
                 catch (Exception ex) { manager.LogException(ex); }

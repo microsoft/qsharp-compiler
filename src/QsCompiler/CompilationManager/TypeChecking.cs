@@ -437,7 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // replace the header diagnostics in each file, and publish them
                 var messages = diagnostics.ToLookup(d => d.Source);
                 foreach (var file in files)
-                { file._ReplaceHeaderDiagnostics(messages[file.FileName.Value]); }
+                { file.ReplaceHeaderDiagnostics(messages[file.FileName.Value]); }
 
                 // return the declaration content of all files and callables
                 return content;
@@ -1482,7 +1482,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ResolveGlobalSymbols(compilation.GlobalSymbols, diagnostics, file.FileName.Value);
                 var (newHeader, newImports) = compilation.GlobalSymbols.HeaderHash(file.FileName);
                 var (sameHeader, sameImports) = (oldHeader == newHeader, oldImports == newImports);
-                file._ReplaceHeaderDiagnostics(diagnostics);
+                file.ReplaceHeaderDiagnostics(diagnostics);
 
                 if (!sameHeader)
                 { file.TriggerGlobalTypeChecking(); return; }
@@ -1493,8 +1493,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : contentTokens);
 
                 diagnostics = QsCompilerError.RaiseOnFailure(() => RunTypeChecking(compilation, declarationTrees, new CancellationToken()), "error on running type checking");
-                if (sameImports) file._AddAndFinalizeSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
-                else file._ReplaceSemanticDiagnostics(diagnostics);
+                if (sameImports) file.AddAndFinalizeSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
+                else file.ReplaceSemanticDiagnostics(diagnostics);
             }
             finally {
                 file.SyncRoot.ExitUpgradeableReadLock();
