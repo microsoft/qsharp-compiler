@@ -4,7 +4,8 @@ open System
 open Xunit
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
-open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
+open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion
+open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing
 
 
 let private matches scope previous (text, expected) =

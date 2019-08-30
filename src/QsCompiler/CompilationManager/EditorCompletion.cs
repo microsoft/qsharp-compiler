@@ -4,12 +4,13 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
+using Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
-using static Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing;
+using static Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
