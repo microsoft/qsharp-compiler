@@ -839,11 +839,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// updates the file if necessary, and queues the change otherwise.
         /// An update is considered necessary if the given change replaces more than one line of the current content, 
         /// or if the inserted text cannot be a symbol or keyword (i.e. includes any whitespace, numbers and/or special characters).
-        /// Sets the out parameter to true, if the given change has merely been queued but has not been processed, and false otherwise. 
+        /// Sets the out parameter to true if diagnostics are to be published. 
         /// Throws an ArgumentNullException if the change or any of its fields are null.
         /// Throws an ArgumentException if the range of the change is invalid.
         /// </summary>
-        internal void PushChange(TextDocumentContentChangeEvent change, out bool queuedChange)
+        internal void PushChange(TextDocumentContentChangeEvent change, out bool publishDiagnostics)
         {
             // NOTE: since there may be still unprocessed changes aggregated in UnprocessedChanges we cannot verify the range of the change against the current file content, 
             // however, let's at least check that nothing is null, all entries are positive, and the range start is smaller than or equal to the range end
@@ -856,7 +856,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var count = change.Range.End.Line - start + 1;
             var line = this.UnprocessedUpdates.Any() ? this.UnprocessedUpdates.Peek().Range.Start.Line : start;
 
-            queuedChange = false;
+            publishDiagnostics = true;
             if (count == 1 && line == start)
             {
                 // if the change contains any characters that cannot occur in a symbol, trigger an update
@@ -868,7 +868,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Utils.ValidAsSymbol.IsMatch(trimmedText)) 
                 {
                     this.Timer.Start(); // we can simply queue this update - no need to actually execute it
-                    queuedChange = true;
+                    publishDiagnostics = false;
                     return;
                 }
                 this.Update(); // update only the currently queued changes
@@ -889,8 +889,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (text == null) throw new ArgumentNullException(nameof(text));
                 var change = new TextDocumentContentChangeEvent
                 { Range = new Range { Start = new Position(0, 0), End = this.End() }, RangeLength = 0, Text = text }; // fixme: range length is not accurate, but also not used...
-                this.PushChange(change, out bool queued);
-                if (queued) this.Flush();
+                this.PushChange(change, out bool processed);
+                if (!processed) this.Flush();
             }
             finally { this.SyncRoot.ExitUpgradeableReadLock(); }
         }
