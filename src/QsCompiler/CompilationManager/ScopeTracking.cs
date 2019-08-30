@@ -570,9 +570,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             QsCompilerError.RaiseOnFailure(() =>
             {
-                if (updateRemaining == null) file.AddScopeDiagnostics(file.ComputeScopeDiagnostics(start, replacements.Length));
-                else file.AddScopeDiagnostics(file.ComputeScopeDiagnostics(start));
-                file.AddScopeDiagnostics(file.CheckForMissingClosings());
+                if (updateRemaining == null) file._AddScopeDiagnostics(file.ComputeScopeDiagnostics(start, replacements.Length));
+                else file._AddScopeDiagnostics(file.ComputeScopeDiagnostics(start));
+                file._AddScopeDiagnostics(file.CheckForMissingClosings());
             }, "updating the scope diagnostics failed");
         }
 

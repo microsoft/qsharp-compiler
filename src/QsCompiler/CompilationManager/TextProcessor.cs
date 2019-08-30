@@ -331,7 +331,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .Concat(ParseCode(ref reprocess, file.FileName.Value)).ToList();
 
                 QsCompilerError.RaiseOnFailure(() => file.TokensUpdate(reprocess), "the computed token update failed");
-                QsCompilerError.RaiseOnFailure(() => file.AddSyntaxDiagnostics(diagnostics),"updating the SyntaxDiagnostics failed");
+                QsCompilerError.RaiseOnFailure(() => file._AddSyntaxDiagnostics(diagnostics),"updating the SyntaxDiagnostics failed");
             }
             finally { file.SyncRoot.ExitUpgradeableReadLock(); }
         }
