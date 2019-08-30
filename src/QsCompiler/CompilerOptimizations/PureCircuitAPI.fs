@@ -66,7 +66,7 @@ let rec private exprToConst (cc: CircuitContext ref) (expr: TypedExpression): Co
     | Expr.BigIntLiteral x -> BigIntLiteral x |> Some
     | Expr.DoubleLiteral x -> DoubleLiteral x |> Some
     | Expr.BoolLiteral x -> BoolLiteral x |> Some
-    | Expr.StringLiteral (x, _) -> StringLiteral x.Value |> Some
+    | Expr.StringLiteral (x, i) when i.Length = 0 -> StringLiteral x.Value |> Some
     | Expr.ResultLiteral x -> ResultLiteral x |> Some
     | Expr.PauliLiteral x -> PauliLiteral x |> Some
     | Expr.RangeLiteral (x, y) -> Option.map2 (fun x2 y2 -> RangeLiteral (x2, y2)) (exprToConst cc x) (exprToConst cc y)
@@ -172,13 +172,17 @@ let rec private constToExpr (cc: CircuitContext) (c: Const): TypedExpression =
 
 /// Returns the Q# expression correponding to the given gate call
 let private gateCallToExpr (cc: CircuitContext) (gc: GateCall): TypedExpression =
-    let mutable method = wrapExpr UnitType (Identifier (GlobalCallable gc.gate, Null))
     let mutable arg = constToExpr cc gc.arg
 
+    let methodType = TypeKind.Operation ((arg.ResolvedType, ResolvedType.New UnitType), CallableInformation.NoInformation)
+    let mutable method = wrapExpr methodType (Identifier (GlobalCallable gc.gate, Null))
+
     if gc.adjoint then
-        method <- wrapExpr UnitType (AdjointApplication method)
+        method <- wrapExpr methodType (AdjointApplication method)
     for control in gc.controls do
-        method <- wrapExpr UnitType (ControlledApplication method)
+        let argType = TupleType (ImmutableArray.Create (ResolvedType.New (ArrayType (ResolvedType.New TypeKind.Qubit)), arg.ResolvedType))
+        let methodType = TypeKind.Operation ((ResolvedType.New argType, ResolvedType.New UnitType), CallableInformation.NoInformation)
+        method <- wrapExpr methodType (ControlledApplication method)
         arg <- constToExpr cc (ValueTuple [control; exprToConst (ref cc) arg |> Option.get])
 
     wrapExpr UnitType (CallLikeExpression (method, arg))
@@ -209,7 +213,7 @@ let private optimizeCircuit (circuit: Circuit): Circuit =
 let optimizeExprList (exprList: TypedExpression list): TypedExpression list =
     let s = List.map (fun x -> printExpr x.Expression) exprList
     if exprList.Length >= 5 then
-        printfn "%O" s
+        printfn "Optimizing %O" s
     match exprListToCircuit exprList with
     | Some (circuit, cc) ->
         circuitToExprList cc (optimizeCircuit circuit)

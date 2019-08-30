@@ -10,7 +10,6 @@ open Microsoft.Quantum.QsCompiler.CompilerOptimization.OptimizingTransformation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.LoopUnrolling
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementRemoving
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementReordering
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitFinding
 
@@ -23,12 +22,12 @@ type Optimizations() =
         let mutable tree = List.ofSeq tree
         let callables = GlobalCallableResolutions tree |> makeCallables
 
-        let optimizers = [
-            ConstantPropagator(callables) :> OptimizingTransformation
-            upcast LoopUnroller(callables, 40)
-            upcast CallableInliner(callables)
-            upcast StatementRemover()
-            upcast StatementReorderer()
+        let optimizers: OptimizingTransformation list = [
+            ConstantPropagator(callables)
+            LoopUnroller(callables, 40)
+            CallableInliner(callables)
+            StatementReorderer()
+            PureCircuitFinder()
         ]
         for opt in optimizers do
             tree <- List.map opt.Transform tree
@@ -36,4 +35,4 @@ type Optimizations() =
         if optimizers |> List.exists (fun opt -> opt.checkChanged()) then
             Optimizations.optimize tree
         else
-            List.map (PureCircuitFinder().Transform) tree
+            tree

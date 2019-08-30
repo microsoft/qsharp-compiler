@@ -12,12 +12,11 @@ open ComputationExpressions
 open Utils
 open VariableRenaming
 open SideEffectChecking
-open OptimizingTransformation
 
 
 /// The SyntaxTreeTransformation used to remove useless statements
 type internal StatementRemover() =
-    inherit OptimizingTransformation()
+    inherit SyntaxTreeTransformation()
 
     /// The VariableRenamer used to ensure unique variable names
     let mutable renamer = None

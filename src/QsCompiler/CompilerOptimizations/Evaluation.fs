@@ -226,6 +226,16 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
+    override this.onOperationCall (method, arg) =
+        let method, arg = this.simplify (method, arg)
+        maybe {
+            match method.Expression with
+            | CallLikeExpression (baseMethod, partialArg) ->
+                do! check (TypedExpression.ContainsMissing partialArg)
+                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+            | _ -> return! None
+        } |? CallLikeExpression (method, arg)
+
     override this.onPartialApplication (method, arg) =
         let method, arg = this.simplify (method, arg)
         maybe {
@@ -326,7 +336,8 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (a + b)
         | IntLiteral a, IntLiteral b -> IntLiteral (a + b)
         | ValueArray a, ValueArray b -> ValueArray (a.AddRange b)
-        | StringLiteral (a, a2), StringLiteral (b, b2) -> StringLiteral (NonNullable<_>.New (a.Value + b.Value), a2.AddRange b2)
+        | StringLiteral (a, a2), StringLiteral (b, b2) when a2.Length = 0 || b2.Length = 0 ->
+            StringLiteral (NonNullable<_>.New (a.Value + b.Value), a2.AddRange b2)
         | _ -> ADD (lhs, rhs)
 
     override this.onSubtraction (lhs, rhs) =

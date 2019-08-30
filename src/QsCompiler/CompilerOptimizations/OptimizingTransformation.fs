@@ -6,6 +6,7 @@ module Microsoft.Quantum.QsCompiler.CompilerOptimization.OptimizingTransformatio
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open Printer
+open StatementRemoving
 
 
 /// Represents a transformation meant to optimize a syntax tree
@@ -22,12 +23,12 @@ type internal OptimizingTransformation() =
 
     /// Checks whether the syntax tree changed at all
     override this.Transform x =
-        let newX = base.Transform x
+        let newX = base.Transform x |> (StatementRemover().Transform)
         if not (x.Equals newX) then
             let s1 = printNamespace x
             let s2 = printNamespace newX
             if s1 <> s2 then
-                printfn "Made change! Size went from %d to %d" s1.Length s2.Length
+                printfn "%s made change! Size went from %d to %d" (this.GetType().Name) s1.Length s2.Length
                 changed <- true
             else
                 // This block shouldn't execute in theory, but it does in practice

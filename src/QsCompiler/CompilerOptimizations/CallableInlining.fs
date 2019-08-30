@@ -12,7 +12,6 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open ComputationExpressions
 open Types
 open Utils
-open VariableRenaming
 open OptimizingTransformation
 
 
@@ -135,19 +134,13 @@ type internal CallableInliner(callables) =
             do! check (cannotReachCallable callables ii.body current.FullName)
             do! check (ii.functors.controlled < 2)
             // TODO - support multiple Controlled functors
+            do! check (cannotReachCallable callables ii.body ii.callable.FullName || isLiteral callables ii.arg)
 
             let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
             let newStatements = ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
             return {ii.body with Statements = newStatements} |> QsScopeStatement.New |> QsScopeStatement
         }
 
-
-    override syntaxTree.onProvidedImplementation (argTuple, body) =
-        let argTuple = syntaxTree.onArgumentTuple argTuple
-        let body = syntaxTree.Scope.Transform body
-        let renamer = VariableRenamer(argTuple)
-        let body = renamer.Transform body
-        argTuple, body
 
     override this.onCallableImplementation c =
         let prev = currentCallable

@@ -37,7 +37,7 @@ let rec private reorderStatements = function
 type internal StatementReorderer() =
     inherit OptimizingTransformation()
 
-    override syntaxTree.Scope = { new ScopeTransformation() with
+    override __.Scope = { new ScopeTransformation() with
         override this.Transform scope =
             let parentSymbols = scope.KnownSymbols
             let statements = scope.Statements |> Seq.map this.onStatement |> List.ofSeq |> reorderStatements
