@@ -114,6 +114,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this._SemanticDiagnostics = new ManagedList<Diagnostic>(this.SyncRoot);
             this.UpdatedSemanticDiagnostics = new ManagedList<Diagnostic>(this.SyncRoot);
             this._HeaderDiagnostics = new ManagedList<Diagnostic>(this.SyncRoot);
+            this.UpdatedHeaderDiagnostics = new ManagedList<Diagnostic>(this.SyncRoot);
 
             // in order to improve the editor experience it is best to not publish new diagnostics on every keystroke
             // instead we will only queue changes under certain circumstances
@@ -295,11 +296,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
 
         /// <summary>
-        /// Replaces the current header diagnostics with the given sequence.
+        /// Replaces the current header diagnostics with the given sequence and pushes the updated header diagnostics.
         /// </summary>
-        internal void _ReplaceHeaderDiagnostics(IEnumerable<Diagnostic> updates) =>
-            //this.HeaderDiagnostics.ReplaceAll(updates);
-            Task.Run(() => { });
+        internal void _ReplaceHeaderDiagnostics(IEnumerable<Diagnostic> updates)
+        {
+            this.UpdatedHeaderDiagnostics.ReplaceAll(updates);
+            this._HeaderDiagnostics.ReplaceAll(this.UpdatedHeaderDiagnostics);
+        }
 
         /// <summary>
         /// Given the position where the syntax check starts and ends relative to the original file content before the update, and the lineNrChange,
@@ -318,18 +321,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
 
         /// <summary>
-        /// Replaces the current semantic diagnostics with the given sequence.
+        /// Replaces the current semantic diagnostics with the given sequence and pushes the updated semantic diagnostics.
         /// </summary>
-        internal void _ReplaceSemanticDiagnostics(IEnumerable<Diagnostic> updates) =>
-            //this.SemanticDiagnostics.ReplaceAll(updates);
-            Task.Run(() => { });
+        internal void _ReplaceSemanticDiagnostics(IEnumerable<Diagnostic> updates)
+        {
+            this.UpdatedSemanticDiagnostics.ReplaceAll(updates);
+            this._SemanticDiagnostics.ReplaceAll(this.UpdatedSemanticDiagnostics);
+        }
 
         /// <summary>
         /// Adds the given sequence of semantic diagnostics to the current list.
         /// </summary>
-        internal void _AddSemanticDiagnostics(IEnumerable<Diagnostic> updates) =>
-            //this.SemanticDiagnostics.AddRange(updates);
-            Task.Run(() => { });
+        internal void _AddAndFinalizeSemanticDiagnostics(IEnumerable<Diagnostic> updates)
+        {
+            this.UpdatedSemanticDiagnostics.AddRange(updates);
+            this._SemanticDiagnostics.ReplaceAll(this.UpdatedSemanticDiagnostics);
+        }
 
         /// <summary>
         /// Given the position where the syntax check starts and ends relative to the original file content before the update, and the lineNrChange,
@@ -349,8 +356,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns all current diagnostic as PublishDiagnosticParams.
+        /// Note that updates to header or semantic diagnostics since the last call to FinalizeDiagnostics 
+        /// are *not* reflected in the returned diagnostics. 
         /// </summary>
-        public PublishDiagnosticParams _Diagnostics()
+        public PublishDiagnosticParams CurrentDiagnostics()
         {
             this.SyncRoot.EnterReadLock();
             try
@@ -367,6 +376,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Uri = this.Uri,
                     Diagnostics = diagnostics
                 };
+            }
+            finally { this.SyncRoot.ExitReadLock(); }
+        }
+
+        /// <summary>
+        /// Pushes all updates to header and semantic diagnostics 
+        /// under the assumption that no more computations are pending. 
+        /// Returns all diagnostic as PublishDiagnosticParams.
+        /// </summary>
+        public PublishDiagnosticParams FinalizeDiagnostics()
+        {
+            this.SyncRoot.EnterReadLock();
+            try
+            {
+                this._HeaderDiagnostics.ReplaceAll(this.UpdatedHeaderDiagnostics);
+                this._SemanticDiagnostics.ReplaceAll(this.UpdatedSemanticDiagnostics);
+                return this.CurrentDiagnostics();
             }
             finally { this.SyncRoot.ExitReadLock(); }
         }
@@ -791,8 +817,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Does the semantic verification of everything that has not yet been verified.
         /// </summary>
-        internal void Verify(CompilationUnit compilation) =>
-            QsCompilerError.RaiseOnFailure(() => this.UpdateTypeChecking(compilation), "error during type checking update");
+        internal void _Verify(CompilationUnit compilation) =>
+            QsCompilerError.RaiseOnFailure(() => this._UpdateTypeChecking(compilation), "error during type checking update");
 
         /// <summary>
         /// Clears all Header and SemanticDiagnostics, 

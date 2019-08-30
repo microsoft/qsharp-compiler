@@ -411,7 +411,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given compilation is null, 
         /// or if the given files, or any file contained in files, is null.
         /// </summary>
-        internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> UpdateGlobalSymbolsFor
+        internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> _UpdateGlobalSymbolsFor
             (this CompilationUnit compilation, IEnumerable<FileContentManager> files)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
@@ -437,7 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // replace the header diagnostics in each file, and publish them
                 var messages = diagnostics.ToLookup(d => d.Source);
                 foreach (var file in files)
-                { file.ReplaceHeaderDiagnostics(messages[file.FileName.Value]); }
+                { file._ReplaceHeaderDiagnostics(messages[file.FileName.Value]); }
 
                 // return the declaration content of all files and callables
                 return content;
@@ -1463,7 +1463,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// since the type checking for the entire compilation unit and all compilation units depending on it needs to be recomputed. 
         /// Throws an ArgumentNullException if the given file or compilation unit is null. 
         /// </summary>
-        internal static void UpdateTypeChecking(this FileContentManager file, CompilationUnit compilation)
+        internal static void _UpdateTypeChecking(this FileContentManager file, CompilationUnit compilation)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
@@ -1482,7 +1482,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ResolveGlobalSymbols(compilation.GlobalSymbols, diagnostics, file.FileName.Value);
                 var (newHeader, newImports) = compilation.GlobalSymbols.HeaderHash(file.FileName);
                 var (sameHeader, sameImports) = (oldHeader == newHeader, oldImports == newImports);
-                file.ReplaceHeaderDiagnostics(diagnostics);
+                file._ReplaceHeaderDiagnostics(diagnostics);
 
                 if (!sameHeader)
                 { file.TriggerGlobalTypeChecking(); return; }
@@ -1493,8 +1493,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : contentTokens);
 
                 diagnostics = QsCompilerError.RaiseOnFailure(() => RunTypeChecking(compilation, declarationTrees, new CancellationToken()), "error on running type checking");
-                if (sameImports) file.AddSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
-                else file.ReplaceSemanticDiagnostics(diagnostics);
+                if (sameImports) file._AddAndFinalizeSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
+                else file._ReplaceSemanticDiagnostics(diagnostics);
             }
             finally {
                 file.SyncRoot.ExitUpgradeableReadLock();
