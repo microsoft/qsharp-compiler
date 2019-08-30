@@ -1,4 +1,7 @@
-﻿module internal Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.TypeParsing
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+module internal Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.TypeParsing
 
 open FParsec
 open Microsoft.Quantum.QsCompiler.TextProcessing.Keywords

@@ -1,4 +1,7 @@
-﻿namespace Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion
 
 open System.Collections.Generic
 

@@ -1,4 +1,7 @@
-﻿/// Parses incomplete fragment text and returns the kinds of tokens that are valid at the end of the fragment.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+/// Parses incomplete fragment text and returns the kinds of tokens that are valid at the end of the fragment.
 ///
 /// This parser is designed to be used with code completion. It assumes that the text it has seen so far is
 /// syntactically valid but allows the fragment to end in the middle. For example, not all open brackets need to be
