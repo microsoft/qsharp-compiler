@@ -41,9 +41,9 @@ type private FunctionState = Result<Constants<TypedExpression>, FunctionInterrup
 type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
 
     /// Transforms a BoolLiteral into the corresponding bool
-    let castToBool x =
+    let castToBool f x =
         match x.Expression with
-        | BoolLiteral b -> Ok b
+        | BoolLiteral b -> Ok (f b)
         | _ -> "Not a BoolLiteral: " + (printExpr x.Expression) |> CouldNotEvaluate |> Error
 
     /// The callback for the subroutine that evaluates and simplifies an expression
@@ -52,6 +52,10 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
 
     /// Evaluates a single Q# statement
     member private this.evaluateStatement (constants: Constants<TypedExpression>) (statement: QsStatement): FunctionState =
+        let eval constantsRef newScope scope = result {
+            let! s = this.evaluateScope !constantsRef newScope scope
+            constantsRef := s }
+
         match statement.Statement with
         | QsExpressionStatement expr ->
             this.evaluateExpression constants expr |> ignore; constants |> Ok
@@ -68,7 +72,7 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
         | QsConditionalStatement s ->
             let firstEval =
                 s.ConditionalBlocks |>
-                Seq.map (fun (ts, block) -> this.evaluateExpression constants ts |> castToBool, block) |>
+                Seq.map (fun (ts, block) -> this.evaluateExpression constants ts |> castToBool id, block) |>
                 Seq.tryFind (fst >> function Ok false -> false | _ -> true)
             match firstEval, s.Default with
             | Some (Error s, _), _ -> s |> Error
@@ -86,29 +90,26 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
                 for loopValue in iterSeq do
                     constantsRef := enterScope !constantsRef
                     constantsRef := defineVarTuple (isLiteral callables) !constantsRef (fst stmt.LoopItem, loopValue)
-                    let! s = this.evaluateScope !constantsRef true stmt.Body
-                    constantsRef := exitScope s
-                return constantsRef.Value
+                    do! eval constantsRef true stmt.Body
+                    constantsRef := exitScope !constantsRef
+                return !constantsRef
             }
+        // TODO - see if we can remove the scope tracking, as Q# doesn't have shadowing
         | QsWhileStatement stmt ->
             result {
                 let constantsRef = ref constants
-                while this.evaluateExpression !constantsRef stmt.Condition |> castToBool do
-                    let! s = this.evaluateScope !constantsRef true stmt.Body
-                    constantsRef := s
-                return constantsRef.Value
+                while this.evaluateExpression !constantsRef stmt.Condition |> castToBool id do
+                    do! eval constantsRef true stmt.Body
+                return !constantsRef
             }
         | QsRepeatStatement stmt ->
             result {
                 let constantsRef = ref constants
                 constantsRef := enterScope !constantsRef
-                let! s = this.evaluateScope !constantsRef false stmt.RepeatBlock.Body
-                constantsRef := s
-                while this.evaluateExpression !constantsRef stmt.SuccessCondition |> castToBool do
-                    let! s = this.evaluateScope !constantsRef false stmt.FixupBlock.Body
-                    constantsRef := s
-                    let! s = this.evaluateScope !constantsRef false stmt.RepeatBlock.Body
-                    constantsRef := s
+                do! eval constantsRef false stmt.RepeatBlock.Body
+                while this.evaluateExpression !constantsRef stmt.SuccessCondition |> castToBool not do
+                    do! eval constantsRef false stmt.FixupBlock.Body
+                    do! eval constantsRef false stmt.RepeatBlock.Body
                 constantsRef := exitScope !constantsRef
                 return !constantsRef
             }
@@ -122,12 +123,12 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
         result {
             let constantsRef = ref constants
             if newScope then
-                constantsRef := enterScope constantsRef.Value
+                constantsRef := enterScope !constantsRef
             for stmt in scope.Statements do
-                let! s = this.evaluateStatement constantsRef.Value stmt
+                let! s = this.evaluateStatement !constantsRef stmt
                 constantsRef := s
             if newScope then
-                constantsRef := exitScope constantsRef.Value
+                constantsRef := exitScope !constantsRef
             return !constantsRef
         }
 
