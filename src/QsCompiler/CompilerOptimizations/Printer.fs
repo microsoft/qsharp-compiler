@@ -1,14 +1,24 @@
-﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
 
 open System
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-open TransformationState
+open Types
 
 
 // Pretty-print various syntax elements
+
+
+let internal printIdentifier (iden: Identifier): string =
+    match iden with
+    | LocalVariable a -> a.Value
+    | GlobalCallable a -> a.Name.Value
+    | InvalidIdentifier -> "__invalid__"
 
 
 let rec internal printExpr (expr: Expr): string =
@@ -23,6 +33,8 @@ let rec internal printExpr (expr: Expr): string =
     | CONDITIONAL (a, b, c) -> sprintf "(%O ? %O | %O)" (printExpr a.Expression) (printExpr b.Expression) (printExpr c.Expression)
     | CopyAndUpdate (a, b, c) -> sprintf "(%O w/= %O <- %O)" (printExpr a.Expression) (printExpr b.Expression) (printExpr c.Expression)
     | ArrayItem (a, b) -> sprintf "%O[%O]" (printExpr a.Expression) (printExpr b.Expression)
+    | NamedItem (a, b) -> sprintf "%O[%O]" (printExpr a.Expression) (printIdentifier b)
+    | NewArray (a, b) -> sprintf "new %O[%O]" (a.ToString()) (printExpr b.Expression)
     | UnwrapApplication a -> "(Unwrap " + (printExpr a.Expression) + ")"
     | AdjointApplication a -> "(Adjoint " + (printExpr a.Expression) + ")"
     | ControlledApplication a -> "(Controlled " + (printExpr a.Expression) + ")"
@@ -30,17 +42,34 @@ let rec internal printExpr (expr: Expr): string =
     | SUB (a, b) -> "(" + (printExpr a.Expression) + " - " + (printExpr b.Expression) + ")"
     | MUL (a, b) -> "(" + (printExpr a.Expression) + " * " + (printExpr b.Expression) + ")"
     | DIV (a, b) -> "(" + (printExpr a.Expression) + " / " + (printExpr b.Expression) + ")"
+    | MOD (a, b) -> "(" + (printExpr a.Expression) + " % " + (printExpr b.Expression) + ")"
+    | POW (a, b) -> "(" + (printExpr a.Expression) + " ^ " + (printExpr b.Expression) + ")"
     | EQ (a, b) -> "(" + (printExpr a.Expression) + " = " + (printExpr b.Expression) + ")"
+    | NEQ (a, b) -> "(" + (printExpr a.Expression) + " = " + (printExpr b.Expression) + ")"
     | GT (a, b) -> "(" + (printExpr a.Expression) + " > " + (printExpr b.Expression) + ")"
     | GTE (a, b) -> "(" + (printExpr a.Expression) + " >= " + (printExpr b.Expression) + ")"
     | LT (a, b) -> "(" + (printExpr a.Expression) + " < " + (printExpr b.Expression) + ")"
+    | LTE (a, b) -> "(" + (printExpr a.Expression) + " <= " + (printExpr b.Expression) + ")"
     | AND (a, b) -> "(" + (printExpr a.Expression) + " and " + (printExpr b.Expression) + ")"
     | OR (a, b) -> "(" + (printExpr a.Expression) + " or " + (printExpr b.Expression) + ")"
-    | BAND (a, b) -> "(" + (printExpr a.Expression) + " & " + (printExpr b.Expression) + ")"
-    | BOR (a, b) -> "(" + (printExpr a.Expression) + " | " + (printExpr b.Expression) + ")"
+    | BAND (a, b) -> "(" + (printExpr a.Expression) + " &&& " + (printExpr b.Expression) + ")"
+    | BOR (a, b) -> "(" + (printExpr a.Expression) + " ||| " + (printExpr b.Expression) + ")"
+    | BXOR (a, b) -> "(" + (printExpr a.Expression) + " ^^^ " + (printExpr b.Expression) + ")"
+    | LSHIFT (a, b) -> "(" + (printExpr a.Expression) + " <<< " + (printExpr b.Expression) + ")"
+    | RSHIFT (a, b) -> "(" + (printExpr a.Expression) + " >>> " + (printExpr b.Expression) + ")"
     | NEG a -> "-(" + (printExpr a.Expression) + ")"
+    | BNOT a -> "~~~(" + (printExpr a.Expression) + ")"
+    | NOT a -> "not (" + (printExpr a.Expression) + ")"
     | StringLiteral (a, b) -> "\"" + a.Value + "\""
-    | a -> a.ToString()
+    | IntLiteral a -> sprintf "%d" a
+    | DoubleLiteral a -> sprintf "%f" a
+    | BigIntLiteral a -> a.ToString() + "L"
+    | BoolLiteral a -> a.ToString()
+    | PauliLiteral a -> a.ToString()
+    | ResultLiteral a -> a.ToString()
+    | UnitValue -> "()"
+    | InvalidExpr -> "__invalid__"
+    | MissingExpr -> "_"
 
 
 let rec internal printInitializer (kind: InitKind): string =
@@ -76,7 +105,8 @@ let rec internal printStm (indent: int) (stm: QsStatementKind): string =
     | QsFailStatement a ->
         ws + sprintf "fail %O;" (printExpr a.Expression)
     | QsVariableDeclaration a ->
-        ws + sprintf "let %O = %O;" (printSymbolTuple a.Lhs) (printExpr a.Rhs.Expression)
+        let keyword = match a.Kind with ImmutableBinding -> "let" | MutableBinding -> "mutable"
+        ws + sprintf "%O %O = %O;" keyword (printSymbolTuple a.Lhs) (printExpr a.Rhs.Expression)
     | QsValueUpdate a ->
         ws + sprintf "set %O = %O;" (printExpr a.Lhs.Expression) (printExpr a.Rhs.Expression)
     | QsConditionalStatement a ->
@@ -109,7 +139,7 @@ and internal printScope (indent: int) (scope: QsScope): string =
 
 let internal printSpecialization (s: QsSpecialization): string =
     let impl =
-        match s.Implementation with 
+        match s.Implementation with
         | Provided (a, b) ->
             sprintf "%O %O" (a |> printQsTuple) (printScope 2 b)
         | _ -> s.Implementation.ToString()
@@ -143,4 +173,3 @@ let internal printNamespaceElem (elem: QsNamespaceElement): string =
 
 let printNamespace (ns: QsNamespace): string =
     sprintf "namespace %O {\n    %O\n}" ns.Name.Value (String.Join("\n\n    ", ns.Elements |> Seq.map printNamespaceElem |> List.ofSeq |> List.sort))
-

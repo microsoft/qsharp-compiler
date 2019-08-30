@@ -1,4 +1,7 @@
-﻿module Microsoft.Quantum.QsCompiler.CompilerOptimization.ComputationExpressions
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.CompilerOptimization.ComputationExpressions
 
 open System
 
@@ -12,7 +15,7 @@ type internal MaybeBuilder() =
 
     member this.Bind(m, f) = Option.bind f m
 
-    member this.Zero() = None
+    member this.Zero() = Some ()
 
     member this.Combine(m, f) = Option.bind f m
 
@@ -32,20 +35,24 @@ type internal MaybeBuilder() =
         this.TryFinally(body res, fun () -> match res with null -> () | disp -> disp.Dispose())
 
     member this.While(guard, f) =
-        if not (guard()) then Some () else
-        do f() |> ignore
-        this.While(guard, f)
+        if not (guard())
+        then this.Zero()
+        else this.Bind(f(), fun () ->
+            this.While(guard, f))
 
     member this.For(sequence:seq<_>, body) =
         this.Using(sequence.GetEnumerator(),
             fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
 
+/// The maybe monad. Returns None if any of the lines are None.
 let internal maybe = MaybeBuilder()
 
+/// Returns Some () if x is true, and returns None otherwise.
+/// Normally used after a do! in the Maybe monad, which makes this act as an assertion.
 let internal check x = if x then Some () else None
 
 
-/// The continuation monad. Returns an Error if any of the lines are Errors.
+/// The exception monad. Returns an Error if any of the lines are Errors.
 type internal ResultBuilder() =
 
     member this.Return(x) = Ok x
@@ -82,7 +89,7 @@ type internal ResultBuilder() =
         then this.Zero()
         else this.Bind(f(), fun () ->
             this.While(guard, f))
-        
+
     member this.While(guard, f) =
         match guard() with
         | Ok false -> this.Zero()
@@ -94,5 +101,5 @@ type internal ResultBuilder() =
         this.Using(sequence.GetEnumerator(),
             fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
 
+/// The exception monad. Returns an Error if any of the lines are Errors.
 let internal result = ResultBuilder()
-

@@ -1,0 +1,15 @@
+namespace Microsoft.Quantum.Testing.Optimization.NoOp {
+    Operation Test (x) : UnitType {
+        QsBody (x) {
+            mutable y = 0;
+            for i in 0..LocalVariable x {
+                (GlobalCallable f of (LocalVariable y + LocalVariable i));
+                set LocalVariable y = (LocalVariable y + 1);
+            }
+        }
+    }
+
+    Operation f (n) : UnitType {
+        QsBody Intrinsic
+    }
+}
