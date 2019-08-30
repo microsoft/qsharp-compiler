@@ -142,7 +142,7 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
             ArgumentException "Input is not a function" |> raise
         if callable.Specializations.Length <> 1 then
             ArgumentException "Functions must have exactly one specialization" |> raise
-        let impl = callable.Specializations.[0].Implementation
+        let impl = (Seq.exactlyOne callable.Specializations).Implementation
         match impl with
         | Provided (specArgs, scope) ->
             let constants = enterScope (Constants [])
