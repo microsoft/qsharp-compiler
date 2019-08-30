@@ -12,12 +12,38 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.TypeParsing
 #nowarn "40"
 
 
+/// Parses a prefix operator.
+let private prefixOp =
+    expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
+
+/// Parses an infix operator.
+let private infixOp =
+    operatorLike "" <|>
+    pcollect [
+        expectedKeyword andOperator
+        expectedKeyword orOperator
+    ]
+
+/// Parses a keyword literal.
+let private keywordLiteral =
+    [
+        qsPauliX
+        qsPauliY
+        qsPauliZ
+        qsPauliI
+        qsZero
+        qsOne
+        qsTrue
+        qsFalse
+        missingExpr
+    ] |> List.map expectedKeyword |> pcollect
+
+/// Parses a functor literal.
+let private functor =
+    expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
+
 /// Parses an expression.
 let rec expression = parse {
-    let prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
-
-    let infixOp = operatorLike "" <|> pcollect [expectedKeyword andOperator; expectedKeyword orOperator]
-
     let postfixOp =
         let copyAndUpdate =
             operator qsCopyAndUpdateOp.op "" >>.
@@ -37,39 +63,28 @@ let rec expression = parse {
             array expression
             typeParamListOrLessThan
         ]
+
+    let newArray =
+        expectedKeyword arrayDecl ?>>
+        nonArrayType ?>>
+        manyR (brackets (lArray, rArray) (emptySpace >>% [])) (preturn ()) @>>
+        array expression
     
+    let stringLiteral =
+        let unescaped p = previousCharSatisfies ((<>) '\\') >>. p
+        let quote = pstring "\""
+        let interpolated =
+            let text =
+                manyChars (notFollowedBy (unescaped quote <|> unescaped lCurly) >>. anyChar) >>.
+                optional eot >>. preturn []
+            let code = brackets (lCurly, rCurly) expression
+            pchar '$' >>. expected quote ?>> text ?>> manyLast (code ?>> text) ?>> expected quote
+        let uninterpolated =
+            let text = manyChars (notFollowedBy (unescaped quote) >>. anyChar) >>. optional eot >>. preturn []
+            quote >>. text ?>> expected quote
+        interpolated <|> uninterpolated
+
     let expTerm =
-        let newArray =
-            expectedKeyword arrayDecl ?>>
-            nonArrayType ?>>
-            manyR (brackets (lArray, rArray) (emptySpace >>% [])) (preturn ()) @>>
-            array expression
-        let keywordLiteral =
-            [
-                qsPauliX
-                qsPauliY
-                qsPauliZ
-                qsPauliI
-                qsZero
-                qsOne
-                qsTrue
-                qsFalse
-                missingExpr
-            ] |> List.map expectedKeyword |> pcollect
-        let stringLiteral =
-            let unescaped p = previousCharSatisfies ((<>) '\\') >>. p
-            let quote = pstring "\""
-            let interpolated =
-                let text =
-                    manyChars (notFollowedBy (unescaped quote <|> unescaped lCurly) >>. anyChar) >>.
-                    optional eot >>. preturn []
-                let code = brackets (lCurly, rCurly) expression
-                pchar '$' >>. expected quote ?>> text ?>> manyLast (code ?>> text) ?>> expected quote
-            let uninterpolated =
-                let text = manyChars (notFollowedBy (unescaped quote) >>. anyChar) >>. optional eot >>. preturn []
-                quote >>. text ?>> expected quote
-            interpolated <|> uninterpolated
-        let functor = expectedKeyword qsAdjointFunctor <|>@ expectedKeyword qsControlledFunctor
         pcollect [
             operator qsOpenRangeOp.op "" >>. opt expression |>> Option.defaultValue []
             newArray

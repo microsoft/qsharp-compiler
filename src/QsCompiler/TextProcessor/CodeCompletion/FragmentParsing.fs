@@ -72,7 +72,12 @@ let private mutableStatement =
 
 /// Parses a set statement.
 let private setStatement =
-    let infixOp = operatorLike "=" <|> pcollect [expectedKeyword andOperator; expectedKeyword orOperator]
+    let infixOp =
+        operatorLike "=" <|>
+        pcollect [
+            expectedKeyword andOperator
+            expectedKeyword orOperator
+        ]
     let assignment =
         symbolTuple MutableVariable ?>> (opt infixOp |>> Option.defaultValue []) ?>> expected equal ?>> expression
     let copyAndUpdate =
