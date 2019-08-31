@@ -14,6 +14,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="TestCases\ExecutionLogging.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LocalVerification.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -51,6 +54,7 @@
     <Compile Include="TypeCheckingTests.fs" />
     <Compile Include="AutoGenerationTests.fs" />
     <Compile Include="TransformationTests.fs" />
+    <Compile Include="ExecutionTests.fs" />
     <Compile Include="RegexTests.fs" />
     <Compile Include="AttributesMocks.fs" />
     <Compile Include="AttributesTests.fs" />
