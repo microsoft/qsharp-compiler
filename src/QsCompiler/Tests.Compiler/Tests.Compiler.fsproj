@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="TestCases\ExecutionLogging.qs">
+    <None Include="TestCases\ExecutionTests\LoggingBasedTests.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LocalVerification.qs">
@@ -88,7 +88,7 @@
     <PropertyGroup>
       <ExecutionTarget>"$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp2.1\Example.dll"</ExecutionTarget>
     </PropertyGroup>
-    <WriteLinesToFile File="$(OutputPath)ExecutionTarget.txt" Lines="$(ExecutionTarget)" Overwrite="true"/>
+    <WriteLinesToFile File="$(OutputPath)ExecutionTarget.txt" Lines="$(ExecutionTarget)" Overwrite="true" />
   </Target>
 
 </Project>

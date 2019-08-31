@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 /// This namespace contains test cases for tests based on logging during execution
-namespace Microsoft.Quantum.Testing.ExecutionLogging {
+namespace Microsoft.Quantum.Testing.ExecutionTests {
 
 	operation ULog<'T> (i : 'T) : Unit {
 		body (...) {

@@ -14,11 +14,17 @@ namespace Microsoft.Quantum.Testing.Simulation
     internal static class Driver
     {
         /// <summary>
-        /// Executes the Q# operation Main defined in Microsoft.Quantum.Testing.Simulation on the QuantumSimulator.
+        /// Given the fully qualified name of a Q# operation 
+        /// that takes Unit and returns Unit as command line argument, 
+        /// executes that operation on the QuantumSimulator.
+        /// If no operation has been specified, 
+        /// executes the operation Main defined in Microsoft.Quantum.Testing.Simulation.
+        /// Throws and EntryPointNotFoundException if a command line argument was given, 
+        /// but the corresponding operation was not found. 
         /// </summary>
         static void Main(string[] args)
         {
-            var entryPointName = args.Length == 1 ? args.Single() : "Microsoft.Quantum.Testing.Simulation.Main";
+            var entryPointName = args.FirstOrDefault() ?? "Microsoft.Quantum.Testing.Simulation.Main";
             var entryPoint = Assembly.GetExecutingAssembly()
                 .GetType(entryPointName, throwOnError: false, ignoreCase: true)
                 ?.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);

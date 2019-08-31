@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <PropertyGroup>
+    <ExecutionTestsDir>ExecutionTests\</ExecutionTestsDir>
     <GenFilesDir>generated\</GenFilesDir>
     <SimulationTarget>"..\Target\bin\$(Configuration)\netcoreapp2.1\Simulation.dll"</SimulationTarget>
     <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
@@ -30,17 +31,15 @@
     <Compile Include="Driver.cs">
       <Visible>false</Visible>
     </Compile>
-    <Folder Include="ExecutionTests\" />
+    <None Include="..\..\..\Tests.Compiler\TestCases\ExecutionTests\*.*">
+      <Link>$(ExecutionTestsDir)%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
   </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\..\..\Tests.Compiler\TestCases\ExecutionLogging.qs" Link="ExecutionTests\ExecutionLogging.qs" />
-  </ItemGroup>
-
 
   <Target Name="QsharpClean" BeforeTargets="Clean">
     <ItemGroup>
-      <RemoveFiles Include="$(GenFilesDir)**\*.*" />
+      <RemoveFiles Include="$(GenFilesDir)**" />
+      <Compile Remove="@(RemoveFiles)" />
     </ItemGroup>
     <Delete Files="@(RemoveFiles)" />
   </Target>  
@@ -55,9 +54,6 @@
     <PropertyGroup>
       <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) -t "$(SimulationTarget)"</QscCommand>
     </PropertyGroup>
-    <ItemGroup>
-      <Compile Remove="$(GenFilesDir)**" />
-    </ItemGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="true" />
     <Delete Files="$(GenFilesDir)$(MSBuildProjectName).bson" />
     <ItemGroup>
