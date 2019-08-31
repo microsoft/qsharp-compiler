@@ -19,22 +19,6 @@ namespace Microsoft.Quantum.Testing.ExecutionLogging {
 		}
 	}
 
-	operation CallBody (operation : (Unit => Unit)) : Unit {
-		operation();
-	}
-
-	operation CallAdjoint (adjointable : (Unit => Unit is Adj)) {
-		Adjoint adjointable();
-	}
-
-	operation CallControlled (controllable : (Unit => Unit is Ctl)) {
-		Controlled adjointable(new Qubit[0], ());
-	}
-
-	operation CallControlledAdjoint (unitary : (Unit => Unit is Ctl + Adj)) {
-		Controlled Adjoint unitary(new Qubit[0], ());
-	}
-
 
 	// tests related to auto-generation of functor specializations for operations involving conjugations
 
@@ -64,5 +48,21 @@ namespace Microsoft.Quantum.Testing.ExecutionLogging {
 				ULog("Core2");
 			}
 		}
+	}
+
+	operation ConjugationsInBody () : Unit {
+		SpecGenForConjugations();
+	}
+
+	operation ConjugationsInAdjoint () : Unit {
+		Adjoint SpecGenForConjugations();
+	}
+
+	operation ConjugationsInControlled () : Unit {
+		Controlled SpecGenForConjugations(new Qubit[0], ());
+	}
+
+	operation ConjugationsInControlledAdjoint () : Unit {
+		Controlled Adjoint SpecGenForConjugations(new Qubit[0], ());
 	}
 }

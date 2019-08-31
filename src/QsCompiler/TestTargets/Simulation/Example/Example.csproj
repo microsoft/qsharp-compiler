@@ -30,6 +30,11 @@
     <Compile Include="Driver.cs">
       <Visible>false</Visible>
     </Compile>
+    <Folder Include="ExecutionTests\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\Tests.Compiler\TestCases\ExecutionLogging.qs" Link="ExecutionTests\ExecutionLogging.qs" />
   </ItemGroup>
 
 
@@ -44,7 +49,8 @@
     <MakeDir Directories="$(GenFilesDir)" />
     <ItemGroup>
       <QsReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
-      <QsSourceFiles Include="**\*.qs" />
+      <QsSourceFiles Include="@(None)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '.qs$')) == true" />
+      <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
       <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) -t "$(SimulationTarget)"</QscCommand>

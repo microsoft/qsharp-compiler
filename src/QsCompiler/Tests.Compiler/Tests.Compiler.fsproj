@@ -74,11 +74,21 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CommandLineTool\QsCommandLineTool.csproj" />
+    <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Update="System.ValueTuple" Version="4.4.0" />
     <PackageReference Update="FSharp.Core" Version="4.6.2" />    
   </ItemGroup>
-  
+
+  <Target Name="PrepareExecutionTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <ExecutionTarget>"$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp2.1\Example.dll"</ExecutionTarget>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(OutputPath)ExecutionTarget.txt" Lines="$(ExecutionTarget)" Overwrite="true"/>
+  </Target>
+
 </Project>

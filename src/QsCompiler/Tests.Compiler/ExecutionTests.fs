@@ -11,19 +11,27 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 open Xunit.Abstractions
 
+open System
+open System.IO
+open System.Linq
+open System.Text
+open Microsoft.Quantum.QsCompiler
 
-type FunctorAutoGenTests (output:ITestOutputHelper) =
+type ExecutionTests (output:ITestOutputHelper) =
 
-    //inherit CompilerTests("TestCases", ["General.qs"; "FunctorGeneration.qs"], output)
-    //
-    //member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
-    //    let ns = "Microsoft.Quantum.Testing.FunctorGeneration" |> NonNullable<_>.New
-    //    let name = name |> NonNullable<_>.New
-    //    this.Verify (QsQualifiedName.New (ns, name), diag)
-
+    let test ns callable = 
+        let out = ref (new StringBuilder())
+        let err = ref (new StringBuilder())
+        let exitCode = ref -101
+        let ex = ref null
+        let exe = File.ReadAllLines("ExecutionTarget.txt").Single()
+        let args = sprintf "%s %s.%s" exe ns callable
+        let ranToEnd = ProcessRunner.Run ("dotnet", args, out, err, exitCode, ex, timeout = 10000)
+        output.WriteLine ((!out).ToString())
 
     [<Fact>]
     member this.``Specialization Generation for Conjugations`` () = 
+        test "Microsoft.Quantum.Testing.ExecutionLogging" "ConjugationsInBody"
         let expectedBody = "
             U1
             V1
