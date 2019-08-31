@@ -1,10 +1,14 @@
-﻿module Microsoft.Quantum.QsCompiler.Testing.CompletionParsingTests
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.Testing.CompletionParsingTests
 
 open System
 open Xunit
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
-open Microsoft.Quantum.QsCompiler.TextProcessing.CompletionParsing
+open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion
+open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing
 
 
 let private matches scope previous (text, expected) =
