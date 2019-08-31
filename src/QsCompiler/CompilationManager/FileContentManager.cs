@@ -197,8 +197,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Replaces the given list of latest diagnostics with a copy of the current ones, 
-        /// Updates the line numbers for both the current and latest diagnostics that start after the syntax check end delimiter, 
+        /// Updates the line numbers of diagnostics that start after the syntax check end delimiter in both the current and latest diagnostics, 
         /// and removes all diagnostics that overlap with the given range for teh syntax check update in the latest diagnostics only. 
         /// Throws an ArgumentNullException if the given current and/or latest diagnostics are null, or if the syntax check delimiters are null. 
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
@@ -209,7 +208,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (current == null) throw new ArgumentNullException(nameof(current));
             if (latest == null) throw new ArgumentNullException(nameof(latest));
 
-            latest.ReplaceAll(current);
             InvalidateOrUpdateBySyntaxCheckDelimeters(latest, syntaxCheckDelimiters, lineNrChange);
             Diagnostic updateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
             if (lineNrChange != 0) current.Transform(updateLineNrs);
