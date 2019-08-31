@@ -3,20 +3,15 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System.Collections.Generic
-open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
-open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Xunit
-open Xunit.Abstractions
-
 open System
 open System.IO
 open System.Linq
 open System.Text
 open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler
+open Xunit
+open Xunit.Abstractions
+
 
 type ExecutionTests (output:ITestOutputHelper) =
 
