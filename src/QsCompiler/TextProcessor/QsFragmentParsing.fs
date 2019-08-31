@@ -238,6 +238,9 @@ and private namespaceDeclaration =
     let invalid = NamespaceDeclaration invalidSymbol
     buildFragment namespaceDeclHeader.parse (expectedNamespaceName eof) invalid NamespaceDeclaration
 
+/// Uses buildAttribute to parse a Q# AttributeDeclaration as a QsFragment.
+and private attributeDeclaration = 
+    buildAttribute attributeId attributeArgs AttributeDeclaration
 
 // operation and function parsing
 
@@ -442,7 +445,8 @@ let private expressionStatement =
 let internal codeFragment =
     let validFragment = 
         choice (getFragments() |> List.map snd)
-        <|> expressionStatement // the expressionStatement needs to be last
+        <|> attributeDeclaration
+        <|> expressionStatement// the expressionStatement needs to be last
     let invalidFragment = 
         let valid = fun _ -> InvalidFragment
         buildFragment (preturn ()) (fail "invalid syntax") InvalidFragment valid

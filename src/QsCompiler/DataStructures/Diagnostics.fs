@@ -66,6 +66,7 @@ type ErrorCode =
     | InvalidOperationCharacteristics = 3115
     | MissingOperationCharacteristics = 3116
     | ExpectingUpdateExpression = 3117
+    | InvalidAttribute = 3118
 
     | InvalidIdentifierDeclaration = 3201
     | MissingIdentifierDeclaration = 3202
@@ -103,6 +104,8 @@ type ErrorCode =
     | MissingUdtItemDeclaration = 3234
     | InvalidUdtItemNameDeclaration = 3235
     | MissingUdtItemNameDeclaration = 3236
+    | MissingClosingAttributeSign = 3237
+    | MissingAttributeArgs = 3238
 
     | EmptyValueArray = 3300 
     | InvalidValueArray = 3301
@@ -136,6 +139,7 @@ type ErrorCode =
     | InvertControlledGenerator = 4110
     | ControlledGenArgMismatch = 4111
     | ControlledAdjointGenArgMismatch = 4112
+    | MissingFollowingDeclaration = 4113
 
     | MissingExprInArray = 5001
     | MultipleTypesInArray = 5002
@@ -358,6 +362,7 @@ type DiagnosticItem =
             | ErrorCode.ExcessContinuation                      -> "Unexpected code fragment."
             | ErrorCode.NonCallExprAsStatement                  -> "An expression used as a statement must be a call expression."
                                                             
+            | ErrorCode.InvalidAttribute                        -> "Syntax error in attribute."
             | ErrorCode.InvalidExpression                       -> "Syntax error in expression."
             | ErrorCode.MissingExpression                       -> "Expecting expression."
             | ErrorCode.InvalidIdentifierName                   -> "Identifiers need to start with an ASCII letter or an underscore, and need to contain at least one non-underscore character."
@@ -445,7 +450,10 @@ type DiagnosticItem =
             | ErrorCode.InvertControlledGenerator               -> "Invalid generator for controlled specialization. Valid generators are \"distributed\" and \"auto\"."
             | ErrorCode.ControlledGenArgMismatch                -> "The argument to a user-defined controlled specialization must must be of the form \"(ctlQsName, ...)\"."
             | ErrorCode.ControlledAdjointGenArgMismatch         -> "The argument to a user-defined controlled-adjoint specialization must must be of the form \"(ctlQsName, ...)\"."
-                                                            
+            | ErrorCode.MissingFollowingDeclaration             -> "The attribute must be above another attribute, a type definition, an operator declaration, or a function declaration."
+            | ErrorCode.MissingClosingAttributeSign             -> "Missing closing sign for attribute, did you mean to type @ ?"
+            | ErrorCode.MissingAttributeArgs                    -> "Missing arguments for specified attribute."
+
             | ErrorCode.MissingExprInArray                      -> "Underscores cannot be used to denote missing array elements."
             | ErrorCode.MultipleTypesInArray                    -> "Array items must have a common base type."
             | ErrorCode.InvalidArrayItemIndex                   -> "Expecting an expression of type Int or Range. Got an expression of type {0}."

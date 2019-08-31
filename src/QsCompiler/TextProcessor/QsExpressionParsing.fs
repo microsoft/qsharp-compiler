@@ -362,6 +362,13 @@ let internal callLikeExpr =
     attempt ((itemAccessExpr <|> identifier <|> tupledItem expr) .>>. argumentTuple) // identifier needs to come *after* arrayItemExpr
     |>> fun (callable, arg) -> applyBinary CallLikeExpression () callable arg
 
+/// Parses a Q# attribute identifier (separated from arguments to better handle errors)
+let internal attributeId =
+    attempt identifier
+
+/// Parses Q# attribute arguments
+let internal attributeArgs =
+    attempt argumentTuple
 
 // processing terms of operator precedence parsers
 

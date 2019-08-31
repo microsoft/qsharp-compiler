@@ -147,7 +147,8 @@ type SymbolInformation = {
 [<Extension>]
 let public SymbolInformation fragmentKind = 
     let chooseValues = QsNullable<_>.Choose id >> Seq.toArray
-    fragmentKind |> function
+    fragmentKind |> function          
+    | QsFragmentKind.AttributeDeclaration              _ -> [||],                      ([||], [||], [||]) 
     | QsFragmentKind.ExpressionStatement              ex -> [||],                      ([ex]     , [])          |> collectWith SymbolsFromExpr
     | QsFragmentKind.ReturnStatement                  ex -> [||],                      ([ex]     , [])          |> collectWith SymbolsFromExpr
     | QsFragmentKind.FailStatement                    ex -> [||],                      ([ex]     , [])          |> collectWith SymbolsFromExpr

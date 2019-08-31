@@ -212,6 +212,7 @@ type QsFragmentKind =
 | AdjointDeclaration            of QsSpecializationGenerator
 | ControlledDeclaration         of QsSpecializationGenerator
 | ControlledAdjointDeclaration  of QsSpecializationGenerator
+| AttributeDeclaration          of QsExpression * QsExpression
 | OperationDeclaration          of QsSymbol * CallableSignature
 | FunctionDeclaration           of QsSymbol * CallableSignature
 | TypeDefinition                of QsSymbol * QsTuple<QsSymbol * QsType>
@@ -223,7 +224,8 @@ with
     /// returns the error code for an invalid fragment of the given kind
     member this.ErrorCode = 
         match this with
-        | ExpressionStatement          _ -> ErrorCode.InvalidExpressionStatement             
+        | ExpressionStatement          _ -> ErrorCode.InvalidExpressionStatement    
+        | AttributeDeclaration         _ -> ErrorCode.InvalidAttribute
         | ReturnStatement              _ -> ErrorCode.InvalidReturnStatement             
         | FailStatement                _ -> ErrorCode.InvalidFailStatement               
         | ImmutableBinding             _ -> ErrorCode.InvalidImmutableBinding                 
@@ -252,6 +254,7 @@ with
     /// returns the error code for an invalid fragment ending on the given kind
     member this.InvalidEnding = 
         match this with
+        | AttributeDeclaration           _ -> ErrorCode.UnexpectedFragmentDelimiter
         | ExpressionStatement            _ 
         | ReturnStatement                _ 
         | FailStatement                  _ 
