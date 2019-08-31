@@ -197,20 +197,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Updates the line numbers of diagnostics that start after the syntax check end delimiter in both the current and latest diagnostics, 
-        /// and removes all diagnostics that overlap with the given range for teh syntax check update in the latest diagnostics only. 
+        /// Updates the line numbers of diagnostics that start after the syntax check end delimiter in both lists of diagnostics, 
+        /// and removes all diagnostics that overlap with the given range for the syntax check update in the updated diagnostics only. 
         /// Throws an ArgumentNullException if the given current and/or latest diagnostics are null, or if the syntax check delimiters are null. 
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private static void DelayInvalidateOrUpdate(ManagedList<Diagnostic> current, ManagedList<Diagnostic> latest,
+        private static void DelayInvalidateOrUpdate(ManagedList<Diagnostic> diagnostics, ManagedList<Diagnostic> updated,
             Range syntaxCheckDelimiters, int lineNrChange)
         {
-            if (current == null) throw new ArgumentNullException(nameof(current));
-            if (latest == null) throw new ArgumentNullException(nameof(latest));
+            if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+            if (updated == null) throw new ArgumentNullException(nameof(updated));
 
-            InvalidateOrUpdateBySyntaxCheckDelimeters(latest, syntaxCheckDelimiters, lineNrChange);
+            InvalidateOrUpdateBySyntaxCheckDelimeters(updated, syntaxCheckDelimiters, lineNrChange);
             Diagnostic updateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
-            if (lineNrChange != 0) current.Transform(updateLineNrs);
+            if (lineNrChange != 0) diagnostics.Transform(updateLineNrs);
         }
 
 
@@ -314,7 +314,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Replaces the current header diagnostics with the given sequence and pushes the updated header diagnostics.
+        /// Replaces the header diagnostics with the given sequence and finalizes the header diagnostics update.
         /// </summary>
         internal void ReplaceHeaderDiagnostics(IEnumerable<Diagnostic> updates)
         {
@@ -334,7 +334,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
 
         /// <summary>
-        /// Replaces the current semantic diagnostics with the given sequence and pushes the updated semantic diagnostics.
+        /// Replaces the semantic diagnostics with the given sequence and finalizes the semantic diagnostics update.
         /// </summary>
         internal void ReplaceSemanticDiagnostics(IEnumerable<Diagnostic> updates)
         {
@@ -343,7 +343,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Adds the given sequence of semantic diagnostics to the current list and pushes the updated semantic diagnostics.
+        /// Adds the given sequence of semantic diagnostics and finalizes the semantic diagnostics update.
         /// </summary>
         internal void AddAndFinalizeSemanticDiagnostics(IEnumerable<Diagnostic> updates)
         {
