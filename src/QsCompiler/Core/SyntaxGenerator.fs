@@ -14,7 +14,8 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
 let QsCoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
-let NamespacesToAutoOpen = ImmutableHashSet.Create QsCoreNamespace
+let QsIntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
+let NamespacesToAutoOpen = ImmutableHashSet.Create (QsCoreNamespace, QsIntrinsicNamespace)
 
 type BuiltInCallables = {
     /// contains the name of the callable
