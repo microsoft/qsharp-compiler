@@ -4,65 +4,68 @@
 /// This namespace contains test cases for tests based on logging during execution
 namespace Microsoft.Quantum.Testing.ExecutionTests {
 
-	operation ULog<'T> (i : 'T) : Unit {
-		body (...) {
-			Message($"{i}");
-		}
-		adjoint (...) {
-			Message($"Adjoint {i}");
-		}
-		controlled (cs, ...) {
-			Message($"Controlled {i}");
-		}
-		controlled adjoint (cs, ...) {
-			Message($"Controlled Adjoint {i}");
-		}
-	}
+    open Microsoft.Quantum.Intrinsic;
 
 
-	// tests related to auto-generation of functor specializations for operations involving conjugations
+    operation ULog<'T> (i : 'T) : Unit {
+        body (...) {
+            Message($"{i}");
+        }
+        adjoint (...) {
+            Message($"Adjoint {i}");
+        }
+        controlled (cs, ...) {
+            Message($"Controlled {i}");
+        }
+        controlled adjoint (cs, ...) {
+            Message($"Controlled Adjoint {i}");
+        }
+    }
 
-	operation SpecGenForConjugations () : Unit 
-	is Adj + Ctl {
 
-		within {
-			ULog("U1");
-			ULog("V1");
+    // tests related to auto-generation of functor specializations for operations involving conjugations
 
-			within {
-				ULog("U3");
-				ULog("V3");
-			}
-			apply {
-				ULog("Core3");
-			}
-		}
-		apply {
-			ULog("Core1");
+    operation SpecGenForConjugations () : Unit 
+    is Adj + Ctl {
 
-			within {
-				ULog("U2");
-				ULog("V2");
-			}
-			apply {
-				ULog("Core2");
-			}
-		}
-	}
+        within {
+            ULog("U1");
+            ULog("V1");
 
-	operation ConjugationsInBody () : Unit {
-		SpecGenForConjugations();
-	}
+            within {
+                ULog("U3");
+                ULog("V3");
+            }
+            apply {
+                ULog("Core3");
+            }
+        }
+        apply {
+            ULog("Core1");
 
-	operation ConjugationsInAdjoint () : Unit {
-		Adjoint SpecGenForConjugations();
-	}
+            within {
+                ULog("U2");
+                ULog("V2");
+            }
+            apply {
+                ULog("Core2");
+            }
+        }
+    }
 
-	operation ConjugationsInControlled () : Unit {
-		Controlled SpecGenForConjugations(new Qubit[0], ());
-	}
+    operation ConjugationsInBody () : Unit {
+        SpecGenForConjugations();
+    }
 
-	operation ConjugationsInControlledAdjoint () : Unit {
-		Controlled Adjoint SpecGenForConjugations(new Qubit[0], ());
-	}
+    operation ConjugationsInAdjoint () : Unit {
+        Adjoint SpecGenForConjugations();
+    }
+
+    operation ConjugationsInControlled () : Unit {
+        Controlled SpecGenForConjugations(new Qubit[0], ());
+    }
+
+    operation ConjugationsInControlledAdjoint () : Unit {
+        Controlled Adjoint SpecGenForConjugations(new Qubit[0], ());
+    }
 }
