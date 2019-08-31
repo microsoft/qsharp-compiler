@@ -766,6 +766,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             finally { this.SyncRoot.ExitWriteLock(); }
         }
 
+        public void ReplaceAll(ManagedList<T> replacement)
+        {
+            if (replacement == null) throw new ArgumentNullException(nameof(replacement));
+            this.SyncRoot.EnterWriteLock();
+            try { this.Content = replacement.ToList(); }
+            finally { this.SyncRoot.ExitWriteLock(); }
+        }
+
         public void Transform(int index, Func<T, T> transformation)
         {
             if (transformation == null) throw new ArgumentNullException(nameof(transformation));
