@@ -20,10 +20,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// The default values used for auto-generation will be used for the additional functor arguments.  
     /// </summary>
     public class ApplyFunctorToOperationCalls : 
-        ScopeTransformation<ExpressionTransformation <ApplyFunctorToOperationCalls.ApplyToExpressionKind>>
+        ScopeTransformation<ApplyFunctorToOperationCalls.IgnoreOuterBlockInConjugations, ExpressionTransformation <ApplyFunctorToOperationCalls.ApplyToExpressionKind>>
     {
-        public ApplyFunctorToOperationCalls(QsFunctor functor) :
-            base(new ExpressionTransformation<ApplyToExpressionKind>(e => new ApplyToExpressionKind(e, functor))) { }
+        public ApplyFunctorToOperationCalls(QsFunctor functor) : base(
+            s => new IgnoreOuterBlockInConjugations(s as ApplyFunctorToOperationCalls),
+            new ExpressionTransformation<ApplyToExpressionKind>(e => new ApplyToExpressionKind(e, functor)))
+        { }
 
         private static readonly TypedExpression ControlQubits =
             SyntaxGenerator.ImmutableQubitArrayWithName(NonNullable<string>.New(InternalUse.ControlQubitsName));
@@ -36,6 +38,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
 
         // helper class
+
+        /// <summary>
+        /// Ignores outer blocks of conjugations, transforming only the inner one. 
+        /// </summary>
+        public class IgnoreOuterBlockInConjugations :
+            StatementKindTransformation<ApplyFunctorToOperationCalls>
+        {
+            public IgnoreOuterBlockInConjugations(ApplyFunctorToOperationCalls scope)
+                : base(scope)
+            { }
+
+            public override QsStatementKind onConjugation(QsConjugation stm)
+            {
+                var inner = stm.InnerTransformation;
+                var innerLoc = this._Scope.onLocation(inner.Location);
+                var transformedInner = new QsPositionedBlock(this._Scope.Transform(inner.Body), innerLoc, inner.Comments);
+                return QsStatementKind.NewQsConjugation(new QsConjugation(stm.OuterTransformation, transformedInner));
+            }
+        }
 
         /// <summary>
         /// Replaces each operation call with a call to the operation after application of the given functor. 
