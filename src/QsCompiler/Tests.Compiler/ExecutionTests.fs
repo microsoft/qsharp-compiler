@@ -28,6 +28,7 @@ type ExecutionTests (output:ITestOutputHelper) =
         let exe = File.ReadAllLines("ExecutionTarget.txt").Single()
         let args = sprintf "%s %s.%s" exe "Microsoft.Quantum.Testing.ExecutionTests" cName
         let ranToEnd = ProcessRunner.Run ("dotnet", args, out, err, exitCode, ex, timeout = 10000)
+        Assert.False(String.IsNullOrWhiteSpace exe)
         Assert.True(ranToEnd)
         Assert.Null(!ex)
         Assert.Equal(0, !exitCode)
