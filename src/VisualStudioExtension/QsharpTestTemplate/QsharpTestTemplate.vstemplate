@@ -5,7 +5,6 @@
     <Description>A project for testing quantum operations.</Description>
     <Icon>mobius_strip_icon.png</Icon>
     <ProjectType>CSharp</ProjectType>
-    <RequiredFrameworkVersion>2.0</RequiredFrameworkVersion>
     <SortOrder>1000</SortOrder>
     <TemplateID>Microsoft.Test.xUnit.QSharp</TemplateID>
     <CreateNewFolder>true</CreateNewFolder>

@@ -42,7 +42,7 @@ let private ExprWithoutTypeArgs isMutable (ex, t, dep, range) =
     let inferred = InferredExpressionInformation.New (isMutable = isMutable, quantumDep = dep)
     TypedExpression.New (ex, ImmutableDictionary.Empty, t, inferred, range)  
 
-let private missingFunctors (target : ImmutableHashSet<_>, given) =
+let private missingFunctors (target : _ seq, given) =
     let mapFunctors fs = fs |> Seq.map (function | Adjoint -> qsAdjointFunctor.id | Controlled -> qsControlledFunctor.id) |> Seq.toList
     match given with 
     | Some fList -> target.Except(fList) |> mapFunctors
@@ -130,10 +130,9 @@ let private VerifyConditionalExecution addWarning (ex : TypedExpression, range) 
 let private VerifyIsOneOf asExpected errCode addError (exType : ResolvedType, range) = 
     match asExpected exType with 
     | Some exT -> exT
-    | None -> 
-        if exType.isInvalid then invalid 
-        elif exType.isMissing then range |> addError (ErrorCode.ExpressionOfUnknownType, []); invalid
-        else range |> addError errCode; invalid
+    | None when exType.isInvalid -> invalid 
+    | None when exType.isMissing -> range |> addError (ErrorCode.ExpressionOfUnknownType, []); invalid
+    | None -> range |> addError errCode; invalid
 
 /// Verifies that the given resolved type is indeed of kind Unit, 
 /// adding an ExpectingUnitExpr error with the given range using addError otherwise. 
@@ -280,6 +279,13 @@ let private VerifyValueArray parent addError (content, range) =
         if commonBaseTerrs.Count = 0 then common |> arrayType
         else range |> addError (ErrorCode.MultipleTypesInArray, []); invalid |> arrayType 
 
+/// Verifies that the given resolved type supports numbered item access, 
+/// adding an ItemAccessForNonArray error with the given range using addError otherwise. 
+/// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
+let internal VerifyNumberedItemAccess addError (exType, range) = 
+    let expectedArray (t : ResolvedType) = t.Resolution |> function | ArrayType _ -> Some t | _ -> None        
+    VerifyIsOneOf expectedArray (ErrorCode.ItemAccessForNonArray, [exType |> toString]) addError (exType, range)
+
 /// Verifies that the given type of the left hand side of an array item expression is indeed an array type (or invalid), 
 /// adding an ItemAccessForNonArray error with the corresponding range using addError otherwise. 
 /// Verifies that the given type of the expression within the item access is either of type Int or Range, 
@@ -291,13 +297,13 @@ let private VerifyArrayItem addError (arrType : ResolvedType, arrRange) (indexTy
     if (not indexType.isInvalid) && (not indexIsInt) && (not indexIsRange) then 
         indexRange |> addError (ErrorCode.InvalidArrayItemIndex, [indexType |> toString])
 
-    match arrType.Resolution with 
-         | ArrayType baseType when indexIsInt -> baseType 
-         | ArrayType baseType when indexIsRange -> baseType |> ArrayType |> ResolvedType.New
-         | ArrayType _ -> invalid
-         | _ when arrType.isInvalid && indexIsRange -> invalid |> ArrayType |> ResolvedType.New
-         | _ when arrType.isInvalid -> invalid
-         | _ -> arrRange |> addError (ErrorCode.ItemAccessForNonArray, [arrType |> toString]); invalid
+    let ressArrType = VerifyNumberedItemAccess addError (arrType, arrRange)
+    match ressArrType.Resolution with 
+    | ArrayType baseType when indexIsInt -> baseType 
+    | ArrayType baseType when indexIsRange -> baseType |> ArrayType |> ResolvedType.New
+    | ArrayType _ -> invalid
+    | _ when indexIsRange -> invalid |> ArrayType |> ResolvedType.New
+    | _ -> invalid
 
 /// Verifies that the given functor can be applied to an expression of the given type, 
 /// adding an error with the given error code and range using addError otherwise. 
@@ -550,6 +556,46 @@ type QsExpression with
         /// Builds a QsCompilerDiagnostic with the given warning code and range.
         let addWarning code range = range |> QsCompilerDiagnostic.Warning code |> addDiagnostic
 
+        /// Given and expression used for array slicing, as well as the type of the sliced expression, 
+        /// generates suitable boundaries for open ended ranges and returns the resolved slicing expression as Some. 
+        /// Returns None if the slicing expression is trivial, i.e. if the sliced array does not deviate from the orginal one. 
+        /// NOTE: Does *not* generated any diagnostics related to the given type for the array to slice. 
+        let resolveSlicing (resolvedArr : TypedExpression) (idx : QsExpression) =
+            let invalidRangeDelimiter = (InvalidExpr, invalid, resolvedArr.InferredInformation.HasLocalQuantumDependency, Null) |> ExprWithoutTypeArgs false
+            let validSlicing (step : TypedExpression option) = 
+                match resolvedArr.ResolvedType.Resolution with 
+                | ArrayType _ -> step.IsNone || step.Value.ResolvedType.Resolution = Int
+                | _ -> false
+            let ConditionalIntExpr (cond : TypedExpression, ifTrue : TypedExpression, ifFalse : TypedExpression) = 
+                let quantumDep = [cond; ifTrue; ifFalse] |> List.exists (fun ex -> ex.InferredInformation.HasLocalQuantumDependency)
+                (CONDITIONAL (cond, ifTrue, ifFalse), Int |> ResolvedType.New, quantumDep, QsRangeInfo.Null) |> ExprWithoutTypeArgs false
+            let OpenStartInSlicing = function 
+                | Some step when validSlicing (Some step) -> ConditionalIntExpr (IsNegative step, LengthMinusOne resolvedArr, SyntaxGenerator.IntLiteral 0L)
+                | _ -> SyntaxGenerator.IntLiteral 0L
+            let OpenEndInSlicing = function
+                | Some step when validSlicing (Some step) -> ConditionalIntExpr (IsNegative step, SyntaxGenerator.IntLiteral 0L, LengthMinusOne resolvedArr)
+                | ex -> if validSlicing ex then LengthMinusOne resolvedArr else invalidRangeDelimiter
+
+            let resolveSlicingRange (rstart, rstep, rend) = 
+                let integerExpr ex = 
+                    let resolved = InnerExpression ex
+                    VerifyIsInteger addError (resolved.ResolvedType, ex.RangeOrDefault)
+                    resolved
+                let resolvedStep = rstep |> Option.map integerExpr
+                let resolveWith build (ex : QsExpression) = if ex.isMissing then build resolvedStep else integerExpr ex
+                let resolvedStart, resolvedEnd = rstart |> resolveWith OpenStartInSlicing, rend |> resolveWith OpenEndInSlicing
+                match resolvedStep with 
+                | Some resolvedStep -> SyntaxGenerator.RangeLiteral (SyntaxGenerator.RangeLiteral (resolvedStart, resolvedStep), resolvedEnd)
+                | None -> SyntaxGenerator.RangeLiteral (resolvedStart, resolvedEnd)
+
+            match idx.Expression with
+            | RangeLiteral (lhs, rhs) when lhs.isMissing && rhs.isMissing -> None                   // case arr[...]
+            | RangeLiteral (lhs, rend) -> lhs.Expression |> (Some << function 
+                | RangeLiteral (rstart, rstep) -> resolveSlicingRange (rstart, Some rstep, rend)    // cases arr[...step..ex], arr[ex..step...], arr[ex1..step..ex2], and arr[...ex...]
+                | _ -> resolveSlicingRange (lhs, None, rend))                                       // case arr[...ex], arr[ex...] and arr[ex1..ex2]
+            | _ -> InnerExpression idx |> Some                                                      // case arr[ex]
+
+
         /// Resolves and verifies the interpolated expressions, and returns the StringLiteral as typed expression.
         let buildStringLiteral (literal, interpolated : IEnumerable<_>) = 
             let resInterpol = (interpolated.Select InnerExpression).ToImmutableArray()
@@ -590,39 +636,12 @@ type QsExpression with
         /// and returns the corresponding ArrayItem expression as typed expression.
         let buildArrayItem (arr, idx : QsExpression) = 
             let resolvedArr = InnerExpression arr
-            let resolvedArrayItemExpr resolvedIdx = 
-                let resolvedType = VerifyArrayItem addError (resolvedArr.ResolvedType, arr.RangeOrDefault) (resolvedIdx.ResolvedType, idx.RangeOrDefault)
+            match resolveSlicing resolvedArr idx with
+            | None -> {resolvedArr with ResolvedType = VerifyNumberedItemAccess addError (resolvedArr.ResolvedType, arr.RangeOrDefault)}
+            | Some resolvedIdx -> 
+                let resolvedType = VerifyArrayItem addError (resolvedArr.ResolvedType, arr.RangeOrDefault) (resolvedIdx.ResolvedType, idx.RangeOrDefault)                    
                 let localQdependency = resolvedArr.InferredInformation.HasLocalQuantumDependency || resolvedIdx.InferredInformation.HasLocalQuantumDependency
-                (ArrayItem (resolvedArr, resolvedIdx), resolvedType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
-            let ConditionalIntExpr (cond : TypedExpression, ifTrue : TypedExpression, ifFalse : TypedExpression) = 
-                let quantumDep = [cond; ifTrue; ifFalse] |> List.exists (fun ex -> ex.InferredInformation.HasLocalQuantumDependency)
-                (CONDITIONAL (cond, ifTrue, ifFalse), Int |> ResolvedType.New, quantumDep, QsRangeInfo.Null) |> ExprWithoutTypeArgs false
-
-            let OpenStartInSlicing = function 
-                | Some step -> ConditionalIntExpr (IsNegative step, LengthMinusOne resolvedArr, SyntaxGenerator.IntLiteral 0L)
-                | None -> SyntaxGenerator.IntLiteral 0L
-            let OpenEndInSlicing = function
-                | Some step -> ConditionalIntExpr (IsNegative step, SyntaxGenerator.IntLiteral 0L, LengthMinusOne resolvedArr)
-                | None -> LengthMinusOne resolvedArr
-            let rangeWithStep (rstart, rstep, rend) = 
-                let integerExpr ex = 
-                    let resolved = InnerExpression ex
-                    VerifyIsInteger addError (resolved.ResolvedType, ex.RangeOrDefault)
-                    resolved
-                let step = rstep |> Option.map integerExpr
-                let resolveWith build (ex : QsExpression) = if ex.isMissing then build step else integerExpr ex
-                let resolvedStart, resolvedEnd = rstart |> resolveWith OpenStartInSlicing, rend |> resolveWith OpenEndInSlicing
-                match step with 
-                | Some resolvedStep -> SyntaxGenerator.RangeLiteral (SyntaxGenerator.RangeLiteral (resolvedStart, resolvedStep), resolvedEnd)
-                | None -> SyntaxGenerator.RangeLiteral (resolvedStart, resolvedEnd)
-                |> resolvedArrayItemExpr 
-
-            match idx.Expression with
-            | RangeLiteral (lhs, rhs) when lhs.isMissing && rhs.isMissing -> resolvedArr   // case arr[...]
-            | RangeLiteral (lhs, rend) -> lhs.Expression |> function 
-                | RangeLiteral (rstart, rstep) -> rangeWithStep (rstart, Some rstep, rend) // cases arr[...step..ex], arr[ex..step...], arr[ex1..step..ex2], and arr[...ex...]
-                | _ -> rangeWithStep (lhs, None, rend)                                     // case arr[...ex], arr[ex...] and arr[ex1..ex2]
-            | _ -> InnerExpression idx |> resolvedArrayItemExpr                            // case arr[ex]
+                (ArrayItem (resolvedArr, resolvedIdx), resolvedType, localQdependency, this.Range) |> ExprWithoutTypeArgs false            
 
         /// Given a symbol used to represent an item name in an item access or update expression, 
         /// returns the an identifier that can be used to represent the corresponding item name. 
@@ -645,19 +664,26 @@ type QsExpression with
         /// and returns the corresponding copy-and-update expression as typed expression.
         let buildCopyAndUpdate (lhs : QsExpression, accEx : QsExpression, rhs : QsExpression) =
             let resLhs, resRhs = InnerExpression lhs, InnerExpression rhs
-            let resAccEx = (resLhs.ResolvedType.Resolution, accEx.Expression) |> function 
-                | UserDefinedType _, Identifier (sym, Null) -> 
-                    let itemName = sym |> buildItemName
-                    let itemType = VerifyUdtWith (symbols.GetItemType itemName) addError (resLhs.ResolvedType, lhs.RangeOrDefault)
-                    VerifyAssignment itemType symbols.Parent ErrorCode.TypeMismatchInCopyAndUpdateExpr addError (resRhs.ResolvedType, rhs.RangeOrDefault)           
-                    (Identifier (itemName, Null), itemType, resLhs.InferredInformation.HasLocalQuantumDependency, sym.Range) |> ExprWithoutTypeArgs false 
-                | _ -> // by default, assume that the update expression is supposed to be for an array
-                    let resAcc = InnerExpression accEx
-                    let expectedRhs = VerifyArrayItem addError (resLhs.ResolvedType, lhs.RangeOrDefault) (resAcc.ResolvedType, accEx.RangeOrDefault)
+            let resolvedCopyAndUpdateExpr resAccEx = 
+                let localQdependency = [resLhs; resAccEx; resRhs] |> Seq.map (fun ex -> ex.InferredInformation.HasLocalQuantumDependency) |> Seq.contains true 
+                (CopyAndUpdate(resLhs, resAccEx, resRhs), resLhs.ResolvedType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
+            match (resLhs.ResolvedType.Resolution, accEx.Expression) with
+            | UserDefinedType _, Identifier (sym, Null) -> 
+                let itemName = sym |> buildItemName
+                let itemType = VerifyUdtWith (symbols.GetItemType itemName) addError (resLhs.ResolvedType, lhs.RangeOrDefault)
+                VerifyAssignment itemType symbols.Parent ErrorCode.TypeMismatchInCopyAndUpdateExpr addError (resRhs.ResolvedType, rhs.RangeOrDefault)           
+                let resAccEx = (Identifier (itemName, Null), itemType, resLhs.InferredInformation.HasLocalQuantumDependency, sym.Range) |> ExprWithoutTypeArgs false 
+                resAccEx |> resolvedCopyAndUpdateExpr
+            | _ -> // by default, assume that the update expression is supposed to be for an array
+                match resolveSlicing resLhs accEx with 
+                | None -> // indicates a trivial slicing of the form "..." resulting in a complete replacement
+                    let expectedRhs = VerifyNumberedItemAccess addError (resLhs.ResolvedType, lhs.RangeOrDefault)
                     VerifyAssignment expectedRhs symbols.Parent ErrorCode.TypeMismatchInCopyAndUpdateExpr addError (resRhs.ResolvedType, rhs.RangeOrDefault) 
-                    resAcc
-            let localQdependency = [resLhs; resAccEx; resRhs] |> Seq.map (fun ex -> ex.InferredInformation.HasLocalQuantumDependency) |> Seq.contains true 
-            (CopyAndUpdate(resLhs, resAccEx, resRhs), resLhs.ResolvedType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
+                    {resRhs with ResolvedType = expectedRhs}
+                | Some resAccEx -> // indicates either a index or index range to update
+                    let expectedRhs = VerifyArrayItem addError (resLhs.ResolvedType, lhs.RangeOrDefault) (resAccEx.ResolvedType, accEx.RangeOrDefault)
+                    VerifyAssignment expectedRhs symbols.Parent ErrorCode.TypeMismatchInCopyAndUpdateExpr addError (resRhs.ResolvedType, rhs.RangeOrDefault) 
+                    resAccEx |> resolvedCopyAndUpdateExpr
 
         /// Resolves and verifies the given left hand side and right hand side of a range operator,
         /// and returns the corresponding RANGE expression as typed expression.

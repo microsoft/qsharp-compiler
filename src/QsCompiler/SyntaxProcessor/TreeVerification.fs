@@ -29,6 +29,12 @@ let AllPathsReturnValueOrFail body =
 
     // generate an error for every return within a using or borrowing block that is not executed as the last statement of a particular path
     let returnsWithinQubitScope = new List<QsStatement>() 
+    let errorOnCollectedReturns() = 
+        if returnsWithinQubitScope.Any() then 
+            for stm in returnsWithinQubitScope do 
+                stm |> addDiagnostic (QsCompilerDiagnostic.Error (ErrorCode.InvalidReturnWithinAllocationScope, []))
+            returnsWithinQubitScope.Clear()
+
     let rec checkReturnStatements withinQubitScope (scope : QsScope) = 
         let delayAddingReturns block = // returns all newly detected return statements instead of directly adding them to returnsWithinQubitScope
             let initialReturns = new List<_>(returnsWithinQubitScope)
@@ -39,10 +45,7 @@ let AllPathsReturnValueOrFail body =
             added
 
         for statement in scope.Statements do 
-            if returnsWithinQubitScope.Any() then 
-                for stm in returnsWithinQubitScope do 
-                    stm |> addDiagnostic (QsCompilerDiagnostic.Error (ErrorCode.InvalidReturnWithinAllocationScope, []))
-                returnsWithinQubitScope.Clear()
+            errorOnCollectedReturns()
             match statement.Statement with 
             | QsStatementKind.QsReturnStatement _ -> if withinQubitScope then returnsWithinQubitScope.Add statement
             | QsStatementKind.QsQubitScope statement -> 
@@ -50,9 +53,15 @@ let AllPathsReturnValueOrFail body =
                 if not withinQubitScope then returnsWithinQubitScope.Clear()
             | QsStatementKind.QsForStatement statement -> checkReturnStatements withinQubitScope statement.Body
             | QsStatementKind.QsWhileStatement statement -> checkReturnStatements withinQubitScope statement.Body
+            | QsStatementKind.QsConjugation statement -> 
+                let added = statement.OuterTransformation.Body |> delayAddingReturns
+                checkReturnStatements withinQubitScope statement.InnerTransformation.Body
+                returnsWithinQubitScope.AddRange added
+                errorOnCollectedReturns() // returns within any of the two blocks are necessariliy followed by a statement
             | QsStatementKind.QsRepeatStatement statement -> 
                 let added = statement.RepeatBlock.Body |> delayAddingReturns 
                 checkReturnStatements withinQubitScope statement.FixupBlock.Body
+                errorOnCollectedReturns() // returns within the fixup block are necessarily followed by a statement
                 returnsWithinQubitScope.AddRange added
             | QsStatementKind.QsConditionalStatement statement -> 
                 let added = new List<_>()
@@ -61,7 +70,10 @@ let AllPathsReturnValueOrFail body =
                 | Value block -> checkReturnStatements withinQubitScope block.Body
                 | Null -> ()
                 returnsWithinQubitScope.AddRange added
-            | _ -> ()
+            | QsStatementKind.QsExpressionStatement _ 
+            | QsStatementKind.QsFailStatement _ 
+            | QsStatementKind.QsValueUpdate _ 
+            | QsStatementKind.QsVariableDeclaration _ -> ()
 
     // returns true if all paths in the given scope contain a terminating (i.e. return or fail) statement
     let rec checkTermination (scope : QsScope) = 
@@ -72,6 +84,9 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsForStatement _ // it is not immediately obvious whether or not the body will get executed, hence non-terminating
             | QsStatementKind.QsWhileStatement _ -> true // same here
             | QsStatementKind.QsQubitScope statement -> checkTermination statement.Body |> not
+            | QsStatementKind.QsConjugation statement -> 
+                checkTermination statement.OuterTransformation.Body |> not &&
+                checkTermination statement.InnerTransformation.Body |> not
             | QsStatementKind.QsRepeatStatement statement -> 
                 checkTermination statement.FixupBlock.Body |> ignore // only here to give warnings for unreachable code
                 checkTermination statement.RepeatBlock.Body |> not
@@ -80,7 +95,10 @@ let AllPathsReturnValueOrFail body =
                 match statement.Default with
                 | Value block -> checkTermination block.Body |> not || returns |> List.contains false
                 | Null -> true
-            | _ -> true 
+            | QsStatementKind.QsExpressionStatement _ 
+            | QsStatementKind.QsFailStatement _ 
+            | QsStatementKind.QsValueUpdate _ 
+            | QsStatementKind.QsVariableDeclaration _ -> true
 
         let returnOrFailAndAfter = Seq.toList <| scope.Statements.SkipWhile isNonTerminatingStatement
         if returnOrFailAndAfter.Length <> 0 then 

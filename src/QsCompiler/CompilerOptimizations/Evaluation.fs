@@ -69,6 +69,8 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
             match s.Lhs with
             | LocalVarTuple vt -> setVarTuple (isLiteral callables) constants (vt, this.evaluateExpression constants s.Rhs) |> Ok
             | _ -> "Unknown LHS of value update statement: " + (printExpr s.Lhs.Expression) |> CouldNotEvaluate |> Error
+        // FIXME: implement evaluation of conjugations
+        //| QsConjugation s -> NotImplementedException "missing evaluation for conjugation" |> raise
         | QsConditionalStatement s ->
             let firstEval =
                 s.ConditionalBlocks |>

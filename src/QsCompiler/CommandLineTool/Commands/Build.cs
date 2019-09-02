@@ -95,6 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 ProjectFile = options.ProjectName == null ? null : new Uri(Path.GetFullPath(options.ProjectName)),
                 GenerateFunctorSupport = true,
                 DoOptimizationSteps = true,
+                SkipSyntaxTreeTrimming = false,
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (specifiesTargets ? "." : null),
                 Targets = options.Targets.ToImmutableDictionary(id => id, DefineTarget)

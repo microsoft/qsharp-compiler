@@ -225,7 +225,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             e => new ExpressionKindTransformation<FoldOverExpressions<T>>(e as FoldOverExpressions<T>);
 
         internal readonly bool recur;
-        public readonly Func<TypedExpression, T, T> Fold; // can be set after initialization
+        public readonly Func<TypedExpression, T, T> Fold; 
         public T Result { get; set; }
 
         public FoldOverExpressions(Func<TypedExpression, T, T> fold, T seed, bool recur = true) :

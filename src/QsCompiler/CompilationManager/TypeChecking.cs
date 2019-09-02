@@ -165,7 +165,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given file or position is null. 
         /// Throws an ArgumentException if the given position is not a valid position within the given file. 
         /// </summary>
-        private static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos)
+        internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos)
         {
             if (!Utils.IsValidPosition(pos, file)) throw new ArgumentException(nameof(pos));
             var docs = new List<string>();
@@ -404,8 +404,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Updates and resolves all global symbols in each given file, 
         /// and modifies the given CompilationUnit accordingly in the process.
-        /// Replaces all HeaderDiagnostics in the given files with the newly computed diagnostics, 
-        /// and clear all semantic diagnostics in the given files. 
+        /// Updates and pushes all HeaderDiagnostics in the given files, 
+        /// and clears all semantic diagnostics without pushing them. 
         /// If the given Action for publishing diagnostics is not null, 
         /// invokes it for the diagnostics of each given file after updating them. 
         /// Throws an ArgumentNullException if the given compilation is null, 
@@ -459,14 +459,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// </summary>
         private static QsScope BuildScope(IReadOnlyList<FragmentTree.TreeNode> nodeContent, 
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
+            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, params QsFunctor[] requiredFunctorSupport)
         {
             if (nodeContent == null) throw new ArgumentNullException(nameof(nodeContent));
             if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
             var inheritedSymbols = symbolTracker.CurrentDeclarations;
-            symbolTracker.BeginScope();
+            symbolTracker.BeginScope(requiredFunctorSupport);
             var statements = BuildStatements(nodeContent.GetEnumerator(), symbolTracker, diagnostics);
             symbolTracker.EndScope();
             return new QsScope(statements, inheritedSymbols);
@@ -764,6 +764,59 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// If the current tree node of the given iterator is a within-block intro,
+        /// builds the corresponding conjugation updating the given symbolTracker in the process,
+        /// and moves the iterator to the next node.
+        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Returns the built statement as out parameter, and returns true if the statement has been built.
+        /// Sets the out parameter to null and returns false otherwise. 
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
+        /// or if the last MoveNext() returned true, and is otherwise set to false.  
+        /// This routine will fail if accessing the current iterator item fails. 
+        /// Throws an ArgumentNullException if any of the given arguments is null.
+        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
+        private static bool TryBuildConjugationStatement(IEnumerator<FragmentTree.TreeNode> nodes,
+            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+        {
+            if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
+            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
+
+            QsNullable<QsLocation> RelativeLocation(FragmentTree.TreeNode node) =>
+                QsNullable<QsLocation>.NewValue(new QsLocation(DiagnosticTools.AsTuple(node.GetPositionRelativeToRoot()), node.Fragment.HeaderRange));
+
+            if (nodes.Current.Fragment.Kind.IsWithinBlockIntro)
+            {
+                // Since we need to generate an adjoint for the statements that define the outer transformation in any case - 
+                // i.e. whether we need to generate an adjoint for the current scope or not - 
+                // we only require additional support if no adjoint needs to be generated for the parent scope.
+                var additionalFunctorSupport = symbolTracker.RequiredFunctorSupport.Contains(QsFunctor.Adjoint)
+                    ? new QsFunctor[0] // we already require that all called operations support the Adjoint functor 
+                    : new[] { QsFunctor.Adjoint }; // all operations called within the outer transformation need to support the Adjoint functor
+                var outerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics, additionalFunctorSupport);
+                var outer = new QsPositionedBlock(outerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
+
+                if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsApplyBlockIntro)
+                {
+                    var innerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                    var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
+                    var built = Statements.NewConjugation(outer, inner);
+                    diagnostics.AddRange(built.Item2.Select(msg => Diagnostics.Generate(symbolTracker.SourceFile.Value, msg.Item2, nodes.Current.GetRootPosition())));
+
+                    statement = built.Item1;
+                    proceed = nodes.MoveNext();
+                    return true;
+                }
+                else throw new ArgumentException("within-block needs to be followed by an apply-block");
+            }
+            (statement, proceed) = (null, true);
+            return false;
+        }
+
+        /// <summary>
         /// If the current tree node of the given iterator is a let-statement,
         /// builds the corresponding let-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -1021,6 +1074,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 else if (TryBuildRepeatStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement repeatStatement))
                 { statements.Add(repeatStatement); }
 
+                else if (TryBuildConjugationStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement conjugationStatement))
+                { statements.Add(conjugationStatement); }
+
                 else if (TryBuildBorrowStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement borrowingStatement))
                 { statements.Add(borrowingStatement); }
 
@@ -1036,7 +1092,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Builds the user defined implementation taking the given argument tuple as argument based on the (children of the) given specialization root. 
+        /// Builds the user defined implementation based on the (children of the) given specialization root. 
+        /// The implementation takes the given argument tuple as argument and needs to support auto-generation for the specified set of functors.
         /// Uses the given SymbolTracker to resolve the symbols used within the implementation, and generates suitable diagnostics in the process.  
         /// If necessary, generates suitable diagnostics for functor arguments (only!), which are discriminated by the missing position information 
         /// for argument variables defined in the callable declaration). 
@@ -1044,13 +1101,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Adds the generated diagnostics to the given list of diagnostics.
         /// Throws an ArgumentNullException if the given argument, the symbol tracker, or diagnostics are null. 
         /// </summary>
-        private static SpecializationImplementation BuildUserDefinedImplemenation(
+        private static SpecializationImplementation BuildUserDefinedImplementation(
             FragmentTree.TreeNode root, NonNullable<string> sourceFile, 
             QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
+            ImmutableHashSet<QsFunctor> requiredFunctorSupport,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
         {
             if (argTuple == null) throw new ArgumentNullException(nameof(argTuple));
             if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
+            if (requiredFunctorSupport == null) throw new ArgumentNullException(nameof(requiredFunctorSupport));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
             // the variable defined on the declaration need to be verified upon building the callable (otherwise we get duplicate diagnostics),
@@ -1058,7 +1117,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // -> the position information is set to null (only) for variables defined in the declaration 
             var (variablesOnDeclation, variablesOnSpecialization) = SyntaxGenerator.ExtractItems(argTuple).Partition(decl => decl.Position.IsNull);
 
-            symbolTracker.BeginScope();
+            symbolTracker.BeginScope(requiredFunctorSupport.ToArray());
             foreach (var decl in variablesOnDeclation)
             { symbolTracker.TryAddVariableDeclartion(decl); }
 
@@ -1088,40 +1147,41 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given a lookup of all specializations and their build directives for the parent callable,
+        /// Given a function that returns the generator directive for a given specialization kind, or null if none has been defined for that kind,
         /// determines the necessary functor support required for each operation call within a user defined implementation of the specified specialization. 
         /// Throws an ArgumentNullException if the given specialization for which to determine the required functor support is null, 
-        /// or if the given dictionary of all relevant build directives or any of its values is. 
+        /// or if the given function to query the directives is. 
         /// </summary>
         private static IEnumerable<QsFunctor> RequiredFunctorSupport(QsSpecializationKind spec, 
-            ImmutableDictionary<QsSpecializationKind, QsNullable<QsGeneratorDirective>> directives)
+            Func<QsSpecializationKind, QsGeneratorDirective> directives) 
         {
             if (spec == null) throw new ArgumentNullException(nameof(spec));
             if (directives == null) throw new ArgumentNullException(nameof(directives));
 
-            if (directives.TryGetValue(QsSpecializationKind.QsAdjoint, out var adjDir) &&
-                spec.IsQsBody && adjDir.IsValue && !(adjDir.Item.IsSelfInverse || adjDir.Item.IsInvalidGenerator))
+            var adjDir = directives(QsSpecializationKind.QsAdjoint);
+            var ctlDir = directives(QsSpecializationKind.QsControlled);
+            var ctlAdjDir = directives(QsSpecializationKind.QsControlledAdjoint);
+
+            if (spec.IsQsBody && adjDir != null && !(adjDir.IsSelfInverse || adjDir.IsInvalidGenerator))
             {
-                if (adjDir.Item.IsInvert) yield return QsFunctor.Adjoint;
+                if (adjDir.IsInvert) yield return QsFunctor.Adjoint;
                 else QsCompilerError.Raise("expecting adjoint functor generator directive to be 'invert'");
             }
 
-            if (directives.TryGetValue(QsSpecializationKind.QsControlled, out var ctlDir) &&
-                spec.IsQsBody && ctlDir.IsValue && !ctlDir.Item.IsInvalidGenerator)
+            if (spec.IsQsBody && ctlDir != null && !ctlDir.IsInvalidGenerator)
             {
-                if (ctlDir.Item.IsDistribute) yield return QsFunctor.Controlled;
+                if (ctlDir.IsDistribute) yield return QsFunctor.Controlled;
                 else QsCompilerError.Raise("expecting controlled functor generator directive to be 'distribute'");
             }
 
             // since a directive for a controlled adjoint specialization requires an auto-generation based on either the adjoint or the controlled version
             // when the latter may or may not be auto-generated, we also need to check the controlled adjoint specialization
-            if (directives.TryGetValue(QsSpecializationKind.QsControlledAdjoint, out var ctlAdjDir) &&
-                ctlAdjDir.IsValue && !(ctlAdjDir.Item.IsSelfInverse || ctlAdjDir.Item.IsInvalidGenerator))
+            if (ctlAdjDir != null && !(ctlAdjDir.IsSelfInverse || ctlAdjDir.IsInvalidGenerator))
             {
-                if (ctlAdjDir.Item.IsDistribute)
-                { if (spec.IsQsAdjoint || (spec.IsQsBody && adjDir.IsValue)) yield return QsFunctor.Controlled; }
-                else if (ctlAdjDir.Item.IsInvert)
-                { if (spec.IsQsControlled || (spec.IsQsBody && ctlDir.IsValue)) yield return QsFunctor.Adjoint; }
+                if (ctlAdjDir.IsDistribute)
+                { if (spec.IsQsAdjoint || (spec.IsQsBody && adjDir != null)) yield return QsFunctor.Controlled; }
+                else if (ctlAdjDir.IsInvert)
+                { if (spec.IsQsControlled || (spec.IsQsBody && ctlDir != null)) yield return QsFunctor.Adjoint; }
                 else QsCompilerError.Raise("expecting controlled adjoint functor generator directive to be either 'invert' or 'distribute'");
             }
         }
@@ -1147,10 +1207,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
             if (cancellationToken.IsCancellationRequested) return ImmutableArray<QsSpecialization>.Empty;
-            var definedSpecs = symbols.DefinedSpecializations(new QsQualifiedName(specsRoot.Namespace, specsRoot.Callable)).ToLookup(s => s.Item2.Kind);
-            var directives = definedSpecs.ToImmutableDictionary(
-                specs => specs.Key, 
-                specs => QsCompilerError.RaiseOnFailure(specs.Single, "more than one specialization of the same kind exists").Item1); // currently not supported
+            var definedSpecs = symbols.DefinedSpecializations(new QsQualifiedName(specsRoot.Namespace, specsRoot.Callable))
+                .ToLookup(s => s.Item2.Kind).ToImmutableDictionary(
+                    specs => specs.Key, 
+                    specs => QsCompilerError.RaiseOnFailure(specs.Single, "more than one specialization of the same kind exists")); // currently not supported
 
             QsSpecialization GetSpecialization(SpecializationDeclarationHeader spec, ResolvedSignature signature, 
                 SpecializationImplementation implementation, QsComments comments = null) =>
@@ -1160,12 +1220,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             QsSpecialization BuildSpecialization(QsSpecializationKind kind, ResolvedSignature signature, QsSpecializationGeneratorKind<QsSymbol> gen, FragmentTree.TreeNode root,
                 Func<QsSymbol, Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsCompilerDiagnostic[]>> buildArg, QsComments comments = null)
             {
-                if (!directives.TryGetValue(kind, out var directive))
+                if (!definedSpecs.TryGetValue(kind, out var defined))
                     throw new ArgumentException($"missing entry for {kind} specialization of {specsRoot.Namespace}.{specsRoot.Callable}");
-                var spec = definedSpecs[kind].Single().Item2;
+                var (directive, spec) = defined;
 
-                var required = RequiredFunctorSupport(kind, directives);
-                var symbolTracker = new SymbolTracker<Position>(symbols, spec.SourceFile, spec.Parent, required);
+                var symbolTracker = new SymbolTracker<Position>(symbols, spec.SourceFile, spec.Parent);
                 var implementation = directive.IsValue ? SpecializationImplementation.NewGenerated(directive.Item) : null;
 
                 // a user defined implementation is ignored if it is invalid to specify such (e.g. for self-adjoint or intrinsic operations)
@@ -1175,7 +1234,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages) diagnostics.Add(Diagnostics.Generate(spec.SourceFile.Value, msg, specPos));
 
-                    implementation = BuildUserDefinedImplemenation(root, spec.SourceFile, arg, symbolTracker, diagnostics);
+                    QsGeneratorDirective GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
+                    var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
+                    implementation = BuildUserDefinedImplementation(root, spec.SourceFile, arg, requiredFunctorSupport, symbolTracker, diagnostics);
                     QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
                 }
                 implementation = implementation ?? SpecializationImplementation.Intrinsic; 
@@ -1192,6 +1253,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (cancellationToken.IsCancellationRequested) return null;
                 bool InvalidCharacteristicsOrSupportedFunctors(params QsFunctor[] functors) =>
                     parentCharacteristics.AreInvalid || !functors.Any(f => !supportedFunctors.Contains(f));
+                if (!definedSpecs.Values.Any(d => DiagnosticTools.AsPosition(d.Item2.Position) == root.Fragment.GetRange().Start)) return null; // only process specializations that are valid
 
                 if (FileHeader.IsCallableDeclaration(root.Fragment)) // no specializations have been defined -> one default body
                 {
@@ -1227,25 +1289,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // build the specializations defined in the source code
             var existing = ImmutableArray.CreateBuilder<QsSpecialization>();
-            existing.AddRange(specsRoot.Specializations.Select(BuildSpec));
+            existing.AddRange(specsRoot.Specializations.Select(BuildSpec).Where(s => s != null));
             if (cancellationToken.IsCancellationRequested) return existing.ToImmutableArray();
 
             // additionally we need to build the specializations that are missing in the source code
             var existingKinds = existing.Select(t => t.Kind).ToImmutableHashSet();
-            foreach (var defined in definedSpecs)
+            foreach (var (directive, spec) in definedSpecs.Values)
             {
-                var (directive, spec) = defined.Single();
-                if (!existingKinds.Contains(spec.Kind))
-                {
-                    var implementation = directive.IsValue
-                        ? SpecializationImplementation.NewGenerated(directive.Item)
-                        : SpecializationImplementation.Intrinsic;
-                    if (spec.Kind.IsQsBody || spec.Kind.IsQsAdjoint)
-                    { existing.Add(GetSpecialization(spec, parentSignature, implementation)); } 
-                    else if (spec.Kind.IsQsControlled || spec.Kind.IsQsControlledAdjoint)
-                    { existing.Add(GetSpecialization(spec, controlledSignature, implementation)); }
-                    else QsCompilerError.Raise("unknown functor kind");
-                }
+                if (existingKinds.Contains(spec.Kind)) continue;
+                var implementation = directive.IsValue
+                    ? SpecializationImplementation.NewGenerated(directive.Item)
+                    : SpecializationImplementation.Intrinsic;
+                if (spec.Kind.IsQsBody || spec.Kind.IsQsAdjoint)
+                { existing.Add(GetSpecialization(spec, parentSignature, implementation)); } 
+                else if (spec.Kind.IsQsControlled || spec.Kind.IsQsControlledAdjoint)
+                { existing.Add(GetSpecialization(spec, controlledSignature, implementation)); }
+                else QsCompilerError.Raise("unknown functor kind");
             }
             return existing.ToImmutableArray();
         }
@@ -1306,7 +1365,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var declaredVariables = SyntaxGenerator.ExtractItems(info.ArgumentTuple);
 
                     // verify the variable declarations in the callable declaration
-                    var symbolTracker = new SymbolTracker<Position>(compilation.GlobalSymbols, info.SourceFile, parent, ImmutableArray<QsFunctor>.Empty); // only ever used to verify declaration args
+                    var symbolTracker = new SymbolTracker<Position>(compilation.GlobalSymbols, info.SourceFile, parent); // only ever used to verify declaration args
                     symbolTracker.BeginScope();
                     foreach (var decl in declaredVariables)
                     {
@@ -1352,10 +1411,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             LocalDeclarations Concat(LocalDeclarations fst, LocalDeclarations snd)
                 => new LocalDeclarations(fst.Variables.Concat(snd.Variables).ToImmutableArray());
-            bool BeforePosition(QsStatement statement) =>
-                statement.Location.IsValue && DiagnosticTools.AsPosition(statement.Location.Item.Offset).IsSmallerThan(relativePosition);
+            bool BeforePosition(QsNullable<QsLocation> location) =>
+                location.IsValue && DiagnosticTools.AsPosition(location.Item.Offset).IsSmallerThan(relativePosition);
 
-            var precedingStatements = scope.Statements.TakeWhile(BeforePosition);
+            var precedingStatements = scope.Statements.TakeWhile(stm => BeforePosition(stm.Location));
             if (!precedingStatements.Any()) return (scope.KnownSymbols, scope.Statements);
             var lastPreceding = precedingStatements.Last();
 
@@ -1366,8 +1425,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var elseBlock = condStatement.Item.Default.ValueOr(null);
                 if (elseBlock != null) blocks = blocks.Concat(new[] { elseBlock });
 
-                var preceding = blocks.TakeWhile(block =>
-                    block.Location.IsValue && DiagnosticTools.AsPosition(block.Location.Item.Offset).IsSmallerThan(relativePosition));
+                var preceding = blocks.TakeWhile(block => BeforePosition(block.Location));
                 relevantScope = preceding.Any() ? preceding.Last().Body : null;
             }
             if (lastPreceding.Statement is QsStatementKind.QsForStatement forStatement)
@@ -1379,12 +1437,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var allContainedStatements = repeatStatement.Item.RepeatBlock.Body.Statements.Concat(repeatStatement.Item.FixupBlock.Body.Statements).ToImmutableArray();
                 relevantScope = new QsScope(allContainedStatements, repeatStatement.Item.RepeatBlock.Body.KnownSymbols);
             }
+            if (lastPreceding.Statement is QsStatementKind.QsConjugation conjugation)
+            {
+                relevantScope = BeforePosition(conjugation.Item.InnerTransformation.Location)
+                    ? conjugation.Item.InnerTransformation.Body
+                    : conjugation.Item.OuterTransformation.Body;
+            }
             if (lastPreceding.Statement is QsStatementKind.QsQubitScope allocationScope)
             { relevantScope = allocationScope.Item.Body; }
 
             if (relevantScope != null) return relevantScope.LocalDeclarationsAt(relativePosition);
             var defined = precedingStatements.Aggregate(scope.KnownSymbols, (decl, statement) => Concat(decl, statement.SymbolDeclarations));
-            var followingStatements = scope.Statements.SkipWhile(BeforePosition);
+            var followingStatements = scope.Statements.SkipWhile(stm => BeforePosition(stm.Location));
             return (defined, new[] { lastPreceding }.Concat(followingStatements));
         }
 
@@ -1429,7 +1493,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : contentTokens);
 
                 diagnostics = QsCompilerError.RaiseOnFailure(() => RunTypeChecking(compilation, declarationTrees, new CancellationToken()), "error on running type checking");
-                if (sameImports) file.AddSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
+                if (sameImports) file.AddAndFinalizeSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
                 else file.ReplaceSemanticDiagnostics(diagnostics);
             }
             finally {
