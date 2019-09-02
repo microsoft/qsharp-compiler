@@ -61,8 +61,6 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool SkipSyntaxTreeTrimming;
             /// <summary>
-            /// If the output folder is not null, 
-            /// documentation is generated in the specified folder based on doc comments in the source code. 
             /// If set to true, the syntax tree rewrite steps that optimize the code are executed during compilation.
             /// </summary>
             public bool DoOptimizationSteps;

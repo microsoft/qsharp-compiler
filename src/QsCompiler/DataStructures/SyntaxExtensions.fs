@@ -180,6 +180,13 @@ type TypedExpression with
         | Some [] -> true
         | _ -> false
 
+    /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
+    /// Returns false otherwise.
+    static member public IsPartialApplication kind =
+        match kind with
+        | CallLikeExpression (_, args) -> args |> TypedExpression.ContainsMissing
+        | _ -> false
+
     /// Returns true if the expression kind does not contain any inner expressions. 
     static member private IsAtomic (kind : QsExpressionKind<'E, _, _>) = 
         match kind with
@@ -195,13 +202,6 @@ type TypedExpression with
         | InvalidExpr -> true
         | _ -> false
 
-    /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
-    /// Returns false otherwise.
-    static member public IsPartialApplication kind =
-        match kind with
-        | CallLikeExpression (_, args) -> args |> TypedExpression.ContainsMissing
-        | _ -> false
-
     /// Recursively traverses an expression by first applying a function "mapper" to modify the expression,
     /// then by finding all the subexpressions of the expression, then by applying MapFold to each subexpression,
     /// then combining all the results with the "folder" function. Returns the output of the "folder" function.
@@ -214,7 +214,8 @@ type TypedExpression with
             | NOT ex                             
             | AdjointApplication ex              
             | ControlledApplication ex           
-            | UnwrapApplication ex               
+            | UnwrapApplication ex    
+            | NamedItem (ex, _)
             | NewArray (_, ex)                   -> [ex] :> seq<_>
             | ADD (lhs,rhs)                      
             | SUB (lhs,rhs)                      
@@ -238,7 +239,8 @@ type TypedExpression with
             | RangeLiteral (lhs, rhs)            
             | ArrayItem (lhs, rhs)               
             | CallLikeExpression (lhs,rhs)       -> upcast [lhs; rhs]
-            | CONDITIONAL(cond, ifTrue, ifFalse) -> upcast [cond; ifTrue; ifFalse]
+            | CopyAndUpdate (ex1, ex2, ex3)
+            | CONDITIONAL(ex1, ex2, ex3)         -> upcast [ex1; ex2; ex3]
             | StringLiteral (_,items)            
             | ValueTuple items                   
             | ValueArray items                   -> upcast items
