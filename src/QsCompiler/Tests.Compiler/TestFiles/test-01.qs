@@ -3,7 +3,7 @@
 
 namespace Compiler.Tests
 {
-	/// # Summary
-	/// Test operation. 
-	operation Test01() : Unit { body intrinsic; }
+    /// # Summary
+    /// Test operation. 
+    operation Test01() : Unit { body intrinsic; }
 }

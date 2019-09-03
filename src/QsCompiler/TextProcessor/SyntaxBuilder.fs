@@ -178,11 +178,11 @@ let internal curlyBrackets core = ((lCurly, rCurly) |> bracketDefinedContent cor
 /// Fails without consuming input if neither a string with or without interpolation can be successfully parsed. 
 /// IMPORTANT: Parses *precicely* the string literal and does *not* handle whitespace! 
 let internal getStringContent interpolArg = 
-    let notPreceededBySlash = previousCharSatisfiesNot (fun c -> c.Equals '\\')
+    let notPrecededBySlash = previousCharSatisfiesNot (fun c -> c.Equals '\\')
     let startDelimiter = pstring "\""
-    let endDelimiter = notPreceededBySlash >>. startDelimiter
+    let endDelimiter = notPrecededBySlash >>. startDelimiter
     let interpolatedString = 
-        let contentDelimiter = endDelimiter <|> (notPreceededBySlash >>. lCurly)
+        let contentDelimiter = endDelimiter <|> (notPrecededBySlash >>. lCurly)
         let nonInterpol = manyChars (notFollowedBy contentDelimiter >>. anyChar)
         let interpol = (lCurly, rCurly) |> bracketDefinedContent interpolArg 
         let content = nonInterpol .>>. many (interpol .>>. nonInterpol)

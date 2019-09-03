@@ -162,6 +162,8 @@ let public SymbolInformation fragmentKind =
     | QsFragmentKind.WhileLoopIntro                   ex -> [||],                      ([ex]     , [])          |> collectWith SymbolsFromExpr
     | QsFragmentKind.RepeatIntro                         -> [||],                      ([||]     , [||], [||])
     | QsFragmentKind.UntilSuccess                 (ex,_) -> [||],                      ([ex]     , [])          |> collectWith SymbolsFromExpr
+    | QsFragmentKind.WithinBlockIntro                    -> [||],                      ([||]     , [||], [||])
+    | QsFragmentKind.ApplyBlockIntro                     -> [||],                      ([||]     , [||], [||])
     | QsFragmentKind.UsingBlockIntro         (sym, init) -> sym |> SymbolDeclarations, init                     |> VariablesInInitializer
     | QsFragmentKind.BorrowingBlockIntro     (sym, init) -> sym |> SymbolDeclarations, init                     |> VariablesInInitializer
     | QsFragmentKind.BodyDeclaration                 gen -> gen |> SymbolsInGenerator, ([||], [||], [||])
@@ -420,6 +422,15 @@ let public LiteralInfo (ex : QsExpression) markdown =
 
 
 // extensions providing information for editor commands
+
+/// Returns all of the operation characteristics found in the given type.
+[<Extension>]
+let rec ExtractCharacteristics (qsType : QsType) =
+    let extract (t : QsType) =
+        match t.Type with 
+        | QsTypeKind.Operation ((_,_), characteristics) -> seq {yield characteristics}
+        | _ -> Seq.empty
+    qsType.ExtractAll extract
 
 [<Extension>]
 let public LocalVariable (locals : LocalDeclarations) (qsSym : QsSymbol) = 

@@ -29,25 +29,27 @@ type ErrorCode =
     | InvalidWhileLoopIntro = 3011
     | InvalidRepeatIntro = 3012       
     | InvalidUntilClause = 3013           
-    | InvalidRUSfixup = 3014        
-    | InvalidUsingBlockIntro = 3015              
-    | InvalidBorrowingBlockIntro = 3016       
-    | InvalidBodyDeclaration = 3017
-    | InvalidAdjointDeclaration = 3018       
-    | InvalidControlledDeclaration = 3019    
-    | InvalidControlledAdjointDeclaration = 3020
-    | InvalidOperationDeclaration = 3021
-    | InvalidFunctionDeclaration = 3022 
-    | InvalidTypeDefinition = 3023
-    | InvalidNamespaceDeclaration = 3024        
-    | InvalidOpenDirective = 3025
-    | InvalidExpressionStatement = 3026 
-    | InvalidConstructorExpression = 3027
-    | MissingArgumentForFunctorGenerator = 3028
-    | InvalidKeywordWithinExpression = 3029
-    | InvalidUseOfReservedKeyword = 3030
-    | ExcessContinuation = 3031
-    | NonCallExprAsStatement = 3032
+    | InvalidRUSfixup = 3014 
+    | InvalidWithinBlockIntro = 3015
+    | InvalidApplyBlockIntro = 3016
+    | InvalidUsingBlockIntro = 3017              
+    | InvalidBorrowingBlockIntro = 3018       
+    | InvalidBodyDeclaration = 3019
+    | InvalidAdjointDeclaration = 3020       
+    | InvalidControlledDeclaration = 3021    
+    | InvalidControlledAdjointDeclaration = 3022
+    | InvalidOperationDeclaration = 3023
+    | InvalidFunctionDeclaration = 3024
+    | InvalidTypeDefinition = 3025
+    | InvalidNamespaceDeclaration = 3026        
+    | InvalidOpenDirective = 3027
+    | InvalidExpressionStatement = 3028 
+    | InvalidConstructorExpression = 3029
+    | MissingArgumentForFunctorGenerator = 3030
+    | InvalidKeywordWithinExpression = 3031
+    | InvalidUseOfReservedKeyword = 3032
+    | ExcessContinuation = 3033
+    | NonCallExprAsStatement = 3034
 
     | InvalidExpression = 3101
     | MissingExpression = 3102
@@ -127,19 +129,23 @@ type ErrorCode =
     | ControlledAdjointDeclInFunction = 4011
     | InvalidReturnWithinAllocationScope = 4012
     | WhileLoopInOperation = 4013
+    | ConjugationWithinFunction = 4014
 
-    | MissingPreceedingIfOrElif = 4101
+    | MissingPrecedingIfOrElif = 4101
     | MissingContinuationUntil = 4102
-    | MissingPreceedingRepeat = 4103
-    | DistributedAdjointGenerator = 4105
-    | InvalidBodyGenerator = 4106
-    | BodyGenArgMismatch = 4107
-    | AdjointGenArgMismatch = 4108
-    | SelfControlledGenerator = 4109
-    | InvertControlledGenerator = 4110
-    | ControlledGenArgMismatch = 4111
-    | ControlledAdjointGenArgMismatch = 4112
-    | MissingFollowingDeclaration = 4113
+    | MissingPrecedingRepeat = 4103
+    | MissingPrecedingWithin = 4104
+    | MissingContinuationApply = 4105
+    | ReturnFromWithinApplyBlock = 4106 // temporary restriction
+    | DistributedAdjointGenerator = 4107
+    | InvalidBodyGenerator = 4108
+    | BodyGenArgMismatch = 4109
+    | AdjointGenArgMismatch = 4110
+    | SelfControlledGenerator = 4111
+    | InvertControlledGenerator = 4112
+    | ControlledGenArgMismatch = 4113
+    | ControlledAdjointGenArgMismatch = 4114
+    | MissingFollowingDeclaration = 4115
 
     | MissingExprInArray = 5001
     | MultipleTypesInArray = 5002
@@ -235,6 +241,7 @@ type ErrorCode =
     | ValueUpdateWithinAutoInversion = 6314
     | RUSloopWithinAutoInversion = 6315
     | QuantumDependencyOutsideExprStatement = 6316
+    | InvalidReassignmentInApplyBlock = 6317
 
     | UnexpectedCommandLineCompilerException = 7001
     | MissingInputFileOrSnippet = 7002
@@ -251,11 +258,12 @@ type ErrorCode =
     | UnexpectedCompilerException = 7015
 
     | FunctorGenerationFailed = 7101
-    | CsGenerationFailed = 7102
-    | QsGenerationFailed = 7103
-    | DocGenerationFailed = 7104
-    | GeneratingBinaryFailed = 7105
-    | TargetExecutionFailed = 7106
+    | TreeTrimmingFailed = 7102
+    | CsGenerationFailed = 7103
+    | QsGenerationFailed = 7104
+    | DocGenerationFailed = 7105
+    | GeneratingBinaryFailed = 7106
+    | TargetExecutionFailed = 7107
 
 
 type WarningCode = 
@@ -342,7 +350,9 @@ type DiagnosticItem =
             | ErrorCode.InvalidWhileLoopIntro                   -> "Syntax error in while-statement."
             | ErrorCode.InvalidRepeatIntro                      -> "Syntax error in repeat header."                   
             | ErrorCode.InvalidUntilClause                      -> "Syntax error in until-clause."                     
-            | ErrorCode.InvalidRUSfixup                         -> "Syntax error in fixup header."                     
+            | ErrorCode.InvalidRUSfixup                         -> "Syntax error in fixup header."
+            | ErrorCode.InvalidWithinBlockIntro                 -> "Syntax error in within-block header."
+            | ErrorCode.InvalidApplyBlockIntro                  -> "Syntax error in apply-block header."
             | ErrorCode.InvalidUsingBlockIntro                  -> "Syntax error in using-block header."               
             | ErrorCode.InvalidBorrowingBlockIntro              -> "Syntax error in borrowing-block header."          
             | ErrorCode.InvalidBodyDeclaration                  -> "Syntax error in body declaration."               
@@ -436,12 +446,16 @@ type DiagnosticItem =
             | ErrorCode.AdjointDeclInFunction                   -> "Adjoint specializations can only be defined for operations."
             | ErrorCode.ControlledDeclInFunction                -> "Controlled specializations can only be defined for operations."
             | ErrorCode.ControlledAdjointDeclInFunction         -> "Controlled-adjoint specializations can only be defined for operations."
-            | ErrorCode.InvalidReturnWithinAllocationScope      -> "Return statements may only occur at the end of a using- or borrowing-block."
+            | ErrorCode.InvalidReturnWithinAllocationScope      -> "Return-statements may only occur at the end of a using- or borrowing-block."
             | ErrorCode.WhileLoopInOperation                    -> "While-loops cannot be used in operations. Avoid conditional loops in operations if possible, and use a repeat-until-success pattern otherwise."
+            | ErrorCode.ConjugationWithinFunction               -> "Conjugations may only occur within operations, since they cannot add to the expressiveness within functions."
                                                             
-            | ErrorCode.MissingPreceedingIfOrElif               -> "An elif- or else-block must be preceeded by an if- or elif-block."
+            | ErrorCode.MissingPrecedingIfOrElif                -> "An elif- or else-block must be preceded by an if- or elif-block."
             | ErrorCode.MissingContinuationUntil                -> "A repeat-block must be followed by an until-clause."
-            | ErrorCode.MissingPreceedingRepeat                 -> "An until-clause must be preceeded by a repeat-block."
+            | ErrorCode.MissingPrecedingRepeat                  -> "An until-clause must be preceded by a repeat-block."
+            | ErrorCode.MissingPrecedingWithin                  -> "An apply-block must be preceded by the within-block."
+            | ErrorCode.MissingContinuationApply                -> "A within-block must be followed by an apply-block."
+            | ErrorCode.ReturnFromWithinApplyBlock              -> "Return-statements may not occur in an apply-block." 
             | ErrorCode.DistributedAdjointGenerator             -> "Invalid generator for adjoint specialization. Valid generators are \"invert\", \"self\" and \"auto\"."
             | ErrorCode.InvalidBodyGenerator                    -> "Invalid generator for body specialization. A body specialization must be user defined (\"body (...)\"), or specified as intrinsic (\"body intrinsic\")."
             | ErrorCode.BodyGenArgMismatch                      -> "The argument to a user-defined body specialization must be of the form \"(...)\"."
@@ -548,7 +562,8 @@ type DiagnosticItem =
             | ErrorCode.ValueUpdateWithinAutoInversion          -> "Auto-generation of inversions is not supported for operations that contain set-statements."
             | ErrorCode.RUSloopWithinAutoInversion              -> "Auto-generation of inversions is not supported for operations that contain repeat-until-success-loops."
             | ErrorCode.QuantumDependencyOutsideExprStatement   -> "Auto-generation of inversions is not supported for operations that contain operation calls outside expression statements."
-                               
+            | ErrorCode.InvalidReassignmentInApplyBlock         -> "Variables that are used in the within-block (specifying the outer transformation) cannot be reassigned in the apply-block (specifying the inner transformation)."
+
             | ErrorCode.UnexpectedCommandLineCompilerException  -> "The command line compiler threw an exception."
             | ErrorCode.MissingInputFileOrSnippet               -> "The command line compiler needs a list of files or a code snippet to process."
             | ErrorCode.SnippetAndInputArguments                -> "The command line compiler can accept a list of files or a code snippet, but not both."
@@ -564,6 +579,7 @@ type DiagnosticItem =
             | ErrorCode.UnexpectedCompilerException             -> "The compiler threw an exception."
 
             | ErrorCode.FunctorGenerationFailed                 -> "Auto-generation of functor specialization(s) failed."
+            | ErrorCode.TreeTrimmingFailed                      -> "The generated syntax tree could not be trimmed."
             | ErrorCode.CsGenerationFailed                      -> "Unable to generate C# code to run within the simulation framework."
             | ErrorCode.QsGenerationFailed                      -> "Unable to generate formatted Q# code based on the built syntax tree."
             | ErrorCode.DocGenerationFailed                     -> "Unable to generate documentation for the compiled code."

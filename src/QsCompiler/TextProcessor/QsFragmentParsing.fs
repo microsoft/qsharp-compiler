@@ -203,6 +203,8 @@ let rec private getFragments() = // Note: this needs to be a function!
         (qsWhile              , whileHeader                 )
         (qsRepeat             , repeatHeader                )
         (qsUntil              , untilSuccess                )
+        (qsWithin             , withinHeader                )
+        (qsApply              , applyHeader                 )
         (qsUsing              , usingHeader                 )
         (qsBorrowing          , borrowingHeader             )
         (namespaceDeclHeader  , namespaceDeclaration        )
@@ -411,6 +413,17 @@ and private untilSuccess =
     let invalid = UntilSuccess (unknownExpr, false)
     let optionalFixup = qsRUSfixup.parse >>% true <|> preturn false
     buildFragment qsUntil.parse (expectedCondition qsRUSfixup.parse .>>. optionalFixup) invalid UntilSuccess
+
+
+/// Uses buildFragment to parse a Q# within-block intro as QsFragment.
+and private withinHeader =
+    let valid = fun _ -> WithinBlockIntro
+    buildFragment qsWithin.parse (preturn "") WithinBlockIntro valid
+
+/// Uses buildFragment to parse a Q# apply block intro as QsFragment.
+and private applyHeader =
+    let valid = fun _ -> ApplyBlockIntro
+    buildFragment qsApply.parse (preturn "") ApplyBlockIntro valid
 
 
 /// Uses buildFragment to parse a Q# using block intro as QsFragment.

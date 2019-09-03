@@ -351,11 +351,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             ValidFileUri(param?.TextDocument?.Uri) && !IgnoreFile(param.TextDocument.Uri) ? this.Projects.DocumentSymbols(param) : null;
 
         /// <summary>
-        /// Returns a dictionary of workspace edits suggested by the compiler for the given location and context.
-        /// The keys of the dictionary are suitable titles for each edit that can be presented to the user. 
+        /// Returns a look-up of workspace edits suggested by the compiler for the given location and context.
+        /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user. 
         /// Returns null if the given file is listed as to be ignored, or if the given parameter or its uri is null.
         /// </summary>
-        public ImmutableDictionary<string, WorkspaceEdit> CodeActions(CodeActionParams param) =>
+        public ILookup<string, WorkspaceEdit> CodeActions(CodeActionParams param) =>
             ValidFileUri(param?.TextDocument?.Uri) && !IgnoreFile(param.TextDocument.Uri) ? this.Projects.CodeActions(param) : null;
 
 
