@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// <summary>
         /// Applying the transformation sets all location information to Null.
         /// </summary>
-        private class StripLocationInformation :
+        public class StripLocationInformation :
             ScopeTransformation<StatementKindTransformation<StripLocationInformation>, NoExpressionTransformations>
         {
             public StripLocationInformation() :

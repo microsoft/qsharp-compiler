@@ -14,7 +14,7 @@ open OptimizingTransformation
 
 
 /// The SyntaxTreeTransformation used to find and optimize pure circuits
-type internal PureCircuitFinder() =
+type internal PureCircuitFinder(callables) =
     inherit OptimizingTransformation()
 
     override __.Scope = { new ScopeTransformation() with
@@ -25,7 +25,7 @@ type internal PureCircuitFinder() =
 
             let finishCircuit () =
                 if circuit <> [] then
-                    let newCircuit = optimizeExprList circuit
+                    let newCircuit = optimizeExprList callables circuit
                     if newCircuit <> circuit then
                         printfn "Removed %d gates" (circuit.Length - newCircuit.Length)
                         printfn "Old: %O" (List.map (fun x -> printExpr x.Expression) circuit)

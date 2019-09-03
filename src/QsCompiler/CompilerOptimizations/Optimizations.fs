@@ -27,7 +27,7 @@ type Optimizations() =
             LoopUnroller(callables, 40)
             CallableInliner(callables)
             StatementReorderer()
-            PureCircuitFinder()
+            PureCircuitFinder(callables)
         ]
         for opt in optimizers do
             tree <- List.map opt.Transform tree
