@@ -30,6 +30,7 @@ function Pack-One() {
 }
 
 Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects'
+Pack-One '../src/QsCompiler/CommandLineTool/QsCommandLineTool.csproj' '-IncludeReferencedProjects'
 
 ##
 # VS Code Extension

@@ -505,7 +505,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (!Utils.IsValidPosition(position))
                 throw new ArgumentException(nameof(position));
 
-            var fragment = file.TryGetFragmentAt(position, includeEnd: true);
+            var fragment = file.TryGetFragmentAt(position, out var _, includeEnd: true);
             if (fragment == null)
                 return null;
             var startAt = GetTextIndexFromPosition(fragment, position);

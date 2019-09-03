@@ -54,8 +54,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly ManagedList<Diagnostic> ScopeDiagnostics;
         private readonly ManagedList<Diagnostic> SyntaxDiagnostics;
         private readonly ManagedList<Diagnostic> ContextDiagnostics;
-        private readonly ManagedList<Diagnostic> HeaderDiagnostics; // always replaced in their entirety, hence split out as a separate list
         private readonly ManagedList<Diagnostic> SemanticDiagnostics;
+        private readonly ManagedList<Diagnostic> HeaderDiagnostics;
+        /// used to store partially computed semantic diagnostics until they are ready for publishing
+        private readonly ManagedList<Diagnostic> UpdatedSemanticDiagnostics;
+        /// used to store partially computed header diagnostics until they are ready for publishing
+        private readonly ManagedList<Diagnostic> UpdatedHeaderDiagnostics;
 
         // locks and other stuff used coordinate:
 
@@ -111,6 +115,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.ContextDiagnostics = new ManagedList<Diagnostic>(this.SyncRoot);
             this.SemanticDiagnostics = new ManagedList<Diagnostic>(this.SyncRoot);
             this.HeaderDiagnostics = new ManagedList<Diagnostic>(this.SyncRoot);
+            this.UpdatedSemanticDiagnostics = new ManagedList<Diagnostic>(this.SyncRoot);
+            this.UpdatedHeaderDiagnostics = new ManagedList<Diagnostic>(this.SyncRoot);
 
             // in order to improve the editor experience it is best to not publish new diagnostics on every keystroke
             // instead we will only queue changes under certain circumstances
@@ -170,10 +176,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Given the position where the syntax check starts and ends relative to the original file content before the update, and the lineNrChange,
         /// removes all diagnostics that are no longer valid due to that change, and
         /// updates the line numbers of the remaining diagnostics if needed.
-        /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null. 
+        /// Throws an ArgumentNullException if the given diagnostics to update or if the syntax check delimiters are null. 
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, Range syntaxCheckDelimiters, int lineNrChange)
+        private static void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, Range syntaxCheckDelimiters, int lineNrChange)
         {
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
             if (!Utils.IsValidRange(syntaxCheckDelimiters)) throw new ArgumentException(nameof(syntaxCheckDelimiters));
@@ -188,6 +194,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (lineNrChange != 0) diagnostics.Transform(updateLineNrs);
             }
             finally { diagnostics.SyncRoot.ExitWriteLock(); }
+        }
+
+        /// <summary>
+        /// Updates the line numbers of diagnostics that start after the syntax check end delimiter in both lists of diagnostics, 
+        /// and removes all diagnostics that overlap with the given range for the syntax check update in the updated diagnostics only. 
+        /// Throws an ArgumentNullException if the given current and/or latest diagnostics are null, or if the syntax check delimiters are null. 
+        /// Throws an ArgumentException if the given start and end position do not denote a valid range.
+        /// </summary>
+        private static void DelayInvalidateOrUpdate(ManagedList<Diagnostic> diagnostics, ManagedList<Diagnostic> updated,
+            Range syntaxCheckDelimiters, int lineNrChange)
+        {
+            if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+            if (updated == null) throw new ArgumentNullException(nameof(updated));
+
+            InvalidateOrUpdateBySyntaxCheckDelimeters(updated, syntaxCheckDelimiters, lineNrChange);
+            Diagnostic updateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithUpdatedLineNumber(lineNrChange) : m;
+            if (lineNrChange != 0) diagnostics.Transform(updateLineNrs);
         }
 
 
@@ -240,7 +263,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
         private void InvalidateOrUpdateSyntaxDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
-            this.InvalidateOrUpdateBySyntaxCheckDelimeters(this.SyntaxDiagnostics, syntaxCheckDelimiters, lineNrChange);
+            InvalidateOrUpdateBySyntaxCheckDelimeters(this.SyntaxDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
 
         /// <summary>
@@ -290,12 +313,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             finally { this.ContextDiagnostics.SyncRoot.ExitWriteLock(); }
         }
 
-
         /// <summary>
-        /// Replaces the current header diagnostics with the given sequence.
+        /// Replaces the header diagnostics with the given sequence and finalizes the header diagnostics update.
         /// </summary>
-        internal void ReplaceHeaderDiagnostics(IEnumerable<Diagnostic> updates) =>
-            this.HeaderDiagnostics.ReplaceAll(updates);
+        internal void ReplaceHeaderDiagnostics(IEnumerable<Diagnostic> updates)
+        {
+            this.UpdatedHeaderDiagnostics.ReplaceAll(updates);
+            this.HeaderDiagnostics.ReplaceAll(this.UpdatedHeaderDiagnostics);
+        }
 
         /// <summary>
         /// Given the position where the syntax check starts and ends relative to the original file content before the update, and the lineNrChange,
@@ -305,20 +330,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
         private void InvalidateOrUpdateHeaderDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
-            this.InvalidateOrUpdateBySyntaxCheckDelimeters(this.HeaderDiagnostics, syntaxCheckDelimiters, lineNrChange);
+            DelayInvalidateOrUpdate(this.HeaderDiagnostics, this.UpdatedHeaderDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
 
         /// <summary>
-        /// Replaces the current semantic diagnostics with the given sequence.
+        /// Replaces the semantic diagnostics with the given sequence and finalizes the semantic diagnostics update.
         /// </summary>
-        internal void ReplaceSemanticDiagnostics(IEnumerable<Diagnostic> updates) =>
-            this.SemanticDiagnostics.ReplaceAll(updates);
+        internal void ReplaceSemanticDiagnostics(IEnumerable<Diagnostic> updates)
+        {
+            this.UpdatedSemanticDiagnostics.ReplaceAll(updates);
+            this.SemanticDiagnostics.ReplaceAll(this.UpdatedSemanticDiagnostics);
+        }
 
         /// <summary>
-        /// Adds the given sequence of semantic diagnostics to the current list.
+        /// Adds the given sequence of semantic diagnostics and finalizes the semantic diagnostics update.
         /// </summary>
-        internal void AddSemanticDiagnostics(IEnumerable<Diagnostic> updates) =>
-            this.SemanticDiagnostics.AddRange(updates);
+        internal void AddAndFinalizeSemanticDiagnostics(IEnumerable<Diagnostic> updates)
+        {
+            this.UpdatedSemanticDiagnostics.AddRange(updates);
+            this.SemanticDiagnostics.ReplaceAll(this.UpdatedSemanticDiagnostics);
+        }
 
         /// <summary>
         /// Given the position where the syntax check starts and ends relative to the original file content before the update, and the lineNrChange,
@@ -328,7 +359,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
         private void InvalidateOrUpdateSemanticDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
-            this.InvalidateOrUpdateBySyntaxCheckDelimeters(this.SemanticDiagnostics, syntaxCheckDelimiters, lineNrChange);
+            DelayInvalidateOrUpdate(this.SemanticDiagnostics, this.UpdatedSemanticDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
 
         /// <summary>
@@ -445,8 +476,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 InvalidateOrUpdateScopeDiagnostics(start, count, lineNrChange);
                 InvalidateOrUpdateSyntaxDiagnostics(syntaxCheckInOriginal, lineNrChange);
                 InvalidateOrUpdateContextDiagnostics(start, count, lineNrChange);
-                InvalidateOrUpdateSemanticDiagnostics(syntaxCheckInOriginal, lineNrChange);
                 InvalidateOrUpdateHeaderDiagnostics(syntaxCheckInOriginal, lineNrChange);
+                InvalidateOrUpdateSemanticDiagnostics(syntaxCheckInOriginal, lineNrChange);
             }
             finally { this.SyncRoot.ExitWriteLock(); }
         }
@@ -578,7 +609,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 for (var i = start + 1; i < end; ++i) FilterAndMarkEdited(i, _ => false); // remove all
                 if (start != end) FilterAndMarkEdited(end, ContextBuilder.TokensAfter(new Position(0, range.End.Character)));
 
-                var enveloppingFragment = this.TryGetFragmentAt(range.Start);
+                var enveloppingFragment = this.TryGetFragmentAt(range.Start, out var _);
                 if (enveloppingFragment != null)
                 {
                     start = enveloppingFragment.GetRange().Start.Line;
@@ -711,7 +742,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             foreach (var (range, callableName) in edited)
             {
-                this.InvalidateOrUpdateSemanticDiagnostics(range, 0);
+                InvalidateOrUpdateBySyntaxCheckDelimeters(this.UpdatedSemanticDiagnostics, range, 0);
                 this.EditedCallables.Add(callableName);
             }
         }
@@ -774,6 +805,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Does the semantic verification of everything that has not yet been verified.
+        /// Updates and all header and semantic diagnostics. 
+        /// Pushes the updated diagnostics if no further computation is needed. 
+        /// If a global type checking is needed, triggers the corresponding event 
+        /// and does not push updates to semantic diagnostic. 
         /// </summary>
         internal void Verify(CompilationUnit compilation) =>
             QsCompilerError.RaiseOnFailure(() => this.UpdateTypeChecking(compilation), "error during type checking update");
@@ -790,7 +825,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var edited = this.CallablesWithContentModifications(Enumerable.Range(0, this.NrLines()));
                 this.MarkCallableAsContentEdited(edited);
                 this.HeaderDiagnostics.Clear();
+                this.UpdatedHeaderDiagnostics.Clear();
                 this.SemanticDiagnostics.Clear();
+                this.UpdatedSemanticDiagnostics.Clear();
             }
             finally { this.SyncRoot.ExitUpgradeableReadLock(); }
         }
@@ -800,11 +837,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// updates the file if necessary, and queues the change otherwise.
         /// An update is considered necessary if the given change replaces more than one line of the current content, 
         /// or if the inserted text cannot be a symbol or keyword (i.e. includes any whitespace, numbers and/or special characters).
-        /// Sets the out parameter to true, if the given change has merely been queued but has not been processed, and false otherwise. 
+        /// Sets the out parameter to true if diagnostics are to be published. 
         /// Throws an ArgumentNullException if the change or any of its fields are null.
         /// Throws an ArgumentException if the range of the change is invalid.
         /// </summary>
-        internal void PushChange(TextDocumentContentChangeEvent change, out bool queuedChange)
+        internal void PushChange(TextDocumentContentChangeEvent change, out bool publishDiagnostics)
         {
             // NOTE: since there may be still unprocessed changes aggregated in UnprocessedChanges we cannot verify the range of the change against the current file content, 
             // however, let's at least check that nothing is null, all entries are positive, and the range start is smaller than or equal to the range end
@@ -817,7 +854,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var count = change.Range.End.Line - start + 1;
             var line = this.UnprocessedUpdates.Any() ? this.UnprocessedUpdates.Peek().Range.Start.Line : start;
 
-            queuedChange = false;
+            publishDiagnostics = true;
             if (count == 1 && line == start)
             {
                 // TODO: If the change contains characters that are part of a symbol, we should delay sending
@@ -830,7 +867,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     trimmedText == "\\" || trimmedText == "/") // ... and the same here
                 {
                     this.Timer.Start(); // we can simply queue this update - no need to actually execute it
-                    queuedChange = true;
+                    publishDiagnostics = false;
                     return;
                 }
                 this.Update(); // update only the currently queued changes
@@ -851,8 +888,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (text == null) throw new ArgumentNullException(nameof(text));
                 var change = new TextDocumentContentChangeEvent
                 { Range = new Range { Start = new Position(0, 0), End = this.End() }, RangeLength = 0, Text = text }; // fixme: range length is not accurate, but also not used...
-                this.PushChange(change, out bool queued);
-                if (queued) this.Flush();
+                this.PushChange(change, out bool processed);
+                if (!processed) this.Flush();
             }
             finally { this.SyncRoot.ExitUpgradeableReadLock(); }
         }

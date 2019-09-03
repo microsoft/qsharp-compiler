@@ -128,8 +128,9 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         private static bool IsIndentation(char c) => c == ' ' || c == '\t';
 
         /// <summary>
-        /// Returns the last non-empty line before the given line. If all of the lines before the given line are empty,
-        /// returns the first line of the snapshot instead.
+        /// Returns the last non-empty line before the given line. A non-empty line is any line that contains at least
+        /// one non-whitespace character. If all of the lines before the given line are empty, returns the first line of
+        /// the snapshot instead. 
         /// <para/>
         /// Returns null if the given line is the first line in the snapshot.
         /// </summary>
@@ -138,9 +139,10 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             int lineNumber = line.LineNumber - 1;
             if (lineNumber < 0)
                 return null;
-            while (lineNumber > 0 && line.Snapshot.GetLineFromLineNumber(lineNumber).Length == 0)
+            ITextSnapshot snapshot = line.Snapshot;
+            while (lineNumber > 0 && string.IsNullOrWhiteSpace(snapshot.GetLineFromLineNumber(lineNumber).GetText()))
                 lineNumber--;
-            return line.Snapshot.GetLineFromLineNumber(lineNumber);
+            return snapshot.GetLineFromLineNumber(lineNumber);
         }
     }
 }

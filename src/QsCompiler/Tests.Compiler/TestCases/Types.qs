@@ -6,72 +6,72 @@
 
 namespace Microsoft.Quantum.Testing.TypeChecking {
 
-	newtype NamedItems1 = (Re : Int, Im : Int);
-	newtype NamedItems2 = (Double, (Re : Int, Im : Int));
-	newtype NamedItems3 = ((Re : Int, Im : Int), Double);
-	newtype NamedItems4 = (Const : Double, (Double, Double));
-	newtype NamedItems5 = ((Int, Int), Phase : Int);
-	newtype NamedItems6 = (((Int, Int), Phase : Int), (Const : Double, (Double, Double)));
-	newtype NamedItems7 = (Name : Int);
-	newtype NamedItems8 = (Name : (Int, Int));
-	newtype NamedItems9 = Name : Int;
-	newtype NamedItems10 = Name : (Int, Int);
-	newtype NamedItems11 = (Name : Int, Name : Int);
-	newtype NamedItems12 = (Int, (Name : Int, Name : Int));
-	newtype NamedItems13 = (Int, (Name : Int, Double), Name : Int);
-	newtype NamedItems14 = (Int, (Name : Int, Double), (Double, Name : Int));
+    newtype NamedItems1 = (Re : Int, Im : Int);
+    newtype NamedItems2 = (Double, (Re : Int, Im : Int));
+    newtype NamedItems3 = ((Re : Int, Im : Int), Double);
+    newtype NamedItems4 = (Const : Double, (Double, Double));
+    newtype NamedItems5 = ((Int, Int), Phase : Int);
+    newtype NamedItems6 = (((Int, Int), Phase : Int), (Const : Double, (Double, Double)));
+    newtype NamedItems7 = (Name : Int);
+    newtype NamedItems8 = (Name : (Int, Int));
+    newtype NamedItems9 = Name : Int;
+    newtype NamedItems10 = Name : (Int, Int);
+    newtype NamedItems11 = (Name : Int, Name : Int);
+    newtype NamedItems12 = (Int, (Name : Int, Name : Int));
+    newtype NamedItems13 = (Int, (Name : Int, Double), Name : Int);
+    newtype NamedItems14 = (Int, (Name : Int, Double), (Double, Name : Int));
 
-	newtype TupleType1 = Int; 
-	newtype TupleType2 = (Int, Int); 
-	newtype TupleType3 = (); 
-	newtype TupleType4 = (Int, (Int,)); 
-	newtype TupleType5 = ((Int, Int excess), Int); 
-	newtype TupleType6 = ((Int, Int), Int) excess; 
+    newtype TupleType1 = Int; 
+    newtype TupleType2 = (Int, Int); 
+    newtype TupleType3 = (); 
+    newtype TupleType4 = (Int, (Int,)); 
+    newtype TupleType5 = ((Int, Int excess), Int); 
+    newtype TupleType6 = ((Int, Int), Int) excess; 
 
-	newtype OpType1 = (Unit => Unit);
-	newtype OpType2 = ((Unit => Unit), Int);
-	newtype OpType3 = (Int, (Unit => Unit));
-	newtype OpType4 = ((Unit => Unit is Adj), Int);
-	newtype OpType5 = (Int, (Unit => Unit is Adj));
-	newtype OpType6 = (((Unit => Unit) is Adj), Int);
-	newtype OpType7 = (Int, ((Unit => Unit) is Adj));
-	newtype OpType8 = Unit => Unit;
-	newtype OpType9 = (Unit => Unit, Int);
-	newtype OpType10 = (Int, Unit => Unit);
-	newtype OpType11 = (Unit => Unit is Adj, Int);
-	newtype OpType12 = (Int, Unit => Unit is Adj);
-	newtype OpType13 = ((Unit => Unit) is Adj, Int);
-	newtype OpType14 = (Int, (Unit => Unit) is Adj);
+    newtype OpType1 = (Unit => Unit);
+    newtype OpType2 = ((Unit => Unit), Int);
+    newtype OpType3 = (Int, (Unit => Unit));
+    newtype OpType4 = ((Unit => Unit is Adj), Int);
+    newtype OpType5 = (Int, (Unit => Unit is Adj));
+    newtype OpType6 = (((Unit => Unit) is Adj), Int);
+    newtype OpType7 = (Int, ((Unit => Unit) is Adj));
+    newtype OpType8 = Unit => Unit;
+    newtype OpType9 = (Unit => Unit, Int);
+    newtype OpType10 = (Int, Unit => Unit);
+    newtype OpType11 = (Unit => Unit is Adj, Int);
+    newtype OpType12 = (Int, Unit => Unit is Adj);
+    newtype OpType13 = ((Unit => Unit) is Adj, Int);
+    newtype OpType14 = (Int, (Unit => Unit) is Adj);
 
-	newtype FctType1 = (Unit -> Unit);
-	newtype FctType2 = ((Unit -> Unit), Int);
-	newtype FctType3 = (Int, (Unit -> Unit));
-	newtype FctType4 = Unit -> Unit;
-	newtype FctType5 = (Unit -> Unit, Int);
-	newtype FctType6 = (Int, Unit -> Unit);
-	newtype FctType7 = (Fct : (Unit -> Unit), Int);
-	newtype FctType8 = (Int, Fct : (Unit -> Unit));
+    newtype FctType1 = (Unit -> Unit);
+    newtype FctType2 = ((Unit -> Unit), Int);
+    newtype FctType3 = (Int, (Unit -> Unit));
+    newtype FctType4 = Unit -> Unit;
+    newtype FctType5 = (Unit -> Unit, Int);
+    newtype FctType6 = (Int, Unit -> Unit);
+    newtype FctType7 = (Fct : (Unit -> Unit), Int);
+    newtype FctType8 = (Int, Fct : (Unit -> Unit));
 
-	newtype ArrayType1 = Int[];
-	newtype ArrayType2 = (Int, Int)[];
-	newtype ArrayType3 = (Name : Int, Int)[];
-	newtype ArrayType4 = (Name : Int[]);
-	newtype ArrayType5 = (Name : (Int, Int)[]);
-	newtype ArrayType6 = Name : Int[];
-	newtype ArrayType7 = Name : (Int, Int)[];
-	newtype ArrayType8 = (Const : Double, (Double, Double)[]);
-	newtype ArrayType9 = ((Int, Int)[], Phase : Int);
-	newtype ArrayType10 = (((Int, Int)[], Phase : Int[]), (Const : Double[], (Double, Double)[]));
-	newtype ArrayType11 = (Unit => Unit)[];
-	newtype ArrayType12 = ((Unit => Unit)[], Int);
-	newtype ArrayType13 = (Int, (Unit => Unit)[]);
-	newtype ArrayType14 = ((Unit => Unit is Adj)[], Int);
-	newtype ArrayType15 = (Int, (Unit => Unit is Adj)[]);
-	newtype ArrayType16 = (Unit => Unit is Adj[], Int);
-	newtype ArrayType17 = (Int, Unit => Unit is Adj[]);
-	newtype ArrayType18 = (Fct : (Unit -> Unit)[][], (Int[], Int)[]);
-	newtype ArrayType19 = ((Int, Int[])[], Fct : (Unit -> Unit)[][]);
-	newtype ArrayType20 = (Fst : (Int, Int)[], Snd : (Double, Double)[]);
+    newtype ArrayType1 = Int[];
+    newtype ArrayType2 = (Int, Int)[];
+    newtype ArrayType3 = (Name : Int, Int)[];
+    newtype ArrayType4 = (Name : Int[]);
+    newtype ArrayType5 = (Name : (Int, Int)[]);
+    newtype ArrayType6 = Name : Int[];
+    newtype ArrayType7 = Name : (Int, Int)[];
+    newtype ArrayType8 = (Const : Double, (Double, Double)[]);
+    newtype ArrayType9 = ((Int, Int)[], Phase : Int);
+    newtype ArrayType10 = (((Int, Int)[], Phase : Int[]), (Const : Double[], (Double, Double)[]));
+    newtype ArrayType11 = (Unit => Unit)[];
+    newtype ArrayType12 = ((Unit => Unit)[], Int);
+    newtype ArrayType13 = (Int, (Unit => Unit)[]);
+    newtype ArrayType14 = ((Unit => Unit is Adj)[], Int);
+    newtype ArrayType15 = (Int, (Unit => Unit is Adj)[]);
+    newtype ArrayType16 = (Unit => Unit is Adj[], Int);
+    newtype ArrayType17 = (Int, Unit => Unit is Adj[]);
+    newtype ArrayType18 = (Fct : (Unit -> Unit)[][], (Int[], Int)[]);
+    newtype ArrayType19 = ((Int, Int[])[], Fct : (Unit -> Unit)[][]);
+    newtype ArrayType20 = (Fst : (Int, Int)[], Snd : (Double, Double)[]);
 }
 
 namespace Microsoft.Quantum.Testing.GlobalVerification {
@@ -130,12 +130,12 @@ namespace Microsoft.Quantum.Testing.GlobalVerification.N3 {
 
 namespace Microsoft.Quantum.Testing.GlobalVerification.N4 {
 
-	open Microsoft.Quantum.Testing.GlobalVerification.N2 as N2;
-	open Microsoft.Quantum.Testing.GlobalVerification.N3 as N3;
+    open Microsoft.Quantum.Testing.GlobalVerification.N2 as N2;
+    open Microsoft.Quantum.Testing.GlobalVerification.N3 as N3;
 
-	newtype IntPair = (N2.IntType, N3.IntType);
-	function TakesAnyArg<'T> (arg : 'T) : Unit {}
-	function Default<'T> () : 'T {
-		return (new 'T[1])[0];
-	}
+    newtype IntPair = (N2.IntType, N3.IntType);
+    function TakesAnyArg<'T> (arg : 'T) : Unit {}
+    function Default<'T> () : 'T {
+        return (new 'T[1])[0];
+    }
 }

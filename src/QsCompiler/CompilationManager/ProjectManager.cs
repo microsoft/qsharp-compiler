@@ -891,13 +891,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 (param.TextDocument, (file, _) => file.DocumentSymbols(), suppressExceptionLogging: true);
 
         /// <summary>
-        /// Returns a dictionary of workspace edits suggested by the compiler for the given location and context.
-        /// The keys of the dictionary are suitable titles for each edit that can be presented to the user. 
+        /// Returns a look-up of workspace edits suggested by the compiler for the given location and context.
+        /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user. 
         /// Returns null if given uri is null or if the specified file is not listed as source file.
         /// Fails silently without logging anything if an exception occurs upon evaluating the query 
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
-        public ImmutableDictionary<string, WorkspaceEdit> CodeActions(CodeActionParams param) =>
+        public ILookup<string, WorkspaceEdit> CodeActions(CodeActionParams param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery
                 (param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range, param.Context), suppressExceptionLogging: true);
 
