@@ -41,15 +41,16 @@ type ErrorCode =
     | InvalidOperationDeclaration = 3023
     | InvalidFunctionDeclaration = 3024
     | InvalidTypeDefinition = 3025
-    | InvalidNamespaceDeclaration = 3026        
-    | InvalidOpenDirective = 3027
-    | InvalidExpressionStatement = 3028 
-    | InvalidConstructorExpression = 3029
-    | MissingArgumentForFunctorGenerator = 3030
-    | InvalidKeywordWithinExpression = 3031
-    | InvalidUseOfReservedKeyword = 3032
-    | ExcessContinuation = 3033
-    | NonCallExprAsStatement = 3034
+    | InvalidDeclarationAttribute = 3026
+    | InvalidNamespaceDeclaration = 3027       
+    | InvalidOpenDirective = 3028
+    | InvalidExpressionStatement = 3029 
+    | InvalidConstructorExpression = 3030
+    | MissingArgumentForFunctorGenerator = 3031
+    | InvalidKeywordWithinExpression = 3032
+    | InvalidUseOfReservedKeyword = 3033
+    | ExcessContinuation = 3034
+    | NonCallExprAsStatement = 3035
 
     | InvalidExpression = 3101
     | MissingExpression = 3102
@@ -68,7 +69,6 @@ type ErrorCode =
     | InvalidOperationCharacteristics = 3115
     | MissingOperationCharacteristics = 3116
     | ExpectingUpdateExpression = 3117
-    | InvalidAttribute = 3118
 
     | InvalidIdentifierDeclaration = 3201
     | MissingIdentifierDeclaration = 3202
@@ -362,6 +362,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidOperationDeclaration             -> "Syntax error in operation declaration."          
             | ErrorCode.InvalidFunctionDeclaration              -> "Syntax error in function declaration."           
             | ErrorCode.InvalidTypeDefinition                   -> "Syntax error in type definition."                
+            | ErrorCode.InvalidDeclarationAttribute             -> "Syntax error in declaration attribute."
             | ErrorCode.InvalidNamespaceDeclaration             -> "Syntax error in namespace declaration."           
             | ErrorCode.InvalidOpenDirective                    -> "Syntax error in open-directive."                                           
             | ErrorCode.InvalidExpressionStatement              -> "Syntax error in expression-statement." 
@@ -372,7 +373,6 @@ type DiagnosticItem =
             | ErrorCode.ExcessContinuation                      -> "Unexpected code fragment."
             | ErrorCode.NonCallExprAsStatement                  -> "An expression used as a statement must be a call expression."
                                                             
-            | ErrorCode.InvalidAttribute                        -> "Syntax error in attribute."
             | ErrorCode.InvalidExpression                       -> "Syntax error in expression."
             | ErrorCode.MissingExpression                       -> "Expecting expression."
             | ErrorCode.InvalidIdentifierName                   -> "Identifiers need to start with an ASCII letter or an underscore, and need to contain at least one non-underscore character."

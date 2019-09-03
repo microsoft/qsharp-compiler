@@ -214,10 +214,10 @@ type QsFragmentKind =
 | AdjointDeclaration            of QsSpecializationGenerator
 | ControlledDeclaration         of QsSpecializationGenerator
 | ControlledAdjointDeclaration  of QsSpecializationGenerator
-| AttributeDeclaration          of QsExpression * QsExpression
 | OperationDeclaration          of QsSymbol * CallableSignature
 | FunctionDeclaration           of QsSymbol * CallableSignature
 | TypeDefinition                of QsSymbol * QsTuple<QsSymbol * QsType>
+| DeclarationAttribute          of QsSymbol * QsExpression
 | OpenDirective                 of QsSymbol * QsNullable<QsSymbol>
 | NamespaceDeclaration          of QsSymbol
 | InvalidFragment
@@ -227,7 +227,6 @@ with
     member this.ErrorCode = 
         match this with
         | ExpressionStatement          _ -> ErrorCode.InvalidExpressionStatement    
-        | AttributeDeclaration         _ -> ErrorCode.InvalidAttribute
         | ReturnStatement              _ -> ErrorCode.InvalidReturnStatement             
         | FailStatement                _ -> ErrorCode.InvalidFailStatement               
         | ImmutableBinding             _ -> ErrorCode.InvalidImmutableBinding                 
@@ -249,7 +248,8 @@ with
         | ControlledDeclaration        _ -> ErrorCode.InvalidControlledDeclaration       
         | ControlledAdjointDeclaration _ -> ErrorCode.InvalidControlledAdjointDeclaration
         | OperationDeclaration         _ -> ErrorCode.InvalidOperationDeclaration        
-        | FunctionDeclaration          _ -> ErrorCode.InvalidFunctionDeclaration         
+        | FunctionDeclaration          _ -> ErrorCode.InvalidFunctionDeclaration       
+        | DeclarationAttribute         _ -> ErrorCode.InvalidDeclarationAttribute
         | TypeDefinition               _ -> ErrorCode.InvalidTypeDefinition              
         | NamespaceDeclaration         _ -> ErrorCode.InvalidNamespaceDeclaration        
         | OpenDirective                _ -> ErrorCode.InvalidOpenDirective               
@@ -258,7 +258,6 @@ with
     /// returns the error code for an invalid fragment ending on the given kind
     member this.InvalidEnding = 
         match this with
-        | AttributeDeclaration           _ -> ErrorCode.UnexpectedFragmentDelimiter
         | ExpressionStatement            _ 
         | ReturnStatement                _ 
         | FailStatement                  _ 
@@ -287,6 +286,7 @@ with
         | OperationDeclaration           _  
         | FunctionDeclaration            _ -> ErrorCode.ExpectingOpeningBracket
         | TypeDefinition                 _ -> ErrorCode.ExpectingSemicolon     
+        | DeclarationAttribute           _ -> ErrorCode.UnexpectedFragmentDelimiter
         | NamespaceDeclaration           _ -> ErrorCode.ExpectingOpeningBracket
         | OpenDirective                  _ -> ErrorCode.ExpectingSemicolon     
         | InvalidFragment                _ -> ErrorCode.UnexpectedFragmentDelimiter

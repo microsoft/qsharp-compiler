@@ -360,8 +360,7 @@ let internal symbolLike errCode =
 let internal asQualifiedSymbol ((path, sym), range : Position * Position) = 
     let names = [for segment in path do yield segment ] @ [sym]
     if names |> List.contains None then (InvalidSymbol, Null) |> QsSymbol.New
-    else 
-        names |> List.choose id |> function 
+    else names |> List.choose id |> function 
         | [sym] -> (Symbol (NonNullable<string>.New sym), range) |> QsSymbol.New
         | parts -> 
             let (ns, sym) = (String.concat "." parts.[0..parts.Length-2]) |> NonNullable<string>.New, parts.[parts.Length-1] |> NonNullable<string>.New
@@ -429,9 +428,11 @@ let private filterAndAdapt (diagnostics : QsCompilerDiagnostic list) endPos =
 /// If the given header succeeds, attempts the given body parser to obtain the argument to construct the QsFragment using the given
 /// fragmentKind constructor, or defaults to the given invalid fragment. 
 /// Generates a suitable error if the body parser fails. 
+/// If the body parser succeeds, advances until the next fragment header or until the given continuation succeeds,
+/// generating an ExcessContinuation error for any non-whitespace code. 
 /// Determines the Range and Text for the fragment and attaches all current diagnostics saved in the user state to the QsFragment. 
 /// Upon fragment construction, clears all diagnostics currently stored in the UserState.
-let internal buildFragment header body (invalid : QsFragmentKind) (fragmentKind : 'a -> QsFragmentKind) =
+let internal buildFragment header body (invalid : QsFragmentKind) (fragmentKind : 'a -> QsFragmentKind) continuation =
     let build (kind, (startPos, (text, endPos))) = 
         getUserState .>> clearDiagnostics 
         |>> fun diagnostics -> 
@@ -448,53 +449,18 @@ let internal buildFragment header body (invalid : QsFragmentKind) (fragmentKind 
             manyCharsTill anyChar (followedBy allWS) .>>. getPosition
         (getPosition .>>. fragmentEnd) |> runOnSubstream state
     
+    let continuation = (continuation >>% ()) <|> (qsFragmentHeader >>% ())
     let validBody state = 
-        let processExcessCode = buildError (skipInvalidUntil qsFragmentHeader) ErrorCode.ExcessContinuation >>% ()
-        (body .>>? followedBy (qsFragmentHeader >>% () <|> eof)) <|> (body .>> processExcessCode)
+        let processExcessCode = buildError (skipInvalidUntil continuation) ErrorCode.ExcessContinuation >>% ()
+        (body .>>? followedBy (continuation <|> eof)) <|> (body .>> processExcessCode)
         |>> fragmentKind .>>. delimiters state
-    let invalidBody state = getPosition .>> (advanceTo qsFragmentHeader) .>>. delimiters state >>= buildDiagnostic
+    let invalidBody state = 
+        getPosition .>> (advanceTo continuation) .>>. delimiters state >>= buildDiagnostic
 
     getCharStreamState >>= fun state -> 
         header >>. (attempt (validBody state) <|> invalidBody state) >>= build
 
 
-/// Construts a QsFragment for a Q# attribute.
-/// Adds error handling capability to suggest a missing end symbol and missing arguments.
-let internal buildAttribute id args (fragmentKind : 'a * QsExpression -> QsFragmentKind) = 
-    let build (kind, (startPos, (text, endPos))) =
-        getUserState .>> clearDiagnostics
-        |>> fun diagnostics -> 
-            QsFragment.New(kind, (startPos, endPos), (filterAndAdapt diagnostics (endPos |> QsPositionInfo.New)).ToImmutableArray(), NonNullable<string>.New text)
-    
-    let delimiters state = 
-        let fragmentEnd =
-            let allWS = emptySpace .>>? eof
-            manyCharsTill anyChar (followedBy allWS) .>>. getPosition
-        (getPosition .>>. fragmentEnd) |> runOnSubstream state
-
-    let nextValid =
-        (skipChar '@') <|> (qsFragmentHeader |>> ignore)
-
-    let parseOverError =
-        skipInvalidUntil nextValid
-
-    let checkArgs = 
-        let processMissingArgs = buildError parseOverError ErrorCode.MissingAttributeArgs >>% () 
-        (lookAhead nextValid >>. processMissingArgs >>. preturn ((InvalidExpr, Null) |> QsExpression.New)) <|> args
-
-    let validBody state =
-        let body = id .>>. checkArgs
-        (body |>> fragmentKind .>>. delimiters state)
-
-    let checkEnding =
-        let processMissingSymbol = buildError parseOverError ErrorCode.MissingClosingAttributeSign >>% ()
-        (skipChar '@') <|> processMissingSymbol
-
-    let header =
-        (skipChar '@' |> term)
-
-    getCharStreamState >>= fun state ->
-        header >>. attempt (validBody state) .>> checkEnding >>= build 
 
 
 

@@ -349,7 +349,7 @@ let private itemAccessExpr =
 /// Parses a Q# argument tuple - i.e. an expression tuple that may contain Missing expressions.
 /// If the parsed argument tuple is not a unit value, 
 /// uses buildTuple to generate a MissingArgument error if a tuple item is missing, or an InvalidArgument error for invalid items. 
-let private argumentTuple = 
+let internal argumentTuple = 
     let tupleArg = buildTuple argument buildTupleExpr ErrorCode.InvalidArgument ErrorCode.MissingArgument unknownExpr
     unitValue <|> tupleArg
 
@@ -362,22 +362,15 @@ let internal callLikeExpr =
     attempt ((itemAccessExpr <|> identifier <|> tupledItem expr) .>>. argumentTuple) // identifier needs to come *after* arrayItemExpr
     |>> fun (callable, arg) -> applyBinary CallLikeExpression () callable arg
 
-/// Parses a Q# attribute identifier (separated from arguments to better handle errors)
-let internal attributeId =
-    attempt identifier
-
-/// Parses Q# attribute arguments
-let internal attributeArgs =
-    attempt argumentTuple
 
 // processing terms of operator precedence parsers
 
 let private termParser tupleExpr = 
     choice [
         // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly. 
-        attempt unitValue        
+        attempt unitValue 
         attempt newArray         
-        attempt callLikeExpr     
+        attempt callLikeExpr // needs to be after unitValue
         attempt itemAccessExpr // needs to be after callLikeExpr
         attempt valueArray // needs to be after arryItemExpr
         attempt tupleExpr // needs to be after unitValue, arrayItemExpr, and callLikeExpr
@@ -391,6 +384,4 @@ let private termParser tupleExpr =
 
 qsExpression.TermParser <- termParser (valueTuple expr)
 qsArgument.TermParser <- missingExpr <|> termParser (valueTuple argument) // missing needs to be first
-
-
 
