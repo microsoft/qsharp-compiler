@@ -18,6 +18,9 @@ open Utils
 open Printer
 
 
+type private NormalState = Map<string, TypedExpression> * int
+
+
 /// Represents any interrupt to the normal control flow of a function evaluation.
 /// Includes return statements, errors, and (if they were added) break/continue statements.
 type private FunctionInterrupt =
@@ -34,7 +37,7 @@ type private FunctionInterrupt =
 /// The Error case means that we are outside normal control flow, in some kind of interrupt.
 /// The Error case stores a FunctionInterrupt that describes the cause of the interrupt.
 /// I use the Result type to match the common design pattern of railway-oreiented programming.
-type private FunctionState = Result<Constants<TypedExpression> * int, FunctionInterrupt>
+type private FunctionState = Result<NormalState, FunctionInterrupt>
 
 
 /// Evaluates functions by stepping through their code
@@ -51,7 +54,7 @@ type internal FunctionEvaluator(callables: Callables) =
         ExpressionEvaluator(callables, constants, stmtsLeft).Transform expr
 
     /// Evaluates a single Q# statement
-    member private this.evaluateStatement (constants: Constants<TypedExpression>, stmtsLeft: int) (statement: QsStatement): FunctionState =
+    member private this.evaluateStatement (constants, stmtsLeft: int) (statement: QsStatement): FunctionState =
         let stmtsLeft = stmtsLeft - 1
         let eval constantsRef newScope scope = result {
             let! s = this.evaluateScope !constantsRef newScope scope
@@ -68,7 +71,7 @@ type internal FunctionEvaluator(callables: Callables) =
             (defineVarTuple (isLiteral callables) constants (s.Lhs, this.evaluateExpression (constants, stmtsLeft) s.Rhs), stmtsLeft) |> Ok
         | QsValueUpdate s ->
             match s.Lhs with
-            | LocalVarTuple vt -> (setVarTuple (isLiteral callables) constants (vt, this.evaluateExpression (constants, stmtsLeft) s.Rhs), stmtsLeft) |> Ok
+            | LocalVarTuple vt -> (defineVarTuple (isLiteral callables) constants (vt, this.evaluateExpression (constants, stmtsLeft) s.Rhs), stmtsLeft) |> Ok
             | _ -> "Unknown LHS of value update statement: " + (printExpr s.Lhs.Expression) |> CouldNotEvaluate |> Error
         // FIXME: implement evaluation of conjugations
         //| QsConjugation s -> NotImplementedException "missing evaluation for conjugation" |> raise
@@ -120,7 +123,7 @@ type internal FunctionEvaluator(callables: Callables) =
             this.evaluateScope (constants, stmtsLeft) true s.Body
 
     /// Evaluates a list of Q# statements
-    member private this.evaluateScope (constants: Constants<TypedExpression>, stmtsLeft: int) (newScope: bool) (scope: QsScope): FunctionState =
+    member private this.evaluateScope (constants, stmtsLeft: int) (newScope: bool) (scope: QsScope): FunctionState =
         result {
             let constantsRef = ref (constants, stmtsLeft)
             for stmt in scope.Statements do
@@ -142,8 +145,7 @@ type internal FunctionEvaluator(callables: Callables) =
         let impl = (Seq.exactlyOne callable.Specializations).Implementation
         match impl with
         | Provided (specArgs, scope) ->
-            let constants = enterScope (Constants [])
-            let constants = defineVarTuple (isLiteral callables) constants (toSymbolTuple specArgs, arg)
+            let constants = defineVarTuple (isLiteral callables) Map.empty (toSymbolTuple specArgs, arg)
             match this.evaluateScope (constants, stmtsLeft) true scope with
             | Ok _ ->
                 // printfn "Function %O didn't return anything" name.Name.Value
@@ -162,7 +164,7 @@ type internal FunctionEvaluator(callables: Callables) =
             None
 
 
-and internal ExpressionEvaluator(callables: Callables, constants: Constants<TypedExpression>, stmtsLeft: int) =
+and internal ExpressionEvaluator(callables: Callables, constants: Map<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionTransformation()
 
     override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, stmtsLeft) with
@@ -171,7 +173,7 @@ and internal ExpressionEvaluator(callables: Callables, constants: Constants<Type
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, constants: Constants<TypedExpression>, stmtsLeft: int) =
+and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, constants: Map<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionKindTransformation()
 
     member private this.simplify e1 = this.ExpressionTransformation e1
@@ -207,7 +209,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
 
     override this.onIdentifier (sym, tArgs) =
         match sym with
-        | LocalVariable name -> tryGetVar constants name.Value |> Option.map (fun x -> x.Expression) |? Identifier (sym, tArgs)
+        | LocalVariable name -> Map.tryFind name.Value constants |> Option.map (fun x -> x.Expression) |? Identifier (sym, tArgs)
         | _ -> Identifier (sym, tArgs)
 
     override this.onFunctionCall (method, arg) =

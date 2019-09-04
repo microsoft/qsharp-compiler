@@ -38,11 +38,11 @@ type internal ConstantPropagator(callables) =
     inherit OptimizingTransformation()
 
     /// The current dictionary that maps variables to the values we substitute for them
-    let mutable constants = Constants []
+    let mutable constants = Map.empty
 
 
     override __.onProvidedImplementation (argTuple, body) =
-        constants <- enterScope (Constants [])
+        constants <- Map.empty
         base.onProvidedImplementation (argTuple, body)
 
     /// The ScopeTransformation used to evaluate constants

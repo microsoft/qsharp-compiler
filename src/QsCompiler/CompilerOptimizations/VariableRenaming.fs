@@ -13,18 +13,24 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open ComputationExpressions
-open Types
 open Utils
 
 
+
+let private enterScope map = Map.empty :: map
+
 /// Returns a Constants outside of the current scope.
 /// Throws an InvalidOperationException if the scope stack of the given state is empty.
-let internal exitScope constants =
-    match constants with
-    | Constants (_ :: tail) -> Constants tail
-    | Constants [] -> InvalidOperationException "No scope to exit" |> raise
+let private exitScope = List.tail
 
-let varNameRegex = Regex("^__qsVar\d+__(.+)__$")
+let private tryGet key = List.tryPick (Map.tryFind key)
+
+let private set (key, value) = function
+| [] -> InvalidOperationException "No scope to exit" |> raise
+| head :: tail -> Map.add key value head :: tail
+
+
+let private varNameRegex = Regex("^__qsVar\d+__(.+)__$")
 
 
 /// The ScopeTransformation used to ensure unique variable names.
@@ -37,7 +43,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
     /// The number of times a variable is referenced
     let mutable numUses = Map.empty
     /// The current dictionary of new names to substitute for variables
-    let mutable constants = enterScope (Constants [])
+    let mutable constants = [Map.empty]
     /// Whether we should skip entering the next scope we encounter
     let mutable skipScope = false
 
@@ -54,26 +60,22 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
             num <- num + 1
             newName <- sprintf "__qsVar%d__%s__" num baseName
         numUses <- Map.add newName 0 numUses
-        constants <- defineVar (fun _ -> true) constants (varName, newName)
+        constants <- set (varName, newName) constants
         newName
 
     /// Processes the initial argument tuple from the function declaration
-    let rec processArgTuple args =
-        match args with
-        | QsTupleItem item ->
-            match item.VariableName with
-            | ValidName name -> generateUniqueName name.Value |> ignore
-            | InvalidName -> ()
-        | QsTuple items -> Seq.iter processArgTuple items
+    let rec processArgTuple = function
+    | QsTupleItem {VariableName = ValidName name} -> generateUniqueName name.Value |> ignore
+    | QsTupleItem {VariableName = InvalidName} -> ()
+    | QsTuple items -> Seq.iter processArgTuple items
 
     do processArgTuple argTuple
 
     /// Returns the number of times a variable is referenced
-    member internal this.getNumUses name =
-        Map.tryFind name numUses
+    member internal __.getNumUses name = Map.tryFind name numUses
 
 
-    override scope.Transform x =
+    override __.Transform x =
         if skipScope then
             skipScope <- false
             base.Transform x
@@ -83,29 +85,29 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
             constants <- exitScope constants
             result
 
-    override scope.Expression = { new ExpressionTransformation() with
+    override __.Expression = { new ExpressionTransformation() with
         override expr.Kind = { new ExpressionKindTransformation() with
-            override exprKind.ExpressionTransformation ex = expr.Transform ex
-            override exprKind.TypeTransformation t = expr.Type.Transform t
+            override __.ExpressionTransformation ex = expr.Transform ex
+            override __.TypeTransformation t = expr.Type.Transform t
 
-            override exprKind.onIdentifier (sym, tArgs) =
+            override __.onIdentifier (sym, tArgs) =
                 maybe {
                     let! name =
                         match sym with
                         | LocalVariable name -> Some name.Value
                         | _ -> None
-                    let! newName = tryGetVar constants name
+                    let! newName = tryGet name constants
                     numUses <- Map.add newName (Map.find newName numUses + 1) numUses
                     return Identifier (LocalVariable (NonNullable<_>.New newName), tArgs)
                 } |? Identifier (sym, tArgs)
         }
     }
 
-    override scope.StatementKind = { new StatementKindTransformation() with
-        override stmtKind.ExpressionTransformation x = scope.Expression.Transform x
-        override stmtKind.LocationTransformation x = scope.onLocation x
-        override stmtKind.ScopeTransformation x = scope.Transform x
-        override stmtKind.TypeTransformation x = scope.Expression.Type.Transform x
+    override this.StatementKind = { new StatementKindTransformation() with
+        override __.ExpressionTransformation x = this.Expression.Transform x
+        override __.LocationTransformation x = this.onLocation x
+        override __.ScopeTransformation x = this.Transform x
+        override __.TypeTransformation x = this.Expression.Type.Transform x
 
         override this.onSymbolTuple syms =
             match syms with
@@ -125,7 +127,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
             let body = this.ScopeTransformation stm.Body
             QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement
 
-        override this.onRepeatStatement stm =
+        override __.onRepeatStatement stm =
             constants <- enterScope constants
             skipScope <- true
             let result = base.onRepeatStatement stm

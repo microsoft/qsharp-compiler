@@ -27,19 +27,6 @@ type internal Callables (m: ImmutableDictionary<QsQualifiedName, QsCallable>) =
         m.[qualName]
 
 
-/// Represents a map whose keys are local variables, with support for scopes.
-type internal Constants<'T> = Constants of list<Map<string, 'T>>
-
-/// Returns a Constants inside of a new scope
-let internal enterScope constants =
-    match constants with Constants c -> Constants (Map.empty :: c)
-
-/// Gets the value associated with the given variable.
-/// Returns None if the given variable is undefined.
-let internal tryGetVar constants name =
-    match constants with Constants c -> List.tryPick (Map.tryFind name) c
-
-
 /// Returns whether a given expression is a literal (and thus a constant)
 let rec internal isLiteral (callables: Callables) (expr: TypedExpression): bool =
     expr |> TypedExpression.MapFold (fun ex -> ex.Expression) (fun sub ex ->
@@ -60,23 +47,7 @@ let rec internal isLiteral (callables: Callables) (expr: TypedExpression): bool 
 /// If the given variable is already defined, its name is shadowed in the current scope.
 /// Throws an InvalidOperationException if there aren't any scopes on the stack.
 let internal defineVar check constants (name, value) =
-    if not (check value) then constants else
-    match constants with
-    | Constants (head :: tail) -> Constants (head.Add (name, value) :: tail)
-    | Constants [] -> InvalidOperationException "No scope to define variables in" |> raise
-
-/// If check(value) is true, returns a Constants with the given variable set to the given value.
-/// Otherwise, returns constants without any changes.
-/// Throws an ArgumentException if trying to set an undefined variable.
-let internal setVar check constants (name, value) =
-    if not (check value) then constants else
-    match constants with
-    Constants c ->
-        match List.tryFindIndex (Map.containsKey name) c with
-        | Some index ->
-            let updateFunc = fun i -> if i = index then Map.add name value else id
-            Constants (List.mapi updateFunc c)
-        | None -> sprintf "Variable %s is undefined" name |> ArgumentException |> raise
+    if not (check value) then constants else constants |> Map.add name value
 
 /// Applies the given function op on a SymbolTuple, ValueTuple pair
 let rec private onTuple op constants (names, values) =
@@ -91,6 +62,3 @@ let rec private onTuple op constants (names, values) =
 
 /// Returns a Constants<Expr> with the given variables defined as the given values
 let internal defineVarTuple check = onTuple (defineVar check)
-
-/// Returns a Constants<Expr> with the given variables set to the given values
-let internal setVarTuple check = onTuple (setVar check)
