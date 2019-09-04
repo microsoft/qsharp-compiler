@@ -48,11 +48,10 @@ let internal rangeLiteralToSeq (r: Expr): seq<int64> =
 
 /// Returns None if any of the elements of the given list is None.
 /// Otherwise, returns the given list, casting each option to its Some case.
-let rec internal optionListToListOption l =
-    match l with
-    | [] -> Some []
-    | None :: _ -> None
-    | Some head :: tail -> Option.map (fun t2 -> head :: t2) (optionListToListOption tail)
+let rec internal optionListToListOption = function
+| [] -> Some []
+| None :: _ -> None
+| Some head :: tail -> Option.map (fun t2 -> head :: t2) (optionListToListOption tail)
 
 
 /// Returns the given list without the elements at the given indices

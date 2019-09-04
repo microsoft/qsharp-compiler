@@ -19,16 +19,12 @@ type internal InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
 
 
 /// Represents the dictionary of all callables in the program
-type internal Callables = Callables of Map<QsQualifiedName, QsCallable>
+type internal Callables (m: ImmutableDictionary<QsQualifiedName, QsCallable>) =
 
-/// Makes an instance of Callables from the given dictionary
-let internal makeCallables (compiledCallables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
-    compiledCallables |> Seq.map (function KeyValue(a, b) -> a, b) |> Map.ofSeq |> Callables
-
-/// Gets the QsCallable with the given qualified name.
-/// Throws an KeyNotFoundException if no such callable exists.
-let internal getCallable callables qualName =
-    match callables with Callables c -> c.[qualName]
+    /// Gets the QsCallable with the given qualified name.
+    /// Throws an KeyNotFoundException if no such callable exists.
+    member __.get qualName =
+        m.[qualName]
 
 
 /// Represents a map whose keys are local variables, with support for scopes.
@@ -37,13 +33,6 @@ type internal Constants<'T> = Constants of list<Map<string, 'T>>
 /// Returns a Constants inside of a new scope
 let internal enterScope constants =
     match constants with Constants c -> Constants (Map.empty :: c)
-
-/// Returns a Constants outside of the current scope.
-/// Throws an InvalidOperationException if the scope stack of the given state is empty.
-let internal exitScope constants =
-    match constants with
-    | Constants (_ :: tail) -> Constants tail
-    | Constants [] -> InvalidOperationException "No scope to exit" |> raise
 
 /// Gets the value associated with the given variable.
 /// Returns None if the given variable is undefined.
@@ -60,7 +49,7 @@ let rec internal isLiteral (callables: Callables) (expr: TypedExpression): bool 
         | ValueTuple _ | ValueArray _ | RangeLiteral _ | NewArray _ -> true
         | Identifier _ when ex.ResolvedType.Resolution = Qubit -> true
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
-            when (getCallable callables qualName).Kind = TypeConstructor -> true
+            when (callables.get qualName).Kind = TypeConstructor -> true
         | a when TypedExpression.IsPartialApplication a -> true
         | _ -> false
         && Seq.forall id sub)

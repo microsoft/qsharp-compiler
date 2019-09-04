@@ -3,7 +3,6 @@
 
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementRemoving
 
-open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -83,7 +82,7 @@ type internal StatementRemover() =
                 |> Seq.collect transformStatement
                 |> Seq.map wrapStmt
             QsScope.New (statements, parentSymbols)
-            
+
         override __.onLocation _ = Null
 
         override __.Expression = { new ExpressionTransformation() with

@@ -27,7 +27,7 @@ let rec private shouldPropagate callables expr =
         | Identifier _ | ArrayItem _ | UnwrapApplication _ | NamedItem _
         | ValueTuple _ | ValueArray _ | RangeLiteral _ | NewArray _ -> true
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
-            when (getCallable callables qualName).Kind = TypeConstructor -> true
+            when (callables.get qualName).Kind = TypeConstructor -> true
         | a when TypedExpression.IsPartialApplication a -> true
         | _ -> false
         && Seq.forall id sub))
@@ -39,27 +39,17 @@ type internal ConstantPropagator(callables) =
 
     /// The current dictionary that maps variables to the values we substitute for them
     let mutable constants = Constants []
-    /// How many times we should skip entering the next scope we encounter
-    let mutable skipScopes = 0
 
+
+    override __.onProvidedImplementation (argTuple, body) =
+        constants <- enterScope (Constants [])
+        base.onProvidedImplementation (argTuple, body)
 
     /// The ScopeTransformation used to evaluate constants
     override syntaxTree.Scope = { new ScopeTransformation() with
 
-        override scope.Transform x =
-            if skipScopes > 0 then
-                skipScopes <- skipScopes - 1
-                let result = base.Transform x
-                skipScopes <- skipScopes + 1
-                result
-            else
-                constants <- enterScope constants
-                let result = base.Transform x
-                constants <- exitScope constants
-                result
-
         /// The ExpressionTransformation used to evaluate constant expressions
-        override scope.Expression = upcast ExpressionEvaluator(callables, constants, 10)
+        override scope.Expression = upcast ExpressionEvaluator(callables, constants, 1000)
 
         /// The StatementKindTransformation used to evaluate constants
         override scope.StatementKind = { new StatementKindTransformation() with
@@ -97,14 +87,6 @@ type internal ConstantPropagator(callables) =
                 | _ ->
                     let cases = cbList |> Seq.map (fun (c, b) -> (Option.get c, b))
                     QsConditionalStatement.New (cases, newDefault) |> QsConditionalStatement
-
-            override this.onRepeatStatement stm =
-                constants <- enterScope constants
-                skipScopes <- skipScopes + 1
-                let result = base.onRepeatStatement stm
-                skipScopes <- skipScopes - 1
-                constants <- exitScope constants
-                result
 
             override this.onQubitScope (stm : QsQubitScope) =
                 let kind = stm.Kind

@@ -3,6 +3,7 @@
 
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRenaming
 
+open System
 open System.Collections.Immutable
 open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -14,6 +15,16 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open ComputationExpressions
 open Types
 open Utils
+
+
+/// Returns a Constants outside of the current scope.
+/// Throws an InvalidOperationException if the scope stack of the given state is empty.
+let internal exitScope constants =
+    match constants with
+    | Constants (_ :: tail) -> Constants tail
+    | Constants [] -> InvalidOperationException "No scope to exit" |> raise
+
+let varNameRegex = Regex("^__qsVar\d+__(.+)__$")
 
 
 /// The ScopeTransformation used to ensure unique variable names.
@@ -32,7 +43,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
 
     /// Given a possibly-mangled variable name, returns the original variable name
     let demangle varName =
-        let m = Regex.Match (varName, "^__qsVar\d+__(.+)__$")
+        let m = varNameRegex.Match varName
         if m.Success then m.Groups.[1].Value else varName
 
     /// Given a new variable name, generates a new unique name and updates the state accordingly

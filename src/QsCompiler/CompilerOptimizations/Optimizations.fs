@@ -20,7 +20,7 @@ type Optimizations() =
     /// Optimizes the given sequence of namespaces, returning a new list of namespaces
     static member optimize (tree: seq<_>) =
         let mutable tree = List.ofSeq tree
-        let callables = GlobalCallableResolutions tree |> makeCallables
+        let callables = GlobalCallableResolutions tree |> Callables
 
         let optimizers: OptimizingTransformation list = [
             ConstantPropagator(callables)

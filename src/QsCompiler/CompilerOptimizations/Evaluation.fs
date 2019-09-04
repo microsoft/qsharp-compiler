@@ -34,11 +34,11 @@ type private FunctionInterrupt =
 /// The Error case means that we are outside normal control flow, in some kind of interrupt.
 /// The Error case stores a FunctionInterrupt that describes the cause of the interrupt.
 /// I use the Result type to match the common design pattern of railway-oreiented programming.
-type private FunctionState = Result<Constants<TypedExpression>, FunctionInterrupt>
+type private FunctionState = Result<Constants<TypedExpression> * int, FunctionInterrupt>
 
 
 /// Evaluates functions by stepping through their code
-type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
+type internal FunctionEvaluator(callables: Callables) =
 
     /// Transforms a BoolLiteral into the corresponding bool
     let castToBool f x =
@@ -47,90 +47,85 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
         | _ -> "Not a BoolLiteral: " + (printExpr x.Expression) |> CouldNotEvaluate |> Error
 
     /// The callback for the subroutine that evaluates and simplifies an expression
-    member internal this.evaluateExpression constants expr =
-        ExpressionEvaluator(callables, constants, maxRecursiveDepth - 1).Transform expr
+    member internal this.evaluateExpression (constants, stmtsLeft) expr =
+        ExpressionEvaluator(callables, constants, stmtsLeft).Transform expr
 
     /// Evaluates a single Q# statement
-    member private this.evaluateStatement (constants: Constants<TypedExpression>) (statement: QsStatement): FunctionState =
+    member private this.evaluateStatement (constants: Constants<TypedExpression>, stmtsLeft: int) (statement: QsStatement): FunctionState =
+        let stmtsLeft = stmtsLeft - 1
         let eval constantsRef newScope scope = result {
             let! s = this.evaluateScope !constantsRef newScope scope
             constantsRef := s }
 
         match statement.Statement with
         | QsExpressionStatement expr ->
-            this.evaluateExpression constants expr |> ignore; constants |> Ok
+            (constants, stmtsLeft) |> Ok
         | QsReturnStatement expr ->
-            this.evaluateExpression constants expr |> Returned |> Error
+            this.evaluateExpression (constants, stmtsLeft) expr |> Returned |> Error
         | QsFailStatement expr ->
-            this.evaluateExpression constants expr |> Failed |> Error
+            this.evaluateExpression (constants, stmtsLeft) expr |> Failed |> Error
         | QsVariableDeclaration s ->
-            defineVarTuple (isLiteral callables) constants (s.Lhs, this.evaluateExpression constants s.Rhs) |> Ok
+            (defineVarTuple (isLiteral callables) constants (s.Lhs, this.evaluateExpression (constants, stmtsLeft) s.Rhs), stmtsLeft) |> Ok
         | QsValueUpdate s ->
             match s.Lhs with
-            | LocalVarTuple vt -> setVarTuple (isLiteral callables) constants (vt, this.evaluateExpression constants s.Rhs) |> Ok
+            | LocalVarTuple vt -> (setVarTuple (isLiteral callables) constants (vt, this.evaluateExpression (constants, stmtsLeft) s.Rhs), stmtsLeft) |> Ok
             | _ -> "Unknown LHS of value update statement: " + (printExpr s.Lhs.Expression) |> CouldNotEvaluate |> Error
         // FIXME: implement evaluation of conjugations
         //| QsConjugation s -> NotImplementedException "missing evaluation for conjugation" |> raise
         | QsConditionalStatement s ->
             let firstEval =
                 s.ConditionalBlocks |>
-                Seq.map (fun (ts, block) -> this.evaluateExpression constants ts |> castToBool id, block) |>
+                Seq.map (fun (ts, block) -> this.evaluateExpression (constants, stmtsLeft) ts |> castToBool id, block) |>
                 Seq.tryFind (fst >> function Ok false -> false | _ -> true)
             match firstEval, s.Default with
             | Some (Error s, _), _ -> s |> Error
-            | Some (Ok _, block), _ | None, Value block -> this.evaluateScope constants true block.Body
-            | None, Null -> Ok constants
+            | Some (Ok _, block), _ | None, Value block -> this.evaluateScope (constants, stmtsLeft) true block.Body
+            | None, Null -> Ok (constants, stmtsLeft)
         | QsForStatement stmt ->
             result {
-                let iterValues = this.evaluateExpression constants stmt.IterationValues
+                let iterValues = this.evaluateExpression (constants, stmtsLeft) stmt.IterationValues
                 let! iterSeq =
                     match iterValues.Expression with
                     | RangeLiteral _ when isLiteral callables iterValues -> rangeLiteralToSeq iterValues.Expression |> Seq.map (IntLiteral >> wrapExpr Int) |> Ok
                     | ValueArray va -> va :> seq<_> |> Ok
                     | _ -> "Unknown IterationValue in for loop: " + (printExpr iterValues.Expression) |> CouldNotEvaluate |> Error
-                let constantsRef = ref constants
+                let constantsRef = ref (constants, stmtsLeft)
                 for loopValue in iterSeq do
-                    constantsRef := enterScope !constantsRef
-                    constantsRef := defineVarTuple (isLiteral callables) !constantsRef (fst stmt.LoopItem, loopValue)
+                    constantsRef := defineVarTuple (isLiteral callables) (fst !constantsRef) (fst stmt.LoopItem, loopValue), stmtsLeft
                     do! eval constantsRef true stmt.Body
-                    constantsRef := exitScope !constantsRef
                 return !constantsRef
             }
         // TODO - see if we can remove the scope tracking, as Q# doesn't have shadowing
         | QsWhileStatement stmt ->
             result {
-                let constantsRef = ref constants
+                let constantsRef = ref (constants, stmtsLeft)
                 while this.evaluateExpression !constantsRef stmt.Condition |> castToBool id do
                     do! eval constantsRef true stmt.Body
                 return !constantsRef
             }
         | QsRepeatStatement stmt ->
             result {
-                let constantsRef = ref constants
-                constantsRef := enterScope !constantsRef
+                let constantsRef = ref (constants, stmtsLeft)
                 do! eval constantsRef false stmt.RepeatBlock.Body
                 while this.evaluateExpression !constantsRef stmt.SuccessCondition |> castToBool not do
                     do! eval constantsRef false stmt.FixupBlock.Body
                     do! eval constantsRef false stmt.RepeatBlock.Body
-                constantsRef := exitScope !constantsRef
                 return !constantsRef
             }
-        | QsQubitScope s ->
+        | QsQubitScope _ ->
             "Cannot allocate qubits in function" |> CouldNotEvaluate |> Error
+        | QsConjugation _ ->
+            "Cannot conjugate in function" |> CouldNotEvaluate |> Error
         | QsScopeStatement s ->
-            this.evaluateScope constants true s.Body
+            this.evaluateScope (constants, stmtsLeft) true s.Body
 
     /// Evaluates a list of Q# statements
-    member private this.evaluateScope (constants: Constants<TypedExpression>) (newScope: bool) (scope: QsScope): FunctionState =
+    member private this.evaluateScope (constants: Constants<TypedExpression>, stmtsLeft: int) (newScope: bool) (scope: QsScope): FunctionState =
         result {
-            let constantsRef = ref constants
-            if newScope then
-                constantsRef := enterScope !constantsRef
+            let constantsRef = ref (constants, stmtsLeft)
             for stmt in scope.Statements do
                 let! s = this.evaluateStatement !constantsRef stmt
                 constantsRef := s
-            if newScope then
-                constantsRef := exitScope !constantsRef
             return !constantsRef
         }
 
@@ -138,8 +133,8 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
     /// Returns Some ([expr]) if we successfully evaluate the function as [expr].
     /// Returns None if we were unable to evaluate the function.
     /// Throws an ArgumentException if the input is not a function, or if the function is invalid.
-    member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>): TypedExpression option =
-        let callable = getCallable callables name
+    member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>) (stmtsLeft: int): TypedExpression option =
+        let callable = callables.get name
         if callable.Kind = Operation then
             ArgumentException "Input is not a function" |> raise
         if callable.Specializations.Length <> 1 then
@@ -149,7 +144,7 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
         | Provided (specArgs, scope) ->
             let constants = enterScope (Constants [])
             let constants = defineVarTuple (isLiteral callables) constants (toSymbolTuple specArgs, arg)
-            match this.evaluateScope constants true scope with
+            match this.evaluateScope (constants, stmtsLeft) true scope with
             | Ok _ ->
                 // printfn "Function %O didn't return anything" name.Name.Value
                 None
@@ -167,16 +162,16 @@ type internal FunctionEvaluator(callables: Callables, maxRecursiveDepth: int) =
             None
 
 
-and internal ExpressionEvaluator(callables: Callables, constants: Constants<TypedExpression>, maxRecursiveDepth: int) =
+and internal ExpressionEvaluator(callables: Callables, constants: Constants<TypedExpression>, stmtsLeft: int) =
     inherit ExpressionTransformation()
 
-    override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, maxRecursiveDepth) with
+    override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, stmtsLeft) with
         override exprKind.ExpressionTransformation x = this.Transform x
         override exprKind.TypeTransformation x = this.Type.Transform x }
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, constants: Constants<TypedExpression>, maxRecursiveDepth: int) =
+and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, constants: Constants<TypedExpression>, stmtsLeft: int) =
     inherit ExpressionKindTransformation()
 
     member private this.simplify e1 = this.ExpressionTransformation e1
@@ -220,9 +215,9 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         maybe {
             match method.Expression with
             | Identifier (GlobalCallable qualName, types) ->
-                do! check (maxRecursiveDepth > 0 && isLiteral callables arg)
-                let fe = FunctionEvaluator (callables, maxRecursiveDepth)
-                return! fe.evaluateFunction qualName arg types |> Option.map (fun x -> x.Expression)
+                do! check (stmtsLeft > 0 && isLiteral callables arg)
+                let fe = FunctionEvaluator (callables)
+                return! fe.evaluateFunction qualName arg types stmtsLeft |> Option.map (fun x -> x.Expression)
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.ContainsMissing partialArg)
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
@@ -253,13 +248,13 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         let ex = this.simplify ex
         match ex.Expression with
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, types)}, arg)
-            when (getCallable callables qualName).Kind = TypeConstructor ->
+            when (callables.get qualName).Kind = TypeConstructor ->
                 // TODO - must be adapted if we want to support user-defined type constructors
                 QsCompilerError.Verify (
-                    (getCallable callables qualName).Specializations.Length = 1,
+                    (callables.get qualName).Specializations.Length = 1,
                     "Type constructors should have exactly one specialization")
                 QsCompilerError.Verify (
-                    (getCallable callables qualName).Specializations.[0].Implementation = Intrinsic,
+                    (callables.get qualName).Specializations.[0].Implementation = Intrinsic,
                     "Type constructors should be implicit")
                 arg.Expression
         | _ -> UnwrapApplication ex

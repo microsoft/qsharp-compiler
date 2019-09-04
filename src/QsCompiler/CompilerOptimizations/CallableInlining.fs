@@ -48,10 +48,10 @@ let rec private tryGetQualNameAndFunctors method =
 /// Assumes the input is zero or more functors applied to a global callable identifier,
 /// applied to an expression representing the argument to the callable.
 /// Returns None if the input is not a valid expression of this form.
-let private trySplitCall callables = function
+let private trySplitCall (callables: Callables) = function
     | CallLikeExpression (method, arg) ->
         tryGetQualNameAndFunctors method |> Option.map (fun (qualName, functors) ->
-            functors, getCallable callables qualName, arg)
+            functors, callables.get qualName, arg)
     | _ -> None
 
 
