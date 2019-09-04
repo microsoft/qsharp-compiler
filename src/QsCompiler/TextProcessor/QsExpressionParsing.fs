@@ -43,12 +43,12 @@ let internal applyTerinary operator (first : QsExpression) (second : QsExpressio
     applyBinary buildOp () first third
 
 let private deprecatedOp warning (parsedOp : string) =
-    let preceedingRange (pos : Position) =
+    let precedingRange (pos : Position) =
         let opLength = int64 (parsedOp.Length)
         let minusOldOpLength value = if value < opLength then 0L else value - opLength // value here should never be 0 or less (just a precaution)
-        let preceedingPos = new Position(pos.StreamName, pos.Index |> minusOldOpLength, pos.Line, pos.Column |> minusOldOpLength)
-        (preceedingPos, pos)
-    buildWarning (getPosition |>> preceedingRange) warning
+        let precedingPos = new Position(pos.StreamName, pos.Index |> minusOldOpLength, pos.Line, pos.Column |> minusOldOpLength)
+        (precedingPos, pos)
+    buildWarning (getPosition |>> precedingRange) warning
 
 qsExpression.AddOperator (TernaryOperator(qsCopyAndUpdateOp.op, emptySpace, qsCopyAndUpdateOp.cont, emptySpace                        , qsCopyAndUpdateOp.prec, qsCopyAndUpdateOp.Associativity,     applyTerinary CopyAndUpdate))
 qsExpression.AddOperator (TernaryOperator(qsConditionalOp.op  , emptySpace, qsConditionalOp.cont, emptySpace                          , qsConditionalOp.prec  , qsConditionalOp.Associativity  ,     applyTerinary CONDITIONAL  ))
@@ -102,7 +102,7 @@ let private withModifiers modifiableExpr =
         let adjointApplication = qsAdjointFunctor.parse .>>. preturn AdjointApplication
         let controlledApplication = qsControlledFunctor.parse .>>. preturn ControlledApplication
         adjointApplication <|> controlledApplication
-    attempt (many functorApplication .>>. modifiableExpr) .>>. many unwrapOperator // NOTE: do *not* replace by an expected expression even if there are preceeding functors!
+    attempt (many functorApplication .>>. modifiableExpr) .>>. many unwrapOperator // NOTE: do *not* replace by an expected expression even if there are preceding functors!
     |>> fun ((functors, ex), unwraps) -> applyUnwraps unwraps ex |> applyFunctors (functors |> List.rev)
 
 
@@ -332,7 +332,7 @@ let private itemAccessExpr =
                     let combineWith right left = buildCombinedExpr (RangeLiteral (left, right)) (left.Range, right.Range)
                     match core.Expression with
                     // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence, 
-                    // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are prentheses around it. 
+                    // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it. 
                     | RangeLiteral (lex, rex) -> buildCombinedExpr (RangeLiteral (missingEx lend, lex)) (QsPositionInfo.Range (lstart, lend), lex.Range) |> combineWith rex 
                     | _ -> missingEx lend |> combineWith core |> applyPost
                 | None -> core |> applyPost

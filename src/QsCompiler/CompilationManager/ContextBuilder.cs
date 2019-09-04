@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -110,14 +111,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the CodeFragment at the given position if such a fragment exists and null otherwise.
         /// If the given position is equal to the end of the fragment, that fragment is returned if includeEnd is set to true.
+        /// If a fragment is determined for the given position, returns the corresponding token index as out parameter. 
+        /// Note that token indices are no longer valid as soon as the file is modified (possibly e.g. by queued background processing). 
+        /// Any query or attempt operation on the returned token index may result in an exception once it lost its validity. 
         /// Returns null if the given file or the specified position is null,
         /// or if the specified position is not within the current Content range.
         /// </summary>
-        public static CodeFragment TryGetFragmentAt(this FileContentManager file, Position pos, bool includeEnd = false)
+        public static CodeFragment TryGetFragmentAt(this FileContentManager file, Position pos,
+            out CodeFragment.TokenIndex tIndex, bool includeEnd = false)
         {
+            tIndex = null;
             if (file == null || pos == null || !Utils.IsValidPosition(pos, file)) return null;
             var start = pos.Line;
-            var previous = file.GetTokenizedLine(start).Where(token => token.GetRange().Start.IsSmallerThanOrEqualTo(new Position(0, pos.Character)));
+            var previous = file.GetTokenizedLine(start).Where(token => token.GetRange().Start.Character <= pos.Character).ToImmutableArray();
             while (!previous.Any() && --start >= 0) previous = file.GetTokenizedLine(start);
             if (!previous.Any()) return null;
 
@@ -125,6 +131,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var overlaps = includeEnd
                 ? pos.IsSmallerThanOrEqualTo(lastPreceding.GetRange().End) 
                 : pos.IsSmallerThan(lastPreceding.GetRange().End);
+            tIndex = overlaps ? new CodeFragment.TokenIndex(file, start, previous.Length - 1) : null;
             return overlaps ? lastPreceding : null;
         }
 
@@ -214,7 +221,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return true;
             }
 
-            var overlapsWithStart = file.TryGetFragmentAt(range.Start);
+            var overlapsWithStart = file.TryGetFragmentAt(range.Start, out var _);
             return overlapsWithStart != null;
         }
 
@@ -373,22 +380,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static Context.SyntaxTokenContext GetContext(this CodeFragment.TokenIndex tokenIndex)
         {
             if (tokenIndex == null) throw new ArgumentNullException(nameof(tokenIndex));
-            QsNullable<QsFragmentKind> Nullable(CodeFragment fragment) =>
-                fragment?.Kind == null
+            QsNullable<QsFragmentKind> Nullable(CodeFragment token, bool precedesSelf) =>
+                token?.Kind == null
                 ? QsNullable<QsFragmentKind>.Null
-                : fragment.IncludeInCompilation 
-                ? QsNullable<QsFragmentKind>.NewValue(fragment.Kind)
-                : QsNullable<QsFragmentKind>.NewValue(QsFragmentKind.InvalidFragment);
+                : precedesSelf && !token.IncludeInCompilation // fragments that *follow * self need to be re-evaluated first
+                    ? QsNullable<QsFragmentKind>.NewValue(QsFragmentKind.InvalidFragment)
+                    : QsNullable<QsFragmentKind>.NewValue(token.Kind);
 
-            var self = tokenIndex.GetFragment();
-            var previous = tokenIndex.PreviousOnScope()?.GetFragment(); // excludes empty tokens
-            var next = tokenIndex.NextOnScope()?.GetFragment(); // excludes empty tokens
-            var parents = tokenIndex.GetNonEmptyParents().Select(tIndex => Nullable(tIndex.GetFragment())).ToArray();
-            var nullableSelf = self?.Kind == null // special treatment such that errors for fragments excluded from compilation still get logged...
-                ? QsNullable<QsFragmentKind>.Null
-                : QsNullable<QsFragmentKind>.NewValue(self.Kind);
-            var headerRange = self?.HeaderRange ?? QsCompilerDiagnostic.DefaultRange;
-            return new Context.SyntaxTokenContext(headerRange, nullableSelf, Nullable(previous), Nullable(next), parents);
+            var fragment = tokenIndex.GetFragment();
+            var headerRange = fragment?.HeaderRange ?? QsCompilerDiagnostic.DefaultRange;
+
+            var self = Nullable(fragment, false); // making sure that errors for fragments excluded from compilation still get logged
+            var previous = Nullable(tokenIndex.PreviousOnScope()?.GetFragment(), true); // excludes empty tokens
+            var next = Nullable(tokenIndex.NextOnScope()?.GetFragment(), false);  // excludes empty tokens
+            var parents = tokenIndex.GetNonEmptyParents().Select(tIndex => Nullable(tIndex.GetFragment(), true)).ToArray();                
+            return new Context.SyntaxTokenContext(headerRange, self, previous, next, parents);
         }
 
         /// <summary>
@@ -425,7 +431,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 verifiedLines.Add(tokenIndex.Line);
 
                 // if a token is newly included in or excluded from the compilation, 
-                // then this may impact all following tokens
+                // then this may impact context information for all following tokens
                 var changedStatus = include ^ fragment.IncludeInCompilation;
                 var next = tokenIndex.NextOnScope();
                 if (changedStatus && next != null && !changedLines.Contains(next.Line))

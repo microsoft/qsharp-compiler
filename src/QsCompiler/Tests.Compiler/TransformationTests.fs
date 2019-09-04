@@ -7,6 +7,7 @@ open System
 open System.Collections.Immutable
 open System.IO
 open System.Linq
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
