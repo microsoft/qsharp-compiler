@@ -17,7 +17,12 @@ open Utils
 open Printer
 
 
-type private NormalState = Map<string, TypedExpression> * int
+type private EvalState = Map<string, TypedExpression> * int
+
+let private incrementState (map, counter) = (map, counter - 1)
+
+let private setVars callables state entry =
+    defineVarTuple (isLiteral callables) (fst state) entry, (snd state)
 
 
 /// Represents any interrupt to the normal control flow of a function evaluation.
@@ -27,6 +32,8 @@ type private FunctionInterrupt =
 | Returned of TypedExpression
 /// Represents the function invoking a fail statement
 | Failed of TypedExpression
+/// We reached the limit of executions
+| OutOfTime
 /// We were unable to evaluate the function for some reason
 | CouldNotEvaluate of string
 
@@ -36,7 +43,7 @@ type private FunctionInterrupt =
 /// The Error case means that we are outside normal control flow, in some kind of interrupt.
 /// The Error case stores a FunctionInterrupt that describes the cause of the interrupt.
 /// I use the Result type to match the common design pattern of railway-oreiented programming.
-type private FunctionState = Result<NormalState, FunctionInterrupt>
+type private FunctionEvalState = Result<EvalState, FunctionInterrupt>
 
 
 /// Evaluates functions by stepping through their code
@@ -53,82 +60,84 @@ type internal FunctionEvaluator(callables: Callables) =
         ExpressionEvaluator(callables, constants, stmtsLeft).Transform expr
 
     /// Evaluates a single Q# statement
-    member private this.evaluateStatement (constants, stmtsLeft: int) (statement: QsStatement): FunctionState =
-        let stmtsLeft = stmtsLeft - 1
-        let eval constantsRef newScope scope = result {
-            let! s = this.evaluateScope !constantsRef newScope scope
-            constantsRef := s }
+    member private this.evaluateStatement state (statement: QsStatement): FunctionEvalState =
+        let state = incrementState state
+        if snd state <= 0 then OutOfTime |> Error else
+
+        let eval stateRef newScope scope = result {
+            let! s = this.evaluateScope !stateRef newScope scope
+            stateRef := s }
 
         match statement.Statement with
-        | QsExpressionStatement expr ->
-            (constants, stmtsLeft) |> Ok
+        | QsExpressionStatement _ ->
+            Ok state
         | QsReturnStatement expr ->
-            this.evaluateExpression (constants, stmtsLeft) expr |> Returned |> Error
+            this.evaluateExpression state expr |> Returned |> Error
         | QsFailStatement expr ->
-            this.evaluateExpression (constants, stmtsLeft) expr |> Failed |> Error
+            this.evaluateExpression state expr |> Failed |> Error
         | QsVariableDeclaration s ->
-            (defineVarTuple (isLiteral callables) constants (s.Lhs, this.evaluateExpression (constants, stmtsLeft) s.Rhs), stmtsLeft) |> Ok
+            setVars callables state (s.Lhs, this.evaluateExpression state s.Rhs) |> Ok
         | QsValueUpdate s ->
             match s.Lhs with
-            | LocalVarTuple vt -> (defineVarTuple (isLiteral callables) constants (vt, this.evaluateExpression (constants, stmtsLeft) s.Rhs), stmtsLeft) |> Ok
+            | LocalVarTuple vt -> setVars callables state (vt, this.evaluateExpression state s.Rhs) |> Ok
             | _ -> "Unknown LHS of value update statement: " + (printExpr s.Lhs.Expression) |> CouldNotEvaluate |> Error
         // FIXME: implement evaluation of conjugations
         //| QsConjugation s -> NotImplementedException "missing evaluation for conjugation" |> raise
         | QsConditionalStatement s ->
             let firstEval =
                 s.ConditionalBlocks |>
-                Seq.map (fun (ts, block) -> this.evaluateExpression (constants, stmtsLeft) ts |> castToBool id, block) |>
+                Seq.map (fun (ts, block) -> this.evaluateExpression state ts |> castToBool id, block) |>
                 Seq.tryFind (fst >> function Ok false -> false | _ -> true)
             match firstEval, s.Default with
             | Some (Error s, _), _ -> s |> Error
-            | Some (Ok _, block), _ | None, Value block -> this.evaluateScope (constants, stmtsLeft) true block.Body
-            | None, Null -> Ok (constants, stmtsLeft)
+            | Some (Ok _, block), _ | None, Value block -> this.evaluateScope state true block.Body
+            | None, Null -> Ok state
         | QsForStatement stmt ->
             result {
-                let iterValues = this.evaluateExpression (constants, stmtsLeft) stmt.IterationValues
+                let iterValues = this.evaluateExpression state stmt.IterationValues
                 let! iterSeq =
                     match iterValues.Expression with
                     | RangeLiteral _ when isLiteral callables iterValues -> rangeLiteralToSeq iterValues.Expression |> Seq.map (IntLiteral >> wrapExpr Int) |> Ok
                     | ValueArray va -> va :> seq<_> |> Ok
                     | _ -> "Unknown IterationValue in for loop: " + (printExpr iterValues.Expression) |> CouldNotEvaluate |> Error
-                let constantsRef = ref (constants, stmtsLeft)
+                let stateRef = ref state
                 for loopValue in iterSeq do
-                    constantsRef := defineVarTuple (isLiteral callables) (fst !constantsRef) (fst stmt.LoopItem, loopValue), stmtsLeft
-                    do! eval constantsRef true stmt.Body
-                return !constantsRef
+                    stateRef := setVars callables !stateRef (fst stmt.LoopItem, loopValue)
+                    do! eval stateRef true stmt.Body
+                return !stateRef
             }
         // TODO - see if we can remove the scope tracking, as Q# doesn't have shadowing
         | QsWhileStatement stmt ->
             result {
-                let constantsRef = ref (constants, stmtsLeft)
-                while this.evaluateExpression !constantsRef stmt.Condition |> castToBool id do
-                    do! eval constantsRef true stmt.Body
-                return !constantsRef
+                let stateRef = ref state
+                while this.evaluateExpression !stateRef stmt.Condition |> castToBool id do
+                    do! eval stateRef true stmt.Body
+                return !stateRef
             }
         | QsRepeatStatement stmt ->
             result {
-                let constantsRef = ref (constants, stmtsLeft)
-                do! eval constantsRef false stmt.RepeatBlock.Body
-                while this.evaluateExpression !constantsRef stmt.SuccessCondition |> castToBool not do
-                    do! eval constantsRef false stmt.FixupBlock.Body
-                    do! eval constantsRef false stmt.RepeatBlock.Body
-                return !constantsRef
+                let stateRef = ref state
+                do! eval stateRef false stmt.RepeatBlock.Body
+                while this.evaluateExpression !stateRef stmt.SuccessCondition |> castToBool not do
+                    do! eval stateRef false stmt.FixupBlock.Body
+                    do! eval stateRef false stmt.RepeatBlock.Body
+                return !stateRef
             }
         | QsQubitScope _ ->
             "Cannot allocate qubits in function" |> CouldNotEvaluate |> Error
         | QsConjugation _ ->
             "Cannot conjugate in function" |> CouldNotEvaluate |> Error
         | QsScopeStatement s ->
-            this.evaluateScope (constants, stmtsLeft) true s.Body
+            this.evaluateScope state true s.Body
 
     /// Evaluates a list of Q# statements
-    member private this.evaluateScope (constants, stmtsLeft: int) (newScope: bool) (scope: QsScope): FunctionState =
+    member private this.evaluateScope state (newScope: bool) (scope: QsScope): FunctionEvalState =
         result {
-            let constantsRef = ref (constants, stmtsLeft)
+            let stateRef = ref state
             for stmt in scope.Statements do
-                let! s = this.evaluateStatement !constantsRef stmt
-                constantsRef := s
-            return !constantsRef
+                let! s = this.evaluateStatement !stateRef stmt
+                stateRef := s
+            return !stateRef
         }
 
     /// Evaluates the given Q# function on the given argument.
@@ -154,6 +163,9 @@ type internal FunctionEvaluator(callables: Callables) =
                 Some expr
             | Error (Failed expr) ->
                 // printfn "Function %O failed with %O" name.Name.Value (prettyPrint expr)
+                None
+            | Error OutOfTime ->
+                // printfn "Function %O ran out of time"
                 None
             | Error (CouldNotEvaluate reason) ->
                 // printfn "Could not evaluate function %O on arg %O for reason %O" name.Name.Value (prettyPrint arg.Expression) reason
