@@ -106,8 +106,10 @@ type ErrorCode =
     | MissingUdtItemDeclaration = 3234
     | InvalidUdtItemNameDeclaration = 3235
     | MissingUdtItemNameDeclaration = 3236
-    | MissingClosingAttributeSign = 3237
-    | MissingAttributeArgs = 3238
+    | InvalidAttributeArgument = 3237
+    | MissingAttributeArgument = 3238
+    | InvalidAttributeIdentifier = 3239
+    | MissingAttributeIdentifier = 3240
 
     | EmptyValueArray = 3300 
     | InvalidValueArray = 3301
@@ -145,7 +147,7 @@ type ErrorCode =
     | InvertControlledGenerator = 4112
     | ControlledGenArgMismatch = 4113
     | ControlledAdjointGenArgMismatch = 4114
-    | MissingFollowingDeclaration = 4115
+    | MisplacedDeclarationAttribute = 4115
 
     | MissingExprInArray = 5001
     | MultipleTypesInArray = 5002
@@ -427,6 +429,10 @@ type DiagnosticItem =
             | ErrorCode.MissingUdtItemDeclaration               -> "Missing item. Expecting either a named item (\"itemName : ItemType\"), or an anonymous item as indicated by denoting the type only." 
             | ErrorCode.InvalidUdtItemNameDeclaration           -> "Invalid item name. Expecting an unqualified symbol name."
             | ErrorCode.MissingUdtItemNameDeclaration           -> "Expecting an unqualified symbol name."
+            | ErrorCode.InvalidAttributeArgument                -> "Invalid attribute argument. Expecting an argument tuple of compile-time constants."
+            | ErrorCode.MissingAttributeArgument                -> "Expecting a argument tuple of compile-time constants."
+            | ErrorCode.InvalidAttributeIdentifier              -> "Invalid attribute identifier. Expecting a qualified or unqualified symbol."
+            | ErrorCode.MissingAttributeIdentifier              -> "Expecting an attribute identifier."
                                                             
             | ErrorCode.EmptyValueArray                         -> "Empty arrays of undefined type are not supported. Use \"new T[0]\" for a suitable type T instead."
             | ErrorCode.InvalidValueArray                       -> "Syntax error in value array. Expecting a comma separated list of expressions."
@@ -436,7 +442,7 @@ type DiagnosticItem =
             | ErrorCode.DoubleOverflow                          -> "Double literal is outside of the range of valid values."
 
             | ErrorCode.NotWithinGlobalScope                    -> "Namespace declarations can only occur on a global scope."
-            | ErrorCode.NotWithinNamespace                      -> "Declarations and open-directives can only occur within a namespace."
+            | ErrorCode.NotWithinNamespace                      -> "Declarations and their attributes, as well as open-directives can only occur within a namespace."
             | ErrorCode.NotWithinCallable                       -> "Specialization declarations can only occur within an operation or function."
             | ErrorCode.NotWithinSpecialization                 -> "Statements can only occur within a callable or specialization declaration."
             | ErrorCode.MisplacedOpenDirective                  -> "Open directives can only occur at the beginning of a namespace."
@@ -464,9 +470,7 @@ type DiagnosticItem =
             | ErrorCode.InvertControlledGenerator               -> "Invalid generator for controlled specialization. Valid generators are \"distributed\" and \"auto\"."
             | ErrorCode.ControlledGenArgMismatch                -> "The argument to a user-defined controlled specialization must must be of the form \"(ctlQsName, ...)\"."
             | ErrorCode.ControlledAdjointGenArgMismatch         -> "The argument to a user-defined controlled-adjoint specialization must must be of the form \"(ctlQsName, ...)\"."
-            | ErrorCode.MissingFollowingDeclaration             -> "The attribute must be above another attribute, a type definition, an operator declaration, or a function declaration."
-            | ErrorCode.MissingClosingAttributeSign             -> "Missing closing sign for attribute, did you mean to type @ ?"
-            | ErrorCode.MissingAttributeArgs                    -> "Missing arguments for specified attribute."
+            | ErrorCode.MisplacedDeclarationAttribute           -> "An attribute must be followed by a callable declaration, a type declaration, or by another attribute."
 
             | ErrorCode.MissingExprInArray                      -> "Underscores cannot be used to denote missing array elements."
             | ErrorCode.MultipleTypesInArray                    -> "Array items must have a common base type."

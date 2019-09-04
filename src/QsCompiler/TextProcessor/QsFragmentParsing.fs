@@ -244,8 +244,15 @@ and private namespaceDeclaration =
 and private attributeDeclaration = 
     let invalid = DeclarationAttribute (invalidSymbol, unknownExpr)
     let attributeId = multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> asQualifiedSymbol 
-    let expectedArgs = expected argumentTuple ErrorCode.InvalidArgument ErrorCode.MissingArgument unknownExpr attributeIntro
-    buildFragment attributeIntro (attributeId .>>. expectedArgs) invalid DeclarationAttribute attributeIntro
+    let expectedArgs = 
+        let invalidErr, missingErr = ErrorCode.InvalidAttributeArgument, ErrorCode.MissingAttributeArgument 
+        let args = unitValue <|> buildTuple expr buildTupleExpr invalidErr missingErr unknownExpr
+        expected args invalidErr missingErr unknownExpr attributeIntro
+    let expectedAttribute = 
+        let invalidAttribute = (invalidSymbol, unknownExpr)
+        let invalidErr, missingErr = ErrorCode.InvalidAttributeIdentifier, ErrorCode.MissingAttributeIdentifier
+        expected (attributeId .>>. expectedArgs) invalidErr missingErr invalidAttribute attributeIntro
+    buildFragment attributeIntro expectedAttribute invalid DeclarationAttribute attributeIntro
 
 
 // operation and function parsing

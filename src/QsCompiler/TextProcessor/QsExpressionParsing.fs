@@ -349,7 +349,7 @@ let private itemAccessExpr =
 /// Parses a Q# argument tuple - i.e. an expression tuple that may contain Missing expressions.
 /// If the parsed argument tuple is not a unit value, 
 /// uses buildTuple to generate a MissingArgument error if a tuple item is missing, or an InvalidArgument error for invalid items. 
-let internal argumentTuple = 
+let private argumentTuple = 
     let tupleArg = buildTuple argument buildTupleExpr ErrorCode.InvalidArgument ErrorCode.MissingArgument unknownExpr
     unitValue <|> tupleArg
 
