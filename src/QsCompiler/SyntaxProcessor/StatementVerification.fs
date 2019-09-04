@@ -42,14 +42,14 @@ let private Verify symbols expr =
 /// If it does, returns an array with suitable diagnostics. Returns an empty array otherwise. 
 /// Remark: inversions can only be auto-generated if the only quantum dependencies occur within expresssion statements. 
 let private onAutoInvertCheckQuantumDependency (symbols : SymbolTracker<_>) (ex : TypedExpression, range) = 
-    if not (symbols.RequiredFunctorSupport |> Seq.contains QsFunctor.Adjoint && ex.InferredInformation.HasLocalQuantumDependency) then [||]
+    if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint && ex.InferredInformation.HasLocalQuantumDependency) then [||]
     else [| range |> QsCompilerDiagnostic.Error (ErrorCode.QuantumDependencyOutsideExprStatement, []) |] 
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested, 
 /// returns an array with containing a diagnostic for the given range with the given error code.
 /// Returns an empty array otherwise.
 let private onAutoInvertGenerateError (errCode, range) (symbols : SymbolTracker<_>) = 
-    if not (symbols.RequiredFunctorSupport |> Seq.contains QsFunctor.Adjoint) then [||]
+    if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint) then [||]
     else [| range |> QsCompilerDiagnostic.Error errCode |] 
 
 
