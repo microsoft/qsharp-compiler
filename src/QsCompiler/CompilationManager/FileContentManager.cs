@@ -857,25 +857,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             publishDiagnostics = true;
             if (count == 1 && line == start)
             {
+                this.UnprocessedUpdates.Enqueue(change);
+
                 var trimmedText = change.Text.TrimStart(); // tabs etc inserted by the editor come squashed together with the next inserted character
                 if (change.Text == String.Empty || 
                     trimmedText == "{" || trimmedText == "\"" || // let's not immediately trigger an update for these, hoping the matching one will come right after
                     trimmedText == "\\" || trimmedText == "/") // ... and the same here
                 {
-                    // we can simply queue this update - no need to actually execute it
-                    this.UnprocessedUpdates.Enqueue(change);
-                    this.Timer.Start();
+                    this.Timer.Start(); // we can simply queue this update - no need to actually execute it
                     publishDiagnostics = false;
                     return;
                 }
-                else if (Utils.ValidAsSymbol.IsMatch(trimmedText))
-                {
-                    // For changes that are part of typing a symbol, the file needs to be updated immediately for code
-                    // completion, but diagnostics should be delayed until the user has a chance to finish typing.
+
+                // For changes that are part of typing a symbol, the file needs to be updated immediately for code
+                // completion, but diagnostics should be delayed until the user has a chance to finish typing.
+                if (Utils.ValidAsSymbol.IsMatch(trimmedText))
                     publishDiagnostics = false;
-                }
+
+                this.Update();
             }
-            this.Update(change);
+            else this.Update(change);
         }
 
         /// <summary>
