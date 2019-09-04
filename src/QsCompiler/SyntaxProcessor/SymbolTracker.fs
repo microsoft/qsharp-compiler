@@ -20,8 +20,10 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 /// Used to represent all properties that need to be tracked for verifying the built syntax tree, but are not needed after.
 /// Specifically, the tracked properties are pushed and popped for each scope. 
 type private TrackedScope = private {
+    /// used to track all local variables defined on this scope, as well as their inferred information
     LocalVariables : Dictionary<NonNullable<string>, LocalVariableDeclaration<NonNullable<string>>>
-    RequiredFunctorSupport : QsFunctor list
+    /// contains the set of functors that each operation called on this scope needs to support
+    RequiredFunctorSupport : ImmutableHashSet<QsFunctor>
 }
     with
 
@@ -115,16 +117,26 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// returns true if no scope is currently open
     member this.AllScopesClosed = pushedScopes.Length = 0
 
-    /// Contains the set of functors that need to be supported by each operation call within the current scope.
-    member this.RequiredFunctorSupport : _ seq = 
-        pushedScopes |> List.collect (fun scope -> scope.RequiredFunctorSupport) |> TrackedScope.CombinedFunctorSupport |> List.toSeq
+    /// Returns the set of functors that need to be supported by each operation called within the current scope.
+    /// Returns an empty set if no scope is currently open.
+    member this.RequiredFunctorSupport = 
+        match pushedScopes with 
+        | head :: _ -> head.RequiredFunctorSupport
+        | [] -> ImmutableHashSet.Empty
 
-    /// pushes a new scope onto the stack and opens it
-    member this.BeginScope([<ParamArray>] functorSupport : QsFunctor[]) = 
+    /// Pushes a new scope onto the stack and opens it.
+    /// If the given set of functors to support is not null, operations called within the newly opened scope need to support these functors. 
+    /// Otherwise the set of functors to support is determined by the parent scope if a parent scope exist, or empty if no parent scope exists.
+    member this.BeginScope functorSupport =
         let scopeToPush = { 
             LocalVariables = new Dictionary<_,_>(); 
-            RequiredFunctorSupport = functorSupport |> Array.toList} 
+            RequiredFunctorSupport = if functorSupport = null then this.RequiredFunctorSupport else functorSupport} 
         pushedScopes <- scopeToPush :: pushedScopes
+
+    /// Pushes a new scope onto the stack and opens it.
+    /// Operations called within the newly opened scope need to support the same set of functors as the parent scope.
+    /// If no parent scope exists, then the set of functors to support is assumed to be empty.
+    member this.BeginScope () = this.BeginScope this.RequiredFunctorSupport
 
     /// pops the most recent scope from the stack, thus closing it
     member this.EndScope() = 

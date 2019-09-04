@@ -218,19 +218,19 @@ namespace Microsoft.Quantum.QsCompiler
 
             // executing the specified rewrite steps 
 
+            if (this.Config.GenerateFunctorSupport)
+            {
+                this.CompilationStatus.FunctorSupport = 0;
+                var functorSpecGenerated = this.GeneratedSyntaxTree != null && FunctorGeneration.GenerateFunctorSpecializations(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree);
+                if (!functorSpecGenerated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
+            }
+
             if (!this.Config.SkipSyntaxTreeTrimming)
             {
                 this.CompilationStatus.TreeTrimming = 0;
                 var rewrite = new InlineConjugations(onException: ex => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex));
                 this.GeneratedSyntaxTree = this.GeneratedSyntaxTree?.Select(ns => rewrite.Transform(ns))?.ToImmutableArray();
                 if (this.GeneratedSyntaxTree == null || !rewrite.Success) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
-            }
-
-            if (this.Config.GenerateFunctorSupport)
-            {
-                this.CompilationStatus.FunctorSupport = 0;
-                var functorSpecGenerated = this.GeneratedSyntaxTree != null && FunctorGeneration.GenerateFunctorSpecializations(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree);
-                if (!functorSpecGenerated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
             }
 
             // generating the compiled binary
