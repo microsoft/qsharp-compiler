@@ -19,6 +19,8 @@ type internal Resolution<'T,'R> = internal {
     Range : QsPositionInfo * QsPositionInfo
     Defined : 'T
     Resolved : QsNullable<'R>
+    DefinedAttributes : IEnumerable<QsSymbol * QsExpression>
+    ResolvedAttributes : ImmutableArray<NonNullable<string> * TypedExpression>
     Documentation : ImmutableArray<string>
 }
 

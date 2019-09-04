@@ -596,9 +596,12 @@ type SpecializationImplementation =
 /// depending on the type of the argument it is called with (type specializations), 
 /// and/or which functors are applied to the call.
 type QsSpecialization = {
+    /// contains the functor specialization kind (specialization for body, adjoint, controlled, or controlled adjoint)
     Kind : QsSpecializationKind
     /// the fully qualified name of the callable this specialization extends
     Parent : QsQualifiedName
+    /// contains all attributes associated with the specialization
+    Attributes : ImmutableArray<NonNullable<string> * TypedExpression>
     /// identifier for the file the specialization is declared in (not necessarily the same as the one of the callable it extends)
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared specialization. 
@@ -622,9 +625,12 @@ type QsSpecialization = {
 
 /// describes a Q# function, operation, or type constructor
 type QsCallable = {
+    /// contains the callable kind (function, operation, or type constructor)
     Kind : QsCallableKind
-    /// the name of the callable
+    /// contains the name of the callable
     FullName : QsQualifiedName
+    /// contains all attributes associated with the callable
+    Attributes : ImmutableArray<NonNullable<string> * TypedExpression>
     /// identifier for the file the callable is declared in
     SourceFile : NonNullable<string> 
     /// Contains the location information for the declared callable. 
@@ -661,7 +667,10 @@ type QsTypeItem =
 
 /// describes a Q# user defined type 
 type QsCustomType = {
+    /// contains the name of the type
     FullName : QsQualifiedName
+    /// contains all attributes associated with the type
+    Attributes : ImmutableArray<NonNullable<string> * TypedExpression>
     /// identifier for the file the type is declared in
     SourceFile : NonNullable<string> 
     /// Contains the location information for the declared type. 

@@ -29,7 +29,15 @@ type private PartialNamespace private
 
     let keySelector (item : KeyValuePair<'k,'v>) = item.Key
     let valueSelector (item : KeyValuePair<'k,'v>) = item.Value
-    let unresolved (location : QsLocation) (definition, doc) = {Defined = definition; Resolved = Null; Position = location.Offset; Range = location.Range; Documentation = doc}
+    let unresolved (location : QsLocation) (definition, attributes, doc) = {
+        Defined = definition; 
+        DefinedAttributes = attributes
+        Resolved = Null; 
+        ResolvedAttributes = ImmutableArray.Empty
+        Position = location.Offset; 
+        Range = location.Range; 
+        Documentation = doc
+    }
 
     /// list containing all documentation for this namespace within this source file
     /// -> a list since the namespace can in principle occur several times in the same file each time with documentation
@@ -121,7 +129,7 @@ type private PartialNamespace private
     /// Adds the corresponding type constructor to the dictionary of declared callables. 
     /// The given location is associated with both the type constructur and the type itself and accessible via the record properties Position and SymbolRange. 
     /// -> Note that this routine will fail with the standard dictionary.Add error if either a type or a callable with that name already exists. 
-    member this.AddType location (tName, typeTuple, documentation) = 
+    member this.AddType location (tName, typeTuple, attributes, documentation) = 
         let mutable anonItemId = 0
         let withoutRange sym = {Symbol = sym; Range = Null}
         let replaceAnonymous (itemName : QsSymbol, itemType) = // positional info for types in type constructors is removed upon resolution 
@@ -143,18 +151,17 @@ type private PartialNamespace private
             let returnType = {Type = UserDefinedType (QualifiedSymbol (this.Name, tName) |> withoutRange); Range = Null}
             {TypeParameters = ImmutableArray.Empty; Argument = constructorArgument; ReturnType = returnType; Characteristics = {Characteristics = EmptySet; Range = Null}}
 
-        TypeDeclarations.Add(tName, (typeTuple, documentation) |> unresolved location)
-        let constructorDoc = ImmutableArray.Create "type constructor for user defined type" // FIXME: proper format for doc
-        this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), constructorDoc)
+        TypeDeclarations.Add(tName, (typeTuple, attributes, documentation) |> unresolved location)
+        this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), ImmutableArray.Empty, ImmutableArray.Empty) 
         let bodyGen = {TypeArguments = Null; Generator = QsSpecializationGeneratorKind.Intrinsic; Range = Value location.Range}
-        this.AddCallableSpecialization location QsBody (tName, bodyGen, ImmutableArray.Empty)
+        this.AddCallableSpecialization location QsBody (tName, bodyGen, ImmutableArray.Empty, ImmutableArray.Empty) 
 
     /// Adds a callable declaration of the given kind (operation or function) 
     /// with the given callable name and signature to the dictionary of declared callables.
     /// The given location is associated with the callable declaration and accessible via the record properties Position and SymbolRange. 
     /// -> Note that this routine will fail with the standard dictionary.Add error if a callable with that name already exists. 
-    member this.AddCallableDeclaration location (cName, (kind, signature), documentation) = 
-        CallableDeclarations.Add(cName, (kind, (signature, documentation) |> unresolved location))
+    member this.AddCallableDeclaration location (cName, (kind, signature), attributes, documentation) = 
+        CallableDeclarations.Add(cName, (kind, (signature, attributes, documentation) |> unresolved location))
 
     /// Adds the callable specialization defined by the given kind and generator for the callable of the given name to the dictionary of declared specializations. 
     /// The given location is associated with the given specialization and accessible via the record properties Position and HeaderRange. 
@@ -162,10 +169,10 @@ type private PartialNamespace private
     /// *IMPORTANT*: both the verification of whether the length of the given array of type specialization 
     /// matches the number of type parameters in the callable declaration, and whether a specialization that clashes with this one
     /// already exists is up to the calling routine!
-    member this.AddCallableSpecialization location kind (cName, generator : QsSpecializationGenerator, documentation) = 
+    member this.AddCallableSpecialization location kind (cName, generator : QsSpecializationGenerator, attributes, documentation) = 
     // NOTE: all types that are not specialized need to be resolved according to the file in which the callable is declared, 
     // but all specialized types need to be resolved according to *this* file  
-        let spec = kind, (generator, documentation) |> unresolved location
+        let spec = kind, (generator, attributes, documentation) |> unresolved location
         match CallableSpecializations.TryGetValue cName with
         | true, specs -> specs.Add spec // it is up to the namespace to verify the type specializations
         | false, _ -> CallableSpecializations.Add(cName, new List<_>([spec]))
@@ -464,12 +471,12 @@ and Namespace private
     /// The given location is associated with both the type constructur and the type itself and accessible via the record properties Position and SymbolRange. 
     /// If a type or callable with that name already exists, returns an array of suitable diagnostics.
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
-    member this.TryAddType (source, location) ((tName, tRange), typeTuple, documentation) : QsCompilerDiagnostic[] = 
+    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, documentation) : QsCompilerDiagnostic[] = 
         match Parts.TryGetValue source with 
         | true, partial when not (IsDefined tName) -> 
             TypesDefinedInAllSourcesCache <- null
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddType location (tName, typeTuple, documentation); [||]
+            partial.AddType location (tName, typeTuple, attributes, documentation); [||]
         | true, _ ->  this.ContainsType tName |> function
             | Value _ -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeRedefinition, []) |]
             | Null -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeConstructorOverlapWithCallable, []) |] 
@@ -481,11 +488,11 @@ and Namespace private
     /// The given location is associated with the callable declaration and accessible via the record properties Position and SymbolRange. 
     /// If a callable with that name already exists, returns an array of suitable diagnostics.
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
-    member this.TryAddCallableDeclaration (source, location) ((cName, cRange), (kind, signature), documentation) =
+    member this.TryAddCallableDeclaration (source, location) ((cName, cRange), (kind, signature), attributes, documentation) =
         match Parts.TryGetValue source with 
         | true, partial when not (IsDefined cName) -> 
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddCallableDeclaration location (cName, (kind, signature), documentation); [||]
+            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, documentation); [||]
         | true, _ -> this.ContainsType cName |> function 
             | Value _ -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableOverlapWithTypeConstructor, []) |]
             | Null -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableRedefinition, []) |]
@@ -501,7 +508,7 @@ and Namespace private
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
     /// IMPORTANT: The verification of whether the given specialization kind (body, adjoint, controlled, or controlled adjoint) may exist
     /// for the given callable is up to the calling routine. 
-    member this.TryAddCallableSpecialization kind (source, location : QsLocation) ((cName, cRange), generator : QsSpecializationGenerator, documentation) = 
+    member this.TryAddCallableSpecialization kind (source, location : QsLocation) ((cName, cRange), generator : QsSpecializationGenerator, attributes, documentation) = 
         let getRelevantDeclInfo (declSource : NonNullable<string>) =
             let unitOrInvalid fct = function
                 | Item item -> fct item |> function | UnitType | InvalidType -> true | _ -> false
@@ -521,7 +528,7 @@ and Namespace private
             | Value declSource ->
                 let AddAndClearCache () = 
                     CallablesDefinedInAllSourcesCache <- null
-                    partial.AddCallableSpecialization location kind (cName, generator, documentation)
+                    partial.AddCallableSpecialization location kind (cName, generator, attributes, documentation)
                 // verify that the given specializations are indeed compatible with the defined type parameters
                 let qFunctorSupport, nrTypeParams = getRelevantDeclInfo declSource
                 let givenNrTypeParams = generator.TypeArguments |> function | Value args -> Some args.Length | Null -> None                
@@ -545,7 +552,7 @@ and Namespace private
         let location = {Offset = declLocation.Offset; Range = msgRange.ValueOr declLocation.Range}
         let generator = {TypeArguments = typeArgs; Generator = AutoGenerated; Range = msgRange}
         let doc = ImmutableArray.Create(sprintf "automatically generated %A specialization for %s.%s" kind this.Name.Value parentName.Value)
-        this.TryAddCallableSpecialization kind (source, location) ((parentName, declLocation.Range), generator, doc) 
+        this.TryAddCallableSpecialization kind (source, location) ((parentName, declLocation.Range), generator, ImmutableArray.Empty, doc) 
 
     /// Deletes the specialization(s) defined at the specified location and source file for the callable with the given name.
     /// Returns the number of removed specializations.
@@ -848,6 +855,7 @@ and NamespaceManager
                         TypeArguments = gen.TypeArguments
                         Information = gen.Information
                         Parent = parent
+                        Attributes = resolution.ResolvedAttributes
                         SourceFile = source
                         Position = resolution.Position
                         HeaderRange = resolution.Range
@@ -878,6 +886,7 @@ and NamespaceManager
                     | Value (signature, argTuple) -> Some {
                         Kind = kind
                         QualifiedName = {Namespace = ns.Name; Name = cName}
+                        Attributes = declaration.ResolvedAttributes
                         SourceFile = source
                         Position = declaration.Position
                         SymbolRange = declaration.Range
@@ -908,6 +917,7 @@ and NamespaceManager
                     | Null -> QsCompilerError.Raise "everything should be resolved but isn't"; None
                     | Value (underlyingType, items) -> Some {
                         QualifiedName = {Namespace = ns.Name; Name = tName}
+                        Attributes = qsType.ResolvedAttributes
                         SourceFile = source
                         Position = qsType.Position
                         SymbolRange = qsType.Range 
@@ -1002,6 +1012,7 @@ and NamespaceManager
             Value {
                 Kind = kind
                 QualifiedName = fullName
+                Attributes = declaration.ResolvedAttributes
                 SourceFile = source
                 Position = declaration.Position
                 SymbolRange = declaration.Range 
@@ -1060,6 +1071,7 @@ and NamespaceManager
             let underlyingType, items = declaration.Resolved.ValueOrApply fallback
             Value {
                 QualifiedName = fullName
+                Attributes = declaration.ResolvedAttributes
                 SourceFile = source
                 Position = declaration.Position
                 SymbolRange = declaration.Range 
