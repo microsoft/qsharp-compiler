@@ -284,13 +284,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (!isSource) throw new InvalidOperationException ($"changed file {docKey.Value} is not a source file of this compilation unit");
 
                 this.ChangedFiles.Add(docKey);
-                var notYetProcessed = true;
-                foreach (var change in param.ContentChanges) file.PushChange(change, out notYetProcessed); // only the last one here is relevant for notYetProcessed 
-                if (notYetProcessed) return; // there may be some changes that have been processed, but waiting for the auto-spawn should be fine
+                var publish = false;
+                foreach (var change in param.ContentChanges) file.PushChange(change, out publish); // only the last one here is relevant 
 
-                if (this.EnableVerification && this.WaitForTypeCheck != null)
-                { file.AddTimerTriggeredUpdateEvent(); }
-                this.PublishDiagnostics(file.Diagnostics());
+                if (publish)
+                {
+                    if (this.EnableVerification && this.WaitForTypeCheck != null)
+                    { file.AddTimerTriggeredUpdateEvent(); }
+                    this.PublishDiagnostics(file.Diagnostics());
+                }
+                else file.AddTimerTriggeredUpdateEvent();
             });
         }
 
@@ -580,6 +583,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // -> these commands need to be responsive and therefore won't wait for any processing to finish
         // -> if the query cannot be processed immediately, they simply return null
 
+        /// <param name="suppressExceptionLogging">
+        /// Whether to suppress logging of exceptions from the query.
+        /// <para/>
+        /// NOTE: In debug mode, exceptions are always logged even if this parameter is true.
+        /// </param>
         internal T FileQuery<T>(TextDocumentIdentifier textDocument,
             Func<FileContentManager, CompilationUnit, T> Query, bool suppressExceptionLogging = false)
             where T : class
@@ -589,7 +597,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 try { return Query(f, this.CompilationUnit); }
                 catch (Exception ex)
                 {
+#if DEBUG
+                    this.LogException(ex);
+#else
                     if (!suppressExceptionLogging) this.LogException(ex);
+#endif
                     return null;
                 }
             }

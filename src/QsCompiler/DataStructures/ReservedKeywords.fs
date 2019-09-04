@@ -110,6 +110,13 @@ module Statements =
     /// keyword for a Q# control flow statement
     let Fixup      = "fixup"
 
+    // block statements
+
+    /// keyword for a Q# transformation pattern
+    let Within     = "within"
+    /// keyword for a Q# transformation pattern
+    let Apply      = "apply"
+
     /// keyword for a Q# allocation statement
     let Using      = "using"
     /// keyword for a Q# allocation statement

@@ -4,5 +4,5 @@
 // Tests an invalid qs files
 namespace Compiler.Tests
 {
-	operation test02();
+    operation test02();
 }

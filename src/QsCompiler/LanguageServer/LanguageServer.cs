@@ -117,7 +117,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal void OnInternalError(Exception ex)
         {
             var line = "\n=============================\n";
-            this.LogToWindow($"{line}{ex.Message.Trim()}{line}", MessageType.Error);
+            this.LogToWindow($"{line}{ex}{line}", MessageType.Error);
             var logLocation = "the output window";  // todo: generate a proper error log in a file somewhere
             var message = "The Q# Language Server has encountered an error. Diagnostics will be reloaded upon saving the file.";
             this.ShowInWindow($"{message}\nDetails on the encountered error have been logged to {logLocation}.", MessageType.Error);
@@ -172,7 +172,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.RenameProvider = true;
             capabilities.HoverProvider = true;
             capabilities.DocumentHighlightProvider = true;
-            capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "," };
+            capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "(", "," };
             capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities 
 
             this.WaitForInit = null;
@@ -363,9 +363,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             try
             {
                 return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.CodeActions(param) ?? ImmutableDictionary<string, WorkspaceEdit>.Empty,
+                this.EditorState.CodeActions(param)
+                    ?.SelectMany(vs => vs.Select(v => BuildCommand(vs.Key, v))) 
+                    ?? Enumerable.Empty<Command>(),
                 "CodeAction threw an exception")
-                .Select(kv => BuildCommand(kv.Key, kv.Value)).ToArray();
+                .ToArray();
             }
             catch { return new Command[0]; }
         }

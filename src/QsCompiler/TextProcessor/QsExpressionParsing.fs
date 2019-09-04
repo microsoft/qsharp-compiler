@@ -43,12 +43,12 @@ let internal applyTerinary operator (first : QsExpression) (second : QsExpressio
     applyBinary buildOp () first third
 
 let private deprecatedOp warning (parsedOp : string) =
-    let preceedingRange (pos : Position) =
+    let precedingRange (pos : Position) =
         let opLength = int64 (parsedOp.Length)
         let minusOldOpLength value = if value < opLength then 0L else value - opLength // value here should never be 0 or less (just a precaution)
-        let preceedingPos = new Position(pos.StreamName, pos.Index |> minusOldOpLength, pos.Line, pos.Column |> minusOldOpLength)
-        (preceedingPos, pos)
-    buildWarning (getPosition |>> preceedingRange) warning
+        let precedingPos = new Position(pos.StreamName, pos.Index |> minusOldOpLength, pos.Line, pos.Column |> minusOldOpLength)
+        (precedingPos, pos)
+    buildWarning (getPosition |>> precedingRange) warning
 
 qsExpression.AddOperator (TernaryOperator(qsCopyAndUpdateOp.op, emptySpace, qsCopyAndUpdateOp.cont, emptySpace                        , qsCopyAndUpdateOp.prec, qsCopyAndUpdateOp.Associativity,     applyTerinary CopyAndUpdate))
 qsExpression.AddOperator (TernaryOperator(qsConditionalOp.op  , emptySpace, qsConditionalOp.cont, emptySpace                          , qsConditionalOp.prec  , qsConditionalOp.Associativity  ,     applyTerinary CONDITIONAL  ))
@@ -102,7 +102,7 @@ let private withModifiers modifiableExpr =
         let adjointApplication = qsAdjointFunctor.parse .>>. preturn AdjointApplication
         let controlledApplication = qsControlledFunctor.parse .>>. preturn ControlledApplication
         adjointApplication <|> controlledApplication
-    attempt (many functorApplication .>>. modifiableExpr) .>>. many unwrapOperator // NOTE: do *not* replace by an expected expression even if there are preceeding functors!
+    attempt (many functorApplication .>>. modifiableExpr) .>>. many unwrapOperator // NOTE: do *not* replace by an expected expression even if there are preceding functors!
     |>> fun ((functors, ex), unwraps) -> applyUnwraps unwraps ex |> applyFunctors (functors |> List.rev)
 
 
@@ -164,7 +164,7 @@ let private boolLiteral =
 
 /// Parses a Q# int or double literal as QsExpression. 
 let private numericLiteral =
-    let verifyAndBuild (nl : NumberLiteral) = 
+    let verifyAndBuild (nl : NumberLiteral, range) = 
         let format = 
             if   nl.IsBinary      then 2
             elif nl.IsOctal       then 8 
@@ -177,11 +177,19 @@ let private numericLiteral =
         let isInt    = nl.IsInteger     && format <> 0                  && nl.SuffixLength = 0 // any format is fine here
         let isBigInt = nl.IsInteger     && (format = 10 || format = 16) && nl.SuffixLength = 1 && System.Char.ToUpperInvariant(nl.SuffixChar1) = 'L'
         let isDouble = not nl.IsInteger && format = 10                  && nl.SuffixLength = 0 
-        try if isInt then System.Convert.ToInt64 (str, format) |> IntLiteral |> preturn
+        let returnWithRange kind = preturn (kind, range)
+        try if isInt then 
+                let value = System.Convert.ToUInt64 (str, format) // convert to uint64 to allow proper handling of Int64.MinValue
+                if value = uint64(-System.Int64.MinValue) then System.Int64.MinValue |> IntLiteral |> preturn |> asExpression >>= (NEG >> returnWithRange)
+                elif value > (uint64)System.Int64.MaxValue then // needs to be after the first check above
+                    buildError (preturn range) ErrorCode.IntOverflow >>. returnWithRange ((int64)value |> IntLiteral)                
+                else (int64)value |> IntLiteral |> returnWithRange
             elif isBigInt then 
-                if format = 16 then BigInteger.Parse(str, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> preturn
-                else BigInteger.Parse (nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> preturn
-            elif isDouble then System.Convert.ToDouble (nl.String, CultureInfo.InvariantCulture) |> DoubleLiteral |> preturn
+                if format = 16 then BigInteger.Parse(str, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
+                else BigInteger.Parse (nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
+            elif isDouble then 
+                try System.Convert.ToDouble (nl.String, CultureInfo.InvariantCulture) |> DoubleLiteral |> returnWithRange
+                with | :? System.OverflowException -> buildError (preturn range) ErrorCode.DoubleOverflow >>. returnWithRange (System.Double.NaN |> DoubleLiteral)
             else fail "invalid number format"
         with | _ -> fail "failed to initialize number literal"         
     let format =  // not allowed are: infinity, NaN
@@ -199,7 +207,7 @@ let private numericLiteral =
                 else notFollowedBy (pchar '.') >>. preturn nl
         // note that on a first pass, all options *need* to be parsed together -> don't split into double and int!!
         attempt (number false) <|> attempt (number true) 
-    literal >>= verifyAndBuild |> asExpression
+    term literal >>= verifyAndBuild |>> fun (exKind, range) -> range |> buildExpression exKind
 
 /// Parses a Q# string literal as QsExpression. 
 /// Handles both interpolates and non-interpolated strings.
@@ -324,7 +332,7 @@ let private itemAccessExpr =
                     let combineWith right left = buildCombinedExpr (RangeLiteral (left, right)) (left.Range, right.Range)
                     match core.Expression with
                     // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence, 
-                    // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are prentheses around it. 
+                    // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it. 
                     | RangeLiteral (lex, rex) -> buildCombinedExpr (RangeLiteral (missingEx lend, lex)) (QsPositionInfo.Range (lstart, lend), lex.Range) |> combineWith rex 
                     | _ -> missingEx lend |> combineWith core |> applyPost
                 | None -> core |> applyPost

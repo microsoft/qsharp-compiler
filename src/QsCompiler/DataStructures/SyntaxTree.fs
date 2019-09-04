@@ -442,7 +442,8 @@ type QsScope = {
 } 
 
 
-/// used to represent both the cases in a potential match statement, and the conditional blocks in an if-statement
+/// Used instead of QsScope to represent a statement block within a statement that (potentially) contains more than one such block. 
+/// This is the case e.g. for in if-statement which may contain several conditional blocks, or a repeat-until-success-statement, or a conjugation.
 and QsPositionedBlock = {
     /// the Q# statement block to execute (only) if the associated condition evaluates to true
     /// -> note that the block is treated as a separate scope, i.e. variables declared within the block won't be visible after the end of the block
@@ -506,6 +507,15 @@ and QsRepeatStatement = {
 }
 
 
+/// used to represent a pattern of the form U*VU where the order of application is right to left and U* is the adjoint of U
+and QsConjugation = {
+    /// represents the outer transformation U in a pattern of the form U*VU where the order of application is right to left and U* is the adjoint of U
+    OuterTransformation : QsPositionedBlock
+    /// represents the inner transformation V in a pattern of the form U*VU where the order of application is right to left and U* is the adjoint of U
+    InnerTransformation : QsPositionedBlock
+}
+
+
 /// Statement block for the duration of which qubits are either allocated or borrowed on the target machine.
 /// Note: Q# binding scopes are specific to qubit management and hence only valid within Q# operations.
 and QsQubitScope = {
@@ -536,6 +546,7 @@ and QsStatementKind =
 | QsForStatement         of QsForStatement
 | QsWhileStatement       of QsWhileStatement
 | QsRepeatStatement      of QsRepeatStatement
+| QsConjugation          of QsConjugation
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
 | QsScopeStatement       of QsScopeStatement
 

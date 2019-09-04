@@ -71,19 +71,6 @@ type SymbolTuple with
         | VariableName _ -> Some [this]
 
 
-type QsType with 
-
-    // utils for tuple matching
-
-    static member private OnTupleItems = OnTupleItems (fun (single : QsType) -> single.TupleItems) "QsType"
-    member internal this.TupleItems = 
-        match this.Type with
-        | InvalidType -> None
-        | MissingType -> Some []
-        | TupleType items -> items |> QsType.OnTupleItems
-        | _ -> Some [this]
-
-
 type ResolvedType with 
 
     // utils for internal use only
@@ -126,19 +113,48 @@ type ResolvedType with
         | QsTypeKind.TupleType ts -> ts |> Seq.map recur |> Seq.contains true
         | _ -> false
 
-    /// Walks the given resolved type, 
-    /// and applies the given extraction function to each contained type, 
-    /// including array base types, tuple item types, and argument and result types of functions and operations.
-    /// Returns an enumerable of all extracted return values. 
-    member this.ExtractAll (extract : _ -> IEnumerable<_>) : IEnumerable<_> = 
-        let recur (t : ResolvedType) = t.ExtractAll extract
-        match this.Resolution with 
+    /// Recursively applies the given function inner to the given item and  
+    /// applies the given extraction function to each contained subitem of the returned type kind.
+    /// Returns an enumerable of all extracted items. 
+    static member private ExtractAll (inner : _ -> QsTypeKind<_,_,_,_>, extract : _ -> IEnumerable<_>) this : IEnumerable<_> = 
+        let recur = ResolvedType.ExtractAll (inner, extract)
+        match inner this with 
         | QsTypeKind.ArrayType bt -> bt |> recur
         | QsTypeKind.Function (it, ot) 
         | QsTypeKind.Operation ((it, ot), _) -> (it |> recur).Concat (ot |> recur)
         | QsTypeKind.TupleType ts -> ts |> Seq.collect recur 
         | _ -> Enumerable.Empty()
-        |> (extract this.Resolution).Concat
+        |> (extract this).Concat
+
+    /// Walks the given resolved type, 
+    /// and applies the given extraction function to each contained type, 
+    /// including array base types, tuple item types, and argument and result types of functions and operations.
+    /// Returns an enumerable of all extracted return values. 
+    member this.ExtractAll (extract : _ -> IEnumerable<_>) : IEnumerable<_> = 
+        let inner (t : ResolvedType) = t.Resolution
+        ResolvedType.ExtractAll (inner, (inner >> extract)) this
+
+
+type QsType with 
+
+    // utils for tuple matching
+
+    static member private OnTupleItems = OnTupleItems (fun (single : QsType) -> single.TupleItems) "QsType"
+    member internal this.TupleItems = 
+        match this.Type with
+        | InvalidType -> None
+        | MissingType -> Some []
+        | TupleType items -> items |> QsType.OnTupleItems
+        | _ -> Some [this]
+
+    // utils for walking the data structure
+
+    /// Walks the given QsType, 
+    /// and applies the given extraction function to each contained type.
+    /// Returns an enumerable of all extracted types. 
+    member public this.ExtractAll (extract : _ -> IEnumerable<_>) = 
+        let inner (t : QsType) = t.Type
+        ResolvedType.ExtractAll (inner, extract) this
 
 
 type TypedExpression with 
@@ -171,6 +187,20 @@ type TypedExpression with
         | CallLikeExpression (_, args) -> args |> TypedExpression.ContainsMissing
         | _ -> false
 
+    /// Returns true if the expression kind does not contain any inner expressions. 
+    static member private IsAtomic (kind : QsExpressionKind<'E, _, _>) = 
+        match kind with
+        | UnitValue
+        | Identifier _ 
+        | IntLiteral _
+        | BigIntLiteral _ 
+        | DoubleLiteral _ 
+        | BoolLiteral _ 
+        | ResultLiteral _ 
+        | PauliLiteral _ 
+        | MissingExpr
+        | InvalidExpr -> true
+        | _ -> false
 
     /// Recursively traverses an expression by first applying a function "mapper" to modify the expression,
     /// then by finding all the subexpressions of the expression, then by applying MapFold to each subexpression,
@@ -184,7 +214,8 @@ type TypedExpression with
             | NOT ex                             
             | AdjointApplication ex              
             | ControlledApplication ex           
-            | UnwrapApplication ex               
+            | UnwrapApplication ex    
+            | NamedItem (ex, _)
             | NewArray (_, ex)                   -> [ex] :> seq<_>
             | ADD (lhs,rhs)                      
             | SUB (lhs,rhs)                      
@@ -208,11 +239,13 @@ type TypedExpression with
             | RangeLiteral (lhs, rhs)            
             | ArrayItem (lhs, rhs)               
             | CallLikeExpression (lhs,rhs)       -> upcast [lhs; rhs]
-            | CONDITIONAL(cond, ifTrue, ifFalse) -> upcast [cond; ifTrue; ifFalse]
+            | CopyAndUpdate (ex1, ex2, ex3)
+            | CONDITIONAL(ex1, ex2, ex3)         -> upcast [ex1; ex2; ex3]
             | StringLiteral (_,items)            
             | ValueTuple items                   
             | ValueArray items                   -> upcast items
-            | _                                  -> Seq.empty
+            | kind when TypedExpression.IsAtomic kind -> Seq.empty
+            | _  -> NotImplementedException "missing implementation for the given expression kind" |> raise
         folder (Seq.map (TypedExpression.MapFold mapper folder) subExprs) expr
 
     /// Returns true if the expression contains a sub-expression satisfying the given condition.
@@ -231,7 +264,7 @@ type TypedExpression with
     /// Walks the given expression, 
     /// and applies the given extraction function to each contained expression.
     /// Returns an enumerable of all extracted expressions. 
-    member public this.ExtractAll (extract : _ -> seq<_>) = 
+    member public this.ExtractAll (extract : _ -> IEnumerable<_>) = 
         let inner (ex : TypedExpression) = ex.Expression
         TypedExpression.ExtractAll (inner, extract) this
 
@@ -253,7 +286,7 @@ type QsExpression with
     /// Walks the given QsExpression, 
     /// and applies the given extraction function to each contained expression.
     /// Returns an enumerable of all extracted expressions. 
-    member public this.ExtractAll (extract : _ -> seq<_>) = 
+    member public this.ExtractAll (extract : _ -> IEnumerable<_>) = 
         let inner (ex : QsExpression) = ex.Expression
         TypedExpression.ExtractAll (inner, extract) this
 
@@ -278,6 +311,7 @@ type QsStatement with
                     (match s.Default with Null -> Seq.empty | Value v -> upcast v.Body.Statements))
             | QsForStatement s -> upcast s.Body.Statements
             | QsWhileStatement s -> upcast s.Body.Statements
+            | QsConjugation s -> Seq.append s.OuterTransformation.Body.Statements s.InnerTransformation.Body.Statements // FIXME: not sure this folder makes sense...
             | QsRepeatStatement s -> Seq.append s.RepeatBlock.Body.Statements s.FixupBlock.Body.Statements
             | QsQubitScope s -> upcast s.Body.Statements
             | QsScopeStatement s -> upcast s.Body.Statements

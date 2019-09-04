@@ -112,9 +112,14 @@ let private verifyStatement (context : SyntaxTokenContext) =
         | BorrowingBlockIntro _    -> false, [| (ErrorCode.BorrowingInFunction |> Error, context.Range) |]
         | RepeatIntro _            -> true,  [| (WarningCode.DeprecatedRUSloopInFunction |> Warning, context.Range) |] // NOTE: if repeat is excluded, exlude the UntilSuccess below!
         | UntilSuccess _           -> true,  [||] // no need to raise an error - the error comes either from the preceding repeat or because the latter is missing 
+        | WithinBlockIntro _       -> false, [| (ErrorCode.ConjugationWithinFunction |> Error, context.Range) |] 
+        | ApplyBlockIntro _        -> false, [||] // no need to raise an error - the error comes either from the preceding within or because the latter is missing 
         | _                        -> true,  [||]
     let checkForNotValidInOperation = function
         | WhileLoopIntro _         -> false, [| (ErrorCode.WhileLoopInOperation |> Error, context.Range) |]
+        | _                        -> true, [||]
+    let checkForNotValidInApply = function
+        | ReturnStatement _         -> false, [| (ErrorCode.ReturnFromWithinApplyBlock |> Error, context.Range) |]
         | _                        -> true, [||]
 
     let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation 
@@ -123,6 +128,7 @@ let private verifyStatement (context : SyntaxTokenContext) =
         | [] -> notWithinSpecialization
         | parent :: tail -> parent |> function 
             // (potentially) valid parents for statements
+            | Value (ApplyBlockIntro _) -> NullOr checkForNotValidInApply 
             | Value (FunctionDeclaration _) -> NullOr checkForNotValidInFunction
             | Value (OperationDeclaration _) -> NullOr checkForNotValidInOperation
             | Value (BodyDeclaration _)
@@ -143,11 +149,11 @@ let private verifyStatement (context : SyntaxTokenContext) =
 
 /// Verifies that the preceding fragment in the given context is an if- or elif-clause.
 /// Returns an array with suitable diagnostics.
-let private preceedingIfOrElif context = 
+let private precededByIfOrElif context = 
     match context.Previous with
     | Value (IfClause _) | Value (ElifClause _) -> verifyStatement context
     | Value InvalidFragment -> false, [||]
-    | _ -> false, [| (ErrorCode.MissingPreceedingIfOrElif |> Error, context.Range) |]
+    | _ -> false, [| (ErrorCode.MissingPrecedingIfOrElif |> Error, context.Range) |]
 
 /// Verifies that the following fragment in the given context is an until-clause.
 /// Returns an array with suitable diagnostics.
@@ -157,13 +163,29 @@ let private followedByUntil context =
     | Value InvalidFragment -> false, [||]
     | _ -> false, [| (ErrorCode.MissingContinuationUntil |> Error, context.Range) |]
 
-/// Verifies that the preceding fragment in the given context is a repeat intro.
+/// Verifies that the preceding fragment in the given context is a repeat-block intro.
 /// Returns an array with suitable diagnostics.
-let private preceededByRepeat context = 
+let private precededByRepeat context = 
     match context.Previous with 
-    | Value RepeatIntro-> verifyStatement context 
+    | Value RepeatIntro -> verifyStatement context 
     | Value InvalidFragment -> false, [||]
-    | _ -> false, [| (ErrorCode.MissingPreceedingRepeat |> Error, context.Range) |] 
+    | _ -> false, [| (ErrorCode.MissingPrecedingRepeat |> Error, context.Range) |] 
+
+/// Verifies that the preceding fragment in the given context is a within-block intro.
+/// Returns an array with suitable diagnostics.
+let private precededByWithin context = 
+    match context.Previous with 
+    | Value WithinBlockIntro -> verifyStatement context
+    | Value InvalidFragment -> false, [||]
+    | _ -> false, [| (ErrorCode.MissingPrecedingWithin |> Error, context.Range) |]
+
+/// Verifies that the following fragment in the given context is an apply-block intro.
+/// Returns an array with suitable diagnostics.
+let private followedByApply context = 
+    match context.Next with 
+    | Value ApplyBlockIntro -> verifyStatement context
+    | Value InvalidFragment -> false, [||]
+    | _ -> false, [| (ErrorCode.MissingContinuationApply |> Error, context.Range) |]
 
 /// Verifies that either there is no preceding fragment in the given context, 
 /// or the preceding fragment is another open directive.
@@ -196,12 +218,14 @@ let VerifySyntaxTokenContext =
             | MutableBinding                _ -> verifyStatement context        
             | ValueUpdate                   _ -> verifyStatement context
             | IfClause                      _ -> verifyStatement context        
-            | ElifClause                    _ -> preceedingIfOrElif context
-            | ElseClause                    _ -> preceedingIfOrElif context
+            | ElifClause                    _ -> precededByIfOrElif context
+            | ElseClause                    _ -> precededByIfOrElif context
             | ForLoopIntro                  _ -> verifyStatement context 
             | WhileLoopIntro                _ -> verifyStatement context
             | RepeatIntro                   _ -> followedByUntil context     
-            | UntilSuccess                  _ -> preceededByRepeat context
+            | UntilSuccess                  _ -> precededByRepeat context
+            | WithinBlockIntro              _ -> followedByApply context
+            | ApplyBlockIntro               _ -> precededByWithin context
             | UsingBlockIntro               _ -> verifyStatement context
             | BorrowingBlockIntro           _ -> verifyStatement context     
             | BodyDeclaration               _ -> verifySpecialization context
