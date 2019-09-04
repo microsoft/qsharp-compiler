@@ -240,7 +240,7 @@ and private namespaceDeclaration =
     let invalid = NamespaceDeclaration invalidSymbol
     buildFragment namespaceDeclHeader.parse (expectedNamespaceName eof) invalid NamespaceDeclaration eof
 
-/// Uses buildAttribute to parse a Q# AttributeDeclaration as a QsFragment.
+/// Uses buildFragment to parse a Q# DeclarationAttribute as QsFragment.
 and private attributeDeclaration = 
     let invalid = DeclarationAttribute (invalidSymbol, unknownExpr)
     let attributeId = multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> asQualifiedSymbol 
