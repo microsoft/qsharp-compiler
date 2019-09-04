@@ -41,15 +41,16 @@ type ErrorCode =
     | InvalidOperationDeclaration = 3023
     | InvalidFunctionDeclaration = 3024
     | InvalidTypeDefinition = 3025
-    | InvalidNamespaceDeclaration = 3026        
-    | InvalidOpenDirective = 3027
-    | InvalidExpressionStatement = 3028 
-    | InvalidConstructorExpression = 3029
-    | MissingArgumentForFunctorGenerator = 3030
-    | InvalidKeywordWithinExpression = 3031
-    | InvalidUseOfReservedKeyword = 3032
-    | ExcessContinuation = 3033
-    | NonCallExprAsStatement = 3034
+    | InvalidDeclarationAttribute = 3026
+    | InvalidNamespaceDeclaration = 3027       
+    | InvalidOpenDirective = 3028
+    | InvalidExpressionStatement = 3029 
+    | InvalidConstructorExpression = 3030
+    | MissingArgumentForFunctorGenerator = 3031
+    | InvalidKeywordWithinExpression = 3032
+    | InvalidUseOfReservedKeyword = 3033
+    | ExcessContinuation = 3034
+    | NonCallExprAsStatement = 3035
 
     | InvalidExpression = 3101
     | MissingExpression = 3102
@@ -105,6 +106,10 @@ type ErrorCode =
     | MissingUdtItemDeclaration = 3234
     | InvalidUdtItemNameDeclaration = 3235
     | MissingUdtItemNameDeclaration = 3236
+    | InvalidAttributeArgument = 3237
+    | MissingAttributeArgument = 3238
+    | InvalidAttributeIdentifier = 3239
+    | MissingAttributeIdentifier = 3240
 
     | EmptyValueArray = 3300 
     | InvalidValueArray = 3301
@@ -142,6 +147,7 @@ type ErrorCode =
     | InvertControlledGenerator = 4112
     | ControlledGenArgMismatch = 4113
     | ControlledAdjointGenArgMismatch = 4114
+    | MisplacedDeclarationAttribute = 4115
 
     | MissingExprInArray = 5001
     | MultipleTypesInArray = 5002
@@ -358,6 +364,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidOperationDeclaration             -> "Syntax error in operation declaration."          
             | ErrorCode.InvalidFunctionDeclaration              -> "Syntax error in function declaration."           
             | ErrorCode.InvalidTypeDefinition                   -> "Syntax error in type definition."                
+            | ErrorCode.InvalidDeclarationAttribute             -> "Syntax error in declaration attribute."
             | ErrorCode.InvalidNamespaceDeclaration             -> "Syntax error in namespace declaration."           
             | ErrorCode.InvalidOpenDirective                    -> "Syntax error in open-directive."                                           
             | ErrorCode.InvalidExpressionStatement              -> "Syntax error in expression-statement." 
@@ -422,6 +429,10 @@ type DiagnosticItem =
             | ErrorCode.MissingUdtItemDeclaration               -> "Missing item. Expecting either a named item (\"itemName : ItemType\"), or an anonymous item as indicated by denoting the type only." 
             | ErrorCode.InvalidUdtItemNameDeclaration           -> "Invalid item name. Expecting an unqualified symbol name."
             | ErrorCode.MissingUdtItemNameDeclaration           -> "Expecting an unqualified symbol name."
+            | ErrorCode.InvalidAttributeArgument                -> "Invalid attribute argument. Expecting an argument tuple of compile-time constants."
+            | ErrorCode.MissingAttributeArgument                -> "Expecting a argument tuple of compile-time constants."
+            | ErrorCode.InvalidAttributeIdentifier              -> "Invalid attribute identifier. Expecting a qualified or unqualified symbol."
+            | ErrorCode.MissingAttributeIdentifier              -> "Expecting an attribute identifier."
                                                             
             | ErrorCode.EmptyValueArray                         -> "Empty arrays of undefined type are not supported. Use \"new T[0]\" for a suitable type T instead."
             | ErrorCode.InvalidValueArray                       -> "Syntax error in value array. Expecting a comma separated list of expressions."
@@ -431,7 +442,7 @@ type DiagnosticItem =
             | ErrorCode.DoubleOverflow                          -> "Double literal is outside of the range of valid values."
 
             | ErrorCode.NotWithinGlobalScope                    -> "Namespace declarations can only occur on a global scope."
-            | ErrorCode.NotWithinNamespace                      -> "Declarations and open-directives can only occur within a namespace."
+            | ErrorCode.NotWithinNamespace                      -> "Declarations and their attributes, as well as open-directives can only occur within a namespace."
             | ErrorCode.NotWithinCallable                       -> "Specialization declarations can only occur within an operation or function."
             | ErrorCode.NotWithinSpecialization                 -> "Statements can only occur within a callable or specialization declaration."
             | ErrorCode.MisplacedOpenDirective                  -> "Open directives can only occur at the beginning of a namespace."
@@ -459,7 +470,8 @@ type DiagnosticItem =
             | ErrorCode.InvertControlledGenerator               -> "Invalid generator for controlled specialization. Valid generators are \"distributed\" and \"auto\"."
             | ErrorCode.ControlledGenArgMismatch                -> "The argument to a user-defined controlled specialization must must be of the form \"(ctlQsName, ...)\"."
             | ErrorCode.ControlledAdjointGenArgMismatch         -> "The argument to a user-defined controlled-adjoint specialization must must be of the form \"(ctlQsName, ...)\"."
-                                                            
+            | ErrorCode.MisplacedDeclarationAttribute           -> "An attribute must be followed by a callable declaration, a type declaration, or by another attribute."
+
             | ErrorCode.MissingExprInArray                      -> "Underscores cannot be used to denote missing array elements."
             | ErrorCode.MultipleTypesInArray                    -> "Array items must have a common base type."
             | ErrorCode.InvalidArrayItemIndex                   -> "Expecting an expression of type Int or Range. Got an expression of type {0}."

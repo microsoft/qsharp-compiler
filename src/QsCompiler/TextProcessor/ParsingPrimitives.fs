@@ -71,3 +71,5 @@ let internal missingExpr     = keyword "_" |>> buildQsExpression MissingExpr
 let internal discardedSymbol = keyword "_" |>> buildQsSymbol MissingSymbol
 /// parses an omitted-symbols-indicator ("...") as a term and returnes the corresponding Q# expression
 let internal omittedSymbols  = keyword "..." |>> buildQsSymbol OmittedSymbols
+/// parses the introductory char to a Q# attribute as a term and returns its range
+let internal attributeIntro  = term (pchar '@') |>> snd
