@@ -456,10 +456,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Builds the QsScope containing the given list of tree nodes, 
         /// calling BuildStatement for each of them, and using the given symbol tracker to verify and track all symbols. 
         /// The declarations the scope inherits from its parents are assumed to be the current declarations in the given symbol tacker. 
-        /// Throws an ArgumentNullException if any of the arguments is null.
+        /// If a required set of functors are specified, then each operation called within the built scope needs to support these functors. 
+        /// If the set of required functors is unspecified or null, then the functors to support are determined by the parent scope. 
+        /// Throws an ArgumentNullException if the given list of tree nodes, symbol tracker or diagnostics are null.
         /// </summary>
         private static QsScope BuildScope(IReadOnlyList<FragmentTree.TreeNode> nodeContent, 
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, params QsFunctor[] requiredFunctorSupport)
+            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, ImmutableHashSet<QsFunctor> requiredFunctorSupport = null)
         {
             if (nodeContent == null) throw new ArgumentNullException(nameof(nodeContent));
             if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
@@ -790,13 +792,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (nodes.Current.Fragment.Kind.IsWithinBlockIntro)
             {
-                // Since we need to generate an adjoint for the statements that define the outer transformation in any case - 
-                // i.e. whether we need to generate an adjoint for the current scope or not - 
-                // we only require additional support if no adjoint needs to be generated for the parent scope.
-                var additionalFunctorSupport = symbolTracker.RequiredFunctorSupport.Contains(QsFunctor.Adjoint)
-                    ? new QsFunctor[0] // we already require that all called operations support the Adjoint functor 
-                    : new[] { QsFunctor.Adjoint }; // all operations called within the outer transformation need to support the Adjoint functor
-                var outerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics, additionalFunctorSupport);
+                // The requirement for outer blocks in conjugations is always that an adjoint can be auto-generated for them,
+                // independent on what functor specializations need to be auto-generated for the containing operation.
+                var requiredFunctorSupport = ImmutableHashSet.Create(QsFunctor.Adjoint);
+                var outerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics, requiredFunctorSupport);
                 var outer = new QsPositionedBlock(outerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
                 if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsApplyBlockIntro)
@@ -1117,7 +1116,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // -> the position information is set to null (only) for variables defined in the declaration 
             var (variablesOnDeclation, variablesOnSpecialization) = SyntaxGenerator.ExtractItems(argTuple).Partition(decl => decl.Position.IsNull);
 
-            symbolTracker.BeginScope(requiredFunctorSupport.ToArray());
+            symbolTracker.BeginScope(requiredFunctorSupport);
             foreach (var decl in variablesOnDeclation)
             { symbolTracker.TryAddVariableDeclartion(decl); }
 
