@@ -43,7 +43,9 @@ namespace Microsoft.Quantum.QsCompiler
                     process.Start();
                     process.BeginOutputReadLine();
                     process.BeginErrorReadLine();
-                    return process.WaitForExit(timeout);
+                    return process.WaitForExit(timeout)
+                        && outputWaitHandle.WaitOne()
+                        && errorWaitHandle.WaitOne();
                 }
                 catch (Exception e) { ex = e; }
                 finally

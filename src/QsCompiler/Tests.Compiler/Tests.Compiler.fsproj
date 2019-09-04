@@ -14,6 +14,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="TestCases\ExecutionTests\LoggingBasedTests.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LocalVerification.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -51,6 +54,7 @@
     <Compile Include="TypeCheckingTests.fs" />
     <Compile Include="AutoGenerationTests.fs" />
     <Compile Include="TransformationTests.fs" />
+    <Compile Include="ExecutionTests.fs" />
     <Compile Include="RegexTests.fs" />
     <Compile Include="AttributesMocks.fs" />
     <Compile Include="AttributesTests.fs" />
@@ -70,11 +74,21 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CommandLineTool\QsCommandLineTool.csproj" />
+    <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Update="System.ValueTuple" Version="4.4.0" />
     <PackageReference Update="FSharp.Core" Version="4.6.2" />    
   </ItemGroup>
-  
+
+  <Target Name="PrepareExecutionTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <ExecutionTarget>"$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp2.1\Example.dll"</ExecutionTarget>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(OutputPath)ExecutionTarget.txt" Lines="$(ExecutionTarget)" Overwrite="true" />
+  </Target>
+
 </Project>
