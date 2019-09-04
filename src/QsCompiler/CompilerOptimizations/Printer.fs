@@ -8,7 +8,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-open Types
+open Utils
 
 
 // Pretty-print various syntax elements
@@ -21,7 +21,7 @@ let internal printIdentifier (iden: Identifier): string =
     | InvalidIdentifier -> "__invalid__"
 
 
-let rec internal printExpr (expr: Expr): string =
+let rec internal printExpr (expr: ExprKind): string =
     match expr with
     | Identifier (LocalVariable a, _) -> "LocalVariable " + a.Value
     | Identifier (GlobalCallable a, _) -> "GlobalCallable " + a.Name.Value
@@ -98,7 +98,7 @@ let rec internal printQsTuple (qt: QsTuple<LocalVariableDeclaration<QsLocalSymbo
 
 let rec internal printStm (indent: int) (stm: QsStatementKind): string =
     let ws = String.replicate indent "    "
-    match stm with 
+    match stm with
     | QsReturnStatement a ->
         ws + sprintf "return %O;" (printExpr a.Expression)
     | QsFailStatement a ->
@@ -117,7 +117,7 @@ let rec internal printStm (indent: int) (stm: QsStatementKind): string =
         ws + sprintf "for %O in %O %O" (a.LoopItem |> fst |> printSymbolTuple) (printExpr a.IterationValues.Expression) (printScope indent a.Body)
     | QsWhileStatement a ->
         ws + sprintf "while %O %O" (printExpr a.Condition.Expression) (printScope indent a.Body)
-    | QsConjugation a -> 
+    | QsConjugation a ->
         ws + "within" + (printScope indent a.OuterTransformation.Body) + "\n" +
         ws + "apply" + (printScope indent a.InnerTransformation.Body)
     | QsRepeatStatement a ->

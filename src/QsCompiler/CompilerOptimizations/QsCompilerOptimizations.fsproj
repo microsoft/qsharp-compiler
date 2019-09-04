@@ -13,7 +13,6 @@
       <Link>DelaySign.fs</Link>
     </Compile>
     <Compile Include="ComputationExpressions.fs" />
-    <Compile Include="Types.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Printer.fs" />
     <Compile Include="Evaluation.fs" />

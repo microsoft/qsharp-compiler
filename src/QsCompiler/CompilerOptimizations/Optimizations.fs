@@ -5,7 +5,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilerOptimization
 
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.Types
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.Utils
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.OptimizingTransformation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.LoopUnrolling

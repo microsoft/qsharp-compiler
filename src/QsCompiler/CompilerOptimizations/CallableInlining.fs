@@ -10,7 +10,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open ComputationExpressions
-open Types
 open Utils
 open OptimizingTransformation
 

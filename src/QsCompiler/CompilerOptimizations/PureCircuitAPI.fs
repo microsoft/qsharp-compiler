@@ -9,7 +9,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 open ComputationExpressions
-open Types
 open Utils
 open Printer
 
@@ -75,16 +74,16 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
         return !ccRef, g !outputRef }
 
     match expr.Expression with
-    | Expr.IntLiteral x -> IntLiteral x |> someLiteral
-    | Expr.DoubleLiteral x -> DoubleLiteral x |> someLiteral
-    | Expr.PauliLiteral x -> PauliLiteral x |> someLiteral
-    | Expr.ValueTuple x ->
+    | ExprKind.IntLiteral x -> IntLiteral x |> someLiteral
+    | ExprKind.DoubleLiteral x -> DoubleLiteral x |> someLiteral
+    | ExprKind.PauliLiteral x -> PauliLiteral x |> someLiteral
+    | ExprKind.ValueTuple x ->
         recurse cc x Some Tuple
-    | Expr.ValueArray x when typeIsArray TypeKind.Pauli ->
+    | ExprKind.ValueArray x when typeIsArray TypeKind.Pauli ->
         recurse cc x (function Literal (PauliLiteral p) -> Some p | _ -> None) (PauliArray >> Literal)
-    | Expr.ValueArray x when typeIsArray TypeKind.Qubit ->
+    | ExprKind.ValueArray x when typeIsArray TypeKind.Qubit ->
         recurse cc x (function Qubit i -> Some i | _ -> None) QubitArray
-    | Expr.Identifier _ when expr.ResolvedType.Resolution = TypeKind.Qubit ->
+    | ExprKind.Identifier _ when expr.ResolvedType.Resolution = TypeKind.Qubit ->
         let newQubits, i = ensureMatchingIndex cc.qubits
         Some ({cc with qubits = newQubits}, Qubit i)
     | _ ->
@@ -101,7 +100,7 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
             return cc, { result with adjoint = not result.adjoint }
         | ControlledApplication x ->
             match arg.Expression with
-            | Expr.ValueTuple vt ->
+            | ExprKind.ValueTuple vt ->
                 do! check (vt.Length = 2)
                 let! cc, res = toExpression (cc, vt.[0])
                 let! cc, result = helper cc x vt.[1]
@@ -134,7 +133,7 @@ let private toCircuit callables (exprList: TypedExpression list): (Circuit * Cir
 
 /// Returns the Q# expression corresponding to the given Expression
 let rec private fromExpression (cc: CircuitContext) (expr: Expression): TypedExpression =
-    let buildArray t x = x |> ImmutableArray.CreateRange |> Expr.ValueArray |> wrapExpr (ArrayType (ResolvedType.New t))
+    let buildArray t x = x |> ImmutableArray.CreateRange |> ExprKind.ValueArray |> wrapExpr (ArrayType (ResolvedType.New t))
     let rec getType = function
     | Literal (IntLiteral _) -> ResolvedType.New Int
     | Literal (DoubleLiteral _) -> ResolvedType.New Double
@@ -146,11 +145,11 @@ let rec private fromExpression (cc: CircuitContext) (expr: Expression): TypedExp
     | UnknownValue i -> cc.unknownValues.[i].ResolvedType
 
     match expr with
-    | Literal (IntLiteral x) -> Expr.IntLiteral x |> wrapExpr Int
-    | Literal (DoubleLiteral x) -> Expr.DoubleLiteral x |> wrapExpr Double
-    | Literal (PauliLiteral x) -> Expr.PauliLiteral x |> wrapExpr Pauli
-    | Literal (PauliArray x) -> x |> Seq.map (Expr.PauliLiteral >> wrapExpr Pauli) |> buildArray Pauli
-    | Tuple x -> x |> Seq.map (fromExpression cc) |> ImmutableArray.CreateRange |> Expr.ValueTuple |> wrapExpr (getType expr).Resolution
+    | Literal (IntLiteral x) -> ExprKind.IntLiteral x |> wrapExpr Int
+    | Literal (DoubleLiteral x) -> ExprKind.DoubleLiteral x |> wrapExpr Double
+    | Literal (PauliLiteral x) -> ExprKind.PauliLiteral x |> wrapExpr Pauli
+    | Literal (PauliArray x) -> x |> Seq.map (ExprKind.PauliLiteral >> wrapExpr Pauli) |> buildArray Pauli
+    | Tuple x -> x |> Seq.map (fromExpression cc) |> ImmutableArray.CreateRange |> ExprKind.ValueTuple |> wrapExpr (getType expr).Resolution
     | Qubit i -> cc.qubits.[i]
     | QubitArray x -> x |> Seq.map (fun i -> cc.qubits.[i]) |> buildArray TypeKind.Qubit
     | UnknownValue i -> cc.unknownValues.[i]

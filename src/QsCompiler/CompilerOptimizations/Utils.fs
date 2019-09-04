@@ -12,7 +12,59 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-open Types
+
+/// Shorthand for a QsExpressionKind
+type internal ExprKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
+/// Shorthand for a QsTypeKind
+type internal TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+/// Shorthand for a QsInitializerKind
+type internal InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
+
+
+/// Represents the dictionary of all callables in the program
+type internal Callables (m: ImmutableDictionary<QsQualifiedName, QsCallable>) =
+
+    /// Gets the QsCallable with the given qualified name.
+    /// Throws an KeyNotFoundException if no such callable exists.
+    member __.get qualName =
+        m.[qualName]
+
+
+/// Returns whether a given expression is a literal (and thus a constant)
+let rec internal isLiteral (callables: Callables) (expr: TypedExpression): bool =
+    expr |> TypedExpression.MapFold (fun ex -> ex.Expression) (fun sub ex ->
+        match ex.Expression with
+        | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ | StringLiteral _
+        | UnitValue | MissingExpr | Identifier (GlobalCallable _, _)
+        | ValueTuple _ | ValueArray _ | RangeLiteral _ | NewArray _ -> true
+        | Identifier _ when ex.ResolvedType.Resolution = Qubit -> true
+        | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
+            when (callables.get qualName).Kind = TypeConstructor -> true
+        | a when TypedExpression.IsPartialApplication a -> true
+        | _ -> false
+        && Seq.forall id sub)
+
+
+/// If check(value) is true, returns a Constants with the given variable defined as the given value.
+/// Otherwise, returns constants without any changes.
+/// If the given variable is already defined, its name is shadowed in the current scope.
+/// Throws an InvalidOperationException if there aren't any scopes on the stack.
+let internal defineVar check constants (name, value) =
+    if not (check value) then constants else constants |> Map.add name value
+
+/// Applies the given function op on a SymbolTuple, ValueTuple pair
+let rec private onTuple op constants (names, values) =
+    match names, values with
+    | VariableName name, _ ->
+        op constants (name.Value, values)
+    | VariableNameTuple namesTuple, Tuple valuesTuple ->
+        if namesTuple.Length <> valuesTuple.Length then
+            ArgumentException "names and values have different lengths" |> raise
+        Seq.zip namesTuple valuesTuple |> Seq.fold (onTuple op) constants
+    | _ -> constants
+
+/// Returns a Constants<Expr> with the given variables defined as the given values
+let internal defineVarTuple check = onTuple (defineVar check)
 
 
 /// Option default value operator
@@ -34,7 +86,7 @@ let rec internal jointFlatten (v1, v2) =
 
 /// Converts a range literal to a sequence of integers.
 /// Throws an ArgumentException if the input isn't a valid range literal.
-let internal rangeLiteralToSeq (r: Expr): seq<int64> =
+let internal rangeLiteralToSeq (r: ExprKind): seq<int64> =
     match r with
     | RangeLiteral (a, b) ->
         match a.Expression, b.Expression with
@@ -88,7 +140,7 @@ let rec internal (|LocalVarTuple|_|) (expr: TypedExpression) =
 /// Wraps a QsExpressionType in a basic TypedExpression
 /// The returned TypedExpression has no type param / inferred info / range information,
 /// and it should not be used for any code step that requires this information.
-let internal wrapExpr (bt: TypeKind) (expr: Expr): TypedExpression =
+let internal wrapExpr (bt: TypeKind) (expr: ExprKind): TypedExpression =
     let ii = {IsMutable=false; HasLocalQuantumDependency=false}
     TypedExpression.New (expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
 
@@ -111,12 +163,12 @@ let internal wrapStmt (stmt: QsStatementKind): QsStatement =
 
 /// Returns a new array of the given type and length.
 /// Returns None if the type doesn't have a default value as an expression.
-let rec internal constructNewArray (bt: TypeKind) (length: int): Expr option =
+let rec internal constructNewArray (bt: TypeKind) (length: int): ExprKind option =
     defaultValue bt |> Option.map (fun x -> ImmutableArray.CreateRange (List.replicate length (wrapExpr bt x)) |> ValueArray)
 
 /// Returns the default value for a given type (from Q# documentation).
 /// Returns None for types whose default values are not representable as expressions.
-and private defaultValue (bt: TypeKind): Expr option =
+and private defaultValue (bt: TypeKind): ExprKind option =
     match bt with
     | Int -> IntLiteral 0L |> Some
     | BigInt -> BigIntLiteral BigInteger.Zero |> Some
