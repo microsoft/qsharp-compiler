@@ -24,7 +24,7 @@ type internal MaybeBuilder() =
     member this.Run(f) = f()
 
     member this.TryWith(m, h) =
-        try this.ReturnFrom(m)
+        try this.ReturnFrom(m())
         with e -> h e
 
     member this.TryFinally(m, compensation) =

@@ -176,7 +176,7 @@ let private fromCircuit (cc: CircuitContext) (circuit: Circuit): TypedExpression
 
 
 /// Given a pure circuit, performs basic optimizations and returns the new circuit
-let private optimizeCircuit (circuit: Circuit): Circuit =
+let private optimizeCircuit (circuit: Circuit): Circuit option =
     let mutable circuit = circuit
     let mutable i = 0
     while i < circuit.gates.Length - 1 do
@@ -186,7 +186,7 @@ let private optimizeCircuit (circuit: Circuit): Circuit =
             circuit <- { circuit with gates = removeIndices [i; i+1] circuit.gates}
         else
             i <- i + 1
-    circuit
+    Some circuit
 
 
 /// Given a list of Q# expressions, tries to convert it to a pure circuit.
@@ -196,7 +196,10 @@ let internal optimizeExprList callables (exprList: TypedExpression list): TypedE
     let s = List.map (fun x -> printExpr x.Expression) exprList
     if exprList.Length >= 5 then
         printfn "Optimizing %O" s
-    match toCircuit callables exprList with
-    | Some (circuit, cc) ->
-        fromCircuit cc (optimizeCircuit circuit)
-    | None -> exprList
+    maybe {
+        let! circuit, cc = toCircuit callables exprList
+        try
+            let! newCircuit = optimizeCircuit circuit
+            return fromCircuit cc newCircuit
+        with _ -> return! None
+    } |? exprList
