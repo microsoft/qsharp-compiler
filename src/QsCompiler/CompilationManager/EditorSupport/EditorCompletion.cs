@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using static Microsoft.Quantum.QsCompiler.SyntaxGenerator;
 using static Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -371,7 +372,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(compilation));
             return compilation.GlobalSymbols.DefinedTypes()
                 .Concat(compilation.GlobalSymbols.ImportedTypes())
-                .SelectMany(type => FlattenQsTuple(type.TypeItems))
+                .SelectMany(type => ExtractItems(type.TypeItems))
                 .Where(item => item.IsNamed)
                 .Select(item => new CompletionItem()
                 {
@@ -684,21 +685,5 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 IsIncomplete = isIncomplete,
                 Items = items?.ToArray()
             };
-
-        /// <summary>
-        /// Returns a flattened enumerable of all items in the <see cref="QsTuple{Item}"/>.
-        /// </summary>
-        private static IEnumerable<T> FlattenQsTuple<T>(QsTuple<T> tuple)
-        {
-            switch (tuple)
-            {
-                case QsTuple<T>.QsTupleItem item:
-                    return new[] { item.Item };
-                case QsTuple<T>.QsTuple items:
-                    return items.Item.SelectMany(FlattenQsTuple);
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
     }
 }
