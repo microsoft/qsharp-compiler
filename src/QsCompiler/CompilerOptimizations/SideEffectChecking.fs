@@ -37,6 +37,7 @@ type internal SideEffectChecker() =
 
             override __.onOperationCall (method, arg) =
                 anyQuantum <- true
+                anyOutput <- true
                 base.onOperationCall (method, arg)
         }
     }

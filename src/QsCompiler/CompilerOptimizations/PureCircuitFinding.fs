@@ -4,6 +4,7 @@
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitFinding
 
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
@@ -11,6 +12,16 @@ open Utils
 open Printer
 open PureCircuitAPI
 open OptimizingTransformation
+
+
+/// Returns whether an expression is an operation call
+let private isOperation expr =
+    match expr.Expression with
+    | CallLikeExpression (method, _) ->
+        match method.ResolvedType.Resolution with
+        | TypeKind.Operation _ -> true
+        | _ -> false
+    | _ -> false
 
 
 /// The SyntaxTreeTransformation used to find and optimize pure circuits
@@ -36,7 +47,8 @@ type internal PureCircuitFinder(callables) =
 
             for stmt in scope.Statements do
                 match stmt.Statement with
-                | QsExpressionStatement expr -> circuit <- circuit @ [expr]
+                | QsExpressionStatement expr when isOperation expr ->
+                    circuit <- circuit @ [expr]
                 | _ ->
                     finishCircuit()
                     newStatements <- newStatements @ [this.onStatement stmt]
