@@ -130,9 +130,17 @@ let private whileHeader =
 let private repeatHeader =
     expectedKeyword qsRepeat
 
-/// Parses a repeat-until success block outro.
+/// Parses a repeat-until-success block outro.
 let private untilFixup =
     expectedKeyword qsUntil ?>> expectedBrackets (lTuple, rTuple) expression ?>> expectedKeyword qsRUSfixup
+
+/// Parses a within block intro.
+let private withinHeader =
+    expectedKeyword qsWithin
+
+/// Parses an apply block intro.
+let private applyHeader =
+    expectedKeyword qsApply
 
 /// Parses a qubit initializer tuple used to allocate qubits in using- and borrowing-blocks.
 let rec private qubitInitializerTuple = parse {
@@ -196,6 +204,7 @@ let private functionStatementFollowingIf =
 let private operationStatement =
     pcollect [
         repeatHeader
+        withinHeader
         usingHeader
         borrowingHeader
     ] .>> eotEof <|>@ callableStatement
@@ -218,10 +227,6 @@ let private operationTopLevelFollowingIf =
         elseClause
     ] .>> eotEof <|>@ operationTopLevel
 
-/// Parses a statement in an operation that follows a repeat header in the same scope.
-let private operationStatementFollowingRepeat =
-    untilFixup .>> eotEof
-
 /// Parses a namespace declaration.
 let private namespaceDeclaration =
     expectedKeyword namespaceDeclHeader ?>> expectedQualifiedSymbol Namespace
@@ -238,8 +243,8 @@ let GetCompletionKinds scope previous text =
         | (Function, _) -> functionStatement
         | (OperationTopLevel, Value (IfClause _))
         | (OperationTopLevel, Value (ElifClause _)) -> operationTopLevelFollowingIf
-        | (OperationTopLevel, Value (RepeatIntro _)) | (Operation, Value (RepeatIntro _)) ->
-            operationStatementFollowingRepeat
+        | (OperationTopLevel, Value RepeatIntro) | (Operation, Value RepeatIntro) -> untilFixup .>> eotEof
+        | (OperationTopLevel, Value WithinBlockIntro) | (Operation, Value WithinBlockIntro) -> applyHeader .>> eotEof
         | (OperationTopLevel, _) -> operationTopLevel
         | (Operation, Value (IfClause _)) | (Operation, Value (ElifClause _)) -> operationStatementFollowingIf
         | (Operation, _) -> operationStatement

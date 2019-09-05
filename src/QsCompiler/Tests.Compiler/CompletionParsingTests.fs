@@ -84,6 +84,7 @@ let private operationStatement =
         Keyword "repeat"
         Keyword "using"
         Keyword "borrowing"
+        Keyword "within"
     ]
 
 let private operationTopLevelStatement =
@@ -495,6 +496,7 @@ let ``Operation statement parser tests`` () =
     ]
     List.iter (matches Operation Null) [
         ("repeat ", [])
+        ("within ", [])
         ("using ", [])
         ("using (", [Declaration])
         ("using (q ", [])
@@ -559,6 +561,10 @@ let ``Operation statement parser tests`` () =
     testElifElse Operation (Value (IfClause { Expression = InvalidExpr; Range = Null }))
     testElifElse Operation (Value (ElifClause { Expression = InvalidExpr; Range = Null }))
     matches Operation (Value ElseClause) ("", operationStatement)
+    List.iter (matches Operation (Value WithinBlockIntro)) [
+        ("", [Keyword "apply"])
+        ("apply ", [])
+    ]
     List.iter (matches OperationTopLevel (Value RepeatIntro)) [
         ("", [Keyword "until"])
         ("until ", [])
