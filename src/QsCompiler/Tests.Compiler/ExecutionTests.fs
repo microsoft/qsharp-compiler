@@ -41,8 +41,7 @@ type ExecutionTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
-    member this.``Specialization Generation for Conjugations`` () = 
-
+    member this.``Specialization Generation for Conjugations in Body`` () = 
         ExecuteAndCompareOutput 
             "ConjugationsInBody" "
                 U1
@@ -66,7 +65,9 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V1
                 Adjoint U1        
             "
-
+            
+    [<Fact>]
+    member this.``Specialization Generation for Conjugations in Adjoint`` () = 
         ExecuteAndCompareOutput 
             "ConjugationsInAdjoint" "
                 U1
@@ -90,7 +91,9 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V1
                 Adjoint U1        
             "
-
+            
+    [<Fact>]
+    member this.``Specialization Generation for Conjugations in Controlled`` () = 
         ExecuteAndCompareOutput 
             "ConjugationsInControlled" "
                 U1
@@ -114,7 +117,9 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V1
                 Adjoint U1        
             "
-
+            
+    [<Fact>]
+    member this.``Specialization Generation for Conjugations in Controlled Adjoint`` () = 
         ExecuteAndCompareOutput 
             "ConjugationsInControlledAdjoint" "
                 U1

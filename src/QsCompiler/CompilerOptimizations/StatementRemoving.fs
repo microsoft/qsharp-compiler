@@ -59,7 +59,7 @@ type internal StatementRemover() =
             let newBody = QsScope.New (s.Body.Statements.InsertRange (0, newStatements), s.Body.KnownSymbols)
             QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
         | ScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
-        | _ when not c.hasQuantum && not c.hasMutation && not c.hasInterrupts -> Seq.empty
+        | _ when not c.hasQuantum && not c.hasMutation && not c.hasInterrupts && not c.hasOutput -> Seq.empty
         | a -> Seq.singleton a
 
 

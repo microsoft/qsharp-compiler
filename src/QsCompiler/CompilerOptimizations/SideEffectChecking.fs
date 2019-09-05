@@ -15,6 +15,7 @@ type internal SideEffectChecker() =
     let mutable anyQuantum = false
     let mutable anyMutation = false
     let mutable anyInterrupts = false
+    let mutable anyOutput = false
 
     /// Whether the transformed code might have any quantum side effects (such as calling operations)
     member __.hasQuantum = anyQuantum
@@ -22,11 +23,17 @@ type internal SideEffectChecker() =
     member __.hasMutation = anyMutation
     /// Whether the transformed code has any statements that interrupt normal control flow (such as returns)
     member __.hasInterrupts = anyInterrupts
+    /// Whether the transformed code might output any messages to the console
+    member __.hasOutput = anyOutput
 
     override __.Expression = { new ExpressionTransformation() with
         override expr.Kind = { new ExpressionKindTransformation() with
             override __.ExpressionTransformation ex = expr.Transform ex
             override __.TypeTransformation t = expr.Type.Transform t
+
+            override __.onFunctionCall (method, arg) =
+                anyOutput <- true
+                base.onFunctionCall (method, arg)
 
             override __.onOperationCall (method, arg) =
                 anyQuantum <- true
