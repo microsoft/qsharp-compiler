@@ -50,8 +50,9 @@ namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
 
     Operation Test () : (Int, Int, Int, Int, Double) {
         QsBody () {
+            let b = (9 + (GlobalCallable g1 of 100));
             let s = (GlobalCallable mySin of 2.000000);
-            return (9, 2, 3, 5, LocalVariable s);
+            return (LocalVariable b, 2, 3, 5, LocalVariable s);
         }
     }
 }
