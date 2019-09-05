@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using static Microsoft.Quantum.QsCompiler.SyntaxGenerator;
 using static Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -210,6 +211,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         GetTypeCompletions(file, compilation, currentNamespace, openNamespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
+                case CompletionKind.Tags.NamedItem:
+                    return GetNamedItemCompletions(compilation);
                 case CompletionKind.Tags.Namespace:
                     return
                         GetGlobalNamespaceCompletions(compilation, namespacePrefix)
@@ -369,6 +372,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         textDocument: new TextDocumentIdentifier { Uri = file.Uri },
                         qualifiedName: type.QualifiedName,
                         sourceFile: type.SourceFile.Value)
+                });
+        }
+
+        /// <summary>
+        /// Returns completions for all named items in any type.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the argument is null.</exception>
+        private static IEnumerable<CompletionItem> GetNamedItemCompletions(CompilationUnit compilation)
+        {
+            if (compilation == null)
+                throw new ArgumentNullException(nameof(compilation));
+            return compilation.GlobalSymbols.DefinedTypes()
+                .Concat(compilation.GlobalSymbols.ImportedTypes())
+                .SelectMany(type => ExtractItems(type.TypeItems))
+                .Where(item => item.IsNamed)
+                .Select(item => new CompletionItem()
+                {
+                    Label = ((QsTypeItem.Named)item).Item.VariableName.Value,
+                    Kind = CompletionItemKind.Field
                 });
         }
 
@@ -667,7 +689,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             String.Concat(@namespace.Substring(start).TakeWhile(c => c != '.'));
 
         /// <summary>
-        /// Converts an <see cref="IEnumerable&lt;&gt;"/> of <see cref="CompletionItem"/>s to a
+        /// Converts an <see cref="IEnumerable{T}"/> of <see cref="CompletionItem"/>s to a
         /// <see cref="CompletionList"/>.
         /// </summary>
         private static CompletionList ToCompletionList(this IEnumerable<CompletionItem> items, bool isIncomplete) =>
