@@ -20,7 +20,7 @@ type internal Resolution<'T,'R> = internal {
     Defined : 'T
     Resolved : QsNullable<'R>
     DefinedAttributes : IEnumerable<QsSymbol * QsExpression>
-    ResolvedAttributes : ImmutableArray<NonNullable<string> * TypedExpression>
+    ResolvedAttributes : ImmutableArray<QsQualifiedName * TypedExpression>
     Documentation : ImmutableArray<string>
 }
 
@@ -236,7 +236,7 @@ module SymbolResolution =
         | MissingType -> NotSupportedException "missing type cannot be resolved" |> raise 
 
     /// ...
-    let internal ResolveAttribute processUDT (qsSym : QsSymbol, qsExpr : QsExpression) = 
+    let internal ResolveAttribute getAttribute (qsSym : QsSymbol, qsExpr : QsExpression) = 
         let asTypedExression range (exKind, exType) = {
             Expression = exKind
             TypeParameterResolutions = ImmutableDictionary.Empty
@@ -244,19 +244,14 @@ module SymbolResolution =
             InferredInformation = {IsMutable = false; HasLocalQuantumDependency = false}
             Range = range}
         let invalidExpr range = (InvalidExpr, InvalidType) |> asTypedExression range 
-        let withErr (code, range : QsNullable<_>) errs = 
-            Array.append errs [| range.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (code, []) |]
+        let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
 
         // We may in the future decide to support arbitary expressions as long as they can be evaluated at compile time. 
         // At that point it may make sense to replace this with the standard resolution routine for typed expressions. 
         // For now we support only a restrictive set of valid arguments. 
         let rec ArgExression (ex : QsExpression) : TypedExpression * QsCompilerDiagnostic[] = 
+            let diagnostic code range = range |> orDefault |> QsCompilerDiagnostic.Error (code, [])
             match ex.Expression with
-            | ValueTuple vs -> 
-                let innerExs, errs = aggregateInner vs
-                let types = (innerExs |> Seq.map (fun ex -> ex.ResolvedType)).ToImmutableArray()
-                let resolved = (ValueTuple innerExs, TupleType types) |> asTypedExression ex.Range
-                resolved, errs
             | UnitValue          -> (UnitValue, UnitType) |> asTypedExression ex.Range, [||]
             | DoubleLiteral d    -> (DoubleLiteral d, Double) |> asTypedExression ex.Range, [||]
             | IntLiteral i       -> (IntLiteral i, Int) |> asTypedExression ex.Range, [||]
@@ -264,47 +259,57 @@ module SymbolResolution =
             | BoolLiteral b      -> (BoolLiteral b, Bool) |> asTypedExression ex.Range, [||]
             | ResultLiteral r    -> (ResultLiteral r, Result) |> asTypedExression ex.Range, [||]
             | PauliLiteral p     -> (PauliLiteral p, Pauli) |> asTypedExression ex.Range, [||]
-            | NewArray (bt, idx) -> 
-                let onUdt _ = InvalidType, [||] // TODO: diagnostics
-                let onTypeParam _ = InvalidType, [||] // TODO: diagnostics
-                let resBaseType, typeErrs = ResolveType (onUdt, onTypeParam) bt // FIXME: allow udts?
-                let resIdx, idxErrs = ArgExression idx
-                let resolved = (NewArray (resBaseType, resIdx), ArrayType resBaseType) |> asTypedExression ex.Range
-                resolved, Array.concat [typeErrs; idxErrs]
+            | StringLiteral (s, exs) ->
+                if exs.Length <> 0 then invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InterpolatedStringInAttribute |]
+                else (StringLiteral (s, ImmutableArray.Empty), String) |> asTypedExression ex.Range, [||]
+            | ValueTuple vs -> 
+                let innerExs, errs = aggregateInner vs
+                let types = (innerExs |> Seq.map (fun ex -> ex.ResolvedType)).ToImmutableArray()
+                (ValueTuple innerExs, TupleType types) |> asTypedExression ex.Range, errs
             | ValueArray vs ->
                 let innerExs, errs = aggregateInner vs
-                match innerExs |> Seq.distinctBy (fun ex -> ex.ResolvedType) |> Seq.toList with 
-                | [] -> invalidExpr ex.Range, errs |> withErr (ErrorCode.EmptyValueArray, ex.Range)
-                | [bt] -> (ValueArray innerExs, ArrayType bt.ResolvedType) |> asTypedExression ex.Range, errs
-                | _ ->  invalidExpr ex.Range, errs |> withErr (ErrorCode.ArrayBaseTypeMismatch, ex.Range)
-            | StringLiteral (s, exs) ->
-                if exs.Any() then invalidExpr ex.Range, [||] // TODO: diagnostics
-                else (StringLiteral (s, ImmutableArray.Empty), String) |> asTypedExression ex.Range, [||]
-            //| CallLikeExpression (ex, args) when ... // TODO: allow if default type constructor?
-            | _ -> invalidExpr ex.Range, [||] // TODO: diagnostics
+                // we can make the following simple check since / as long as there is no variance behavior 
+                // for any of the supported attribute argument types
+                let typeIfValid (ex : TypedExpression) = 
+                    match ex.ResolvedType.Resolution with
+                    | InvalidType -> None
+                    | _ -> Some ex.ResolvedType
+                match innerExs |> Seq.choose typeIfValid |> Seq.distinct |> Seq.toList with 
+                | [bt] -> (ValueArray innerExs, ArrayType bt) |> asTypedExression ex.Range, errs
+                | [] when innerExs.Length <> 0 -> (ValueArray innerExs, ResolvedType.New InvalidType |> ArrayType) |> asTypedExression ex.Range, errs
+                | [] -> invalidExpr ex.Range, errs |> Array.append [| ex.Range |> diagnostic ErrorCode.EmptyValueArray |]
+                | _ ->  invalidExpr ex.Range, errs |> Array.append [| ex.Range |> diagnostic ErrorCode.ArrayBaseTypeMismatch |] 
+            | NewArray (bt, idx) -> 
+                let onUdt (_, udtRange) = InvalidType, [| udtRange |> diagnostic ErrorCode.ArgumentOfUserDefinedTypeInAttribute |]
+                let onTypeParam (_, tpRange) = InvalidType, [| tpRange |> diagnostic ErrorCode.TypeParameterizedArgumentInAttribute |] 
+                let resBaseType, typeErrs = ResolveType (onUdt, onTypeParam) bt 
+                let resIdx, idxErrs = ArgExression idx
+                (NewArray (resBaseType, resIdx), ArrayType resBaseType) |> asTypedExression ex.Range, Array.concat [typeErrs; idxErrs]
+            | _ -> invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InvalidAttributeArgument |] 
         and aggregateInner vs = 
             let innerExs, errs = vs |> Seq.map ArgExression |> Seq.toList |> List.unzip
             innerExs.ToImmutableArray(), Array.concat errs
-        let resArg, argErrs = ArgExression qsExpr
 
-        // ... 
+        // Any user defined type that has been decorated with the attribute 
+        // "Attribute" defined in Microsoft.Quantum.Core may be used as attribute.
         let getAttribute (ns, sym) = 
-            match processUDT ((ns, sym), qsSym.Range) with
-            | Some (udt, underlyingType : ResolvedType), errs ->  //UserDefinedType (udt : UserDefinedType), errs -> 
-                // FIXME: we need to restructure the division between QsDataStructures and QsCore - 
-                // this nameing dependency should live with the other dependencies!
-                if udt.Namespace.Value <> "Microsoft.Quantum.Core" || udt.Name.Value <> "Attribute" then 
-                    None, errs |> Array.append argErrs // TODO: add diagnostics
-                elif resArg.ResolvedType.WithoutRangeInfo <> underlyingType.WithoutRangeInfo then
-                    None, errs |> Array.append argErrs // TODO: add diagnostics
-                else Some {Namespace = udt.Namespace; Name = udt.Name}, errs |> Array.append argErrs
-            | None, errs -> None, Array.concat [errs; argErrs]
+            match getAttribute ((ns, sym), qsSym.Range) with
+            | None, errs -> None, errs
+            | Some (name, argType : ResolvedType), errs ->
+                let resArg, argErrs = ArgExression qsExpr
+                let isError (msg : QsCompilerDiagnostic) = msg.Diagnostic |> function | Error _ -> true | _ -> false
+                // we can make the following simple check since / as long as there is no variance behavior 
+                // for any of the supported attribute argument types
+                if argErrs |> Array.exists isError && resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo then
+                    let mismatchErr = qsExpr.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeArgumentTypeMismatch, [])
+                    None, Array.concat [errs; argErrs; [| mismatchErr |]] 
+                else Some (name, resArg), errs |> Array.append argErrs
         match qsSym.Symbol with 
         | Symbol sym -> getAttribute (None, sym) 
         | QualifiedSymbol (ns, sym) -> getAttribute (Some ns, sym)
-        | InvalidSymbol -> None, argErrs
+        | InvalidSymbol -> None, [||]
         | MissingSymbol | OmittedSymbols | SymbolTuple _ -> 
-            None, argErrs |> withErr (ErrorCode.InvalidAttributeIdentifier, qsSym.Range)
+            None,  [| qsSym.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidAttributeIdentifier, []) |] 
 
 
     // private routines for resolving specialization generation directives
