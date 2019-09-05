@@ -1,15 +1,39 @@
-﻿using Microsoft.Quantum.Simulation.Core;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using Microsoft.Quantum.Simulation.Core;
 using Microsoft.Quantum.Simulation.Simulators;
 
-namespace Quantum.App1
+
+namespace Microsoft.Quantum.Simulation
 {
-    class Driver
+    internal static class Driver
     {
+        /// <summary>
+        /// Given the fully qualified name of a Q# operation 
+        /// that takes Unit and returns Unit as command line argument, 
+        /// executes that operation on the QuantumSimulator.
+        /// If no operation has been specified, 
+        /// executes the operation Main defined in Microsoft.Quantum.Testing.Simulation.
+        /// Throws and EntryPointNotFoundException if a command line argument was given, 
+        /// but the corresponding operation was not found. 
+        /// </summary>
         static void Main(string[] args)
         {
-            using (var sim = new QuantumSimulator())
+            var entryPointName = args.FirstOrDefault() ?? "Microsoft.Quantum.Main";
+            var entryPoint = Assembly.GetExecutingAssembly()
+                .GetType(entryPointName, throwOnError: false, ignoreCase: true)
+                ?.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);
+            if (entryPoint == null) throw new EntryPointNotFoundException($"{entryPointName}");
+
+            using (var qsim = new QuantumSimulator())
             {
-                QuantumMain.Run(sim).Wait();
+                Task task = entryPoint.Invoke(null, new[] { qsim }) as Task<QVoid>;
+                task?.Wait();
             }
         }
     }
