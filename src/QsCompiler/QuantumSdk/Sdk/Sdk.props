@@ -1,5 +1,13 @@
+<!--
+  Copyright (c) Microsoft Corporation.
+  Licensed under the MIT License.
+-->
+
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+  <!--
+    Workaround issues in MSBuild versions previous to 16.0.
+  -->
   <PropertyGroup>
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
   </PropertyGroup>
@@ -8,6 +16,9 @@
     <QdkVersion>0.9.1908.2906</QdkVersion>
   </PropertyGroup>
 
+  <!--
+    Import the default .NET Core SDK package now that all properties relevant to Q# have been set.
+  -->
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
 
 </Project>

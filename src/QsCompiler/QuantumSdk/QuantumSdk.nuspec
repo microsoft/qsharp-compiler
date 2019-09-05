@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
   <metadata>
     <id>Microsoft.Quantum.Sdk</id>
-    <version>0.9.1908.2906</version>
+    <version>$version$</version>
     <title>Microsoft Quantum Project Templates</title>
     <authors>Microsoft</authors>
     <owners>QuantumEngineering, Microsoft</owners>

@@ -1,9 +1,21 @@
+<!--
+  Copyright (c) Microsoft Corporation.
+  Licensed under the MIT License.
+-->
+
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+  <!--
+    Workaround issues in MSBuild versions previous to 16.0.
+  -->
   <PropertyGroup>
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
   </PropertyGroup>
 
+  <!--
+    Decide whether we're compiling a quantum library or a quantum executable depending
+    on the value of the OutputType common MSBuild property.
+  -->
   <Choose>
     <When Condition="'$(OutputType)' == 'Library' Or '$(OutputType)' == ''">
       <PropertyGroup>
