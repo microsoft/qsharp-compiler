@@ -17,8 +17,10 @@ open Utils
 open Printer
 
 
+/// Represents the internal state of a function evaluation.
+/// The first element is a map that stores the current values of all the local variables.
+/// The second element is a counter that stores the remaining number of statements we evaluate.
 type private EvalState = Map<string, TypedExpression> * int
-
 
 /// Represents any interrupt to the normal control flow of a function evaluation.
 /// Includes return statements, errors, and (if they were added) break/continue statements.
@@ -27,116 +29,117 @@ type private FunctionInterrupt =
 | Returned of TypedExpression
 /// Represents the function invoking a fail statement
 | Failed of TypedExpression
-/// We reached the limit of executions
-| OutOfTime
+/// We reached the limit of statement executions
+| OutOfStatements
 /// We were unable to evaluate the function for some reason
 | CouldNotEvaluate of string
 
-
+/// A shorthand for the specific Imperative type used by several functions in this file
 type private Imp<'t> = Imperative<EvalState, 't, FunctionInterrupt>
 
-let private incrementState (map, counter) = (map, counter - 1)
+/// Represents a computation that decreases the remaining statements counter by 1.
+/// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
+let private incrementState: Imp<Unit> = imperative {
+    let! vars, counter = getState
+    if counter < 1 then yield OutOfStatements
+    do! putState (vars, counter - 1)
+}
 
-let private setVars callables entry: Imp<Unit> =
-    updateState (fun s -> defineVarTuple (isLiteral callables) (fst s) entry, (snd s))
-
+/// Represents a computation that sets the given variables to the given values
+let private setVars callables entry: Imp<Unit> = imperative {
+    let! vars, counter = getState
+    do! putState (defineVarTuple (isLiteral callables) vars entry, counter)
+}
 
 
 /// Evaluates functions by stepping through their code
 type internal FunctionEvaluator(callables: Callables) =
 
-    /// Transforms a BoolLiteral into the corresponding bool
-    let castToBool x: Imp<bool> =
-        imperative {
-            match x.Expression with
-            | BoolLiteral b -> return b
-            | _ -> yield CouldNotEvaluate ("Not a BoolLiteral: " + (printExpr x.Expression))
-        }
+    /// Casts a BoolLiteral to the corresponding bool
+    let castToBool x: Imp<bool> = imperative {
+        match x.Expression with
+        | BoolLiteral b -> return b
+        | _ -> yield CouldNotEvaluate ("Not a BoolLiteral: " + (printExpr x.Expression))
+    }
 
-    /// The callback for the subroutine that evaluates and simplifies an expression
-    member internal __.evaluateExpression expr: Imp<TypedExpression> =
-        imperative {
-            let! constants, stmtsLeft = getState
-            let result = ExpressionEvaluator(callables, constants, stmtsLeft / 2).Transform expr
-            if isLiteral callables result then return result
-            else yield CouldNotEvaluate ("Not a literal: " + (printExpr result.Expression))
-        }
+    /// Evaluates and simplifies a single Q# expression
+    member internal __.evaluateExpression expr: Imp<TypedExpression> = imperative {
+        let! vars, counter = getState
+        let result = ExpressionEvaluator(callables, vars, counter / 2).Transform expr
+        if isLiteral callables result then return result
+        else yield CouldNotEvaluate ("Not a literal: " + (printExpr result.Expression))
+    }
 
     /// Evaluates a single Q# statement
-    member private this.evaluateStatement (statement: QsStatement): Imp<Unit> =
-        imperative {
-            do! updateState incrementState
+    member private this.evaluateStatement (statement: QsStatement): Imp<Unit> = imperative {
+        do! incrementState
 
-            let! state = getState
-            if snd state <= 0 then yield OutOfTime else
-
-            match statement.Statement with
-            | QsExpressionStatement _ ->
-                ()
-            | QsReturnStatement expr ->
-                let! value = this.evaluateExpression expr
-                yield Returned value
-            | QsFailStatement expr ->
-                let! value = this.evaluateExpression expr
-                yield Failed value
-            | QsVariableDeclaration s ->
+        match statement.Statement with
+        | QsExpressionStatement _ ->
+            ()
+        | QsReturnStatement expr ->
+            let! value = this.evaluateExpression expr
+            yield Returned value
+        | QsFailStatement expr ->
+            let! value = this.evaluateExpression expr
+            yield Failed value
+        | QsVariableDeclaration s ->
+            let! value = this.evaluateExpression s.Rhs
+            do! setVars callables (s.Lhs, value)
+        | QsValueUpdate s ->
+            match s.Lhs with
+            | LocalVarTuple vt ->
                 let! value = this.evaluateExpression s.Rhs
-                do! setVars callables (s.Lhs, value)
-            | QsValueUpdate s ->
-                match s.Lhs with
-                | LocalVarTuple vt ->
-                    let! value = this.evaluateExpression s.Rhs
-                    do! setVars callables (vt, value)
-                | _ -> yield CouldNotEvaluate ("Unknown LHS of value update statement: " + (printExpr s.Lhs.Expression))
-            | QsConditionalStatement s ->
-                let mutable evalElseCase = true
-                for cond, block in s.ConditionalBlocks do
-                    let! value = this.evaluateExpression cond >>= castToBool
-                    if value then
-                        do! this.evaluateScope block.Body
-                        evalElseCase <- false
-                        do! Break
-                if evalElseCase then
-                    match s.Default with
-                    | Value block -> do! this.evaluateScope block.Body
-                    | _ -> ()
-            | QsForStatement stmt ->
-                let! iterExpr = this.evaluateExpression stmt.IterationValues
-                let! iterSeq = imperative {
-                    match iterExpr.Expression with
-                    | RangeLiteral _ when isLiteral callables iterExpr ->
-                        return rangeLiteralToSeq iterExpr.Expression |> Seq.map (IntLiteral >> wrapExpr Int)
-                    | ValueArray va ->
-                        return va :> seq<_>
-                    | _ ->
-                        yield CouldNotEvaluate ("Unknown IterationValue in for loop: " + (printExpr iterExpr.Expression))
-                }
-                for loopValue in iterSeq do
-                    do! setVars callables (fst stmt.LoopItem, loopValue)
-                    do! this.evaluateScope stmt.Body
-            | QsWhileStatement stmt ->
-                while this.evaluateExpression stmt.Condition >>= castToBool do
-                    do! this.evaluateScope stmt.Body
-            | QsRepeatStatement stmt ->
-                while true do
-                    do! this.evaluateScope stmt.RepeatBlock.Body
-                    let! value = this.evaluateExpression stmt.SuccessCondition >>= castToBool
-                    if value then do! Break
-                    do! this.evaluateScope stmt.FixupBlock.Body
-            | QsQubitScope _ ->
-                yield CouldNotEvaluate "Cannot allocate qubits in function"
-            | QsConjugation _ ->
-                yield CouldNotEvaluate "Cannot conjugate in function"
-            | QsScopeStatement s ->
-                do! this.evaluateScope s.Body
-        }
+                do! setVars callables (vt, value)
+            | _ -> yield CouldNotEvaluate ("Unknown LHS of value update statement: " + (printExpr s.Lhs.Expression))
+        | QsConditionalStatement s ->
+            let mutable evalElseCase = true
+            for cond, block in s.ConditionalBlocks do
+                let! value = this.evaluateExpression cond >>= castToBool
+                if value then
+                    do! this.evaluateScope block.Body
+                    evalElseCase <- false
+                    do! Break
+            if evalElseCase then
+                match s.Default with
+                | Value block -> do! this.evaluateScope block.Body
+                | _ -> ()
+        | QsForStatement stmt ->
+            let! iterExpr = this.evaluateExpression stmt.IterationValues
+            let! iterSeq = imperative {
+                match iterExpr.Expression with
+                | RangeLiteral _ when isLiteral callables iterExpr ->
+                    return rangeLiteralToSeq iterExpr.Expression |> Seq.map (IntLiteral >> wrapExpr Int)
+                | ValueArray va ->
+                    return va :> seq<_>
+                | _ ->
+                    yield CouldNotEvaluate ("Unknown IterationValue in for loop: " + (printExpr iterExpr.Expression))
+            }
+            for loopValue in iterSeq do
+                do! setVars callables (fst stmt.LoopItem, loopValue)
+                do! this.evaluateScope stmt.Body
+        | QsWhileStatement stmt ->
+            while this.evaluateExpression stmt.Condition >>= castToBool do
+                do! this.evaluateScope stmt.Body
+        | QsRepeatStatement stmt ->
+            while true do
+                do! this.evaluateScope stmt.RepeatBlock.Body
+                let! value = this.evaluateExpression stmt.SuccessCondition >>= castToBool
+                if value then do! Break
+                do! this.evaluateScope stmt.FixupBlock.Body
+        | QsQubitScope _ ->
+            yield CouldNotEvaluate "Cannot allocate qubits in function"
+        | QsConjugation _ ->
+            yield CouldNotEvaluate "Cannot conjugate in function"
+        | QsScopeStatement s ->
+            do! this.evaluateScope s.Body
+    }
 
     /// Evaluates a list of Q# statements
-    member private this.evaluateScope (scope: QsScope): Imp<Unit> =
-        imperative {
-            for stmt in scope.Statements do
-                do! this.evaluateStatement stmt
-        }
+    member private this.evaluateScope (scope: QsScope): Imp<Unit> = imperative {
+        for stmt in scope.Statements do
+            do! this.evaluateStatement stmt
+    }
 
     /// Evaluates the given Q# function on the given argument.
     /// Returns Some ([expr]) if we successfully evaluate the function as [expr].
@@ -151,8 +154,8 @@ type internal FunctionEvaluator(callables: Callables) =
         let impl = (Seq.exactlyOne callable.Specializations).Implementation
         match impl with
         | Provided (specArgs, scope) ->
-            let constants = defineVarTuple (isLiteral callables) Map.empty (toSymbolTuple specArgs, arg)
-            match this.evaluateScope scope (constants, stmtsLeft) with
+            let vars = defineVarTuple (isLiteral callables) Map.empty (toSymbolTuple specArgs, arg)
+            match this.evaluateScope scope (vars, stmtsLeft) with
             | Normal _ ->
                 // printfn "Function %O didn't return anything" name.Name.Value
                 None
@@ -165,8 +168,8 @@ type internal FunctionEvaluator(callables: Callables) =
             | Interrupt (Failed expr) ->
                 // printfn "Function %O failed with %O" name.Name.Value (prettyPrint expr)
                 None
-            | Interrupt OutOfTime ->
-                // printfn "Function %O ran out of time" name.Name.Value
+            | Interrupt OutOfStatements ->
+                // printfn "Function %O ran out of statements" name.Name.Value
                 None
             | Interrupt (CouldNotEvaluate reason) ->
                 // printfn "Could not evaluate function %O on arg %O for reason %O" name.Name.Value (prettyPrint arg.Expression) reason
@@ -176,12 +179,13 @@ type internal FunctionEvaluator(callables: Callables) =
             None
 
 
+/// The ExpressionTransformation used to evaluate constant expressions
 and internal ExpressionEvaluator(callables: Callables, constants: Map<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionTransformation()
 
     override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, stmtsLeft) with
-        override exprKind.ExpressionTransformation x = this.Transform x
-        override exprKind.TypeTransformation x = this.Type.Transform x }
+        override __.ExpressionTransformation x = this.Transform x
+        override __.TypeTransformation x = this.Type.Transform x }
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions

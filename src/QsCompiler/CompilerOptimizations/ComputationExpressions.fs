@@ -55,14 +55,25 @@ let internal check x = if x then Some () else None
 
 
 
-
+/// Represents the result of an imperative computation.
+/// 'a represents the internal state of the computation.
+/// 'b represents the output of the computation.
+/// 'c represents anything that can interrupt the computation.
 type ImperativeResult<'a, 'b, 'c> =
+/// The computation ended with this output and state
 | Normal of 'b * 'a
+/// The computation is breaking out of a loop, and has this state
 | Break of 'a
+/// The computation was interrupted, with this interrupt
 | Interrupt of 'c
+
+/// Represents an imperative computation as a function from the initial state to a result.
+/// 'a represents the internal state of the computation.
+/// 'b represents the output of the computation.
+/// 'c represents anything that can interrupt the computation.
 type Imperative<'a, 'b, 'c> = ('a -> ImperativeResult<'a, 'b, 'c>)
 
-
+/// A computation expression used to evaluate imperative, stateful code.
 type internal ImperativeBuilder() =
 
     member this.Return (x: 'b): Imperative<'a, 'b, 'c> = (fun s -> Normal (x, s))
@@ -112,13 +123,15 @@ type internal ImperativeBuilder() =
     member this.For (sequence: seq<'d>, body: 'd -> Imperative<'a, Unit, 'c>): Imperative<'a, Unit, 'c> =
         this.For (List.ofSeq sequence, body)
 
-
-
-/// The exception monad. Returns an Interrupt if any of the lines are Interrupts.
+/// A computation expression used to evaluate imperative, stateful code.
 let internal imperative = ImperativeBuilder()
 
+/// Returns the current state of an imperative computation
 let internal getState: Imperative<'a, 'a, 'c> = fun s -> Normal (s, s)
+/// Sets the current state of an imperative computation to the given value
 let internal putState s: Imperative<'a, Unit, 'c> = fun _ -> Normal ((), s)
+/// Updates the current state of an imperative computation using the given function
 let internal updateState f: Imperative<'a, Unit, 'c> = fun s -> Normal ((), f s)
 
+/// The monadic Bind() function as an infix operator
 let inline internal (>>=) m f = imperative.Bind (m, f)

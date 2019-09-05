@@ -16,20 +16,25 @@ open ComputationExpressions
 open Utils
 
 
-
+/// Returns a copy of the given variable stack inside of a new scope
 let private enterScope map = Map.empty :: map
 
-/// Returns a Constants outside of the current scope.
-/// Throws an InvalidOperationException if the scope stack of the given state is empty.
+/// Returns a copy of the given variable stack outside of the current scope.
+/// Throws an ArgumentException if the given variable stack is empty.
 let private exitScope = List.tail
 
+/// Returns the value associated to the given key in the given variable stack.
+/// If the key is associated with multiple values, returns the one highest on the stack.
+/// Returns None if the key isn't associated with any values.
 let private tryGet key = List.tryPick (Map.tryFind key)
 
+/// Returns a copy of the given variable stack with the given key set to the given value.
+/// Throws an ArgumentException if the given variable stack is empty.
 let private set (key, value) = function
-| [] -> InvalidOperationException "No scope to exit" |> raise
+| [] -> ArgumentException "No scope to define variables in" |> raise
 | head :: tail -> Map.add key value head :: tail
 
-
+/// A regex that matches the original name of a mangled variable name
 let private varNameRegex = Regex("^__qsVar\d+__(.+)__$")
 
 
@@ -43,7 +48,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
     /// The number of times a variable is referenced
     let mutable numUses = Map.empty
     /// The current dictionary of new names to substitute for variables
-    let mutable constants = [Map.empty]
+    let mutable newNames = [Map.empty]
     /// Whether we should skip entering the next scope we encounter
     let mutable skipScope = false
 
@@ -60,7 +65,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
             num <- num + 1
             newName <- sprintf "__qsVar%d__%s__" num baseName
         numUses <- Map.add newName 0 numUses
-        constants <- set (varName, newName) constants
+        newNames <- set (varName, newName) newNames
         newName
 
     /// Processes the initial argument tuple from the function declaration
@@ -80,9 +85,9 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
             skipScope <- false
             base.Transform x
         else
-            constants <- enterScope constants
+            newNames <- enterScope newNames
             let result = base.Transform x
-            constants <- exitScope constants
+            newNames <- exitScope newNames
             result
 
     override __.Expression = { new ExpressionTransformation() with
@@ -96,7 +101,7 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
                         match sym with
                         | LocalVariable name -> Some name.Value
                         | _ -> None
-                    let! newName = tryGet name constants
+                    let! newName = tryGet name newNames
                     numUses <- Map.add newName (Map.find newName numUses + 1) numUses
                     return Identifier (LocalVariable (NonNullable<_>.New newName), tArgs)
                 } |? Identifier (sym, tArgs)
@@ -128,10 +133,10 @@ type VariableRenamer(argTuple: QsArgumentTuple) =
             QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement
 
         override __.onRepeatStatement stm =
-            constants <- enterScope constants
+            newNames <- enterScope newNames
             skipScope <- true
             let result = base.onRepeatStatement stm
-            constants <- exitScope constants
+            newNames <- exitScope newNames
             result
 
         override this.onQubitScope (stm : QsQubitScope) =

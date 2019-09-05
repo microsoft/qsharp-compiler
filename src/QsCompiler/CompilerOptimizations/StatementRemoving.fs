@@ -23,8 +23,10 @@ type internal StatementRemover() =
     /// The VariableRenamer used to ensure unique variable names
     let mutable renamer = None
 
-
-
+    /// Given a statement, returns a sequence of statements to replace this statement with.
+    /// Removes useless statements, such as variable declarations with discarded values.
+    /// Simplifies statements, such as a replacing ScopeStatements with their contents.
+    /// Splits QsQubitScopes by replacing register allocations with single qubit allocations.
     let rec transformStatement stmt =
         let c = SideEffectChecker()
         c.StatementKind.Transform stmt |> ignore
@@ -59,7 +61,6 @@ type internal StatementRemover() =
         | QsScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
         | _ when not c.hasQuantum && not c.hasMutation && not c.hasInterrupts -> Seq.empty
         | a -> Seq.singleton a
-
 
 
     override syntaxTree.onProvidedImplementation (argTuple, body) =

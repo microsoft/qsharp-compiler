@@ -45,17 +45,17 @@ type internal ConstantPropagator(callables) =
         base.onProvidedImplementation (argTuple, body)
 
     /// The ScopeTransformation used to evaluate constants
-    override syntaxTree.Scope = { new ScopeTransformation() with
+    override __.Scope = { new ScopeTransformation() with
 
         /// The ExpressionTransformation used to evaluate constant expressions
-        override scope.Expression = upcast ExpressionEvaluator(callables, constants, 1000)
+        override __.Expression = upcast ExpressionEvaluator(callables, constants, 1000)
 
         /// The StatementKindTransformation used to evaluate constants
         override scope.StatementKind = { new StatementKindTransformation() with
-            override so.ExpressionTransformation x = scope.Expression.Transform x
-            override so.LocationTransformation x = scope.onLocation x
-            override so.ScopeTransformation x = scope.Transform x
-            override so.TypeTransformation x = scope.Expression.Type.Transform x
+            override __.ExpressionTransformation x = scope.Expression.Transform x
+            override __.LocationTransformation x = scope.onLocation x
+            override __.ScopeTransformation x = scope.Transform x
+            override __.TypeTransformation x = scope.Expression.Type.Transform x
 
             override so.onVariableDeclaration stm =
                 let lhs = so.onSymbolTuple stm.Lhs

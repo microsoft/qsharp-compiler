@@ -141,22 +141,22 @@ type internal CallableInliner(callables) =
         }
 
 
-    override this.onCallableImplementation c =
+    override __.onCallableImplementation c =
         let prev = currentCallable
         currentCallable <- Some c
         let result = base.onCallableImplementation c
         currentCallable <- prev
         result
 
-    override syntaxTree.Scope = { new ScopeTransformation() with
+    override __.Scope = { new ScopeTransformation() with
 
-        override scope.StatementKind = { new StatementKindTransformation() with
-            override stmtKind.ExpressionTransformation x = scope.Expression.Transform x
-            override stmtKind.LocationTransformation x = scope.onLocation x
-            override stmtKind.ScopeTransformation x = scope.Transform x
-            override stmtKind.TypeTransformation x = scope.Expression.Type.Transform x
+        override this.StatementKind = { new StatementKindTransformation() with
+            override __.ExpressionTransformation x = this.Expression.Transform x
+            override __.LocationTransformation x = this.onLocation x
+            override __.ScopeTransformation x = this.Transform x
+            override __.TypeTransformation x = this.Expression.Type.Transform x
 
-            override this.onExpressionStatement ex =
+            override __.onExpressionStatement ex =
                 safeInline ex.Expression |? QsExpressionStatement ex
         }
     }

@@ -59,9 +59,6 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
     let typeIsArray k = expr.ResolvedType.Resolution = TypeKind.ArrayType (ResolvedType.New k)
     let ensureMatchingIndex l =
         let existing = List.indexed l |> List.tryPick (fun (i, ex) -> if expr = ex then Some (l, i) else None)
-        if (existing = None) = (l |> List.map (fun x -> printExpr x.Expression) |> List.contains (printExpr expr.Expression)) then
-            printfn "Problem"
-            ()
         existing |? (l @ [expr], l.Length)
     let recurse cc seq f g = maybe {
         let ccRef = ref cc
