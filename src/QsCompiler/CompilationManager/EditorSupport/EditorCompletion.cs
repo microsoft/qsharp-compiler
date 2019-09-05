@@ -200,13 +200,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 case CompletionKind.Keyword keyword:
                     return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
             }
-            var namespaces =
+            var currentNamespace = file.TryGetNamespaceAt(position);
+            var openNamespaces =
                 namespacePrefix == "" ? GetOpenNamespaces(file, compilation, position) : new[] { namespacePrefix };
             switch (kind.Tag)
             {
                 case CompletionKind.Tags.UserDefinedType:
                     return
-                        GetTypeCompletions(file, compilation, namespaces)
+                        GetTypeCompletions(file, compilation, currentNamespace, openNamespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
                 case CompletionKind.Tags.Namespace:
@@ -219,7 +220,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return GetLocalCompletions(file, compilation, position, mutableOnly: true);
                 case CompletionKind.Tags.Callable:
                     return
-                        GetCallableCompletions(file, compilation, namespaces)
+                        GetCallableCompletions(file, compilation, currentNamespace, openNamespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
             }
@@ -253,12 +254,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return Array.Empty<CompletionItem>();
             }
+
+            var currentNamespace = file.TryGetNamespaceAt(position);
             if (nsPath != null)
             {
                 var resolvedNsPath = ResolveNamespaceAlias(file, compilation, position, nsPath);
                 return
-                    GetCallableCompletions(file, compilation, new[] { resolvedNsPath })
-                    .Concat(GetTypeCompletions(file, compilation, new[] { resolvedNsPath }))
+                    GetCallableCompletions(file, compilation, currentNamespace, new[] { resolvedNsPath })
+                    .Concat(GetTypeCompletions(file, compilation, currentNamespace, new[] { resolvedNsPath }))
                     .Concat(GetGlobalNamespaceCompletions(compilation, resolvedNsPath))
                     .Concat(GetNamespaceAliasCompletions(file, compilation, position, nsPath));  // unresolved NS path
             }
@@ -267,8 +270,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Keywords.ReservedKeywords
                 .Select(keyword => new CompletionItem { Label = keyword, Kind = CompletionItemKind.Keyword })
                 .Concat(GetLocalCompletions(file, compilation, position))
-                .Concat(GetCallableCompletions(file, compilation, openNamespaces))
-                .Concat(GetTypeCompletions(file, compilation, openNamespaces))
+                .Concat(GetCallableCompletions(file, compilation, currentNamespace, openNamespaces))
+                .Concat(GetTypeCompletions(file, compilation, currentNamespace, openNamespaces))
                 .Concat(GetGlobalNamespaceCompletions(compilation))
                 .Concat(GetNamespaceAliasCompletions(file, compilation, position));
         }
@@ -301,22 +304,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for all callables in any of the given namespaces.
+        /// Returns completions for all callables visible given the current namespace and the list of open namespaces.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         private static IEnumerable<CompletionItem> GetCallableCompletions(
-            FileContentManager file, CompilationUnit compilation, IEnumerable<string> namespaces)
+            FileContentManager file,
+            CompilationUnit compilation,
+            string currentNamespace,
+            IEnumerable<string> openNamespaces)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (namespaces == null)
-                throw new ArgumentNullException(nameof(namespaces));
+            if (currentNamespace == null)
+                throw new ArgumentNullException(nameof(currentNamespace));
+            if (openNamespaces == null)
+                throw new ArgumentNullException(nameof(openNamespaces));
             return
                 compilation.GlobalSymbols.DefinedCallables()
                 .Concat(compilation.GlobalSymbols.ImportedCallables())
-                .Where(callable => namespaces.Contains(callable.QualifiedName.Namespace.Value))
+                .Where(callable => IsVisible(callable.QualifiedName, currentNamespace, openNamespaces))
                 .Select(callable => new CompletionItem()
                 {
                     Label = callable.QualifiedName.Name.Value,
@@ -331,22 +339,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for all types in any of the given namespaces.
+        /// Returns completions for all types visible given the current namespace and the list of open namespaces.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
         private static IEnumerable<CompletionItem> GetTypeCompletions(
-            FileContentManager file, CompilationUnit compilation, IEnumerable<string> namespaces)
+            FileContentManager file,
+            CompilationUnit compilation,
+            string currentNamespace,
+            IEnumerable<string> openNamespaces)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (namespaces == null)
-                throw new ArgumentNullException(nameof(namespaces));
+            if (currentNamespace == null)
+                throw new ArgumentNullException(nameof(currentNamespace));
+            if (openNamespaces == null)
+                throw new ArgumentNullException(nameof(openNamespaces));
             return
                 compilation.GlobalSymbols.DefinedTypes()
                 .Concat(compilation.GlobalSymbols.ImportedTypes())
-                .Where(type => namespaces.Contains(type.QualifiedName.Namespace.Value))
+                .Where(type => IsVisible(type.QualifiedName, currentNamespace, openNamespaces))
                 .Select(type => new CompletionItem()
                 {
                     Label = type.QualifiedName.Name.Value,
@@ -507,7 +520,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (!Utils.IsValidPosition(position))
                 throw new ArgumentException(nameof(position));
 
-            var fragment = file.TryGetFragmentAt(position, out var _, includeEnd: true);
+            var fragment = file.TryGetFragmentAt(position, out _, includeEnd: true);
             if (fragment == null)
                 return null;
             var startAt = GetTextIndexFromPosition(fragment, position);
@@ -663,5 +676,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 IsIncomplete = isIncomplete,
                 Items = items?.ToArray()
             };
+
+        /// <summary>
+        /// Returns true if the qualified name is visible given the current namespace and a list of open namespaces.
+        /// <para/>
+        /// Names that start with "_" are treated as "private"; they are only visible from the namespace in which they
+        /// are declared.
+        /// </summary>
+        private static bool IsVisible(QsQualifiedName qualifiedName,
+                                      string currentNamespace,
+                                      IEnumerable<string> openNamespaces) =>
+            openNamespaces.Contains(qualifiedName.Namespace.Value) &&
+            (!qualifiedName.Name.Value.StartsWith("_") || qualifiedName.Namespace.Value == currentNamespace);
     }
 }
