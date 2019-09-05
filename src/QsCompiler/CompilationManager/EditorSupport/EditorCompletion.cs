@@ -209,6 +209,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         GetTypeCompletions(file, compilation, namespaces)
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
+                case CompletionKind.Tags.NamedItem:
+                    return GetNamedItemCompletions(compilation);
                 case CompletionKind.Tags.Namespace:
                     return
                         GetGlobalNamespaceCompletions(compilation, namespacePrefix)
@@ -356,6 +358,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         textDocument: new TextDocumentIdentifier { Uri = file.Uri },
                         qualifiedName: type.QualifiedName,
                         sourceFile: type.SourceFile.Value)
+                });
+        }
+
+        /// <summary>
+        /// Returns completions for all named items in any type.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the argument is null.</exception>
+        private static IEnumerable<CompletionItem> GetNamedItemCompletions(CompilationUnit compilation)
+        {
+            if (compilation == null)
+                throw new ArgumentNullException(nameof(compilation));
+            return compilation.GlobalSymbols.DefinedTypes()
+                .Concat(compilation.GlobalSymbols.ImportedTypes())
+                .SelectMany(type => FlattenQsTuple(type.TypeItems))
+                .Where(item => item.IsNamed)
+                .Select(item => new CompletionItem()
+                {
+                    Label = ((QsTypeItem.Named)item).Item.VariableName.Value,
+                    Kind = CompletionItemKind.Field
                 });
         }
 
@@ -654,7 +675,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             String.Concat(@namespace.Substring(start).TakeWhile(c => c != '.'));
 
         /// <summary>
-        /// Converts an <see cref="IEnumerable&lt;&gt;"/> of <see cref="CompletionItem"/>s to a
+        /// Converts an <see cref="IEnumerable{T}"/> of <see cref="CompletionItem"/>s to a
         /// <see cref="CompletionList"/>.
         /// </summary>
         private static CompletionList ToCompletionList(this IEnumerable<CompletionItem> items, bool isIncomplete) =>
@@ -663,5 +684,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 IsIncomplete = isIncomplete,
                 Items = items?.ToArray()
             };
+
+        /// <summary>
+        /// Returns a flattened enumerable of all items in the <see cref="QsTuple{Item}"/>.
+        /// </summary>
+        private static IEnumerable<T> FlattenQsTuple<T>(QsTuple<T> tuple)
+        {
+            switch (tuple)
+            {
+                case QsTuple<T>.QsTupleItem item:
+                    return new[] { item.Item };
+                case QsTuple<T>.QsTuple items:
+                    return items.Item.SelectMany(FlattenQsTuple);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
     }
 }
