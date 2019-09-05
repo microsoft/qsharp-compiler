@@ -311,10 +311,9 @@ type QsStatement with
                     (match s.Default with Null -> Seq.empty | Value v -> upcast v.Body.Statements))
             | QsForStatement s -> upcast s.Body.Statements
             | QsWhileStatement s -> upcast s.Body.Statements
-            | QsConjugation s -> Seq.append s.OuterTransformation.Body.Statements s.InnerTransformation.Body.Statements // FIXME: not sure this folder makes sense...
+            | QsConjugation s -> Seq.append s.OuterTransformation.Body.Statements s.InnerTransformation.Body.Statements
             | QsRepeatStatement s -> Seq.append s.RepeatBlock.Body.Statements s.FixupBlock.Body.Statements
             | QsQubitScope s -> upcast s.Body.Statements
-            | QsScopeStatement s -> upcast s.Body.Statements
         folder (Seq.map (QsStatement.Fold folder) subStmts) stmt
 
     /// Returns true if the statement has a sub-statement satisfying the given condition.

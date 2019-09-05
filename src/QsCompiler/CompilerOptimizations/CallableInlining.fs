@@ -137,7 +137,7 @@ type internal CallableInliner(callables) =
 
             let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
             let newStatements = ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
-            return {ii.body with Statements = newStatements} |> QsScopeStatement.New |> QsScopeStatement
+            return {ii.body with Statements = newStatements} |> newScopeStatement
         }
 
 

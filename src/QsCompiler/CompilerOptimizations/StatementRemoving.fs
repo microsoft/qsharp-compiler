@@ -58,7 +58,7 @@ type internal StatementRemover() =
             let rhs = List.map snd myList |> ImmutableArray.CreateRange |> QubitTupleAllocation |> ResolvedInitializer.New
             let newBody = QsScope.New (s.Body.Statements.InsertRange (0, newStatements), s.Body.KnownSymbols)
             QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
-        | QsScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
+        | ScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
         | _ when not c.hasQuantum && not c.hasMutation && not c.hasInterrupts -> Seq.empty
         | a -> Seq.singleton a
 

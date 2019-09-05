@@ -80,9 +80,9 @@ type internal ConstantPropagator(callables) =
 
                 match cbList, newDefault with
                 | [], Value x ->
-                    x.Body |> QsScopeStatement.New |> QsScopeStatement
+                    x.Body |> newScopeStatement
                 | [], Null ->
-                    QsScope.New ([], LocalDeclarations.New []) |> QsScopeStatement.New |> QsScopeStatement
+                    QsScope.New ([], LocalDeclarations.New []) |> newScopeStatement
                 | _ ->
                     let cases = cbList |> Seq.map (fun (c, b) -> (Option.get c, b))
                     QsConditionalStatement.New (cases, newDefault) |> QsConditionalStatement

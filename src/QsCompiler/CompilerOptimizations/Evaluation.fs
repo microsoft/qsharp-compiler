@@ -131,8 +131,6 @@ type internal FunctionEvaluator(callables: Callables) =
             yield CouldNotEvaluate "Cannot allocate qubits in function"
         | QsConjugation _ ->
             yield CouldNotEvaluate "Cannot conjugate in function"
-        | QsScopeStatement s ->
-            do! this.evaluateScope s.Body
     }
 
     /// Evaluates a list of Q# statements

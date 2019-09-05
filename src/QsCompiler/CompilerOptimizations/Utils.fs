@@ -12,6 +12,8 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
+open ComputationExpressions
+
 
 /// Shorthand for a QsExpressionKind
 type internal ExprKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
@@ -264,3 +266,19 @@ let internal safeCastBigInt (i: BigInteger): int =
     if BigInteger.Abs(i) > BigInteger (1 <<< 30) then
         ArgumentException "Integer is too large for 32 bits" |> raise
     int i
+
+
+/// Creates a new scope statement wrapping the given block
+let internal newScopeStatement (block: QsScope): QsStatementKind =
+    let posBlock = QsPositionedBlock.New QsComments.Empty Null block
+    QsConditionalStatement.New (Seq.singleton (wrapExpr Bool (BoolLiteral true), posBlock), Null) |> QsConditionalStatement
+
+/// Matches a QsStatementKind as a scope statement
+let internal (|ScopeStatement|_|) (stmt: QsStatementKind) =
+    maybe {
+        let! condStmt = match stmt with QsConditionalStatement x -> Some x | _ -> None
+        do! check (condStmt.ConditionalBlocks.Length >= 1)
+        let cond, block = condStmt.ConditionalBlocks.[0]
+        do! check (cond.Expression = BoolLiteral true)
+        return block
+    }

@@ -124,8 +124,6 @@ let rec internal printStm (indent: int) (stm: QsStatementKind): string =
         ws + "repeat " + (printScope indent a.RepeatBlock.Body) + "\n" +
         ws + "until " + (printExpr a.SuccessCondition.Expression) + "\n" +
         ws + "fixup " + (printScope indent a.FixupBlock.Body)
-    | QsScopeStatement a ->
-        ws + printScope indent a.Body
     | QsExpressionStatement a ->
         ws + printExpr a.Expression + ";"
     | QsQubitScope a ->
