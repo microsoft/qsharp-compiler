@@ -95,11 +95,9 @@ type internal ConstantPropagator(callables) =
                 jointFlatten (lhs, rhs) |> Seq.iter (fun (l, r) ->
                     match l, r.Resolution with
                     | VariableName name, QubitRegisterAllocation {Expression = IntLiteral num} ->
-                        if num > int64 (1 <<< 30) then
-                            ArgumentException "Cannot allocate qubit arrays of this size" |> raise
                         let arrayIden = Identifier (LocalVariable name, Null) |> wrapExpr (ArrayType (ResolvedType.New Qubit))
                         let elemI = fun i -> ArrayItem (arrayIden, IntLiteral (int64 i) |> wrapExpr Int)
-                        let expr = Seq.init (int num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray |> wrapExpr (ArrayType (ResolvedType.New Qubit))
+                        let expr = Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray |> wrapExpr (ArrayType (ResolvedType.New Qubit))
                         constants <- defineVar (fun _ -> true) constants (name.Value, expr)
                     | _ -> ())
 

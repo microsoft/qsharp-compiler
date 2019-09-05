@@ -280,15 +280,15 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
     override this.onArrayItem (arr, idx) =
         let arr, idx = this.simplify (arr, idx)
         match arr.Expression, idx.Expression with
-        | ValueArray va, IntLiteral i -> va.[int i].Expression
+        | ValueArray va, IntLiteral i -> va.[safeCastInt64 i].Expression
         | ValueArray va, RangeLiteral _ when isLiteral callables idx ->
-            rangeLiteralToSeq idx.Expression |> Seq.map (fun i -> va.[int i]) |> ImmutableArray.CreateRange |> ValueArray
+            rangeLiteralToSeq idx.Expression |> Seq.map (fun i -> va.[safeCastInt64 i]) |> ImmutableArray.CreateRange |> ValueArray
         | _ -> ArrayItem (arr, idx)
 
     override this.onNewArray (bt, idx) =
         let idx = this.simplify idx
         match idx.Expression with
-        | IntLiteral i -> constructNewArray bt.Resolution (int i) |? NewArray (bt, idx)
+        | IntLiteral i -> constructNewArray bt.Resolution (safeCastInt64 i) |? NewArray (bt, idx)
         | _ -> NewArray (bt, idx)
 
     override this.onCopyAndUpdateExpression (lhs, accEx, rhs) =
