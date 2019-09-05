@@ -857,10 +857,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             publishDiagnostics = true;
             if (count == 1 && line == start)
             {
-                // TODO: If the change contains characters that are part of a symbol, we should delay sending
-                // diagnostics until the user has a chance to finish typing, either by queuing the update here or
-                // queuing the diagnostics before they're sent to the client.
                 this.UnprocessedUpdates.Enqueue(change);
+
                 var trimmedText = change.Text.TrimStart(); // tabs etc inserted by the editor come squashed together with the next inserted character
                 if (change.Text == String.Empty || 
                     trimmedText == "{" || trimmedText == "\"" || // let's not immediately trigger an update for these, hoping the matching one will come right after
@@ -870,7 +868,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     publishDiagnostics = false;
                     return;
                 }
-                this.Update(); // update only the currently queued changes
+
+                // For changes that are part of typing a symbol, the file needs to be updated immediately for code
+                // completion, but diagnostics should be delayed until the user has a chance to finish typing.
+                if (Utils.ValidAsSymbol.IsMatch(trimmedText))
+                    publishDiagnostics = false;
+
+                this.Update();
             }
             else this.Update(change);
         }
