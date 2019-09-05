@@ -118,6 +118,8 @@ let rec internal toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbo
         match item.VariableName with
         | ValidName n -> VariableName n
         | InvalidName -> InvalidItem
+    | QsTuple items when items.Length = 0 ->
+        DiscardedItem
     | QsTuple items when items.Length = 1 ->
         toSymbolTuple items.[0]
     | QsTuple items ->
