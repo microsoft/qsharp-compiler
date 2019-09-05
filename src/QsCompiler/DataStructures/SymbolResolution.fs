@@ -235,6 +235,77 @@ module SymbolResolution =
         | InvalidType -> QsTypeKind.InvalidType |> asResolvedType, [||] 
         | MissingType -> NotSupportedException "missing type cannot be resolved" |> raise 
 
+    /// ...
+    let internal ResolveAttribute processUDT (qsSym : QsSymbol, qsExpr : QsExpression) = 
+        let asTypedExression range (exKind, exType) = {
+            Expression = exKind
+            TypeParameterResolutions = ImmutableDictionary.Empty
+            ResolvedType = exType |> ResolvedType.New
+            InferredInformation = {IsMutable = false; HasLocalQuantumDependency = false}
+            Range = range}
+        let invalidExpr range = (InvalidExpr, InvalidType) |> asTypedExression range 
+        let withErr (code, range : QsNullable<_>) errs = 
+            Array.append errs [| range.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (code, []) |]
+
+        // We may in the future decide to support arbitary expressions as long as they can be evaluated at compile time. 
+        // At that point it may make sense to replace this with the standard resolution routine for typed expressions. 
+        // For now we support only a restrictive set of valid arguments. 
+        let rec ArgExression (ex : QsExpression) : TypedExpression * QsCompilerDiagnostic[] = 
+            match ex.Expression with
+            | ValueTuple vs -> 
+                let innerExs, errs = aggregateInner vs
+                let types = (innerExs |> Seq.map (fun ex -> ex.ResolvedType)).ToImmutableArray()
+                let resolved = (ValueTuple innerExs, TupleType types) |> asTypedExression ex.Range
+                resolved, errs
+            | UnitValue          -> (UnitValue, UnitType) |> asTypedExression ex.Range, [||]
+            | DoubleLiteral d    -> (DoubleLiteral d, Double) |> asTypedExression ex.Range, [||]
+            | IntLiteral i       -> (IntLiteral i, Int) |> asTypedExression ex.Range, [||]
+            | BigIntLiteral l    -> (BigIntLiteral l, BigInt) |> asTypedExression ex.Range, [||]
+            | BoolLiteral b      -> (BoolLiteral b, Bool) |> asTypedExression ex.Range, [||]
+            | ResultLiteral r    -> (ResultLiteral r, Result) |> asTypedExression ex.Range, [||]
+            | PauliLiteral p     -> (PauliLiteral p, Pauli) |> asTypedExression ex.Range, [||]
+            | NewArray (bt, idx) -> 
+                let onUdt _ = InvalidType, [||] // TODO: diagnostics
+                let onTypeParam _ = InvalidType, [||] // TODO: diagnostics
+                let resBaseType, typeErrs = ResolveType (onUdt, onTypeParam) bt // FIXME: allow udts?
+                let resIdx, idxErrs = ArgExression idx
+                let resolved = (NewArray (resBaseType, resIdx), ArrayType resBaseType) |> asTypedExression ex.Range
+                resolved, Array.concat [typeErrs; idxErrs]
+            | ValueArray vs ->
+                let innerExs, errs = aggregateInner vs
+                match innerExs |> Seq.distinctBy (fun ex -> ex.ResolvedType) |> Seq.toList with 
+                | [] -> invalidExpr ex.Range, errs |> withErr (ErrorCode.EmptyValueArray, ex.Range)
+                | [bt] -> (ValueArray innerExs, ArrayType bt.ResolvedType) |> asTypedExression ex.Range, errs
+                | _ ->  invalidExpr ex.Range, errs |> withErr (ErrorCode.ArrayBaseTypeMismatch, ex.Range)
+            | StringLiteral (s, exs) ->
+                if exs.Any() then invalidExpr ex.Range, [||] // TODO: diagnostics
+                else (StringLiteral (s, ImmutableArray.Empty), String) |> asTypedExression ex.Range, [||]
+            //| CallLikeExpression (ex, args) when ... // TODO: allow if default type constructor?
+            | _ -> invalidExpr ex.Range, [||] // TODO: diagnostics
+        and aggregateInner vs = 
+            let innerExs, errs = vs |> Seq.map ArgExression |> Seq.toList |> List.unzip
+            innerExs.ToImmutableArray(), Array.concat errs
+        let resArg, argErrs = ArgExression qsExpr
+
+        // ... 
+        let getAttribute (ns, sym) = 
+            match processUDT ((ns, sym), qsSym.Range) with
+            | Some (udt, underlyingType : ResolvedType), errs ->  //UserDefinedType (udt : UserDefinedType), errs -> 
+                // FIXME: we need to restructure the division between QsDataStructures and QsCore - 
+                // this nameing dependency should live with the other dependencies!
+                if udt.Namespace.Value <> "Microsoft.Quantum.Core" || udt.Name.Value <> "Attribute" then 
+                    None, errs |> Array.append argErrs // TODO: add diagnostics
+                elif resArg.ResolvedType.WithoutRangeInfo <> underlyingType.WithoutRangeInfo then
+                    None, errs |> Array.append argErrs // TODO: add diagnostics
+                else Some {Namespace = udt.Namespace; Name = udt.Name}, errs |> Array.append argErrs
+            | None, errs -> None, Array.concat [errs; argErrs]
+        match qsSym.Symbol with 
+        | Symbol sym -> getAttribute (None, sym) 
+        | QualifiedSymbol (ns, sym) -> getAttribute (Some ns, sym)
+        | InvalidSymbol -> None, argErrs
+        | MissingSymbol | OmittedSymbols | SymbolTuple _ -> 
+            None, argErrs |> withErr (ErrorCode.InvalidAttributeIdentifier, qsSym.Range)
+
 
     // private routines for resolving specialization generation directives
 
