@@ -21,10 +21,19 @@
       <PropertyGroup>
         <ResolvedQsharpOutputType>QsharpLibrary</ResolvedQsharpOutputType>
       </PropertyGroup>
+
+      <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
+        <TargetFramework>netstandard2.0</TargetFramework>
+      </PropertyGroup>
+
     </When>
     <When Condition="'$(OutputType)' == 'Exe'">
       <PropertyGroup>
         <ResolvedQsharpOutputType>QsharpExe</ResolvedQsharpOutputType>
+      </PropertyGroup>
+
+      <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
+        <TargetFramework>netcoreapp2.1</TargetFramework>
       </PropertyGroup>
     </When>
     <Otherwise>

@@ -12,8 +12,13 @@
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
   </PropertyGroup>
 
-  <PropertyGroup>
+  <PropertyGroup Condition=" '$(QdkVersion)' == ''">
+    <!-- TODO: inject version of the SDK package itself. -->
     <QdkVersion>0.9.1908.2906</QdkVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(PlatformTarget)' == ''">
+      <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
   <!--
