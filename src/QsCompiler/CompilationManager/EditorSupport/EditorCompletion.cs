@@ -324,6 +324,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(compilation));
             if (openNamespaces == null)
                 throw new ArgumentNullException(nameof(openNamespaces));
+
+            if (!compilation.GlobalSymbols.ContainsResolutions)
+                return Array.Empty<CompletionItem>();
             return
                 compilation.GlobalSymbols.DefinedCallables()
                 .Concat(compilation.GlobalSymbols.ImportedCallables())
@@ -359,6 +362,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(compilation));
             if (openNamespaces == null)
                 throw new ArgumentNullException(nameof(openNamespaces));
+
+            if (!compilation.GlobalSymbols.ContainsResolutions)
+                return Array.Empty<CompletionItem>();
             return
                 compilation.GlobalSymbols.DefinedTypes()
                 .Concat(compilation.GlobalSymbols.ImportedTypes())
@@ -383,6 +389,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
+
+            if (!compilation.GlobalSymbols.ContainsResolutions)
+                return Array.Empty<CompletionItem>();
             return compilation.GlobalSymbols.DefinedTypes()
                 .Concat(compilation.GlobalSymbols.ImportedTypes())
                 .SelectMany(type => ExtractItems(type.TypeItems))
