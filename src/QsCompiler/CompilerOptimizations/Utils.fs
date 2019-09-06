@@ -172,8 +172,9 @@ let rec internal constructNewArray (bt: TypeKind) (length: int): ExprKind option
 
 /// Returns the default value for a given type (from Q# documentation).
 /// Returns None for types whose default values are not representable as expressions.
-and private defaultValue (bt: TypeKind): ExprKind option =
+and internal defaultValue (bt: TypeKind): ExprKind option =
     match bt with
+    | UnitType -> UnitValue |> Some
     | Int -> IntLiteral 0L |> Some
     | BigInt -> BigIntLiteral BigInteger.Zero |> Some
     | Double -> DoubleLiteral 0.0 |> Some

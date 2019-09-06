@@ -5,6 +5,7 @@ module Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
 
 open System.Collections.Generic
 open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -79,6 +80,7 @@ type private InliningInfo = {
     arg: TypedExpression
     specArgs: QsArgumentTuple
     body: QsScope
+    returnType: ResolvedType
 }
 
 /// A scope transformation that substitutes type parameters according to the given dictionary
@@ -105,7 +107,8 @@ let private tryGetInliningInfo callables expr =
         let! functors, callable, arg = trySplitCall callables expr.Expression
         let! specArgs, body = tryGetProvidedImpl callable functors
         let body = ReplaceTypeParams(expr.TypeParameterResolutions).Transform body
-        return { functors = functors; callable = callable; arg = arg; specArgs = specArgs; body = body }
+        let returnType = ReplaceTypeParams(expr.TypeParameterResolutions).Expression.Type.Transform callable.Signature.ReturnType
+        return { functors = functors; callable = callable; arg = arg; specArgs = specArgs; body = body; returnType = returnType }
     }
 
 
@@ -141,13 +144,13 @@ type internal CallableInliner(callables) =
     // The current callable we're in the process of transforming
     let mutable currentCallable: QsCallable option = None
 
-    /// Inline an expression as a ScopeStatement, with many checks to ensure correctness.
-    /// Returns None if the expression cannot be safely inlined.
-    let safeInline expr =
+    /// The random generator to give unique variable names
+    let random = System.Random()
+
+    let tryInline expr =
         maybe {
             let! ii = tryGetInliningInfo callables expr
 
-            do! check (countReturnStatements ii.body = 0)
             let! current = currentCallable
             do! check (cannotReachCallable callables ii.body current.FullName)
             do! check (ii.functors.controlled < 2)
@@ -156,8 +159,72 @@ type internal CallableInliner(callables) =
 
             let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
             let newStatements = ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
+            return ii, newStatements
+        }
+
+    /// Inline an expression representing a callable with no return statements.
+    /// Returns None if the expression cannot be safely inlined.
+    let safeInline expr =
+        maybe {
+            let! ii, newStatements = tryInline expr
+            do! check (countReturnStatements ii.body = 0)
             return {ii.body with Statements = newStatements} |> newScopeStatement
         }
+
+    /// Inline an expression representing a callable with exactly one return statement.
+    /// Returns None if the expression cannot be safely inlined.
+    let safeInlineReturn expr =
+        maybe {
+            let! ii, newStatements = tryInline expr
+
+            do! check (countReturnStatements ii.body = 1)
+            let lastStatement = ii.body.Statements.[ii.body.Statements.Length-1].Statement
+            let! returnExpr = match lastStatement with QsReturnStatement ex -> Some ex | _ -> None
+
+            let returnType = ii.returnType.Resolution
+            let! returnVarDefaultValue = defaultValue returnType |> Option.map (wrapExpr returnType)
+            let returnVarName = NonNullable<_>.New (sprintf "__qsVar%d____returnVal____" (random.Next()))
+            let returnVarIden = wrapExpr returnType (Identifier (LocalVariable returnVarName, Null))
+
+            let returnVarBinding = QsVariableDeclaration (QsBinding.New MutableBinding (VariableName returnVarName, returnVarDefaultValue))
+            let returnUpdate = QsValueUpdate (QsValueUpdate.New (returnVarIden, returnExpr))
+            let newStatements = newStatements.SetItem (newStatements.Length-1, wrapStmt returnUpdate)
+            let newScope = {ii.body with Statements = newStatements} |> newScopeStatement
+
+            return returnVarBinding, newScope, returnVarIden
+        }
+
+    /// Given a statement, returns a sequence of statements to replace this statement with.
+    /// Inlines simple calls that have exactly 0 or 1 return statements.
+    let transformStatement stmt =
+        maybe {
+            match stmt with
+            | QsExpressionStatement ex ->
+                match safeInline ex with
+                | Some scopeStmt ->
+                    return scopeStmt |> Seq.singleton
+                | None ->
+                    let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn ex
+                    return upcast [
+                        returnVarBinding
+                        scopeStmt
+                    ]
+            | QsVariableDeclaration s ->
+                let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn s.Rhs
+                return upcast [
+                    returnVarBinding
+                    scopeStmt
+                    QsVariableDeclaration {s with Rhs = returnVarIden}
+                ]
+            | QsValueUpdate s ->
+                let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn s.Rhs
+                return upcast [
+                    returnVarBinding
+                    scopeStmt
+                    QsValueUpdate {s with Rhs = returnVarIden}
+                ]
+            | _ -> return! None
+        } |? Seq.singleton stmt
 
 
     override __.onCallableImplementation c =
@@ -168,14 +235,13 @@ type internal CallableInliner(callables) =
         result
 
     override __.Scope = { new ScopeTransformation() with
-
-        override this.StatementKind = { new StatementKindTransformation() with
-            override __.ExpressionTransformation x = this.Expression.Transform x
-            override __.LocationTransformation x = this.onLocation x
-            override __.ScopeTransformation x = this.Transform x
-            override __.TypeTransformation x = this.Expression.Type.Transform x
-
-            override __.onExpressionStatement ex =
-                safeInline ex |? QsExpressionStatement ex
-        }
+        override this.Transform scope =
+            let parentSymbols = scope.KnownSymbols
+            let statements =
+                scope.Statements
+                |> Seq.map this.onStatement
+                |> Seq.map (fun x -> x.Statement)
+                |> Seq.collect transformStatement
+                |> Seq.map wrapStmt
+            QsScope.New (statements, parentSymbols)
     }
