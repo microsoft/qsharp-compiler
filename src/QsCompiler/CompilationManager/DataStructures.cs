@@ -321,8 +321,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal struct TreeNode
         {
             private readonly Position relPosition;
+            private readonly Position rootPosition;
             public readonly CodeFragment Fragment;
             public readonly IReadOnlyList<TreeNode> Children;
+            public Position GetRootPosition() => rootPosition.Copy();
             public Position GetPositionRelativeToRoot() => relPosition.Copy();
 
             /// <summary>
@@ -339,6 +341,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 var fragStart = fragment.GetRange().Start;
                 if (!Utils.IsValidPosition(parentStart)) throw new ArgumentException(nameof(parentStart));
                 if (fragStart.IsSmallerThan(parentStart)) throw new ArgumentException(nameof(parentStart), "parentStart needs to be smaller than or equal to the fragment start");
+                this.rootPosition = parentStart;
                 this.relPosition = fragStart.Subtract(parentStart);
             }
         }
@@ -756,6 +759,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         }
 
         public void ReplaceAll(IEnumerable<T> replacement)
+        {
+            if (replacement == null) throw new ArgumentNullException(nameof(replacement));
+            this.SyncRoot.EnterWriteLock();
+            try { this.Content = replacement.ToList(); }
+            finally { this.SyncRoot.ExitWriteLock(); }
+        }
+
+        public void ReplaceAll(ManagedList<T> replacement)
         {
             if (replacement == null) throw new ArgumentNullException(nameof(replacement));
             this.SyncRoot.EnterWriteLock();

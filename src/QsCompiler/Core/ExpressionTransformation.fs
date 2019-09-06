@@ -353,15 +353,15 @@ and ExpressionTransformation(?enableKindTransformations) =
     abstract member Type : ExpressionTypeTransformation
     default this.Type = typeTransformation
 
-    abstract member onRange : QsNullable<QsPositionInfo*QsPositionInfo> -> QsNullable<QsPositionInfo*QsPositionInfo>
-    default this.onRange r = r
+    abstract member onRangeInformation : QsNullable<QsPositionInfo*QsPositionInfo> -> QsNullable<QsPositionInfo*QsPositionInfo>
+    default this.onRangeInformation r = r
 
     abstract member onExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
     default this.onExpressionInformation info = info
 
     abstract member Transform : TypedExpression -> TypedExpression
     default this.Transform (ex : TypedExpression) =
-        let range                = this.onRange ex.Range
+        let range                = this.onRangeInformation ex.Range
         let kind                 = this.Kind.Transform ex.Expression
         let typeParamResolutions = ex.TypeParameterResolutions
         let exType               = this.Type.Transform ex.ResolvedType

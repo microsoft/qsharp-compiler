@@ -284,13 +284,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (!isSource) throw new InvalidOperationException ($"changed file {docKey.Value} is not a source file of this compilation unit");
 
                 this.ChangedFiles.Add(docKey);
-                var notYetProcessed = true;
-                foreach (var change in param.ContentChanges) file.PushChange(change, out notYetProcessed); // only the last one here is relevant for notYetProcessed 
-                if (notYetProcessed) return; // there may be some changes that have been processed, but waiting for the auto-spawn should be fine
+                var publish = false;
+                foreach (var change in param.ContentChanges) file.PushChange(change, out publish); // only the last one here is relevant 
 
-                if (this.EnableVerification && this.WaitForTypeCheck != null)
-                { file.AddTimerTriggeredUpdateEvent(); }
-                this.PublishDiagnostics(file.Diagnostics());
+                if (publish)
+                {
+                    if (this.EnableVerification && this.WaitForTypeCheck != null)
+                    { file.AddTimerTriggeredUpdateEvent(); }
+                    this.PublishDiagnostics(file.Diagnostics());
+                }
+                else file.AddTimerTriggeredUpdateEvent();
             });
         }
 

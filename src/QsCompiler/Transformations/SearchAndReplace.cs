@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -12,6 +14,11 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 {
     using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    using QsExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using QsRangeInfo = QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>;
+
+
+    // routines for finding occurrences of symbols/identifiers
 
     /// <summary>
     /// Class that allows to walk the syntax tree and find all locations where a certain identifier occurs.
@@ -143,9 +150,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             Core.ExpressionTypeTransformation
         {
             private readonly QsCodeOutput.ExpressionTypeToQs CodeOutput = new QsCodeOutput.ExpressionToQs()._Type;
-            internal Action<Identifier, QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>> OnIdentifier;
+            internal Action<Identifier, QsRangeInfo> OnIdentifier;
 
-            public TypeLocation(Action<Identifier, QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>> onIdentifier = null) :
+            public TypeLocation(Action<Identifier, QsRangeInfo> onIdentifier = null) :
                 base(true) =>
                 this.OnIdentifier = onIdentifier;
 
@@ -213,7 +220,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return base.onLocation(loc);
         }
 
-        private void LogIdentifierLocation(Identifier id, QsNullable<Tuple<QsPositionInfo, QsPositionInfo>> range)
+        private void LogIdentifierLocation(Identifier id, QsRangeInfo range)
         {
             if (this.TrackIdentifier(id) && this.CurrentLocation?.Offset != null && range.IsValue)
             {
@@ -239,6 +246,158 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             finder.RootLocation = rootLoc ?? throw new ArgumentNullException(nameof(rootLoc));
             finder.Transform(scope ?? throw new ArgumentNullException(nameof(scope)));
             return finder.Locations;
+        }
+    }
+
+
+    // routines for finding all symbols/identifiers
+
+    /// <summary>
+    /// Generates a look-up for all used local variables and their location in any of the transformed scopes, 
+    /// as well as one for all local variables reassigned in any of the transformed scopes and their locations. 
+    /// Note that the location information is relative to the root node, i.e. the start position of the containing specialization declaration. 
+    /// </summary>
+    public class AccumulateIdentifiers :
+        ScopeTransformation<AccumulateIdentifiers.VariableReassignments, OnTypedExpression<Core.ExpressionTypeTransformation>>
+    {
+        private QsLocation StatementLocation;
+        private Func<TypedExpression, TypedExpression> UpdatedExpression;
+
+        private List<(NonNullable<string>, QsLocation)> UpdatedLocals;
+        private List<(NonNullable<string>, QsLocation)> UsedLocals;
+
+        public ILookup<NonNullable<string>, QsLocation> ReassignedVariables => 
+            this.UpdatedLocals.ToLookup(var => var.Item1, var => var.Item2);
+
+        public ILookup<NonNullable<string>, QsLocation> UsedLocalVariables =>
+            this.UsedLocals.ToLookup(var => var.Item1, var => var.Item2);
+
+
+        public AccumulateIdentifiers() :
+            base(
+                scope => new VariableReassignments(scope as AccumulateIdentifiers),
+                new OnTypedExpression<Core.ExpressionTypeTransformation>(recur: true))
+        {
+            this.UpdatedLocals = new List<(NonNullable<string>, QsLocation)>();
+            this.UsedLocals = new List<(NonNullable<string>, QsLocation)>();
+            this._Expression.OnExpression = this.onLocal(this.UsedLocals);
+            this.UpdatedExpression = new OnTypedExpression<Core.ExpressionTypeTransformation>(this.onLocal(this.UpdatedLocals), recur: true).Transform;
+        }
+
+        private Action<TypedExpression> onLocal(List<(NonNullable<string>, QsLocation)> accumulate) => (TypedExpression ex) =>
+        {
+            if (ex.Expression is QsExpressionKind.Identifier id &&
+                id.Item1 is Identifier.LocalVariable var)
+            {
+                var range = ex.Range.IsValue ? ex.Range.Item : this.StatementLocation.Range;
+                accumulate.Add((var.Item, new QsLocation(this.StatementLocation.Offset, range)));
+            }
+        };
+
+        public override QsStatement onStatement(QsStatement stm)
+        {
+            this.StatementLocation = stm.Location.IsNull ? null : stm.Location.Item;
+            this.StatementKind.Transform(stm.Statement);
+            return stm;
+        }
+
+
+        // helper class
+
+        public class VariableReassignments :
+            StatementKindTransformation<AccumulateIdentifiers>
+        {
+            public VariableReassignments(AccumulateIdentifiers scope)
+                : base(scope)
+            { }
+
+            public override QsStatementKind onValueUpdate(QsValueUpdate stm)
+            {
+                this._Scope.UpdatedExpression(stm.Lhs);
+                this.ExpressionTransformation(stm.Rhs);
+                return QsStatementKind.NewQsValueUpdate(stm);
+            }
+        }
+    }
+
+
+    // routines for replacing symbols/identifiers
+
+    /// <summary>
+    /// Upon transformation, assigns each defined variable a unique name, independent on the scope, and replaces all references to it accordingly.
+    /// The original variable name can be recovered by using the static method StripUniqueName.  
+    /// This class is *not* threadsafe. 
+    /// </summary>
+    public class UniqueVariableNames
+        : ScopeTransformation<UniqueVariableNames.ReplaceDeclarations, ExpressionTransformation<UniqueVariableNames.ReplaceIdentifiers>>
+    {
+        private const string Prefix = "qsVar";
+        private const string OrigVarName = "origVarName";
+        private static Regex WrappedVarName = new Regex($"^__{Prefix}[0-9]*__(?<{OrigVarName}>.*)__$");
+
+        private int VariableNr;
+        private Dictionary<NonNullable<string>, NonNullable<string>> UniqueNames;
+
+        /// <summary>
+        /// Will overwrite the dictionary entry mapping a variable name to the corresponding unique name if the key already exists. 
+        /// </summary>
+        internal NonNullable<string> GenerateUniqueName(NonNullable<string> varName)
+        {
+            var unique = NonNullable<string>.New($"__{Prefix}{this.VariableNr++}__{varName.Value}__");
+            this.UniqueNames[varName] = unique;
+            return unique;
+        }
+
+        public NonNullable<string> StripUniqueName(NonNullable<string> uniqueName)
+        {
+            var matched = WrappedVarName.Match(uniqueName.Value).Groups[OrigVarName];
+            return matched.Success ? NonNullable<string>.New(matched.Value) : uniqueName;
+        }
+
+        private QsExpressionKind AdaptIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
+            sym is Identifier.LocalVariable varName && this.UniqueNames.TryGetValue(varName.Item, out var unique)
+                ? QsExpressionKind.NewIdentifier(Identifier.NewLocalVariable(unique), tArgs)
+                : QsExpressionKind.NewIdentifier(sym, tArgs);
+
+        public UniqueVariableNames(int initVarNr = 0) :
+            base(s => new ReplaceDeclarations(s as UniqueVariableNames),
+                new ExpressionTransformation<ReplaceIdentifiers>(e =>
+                    new ReplaceIdentifiers(e as ExpressionTransformation<ReplaceIdentifiers>)))
+        {
+            this._Expression._Kind.ReplaceId = this.AdaptIdentifier;
+            this.VariableNr = initVarNr;
+            this.UniqueNames = new Dictionary<NonNullable<string>, NonNullable<string>>();
+        }
+
+
+        // helper classes
+
+        public class ReplaceDeclarations
+            : StatementKindTransformation<UniqueVariableNames>
+        {
+            public ReplaceDeclarations(UniqueVariableNames scope)
+                : base(scope) { }
+
+            public override SymbolTuple onSymbolTuple(SymbolTuple syms) =>
+                syms is SymbolTuple.VariableNameTuple tuple
+                    ? SymbolTuple.NewVariableNameTuple(tuple.Item.Select(this.onSymbolTuple).ToImmutableArray())
+                    : syms is SymbolTuple.VariableName varName
+                    ? SymbolTuple.NewVariableName(this._Scope.GenerateUniqueName(varName.Item))
+                    : syms;
+        }
+
+        public class ReplaceIdentifiers
+            : ExpressionKindTransformation<ExpressionTransformation<ReplaceIdentifiers>>
+        {
+            internal Func<Identifier, QsNullable<ImmutableArray<ResolvedType>>, QsExpressionKind> ReplaceId;
+
+            public ReplaceIdentifiers(ExpressionTransformation<ReplaceIdentifiers> expression,
+                Func<Identifier, QsNullable<ImmutableArray<ResolvedType>>, QsExpressionKind> replaceId = null)
+                : base(expression) =>
+                this.ReplaceId = replaceId ?? ((sym, tArgs) => QsExpressionKind.NewIdentifier(sym, tArgs));
+
+            public override QsExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
+                this.ReplaceId(sym, tArgs);
         }
     }
 
