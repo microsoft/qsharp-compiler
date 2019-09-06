@@ -163,7 +163,6 @@ let private specializationDeclaration =
     let argumentTuple = tuple (expectedId Declaration (term symbol) <|> operator omittedSymbols.id "")
     let generator = 
         pcollect [
-            expectedKeyword intrinsicFunctorGenDirective
             expectedKeyword autoFunctorGenDirective
             expectedKeyword selfFunctorGenDirective
             expectedKeyword invertFunctorGenDirective
