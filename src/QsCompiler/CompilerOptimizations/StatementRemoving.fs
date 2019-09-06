@@ -54,10 +54,16 @@ type internal StatementRemover() =
                         ResolvedInitializer.New SingleQubitAllocation)
                 | DiscardedItem, _ -> Seq.empty
                 | _ -> Seq.singleton (l, r)) |> List.ofSeq
-            let lhs = List.map fst myList |> ImmutableArray.CreateRange |> VariableNameTuple
-            let rhs = List.map snd myList |> ImmutableArray.CreateRange |> QubitTupleAllocation |> ResolvedInitializer.New
-            let newBody = QsScope.New (s.Body.Statements.InsertRange (0, newStatements), s.Body.KnownSymbols)
-            QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
+            match myList with
+            | [] -> newScopeStatement s.Body |> Seq.singleton
+            | [lhs, rhs] ->
+                let newBody = QsScope.New (s.Body.Statements.InsertRange (0, newStatements), s.Body.KnownSymbols)
+                QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
+            | _ ->
+                let lhs = List.map fst myList |> ImmutableArray.CreateRange |> VariableNameTuple
+                let rhs = List.map snd myList |> ImmutableArray.CreateRange |> QubitTupleAllocation |> ResolvedInitializer.New
+                let newBody = QsScope.New (s.Body.Statements.InsertRange (0, newStatements), s.Body.KnownSymbols)
+                QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
         | ScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
         | _ when not c.hasQuantum && not c.hasMutation && not c.hasInterrupts && not c.hasOutput -> Seq.empty
         | a -> Seq.singleton a

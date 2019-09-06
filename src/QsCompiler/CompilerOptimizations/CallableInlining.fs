@@ -4,6 +4,7 @@
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
 
 open System.Collections.Generic
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -80,12 +81,30 @@ type private InliningInfo = {
     body: QsScope
 }
 
+/// A scope transformation that substitutes type parameters according to the given dictionary
+type private ReplaceTypeParams(typeParams: ImmutableDictionary<QsTypeParameter, ResolvedType>) =
+    inherit ScopeTransformation()
+
+    override __.Expression = { new ExpressionTransformation() with
+        override __.Type = { new ExpressionTypeTransformation() with
+            override this.onTypeParameter tp =
+                if typeParams.ContainsKey tp then
+                    typeParams.[tp].Resolution
+                else
+                    let origin = tp.Origin
+                    let name = tp.TypeName
+                    let range = this.onRangeInformation tp.Range
+                    QsTypeParameter.New (origin.Namespace, origin.Name, name, range) |> TypeParameter
+        }
+    }
+
 /// Tries to construct an InliningInfo from the given expression.
 /// Returns None if the expression is not a callable invocation that can be inlined.
 let private tryGetInliningInfo callables expr =
     maybe {
-        let! functors, callable, arg = trySplitCall callables expr
+        let! functors, callable, arg = trySplitCall callables expr.Expression
         let! specArgs, body = tryGetProvidedImpl callable functors
+        let body = ReplaceTypeParams(expr.TypeParameterResolutions).Transform body
         return { functors = functors; callable = callable; arg = arg; specArgs = specArgs; body = body }
     }
 
@@ -99,7 +118,7 @@ let private tryGetInliningInfo callables expr =
 let rec private findAllCalls (callables: Callables) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
     scope |> findAllBaseStatements |> Seq.iter (function
         | QsExpressionStatement ex ->
-            match tryGetInliningInfo callables ex.Expression with
+            match tryGetInliningInfo callables ex with
             | Some ii ->
                 // Only recurse if we haven't processed this callable yet
                 if found.Add ii.callable.FullName then
@@ -157,6 +176,6 @@ type internal CallableInliner(callables) =
             override __.TypeTransformation x = this.Expression.Type.Transform x
 
             override __.onExpressionStatement ex =
-                safeInline ex.Expression |? QsExpressionStatement ex
+                safeInline ex |? QsExpressionStatement ex
         }
     }
