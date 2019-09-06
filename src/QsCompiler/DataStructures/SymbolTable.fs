@@ -42,7 +42,7 @@ type private PartialNamespace private
     /// list containing all documentation for this namespace within this source file
     /// -> a list since the namespace can in principle occur several times in the same file each time with documentation
     let AssociatedDocumentation = documentation.ToList()
-    /// list of namespaces open within this namespace and file
+    /// list of namespaces open or aliased within this namespace and file
     let OpenNamespaces = openNS.ToDictionary(keySelector, valueSelector)
     /// dictionary of types declared within this namespace and file
     /// the key is the name of the type
@@ -79,7 +79,7 @@ type private PartialNamespace private
     member this.Source = source
     /// contains all documentation associated with this namespace within this source file
     member this.Documentation = AssociatedDocumentation.ToImmutableArray()
-    /// namespaces opened for this part of the namespace
+    /// namespaces open or aliased within this part of the namespace - this includes the namespace itself
     member this.ImportedNamespaces = OpenNamespaces.ToImmutableDictionary()
 
     /// types defined within this (part of) the namespace
@@ -232,11 +232,12 @@ and Namespace private
         CallablesInReferences.ContainsKey arg || TypesInReferences.ContainsKey arg || 
         Parts.Values.Any (fun partial -> partial.ContainsCallable arg || partial.ContainsType arg)
 
-    /// Given a selector, returns the name of the source file for which the selector returns true as Value, or Null if no such file exists.
+    /// Given a selector, determines the source files for which the given selector returns a Value.
+    /// Returns that Value if exactly one such source file exists, or Null if no such file exists.
     /// Note that files contained in referenced assemblies are *not* considered to be source files for the namespace!
-    /// Throws an argument exception if the selector returns true for more than one source. 
-    let FindSourceFile (selector : PartialNamespace -> bool) = 
-        let sources = (Parts.Values.Where selector).Select(fun partialNS -> partialNS.Source)
+    /// Throws an ArgumentException if the selector returns a Value for more than one source file. 
+    let FromSingleSource (selector : PartialNamespace -> _ Option) = 
+        let sources = Parts.Values |> Seq.choose selector
         if sources.Count() > 1 then ArgumentException "given selector selects more than one partial namespace" |> raise
         if sources.Any() then Value (sources.Single()) else Null
 
@@ -292,7 +293,9 @@ and Namespace private
         Parts.Values.SelectMany(fun partial -> 
             partial.Documentation |> Seq.map (fun doc -> partial.Source, doc)).ToLookup(fst, snd)
 
-    /// Returns all namespaces that have been opened in the given source file for this namespace.
+    /// Returns all namespaces that are open or aliased in the given source file for this namespace.
+    /// The returned dictionary maps the names of the opened or aliased namespace to its alias if such an alias exists, 
+    /// and in particular also contains an entry for the namespace itself. 
     /// Throws an ArgumentException if the given source file is not listed as source file for (part of) the namespace.
     member internal this.ImportedNamespaces source = 
         match Parts.TryGetValue source with 
@@ -379,7 +382,7 @@ and Namespace private
     member this.ContainsType tName = 
         match TypesInReferences.TryGetValue tName with 
         | true, tDecl -> Value tDecl.SourceFile
-        | false, _ -> FindSourceFile (fun partialNS -> partialNS.ContainsType tName)
+        | false, _ -> FromSingleSource (fun partialNS -> if partialNS.ContainsType tName then Some partialNS.Source else None)
 
     /// If this namespace contains the declaration for the given callable name, 
     /// returns the name of the source file or the name of the file within a referenced assembly
@@ -389,7 +392,7 @@ and Namespace private
     member this.ContainsCallable cName = 
         match CallablesInReferences.TryGetValue cName with 
         | true, cDecl -> Value cDecl.SourceFile
-        | false, _ -> FindSourceFile (fun partialNS -> partialNS.ContainsCallable cName)
+        | false, _ -> FromSingleSource (fun partialNS -> if partialNS.ContainsCallable cName then Some partialNS.Source else None)
 
     /// Sets the resolution for the type with the given name in the given source file to the given type.
     /// Fails with the standard key does not exist error if no such source file exists or no type with that name exists in that file.
@@ -610,10 +613,10 @@ and NamespaceManager
         | true, ns -> ns, ns.ImportedNamespaces source |> Seq.choose isKnownAndNotAliased |> Seq.toList 
         | false, _ -> ArgumentException("no namespace with the given name exists") |> raise
 
-    /// If the namespace with the given name satisfies the given condition containsSymbol, 
-    /// returns a list containing only a single tuple with the given namespace name and given source file.  
-    /// Otherwise returns a list with all possible (namespaceName, sourceFile) tuples that satisfy the given condition
-    /// within the given namespace and source file.
+    /// If the given function containsSymbol returns a Value for the namespace with the given name,  
+    /// returns a list containing only a single tuple with the given namespace name and the returned value.  
+    /// Otherwise returns a list with all possible (namespaceName, returnedValue) tuples that yielded non-Null values 
+    /// for namespaces opened within the given namespace and source file.
     /// Throws an ArgumentException if no namespace with the given name exists, 
     /// or the given source file is not listed as source of that namespace.  
     let PossibleResolutions containsSymbol (nsName, source) = 
@@ -638,6 +641,28 @@ and NamespaceManager
             | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
         | true, ns -> Some ns
 
+    /// returns namespace name and source file where the type is defined
+    let TryResolveTypeName (parentNS, source) (tName, tRange) = 
+        let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
+        match (parentNS, source) |> PossibleResolutions (fun ns -> ns.ContainsType tName) with 
+        | [] -> Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, []) |]
+        | [res] -> Value res, [||]
+        | resolutions -> 
+            let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
+            Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
+
+    let UserDefinedTypeResolution (parentNS, source) ((nsName, symName), symRange) = 
+        let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
+        match nsName with 
+        | None -> TryResolveTypeName (parentNS, source) (symName, symRange) |> function
+            | Value (ns, declSource), errs -> Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), errs 
+            | Null, errs -> None, errs
+        | Some qualifier -> (parentNS, source) |> TryResolveQualifier qualifier |> function
+            | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |] 
+            | Some ns -> ns.ContainsType symName |> function
+                | Value declSource -> Some ({Namespace = ns.Name; Name = symName; Range = symRange}, declSource), [||]
+                | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, []) |]
+
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
     /// The resolution consists of replacing all unqualified names for user defined types by their qualified name.
     /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or unqualified) can be found.
@@ -650,34 +675,45 @@ and NamespaceManager
     /// Throws a NonSupportedException if the QsType to resolve contains a MissingType. 
     member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>) (qsType : QsType) : ResolvedType * QsCompilerDiagnostic[] = 
         let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
-        let tryResolveTypeName (tName, tRange) = 
-            match (parent.Namespace, source) |> PossibleResolutions (fun ns -> ns.ContainsType tName) with 
-            | [] -> Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, []) |]
-            | [res] -> Value res, [||]
-            | resolutions -> 
-                let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
-                Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
-        let processUDT ((nsName, symName), symRange) = 
-            match nsName with 
-            | None -> tryResolveTypeName (symName, symRange) |> function
-                | Value (ns, _), errs -> UserDefinedType {Namespace = ns; Name = symName; Range = symRange}, errs 
-                | Null, errs -> InvalidType, errs
-            | Some qualifier -> (parent.Namespace, source) |> TryResolveQualifier qualifier |> function
-                | None -> InvalidType, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |] 
-                | Some ns -> ns.ContainsType symName |> function
-                    | Value _ -> UserDefinedType {Namespace = ns.Name; Name = symName; Range = symRange}, [||]
-                    | Null -> InvalidType, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, []) |]
+        let processUDT = UserDefinedTypeResolution (parent.Namespace, source) >> function 
+            | Some (udt, _), errs -> UserDefinedType udt, errs
+            | None, errs -> InvalidType, errs 
         let processTP (symName, symRange) = 
             if tpNames |> Seq.contains symName then TypeParameter {Origin = parent; TypeName = symName; Range = symRange}, [||]
             else InvalidType, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, []) |]
         SymbolResolution.ResolveType (processUDT, processTP) qsType
 
+    /// Given the name of the namespace as well as the source file in which the attribute occurs, 
+    /// resolves the attribute consisting of the given symbol and expression.
+    member private this.ResolveAttribute (parentNS, source) (sym, expr) = 
+        let coreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
+        let attributeName = NonNullable<string>.New "Attribute"
+        /// Returns the possible qualifications for the "Attribute" attribute in the given declNS and declSource.
+        /// Works fine whether the given declSource is the name of a source file or of a referenced assembly. 
+        /// Throws an ArgumentException if no namespace with the given name exists. 
+        let possibleQualifications (declNS, declSource) = 
+            match Namespaces.TryGetValue declNS with 
+            | true, ns -> (ns.ImportedNamespaces declSource).TryGetValue coreNamespace |> function
+                | true, null when ns.ContainsType attributeName = Null || declNS.Value = coreNamespace.Value -> [""; coreNamespace.Value] 
+                | true, null -> [coreNamespace.Value] // the Attribute attribute in the core namespace is shadowed
+                | true, alias -> [alias; coreNamespace.Value]
+                | false, _ -> [coreNamespace.Value]
+            | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
+        // TODO: HOW TO HANDLE IF THE CORE NAMESPACE IS NOT IMPORTED? -> should be ok because should raise an error on the resolution of Attribute itself
+
+        let getAttribute = UserDefinedTypeResolution (parentNS, source) >> function 
+            | Some (udt, declSource), errs -> // declSource may be the source or dll file 
+                UserDefinedType udt, errs
+            | None, errs -> InvalidType, errs 
+
+        SymbolResolution.ResolveAttribute getAttribute (sym, expr)
+
     /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the specified source file. 
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined types. 
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined types. 
     /// Throws an ArgumentException if the given type tuple is an empty QsTuple. 
-    member private this.ResolveTypeDeclaration (parent : QsQualifiedName, source) typeTuple = 
-        let resolveType = this.ResolveType (parent, ImmutableArray<_>.Empty, source) // currently type parameters for udts are not supported
+    member private this.ResolveTypeDeclaration (fullName : QsQualifiedName, source) typeTuple = 
+        let resolveType = this.ResolveType (fullName, ImmutableArray<_>.Empty, source) // currently type parameters for udts are not supported
         SymbolResolution.ResolveTypeDeclaration resolveType typeTuple
 
     /// Given the namespace and the name of the callable that the given signature belongs to, as well as its kind and the source file it is declared in,
@@ -715,8 +751,8 @@ and NamespaceManager
         let diagnostics = Namespaces.Values |> Seq.collect (fun ns ->
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let tName, (source, qsType) = kvPair.Key, kvPair.Value
-                let parent = {Namespace = ns.Name; Name = tName}
-                let resolved, msgs = qsType.Defined |> this.ResolveTypeDeclaration (parent, source) 
+                let fullName = {Namespace = ns.Name; Name = tName}
+                let resolved, msgs = qsType.Defined |> this.ResolveTypeDeclaration (fullName, source) 
                 ns.SetTypeResolution source (tName, resolved |> Value) 
                 msgs |> Array.map (fun msg -> source, (qsType.Position, msg))))
         diagnostics.ToArray()
@@ -992,7 +1028,7 @@ and NamespaceManager
         try this.ClearResolutions()
             match Namespaces.TryGetValue nsName with 
             | true, ns when ns.Sources.Contains source -> 
-                let validAlias = String.IsNullOrWhiteSpace alias || NonNullable<string>.New (alias.Trim()) |> Namespaces.ContainsKey |> not 
+                let validAlias = String.IsNullOrWhiteSpace alias || NonNullable<string>.New (alias.Trim()) |> Namespaces.ContainsKey |> not // TODO: DISALLOW TWO ALIAS WITH THE SAME NAME?
                 if validAlias && Namespaces.ContainsKey opened then ns.TryAddOpenDirective source (opened, openedRange) (alias, aliasRange.ValueOr openedRange)
                 elif validAlias then [| openedRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |]
                 else [| aliasRange.ValueOr openedRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidNamespaceAliasName, [alias]) |]
