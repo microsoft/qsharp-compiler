@@ -384,6 +384,27 @@ and Namespace private
         | true, tDecl -> Value tDecl.SourceFile
         | false, _ -> FromSingleSource (fun partialNS -> if partialNS.ContainsType tName then Some partialNS.Source else None)
 
+    /// Throws an ArgumentException if the source file is not listed as source file of the namespace.
+    member internal this.TryGetAttributeInSource source (attName, possibleQualifications : _ seq) = 
+        let coreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
+        let attributeName = NonNullable<string>.New "Attribute"
+        let coreAttribute = {Namespace = coreNamespace; Name = attributeName}
+
+        let missingResolutionException () = InvalidOperationException "cannot get unresolved attribute" |> raise 
+        let compareAttributeName (sym : QsSymbol) = sym.Symbol |> function 
+            | Symbol sym when sym.Value = coreAttribute.Name.Value && possibleQualifications.Contains "" -> true
+            | QualifiedSymbol (ns, sym) when sym.Value = coreAttribute.Name.Value && possibleQualifications.Contains ns.Value -> true
+            | _ -> false
+        match TypesInReferences.TryGetValue attName with 
+        | true, tDecl -> if tDecl.Attributes |> Seq.map fst |> Seq.contains coreAttribute then Some tDecl.Type else None
+        | false, _ -> Parts.TryGetValue source |> function 
+            | true, partialNS -> partialNS.TryGetType attName |> function 
+                | true, resolution when resolution.DefinedAttributes |> Seq.exists (fst >> compareAttributeName) -> 
+                    resolution.Resolved.ValueOrApply missingResolutionException |> fst |> Some
+                | _ -> None
+            | false, _ -> ArgumentException "given source file is not listed as source of the namespace" |> raise
+
+
     /// If this namespace contains the declaration for the given callable name, 
     /// returns the name of the source file or the name of the file within a referenced assembly
     /// in which it is declared as Value, and returns Null otherwise.
@@ -703,7 +724,11 @@ and NamespaceManager
 
         let getAttribute = UserDefinedTypeResolution (parentNS, source) >> function 
             | Some (udt, declSource), errs -> // declSource may be the source or dll file 
-                UserDefinedType udt, errs
+                let validQualifications = possibleQualifications (udt.Namespace, declSource)
+                match Namespaces.TryGetValue udt.Namespace with 
+                | true, ns -> ns.TryGetAttributeInSource declSource (udt.Name, validQualifications) // ..
+                | false, _ -> QsCompilerError.Raise "namespace for defined type not found"
+                // TODO: GET UDT TO GET UNDERLYING TYPE AND GET UNRESOLVED ATTRIBUTES TO CHECK
             | None, errs -> InvalidType, errs 
 
         SymbolResolution.ResolveAttribute getAttribute (sym, expr)
