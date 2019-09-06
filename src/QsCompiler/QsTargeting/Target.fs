@@ -4,33 +4,30 @@
 namespace Microsoft.Quantum.QsCompiler.Targeting
 
 open Microsoft.Quantum.QsCompiler.SymbolManagement
-open Microsoft.VisualStudio.LanguageServer.Protocol
 open System.Collections.Generic
 open System.Threading
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Diagnostics
 
-type TargetCapabilities =
-    {
-        CanDoIf : bool
-        CanDoRepeat : bool
-        CanMeasureAndContinue : bool
-    }
-
-type internal TargetValidationTransformation(target : Target) =
-    inherit SyntaxTreeTransformation()
-
-    let diagnostics = [] : Diagnostic list
-
-    member this.Diagnostics with get () = new List<Diagnostic>(diagnostics)
-
-and Target(builtIns : NamespaceManager, capabilities : TargetCapabilities) =
+type Target(builtIns : NamespaceManager, capabilities : TargetCapabilities) =
     member this.BuiltIns with get () = builtIns
 
     member this.Capabilities with get () = capabilities
 
-    member this.ValidateSyntaxTree (ns : QsNamespace, cancellationToken : CancellationToken) : List<Diagnostic> = 
-        let xformer = new TargetValidationTransformation(this)
+    member this.ValidateCallable (callable : QsCallable) : List<DiagnosticItem> = 
+        let xformer = new TVScopeTransformation(this.Capabilities)
+
+        let processSpecialization (spec : QsSpecialization) =
+            match spec.Implementation with
+            | Provided(_, scope) ->  xformer.Transform scope |> ignore
+            | _ -> ()
+
+        callable.Specializations |> Seq.iter processSpecialization
+
+        xformer.Diagnostics
+
+    member this.ValidateSyntaxTree (ns : QsNamespace, cancellationToken : CancellationToken) : List<DiagnosticItem> = 
+        let xformer = new TVTreeTransformation(this.Capabilities)
 
         xformer.Transform ns |> ignore
 
