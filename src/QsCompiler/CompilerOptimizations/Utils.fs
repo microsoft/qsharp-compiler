@@ -258,7 +258,7 @@ let rec internal isAllDiscarded = function
 
 /// Casts an int64 to an int, throwing an ArgumentException if outside the allowed range
 let internal safeCastInt64 (i: int64): int =
-    if Math.Abs(i) > int64 (1 <<< 30) then
+    if i > int64 (1 <<< 30) || i < -int64 (1 <<< 30) then
         ArgumentException "Integer is too large for 32 bits" |> raise
     int i
 
