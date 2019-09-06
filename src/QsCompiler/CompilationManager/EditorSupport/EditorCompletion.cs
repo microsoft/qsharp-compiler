@@ -309,7 +309,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns completions for all callables visible given the current namespace and the list of open namespaces.
         /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when any argument except <paramref name="currentNamespace"/> is null.
+        /// </exception>
         private static IEnumerable<CompletionItem> GetCallableCompletions(
             FileContentManager file,
             CompilationUnit compilation,
@@ -320,8 +322,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (currentNamespace == null)
-                throw new ArgumentNullException(nameof(currentNamespace));
             if (openNamespaces == null)
                 throw new ArgumentNullException(nameof(openNamespaces));
             return
@@ -344,7 +344,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns completions for all types visible given the current namespace and the list of open namespaces.
         /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when any argument except <paramref name="currentNamespace"/> is null.
+        /// </exception>
         private static IEnumerable<CompletionItem> GetTypeCompletions(
             FileContentManager file,
             CompilationUnit compilation,
@@ -355,8 +357,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (currentNamespace == null)
-                throw new ArgumentNullException(nameof(currentNamespace));
             if (openNamespaces == null)
                 throw new ArgumentNullException(nameof(openNamespaces));
             return
