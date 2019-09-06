@@ -116,3 +116,46 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "ItemUpdate21" []
         this.Expect "ItemUpdate22" []
 
+
+    [<Fact>]
+    member this.``Open-ended ranges`` () = 
+        this.Expect "ValidArraySlice1" []
+        this.Expect "ValidArraySlice2" []
+        this.Expect "ValidArraySlice3" []
+        this.Expect "ValidArraySlice4" []
+        this.Expect "ValidArraySlice5" []
+        this.Expect "ValidArraySlice6" []
+        this.Expect "ValidArraySlice7" []
+        this.Expect "ValidArraySlice8" []
+        this.Expect "ValidArraySlice9" []
+
+        this.Expect "InvalidArraySlice1" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice2" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice3" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice4" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice5" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice6" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice7" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice8" [Error ErrorCode.ItemAccessForNonArray]
+        this.Expect "InvalidArraySlice9" [Error ErrorCode.ItemAccessForNonArray]
+
+
+    [<Fact>]
+    member this.``Conjugation verification`` () =
+        this.Expect "ValidConjugation1"   []
+        this.Expect "ValidConjugation2"   []
+        this.Expect "ValidConjugation3"   []
+        this.Expect "ValidConjugation4"   []
+        this.Expect "ValidConjugation5"   []
+        this.Expect "ValidConjugation6"   []
+        this.Expect "ValidConjugation7"   []
+        this.Expect "ValidConjugation8"   []
+        this.Expect "InvalidConjugation1" [Error ErrorCode.InvalidReassignmentInApplyBlock]
+        this.Expect "InvalidConjugation2" [Error ErrorCode.InvalidReassignmentInApplyBlock]
+        this.Expect "InvalidConjugation3" [Error ErrorCode.InvalidReassignmentInApplyBlock]
+        this.Expect "InvalidConjugation4" [Error ErrorCode.InvalidReassignmentInApplyBlock]
+        this.Expect "InvalidConjugation5" [Error ErrorCode.InvalidReassignmentInApplyBlock]
+        this.Expect "InvalidConjugation6" [Error ErrorCode.InvalidReassignmentInApplyBlock]
+        this.Expect "InvalidConjugation7" [Error ErrorCode.InvalidReassignmentInApplyBlock]
+        this.Expect "InvalidConjugation8" [Error ErrorCode.InvalidReassignmentInApplyBlock]
+

@@ -165,7 +165,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given file or position is null. 
         /// Throws an ArgumentException if the given position is not a valid position within the given file. 
         /// </summary>
-        private static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos)
+        internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos)
         {
             if (!Utils.IsValidPosition(pos, file)) throw new ArgumentException(nameof(pos));
             var docs = new List<string>();
@@ -404,8 +404,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Updates and resolves all global symbols in each given file, 
         /// and modifies the given CompilationUnit accordingly in the process.
-        /// Replaces all HeaderDiagnostics in the given files with the newly computed diagnostics, 
-        /// and clear all semantic diagnostics in the given files. 
+        /// Updates and pushes all HeaderDiagnostics in the given files, 
+        /// and clears all semantic diagnostics without pushing them. 
         /// If the given Action for publishing diagnostics is not null, 
         /// invokes it for the diagnostics of each given file after updating them. 
         /// Throws an ArgumentNullException if the given compilation is null, 
@@ -456,17 +456,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Builds the QsScope containing the given list of tree nodes, 
         /// calling BuildStatement for each of them, and using the given symbol tracker to verify and track all symbols. 
         /// The declarations the scope inherits from its parents are assumed to be the current declarations in the given symbol tacker. 
-        /// Throws an ArgumentNullException if any of the arguments is null.
+        /// If a required set of functors are specified, then each operation called within the built scope needs to support these functors. 
+        /// If the set of required functors is unspecified or null, then the functors to support are determined by the parent scope. 
+        /// Throws an ArgumentNullException if the given list of tree nodes, symbol tracker or diagnostics are null.
         /// </summary>
         private static QsScope BuildScope(IReadOnlyList<FragmentTree.TreeNode> nodeContent, 
-            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
+            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, ImmutableHashSet<QsFunctor> requiredFunctorSupport = null)
         {
             if (nodeContent == null) throw new ArgumentNullException(nameof(nodeContent));
             if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
             var inheritedSymbols = symbolTracker.CurrentDeclarations;
-            symbolTracker.BeginScope();
+            symbolTracker.BeginScope(requiredFunctorSupport);
             var statements = BuildStatements(nodeContent.GetEnumerator(), symbolTracker, diagnostics);
             symbolTracker.EndScope();
             return new QsScope(statements, inheritedSymbols);
@@ -764,6 +766,56 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// If the current tree node of the given iterator is a within-block intro,
+        /// builds the corresponding conjugation updating the given symbolTracker in the process,
+        /// and moves the iterator to the next node.
+        /// Adds the diagnostics generated during the building to the given list of diagnostics. 
+        /// Returns the built statement as out parameter, and returns true if the statement has been built.
+        /// Sets the out parameter to null and returns false otherwise. 
+        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine - 
+        /// i.e. it is set to true if either the iterator has not been moved (no statement built), 
+        /// or if the last MoveNext() returned true, and is otherwise set to false.  
+        /// This routine will fail if accessing the current iterator item fails. 
+        /// Throws an ArgumentNullException if any of the given arguments is null.
+        /// Throws an ArgumentException if the given symbol tracker does not currently contain an open scope.
+        /// </summary>
+        private static bool TryBuildConjugationStatement(IEnumerator<FragmentTree.TreeNode> nodes,
+            SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics, out bool proceed, out QsStatement statement)
+        {
+            if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+            if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
+            if (symbolTracker.AllScopesClosed) throw new ArgumentException("invalid symbol tracker state - statements may only occur within a scope");
+            if (diagnostics == null) throw new ArgumentException(nameof(diagnostics));
+
+            QsNullable<QsLocation> RelativeLocation(FragmentTree.TreeNode node) =>
+                QsNullable<QsLocation>.NewValue(new QsLocation(DiagnosticTools.AsTuple(node.GetPositionRelativeToRoot()), node.Fragment.HeaderRange));
+
+            if (nodes.Current.Fragment.Kind.IsWithinBlockIntro)
+            {
+                // The requirement for outer blocks in conjugations is always that an adjoint can be auto-generated for them,
+                // independent on what functor specializations need to be auto-generated for the containing operation.
+                var requiredFunctorSupport = ImmutableHashSet.Create(QsFunctor.Adjoint);
+                var outerTranformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics, requiredFunctorSupport);
+                var outer = new QsPositionedBlock(outerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
+
+                if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsApplyBlockIntro)
+                {
+                    var innerTransformation = BuildScope(nodes.Current.Children, symbolTracker, diagnostics);
+                    var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
+                    var built = Statements.NewConjugation(outer, inner);
+                    diagnostics.AddRange(built.Item2.Select(msg => Diagnostics.Generate(symbolTracker.SourceFile.Value, msg.Item2, nodes.Current.GetRootPosition())));
+
+                    statement = built.Item1;
+                    proceed = nodes.MoveNext();
+                    return true;
+                }
+                else throw new ArgumentException("within-block needs to be followed by an apply-block");
+            }
+            (statement, proceed) = (null, true);
+            return false;
+        }
+
+        /// <summary>
         /// If the current tree node of the given iterator is a let-statement,
         /// builds the corresponding let-statement updating the given symbolTracker in the process,
         /// and moves the iterator to the next node.
@@ -1021,6 +1073,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 else if (TryBuildRepeatStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement repeatStatement))
                 { statements.Add(repeatStatement); }
 
+                else if (TryBuildConjugationStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement conjugationStatement))
+                { statements.Add(conjugationStatement); }
+
                 else if (TryBuildBorrowStatement(nodes, symbolTracker, diagnostics, out proceed, out QsStatement borrowingStatement))
                 { statements.Add(borrowingStatement); }
 
@@ -1036,7 +1091,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Builds the user defined implementation taking the given argument tuple as argument based on the (children of the) given specialization root. 
+        /// Builds the user defined implementation based on the (children of the) given specialization root. 
+        /// The implementation takes the given argument tuple as argument and needs to support auto-generation for the specified set of functors.
         /// Uses the given SymbolTracker to resolve the symbols used within the implementation, and generates suitable diagnostics in the process.  
         /// If necessary, generates suitable diagnostics for functor arguments (only!), which are discriminated by the missing position information 
         /// for argument variables defined in the callable declaration). 
@@ -1044,13 +1100,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Adds the generated diagnostics to the given list of diagnostics.
         /// Throws an ArgumentNullException if the given argument, the symbol tracker, or diagnostics are null. 
         /// </summary>
-        private static SpecializationImplementation BuildUserDefinedImplemenation(
+        private static SpecializationImplementation BuildUserDefinedImplementation(
             FragmentTree.TreeNode root, NonNullable<string> sourceFile, 
             QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
+            ImmutableHashSet<QsFunctor> requiredFunctorSupport,
             SymbolTracker<Position> symbolTracker, List<Diagnostic> diagnostics)
         {
             if (argTuple == null) throw new ArgumentNullException(nameof(argTuple));
             if (symbolTracker == null) throw new ArgumentNullException(nameof(symbolTracker));
+            if (requiredFunctorSupport == null) throw new ArgumentNullException(nameof(requiredFunctorSupport));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
             // the variable defined on the declaration need to be verified upon building the callable (otherwise we get duplicate diagnostics),
@@ -1058,7 +1116,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // -> the position information is set to null (only) for variables defined in the declaration 
             var (variablesOnDeclation, variablesOnSpecialization) = SyntaxGenerator.ExtractItems(argTuple).Partition(decl => decl.Position.IsNull);
 
-            symbolTracker.BeginScope();
+            symbolTracker.BeginScope(requiredFunctorSupport);
             foreach (var decl in variablesOnDeclation)
             { symbolTracker.TryAddVariableDeclartion(decl); }
 
@@ -1165,8 +1223,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new ArgumentException($"missing entry for {kind} specialization of {specsRoot.Namespace}.{specsRoot.Callable}");
                 var (directive, spec) = defined;
 
-                var required = RequiredFunctorSupport(kind, k => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null);
-                var symbolTracker = new SymbolTracker<Position>(symbols, spec.SourceFile, spec.Parent, required);
+                var symbolTracker = new SymbolTracker<Position>(symbols, spec.SourceFile, spec.Parent);
                 var implementation = directive.IsValue ? SpecializationImplementation.NewGenerated(directive.Item) : null;
 
                 // a user defined implementation is ignored if it is invalid to specify such (e.g. for self-adjoint or intrinsic operations)
@@ -1176,7 +1233,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages) diagnostics.Add(Diagnostics.Generate(spec.SourceFile.Value, msg, specPos));
 
-                    implementation = BuildUserDefinedImplemenation(root, spec.SourceFile, arg, symbolTracker, diagnostics);
+                    QsGeneratorDirective GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
+                    var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
+                    implementation = BuildUserDefinedImplementation(root, spec.SourceFile, arg, requiredFunctorSupport, symbolTracker, diagnostics);
                     QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
                 }
                 implementation = implementation ?? SpecializationImplementation.Intrinsic; 
@@ -1305,7 +1364,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var declaredVariables = SyntaxGenerator.ExtractItems(info.ArgumentTuple);
 
                     // verify the variable declarations in the callable declaration
-                    var symbolTracker = new SymbolTracker<Position>(compilation.GlobalSymbols, info.SourceFile, parent, ImmutableArray<QsFunctor>.Empty); // only ever used to verify declaration args
+                    var symbolTracker = new SymbolTracker<Position>(compilation.GlobalSymbols, info.SourceFile, parent); // only ever used to verify declaration args
                     symbolTracker.BeginScope();
                     foreach (var decl in declaredVariables)
                     {
@@ -1351,10 +1410,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             LocalDeclarations Concat(LocalDeclarations fst, LocalDeclarations snd)
                 => new LocalDeclarations(fst.Variables.Concat(snd.Variables).ToImmutableArray());
-            bool BeforePosition(QsStatement statement) =>
-                statement.Location.IsValue && DiagnosticTools.AsPosition(statement.Location.Item.Offset).IsSmallerThan(relativePosition);
+            bool BeforePosition(QsNullable<QsLocation> location) =>
+                location.IsValue && DiagnosticTools.AsPosition(location.Item.Offset).IsSmallerThan(relativePosition);
 
-            var precedingStatements = scope.Statements.TakeWhile(BeforePosition);
+            var precedingStatements = scope.Statements.TakeWhile(stm => BeforePosition(stm.Location));
             if (!precedingStatements.Any()) return (scope.KnownSymbols, scope.Statements);
             var lastPreceding = precedingStatements.Last();
 
@@ -1365,8 +1424,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var elseBlock = condStatement.Item.Default.ValueOr(null);
                 if (elseBlock != null) blocks = blocks.Concat(new[] { elseBlock });
 
-                var preceding = blocks.TakeWhile(block =>
-                    block.Location.IsValue && DiagnosticTools.AsPosition(block.Location.Item.Offset).IsSmallerThan(relativePosition));
+                var preceding = blocks.TakeWhile(block => BeforePosition(block.Location));
                 relevantScope = preceding.Any() ? preceding.Last().Body : null;
             }
             if (lastPreceding.Statement is QsStatementKind.QsForStatement forStatement)
@@ -1378,12 +1436,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var allContainedStatements = repeatStatement.Item.RepeatBlock.Body.Statements.Concat(repeatStatement.Item.FixupBlock.Body.Statements).ToImmutableArray();
                 relevantScope = new QsScope(allContainedStatements, repeatStatement.Item.RepeatBlock.Body.KnownSymbols);
             }
+            if (lastPreceding.Statement is QsStatementKind.QsConjugation conjugation)
+            {
+                relevantScope = BeforePosition(conjugation.Item.InnerTransformation.Location)
+                    ? conjugation.Item.InnerTransformation.Body
+                    : conjugation.Item.OuterTransformation.Body;
+            }
             if (lastPreceding.Statement is QsStatementKind.QsQubitScope allocationScope)
             { relevantScope = allocationScope.Item.Body; }
 
             if (relevantScope != null) return relevantScope.LocalDeclarationsAt(relativePosition);
             var defined = precedingStatements.Aggregate(scope.KnownSymbols, (decl, statement) => Concat(decl, statement.SymbolDeclarations));
-            var followingStatements = scope.Statements.SkipWhile(BeforePosition);
+            var followingStatements = scope.Statements.SkipWhile(stm => BeforePosition(stm.Location));
             return (defined, new[] { lastPreceding }.Concat(followingStatements));
         }
 
@@ -1428,7 +1492,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : contentTokens);
 
                 diagnostics = QsCompilerError.RaiseOnFailure(() => RunTypeChecking(compilation, declarationTrees, new CancellationToken()), "error on running type checking");
-                if (sameImports) file.AddSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
+                if (sameImports) file.AddAndFinalizeSemanticDiagnostics(diagnostics); // diagnostics have been cleared already for the edited callables (only)
                 else file.ReplaceSemanticDiagnostics(diagnostics);
             }
             finally {
