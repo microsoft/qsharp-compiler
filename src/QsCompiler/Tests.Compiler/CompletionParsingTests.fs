@@ -488,7 +488,6 @@ let ``Function statement parser tests`` () =
 [<Fact>]
 let ``Operation statement parser tests`` () =
     let functorGen = [
-        Keyword "intrinsic"
         Keyword "auto"
         Keyword "self"
         Keyword "invert"
@@ -588,7 +587,7 @@ let ``Operation statement parser tests`` () =
     List.iter (matches OperationTopLevel Null) [
         ("", operationTopLevelStatement)
         ("body ", functorGen)
-        ("body intrinsic ", [])
+        ("body auto ", [])
         ("body (", [Declaration])
         ("body (.", [])
         ("body (..", [])

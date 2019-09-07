@@ -309,7 +309,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns completions for all callables visible given the current namespace and the list of open namespaces.
         /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when any argument except <paramref name="currentNamespace"/> is null.
+        /// </exception>
         private static IEnumerable<CompletionItem> GetCallableCompletions(
             FileContentManager file,
             CompilationUnit compilation,
@@ -320,10 +322,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (currentNamespace == null)
-                throw new ArgumentNullException(nameof(currentNamespace));
             if (openNamespaces == null)
                 throw new ArgumentNullException(nameof(openNamespaces));
+
+            if (!compilation.GlobalSymbols.ContainsResolutions)
+                return Array.Empty<CompletionItem>();
             return
                 compilation.GlobalSymbols.DefinedCallables()
                 .Concat(compilation.GlobalSymbols.ImportedCallables())
@@ -344,7 +347,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns completions for all types visible given the current namespace and the list of open namespaces.
         /// </summary>
-        /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when any argument except <paramref name="currentNamespace"/> is null.
+        /// </exception>
         private static IEnumerable<CompletionItem> GetTypeCompletions(
             FileContentManager file,
             CompilationUnit compilation,
@@ -355,10 +360,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(file));
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
-            if (currentNamespace == null)
-                throw new ArgumentNullException(nameof(currentNamespace));
             if (openNamespaces == null)
                 throw new ArgumentNullException(nameof(openNamespaces));
+
+            if (!compilation.GlobalSymbols.ContainsResolutions)
+                return Array.Empty<CompletionItem>();
             return
                 compilation.GlobalSymbols.DefinedTypes()
                 .Concat(compilation.GlobalSymbols.ImportedTypes())
@@ -383,6 +389,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
+
+            if (!compilation.GlobalSymbols.ContainsResolutions)
+                return Array.Empty<CompletionItem>();
             return compilation.GlobalSymbols.DefinedTypes()
                 .Concat(compilation.GlobalSymbols.ImportedTypes())
                 .SelectMany(type => ExtractItems(type.TypeItems))
