@@ -292,8 +292,7 @@ module SymbolResolution =
 
         // Any user defined type that has been decorated with the attribute 
         // "Attribute" defined in Microsoft.Quantum.Core may be used as attribute.
-        let getAttribute (ns, sym) = 
-            match getAttribute ((ns, sym), qsSym.Range) with
+        let getAttribute (ns, sym) = getAttribute ((ns, sym), qsSym.Range) |> function
             | None, errs -> None, errs
             | Some (name, argType : ResolvedType), errs ->
                 let resArg, argErrs = ArgExression qsExpr

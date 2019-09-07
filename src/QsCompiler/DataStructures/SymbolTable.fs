@@ -672,7 +672,7 @@ and NamespaceManager
             let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
             Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
 
-    let UserDefinedTypeResolution (parentNS, source) ((nsName, symName), symRange) = 
+    let UserDefinedTypeResolution unknownTypeErr (parentNS, source) ((nsName, symName), symRange) = 
         let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
         match nsName with 
         | None -> TryResolveTypeName (parentNS, source) (symName, symRange) |> function
@@ -682,7 +682,7 @@ and NamespaceManager
             | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |] 
             | Some ns -> ns.ContainsType symName |> function
                 | Value declSource -> Some ({Namespace = ns.Name; Name = symName; Range = symRange}, declSource), [||]
-                | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, []) |]
+                | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (unknownTypeErr, []) |]
 
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
     /// The resolution consists of replacing all unqualified names for user defined types by their qualified name.
@@ -696,7 +696,7 @@ and NamespaceManager
     /// Throws a NonSupportedException if the QsType to resolve contains a MissingType. 
     member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>) (qsType : QsType) : ResolvedType * QsCompilerDiagnostic[] = 
         let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
-        let processUDT = UserDefinedTypeResolution (parent.Namespace, source) >> function 
+        let processUDT = UserDefinedTypeResolution ErrorCode.UnknownTypeInNamespace (parent.Namespace, source) >> function 
             | Some (udt, _), errs -> UserDefinedType udt, errs
             | None, errs -> InvalidType, errs 
         let processTP (symName, symRange) = 
@@ -709,6 +709,7 @@ and NamespaceManager
     member private this.ResolveAttribute (parentNS, source) (sym, expr) = 
         let coreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
         let attributeName = NonNullable<string>.New "Attribute"
+        let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
         /// Returns the possible qualifications for the "Attribute" attribute in the given declNS and declSource.
         /// Works fine whether the given declSource is the name of a source file or of a referenced assembly. 
         /// Throws an ArgumentException if no namespace with the given name exists. 
@@ -720,17 +721,17 @@ and NamespaceManager
                 | true, alias -> [alias; coreNamespace.Value]
                 | false, _ -> [coreNamespace.Value]
             | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
-        // TODO: HOW TO HANDLE IF THE CORE NAMESPACE IS NOT IMPORTED? -> should be ok because should raise an error on the resolution of Attribute itself
-
-        let getAttribute = UserDefinedTypeResolution (parentNS, source) >> function 
-            | Some (udt, declSource), errs -> // declSource may be the source or dll file 
+        let getAttribute ((nsName, symName), symRange) = 
+            match UserDefinedTypeResolution ErrorCode.UnknownAttribute (parentNS, source) ((nsName, symName), symRange) with
+            | Some (udt, declSource), errs ->
+                let fullName = sprintf "%s.%s" udt.Namespace.Value udt.Name.Value
                 let validQualifications = possibleQualifications (udt.Namespace, declSource)
                 match Namespaces.TryGetValue udt.Namespace with 
-                | true, ns -> ns.TryGetAttributeInSource declSource (udt.Name, validQualifications) // ..
-                | false, _ -> QsCompilerError.Raise "namespace for defined type not found"
-                // TODO: GET UDT TO GET UNDERLYING TYPE AND GET UNRESOLVED ATTRIBUTES TO CHECK
-            | None, errs -> InvalidType, errs 
-
+                | true, ns -> ns.TryGetAttributeInSource declSource (udt.Name, validQualifications) |> function 
+                    | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.NotMarkedAsAttribute, [fullName]) |] 
+                    | Some argType -> Some (udt, argType), errs
+                | false, _ -> QsCompilerError.Raise "namespace for defined type not found"; None, errs
+            | None, errs -> None, errs
         SymbolResolution.ResolveAttribute getAttribute (sym, expr)
 
     /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the specified source file. 
