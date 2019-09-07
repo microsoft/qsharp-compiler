@@ -158,7 +158,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             var capabilities = new ServerCapabilities
             {
                 TextDocumentSync = new TextDocumentSyncOptions(),
-                CompletionProvider = new CompletionOptions(),
+                // Disable completion in Visual Studio until a bug where completion is not dismissed after typing
+                // whitespace is fixed.
+                CompletionProvider = "VisualStudio".Equals(this.ClientName, StringComparison.InvariantCultureIgnoreCase)
+                    ? null
+                    : new CompletionOptions(),
                 SignatureHelpProvider = new SignatureHelpOptions(),
                 ExecuteCommandProvider = new ExecuteCommandOptions(),
             };
@@ -175,8 +179,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.DocumentHighlightProvider = true;
             capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "(", "," };
             capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities 
-            capabilities.CompletionProvider.ResolveProvider = true;
-            capabilities.CompletionProvider.TriggerCharacters = new[] { "." };
+            if (capabilities.CompletionProvider != null)
+            {
+                capabilities.CompletionProvider.ResolveProvider = true;
+                capabilities.CompletionProvider.TriggerCharacters = new[] { "." };
+            }
 
             this.WaitForInit = null;
             return new InitializeResult { Capabilities = capabilities };
