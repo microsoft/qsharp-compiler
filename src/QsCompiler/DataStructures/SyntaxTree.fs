@@ -601,7 +601,7 @@ type QsSpecialization = {
     /// the fully qualified name of the callable this specialization extends
     Parent : QsQualifiedName
     /// contains all attributes associated with the specialization
-    Attributes : ImmutableArray<QsQualifiedName * TypedExpression>
+    Attributes : ImmutableArray<UserDefinedType * TypedExpression>
     /// identifier for the file the specialization is declared in (not necessarily the same as the one of the callable it extends)
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared specialization. 
@@ -630,7 +630,7 @@ type QsCallable = {
     /// contains the name of the callable
     FullName : QsQualifiedName
     /// contains all attributes associated with the callable
-    Attributes : ImmutableArray<QsQualifiedName * TypedExpression>
+    Attributes : ImmutableArray<UserDefinedType * TypedExpression>
     /// identifier for the file the callable is declared in
     SourceFile : NonNullable<string> 
     /// Contains the location information for the declared callable. 
@@ -670,7 +670,7 @@ type QsCustomType = {
     /// contains the name of the type
     FullName : QsQualifiedName
     /// contains all attributes associated with the type
-    Attributes : ImmutableArray<QsQualifiedName * TypedExpression>
+    Attributes : ImmutableArray<UserDefinedType * TypedExpression>
     /// identifier for the file the type is declared in
     SourceFile : NonNullable<string> 
     /// Contains the location information for the declared type. 

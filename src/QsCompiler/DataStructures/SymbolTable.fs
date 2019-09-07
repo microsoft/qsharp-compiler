@@ -774,14 +774,23 @@ and NamespaceManager
     /// Resolves and caches the underlying type of the types declared in all source files of each namespace. 
     /// Returns the diagnostics generated upon resolution as well as the root position and file for each diagnostic as tuple.
     member private this.CacheTypeResolution () = 
-        let diagnostics = Namespaces.Values |> Seq.collect (fun ns ->
+        // Since attributes are declared as types, we first need to resolve all type ...
+        let resolutionDiagnostics = Namespaces.Values |> Seq.collect (fun ns ->
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let tName, (source, qsType) = kvPair.Key, kvPair.Value
                 let fullName = {Namespace = ns.Name; Name = tName}
                 let resolved, msgs = qsType.Defined |> this.ResolveTypeDeclaration (fullName, source) 
                 ns.SetTypeResolution source (tName, resolved |> Value) 
                 msgs |> Array.map (fun msg -> source, (qsType.Position, msg))))
-        diagnostics.ToArray()
+        // ... before we can resolve the corresponding attributes. 
+        let attributeDiagnostics = Namespaces.Values |> Seq.collect (fun ns ->
+            ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
+                let tName, (source, qsType) = kvPair.Key, kvPair.Value
+                let attr, msgs = qsType.DefinedAttributes |> Seq.map (this.ResolveAttribute (ns.Name, source)) |> Seq.toList |> List.unzip
+                let resolvedAttributes = attr |> Seq.choose id |> ImmutableArray.CreateRange
+                ns.SetTypeResolution source (tName, qsType.Resolved, resolvedAttributes) 
+                msgs |> Array.concat |> Array.map (fun msg -> source, (qsType.Position, msg))))
+        resolutionDiagnostics.Concat(attributeDiagnostics).ToArray()
 
     /// Resolves all specialization generation directives for all callables declared in all source files of each namespace, 
     /// inserting inferred specializations if necessary and removing invalid specializations. 
@@ -795,6 +804,13 @@ and NamespaceManager
                 let source, (kind, signature) = kvPair.Value
                 let parent = {Namespace = ns.Name; Name = kvPair.Key}
                 let atDeclPos msg = source, (signature.Position, msg)
+                let definedSpecs = ns.SpecializationsDefinedInAllSources parent.Name
+
+                // resolve the attributes attached to the callable
+                let attr, msgs = signature.DefinedAttributes |> Seq.map (this.ResolveAttribute (ns.Name, source)) |> Seq.toList |> List.unzip
+                let resolvedAttributes = attr |> Seq.choose id |> ImmutableArray.CreateRange
+                // TODO: RESOLVE ATTRIBUTES FOR ALL SPECS
+                // TODO: RETURN DIAGNOSTICS
 
                 // we first need to resolve the type arguments to determine the right sets of specializations to consider
                 let typeArgsResolution specSource = 
@@ -803,7 +819,6 @@ and NamespaceManager
                 let mutable errs = ns.SetSpecializationResolutions (parent.Name, typeArgsResolution)
 
                 // we then build the specialization bundles (one for each set of type and set arguments) and insert missing specializations
-                let definedSpecs = ns.SpecializationsDefinedInAllSources parent.Name
                 let insertSpecialization typeArgs kind = ns.InsertSpecialization (kind, typeArgs) (parent.Name, source)
                 let props, bundleErrs = SymbolResolution.GetBundleProperties insertSpecialization (signature, source) definedSpecs
                 let bundleErrs = bundleErrs |> Array.concat

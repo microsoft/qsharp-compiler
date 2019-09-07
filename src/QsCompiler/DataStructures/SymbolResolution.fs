@@ -20,7 +20,7 @@ type internal Resolution<'T,'R> = internal {
     Defined : 'T
     Resolved : QsNullable<'R>
     DefinedAttributes : ImmutableArray<QsSymbol * QsExpression>
-    ResolvedAttributes : ImmutableArray<QsQualifiedName * TypedExpression>
+    ResolvedAttributes : ImmutableArray<UserDefinedType * TypedExpression>
     Documentation : ImmutableArray<string>
 }
 
