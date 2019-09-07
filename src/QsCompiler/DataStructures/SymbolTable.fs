@@ -772,6 +772,11 @@ and NamespaceManager
                     ns.SetCallableResolution (fst kvPair.Value) (kvPair.Key, Null, ImmutableArray.Empty)
             this.ContainsResolutions <- false
 
+    /// ... 
+    member private this.ResolveAttributes (nsName, source) (decl : Resolution<_,_>) = 
+        let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (nsName, source)) |> Seq.toList |> List.unzip
+        attr |> Seq.choose id |> ImmutableArray.CreateRange, Array.concat msgs |> Array.map (fun msg -> decl.Position, msg)
+
     /// Resolves and caches the underlying type of the types declared in all source files of each namespace. 
     /// Returns the diagnostics generated upon resolution as well as the root position and file for each diagnostic as tuple.
     member private this.CacheTypeResolution () = 
@@ -787,10 +792,9 @@ and NamespaceManager
         let attributeDiagnostics = Namespaces.Values |> Seq.collect (fun ns ->
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let tName, (source, qsType) = kvPair.Key, kvPair.Value
-                let attr, msgs = qsType.DefinedAttributes |> Seq.map (this.ResolveAttribute (ns.Name, source)) |> Seq.toList |> List.unzip
-                let resolvedAttributes = attr |> Seq.choose id |> ImmutableArray.CreateRange
+                let resolvedAttributes, msgs = this.ResolveAttributes (ns.Name, source) qsType 
                 ns.SetTypeResolution source (tName, qsType.Resolved, resolvedAttributes) 
-                msgs |> Array.concat |> Array.map (fun msg -> source, (qsType.Position, msg))))
+                msgs |> Array.map (fun msg -> source, msg)))
         resolutionDiagnostics.Concat(attributeDiagnostics).ToArray()
 
     /// Resolves all specialization generation directives for all callables declared in all source files of each namespace, 
@@ -805,12 +809,6 @@ and NamespaceManager
                 let source, (kind, signature) = kvPair.Value
                 let parent = {Namespace = ns.Name; Name = kvPair.Key}
                 let definedSpecs = ns.SpecializationsDefinedInAllSources parent.Name
-
-                // resolve the attributes attached to the callable
-                let resolveAttributes attSource (spec : Resolution<_,_>) = 
-                    let attr, msgs = spec.DefinedAttributes |> Seq.map (this.ResolveAttribute (ns.Name, attSource)) |> Seq.toList |> List.unzip
-                    attr |> Seq.choose id |> ImmutableArray.CreateRange, Array.concat msgs |> Array.map (fun msg -> spec.Position, msg) 
-                let callableAttributes, attrErrs = resolveAttributes source signature
 
                 // we first need to resolve the type arguments to determine the right sets of specializations to consider
                 let typeArgsResolution specSource = 
@@ -833,9 +831,10 @@ and NamespaceManager
                         QsCompilerError.Verify ((removed <= 1), sprintf "removed %i specializations based on error code %s" removed (errCode.ToString()))
                 let autoResErrs = ns.SetSpecializationResolutions (parent.Name, typeArgsResolution, fun _ _ -> ImmutableArray.Empty, [||])
 
-                // only then can we resolve the generators themselves, as well as the specialization attributes
+                // only then can we resolve the generators themselves, as well as the callable and specialization attributes
+                let callableAttributes, attrErrs = this.ResolveAttributes (ns.Name, source) signature
                 let resolution _ = SymbolResolution.ResolveGenerator props 
-                let specErrs = ns.SetSpecializationResolutions (parent.Name, resolution, resolveAttributes)
+                let specErrs = ns.SetSpecializationResolutions (parent.Name, resolution, fun attSource -> this.ResolveAttributes (ns.Name, attSource))
 
                 // and finally we resolve the overall signature (whose characteristics are the intersection of the one of all bundles)
                 let characteristics = props.Values |> Seq.map (fun bundle -> bundle.BundleInfo) |> Seq.toList
