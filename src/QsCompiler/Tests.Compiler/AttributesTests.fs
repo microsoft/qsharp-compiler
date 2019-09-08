@@ -58,6 +58,7 @@ let ``specialization declaration serialization`` () =
         TypeArguments   = Null
         Information     = CallableInformation.NoInformation
         Parent          = qualifiedName "Microsoft.Quantum" "emptyFunction"
+        Attributes      = ImmutableArray.Empty
         SourceFile      = "%%%" |> NonNullable<string>.New
         Position        = (4,43)
         HeaderRange     = {Line = 1; Column = 1}, {Line = 1; Column = 5}
@@ -70,6 +71,7 @@ let ``specialization declaration serialization`` () =
         TypeArguments   = Null
         Information     = CallableInformation.New(ResolvedCharacteristics.FromProperties [Adjointable; Controllable], InferredCallableInformation.NoInformation)
         Parent          = qualifiedName "Microsoft.Quantum" "emptyOperation"
+        Attributes      = ImmutableArray.Empty
         SourceFile      = "%%%" |> NonNullable<string>.New
         Position        = (5,39)
         HeaderRange     = {Line = 1; Column = 1}, {Line = 1; Column = 5}
@@ -82,6 +84,7 @@ let ``specialization declaration serialization`` () =
         TypeArguments   = Null
         Information     = CallableInformation.New(ResolvedCharacteristics.Empty, InferredCallableInformation.New (intrinsic = true))
         Parent          = qualifiedName "Microsoft.Quantum" "Pair"
+        Attributes      = ImmutableArray.Empty
         SourceFile      = "%%%" |> NonNullable<string>.New
         Position        = (5,4)
         HeaderRange     = {Line = 1; Column = 9}, {Line = 1; Column = 13}
@@ -94,6 +97,7 @@ let ``specialization declaration serialization`` () =
         TypeArguments   = Null
         Information     = CallableInformation.New(ResolvedCharacteristics.Empty, InferredCallableInformation.New (intrinsic = true))
         Parent          = qualifiedName "Microsoft.Quantum" "Unused"
+        Attributes      = ImmutableArray.Empty
         SourceFile      = "%%%" |> NonNullable<string>.New
         Position        = (6,4)
         HeaderRange     = {Line = 1; Column = 9}, {Line = 1; Column = 15}
@@ -113,6 +117,7 @@ let ``callable declaration serialization`` () =
     {
         Kind            = QsCallableKind.TypeConstructor
         QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
+        Attributes      = ImmutableArray.Empty
         SourceFile      = "%%%" |> NonNullable<string>.New
         Position        = (2,4)
         SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 13}
@@ -125,6 +130,7 @@ let ``callable declaration serialization`` () =
     {
         Kind            = QsCallableKind.Function
         QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyFunction"
+        Attributes      = ImmutableArray.Empty
         SourceFile      = "%%%" |> NonNullable<string>.New
         Position        = (4,4)
         SymbolRange     = {Line = 1; Column = 10}, {Line = 1; Column = 23} 
@@ -137,6 +143,7 @@ let ``callable declaration serialization`` () =
     {
         Kind            = QsCallableKind.Operation
         QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyOperation"
+        Attributes      = ImmutableArray.Empty
         SourceFile      = "%%%" |> NonNullable<string>.New
         Position        = (5,4)
         SymbolRange     = {Line = 1; Column = 11}, {Line = 1; Column = 25}
@@ -149,6 +156,7 @@ let ``callable declaration serialization`` () =
     {
         Kind            = QsCallableKind.TypeConstructor
         QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
+        Attributes      = ImmutableArray.Empty
         SourceFile      = "%%%" |> NonNullable<string>.New
         Position        = (3,4)
         SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 15}
@@ -168,6 +176,7 @@ let ``type declaration serialization`` () =
         Assert.Equal(decl, header)
     {
         QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
+        Attributes      = ImmutableArray.Empty
         SourceFile      = "%%%" |> NonNullable<string>.New
         Position        = (2,4)
         SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 13}
@@ -179,6 +188,7 @@ let ``type declaration serialization`` () =
 
     {
         QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
+        Attributes      = ImmutableArray.Empty
         SourceFile      = "%%%" |> NonNullable<string>.New
         Position        = (3,4)
         SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 15}

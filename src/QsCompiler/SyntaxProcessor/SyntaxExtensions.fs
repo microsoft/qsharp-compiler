@@ -338,7 +338,7 @@ let public PrintSignature (header : CallableDeclarationHeader) =
     let callable = 
         let zeroLoc = QsLocation.New ((0,0), QsCompilerDiagnostic.DefaultRange)
         QsCallable.New header.Kind (header.SourceFile, zeroLoc) 
-            (header.QualifiedName, header.ArgumentTuple, header.Signature, ImmutableArray.Empty, ImmutableArray.Empty, QsComments.Empty);
+            (header.QualifiedName, header.Attributes, header.ArgumentTuple, header.Signature, ImmutableArray.Empty, ImmutableArray.Empty, QsComments.Empty);
     let signature = SyntaxTreeToQs.DeclarationSignature (callable, new Func<_,_>(TypeName))
     let annotation = CharacteristicsAnnotation (header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
     sprintf "%s%s" signature annotation

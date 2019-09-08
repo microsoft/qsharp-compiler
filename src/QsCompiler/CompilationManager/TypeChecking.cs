@@ -24,6 +24,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
     internal static class TypeChecking
     {
+        // FIXME: to be removed - temporary handle to be replaced with the correct attributes
+        private static ImmutableArray<Tuple<QsSymbol, QsExpression>> EmptyAttributes = 
+            ImmutableArray<Tuple<QsSymbol, QsExpression>>.Empty;
+
         /// <summary>
         /// Given a collections of the token indices that contain the header item, 
         /// as well as function that extracts the declaration, builds the corresponding HeaderEntries,
@@ -214,7 +218,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // add all type declarations
                 var typesToCompile = AddItems(file.GetTypeDeclarationHeaderItems(),
-                    (pos, name, decl, doc) => (ContainingParent(pos, namespaces)).TryAddType(file.FileName, Location(pos, name.Item2), name, decl, doc),
+                    (pos, name, decl, doc) => (ContainingParent(pos, namespaces)).TryAddType(file.FileName, Location(pos, name.Item2), name, decl, EmptyAttributes, doc),
                     file.FileName.Value, diagnostics);
 
                 var tokensToCompile = new List<(QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>))>();
@@ -226,7 +230,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // add all callable declarations
                 var callablesToCompile = AddItems(file.GetCallableDeclarationHeaderItems(),
-                    (pos, name, decl, doc) => (ContainingParent(pos, namespaces)).TryAddCallableDeclaration(file.FileName, Location(pos, name.Item2), name, decl, doc),
+                    (pos, name, decl, doc) => (ContainingParent(pos, namespaces)).TryAddCallableDeclaration(file.FileName, Location(pos, name.Item2), name, decl, EmptyAttributes, doc),
                     file.FileName.Value, diagnostics);
 
                 // add all callable specilizations -> TOOD: needs to be adapted for specializations outside the declaration body (not yet supported)
@@ -276,7 +280,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var position = headerItem.GetPosition();
                 var (specKind, generator, introRange) = headerItem.Declaration;
                 var location = new QsLocation(DiagnosticTools.AsTuple(position), introRange);
-                var messages = ns.TryAddCallableSpecialization(specKind, file.FileName, location, parentName, generator, headerItem.Documentation);
+                var messages = ns.TryAddCallableSpecialization(specKind, file.FileName, location, parentName, generator, EmptyAttributes, headerItem.Documentation);
                 if (!messages.Any(msg => msg.Diagnostic.IsError)) contentToCompile.Add(tIndex);
                 foreach (var msg in messages)
                 { diagnostics.Add(Diagnostics.Generate(file.FileName.Value, msg, position)); }
@@ -303,7 +307,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var omittedSymbol = new QsSymbol(QsSymbolKind<QsSymbol>.OmittedSymbols, QsRangeInfo.Null);
                 var generatorKind = QsSpecializationGeneratorKind<QsSymbol>.NewUserDefinedImplementation(omittedSymbol); 
                 var generator = new QsSpecializationGenerator(QsNullable<ImmutableArray<QsType>>.Null, generatorKind, genRange);
-                var messages = ns.TryAddCallableSpecialization(QsSpecializationKind.QsBody, file.FileName, location, parentName, generator, ImmutableArray<string>.Empty);
+                var messages = ns.TryAddCallableSpecialization(QsSpecializationKind.QsBody, file.FileName, location, parentName, generator, EmptyAttributes, ImmutableArray<string>.Empty);
                 QsCompilerError.Verify(!messages.Any(), "compiler returned diagnostic(s) for automatically inserted specialization");
                 contentToCompile.Add(parent.Item1);
             }
@@ -1213,7 +1217,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             QsSpecialization GetSpecialization(SpecializationDeclarationHeader spec, ResolvedSignature signature, 
                 SpecializationImplementation implementation, QsComments comments = null) =>
-                new QsSpecialization(spec.Kind, spec.Parent, spec.SourceFile, null,
+                new QsSpecialization(spec.Kind, spec.Parent, spec.Attributes, spec.SourceFile, null,
                     spec.TypeArguments, SyntaxGenerator.WithoutRangeInfo(signature), implementation, spec.Documentation, comments ?? QsComments.Empty);
 
             QsSpecialization BuildSpecialization(QsSpecializationKind kind, ResolvedSignature signature, QsSpecializationGeneratorKind<QsSymbol> gen, FragmentTree.TreeNode root,
@@ -1374,13 +1378,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     }
                     symbolTracker.EndScope();
                     QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
-                    return new QsCallable(info.Kind, parent, info.SourceFile, null, 
+                    return new QsCallable(info.Kind, parent, info.Attributes, info.SourceFile, null, 
                         info.Signature, info.ArgumentTuple, specs, info.Documentation, roots[parent].Item1);
                 }
 
                 var callables = callableRoots.Select(GetSpecializations).Select(GetCallable).ToImmutableArray();
                 var types = typeDeclarations.Select(decl => new QsCustomType(
-                    decl.Key, decl.Value.SourceFile, new QsLocation(decl.Value.Position, decl.Value.SymbolRange), 
+                    decl.Key, decl.Value.Attributes, decl.Value.SourceFile, new QsLocation(decl.Value.Position, decl.Value.SymbolRange), 
                     decl.Value.Type, decl.Value.TypeItems, decl.Value.Documentation, roots[decl.Key].Item1)).ToImmutableArray();
 
                 if (cancellationToken.IsCancellationRequested) return null;

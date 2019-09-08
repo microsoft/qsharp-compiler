@@ -319,7 +319,7 @@ and Namespace private
         | true, partial -> partial.NamespaceShortNames
         | false, _ -> ArgumentException "given source file is not listed as a source file for this namespace" |> raise
 
-    /// If a type with teh given name is defined in the specified source file, 
+    /// If a type with the given name is defined in the specified source file, 
     /// checks if that type has been marked as attribute and returns its underlying type if it has. 
     /// A type is considered to be marked as attribute if the list of defined attributes contains an attribute 
     /// with name "Attribute" that is qualified by any of the given possible qualifications. 
