@@ -5,7 +5,6 @@
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions
 
 open System
-open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
 open System.Runtime.CompilerServices
@@ -101,6 +100,10 @@ and private SymbolsFromExpr item : QsSymbol list * QsType list * QsExpression li
     | QsExpressionKind.MissingExpr                            -> [], [], [item]
     | QsExpressionKind.InvalidExpr                            -> [], [], [item]
 
+let private AttributeAsCallExpr (sym : QsSymbol, ex : QsExpression) = 
+    let compinedRange = QsPositionInfo.CombinedRange (sym.Range, ex.Range)
+    let id = {Expression = QsExpressionKind.Identifier (sym, Null); Range = sym.Range}
+    {Expression = QsExpressionKind.CallLikeExpression(id, ex); Range = compinedRange} 
 
 let rec private SymbolDeclarations (sym : QsSymbol) = 
     match sym.Symbol with 
@@ -173,7 +176,7 @@ let public SymbolInformation fragmentKind =
     | QsFragmentKind.OperationDeclaration (n, signature) -> (n, signature)                                      |> SymbolsInCallableDeclaration
     | QsFragmentKind.FunctionDeclaration  (n, signature) -> (n, signature)                                      |> SymbolsInCallableDeclaration
     | QsFragmentKind.TypeDefinition             (sym, t) -> (sym, t)                                            |> SymbolsInArgumentTuple
-    | QsFragmentKind.DeclarationAttribute      (sym, ex) -> [],                        ([ex]     , [])          |> collectWith SymbolsFromExpr |> addVariable sym
+    | QsFragmentKind.DeclarationAttribute      (sym, ex) -> [], ([AttributeAsCallExpr (sym, ex)], [])           |> collectWith SymbolsFromExpr |> addVariable sym    
     | QsFragmentKind.NamespaceDeclaration            sym -> sym |> SymbolDeclarations, ([], [], [])
     | QsFragmentKind.OpenDirective       (nsName, alias) -> [alias] |> chooseValues,   ([nsName], [], [])
     | QsFragmentKind.InvalidFragment                   _ -> [],                        ([], [], [])     
@@ -202,6 +205,7 @@ let public CallExpressions fragmentKind =
     | QsFragmentKind.UntilSuccess                (ex, _) -> callExpressions ex
     | QsFragmentKind.UsingBlockIntro           (_, init) 
     | QsFragmentKind.BorrowingBlockIntro       (_, init) -> (ExpressionsInInitializer init |> Seq.collect callExpressions).ToImmutableArray()
+    | QsFragmentKind.DeclarationAttribute      (sym, ex) -> AttributeAsCallExpr (sym, ex) |> ImmutableArray.Create
     | _                                                  -> ImmutableArray.Empty
 
 let private tryResolveWith resolve extract (currentNS, source) = function 

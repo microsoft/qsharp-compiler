@@ -46,12 +46,14 @@ type NonNullable<'T> = private Item of 'T with
 
 
 [<Struct>]
-type QsPositionInfo = 
-    {Line : int; Column: int}
-    with static member Zero = {Line = 1; Column = 1}
+type QsPositionInfo = {Line : int; Column: int} with 
+    static member Zero = {Line = 1; Column = 1}
+    static member CombinedRange (left : QsRangeInfo, right : QsRangeInfo) = 
+        match left, right with
+        | Value r1, Value r2 -> Value (fst r1, snd r2)
+        | _ -> Null
 
-
-type QsRangeInfo = 
+and QsRangeInfo = 
     QsNullable<QsPositionInfo * QsPositionInfo>
 
 
