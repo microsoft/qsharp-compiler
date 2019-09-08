@@ -193,8 +193,8 @@ type SyntaxTreeTransformation() =
         | QsCallableKind.TypeConstructor    -> this.onTypeConstructor c
 
 
-    abstract member onAttribute : UserDefinedType * TypedExpression -> UserDefinedType * TypedExpression
-    default this.onAttribute (attId, arg) = (attId, arg)
+    abstract member onAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
+    default this.onAttribute att = att 
 
     member this.dispatchNamespaceElement element = 
         match this.beforeNamespaceElement element with

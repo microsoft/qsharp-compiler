@@ -156,7 +156,7 @@ seeAlso:
             var typeItems = QsTuple<QsTypeItem>.NewQsTuple(ImmutableArray.Create(anonymousItem));
 
             var generatorIndexType = new QsCustomType(MakeFullName("GeneratorIndex"),
-                                                      ImmutableArray<Tuple<UserDefinedType, TypedExpression>>.Empty,
+                                                      ImmutableArray<QsDeclarationAttribute>.Empty,
                                                       NonNullable<string>.New("GeneratorRepresentation.qs"),
                                                       ZeroLocation,
                                                       baseType,
@@ -337,7 +337,7 @@ output:
 
             var qsCallable = new QsCallable(QsCallableKind.Operation,
                                             MakeFullName("AdiabaticStateEnergyUnitary"),
-                                            ImmutableArray<Tuple<UserDefinedType, TypedExpression>>.Empty,
+                                            ImmutableArray<QsDeclarationAttribute>.Empty,
                                             NonNullable<string>.New("Techniques.qs"),
                                             ZeroLocation,
                                             signature,

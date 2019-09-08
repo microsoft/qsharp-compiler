@@ -565,6 +565,18 @@ type QsLocalSymbol =
 | InvalidName
 
 
+/// used to represent an attribute attached to a type, callable, or specialization declaration.
+type QsDeclarationAttribute = {
+    /// Identifies the user defined type that the attribute instantiates.
+    /// The range information describes the range occupied by the attribute identifier relative to the attribute offset.
+    TypeId : UserDefinedType
+    /// Contains the argument with which the attribute is instantiated. 
+    Argument : TypedExpression
+    /// Represents the position in the source file where the attribute is used.
+    Offset : int * int 
+}
+
+
 /// Fully resolved Q# callable signature
 type ResolvedSignature = {
     /// contains the names of the type parameters for the callable, 
@@ -601,7 +613,7 @@ type QsSpecialization = {
     /// the fully qualified name of the callable this specialization extends
     Parent : QsQualifiedName
     /// contains all attributes associated with the specialization
-    Attributes : ImmutableArray<UserDefinedType * TypedExpression>
+    Attributes : ImmutableArray<QsDeclarationAttribute>
     /// identifier for the file the specialization is declared in (not necessarily the same as the one of the callable it extends)
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared specialization. 
@@ -630,7 +642,7 @@ type QsCallable = {
     /// contains the name of the callable
     FullName : QsQualifiedName
     /// contains all attributes associated with the callable
-    Attributes : ImmutableArray<UserDefinedType * TypedExpression>
+    Attributes : ImmutableArray<QsDeclarationAttribute>
     /// identifier for the file the callable is declared in
     SourceFile : NonNullable<string> 
     /// Contains the location information for the declared callable. 
@@ -670,7 +682,7 @@ type QsCustomType = {
     /// contains the name of the type
     FullName : QsQualifiedName
     /// contains all attributes associated with the type
-    Attributes : ImmutableArray<UserDefinedType * TypedExpression>
+    Attributes : ImmutableArray<QsDeclarationAttribute>
     /// identifier for the file the type is declared in
     SourceFile : NonNullable<string> 
     /// Contains the location information for the declared type. 

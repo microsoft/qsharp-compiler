@@ -25,8 +25,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class TypeChecking
     {
         // FIXME: to be removed - temporary handle to be replaced with the correct attributes
-        private static ImmutableArray<Tuple<QsSymbol, QsExpression>> EmptyAttributes = 
-            ImmutableArray<Tuple<QsSymbol, QsExpression>>.Empty;
+        private static ImmutableArray<AttributeAnnotation> EmptyAttributes = 
+            ImmutableArray<AttributeAnnotation>.Empty;
 
         /// <summary>
         /// Given a collections of the token indices that contain the header item, 

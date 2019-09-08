@@ -13,25 +13,32 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
-///  used internally for symbol resolution
+/// used to represent an unresolved attribute attached to a declaration
+type AttributeAnnotation = {
+    Id : QsSymbol
+    Argument : QsExpression
+    Position : int * int
+}
+
+/// used internally for symbol resolution
 type internal Resolution<'T,'R> = internal {
     Position : int * int
     Range : QsPositionInfo * QsPositionInfo
     Defined : 'T
     Resolved : QsNullable<'R>
-    DefinedAttributes : ImmutableArray<QsSymbol * QsExpression>
-    ResolvedAttributes : ImmutableArray<UserDefinedType * TypedExpression>
+    DefinedAttributes : ImmutableArray<AttributeAnnotation>
+    ResolvedAttributes : ImmutableArray<QsDeclarationAttribute>
     Documentation : ImmutableArray<string>
 }
 
-///  used internally for symbol resolution
+/// used internally for symbol resolution
 type internal ResolvedGenerator = internal {
     TypeArguments   : QsNullable<ImmutableArray<ResolvedType>>
     Information     : CallableInformation
     Directive       : QsNullable<QsGeneratorDirective>
 }
 
-///  used to group the relevant sets of specializations (i.e. group them according to type- and set-arguments)  
+/// used to group the relevant sets of specializations (i.e. group them according to type- and set-arguments)  
 type SpecializationBundleProperties = internal {
     BundleInfo : CallableInformation
     DefinedGenerators : ImmutableDictionary<QsSpecializationKind, QsSpecializationGenerator> 
@@ -235,14 +242,13 @@ module SymbolResolution =
         | InvalidType -> QsTypeKind.InvalidType |> asResolvedType, [||] 
         | MissingType -> NotSupportedException "missing type cannot be resolved" |> raise 
 
-    /// Resolves the Q# attribute defined by the given symbol and expression, 
-    /// using the given function getAttribute to resolve the attribute name and expected argument type. 
+    /// Resolves the given attribute using the given function getAttribute to resolve the type id and expected argument type. 
     /// Generates suitable diagnostics if a suitable attribute cannot be determined, 
     /// or if the attribute argument contains expressions that are not supported, 
     /// or if the resolved argument type does not match the expected argument type. 
     /// Returns the generated diagnostics as well as None if the given symbol is not a valid identifier, 
     /// i.e. if it is not a qualified or unqualified symbol, and returns the constructed attribute as Some otherwise. 
-    let internal ResolveAttribute getAttribute (qsSym : QsSymbol, qsExpr : QsExpression) = 
+    let internal ResolveAttribute getAttribute (attribute : AttributeAnnotation) =
         let asTypedExression range (exKind, exType) = {
             Expression = exKind
             TypeParameterResolutions = ImmutableDictionary.Empty
@@ -298,23 +304,23 @@ module SymbolResolution =
 
         // Any user defined type that has been decorated with the attribute 
         // "Attribute" defined in Microsoft.Quantum.Core may be used as attribute.
-        let getAttribute (ns, sym) = getAttribute ((ns, sym), qsSym.Range) |> function
+        let getAttribute (ns, sym) = getAttribute ((ns, sym), attribute.Id.Range) |> function
             | None, errs -> None, errs
             | Some (name, argType : ResolvedType), errs ->
-                let resArg, argErrs = ArgExression qsExpr
+                let resArg, argErrs = ArgExression attribute.Argument
                 let isError (msg : QsCompilerDiagnostic) = msg.Diagnostic |> function | Error _ -> true | _ -> false
                 // we can make the following simple check since / as long as there is no variance behavior 
                 // for any of the supported attribute argument types
                 if argErrs |> Array.exists isError && resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo then
-                    let mismatchErr = qsExpr.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeArgumentTypeMismatch, [])
+                    let mismatchErr = attribute.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeArgumentTypeMismatch, [])
                     None, Array.concat [errs; argErrs; [| mismatchErr |]] 
-                else Some (name, resArg), errs |> Array.append argErrs
-        match qsSym.Symbol with 
+                else Some {TypeId = name; Argument = resArg; Offset = attribute.Position}, errs |> Array.append argErrs
+        match attribute.Id.Symbol with 
         | Symbol sym -> getAttribute (None, sym) 
         | QualifiedSymbol (ns, sym) -> getAttribute (Some ns, sym)
         | InvalidSymbol -> None, [||]
         | MissingSymbol | OmittedSymbols | SymbolTuple _ -> 
-            None,  [| qsSym.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidAttributeIdentifier, []) |] 
+            None,  [| attribute.Id.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidAttributeIdentifier, []) |] 
 
 
     // private routines for resolving specialization generation directives

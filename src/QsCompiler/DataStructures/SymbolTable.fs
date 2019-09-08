@@ -327,18 +327,18 @@ and Namespace private
     /// Throws an ArgumentException if the source file is not listed as source file of the namespace.
     /// Throws an InvalidOperationExeception if the corresponding type has not been resolved. 
     member internal this.TryGetAttributeInSource source (attName, possibleQualifications : _ seq) = 
-        let marksAttribute (t : UserDefinedType) = t.Namespace.Value = Core.Namespace.Value && t.Name.Value = Core.Attribute.Value
+        let marksAttribute (t : QsDeclarationAttribute) = t.TypeId.Namespace.Value = Core.Namespace.Value && t.TypeId.Name.Value = Core.Attribute.Value
         let missingResolutionException () = InvalidOperationException "cannot get unresolved attribute" |> raise 
-        let compareAttributeName (sym : QsSymbol) = sym.Symbol |> function 
+        let compareAttributeName (att : AttributeAnnotation) = att.Id.Symbol |> function 
             | Symbol sym when sym.Value = Core.Attribute.Value && possibleQualifications.Contains "" -> true
             | QualifiedSymbol (ns, sym) when sym.Value = Core.Attribute.Value && possibleQualifications.Contains ns.Value -> true
             | _ -> false
         match TypesInReferences.TryGetValue attName with 
-        | true, tDecl -> if tDecl.Attributes |> Seq.map fst |> Seq.exists marksAttribute then Some tDecl.Type else None
+        | true, tDecl -> if tDecl.Attributes |> Seq.exists marksAttribute then Some tDecl.Type else None
         | false, _ -> Parts.TryGetValue source |> function 
             | false, _ -> ArgumentException "given source file is not listed as source of the namespace" |> raise
             | true, partialNS -> partialNS.TryGetType attName |> function 
-                | true, resolution when resolution.DefinedAttributes |> Seq.exists (fst >> compareAttributeName) -> 
+                | true, resolution when resolution.DefinedAttributes |> Seq.exists compareAttributeName -> 
                     resolution.Resolved.ValueOrApply missingResolutionException |> fst |> Some
                 | _ -> None
 
@@ -702,14 +702,13 @@ and NamespaceManager
                 | Value declSource -> Some ({Namespace = ns.Name; Name = symName; Range = symRange}, declSource), [||]
                 | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, []) |]
 
-    /// Given the name of the namespace as well as the source file in which the attribute occurs, 
-    /// resolves the attribute consisting of the given symbol and expression.
+    /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given attribute.
     /// Generates suitable diagnostics if a suitable attribute cannot be determined, 
     /// or if the attribute argument contains expressions that are not supported, 
     /// or if the resolved argument type does not match the expected argument type. 
     /// Returns the generated diagnostics as well as None if the given symbol is not a valid identifier, 
     /// i.e. if it is not a qualified or unqualified symbol, and returns the constructed attribute as Some otherwise. 
-    member private this.ResolveAttribute (parentNS, source) (sym, expr) = 
+    member private this.ResolveAttribute (parentNS, source) attribute = 
         /// Returns the possible qualifications for the "Attribute" attribute in the given declNS and declSource.
         /// Works fine whether the given declSource is the name of a source file or of a referenced assembly. 
         /// Throws an ArgumentException if no namespace with the given name exists. 
@@ -732,7 +731,7 @@ and NamespaceManager
                     | Some argType -> Some (udt, argType), errs
                 | false, _ -> QsCompilerError.Raise "namespace for defined type not found"; None, errs
             | None, errs -> None, errs
-        SymbolResolution.ResolveAttribute getAttribute (sym, expr)
+        SymbolResolution.ResolveAttribute getAttribute attribute
 
     /// Resolves the DefinedAttributes of the given declaration using ResolveAttribute. 
     /// Returns the attributes that could be resolved as well as an array with diagnostics along with the declaration Position. 

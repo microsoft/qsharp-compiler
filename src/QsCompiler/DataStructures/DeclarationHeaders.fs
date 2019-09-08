@@ -15,7 +15,7 @@ open Newtonsoft.Json
 /// to be removed as soon as we ship our own binary instead of compiled C#
 type TypeDeclarationHeader = {
     QualifiedName   : QsQualifiedName
-    Attributes      : ImmutableArray<UserDefinedType * TypedExpression>
+    Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
     Position        : int * int
     SymbolRange     : QsPositionInfo * QsPositionInfo
@@ -54,7 +54,7 @@ type TypeDeclarationHeader = {
 type CallableDeclarationHeader = { 
     Kind            : QsCallableKind
     QualifiedName   : QsQualifiedName
-    Attributes      : ImmutableArray<UserDefinedType * TypedExpression>
+    Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
     Position        : int * int
     SymbolRange     : QsPositionInfo * QsPositionInfo
@@ -104,7 +104,7 @@ type SpecializationDeclarationHeader = {
     TypeArguments   : QsNullable<ImmutableArray<ResolvedType>>
     Information     : CallableInformation
     Parent          : QsQualifiedName    
-    Attributes      : ImmutableArray<UserDefinedType * TypedExpression>
+    Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
     Position        : int * int
     HeaderRange     : QsPositionInfo*QsPositionInfo
