@@ -1280,6 +1280,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             return t;
         }
 
+        public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
+        {
+            this._Scope._Expression.Transform(att.Argument);
+            var arg = this._Scope._Expression._Kind.Output;
+            var argStr = att.Argument.Expression.IsValueTuple || att.Argument.Expression.IsUnitValue ? arg : $"({arg})";
+            var id = Identifier.NewGlobalCallable(new QsQualifiedName(att.TypeId.Namespace, att.TypeId.Name));
+            this._Scope._Expression._Kind.onIdentifier(id, QsNullable<ImmutableArray<ResolvedType>>.Null);
+            this.AddToOutput($"@ {this._Scope._Expression._Kind.Output}{argStr}");
+            return att;
+        }
+
         public override QsNamespace Transform(QsNamespace ns)
         {
             var scope = new ScopeToQs(new TransformationContext { CurrentNamespace = ns.Name.Value });

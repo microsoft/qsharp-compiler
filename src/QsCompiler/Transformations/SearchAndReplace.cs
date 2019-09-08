@@ -31,30 +31,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             public readonly NonNullable<string> SourceFile;
             /// <summary>
-            /// contains the location of the root node relative to which the statement location is given
+            /// contains the offset of the root node relative to which the statement location is given
             /// </summary>
-            public readonly QsLocation RootNode;
+            public readonly Tuple<int, int> DeclarationOffset;
             /// <summary>
             /// contains the location of the statement containing the symbol relative to the root node
             /// </summary>
-            public readonly QsLocation StatementOffset;
+            public readonly QsLocation RelativeStatementLocation;
             /// <summary>
             /// contains the range of the symbol relative to the statement position
             /// </summary>
             public readonly Tuple<QsPositionInfo, QsPositionInfo> SymbolRange;
 
-            public Location(NonNullable<string> source, QsLocation rootLoc, QsLocation stmLoc, Tuple<QsPositionInfo, QsPositionInfo> range)
+            public Location(NonNullable<string> source, Tuple<int,int> declOffset, QsLocation stmLoc, Tuple<QsPositionInfo, QsPositionInfo> range)
             {
                 this.SourceFile = source;
-                this.RootNode = rootLoc ?? throw new ArgumentNullException(nameof(rootLoc));
-                this.StatementOffset = stmLoc ?? throw new ArgumentNullException(nameof(stmLoc));
+                this.DeclarationOffset = declOffset ?? throw new ArgumentNullException(nameof(declOffset));
+                this.RelativeStatementLocation = stmLoc ?? throw new ArgumentNullException(nameof(stmLoc));
                 this.SymbolRange = range ?? throw new ArgumentNullException(nameof(range));
             }
 
             public bool Equals(Location other) =>
                 this.SourceFile.Value == other?.SourceFile.Value
-                && this.RootNode == other?.RootNode
-                && this.StatementOffset == other?.StatementOffset
+                && this.DeclarationOffset == other?.DeclarationOffset
+                && this.RelativeStatementLocation == other?.RelativeStatementLocation
                 && this.SymbolRange.Item1.Equals(other?.SymbolRange?.Item1)
                 && this.SymbolRange.Item2.Equals(other?.SymbolRange?.Item2);
 
@@ -64,10 +64,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override int GetHashCode()
             {
                 var (hash, multiplier) = (0x51ed270b, -1521134295);
-                if (this.RootNode.Offset != null) hash = (hash * multiplier) + this.RootNode.Offset.GetHashCode();
-                if (this.RootNode.Range != null) hash = (hash * multiplier) + this.RootNode.Range.GetHashCode();
-                if (this.StatementOffset.Offset != null) hash = (hash * multiplier) + this.StatementOffset.Offset.GetHashCode();
-                if (this.StatementOffset.Range != null) hash = (hash * multiplier) + this.StatementOffset.Range.GetHashCode();
+                if (this.DeclarationOffset != null) hash = (hash * multiplier) + this.DeclarationOffset.GetHashCode();
+                if (this.RelativeStatementLocation.Offset != null) hash = (hash * multiplier) + this.RelativeStatementLocation.Offset.GetHashCode();
+                if (this.RelativeStatementLocation.Range != null) hash = (hash * multiplier) + this.RelativeStatementLocation.Range.GetHashCode();
                 if (this.SymbolRange != null) hash = (hash * multiplier) + this.SymbolRange.GetHashCode();
                 return this.SourceFile.Value == null ? hash : (hash * multiplier) + this.SourceFile.Value.GetHashCode();
             }
@@ -100,7 +99,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             if (this.IsRelevant(c.SourceFile) && c.FullName.Equals(this.IdentifierName))
             { this.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(c.SourceFile, c.Location); }
-            return base.beforeCallable(c);
+            return c;
+        }
+
+        public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
+        {
+            var declRoot = this._Scope.DeclarationOffset;
+            this._Scope.DeclarationOffset = att.Offset;
+            this._Scope._Expression._Type.onUserDefinedType(att.TypeId);
+            this._Scope._Expression.Transform(att.Argument);
+            this._Scope.DeclarationOffset = declRoot;
+            return att;
         }
 
         // Todo: these transformations needs to be adapted once we support external specializations
@@ -114,13 +123,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         public override QsLocation onLocation(QsLocation l)
         {
-            this._Scope.SetRootLocation(l);
-            return base.onLocation(l);
+            this._Scope.DeclarationOffset = l.Offset;
+            return l;
         }
 
         public override NonNullable<string> onSourceFile(NonNullable<string> f)
         {
-            this._Scope.SetSouce(f);
+            this._Scope.Source = f;
             return base.onSourceFile(f);
         }
 
@@ -140,7 +149,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// <summary>
     /// Class that allows to walk a scope and find all locations where a certain identifier occurs within an expression.
     /// If no source file is specified prior to transformation, its name is set to the empty string. 
-    /// The RootLocation needs to be set prior to transformation, and in particular after defining a source file.
+    /// The DeclarationOffset needs to be set prior to transformation, and in particular after defining a source file.
     /// If no DefaultOffset is set on initialization then only the locations of occurrences within statements are logged. 
     /// </summary>
     public class IdentifierLocation :
@@ -159,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsTypeKind onUserDefinedType(UserDefinedType udt)
             {
                 this.OnIdentifier?.Invoke(Identifier.NewGlobalCallable(new QsQualifiedName(udt.Namespace, udt.Name)), udt.Range);
-                return base.onUserDefinedType(udt);
+                return QsTypeKind.NewUserDefinedType(udt);
             }
 
             public override QsTypeKind onTypeParameter(QsTypeParameter tp)
@@ -167,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 this.CodeOutput.onTypeParameter(tp);
                 var tpName = NonNullable<string>.New(this.CodeOutput.Output ?? "");
                 this.OnIdentifier?.Invoke(Identifier.NewLocalVariable(tpName), tp.Range);
-                return base.onTypeParameter(tp);
+                return QsTypeKind.NewTypeParameter(tp);
             }
         }
 
@@ -191,28 +200,36 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         { }
 
         private NonNullable<string> SourceFile;
-        private QsLocation RootLocation;
+        private Tuple<int, int> RootOffset;
         private QsLocation CurrentLocation;
         private readonly Func<Identifier, bool> TrackIdentifier;
 
+        public Tuple<int, int> DeclarationOffset
+        {
+            internal get => this.RootOffset;
+            set
+            {
+                this.RootOffset = value ?? throw new ArgumentNullException(nameof(value), "declaration offset cannot be null");
+                this.CurrentLocation = this.DefaultOffset;
+            }
+        }
+
+        public NonNullable<string> Source
+        {
+            internal get => this.SourceFile;
+            set
+            {
+                this.SourceFile = value;
+                this.RootOffset = null;
+                this.CurrentLocation = null;
+            }
+        }
+
         /// <summary>
-        /// whenever RootLocation is set, the current statement offset is set to this default value
+        /// Whenever DeclarationOffset is set, the current statement offset is set to this default value.
         /// </summary>
         public readonly QsLocation DefaultOffset;
         public ImmutableList<IdentifierReferences.Location> Locations { get; private set; }
-
-        public void SetSouce(NonNullable<string> file)
-        {
-            this.SourceFile = file;
-            this.RootLocation = null;
-            this.CurrentLocation = null;
-        }
-
-        public void SetRootLocation(QsLocation loc)
-        {
-            this.RootLocation = loc;
-            this.CurrentLocation = this.DefaultOffset;
-        }
 
         public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> loc)
         {
@@ -224,7 +241,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             if (this.TrackIdentifier(id) && this.CurrentLocation?.Offset != null && range.IsValue)
             {
-                var idLoc = new IdentifierReferences.Location(this.SourceFile, this.RootLocation, this.CurrentLocation, range.Item);
+                var idLoc = new IdentifierReferences.Location(this.SourceFile, this.RootOffset, this.CurrentLocation, range.Item);
                 this.Locations = this.Locations.Add(idLoc);
             }
         }
@@ -239,11 +256,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         // static methods for convenience
 
         public static IEnumerable<IdentifierReferences.Location> Find(NonNullable<string> idName, QsScope scope,
-            NonNullable<string> sourceFile, QsLocation rootLoc)
+            NonNullable<string> sourceFile, Tuple<int, int> rootLoc)
         {
             var finder = new IdentifierLocation(idName, null);
             finder.SourceFile = sourceFile;
-            finder.RootLocation = rootLoc ?? throw new ArgumentNullException(nameof(rootLoc));
+            finder.RootOffset = rootLoc ?? throw new ArgumentNullException(nameof(rootLoc));
             finder.Transform(scope ?? throw new ArgumentNullException(nameof(scope)));
             return finder.Locations;
         }
