@@ -41,7 +41,8 @@ type TypeDeclarationHeader = {
         let (success, header) =
             try true, JsonConvert.DeserializeObject<TypeDeclarationHeader>(json, JsonConverters.All false)
             with _ -> false, JsonConvert.DeserializeObject<TypeDeclarationHeader>(json, JsonConverters.All true)
-        let header = if Object.ReferenceEquals(header.Attributes, null) then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
+        let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
+        let header = if attributesAreNullOrDefault then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         if not (Object.ReferenceEquals(header.TypeItems, null)) then success, header
         else false, {header with TypeItems = ImmutableArray.Create (header.Type |> Anonymous |> QsTupleItem) |> QsTuple}
 
@@ -86,8 +87,9 @@ type CallableDeclarationHeader = {
         let (success, header) = 
             try true, JsonConvert.DeserializeObject<CallableDeclarationHeader>(json, JsonConverters.All false)
             with _ -> false, JsonConvert.DeserializeObject<CallableDeclarationHeader>(json, JsonConverters.All true)
+        let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
+        let header = if attributesAreNullOrDefault then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         let header = {header with ArgumentTuple = header.ArgumentTuple |> setInferredInfo}
-        let header = if Object.ReferenceEquals(header.Attributes, null) then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         if Object.ReferenceEquals(header.Signature.Information, null) || Object.ReferenceEquals(header.Signature.Information.Characteristics, null) then 
             false, {header with Signature = {header.Signature with Information = CallableInformation.Invalid}}
         else success, header
@@ -129,9 +131,10 @@ type SpecializationDeclarationHeader = {
         let (success, header) = 
             try true, JsonConvert.DeserializeObject<SpecializationDeclarationHeader>(json, JsonConverters.All false)
             with _ -> false, JsonConvert.DeserializeObject<SpecializationDeclarationHeader>(json, JsonConverters.All true)
-        let header = if Object.ReferenceEquals(header.Attributes, null) then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         let infoIsNull = Object.ReferenceEquals(header.Information, null)
         let typeArgsAreNull = Object.ReferenceEquals(header.TypeArguments, null)
+        let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
+        let header = if attributesAreNullOrDefault then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         if not (infoIsNull || typeArgsAreNull) then success, header
         else
             let information = if not infoIsNull then header.Information else CallableInformation.Invalid

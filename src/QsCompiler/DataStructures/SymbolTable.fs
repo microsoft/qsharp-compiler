@@ -829,7 +829,6 @@ and NamespaceManager
             ns.CallablesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let source, (kind, signature) = kvPair.Value
                 let parent = {Namespace = ns.Name; Name = kvPair.Key}
-                let definedSpecs = ns.SpecializationsDefinedInAllSources parent.Name
 
                 // we first need to resolve the type arguments to determine the right sets of specializations to consider
                 let typeArgsResolution specSource = 
@@ -838,6 +837,7 @@ and NamespaceManager
                 let mutable errs = ns.SetSpecializationResolutions (parent.Name, typeArgsResolution, fun _ _ -> ImmutableArray.Empty, [||])
 
                 // we then build the specialization bundles (one for each set of type and set arguments) and insert missing specializations
+                let definedSpecs = ns.SpecializationsDefinedInAllSources parent.Name
                 let insertSpecialization typeArgs kind = ns.InsertSpecialization (kind, typeArgs) (parent.Name, source)
                 let props, bundleErrs = SymbolResolution.GetBundleProperties insertSpecialization (signature, source) definedSpecs
                 let bundleErrs = bundleErrs |> Array.concat
@@ -1237,7 +1237,7 @@ and NamespaceManager
 
     /// Generates a hash containing full type information about all entries in the given source file.
     /// All entries in the source file have to be fully resolved beforehand.
-    /// That hash does not contain any information about the imported namespaces, positional information, or about any documenatation.
+    /// That hash does not contain any information about the imported namespaces, attributes, positional information, or about any documentation.
     /// Returns the generated hash as well as a separate hash providing information about the imported namespaces.
     /// Throws an InvalidOperationException if the given source file contains unresolved entries. 
     member this.HeaderHash source = 

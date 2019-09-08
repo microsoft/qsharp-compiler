@@ -194,10 +194,7 @@ type SyntaxTreeTransformation() =
 
 
     abstract member onAttribute : UserDefinedType * TypedExpression -> UserDefinedType * TypedExpression
-    default this.onAttribute (id, arg) = 
-        // FIXME: NEED TO TREAT THE CALLED ATTRIBUTE LIKE AN IDENTIFIER
-        let arg = this.Scope.Expression.Transform arg
-        (id, arg)
+    default this.onAttribute (attId, arg) = (attId, arg)
 
     member this.dispatchNamespaceElement element = 
         match this.beforeNamespaceElement element with
