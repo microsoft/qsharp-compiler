@@ -223,6 +223,13 @@ type QsCustomType with
         Comments = comments
     }
 
+type QsDeclarationAttribute with 
+    static member New (typeId, arg, pos) = {
+        TypeId = typeId
+        Argument = arg
+        Offset = pos
+    }
+
 type QsNamespaceElement with
     static member NewOperation loc = QsCallable.NewOperation loc >> QsCallable 
     static member NewFunction loc = QsCallable.NewFunction loc >> QsCallable
