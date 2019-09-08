@@ -235,7 +235,13 @@ module SymbolResolution =
         | InvalidType -> QsTypeKind.InvalidType |> asResolvedType, [||] 
         | MissingType -> NotSupportedException "missing type cannot be resolved" |> raise 
 
-    /// ...
+    /// Resolves the Q# attribute defined by the given symbol and expression, 
+    /// using the given function getAttribute to resolve the attribute name and expected argument type. 
+    /// Generates suitable diagnostics if a suitable attribute cannot be determined, 
+    /// or if the attribute argument contains expressions that are not supported, 
+    /// or if the resolved argument type does not match the expected argument type. 
+    /// Returns the generated diagnostics as well as None if the given symbol is not a valid identifier, 
+    /// i.e. if it is not a qualified or unqualified symbol, and returns the constructed attribute as Some otherwise. 
     let internal ResolveAttribute getAttribute (qsSym : QsSymbol, qsExpr : QsExpression) = 
         let asTypedExression range (exKind, exType) = {
             Expression = exKind

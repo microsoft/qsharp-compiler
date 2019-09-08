@@ -201,8 +201,7 @@ type ErrorCode =
     | TypeParameterRedeclaration = 6106
     | UnknownTypeParameterName = 6107
     | UnknownItemName = 6108
-    | UnknownAttribute = 6109
-    | NotMarkedAsAttribute = 6110
+    | NotMarkedAsAttribute = 6109
 
     | ArgumentTupleShapeMismatch = 6201
     | ArgumentTupleMismatch = 6202
@@ -530,7 +529,6 @@ type DiagnosticItem =
             | ErrorCode.TypeParameterRedeclaration              -> "A type parameter with that name already exists."
             | ErrorCode.UnknownTypeParameterName                -> "No type parameter with that name exists."
             | ErrorCode.UnknownItemName                         -> "The type {0} does not define an item with name \"{1}\"."
-            | ErrorCode.UnknownAttribute                        -> "No attribute with that name exists."
             | ErrorCode.NotMarkedAsAttribute                    -> "The type {0} is not marked as an attribute. Add \"@Attribute()\" above its declaration to indicate that it may be used as attribute."
                                                 
             | ErrorCode.ArgumentTupleShapeMismatch              -> "The shape of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
