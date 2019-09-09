@@ -1560,7 +1560,7 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     @ Microsoft.Quantum.Core.NonExistent()
     function InvalidAttributes5 () : Unit {}
 
-    @ Microsoft.Quantum.Core.CustomAttribute(1.)
+    @ Microsoft.Quantum.Testing.Attributes.CustomAttribute(1.)
     function InvalidAttributes6 () : Unit {}
 
     @ AttAsUserDefType(CustomAttribute(1.))
