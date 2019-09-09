@@ -36,29 +36,47 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<CodeFragment.TokenIndex> tokens,Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> GetDeclaration, string keepInvalid) =>
             tokens?.Select(tIndex => 
             {
-                var fragmentStart = tIndex.GetFragment().GetRange().Start;
-                var attributes = ImmutableArray<AttributeAnnotation>.Empty; // FIXME
-                var docComments = file.DocumentingComments(fragmentStart); // FIXME
-                return (tIndex, HeaderEntry<T>.From(GetDeclaration, tIndex, attributes, docComments, keepInvalid));
+                var attributes = ImmutableArray.CreateBuilder<AttributeAnnotation>();
+                CodeFragment precedingFragment = tIndex.GetFragment();
+                for (var preceding = tIndex.PreviousOnScope(); preceding != null; preceding = preceding.PreviousOnScope())
+                {
+                    precedingFragment = preceding.GetFragment();
+                    if (precedingFragment.Kind is QsFragmentKind.DeclarationAttribute att)
+                    { attributes.Add(new AttributeAnnotation(att.Item1, att.Item2, DiagnosticTools.AsTuple(precedingFragment.GetRange().Start))); }
+                    else break;
+                }
+                var docComments = file.DocumentingComments(precedingFragment.GetRange().Start); 
+                return (tIndex, HeaderEntry<T>.From(GetDeclaration, tIndex, attributes.ToImmutableArray(), docComments, keepInvalid));
             })
             ?.Where(tuple => tuple.Item2 != null).Select(tuple => (tuple.Item1, tuple.Item2.Value));
 
         /// <summary>
-        /// Extracts all documenting comments in the given file directly preceding the given position.
-        /// Documenting comments may be separated by an empty line. 
+        /// Extracts all documenting comments in the given file preceding the fragment at the given position, 
+        /// ignoring any attribute annotations unless ignorePrecedingAttributes is set to false. 
+        /// Documenting comments may be separated by an empty lines. 
         /// Strips the preceding triple-slash for the comments, as well as whitespace and the line break at the end. 
         /// Returns null if no documenting comment is given, or if the documenting comments do not have any non-whitespace content. 
         /// Throws an ArgumentNullException if the given file or position is null. 
         /// Throws an ArgumentException if the given position is not a valid position within the given file. 
         /// </summary>
-        internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos)
+        internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos, bool ignorePrecedingAttributes = true)
         {
             if (!Utils.IsValidPosition(pos, file)) throw new ArgumentException(nameof(pos));
-            var docs = new List<string>();
-            var preceding = file.GetLine(pos.Line).Text.Substring(0, pos.Character).Trim();
-            for (var lineNr = pos.Line; lineNr-- > 0 && (preceding.StartsWith("///") || preceding == String.Empty); preceding = file.GetLine(lineNr).Text.Trim())
-            { docs.Add(preceding.TrimStart('/')); }
-            return docs.SkipWhile(line => String.IsNullOrWhiteSpace(line)).Reverse().SkipWhile(line => String.IsNullOrWhiteSpace(line)).ToImmutableArray();
+            bool RelevantToken(CodeFragment token) => !(ignorePrecedingAttributes && token.Kind is QsFragmentKind.DeclarationAttribute);
+            bool IsDocCommentLine(string text) => text.StartsWith("///") || text == String.Empty;
+
+            var lastPreceding = file.GetTokenizedLine(pos.Line)
+                .TakeWhile(ContextBuilder.TokensUpTo(pos.WithUpdatedLineNumber(-pos.Line)))
+                .LastOrDefault(RelevantToken);
+            for (var line = pos.Line; lastPreceding == null && line-- > 0;)
+            { lastPreceding = file.GetTokenizedLine(line).LastOrDefault(RelevantToken); }
+
+            var firstRelevant = lastPreceding == null ? 0 : lastPreceding.GetRange().End.Line + 1;
+            return file.GetLines(firstRelevant, pos.Line > firstRelevant ? pos.Line - 1 - firstRelevant : 0)
+                .Select(line => line.Text.Trim()).Where(IsDocCommentLine).Select(line => line.TrimStart('/'))
+                .SkipWhile(line => String.IsNullOrWhiteSpace(line)).Reverse()
+                .SkipWhile(line => String.IsNullOrWhiteSpace(line)).Reverse()
+                .ToImmutableArray();
         }
 
         /// <summary>
