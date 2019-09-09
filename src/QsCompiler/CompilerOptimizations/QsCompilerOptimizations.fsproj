@@ -16,15 +16,15 @@
     <Compile Include="Utils.fs" />
     <Compile Include="Printer.fs" />
     <Compile Include="Evaluation.fs" />
-    <Compile Include="PureCircuitAPI.fs" />
+    <Compile Include="MinorTransformations.fs" />
     <Compile Include="VariableRenaming.fs" />
-    <Compile Include="SideEffectChecking.fs" />
     <Compile Include="StatementRemoving.fs" />
     <Compile Include="OptimizingTransformation.fs" />
     <Compile Include="ConstantPropagation.fs" />
     <Compile Include="LoopUnrolling.fs" />
     <Compile Include="CallableInlining.fs" />
     <Compile Include="StatementReordering.fs" />
+    <Compile Include="PureCircuitAPI.fs" />
     <Compile Include="PureCircuitFinding.fs" />
     <Compile Include="Optimizations.fs" />
   </ItemGroup>

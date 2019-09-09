@@ -4,7 +4,6 @@
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
 
 open System.Collections.Generic
-open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -13,6 +12,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open ComputationExpressions
 open Utils
+open MinorTransformations
 open OptimizingTransformation
 
 
@@ -83,22 +83,6 @@ type private InliningInfo = {
     returnType: ResolvedType
 }
 
-/// A scope transformation that substitutes type parameters according to the given dictionary
-type private ReplaceTypeParams(typeParams: ImmutableDictionary<QsTypeParameter, ResolvedType>) =
-    inherit ScopeTransformation()
-
-    let typeMap = typeParams |> Seq.map (function KeyValue (a, b) -> (a.Origin, a.TypeName), b) |> Map
-
-    override __.Expression = { new ExpressionTransformation() with
-        override __.Type = { new ExpressionTypeTransformation() with
-            override __.onTypeParameter tp =
-                let key = tp.Origin, tp.TypeName
-                if typeMap.ContainsKey key then
-                    typeMap.[key].Resolution
-                else
-                    base.onTypeParameter tp
-            }
-    }
 
 /// Tries to construct an InliningInfo from the given expression.
 /// Returns None if the expression is not a callable invocation that can be inlined.
@@ -194,38 +178,6 @@ type internal CallableInliner(callables) =
             return returnVarBinding, newScope, returnVarIden
         }
 
-    /// Given a statement, returns a sequence of statements to replace this statement with.
-    /// Inlines simple calls that have exactly 0 or 1 return statements.
-    let transformStatement stmt =
-        maybe {
-            match stmt with
-            | QsExpressionStatement ex ->
-                match safeInline ex with
-                | Some scopeStmt ->
-                    return scopeStmt |> Seq.singleton
-                | None ->
-                    let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn ex
-                    return upcast [
-                        returnVarBinding
-                        scopeStmt
-                    ]
-            | QsVariableDeclaration s ->
-                let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn s.Rhs
-                return upcast [
-                    returnVarBinding
-                    scopeStmt
-                    QsVariableDeclaration {s with Rhs = returnVarIden}
-                ]
-            | QsValueUpdate s ->
-                let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn s.Rhs
-                return upcast [
-                    returnVarBinding
-                    scopeStmt
-                    QsValueUpdate {s with Rhs = returnVarIden}
-                ]
-            | _ -> return! None
-        } |? Seq.singleton stmt
-
 
     override __.onCallableImplementation c =
         let prev = currentCallable
@@ -234,14 +186,37 @@ type internal CallableInliner(callables) =
         currentCallable <- prev
         result
 
-    override __.Scope = { new ScopeTransformation() with
-        override this.Transform scope =
-            let parentSymbols = scope.KnownSymbols
-            let statements =
-                scope.Statements
-                |> Seq.map this.onStatement
-                |> Seq.map (fun x -> x.Statement)
-                |> Seq.collect transformStatement
-                |> Seq.map wrapStmt
-            QsScope.New (statements, parentSymbols)
+    override __.Scope = upcast { new StatementCollectorTransformation() with
+
+        /// Given a statement, returns a sequence of statements to replace this statement with.
+        /// Inlines simple calls that have exactly 0 or 1 return statements.
+        override __.TransformStatement stmt =
+            maybe {
+                match stmt with
+                | QsExpressionStatement ex ->
+                    match safeInline ex with
+                    | Some scopeStmt ->
+                        return scopeStmt |> Seq.singleton
+                    | None ->
+                        let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn ex
+                        return upcast [
+                            returnVarBinding
+                            scopeStmt
+                        ]
+                | QsVariableDeclaration s ->
+                    let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn s.Rhs
+                    return upcast [
+                        returnVarBinding
+                        scopeStmt
+                        QsVariableDeclaration {s with Rhs = returnVarIden}
+                    ]
+                | QsValueUpdate s ->
+                    let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn s.Rhs
+                    return upcast [
+                        returnVarBinding
+                        scopeStmt
+                        QsValueUpdate {s with Rhs = returnVarIden}
+                    ]
+                | _ -> return! None
+            } |? Seq.singleton stmt
     }

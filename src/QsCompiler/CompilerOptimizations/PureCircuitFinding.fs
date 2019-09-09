@@ -17,6 +17,7 @@ open OptimizingTransformation
 /// Returns whether an expression is an operation call
 let private isOperation expr =
     match expr.Expression with
+    | x when TypedExpression.IsPartialApplication x -> false
     | CallLikeExpression (method, _) ->
         match method.ResolvedType.Resolution with
         | TypeKind.Operation _ -> true
