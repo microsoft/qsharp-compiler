@@ -176,7 +176,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "(", "," };
             capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities 
             capabilities.CompletionProvider.ResolveProvider = true;
-            capabilities.CompletionProvider.TriggerCharacters = new[] { "." };
+            capabilities.CompletionProvider.TriggerCharacters =
+                "VisualStudio".Equals(this.ClientName, StringComparison.InvariantCultureIgnoreCase)
+                ? new[] { ".", " ", "(" }
+                : new[] { "." };
 
             this.WaitForInit = null;
             return new InitializeResult { Capabilities = capabilities };
