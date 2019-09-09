@@ -1542,6 +1542,12 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     @ AttType2()
     function ValidAttributes10 () : Unit {}
 
+    @ Attribute() // silently ignored 
+    operation ValidAttributes11 () : Unit {}
+
+    @ Attribute() // silently ignored
+    function ValidAttributes12 () : Unit {}
+
 
     // invalid declaration attributes
 
@@ -1568,4 +1574,28 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     @ AttArrayAsUserDefType(new CustomAttribute[0])
     function InvalidAttributes8 () : Unit {}
+
+    operation InvalidAttributes9 () : Unit {    
+        @ IntAttribute(1)
+        body(...) {}
+    }
+
+    operation InvalidAttributes10 () : Unit {    
+        body(...) {}
+        @ IntAttribute(1)
+        adjoint(...) {}
+    }
+
+    operation InvalidAttributes11 () : Unit {    
+        body(...) {}
+        @ IntAttribute(1)
+        controlled (cs, ...) {}
+    }
+
+    operation InvalidAttributes12 () : Unit {    
+        @ IntAttribute(1)
+        controlled adjoint (cs, ...) {}
+        body(...) {}
+    }
+
 }
