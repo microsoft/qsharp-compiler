@@ -224,10 +224,11 @@ type QsCustomType with
     }
 
 type QsDeclarationAttribute with 
-    static member New (typeId, arg, pos) = {
+    static member New (typeId, arg, pos, comments) = {
         TypeId = typeId
         Argument = arg
         Offset = pos
+        Comments = comments
     }
 
 type QsNamespaceElement with

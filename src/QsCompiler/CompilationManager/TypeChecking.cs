@@ -42,7 +42,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     precedingFragment = preceding.GetFragment();
                     if (precedingFragment.IncludeInCompilation && precedingFragment.Kind is QsFragmentKind.DeclarationAttribute att)
-                    { attributes.Add(new AttributeAnnotation(att.Item1, att.Item2, DiagnosticTools.AsTuple(precedingFragment.GetRange().Start))); }
+                    {
+                        var offset = DiagnosticTools.AsTuple(precedingFragment.GetRange().Start);
+                        attributes.Add(new AttributeAnnotation(att.Item1, att.Item2, offset, precedingFragment.Comments));
+                    }
                     else break;
                 }
                 var docComments = file.DocumentingComments(tIndex.GetFragment().GetRange().Start); 

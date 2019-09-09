@@ -574,6 +574,8 @@ type QsDeclarationAttribute = {
     Argument : TypedExpression
     /// Represents the position in the source file where the attribute is used.
     Offset : int * int 
+    /// contains comments in the code associated with the attached attribute
+    Comments : QsComments
 }
 
 

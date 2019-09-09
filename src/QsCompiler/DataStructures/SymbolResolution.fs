@@ -18,6 +18,7 @@ type AttributeAnnotation = {
     Id : QsSymbol
     Argument : QsExpression
     Position : int * int
+    Comments : QsComments
 }
 
 /// used internally for symbol resolution
@@ -314,7 +315,7 @@ module SymbolResolution =
                 if argErrs |> Array.exists isError && resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo then
                     let mismatchErr = attribute.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeArgumentTypeMismatch, [])
                     None, Array.concat [errs; argErrs; [| mismatchErr |]] 
-                else Some {TypeId = name; Argument = resArg; Offset = attribute.Position}, errs |> Array.append argErrs
+                else Some {TypeId = name; Argument = resArg; Offset = attribute.Position; Comments = attribute.Comments}, errs |> Array.append argErrs
         match attribute.Id.Symbol with 
         | Symbol sym -> getAttribute (None, sym) 
         | QualifiedSymbol (ns, sym) -> getAttribute (Some ns, sym)
