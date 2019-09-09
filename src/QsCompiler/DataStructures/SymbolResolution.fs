@@ -312,7 +312,7 @@ module SymbolResolution =
                 let isError (msg : QsCompilerDiagnostic) = msg.Diagnostic |> function | Error _ -> true | _ -> false
                 // we can make the following simple check since / as long as there is no variance behavior 
                 // for any of the supported attribute argument types
-                if argErrs |> Array.exists isError && resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo then
+                if resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo && not (argErrs |> Array.exists isError) then
                     let mismatchErr = attribute.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeArgumentTypeMismatch, [])
                     None, Array.concat [errs; argErrs; [| mismatchErr |]] 
                 else Some {TypeId = name; Argument = resArg; Offset = attribute.Position; Comments = attribute.Comments}, errs |> Array.append argErrs
