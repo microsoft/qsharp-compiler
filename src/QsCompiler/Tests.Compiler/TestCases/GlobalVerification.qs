@@ -1489,7 +1489,19 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     @ Attribute()
     newtype CustomAttribute = Double;
-    
+    @ Attribute()
+    newtype AttAsUserDefType = CustomAttribute;
+    @ Attribute()
+    newtype AttArrayAsUserDefType = CustomAttribute[];
+
+    @ Attribute()
+    @ AttType1()
+    newtype AttType1 = Unit;
+    @ Attribute()
+    @ AttType2()
+    newtype AttType2 = Unit;
+
+
     @ IntAttribute(0b111)
     @ StringAttribute("")
     @ BigIntArrayAttribute([0xF0a00101L])
@@ -1526,6 +1538,10 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     @ Microsoft.Quantum.Testing.Attributes.IntTupleAttribute(1,1)
     function ValidAttributes9 () : Unit {}
 
+    @ AttType1()
+    @ AttType2()
+    function ValidAttributes10 () : Unit {}
+
 
     // invalid declaration attributes
 
@@ -1547,4 +1563,9 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     //@ Microsoft.Quantum.Core.CustomAttribute(1.)
     //function InvalidAttributes6 () : Unit {}
 
+    //@ AttAsUserDefType(CustomAttribute(1.))
+    //function InvalidAttributes7 () : Unit {}
+
+    //@ AttArrayAsUserDefType(new CustomAttribute[0])
+    //function InvalidAttributes8 () : Unit {}
 }
