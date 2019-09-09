@@ -4,6 +4,7 @@
 /// This namespace contains test cases for syntax tree verification
 namespace Microsoft.Quantum.Testing.GlobalVerification {
 
+    open Microsoft.Quantum.Testing.Attributes;
     open Microsoft.Quantum.Testing.General;
     open Microsoft.Quantum.Testing.GlobalVerification.N3;
     open Microsoft.Quantum.Testing.GlobalVerification.N4 as N4;
@@ -1482,4 +1483,21 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
             apply { DoNothing(); } 
         }
     }
+
+
+    // tests for declaration attributes
+    
+    @ IntAttribute(0b111)
+    @ StringAttribute("")
+    @ BigIntArrayAttribute([0xF0a00101L])
+    @ PauliResultAttribute (PauliX, Zero)
+    operation ValidAttributes1 () : Unit {}
+
+    @ IntAttribute(0b111)
+    @ StringAttribute("")
+    @ BigIntArrayAttribute([0xF0a00101L])
+    @ PauliResultAttribute (PauliX, Zero)
+    function ValidAttributes2 () : Unit {}
+
+
 }

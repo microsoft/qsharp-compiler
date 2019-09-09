@@ -269,5 +269,9 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
         this.Expect "InvalidReturnPlacement20"           [Error ErrorCode.ReturnStatementWithinAutoInversion; Error ErrorCode.InvalidReturnWithinAllocationScope; Warning WarningCode.UnreachableCode]
 
 
-
+    [<Fact>]
+    member this.``Attribute annotations on declarations`` () = 
+    
+        this.Expect "ValidAttributes1"  []
+        this.Expect "ValidAttributes2"  []
 

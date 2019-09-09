@@ -4,6 +4,29 @@
 // This file contains test cases related to user defined types 
 // and test cases such that verifications accross different namespaces can be tested
 
+
+// needs to be available to test attributes
+namespace Microsoft.Quantum.Core {
+
+    @ Attribute()
+    newtype Attribute = Unit;
+}
+
+namespace Microsoft.Quantum.Testing.Attributes {
+
+    @ Attribute()
+    newtype IntAttribute = Int;
+
+    @ Attribute()
+    newtype StringAttribute = String;
+
+    @ Attribute()
+    newtype BigIntArrayAttribute = BigInt[];
+
+    @ Attribute()
+    newtype PauliResultAttribute = (Pauli, Result);
+}
+
 namespace Microsoft.Quantum.Testing.TypeChecking {
 
     newtype NamedItems1 = (Re : Int, Im : Int);
