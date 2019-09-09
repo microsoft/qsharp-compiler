@@ -731,14 +731,15 @@ and NamespaceManager
                     | Some argType -> Some (udt, argType), errs
                 | false, _ -> QsCompilerError.Raise "namespace for defined type not found"; None, errs
             | None, errs -> None, errs
-        SymbolResolution.ResolveAttribute getAttribute attribute
+        let resolved, msgs = SymbolResolution.ResolveAttribute getAttribute attribute
+        resolved, msgs |> Array.map (fun m -> attribute.Position, m)
 
     /// Resolves the DefinedAttributes of the given declaration using ResolveAttribute. 
     /// Returns the attributes that could be resolved as well as an array with diagnostics along with the declaration Position. 
     /// Note that the returned array of resolved attributes may be shorter than the array of defined attributes. 
     member private this.ResolveAttributes (nsName, source) (decl : Resolution<_,_>) = 
         let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (nsName, source)) |> Seq.toList |> List.unzip
-        attr |> Seq.choose id |> ImmutableArray.CreateRange, Array.concat msgs |> Array.map (fun msg -> decl.Position, msg)
+        attr |> Seq.choose id |> ImmutableArray.CreateRange, Array.concat msgs
 
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
     /// The resolution consists of replacing all unqualified names for user defined types by their qualified name.
