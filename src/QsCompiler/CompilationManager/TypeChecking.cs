@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     { attributes.Add(new AttributeAnnotation(att.Item1, att.Item2, DiagnosticTools.AsTuple(precedingFragment.GetRange().Start))); }
                     else break;
                 }
-                var docComments = file.DocumentingComments(precedingFragment.GetRange().Start); 
+                var docComments = file.DocumentingComments(tIndex.GetFragment().GetRange().Start); 
                 return (tIndex, HeaderEntry<T>.From(GetDeclaration, tIndex, attributes.ToImmutableArray(), docComments, keepInvalid));
             })
             ?.Where(tuple => tuple.Item2 != null).Select(tuple => (tuple.Item1, tuple.Item2.Value));
@@ -66,16 +66,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool IsDocCommentLine(string text) => text.StartsWith("///") || text == String.Empty;
 
             var lastPreceding = file.GetTokenizedLine(pos.Line)
-                .TakeWhile(ContextBuilder.TokensUpTo(pos.WithUpdatedLineNumber(-pos.Line)))
-                .LastOrDefault(RelevantToken);
-            for (var line = pos.Line; lastPreceding == null && line-- > 0;)
-            { lastPreceding = file.GetTokenizedLine(line).LastOrDefault(RelevantToken); }
+                .TakeWhile(ContextBuilder.TokensUpTo(new Position(0, pos.Character)))
+                .LastOrDefault(RelevantToken)?.WithUpdatedLineNumber(pos.Line);
+            for (var lineNr = pos.Line; lastPreceding == null && lineNr-- > 0;)
+            { lastPreceding = file.GetTokenizedLine(lineNr).LastOrDefault(RelevantToken)?.WithUpdatedLineNumber(lineNr); }
 
             var firstRelevant = lastPreceding == null ? 0 : lastPreceding.GetRange().End.Line + 1;
-            return file.GetLines(firstRelevant, pos.Line > firstRelevant ? pos.Line - 1 - firstRelevant : 0)
+            return file.GetLines(firstRelevant, pos.Line > firstRelevant ? pos.Line - firstRelevant : 0)
                 .Select(line => line.Text.Trim()).Where(IsDocCommentLine).Select(line => line.TrimStart('/'))
-                .SkipWhile(line => String.IsNullOrWhiteSpace(line)).Reverse()
-                .SkipWhile(line => String.IsNullOrWhiteSpace(line)).Reverse()
+                .SkipWhile(text => String.IsNullOrWhiteSpace(text)).Reverse()
+                .SkipWhile(text => String.IsNullOrWhiteSpace(text)).Reverse()
                 .ToImmutableArray();
         }
 
