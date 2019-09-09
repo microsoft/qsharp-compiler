@@ -1286,7 +1286,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             this._Scope._Expression.Transform(att.Argument);
             var arg = this._Scope._Expression._Kind.Output;
             var argStr = att.Argument.Expression.IsValueTuple || att.Argument.Expression.IsUnitValue ? arg : $"({arg})";
-            var id = Identifier.NewGlobalCallable(new QsQualifiedName(att.TypeId.Namespace, att.TypeId.Name));
+            var id = att.TypeId.IsValue  
+                ? Identifier.NewGlobalCallable(new QsQualifiedName(att.TypeId.Item.Namespace, att.TypeId.Item.Name))
+                : Identifier.InvalidIdentifier;
             this._Scope._Expression._Kind.onIdentifier(id, QsNullable<ImmutableArray<ResolvedType>>.Null);
             this.AddComments(att.Comments.OpeningComments);
             this.AddToOutput($"@ {this._Scope._Expression._Kind.Output}{argStr}");

@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             var declRoot = this._Scope.DeclarationOffset;
             this._Scope.DeclarationOffset = att.Offset;
-            this._Scope._Expression._Type.onUserDefinedType(att.TypeId);
+            if (att.TypeId.IsValue) this._Scope._Expression._Type.onUserDefinedType(att.TypeId.Item);
             this._Scope._Expression.Transform(att.Argument);
             this._Scope.DeclarationOffset = declRoot;
             return att;

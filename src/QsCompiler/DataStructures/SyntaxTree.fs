@@ -569,7 +569,8 @@ type QsLocalSymbol =
 type QsDeclarationAttribute = {
     /// Identifies the user defined type that the attribute instantiates.
     /// The range information describes the range occupied by the attribute identifier relative to the attribute offset.
-    TypeId : UserDefinedType
+    /// Is Null only if the correct attribute could not be determined. Attributes set to Null should be ignored. 
+    TypeId : QsNullable<UserDefinedType>
     /// Contains the argument with which the attribute is instantiated. 
     Argument : TypedExpression
     /// Represents the position in the source file where the attribute is used.

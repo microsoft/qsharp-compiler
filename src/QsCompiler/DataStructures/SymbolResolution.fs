@@ -247,8 +247,8 @@ module SymbolResolution =
     /// Generates suitable diagnostics if a suitable attribute cannot be determined, 
     /// or if the attribute argument contains expressions that are not supported, 
     /// or if the resolved argument type does not match the expected argument type. 
-    /// Returns the generated diagnostics as well as None if the given symbol is not a valid identifier, 
-    /// i.e. if it is not a qualified or unqualified symbol, and returns the constructed attribute as Some otherwise. 
+    /// The TypeId in the resolved attribute is set to Null if the unresolved Id is not a valid identifier 
+    /// or if the correct attribute cannot be determined, and is set to the corresponding type identifier otherwise. 
     let internal ResolveAttribute getAttribute (attribute : AttributeAnnotation) =
         let asTypedExression range (exKind, exType) = {
             Expression = exKind
@@ -298,6 +298,7 @@ module SymbolResolution =
                 let resBaseType, typeErrs = ResolveType (onUdt, onTypeParam) bt 
                 let resIdx, idxErrs = ArgExression idx
                 (NewArray (resBaseType, resIdx), ArrayType resBaseType) |> asTypedExression ex.Range, Array.concat [typeErrs; idxErrs]
+            // TODO: detect constructor calls
             | _ -> invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InvalidAttributeArgument |] 
         and aggregateInner vs = 
             let innerExs, errs = vs |> Seq.map ArgExression |> Seq.toList |> List.unzip
@@ -305,23 +306,24 @@ module SymbolResolution =
 
         // Any user defined type that has been decorated with the attribute 
         // "Attribute" defined in Microsoft.Quantum.Core may be used as attribute.
+        let resArg, argErrs = ArgExression attribute.Argument
+        let buildAttribute id = {TypeId = id; Argument = resArg; Offset = attribute.Position; Comments = attribute.Comments}
         let getAttribute (ns, sym) = getAttribute ((ns, sym), attribute.Id.Range) |> function
-            | None, errs -> None, errs
+            | None, errs -> Null |> buildAttribute, errs |> Array.append argErrs
             | Some (name, argType : ResolvedType), errs ->
-                let resArg, argErrs = ArgExression attribute.Argument
-                let isError (msg : QsCompilerDiagnostic) = msg.Diagnostic |> function | Error _ -> true | _ -> false
                 // we can make the following simple check since / as long as there is no variance behavior 
                 // for any of the supported attribute argument types
+                let isError (msg : QsCompilerDiagnostic) = msg.Diagnostic |> function | Error _ -> true | _ -> false
                 if resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo && not (argErrs |> Array.exists isError) then
                     let mismatchErr = attribute.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeArgumentTypeMismatch, [])
-                    None, Array.concat [errs; argErrs; [| mismatchErr |]] 
-                else Some {TypeId = name; Argument = resArg; Offset = attribute.Position; Comments = attribute.Comments}, errs |> Array.append argErrs
+                    Null |> buildAttribute, Array.concat [errs; argErrs; [| mismatchErr |]] 
+                else Value name |> buildAttribute, errs |> Array.append argErrs
         match attribute.Id.Symbol with 
         | Symbol sym -> getAttribute (None, sym) 
         | QualifiedSymbol (ns, sym) -> getAttribute (Some ns, sym)
-        | InvalidSymbol -> None, [||]
+        | InvalidSymbol -> Null |> buildAttribute, argErrs
         | MissingSymbol | OmittedSymbols | SymbolTuple _ -> 
-            None,  [| attribute.Id.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidAttributeIdentifier, []) |] 
+            Null |> buildAttribute, [| attribute.Id.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidAttributeIdentifier, []) |] 
 
 
     // private routines for resolving specialization generation directives

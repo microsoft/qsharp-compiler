@@ -327,7 +327,9 @@ and Namespace private
     /// Throws an ArgumentException if the source file is not listed as source file of the namespace.
     /// Throws an InvalidOperationExeception if the corresponding type has not been resolved. 
     member internal this.TryGetAttributeInSource source (attName, possibleQualifications : _ seq) = 
-        let marksAttribute (t : QsDeclarationAttribute) = t.TypeId.Namespace.Value = Core.Namespace.Value && t.TypeId.Name.Value = Core.Attribute.Value
+        let marksAttribute (t : QsDeclarationAttribute) = t.TypeId |> function 
+            | Value id -> id.Namespace.Value = Core.Namespace.Value && id.Name.Value = Core.Attribute.Value
+            | Null -> false
         let missingResolutionException () = InvalidOperationException "cannot get unresolved attribute" |> raise 
         let compareAttributeName (att : AttributeAnnotation) = att.Id.Symbol |> function 
             | Symbol sym when sym.Value = Core.Attribute.Value && possibleQualifications.Contains "" -> true
@@ -706,8 +708,9 @@ and NamespaceManager
     /// Generates suitable diagnostics if a suitable attribute cannot be determined, 
     /// or if the attribute argument contains expressions that are not supported, 
     /// or if the resolved argument type does not match the expected argument type. 
-    /// Returns the generated diagnostics as well as None if the given symbol is not a valid identifier, 
-    /// i.e. if it is not a qualified or unqualified symbol, and returns the constructed attribute as Some otherwise. 
+    /// Returns the resolved attribute as well as the generated diagnostics.
+    /// The TypeId in the resolved attribute is set to Null if the unresolved Id is not a valid identifier 
+    /// or if the correct attribute cannot be determined, and is set to the corresponding type identifier otherwise. 
     member private this.ResolveAttribute (parentNS, source) attribute = 
         /// Returns the possible qualifications for the "Attribute" attribute in the given declNS and declSource.
         /// Works fine whether the given declSource is the name of a source file or of a referenced assembly. 
@@ -735,11 +738,11 @@ and NamespaceManager
         resolved, msgs |> Array.map (fun m -> attribute.Position, m)
 
     /// Resolves the DefinedAttributes of the given declaration using ResolveAttribute. 
-    /// Returns the attributes that could be resolved as well as an array with diagnostics along with the declaration Position. 
-    /// Note that the returned array of resolved attributes may be shorter than the array of defined attributes. 
+    /// Returns the resolved attributes as well as an array with diagnostics along with the declaration Position. 
+    /// Each entry in the returned array of attributes is the resolution for the corresponding entry in the array of defined attributes. 
     member private this.ResolveAttributes (nsName, source) (decl : Resolution<_,_>) = 
         let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (nsName, source)) |> Seq.toList |> List.unzip
-        attr |> Seq.choose id |> ImmutableArray.CreateRange, Array.concat msgs
+        attr |> ImmutableArray.CreateRange, Array.concat msgs
 
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
     /// The resolution consists of replacing all unqualified names for user defined types by their qualified name.
