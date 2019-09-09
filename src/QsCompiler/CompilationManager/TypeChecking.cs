@@ -38,10 +38,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var attributes = ImmutableArray.CreateBuilder<AttributeAnnotation>();
                 CodeFragment precedingFragment = tIndex.GetFragment();
-                for (var preceding = tIndex.PreviousOnScope(); preceding != null; preceding = preceding.PreviousOnScope())
+                for (var preceding = tIndex.PreviousOnScope(includeEmpty: true); preceding != null; preceding = preceding.PreviousOnScope())
                 {
                     precedingFragment = preceding.GetFragment();
-                    if (precedingFragment.Kind is QsFragmentKind.DeclarationAttribute att)
+                    if (precedingFragment.IncludeInCompilation && precedingFragment.Kind is QsFragmentKind.DeclarationAttribute att)
                     { attributes.Add(new AttributeAnnotation(att.Item1, att.Item2, DiagnosticTools.AsTuple(precedingFragment.GetRange().Start))); }
                     else break;
                 }
