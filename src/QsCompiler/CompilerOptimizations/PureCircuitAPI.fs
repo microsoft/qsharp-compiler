@@ -32,11 +32,11 @@ type Expression =
 type GateCall = {
     gate:     QsQualifiedName
     adjoint:  bool
-    controls: Expression list
+    controls: int list
     arg:      Expression
 }
 
-/// A pure, parameter-free quantum circuit
+/// A pure quantum circuit with arbitrarily many (non-qubit) parameters
 type Circuit = {
     numQubits: int
     numUnknownValues: int
@@ -99,9 +99,10 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
             match arg.Expression with
             | ExprKind.ValueTuple vt ->
                 do! check (vt.Length = 2)
-                let! cc, res = toExpression (cc, vt.[0])
+                let! cc, controlsExpr = toExpression (cc, vt.[0])
+                let! controlQubits = match controlsExpr with QubitArray i -> Some i | _ -> None
                 let! cc, result = helper cc x vt.[1]
-                return cc, { result with controls = res :: result.controls }
+                return cc, { result with controls = controlQubits @ result.controls }
             | _ -> return! None
         | Identifier (GlobalCallable name, _) ->
             let! cc, argVal = toExpression (cc, arg)
@@ -159,11 +160,10 @@ let private fromGateCall (cc: CircuitContext) (gc: GateCall): TypedExpression =
     if gc.adjoint then
         method <- wrapExpr methodType (AdjointApplication method)
     if not gc.controls.IsEmpty then
-        for expr in gc.controls do
-            let argType = TupleType (ImmutableArray.Create (ResolvedType.New (ArrayType (ResolvedType.New TypeKind.Qubit)), arg.ResolvedType))
-            arg <- wrapExpr argType (ValueTuple (ImmutableArray.Create (fromExpression cc expr, arg)))
-            let methodType = TypeKind.Operation ((ResolvedType.New argType, ResolvedType.New UnitType), CallableInformation.NoInformation)
-            method <- wrapExpr methodType (ControlledApplication method)
+        let argType = TupleType (ImmutableArray.Create (ResolvedType.New (ArrayType (ResolvedType.New TypeKind.Qubit)), arg.ResolvedType))
+        arg <- wrapExpr argType (ValueTuple (ImmutableArray.Create (fromExpression cc (QubitArray gc.controls), arg)))
+        let methodType = TypeKind.Operation ((ResolvedType.New argType, ResolvedType.New UnitType), CallableInformation.NoInformation)
+        method <- wrapExpr methodType (ControlledApplication method)
     wrapExpr UnitType (CallLikeExpression (method, arg))
 
 /// Returns the list of Q# expressions corresponding to the given circuit

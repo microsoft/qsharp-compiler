@@ -87,17 +87,17 @@ type private InliningInfo = {
 type private ReplaceTypeParams(typeParams: ImmutableDictionary<QsTypeParameter, ResolvedType>) =
     inherit ScopeTransformation()
 
+    let typeMap = typeParams |> Seq.map (function KeyValue (a, b) -> (a.Origin, a.TypeName), b) |> Map
+
     override __.Expression = { new ExpressionTransformation() with
         override __.Type = { new ExpressionTypeTransformation() with
-            override this.onTypeParameter tp =
-                if typeParams.ContainsKey tp then
-                    typeParams.[tp].Resolution
+            override __.onTypeParameter tp =
+                let key = tp.Origin, tp.TypeName
+                if typeMap.ContainsKey key then
+                    typeMap.[key].Resolution
                 else
-                    let origin = tp.Origin
-                    let name = tp.TypeName
-                    let range = this.onRangeInformation tp.Range
-                    QsTypeParameter.New (origin.Namespace, origin.Name, name, range) |> TypeParameter
-        }
+                    base.onTypeParameter tp
+            }
     }
 
 /// Tries to construct an InliningInfo from the given expression.

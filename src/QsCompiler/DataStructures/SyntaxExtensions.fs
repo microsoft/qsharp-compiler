@@ -297,6 +297,8 @@ type QsStatement with
     /// then by finding all the substatements of the statement, then by applying MapFold to each substatement,
     /// then combining all the results with the "folder" function. Returns the output of the "folder" function.
     /// Is used as a general way to traverse any statement, simplifying the code for the BaseStatements function.
+    /// Even if a statement could be executed multiple times, such as the body of a ForStatement or the outer
+    /// block of a Conjugation, the Fold function will process the statement only once.
     static member public Fold folder stmt =
         let subStmts =
             match stmt.Statement with
