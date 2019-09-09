@@ -1545,27 +1545,27 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     // invalid declaration attributes
 
-    //@ StringAttribute($"{1}")
-    //function InvalidAttributes1 () : Unit {}
+    @ StringAttribute($"{1}")
+    function InvalidAttributes1 () : Unit {}
 
-    //@ IntTupleAttribute(1,1)
-    //function InvalidAttributes2 () : Unit {}
+    @ IntTupleAttribute(1,1)
+    function InvalidAttributes2 () : Unit {}
 
-    //@ NonExistent()
-    //function InvalidAttributes3 () : Unit {}
+    @ NonExistent()
+    function InvalidAttributes3 () : Unit {}
 
-    //@ Undefined.NonExistent()
-    //function InvalidAttributes4 () : Unit {}
+    @ Undefined.NonExistent()
+    function InvalidAttributes4 () : Unit {}
 
-    //@ Microsoft.Quantum.Core.NonExistent()
-    //function InvalidAttributes5 () : Unit {}
+    @ Microsoft.Quantum.Core.NonExistent()
+    function InvalidAttributes5 () : Unit {}
 
-    //@ Microsoft.Quantum.Core.CustomAttribute(1.)
-    //function InvalidAttributes6 () : Unit {}
+    @ Microsoft.Quantum.Core.CustomAttribute(1.)
+    function InvalidAttributes6 () : Unit {}
 
-    //@ AttAsUserDefType(CustomAttribute(1.))
-    //function InvalidAttributes7 () : Unit {}
+    @ AttAsUserDefType(CustomAttribute(1.))
+    function InvalidAttributes7 () : Unit {}
 
-    //@ AttArrayAsUserDefType(new CustomAttribute[0])
-    //function InvalidAttributes8 () : Unit {}
+    @ AttArrayAsUserDefType(new CustomAttribute[0])
+    function InvalidAttributes8 () : Unit {}
 }

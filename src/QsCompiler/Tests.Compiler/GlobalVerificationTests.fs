@@ -283,14 +283,13 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
         this.Expect "ValidAttributes9"   []
         this.Expect "ValidAttributes10"  []
 
-        // FIXME: NEED TO ADAPT TEST SETUP FIRST
-        //this.Expect "InvalidAttributes1" [Error ErrorCode.InterpolatedStringInAttribute]
-        //this.Expect "InvalidAttributes2" [Error ErrorCode.AmbiguousType]
-        //this.Expect "InvalidAttributes3" [Error ErrorCode.UnknownType]
-        //this.Expect "InvalidAttributes4" [Error ErrorCode.UnknownNamespace]
-        //this.Expect "InvalidAttributes5" [Error ErrorCode.UnknownTypeInNamespace]
-        //this.Expect "InvalidAttributes6" [Error ErrorCode.AttributeArgumentTypeMismatch]
-        //this.Expect "InvalidAttributes7" [Error ErrorCode.InvalidAttributeArgument]
-        //this.Expect "InvalidAttributes8" [Error ErrorCode.ArgumentOfUserDefinedTypeInAttribute]
+        this.Expect "InvalidAttributes1" [Error ErrorCode.InterpolatedStringInAttribute]
+        this.Expect "InvalidAttributes2" [Error ErrorCode.AmbiguousType]
+        this.Expect "InvalidAttributes3" [Error ErrorCode.UnknownType]
+        this.Expect "InvalidAttributes4" [Error ErrorCode.UnknownNamespace]
+        this.Expect "InvalidAttributes5" [Error ErrorCode.UnknownTypeInNamespace]
+        this.Expect "InvalidAttributes6" [Error ErrorCode.AttributeArgumentTypeMismatch]
+        this.Expect "InvalidAttributes7" [Error ErrorCode.InvalidAttributeArgument]
+        this.Expect "InvalidAttributes8" [Error ErrorCode.ArgumentOfUserDefinedTypeInAttribute]
         
 
