@@ -10,12 +10,18 @@ namespace Microsoft.Quantum.Core {
 
     @ Attribute()
     newtype Attribute = Unit;
+
+    @ Attribute()
+    newtype IntTupleAttribute = (Int, Int);
 }
 
 namespace Microsoft.Quantum.Testing.Attributes {
 
     @ Attribute()
     newtype IntAttribute = Int;
+
+    @ Attribute()
+    newtype IntTupleAttribute = (Int, Int);
 
     @ Attribute()
     newtype StringAttribute = String;
@@ -25,6 +31,9 @@ namespace Microsoft.Quantum.Testing.Attributes {
 
     @ Attribute()
     newtype PauliResultAttribute = (Pauli, Result);
+
+    @ Attribute()
+    newtype CustomAttribute = Unit;
 }
 
 namespace Microsoft.Quantum.Testing.TypeChecking {

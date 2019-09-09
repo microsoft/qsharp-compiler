@@ -1485,7 +1485,10 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     }
 
 
-    // tests for declaration attributes
+    // valid declaration attributes
+
+    @ Attribute()
+    newtype CustomAttribute = Double;
     
     @ IntAttribute(0b111)
     @ StringAttribute("")
@@ -1499,5 +1502,49 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     @ PauliResultAttribute (PauliX, Zero)
     function ValidAttributes2 () : Unit {}
 
+    @ IntAttribute(0b111)
+    @ StringAttribute("")
+    @ BigIntArrayAttribute([0xF0a00101L])
+    @ PauliResultAttribute (PauliX, Zero)
+    newtype ValidAttributes3 = Unit;
+
+    @ BigIntArrayAttribute(new BigInt[3])
+    function ValidAttributes4 () : Unit {}
+
+    @ StringAttribute($"some text")
+    function ValidAttributes5 () : Unit {}
+
+    @ CustomAttribute(1.)
+    function ValidAttributes6 () : Unit {}
+
+    @ Microsoft.Quantum.Testing.Attributes.CustomAttribute()
+    function ValidAttributes7 () : Unit {}
+
+    @ Microsoft.Quantum.Core.IntTupleAttribute(1,1)
+    function ValidAttributes8 () : Unit {}
+
+    @ Microsoft.Quantum.Testing.Attributes.IntTupleAttribute(1,1)
+    function ValidAttributes9 () : Unit {}
+
+
+    // invalid declaration attributes
+
+    //@ StringAttribute($"{1}")
+    //function InvalidAttributes1 () : Unit {}
+
+    //@ IntTupleAttribute(1,1)
+    //function InvalidAttributes2 () : Unit {}
+
+    //@ NonExistent()
+    //function InvalidAttributes3 () : Unit {}
+
+    //@ Undefined.NonExistent()
+    //function InvalidAttributes4 () : Unit {}
+
+    //@ Microsoft.Quantum.Core.NonExistent()
+    //function InvalidAttributes5 () : Unit {}
+
+    //@ Microsoft.Quantum.Core.CustomAttribute(1.)
+    //function InvalidAttributes6 () : Unit {}
 
 }
