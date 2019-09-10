@@ -29,10 +29,11 @@ type Expression =
 
 /// A call to a quantum gate, with the given functors and arguments
 type GateCall = {
-    gate:     QsQualifiedName
-    adjoint:  bool
-    controls: int list
-    arg:      Expression
+    gate:       QsQualifiedName
+    info:       CallableInformation
+    adjoint:    bool
+    controls:   int list
+    arg:        Expression
 }
 
 /// A pure quantum circuit with arbitrarily many (non-qubit) parameters
@@ -105,7 +106,8 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
             | _ -> return! None
         | Identifier (GlobalCallable name, _) ->
             let! cc, argVal = toExpression (cc, arg)
-            return cc, { gate = name; adjoint = false; controls = []; arg = argVal }
+            let info = (cc.callables.get name).Signature.Information
+            return cc, { gate = name; info = info; adjoint = false; controls = []; arg = argVal }
         | _ ->
             return! None
     }
@@ -177,7 +179,7 @@ let private optimizeCircuit (circuit: Circuit): Circuit option =
     while i < circuit.gates.Length - 1 do
         if circuit.gates.[i] = { circuit.gates.[i+1] with adjoint = not circuit.gates.[i+1].adjoint } then
             circuit <- { circuit with gates = removeIndices [i; i+1] circuit.gates}
-        elif circuit.gates.[i] = circuit.gates.[i+1] && List.contains circuit.gates.[i].gate.Name.Value ["X"; "Z"; "H"; "CNOT"] then
+        elif circuit.gates.[i] = circuit.gates.[i+1] && circuit.gates.[i].info.InferredInformation.IsSelfAdjoint then
             circuit <- { circuit with gates = removeIndices [i; i+1] circuit.gates}
         else
             i <- i + 1

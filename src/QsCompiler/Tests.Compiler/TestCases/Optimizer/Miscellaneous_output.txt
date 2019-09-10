@@ -12,10 +12,10 @@ namespace Microsoft.Quantum.Testing {
     }
 
     Operation CNOT (q1, q2) : UnitType {
-        QsAdjoint Intrinsic
+        QsAdjoint Generated SelfInverse
         QsBody Intrinsic
         QsControlled Intrinsic
-        QsControlledAdjoint Intrinsic
+        QsControlledAdjoint Generated SelfInverse
     }
 
     Operation M (q) : Result {

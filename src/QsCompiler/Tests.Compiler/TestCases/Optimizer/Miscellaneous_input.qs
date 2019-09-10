@@ -12,6 +12,7 @@ namespace Microsoft.Quantum.Testing {
     operation CNOT (q1 : Qubit, q2 : Qubit) : Unit 
     is Ctl + Adj {
         body intrinsic;
+        adjoint self;
     }
 
     operation M (q : Qubit) : Result {
