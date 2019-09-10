@@ -3,6 +3,7 @@
 
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitAPI
 
+open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -60,7 +61,10 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
     let typeIsArray k = expr.ResolvedType.Resolution = TypeKind.ArrayType (ResolvedType.New k)
     let ensureMatchingIndex l =
         let existing = List.indexed l |> List.tryPick (fun (i, ex) -> if expr = ex then Some (l, i) else None)
-        existing |? (l @ [expr], l.Length)
+        let newList, index = existing |? (l @ [expr], l.Length)
+        if index > (1 <<< 29) then
+            ArgumentException "Trying to create too large of a circuit" |> raise
+        newList, index
     let recurse cc seq f g = maybe {
         let ccRef = ref cc
         let outputRef = ref []
