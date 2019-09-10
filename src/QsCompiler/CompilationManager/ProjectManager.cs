@@ -904,7 +904,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a list of suggested completion items for the given location.
         /// <para/>
-        /// Returns null if given uri is null or if the specified file is not listed as source file. Fails silently
+        /// Returns null if given uri or position is null, or if the specified file is not listed as source file. Fails silently
         /// without logging anything if an exception occurs upon evaluating the query (occasional failures are to be
         /// expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </summary>
@@ -926,7 +926,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public CompletionItem ResolveCompletion(CompletionItem item, CompletionItemData data, MarkupKind format) =>
             this.Manager(data?.TextDocument?.Uri)?.FileQuery(
-                data.TextDocument,
+                data?.TextDocument,
                 (_, compilation) => compilation.ResolveCompletion(item, data, format),
                 suppressExceptionLogging: true);
 

@@ -361,7 +361,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// Returns a list of suggested completion items for the given location.
         /// <para/>
-        /// Returns null if the given file is listed as to be ignored, or if the given parameter or its uri is null.
+        /// Returns null if the given file is listed as to be ignored, or if the given parameter or its uri or position is null.
         /// </summary>
         public CompletionList Completions(TextDocumentPositionParams param) =>
             ValidFileUri(param?.TextDocument?.Uri) && !IgnoreFile(param.TextDocument.Uri)
@@ -372,7 +372,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Resolves additional information for the given completion item.
         /// <para/>
         /// Returns null if any parameter is null or the file given in the original completion request is invalid or
-        /// ignored.
+        /// ignored, or if the completion to resolve is outdated. 
         /// </summary>
         internal CompletionItem ResolveCompletion(CompletionItem item, CompletionItemData data, MarkupKind format) =>
             item != null && ValidFileUri(data?.TextDocument?.Uri) && !IgnoreFile(data.TextDocument.Uri)

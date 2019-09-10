@@ -634,7 +634,7 @@ and NamespaceManager
     /// Returns the name of all namespaces declared in source files or referenced assemblies.
     member this.NamespaceNames () =
         syncRoot.EnterReadLock()
-        try ImmutableArray.CreateRange (Namespaces.Values.Select (fun ns -> ns.Name))
+        try ImmutableArray.CreateRange Namespaces.Keys
         finally syncRoot.ExitReadLock()
 
     /// Returns the fully qualified namespace name of the given namespace alias (short name). If the alias is already a
