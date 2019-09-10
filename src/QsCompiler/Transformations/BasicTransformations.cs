@@ -20,13 +20,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         /// Returns a hash set containing all source files in the given namespace(s).
         /// Throws an ArgumentNullException if any of the given namespaces is null. 
         /// </summary>
-        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces)
+        public static ImmutableHashSet<NonNullable<string>> Apply(IEnumerable<QsNamespace> namespaces)
         {
             if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
             var filter = new GetSourceFiles();
             foreach(var ns in namespaces) filter.Transform(ns);
             return filter.SourceFiles.ToImmutableHashSet();
         }
+
+        /// <summary>
+        /// Returns a hash set containing all source files in the given namespace(s).
+        /// Throws an ArgumentNullException if any of the given namespaces is null. 
+        /// </summary>
+        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) => Apply(namespaces);
 
         private readonly HashSet<NonNullable<string>> SourceFiles;
         private GetSourceFiles() :

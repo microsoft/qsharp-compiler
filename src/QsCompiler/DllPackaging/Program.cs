@@ -9,9 +9,6 @@ using System.Linq;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Bson;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.CodeAnalysis.Emit;
 
@@ -19,184 +16,53 @@ namespace Microsoft.Quantum.QsCompiler
 {
     class Program
     {
-
         public static void Main(string[] args) =>
             CommandLineApplication.Execute<Program>(args);
 
-        [Option("-v|--verbose", Description = "Specifies whether to execute in verbose mode.")]
-        public bool Verbose { get; set; }
-
-        [Required]
-        [Option("-i|--input", Description = "Path to the Q# binary file(s) to process.")]
-        public IEnumerable<string> Input { get; set; }
-
-        [Option("-o|--output", Description = "Destination folder where the process output will be generated.")]
-        public string OutputFolder { get; set; }
-
-        [Option("-l|--log", Description = "Destination folder where the process log will be generated.")]
-        public string LogFolder { get; set; }
-
-        [Option("-n|--noWarn", Description = "Warnings with the given code(s) will be ignored.")]
-        public IEnumerable<int> NoWarn { get; set; } = new int[0];
-
-        private readonly StreamWriter LogStream;
-
-        public Program()
+        void EncapsulateTarget(string inputFile)
         {
-            LogStream = new StreamWriter(File.OpenWrite(@"dll-targeting.log"));
-        }
-
-        private void Log(string message)
-        {
-            LogStream.WriteLine(message);
-            LogStream.Flush();
-        }
-
-        private T LoggingExceptions<T>(Func<T> func)
-        {
-            try
-            {
-                return func();
-            }
-            catch (Exception ex)
-            {
-                Log("[EXCEPTION] " + ex.ToString());
-                throw ex;
-            }
-        }
-
-        private void LoggingExceptions(Action func)
-        {
-            try
-            {
-                func();
-            }
-            catch (Exception ex)
-            {
-                Log("[EXCEPTION] " + ex.ToString());
-                throw ex;
-            }
-        }
-
-        void OnExecute() => LoggingExceptions(EncapsulateTarget);
-
-        internal CodeAnalysis.SyntaxTree GenerateAssemblyMetadata(
-            Compilation compilation,
-            IEnumerable<MetadataReference> references
-        )
-        {
-            var tree = MetadataGeneration.GenerateAssemblyMetadata(compilation, references, Log);
-            Log($"Creating syntax tree:\n{tree.GetRoot().NormalizeWhitespace().ToFullString()}");
-            return tree;
-        }
-
-        void EncapsulateTarget()
-        {
-            // Begin by setting the various paths that we need.
-            var inputPath = Input.Single();
-            var inputFile = Path.GetFileName(inputPath);
             var assemblyName = Path.ChangeExtension(inputFile, ".dll");
+            var outputPath = Path.Join(Directory.GetCurrentDirectory(), assemblyName);
 
-            var outputPath =
-                Path.Join(
-                    OutputFolder
-                    ?? Directory.GetCurrentDirectory(),
-                    assemblyName
-                );
-
-            Log($"Loading AST from {inputFile} and encapsulating into {outputPath}.");
-
-            // Next, we need to load the various namespaces from the AST
-            // that we were given, and then walk through them to find what
-            // assemblies were references.
-            // Our goal is to turn these references into references we can
-            // emit into our new assembly.
-
-            var references =
-                // We first use the Q# compiler library to deserialize
-                // the serialized AST into an enumerable of namespaces,
-                // then passing that to the source files transformer in the
-                // Q# compiler.
-                GetSourceFiles.Apply(
-                    CompilationLoader
-                        .ReadBinary(inputPath)
-                        .ToArray()
-                )
-                // Resolve nonnullable wrappers.
+            // We turn each dll reference into references we can emit into our new assembly.
+            var referencePaths = GetSourceFiles.Apply(CompilationLoader.ReadBinary(inputFile))
                 .Select(sourceFile => sourceFile.Value)
-                // Strip out Q# source files.
-                .Where(sourceFile => sourceFile.EndsWith(".dll"))
+                .Where(sourceFile => sourceFile.EndsWith(".dll"));
+
+            // If System.Object can't be found as a reference a warning is generated. 
+            // To avoid that warning, we package that reference as well. 
+            var systemObjRef = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+            var references =
+                referencePaths
                 // Fix / vs \ by going through Uri and back.
-                .Select(sourceFile =>
-                    new Uri(sourceFile).LocalPath
-                )
+                .Select(dllFile => new Uri(dllFile).LocalPath)
                 // Finally, we each source location into a metadata reference.
                 // In doing so, we assign an alias to each reference so that
                 // we can look up its Metadata object.
-                .Select(
-                    (sourceFile, idx) => MetadataReference
-                        .CreateFromFile(
-                            Path.GetFullPath(sourceFile)
-                        )
-                        .WithAliases(
-                            new string[] {$"reference{idx}"}
-                        )
-                );
+                .Select((dllFile, idx) =>
+                    MetadataReference.CreateFromFile(Path.GetFullPath(dllFile))
+                        .WithAliases(new string[] { $"reference{idx}" })) // convenient alias for that reference
+                .Append(systemObjRef);
 
-            foreach (var reference in references)
-            {
-                Log($"Found reference: {reference.Display}");
-            }
-
-            // We then use the assembly name and references to create a new
-            // compilation object.
+            var tree = MetadataGeneration.GenerateAssemblyMetadata(references);
             var compilation = CSharpCompilation.Create(
                 assemblyName,
-                references:
-                    references.Concat(
-                        // We will get a warning if System.Object can't be found as a reference.
-                        new MetadataReference[]
-                        {
-                            MetadataReference.CreateFromFile(typeof(object).Assembly.Location)
-                        }
-                    ),
-                options: new CSharpCompilationOptions(
-                    outputKind: OutputKind.DynamicallyLinkedLibrary
-
-                )
-            );
-
-            // After we have the compilation, we can use it to look up metadata
-            // from referenced assemblies and generate the right syntax tree.
-            compilation = compilation.AddSyntaxTrees(
-                GenerateAssemblyMetadata(compilation, references)
+                syntaxTrees: new[] { tree },
+                references: references,
+                options: new CSharpCompilationOptions(outputKind: OutputKind.DynamicallyLinkedLibrary)
             );
 
             // Finally, we can emit the assembly to a file.
+            var astResource = new ResourceDescription(WellKnown.AST_RESOURCE_NAME, () => File.OpenRead(inputFile), true);
             using (var outputStream = File.OpenWrite(outputPath))
             {
-                var result = compilation.Emit(
-                    outputStream,
-                    options: 
-                        new EmitOptions()
-                            .WithIncludePrivateMembers(true),       
-                    manifestResources:
-                        new ResourceDescription[]
-                        {
-                            new ResourceDescription(
-                                WellKnown.AST_RESOURCE_NAME,
-                                () => File.OpenRead(inputPath),
-                                true
-                            )
-                        }
+                var result = compilation.Emit(outputStream,
+                    options: new EmitOptions(includePrivateMembers: true),       
+                    manifestResources: new ResourceDescription[] { astResource }
                 );
 
-                // Before completing, we write out any diagnostics generated
-                // by the emit process.
-                foreach (var diagnostic in result.Diagnostics)
-                {
-                    Log($"{diagnostic.Id}: {diagnostic.GetMessage()}");
-                }
+                //foreach (var diagnostic in result.Diagnostics)
+                //{ Log($"{diagnostic.Id}: {diagnostic.GetMessage()}"); }
             }
         }
     }

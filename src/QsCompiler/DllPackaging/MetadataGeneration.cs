@@ -1,22 +1,30 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using System.Collections.Generic;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
-using System;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    public static class MetadataGeneration
+    public static class WellKnown
+    {
+        public const string AST_RESOURCE_NAME = "__qsharp_data__.bson";
+        public const string METADATA_NAMESPACE = "__qsharp__";
+        public const string METADATA_TYPE = "Metadata";
+        public const string DEPENDENCIES_FIELD = "Dependencies";
+    }
+
+    internal static class MetadataGeneration
     {
         public static ArrayTypeSyntax WithOmittedRankSpecifiers(this ArrayTypeSyntax syntax) =>
-            syntax
-            .WithRankSpecifiers(
-                SingletonList<ArrayRankSpecifierSyntax>(
+            syntax.WithRankSpecifiers(
+                SingletonList(
                     ArrayRankSpecifier(
                         SingletonSeparatedList<ExpressionSyntax>(
                             OmittedArraySizeExpression()
@@ -25,11 +33,7 @@ namespace Microsoft.Quantum.QsCompiler
                 )
             );
 
-        internal static CodeAnalysis.SyntaxTree GenerateAssemblyMetadata(
-            Compilation compilation,
-            IEnumerable<MetadataReference> references,
-            Action<string> log = null
-        )
+        internal static CodeAnalysis.SyntaxTree GenerateAssemblyMetadata(IEnumerable<MetadataReference> references)
         {
             var aliases = references.Select(reference => reference.Properties.Aliases.First());
             var typeName =
@@ -41,41 +45,28 @@ namespace Microsoft.Quantum.QsCompiler
                     IdentifierName("Type")
                 );
             var metadataTypeNodes =
-                aliases
-                .Select(
-                    alias =>
-                        TypeOfExpression(
-                            QualifiedName(
-                                AliasQualifiedName(
-                                    IdentifierName(alias),
-                                    IdentifierName(WellKnown.METADATA_NAMESPACE)
-                                ),
-                                IdentifierName(WellKnown.METADATA_TYPE)
-                            )
+                aliases.Select(alias =>
+                    TypeOfExpression(
+                        QualifiedName(
+                            AliasQualifiedName(IdentifierName(alias), IdentifierName(WellKnown.METADATA_NAMESPACE)),
+                            IdentifierName(WellKnown.METADATA_TYPE)
                         )
+                    )
                 );
-            foreach (var node in metadataTypeNodes)
-            {
-                if (log != null) {log(node.NormalizeWhitespace().ToFullString());}
-            }
             var dependenciesInitializer =
                 ArrayCreationExpression(
-                    ArrayType(typeName)
-                    .WithOmittedRankSpecifiers()
+                    ArrayType(typeName).WithOmittedRankSpecifiers()
                 )
                 .WithInitializer(
                     InitializerExpression(
                         SyntaxKind.ArrayInitializerExpression,
-                        SeparatedList<ExpressionSyntax>(
-                            metadataTypeNodes
-                        )
+                        SeparatedList<ExpressionSyntax>(metadataTypeNodes)
                     )
                 );
             var metadataField =
                 FieldDeclaration(
                     VariableDeclaration(
-                        ArrayType(typeName)
-                            .WithOmittedRankSpecifiers()
+                        ArrayType(typeName).WithOmittedRankSpecifiers()
                     )
                     .WithVariables(
                         SingletonSeparatedList<VariableDeclaratorSyntax>(
@@ -107,27 +98,16 @@ namespace Microsoft.Quantum.QsCompiler
                         SingletonList<MemberDeclarationSyntax>(classDef)
                     );
 
-            var tree = CSharpSyntaxTree.Create(
+            var compilation =
                 CompilationUnit()
                     .WithExterns(
-                        List<ExternAliasDirectiveSyntax>(
-                            aliases
-                                .Select(
-                                    alias =>
-                                        ExternAliasDirective(
-                                            Identifier(alias)
-                                        )
-                                )
-                        )
+                        List(aliases.Select(Identifier).Select(ExternAliasDirective))
                     )
                     .WithMembers(
-                        SingletonList<MemberDeclarationSyntax>(
-                            namespaceDef
-                        )
-                    )
-            );
+                        SingletonList<MemberDeclarationSyntax>(namespaceDef)
+                    );
 
-            return tree;
+            return CSharpSyntaxTree.Create(compilation);
         }
     }
 }

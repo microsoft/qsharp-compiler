@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -128,11 +127,8 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         // This code added to correctly implement the disposable pattern.
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-        }
+        // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+        public void Dispose() => Dispose(true);
         #endregion
 
     }
