@@ -26,6 +26,10 @@ type internal StatementRemover() =
         override __.TransformStatement stmt =
             let c = SideEffectChecker()
             c.StatementKind.Transform stmt |> ignore
+
+            let c2 = MutationChecker()
+            c2.StatementKind.Transform stmt |> ignore
+
             match stmt with
             | QsVariableDeclaration {Lhs = lhs}
             | QsValueUpdate {Lhs = LocalVarTuple lhs}
@@ -61,6 +65,6 @@ type internal StatementRemover() =
                     let newBody = QsScope.New (s.Body.Statements.InsertRange (0, newStatements), s.Body.KnownSymbols)
                     QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
             | ScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
-            | _ when not c.hasQuantum && not c.hasMutation && not c.hasInterrupts && not c.hasOutput -> Seq.empty
+            | _ when not c.hasQuantum && c2.externalMutations.IsEmpty && not c.hasInterrupts && not c.hasOutput -> Seq.empty
             | a -> Seq.singleton a
     }

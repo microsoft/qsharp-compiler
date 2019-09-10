@@ -74,6 +74,9 @@ type internal VariableRenamer() =
     | QsTupleItem {VariableName = InvalidName} -> ()
     | QsTuple items -> Seq.iter processArgTuple items
 
+    member __.clearStack() =
+        renamingStack <- [Map.empty]
+
 
     override __.onProvidedImplementation (argTuple, body) =
         newNamesSet <- Set.empty

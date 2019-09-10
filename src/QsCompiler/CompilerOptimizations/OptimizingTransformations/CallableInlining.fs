@@ -4,6 +4,7 @@
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
 
 open System.Collections.Generic
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -128,6 +129,7 @@ type internal CallableInliner(callables) =
 
     // The current callable we're in the process of transforming
     let mutable currentCallable: QsCallable option = None
+    let mutable renamer: VariableRenamer option = None
 
     /// The random generator to give unique variable names
     let random = System.Random()
@@ -136,14 +138,20 @@ type internal CallableInliner(callables) =
         maybe {
             let! ii = tryGetInliningInfo callables expr
 
-            let! current = currentCallable
-            do! check (cannotReachCallable callables ii.body current.FullName)
+            let! currentCallable = currentCallable
+            let! renamer = renamer
+            renamer.clearStack()
+            do! check (cannotReachCallable callables ii.body currentCallable.FullName)
             do! check (ii.functors.controlled < 2)
             // TODO - support multiple Controlled functors
             do! check (cannotReachCallable callables ii.body ii.callable.FullName || isLiteral callables ii.arg)
 
             let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
-            let newStatements = ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
+            let newStatements =
+                ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
+                |> Seq.map renamer.Scope.onStatement
+                |> Seq.map (fun s -> s.Statement)
+                |> ImmutableArray.CreateRange
             return ii, newStatements
         }
 
@@ -153,7 +161,7 @@ type internal CallableInliner(callables) =
         maybe {
             let! ii, newStatements = tryInline expr
             do! check (countReturnStatements ii.body = 0)
-            return {ii.body with Statements = newStatements} |> newScopeStatement
+            return newStatements
         }
 
     /// Inline an expression representing a callable with exactly one return statement.
@@ -163,20 +171,11 @@ type internal CallableInliner(callables) =
             let! ii, newStatements = tryInline expr
 
             do! check (countReturnStatements ii.body = 1)
-            let lastStatement = ii.body.Statements.[ii.body.Statements.Length-1].Statement
+            let lastStatement = newStatements.[newStatements.Length-1]
             let! returnExpr = match lastStatement with QsReturnStatement ex -> Some ex | _ -> None
+            let newStatements = newStatements.RemoveAt (newStatements.Length-1)
 
-            let returnType = ii.returnType.Resolution
-            let! returnVarDefaultValue = defaultValue returnType |> Option.map (wrapExpr returnType)
-            let returnVarName = NonNullable<_>.New (sprintf "__qsVar%d____returnVal____" (random.Next()))
-            let returnVarIden = wrapExpr returnType (Identifier (LocalVariable returnVarName, Null))
-
-            let returnVarBinding = QsVariableDeclaration (QsBinding.New MutableBinding (VariableName returnVarName, returnVarDefaultValue))
-            let returnUpdate = QsValueUpdate (QsValueUpdate.New (returnVarIden, returnExpr))
-            let newStatements = newStatements.SetItem (newStatements.Length-1, wrapStmt returnUpdate)
-            let newScope = {ii.body with Statements = newStatements} |> newScopeStatement
-
-            return returnVarBinding, newScope, returnVarIden
+            return newStatements, returnExpr
         }
 
 
@@ -185,11 +184,11 @@ type internal CallableInliner(callables) =
         VariableRenamer().Transform x
 
     override __.onCallableImplementation c =
-        let prev = currentCallable
+        let renamerVal = VariableRenamer()
+        let c = renamerVal.onCallableImplementation c
         currentCallable <- Some c
-        let result = base.onCallableImplementation c
-        currentCallable <- prev
-        result
+        renamer <- Some renamerVal
+        base.onCallableImplementation c
 
     override __.Scope = upcast { new StatementCollectorTransformation() with
 
@@ -200,28 +199,17 @@ type internal CallableInliner(callables) =
                 match stmt with
                 | QsExpressionStatement ex ->
                     match safeInline ex with
-                    | Some scopeStmt ->
-                        return scopeStmt |> Seq.singleton
+                    | Some stmts ->
+                        return upcast stmts
                     | None ->
-                        let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn ex
-                        return upcast [
-                            returnVarBinding
-                            scopeStmt
-                        ]
+                        let! stmts, returnExpr = safeInlineReturn ex
+                        return Seq.append stmts [QsExpressionStatement returnExpr]
                 | QsVariableDeclaration s ->
-                    let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn s.Rhs
-                    return upcast [
-                        returnVarBinding
-                        scopeStmt
-                        QsVariableDeclaration {s with Rhs = returnVarIden}
-                    ]
+                    let! stmts, returnExpr = safeInlineReturn s.Rhs
+                    return Seq.append stmts [QsVariableDeclaration {s with Rhs = returnExpr}]
                 | QsValueUpdate s ->
-                    let! returnVarBinding, scopeStmt, returnVarIden = safeInlineReturn s.Rhs
-                    return upcast [
-                        returnVarBinding
-                        scopeStmt
-                        QsValueUpdate {s with Rhs = returnVarIden}
-                    ]
+                    let! stmts, returnExpr = safeInlineReturn s.Rhs
+                    return Seq.append stmts [QsValueUpdate {s with Rhs = returnExpr}]
                 | _ -> return! None
             } |? Seq.singleton stmt
     }

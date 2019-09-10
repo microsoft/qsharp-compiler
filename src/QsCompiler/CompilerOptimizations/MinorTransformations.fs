@@ -13,6 +13,39 @@ open Utils
 open Printer
 
 
+/// A ScopeTransformation that tracks what outside variables the transformed code could mutate
+type internal MutationChecker() =
+    inherit ScopeTransformation()
+
+    let mutable definedVars = Set.empty
+    let mutable mutatedVars = Set.empty
+
+    /// The set of variables that this code doesn't define but does mutate
+    member __.externalMutations = mutatedVars - definedVars
+
+    override this.StatementKind = { new StatementKindTransformation() with
+        override __.ScopeTransformation s = this.Transform s
+        override __.ExpressionTransformation ex = this.Expression.Transform ex
+        override __.TypeTransformation t = this.Expression.Type.Transform t
+        override __.LocationTransformation l = this.onLocation l
+
+        override __.onVariableDeclaration stm =
+            jointFlatten (stm.Lhs, stm.Lhs) |> Seq.iter (function
+            | VariableName name, _ -> definedVars <- definedVars.Add name
+            | _ -> ())
+            base.onVariableDeclaration stm
+
+        override __.onValueUpdate stm =
+            match stm.Rhs with
+            | LocalVarTuple v ->
+                jointFlatten (v, v) |> Seq.iter (function
+                | VariableName name, _ -> mutatedVars <- mutatedVars.Add name
+                | _ -> ())
+            | _ -> ()
+            base.onValueUpdate stm
+    }
+
+
 /// Represents a transformation meant to optimize a syntax tree
 type internal OptimizingTransformation() =
     inherit SyntaxTreeTransformation()
@@ -119,7 +152,7 @@ type internal SideEffectChecker() =
         override __.LocationTransformation l = this.onLocation l
 
         override __.onValueUpdate stm =
-            let mutatesState = match stm.Rhs with LocalVarTuple x when isAllDiscarded x -> false | _ -> true
+            let mutatesState = match stm.Lhs with LocalVarTuple x when isAllDiscarded x -> false | _ -> true
             anyMutation <- anyMutation || mutatesState
             base.onValueUpdate stm
 
