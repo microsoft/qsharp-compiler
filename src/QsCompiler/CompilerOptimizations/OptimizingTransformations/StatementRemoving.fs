@@ -14,7 +14,7 @@ open MinorTransformations
 
 
 /// The SyntaxTreeTransformation used to remove useless statements
-type internal StatementRemover() =
+type internal StatementRemover(removeFunctions) =
     inherit OptimizingTransformation()
 
     override __.Scope = upcast { new StatementCollectorTransformation() with
@@ -65,6 +65,6 @@ type internal StatementRemover() =
                     let newBody = QsScope.New (s.Body.Statements.InsertRange (0, newStatements), s.Body.KnownSymbols)
                     QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
             | ScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
-            | _ when not c.hasQuantum && c2.externalMutations.IsEmpty && not c.hasInterrupts && not c.hasOutput -> Seq.empty
+            | _ when not c.hasQuantum && c2.externalMutations.IsEmpty && not c.hasInterrupts && (not c.hasOutput || removeFunctions) -> Seq.empty
             | a -> Seq.singleton a
     }

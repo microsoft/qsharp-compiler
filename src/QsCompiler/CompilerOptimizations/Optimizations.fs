@@ -25,14 +25,17 @@ type Optimizations() =
         let mutable tree = List.ofSeq tree
         let callables = GlobalCallableResolutions tree |> Callables
 
+        let removeFunctions = false
+        let maxSize = 40
+
         tree <- List.map (StripAllRangeInformation().Transform) tree
         tree <- List.map (VariableRenamer().Transform) tree
 
         let optimizers: OptimizingTransformation list = [
             VariableRemover()
-            StatementRemover()
+            StatementRemover(removeFunctions)
             ConstantPropagator(callables)
-            LoopUnroller(callables, 40)
+            LoopUnroller(callables, maxSize)
             CallableInliner(callables)
             StatementReorderer()
             PureCircuitFinder(callables)

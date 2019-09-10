@@ -17,11 +17,11 @@ open Printer
 type internal MutationChecker() =
     inherit ScopeTransformation()
 
-    let mutable definedVars = Set.empty
+    let mutable declaredVars = Set.empty
     let mutable mutatedVars = Set.empty
 
-    /// The set of variables that this code doesn't define but does mutate
-    member __.externalMutations = mutatedVars - definedVars
+    /// The set of variables that this code doesn't declare but does mutate
+    member __.externalMutations = mutatedVars - declaredVars
 
     override this.StatementKind = { new StatementKindTransformation() with
         override __.ScopeTransformation s = this.Transform s
@@ -30,16 +30,16 @@ type internal MutationChecker() =
         override __.LocationTransformation l = this.onLocation l
 
         override __.onVariableDeclaration stm =
-            jointFlatten (stm.Lhs, stm.Lhs) |> Seq.iter (function
-            | VariableName name, _ -> definedVars <- definedVars.Add name
+            flatten stm.Lhs |> Seq.iter (function
+            | VariableName name -> declaredVars <- declaredVars.Add name
             | _ -> ())
             base.onVariableDeclaration stm
 
         override __.onValueUpdate stm =
             match stm.Lhs with
             | LocalVarTuple v ->
-                jointFlatten (v, v) |> Seq.iter (function
-                | VariableName name, _ -> mutatedVars <- mutatedVars.Add name
+                flatten v |> Seq.iter (function
+                | VariableName name -> mutatedVars <- mutatedVars.Add name
                 | _ -> ())
             | _ -> ()
             base.onValueUpdate stm

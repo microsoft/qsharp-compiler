@@ -73,17 +73,21 @@ let internal defineVarTuple check = onTuple (defineVar check)
 let internal (|?) = defaultArg
 
 
+/// Flattens a nested tuple into the sequence of base items of the tuple.
+let rec internal flatten = function
+| Tuple t1 -> Seq.collect flatten t1
+| v1 -> Seq.singleton v1
+
 /// Flattens a pair of nested tuples by pairing the base items of each tuple.
 /// Returns a seqence of pairs, one element from each side.
 /// It is guaranteed that at most one element of a pair will be a Tuple.
 /// Throws an ArgumentException if the lengths of the tuples do not match.
-let rec internal jointFlatten (v1, v2) =
-    match v1, v2 with
-    | Tuple t1, Tuple t2 ->
-        if t1.Length <> t2.Length then
-            ArgumentException "The lengths of the given tuples do not match" |> raise
-        Seq.zip t1 t2 |> Seq.collect jointFlatten
-    | _ -> Seq.singleton (v1, v2)
+let rec internal jointFlatten = function
+| Tuple t1, Tuple t2 ->
+    if t1.Length <> t2.Length then
+        ArgumentException "The lengths of the given tuples do not match" |> raise
+    Seq.zip t1 t2 |> Seq.collect jointFlatten
+| v1, v2 -> Seq.singleton (v1, v2)
 
 
 /// Converts a range literal to a sequence of integers.
