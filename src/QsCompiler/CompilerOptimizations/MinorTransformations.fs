@@ -13,6 +13,38 @@ open Utils
 open Printer
 
 
+/// A SyntaxTreeTransformation that finds identifiers in each operators that represent distict values.
+/// Should be called at the QsCallable level, not as the QsNamespace level, as it's meant to operate on a single callable.
+type internal FindDistinctQubits() =
+    inherit SyntaxTreeTransformation()
+
+    let mutable _distinctNames = Set.empty
+
+    /// A set of identifier names that we expect to represent distinct values
+    member __.distinctNames = _distinctNames
+
+    override __.onProvidedImplementation (argTuple, body) =
+        argTuple |> toSymbolTuple |> flatten |> Seq.iter (function
+        | VariableName name -> _distinctNames <- _distinctNames.Add name
+        | _ -> ())
+        base.onProvidedImplementation (argTuple, body)
+
+    override __.Scope = { new ScopeTransformation() with
+        override this.StatementKind = { new StatementKindTransformation() with
+            override __.ScopeTransformation s = this.Transform s
+            override __.ExpressionTransformation ex = this.Expression.Transform ex
+            override __.TypeTransformation t = this.Expression.Type.Transform t
+            override __.LocationTransformation l = this.onLocation l
+
+            override __.onQubitScope stm =
+                stm.Binding.Lhs |> flatten |> Seq.iter (function
+                | VariableName name -> _distinctNames <- _distinctNames.Add name
+                | _ -> ())
+                base.onQubitScope stm
+        }
+    }
+
+
 /// A ScopeTransformation that tracks what outside variables the transformed code could mutate
 type internal MutationChecker() =
     inherit ScopeTransformation()

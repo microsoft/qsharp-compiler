@@ -48,6 +48,7 @@ type Circuit = {
 /// In the future, this will include a map from all symbols to their Q# representation.
 type private CircuitContext = {
     callables: Callables
+    distinctNames: Set<NonNullable<string>>
     qubits: TypedExpression list
     unknownValues: TypedExpression list
 }
@@ -69,6 +70,14 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
             ccRef := ccNew
             outputRef := !outputRef @ [toAdd]
         return !ccRef, g !outputRef }
+    let rec mightContainQubit = function
+    | TypeKind.Qubit -> true
+    | TypeKind.ArrayType t -> mightContainQubit t.Resolution
+    | TypeKind.TupleType ts -> ts |> Seq.exists (fun t -> mightContainQubit t.Resolution)
+    | TypeKind.UserDefinedType u ->
+        let qualName = { Namespace = u.Namespace; Name = u.Name }
+        mightContainQubit (cc.callables.get qualName).Signature.ArgumentType.Resolution
+    | _ -> false
 
     match expr.Expression with
     | ExprKind.IntLiteral x -> IntLiteral x |> someLiteral
@@ -80,11 +89,12 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
         recurse cc x (function Literal (PauliLiteral p) -> Some p | _ -> None) (PauliArray >> Literal)
     | ExprKind.ValueArray x when typeIsArray TypeKind.Qubit ->
         recurse cc x (function Qubit i -> Some i | _ -> None) QubitArray
-    | ExprKind.Identifier _ when expr.ResolvedType.Resolution = TypeKind.Qubit ->
+    | ExprKind.Identifier (LocalVariable name, _)
+        when expr.ResolvedType.Resolution = TypeKind.Qubit && cc.distinctNames.Contains name ->
         let newQubits, i = ensureMatchingIndex cc.qubits
         Some ({cc with qubits = newQubits}, Qubit i)
+    | _ when mightContainQubit expr.ResolvedType.Resolution -> None
     | _ ->
-        // TODO - add checks to ensure that this doesn't contain a qubit
         let newUnknownValues, i = ensureMatchingIndex cc.unknownValues
         Some ({cc with unknownValues = newUnknownValues}, UnknownValue i)
 
@@ -117,9 +127,9 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
 
 /// Converts a list of TypedExpressions to a Circuit, CircuitContext pair.
 /// Returns None if the given expression list cannot be converted to a pure circuit.
-let private toCircuit callables (exprList: TypedExpression list): (Circuit * CircuitContext) option =
+let private toCircuit callables distinctNames (exprList: TypedExpression list): (Circuit * CircuitContext) option =
     maybe {
-        let ccRef = ref { callables = callables; qubits = []; unknownValues = [] }
+        let ccRef = ref { callables = callables; distinctNames = distinctNames; qubits = []; unknownValues = [] }
         let outputRef = ref []
         for expr in exprList do
             let! ccNew, gate = toGateCall (!ccRef, expr)
@@ -189,12 +199,12 @@ let private optimizeCircuit (circuit: Circuit): Circuit option =
 /// Given a list of Q# expressions, tries to convert it to a pure circuit.
 /// If this succeeds, optimizes the circuit and returns the new list of Q# expressions.
 /// Otherwise, returns the given list.
-let internal optimizeExprList callables (exprList: TypedExpression list): TypedExpression list =
+let internal optimizeExprList callables distinctNames (exprList: TypedExpression list): TypedExpression list =
     (* let s = List.map (fun x -> printExpr x.Expression) exprList
     if exprList.Length >= 5 then
         printfn "Optimizing %O" s*)
     maybe {
-        let! circuit, cc = toCircuit callables exprList
+        let! circuit, cc = toCircuit callables distinctNames exprList
         try
             let! newCircuit = optimizeCircuit circuit
             return fromCircuit cc newCircuit

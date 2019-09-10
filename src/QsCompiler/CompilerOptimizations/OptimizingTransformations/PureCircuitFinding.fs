@@ -28,6 +28,14 @@ let private isOperation expr =
 type internal PureCircuitFinder(callables) =
     inherit OptimizingTransformation()
 
+    let mutable distinctQubitFinder = None
+
+    override __.onCallableImplementation c =
+        let r = FindDistinctQubits()
+        r.onCallableImplementation c |> ignore
+        distinctQubitFinder <- Some r
+        base.onCallableImplementation c
+
     override __.Scope = { new ScopeTransformation() with
 
         override this.Transform scope =
@@ -36,7 +44,7 @@ type internal PureCircuitFinder(callables) =
 
             let finishCircuit () =
                 if circuit <> [] then
-                    let newCircuit = optimizeExprList callables circuit
+                    let newCircuit = optimizeExprList callables distinctQubitFinder.Value.distinctNames circuit
                     (*if newCircuit <> circuit then
                         printfn "Removed %d gates" (circuit.Length - newCircuit.Length)
                         printfn "Old: %O" (List.map (fun x -> printExpr x.Expression) circuit)

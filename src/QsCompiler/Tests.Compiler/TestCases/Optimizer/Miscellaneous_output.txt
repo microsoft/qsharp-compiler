@@ -62,6 +62,8 @@ namespace Microsoft.Quantum.Testing {
             ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, (Unwrap LocalVariable r1)[0]));
             for item in (Unwrap LocalVariable r1) {
                 (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
             }
         }
         QsControlled (__controlQubits__, (q1, r1)) {
@@ -80,29 +82,43 @@ namespace Microsoft.Quantum.Testing {
             ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
             for item in (Unwrap LocalVariable b2) {
                 (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable item));
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable item));
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable item));
             }
             ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
             for __qsVar1__item__ in (Unwrap LocalVariable b2) {
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
                 (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
             }
             ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
             for __qsVar2__item__ in (Unwrap LocalVariable b2) {
                 (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
             }
             ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
             for __qsVar3__item__ in (Unwrap LocalVariable b2) {
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
                 (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
             }
             ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
             for __qsVar4__item__ in (Unwrap LocalVariable b2) {
                 (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar4__item__));
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar4__item__));
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar4__item__));
             }
             ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
             for __qsVar5__item__ in (Unwrap LocalVariable b2) {
                 (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar5__item__));
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar5__item__));
+                (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar5__item__));
             }
             ((Adjoint GlobalCallable CNOT) of (LocalVariable q2, (Unwrap LocalVariable b2)[0]));
             for __qsVar6__item__ in (Unwrap LocalVariable b2) {
+                (GlobalCallable CNOT of (LocalVariable q2, LocalVariable __qsVar6__item__));
+                (GlobalCallable CNOT of (LocalVariable q2, LocalVariable __qsVar6__item__));
                 (GlobalCallable CNOT of (LocalVariable q2, LocalVariable __qsVar6__item__));
             }
         }
@@ -110,19 +126,27 @@ namespace Microsoft.Quantum.Testing {
             ((Adjoint GlobalCallable CNOT) of (LocalVariable q2, (Unwrap LocalVariable b2)[0]));
             for item in (Unwrap LocalVariable b2) {
                 (GlobalCallable CNOT of (LocalVariable q2, LocalVariable item));
+                (GlobalCallable CNOT of (LocalVariable q2, LocalVariable item));
+                (GlobalCallable CNOT of (LocalVariable q2, LocalVariable item));
             }
             let r = (GlobalCallable M of LocalVariable q2);
             if (LocalVariable r = One) {
                 ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
                 for __qsVar1__item__ in (Unwrap LocalVariable b2) {
                     (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
+                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
+                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
                 }
                 ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
                 for __qsVar2__item__ in (Unwrap LocalVariable b2) {
                     (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
+                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
+                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
                 }
                 ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
                 for __qsVar3__item__ in (Unwrap LocalVariable b2) {
+                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
+                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
                     (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
                 }
             } else {
