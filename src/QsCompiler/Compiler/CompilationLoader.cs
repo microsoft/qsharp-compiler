@@ -449,7 +449,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Given a stream with the content of a Q# binary file, returns the corresponding syntax tree.
         /// Throws the corresponding exception if the given path does not correspond to a suitable binary file.
-        /// Potentially throws an exception in particular also if the given binary file has been compiled with a different compiler version.
+        /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
         public static IEnumerable<QsNamespace> ReadBinary(Stream stream)
         {
