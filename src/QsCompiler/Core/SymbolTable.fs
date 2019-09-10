@@ -12,16 +12,10 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SymbolResolution
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.SyntaxGenerator
 open Microsoft.Quantum.QsCompiler.SyntaxTokens 
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Newtonsoft.Json
-
-
-// FIXME: this needs to move to the other core namespace dependencies - 
-// will restructure the division between this project and the QsCore project in a separate PR.
-module private Core = 
-    let Namespace = NonNullable<string>.New "Microsoft.Quantum.Core"
-    let Attribute = NonNullable<string>.New "Attribute"
 
 
 /// Note that this class is *not* threadsafe!
@@ -328,12 +322,12 @@ and Namespace private
     /// Throws an InvalidOperationExeception if the corresponding type has not been resolved. 
     member internal this.TryGetAttributeInSource source (attName, possibleQualifications : _ seq) = 
         let marksAttribute (t : QsDeclarationAttribute) = t.TypeId |> function 
-            | Value id -> id.Namespace.Value = Core.Namespace.Value && id.Name.Value = Core.Attribute.Value
+            | Value id -> id.Namespace.Value = BuiltIn.Attribute.Namespace.Value && id.Name.Value = BuiltIn.Attribute.Name.Value
             | Null -> false
         let missingResolutionException () = InvalidOperationException "cannot get unresolved attribute" |> raise 
         let compareAttributeName (att : AttributeAnnotation) = att.Id.Symbol |> function 
-            | Symbol sym when sym.Value = Core.Attribute.Value && possibleQualifications.Contains "" -> true
-            | QualifiedSymbol (ns, sym) when sym.Value = Core.Attribute.Value && possibleQualifications.Contains ns.Value -> true
+            | Symbol sym when sym.Value = BuiltIn.Attribute.Name.Value && possibleQualifications.Contains "" -> true
+            | QualifiedSymbol (ns, sym) when sym.Value = BuiltIn.Attribute.Name.Value && possibleQualifications.Contains ns.Value -> true
             | _ -> false
         match TypesInReferences.TryGetValue attName with 
         | true, tDecl -> if tDecl.Attributes |> Seq.exists marksAttribute then Some tDecl.Type else None
@@ -717,11 +711,11 @@ and NamespaceManager
         /// Throws an ArgumentException if no namespace with the given name exists. 
         let possibleQualifications (declNS, declSource) = 
             match Namespaces.TryGetValue declNS with 
-            | true, ns -> (ns.ImportedNamespaces declSource).TryGetValue Core.Namespace |> function
-                | true, null when ns.ContainsType Core.Attribute = Null || declNS.Value = Core.Namespace.Value -> [""; Core.Namespace.Value] 
-                | true, null -> [Core.Namespace.Value] // the Attribute attribute in the core namespace is shadowed
-                | true, alias -> [alias; Core.Namespace.Value]
-                | false, _ -> [Core.Namespace.Value]
+            | true, ns -> (ns.ImportedNamespaces declSource).TryGetValue BuiltIn.Attribute.Namespace |> function
+                | true, null when ns.ContainsType BuiltIn.Attribute.Name = Null || declNS.Value = BuiltIn.Attribute.Namespace.Value -> [""; BuiltIn.Attribute.Namespace.Value] 
+                | true, null -> [BuiltIn.Attribute.Namespace.Value] // the Attribute attribute in the core namespace is shadowed
+                | true, alias -> [alias; BuiltIn.Attribute.Namespace.Value]
+                | false, _ -> [BuiltIn.Attribute.Namespace.Value]
             | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
         let getAttribute ((nsName, symName), symRange) = 
             match TryResolveTypeName (parentNS, source) ((nsName, symName), symRange) with
