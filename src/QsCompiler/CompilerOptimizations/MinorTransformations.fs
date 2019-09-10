@@ -10,6 +10,59 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open Utils
+open Printer
+
+
+/// Represents a transformation meant to optimize a syntax tree
+type internal OptimizingTransformation() =
+    inherit SyntaxTreeTransformation()
+
+    let mutable changed = false
+
+    /// Returns whether the syntax tree has been modified since this function was last called
+    member internal this.checkChanged() =
+        let x = changed
+        changed <- false
+        x
+
+    /// Checks whether the syntax tree changed at all
+    override this.Transform x =
+        let newX = base.Transform x
+        if not (x.Equals newX) then
+            let s1 = printNamespace x
+            let s2 = printNamespace newX
+            if s1 <> s2 then
+                printfn "%s made change! Size went from %d to %d" (this.GetType().Name) s1.Length s2.Length
+                changed <- true
+            else
+                // This block shouldn't execute in theory, but it does in practice
+                // TODO - figure out what causes this and fix it
+                ()
+        newX
+
+
+/// A scope transformation that counts how many times each variable is referenced
+type internal ReferenceCounter() =
+    inherit ScopeTransformation()
+
+    let mutable numUses = Map.empty
+
+    /// Returns the number of times the variable with the given name is referenced
+    member __.getNumUses name = numUses.TryFind name |? 0
+
+    override this.Expression = { new ExpressionTransformation() with
+        override expr.Kind = { new ExpressionKindTransformation() with
+            override __.ExpressionTransformation ex = expr.Transform ex
+            override __.TypeTransformation t = expr.Type.Transform t
+
+            override __.onIdentifier (sym, tArgs) =
+                match sym with
+                | LocalVariable name ->
+                    numUses <- numUses.Add (name, this.getNumUses name + 1)
+                | _ -> ()
+                base.onIdentifier (sym, tArgs)
+        }
+    }
 
 
 /// A scope transformation that substitutes type parameters according to the given dictionary

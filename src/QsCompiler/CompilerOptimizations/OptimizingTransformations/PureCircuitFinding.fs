@@ -9,9 +9,8 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open Utils
-open Printer
 open PureCircuitAPI
-open OptimizingTransformation
+open MinorTransformations
 
 
 /// Returns whether an expression is an operation call
@@ -38,11 +37,11 @@ type internal PureCircuitFinder(callables) =
             let finishCircuit () =
                 if circuit <> [] then
                     let newCircuit = optimizeExprList callables circuit
-                    if newCircuit <> circuit then
+                    (*if newCircuit <> circuit then
                         printfn "Removed %d gates" (circuit.Length - newCircuit.Length)
                         printfn "Old: %O" (List.map (fun x -> printExpr x.Expression) circuit)
                         printfn "New: %O" (List.map (fun x -> printExpr x.Expression) newCircuit)
-                        printfn ""
+                        printfn ""*)
                     newStatements <- newStatements @ List.map (QsExpressionStatement >> wrapStmt) newCircuit
                     circuit <- []
 

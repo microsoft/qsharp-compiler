@@ -13,7 +13,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open ComputationExpressions
 open Utils
 open MinorTransformations
-open OptimizingTransformation
+open VariableRenaming
 
 
 /// Represents all the functors applied to an operation call
@@ -178,6 +178,10 @@ type internal CallableInliner(callables) =
             return returnVarBinding, newScope, returnVarIden
         }
 
+
+    override __.Transform x =
+        let x = base.Transform x
+        VariableRenamer().Transform x
 
     override __.onCallableImplementation c =
         let prev = currentCallable

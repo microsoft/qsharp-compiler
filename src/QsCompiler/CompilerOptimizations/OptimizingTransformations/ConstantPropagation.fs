@@ -3,7 +3,6 @@
 
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 
-open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -13,7 +12,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open Utils
 open Evaluation
-open OptimizingTransformation
+open MinorTransformations
 
 
 /// Returns whether the given expression should be propagated as a constant.

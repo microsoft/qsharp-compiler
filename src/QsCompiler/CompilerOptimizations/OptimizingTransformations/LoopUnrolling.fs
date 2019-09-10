@@ -10,12 +10,17 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open ComputationExpressions
 open Utils
-open OptimizingTransformation
+open MinorTransformations
+open VariableRenaming
 
 
 /// The SyntaxTreeTransformation used to unroll loops
 type internal LoopUnroller(callables, maxSize) =
     inherit OptimizingTransformation()
+
+    override __.Transform x =
+        let x = base.Transform x
+        VariableRenamer().Transform x
 
     override __.Scope = { new ScopeTransformation() with
         override scope.StatementKind = { new StatementKindTransformation() with

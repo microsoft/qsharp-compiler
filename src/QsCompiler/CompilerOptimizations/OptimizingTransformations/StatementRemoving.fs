@@ -8,30 +8,14 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-open ComputationExpressions
 open Utils
 open MinorTransformations
-open VariableRenaming
 
 
 /// The SyntaxTreeTransformation used to remove useless statements
 type internal StatementRemover() =
-    inherit SyntaxTreeTransformation()
-
-    /// The VariableRenamer used to ensure unique variable names
-    let mutable renamer = None
-
-
-    override syntaxTree.onProvidedImplementation (argTuple, body) =
-        let renamerVal = VariableRenamer(argTuple)
-        renamer <- Some renamerVal
-        let body = renamerVal.Transform body
-
-        let argTuple = syntaxTree.onArgumentTuple argTuple
-        let body = syntaxTree.Scope.Transform body
-        argTuple, body
+    inherit OptimizingTransformation()
 
     override __.Scope = upcast { new StatementCollectorTransformation() with
 
@@ -79,23 +63,4 @@ type internal StatementRemover() =
             | ScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
             | _ when not c.hasQuantum && not c.hasMutation && not c.hasInterrupts && not c.hasOutput -> Seq.empty
             | a -> Seq.singleton a
-
-        override this.StatementKind = { new StatementKindTransformation() with
-            override __.ExpressionTransformation x = this.Expression.Transform x
-            override __.LocationTransformation x = this.onLocation x
-            override __.ScopeTransformation x = this.Transform x
-            override __.TypeTransformation x = this.Expression.Type.Transform x
-
-            override stmtKind.onSymbolTuple syms =
-                match syms with
-                | VariableName item ->
-                    maybe {
-                        let! r = renamer
-                        let! uses = r.getNumUses item.Value
-                        do! check (uses = 0)
-                        return DiscardedItem
-                    } |? syms
-                | VariableNameTuple items -> Seq.map stmtKind.onSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
-                | InvalidItem | DiscardedItem -> syms
-        }
     }

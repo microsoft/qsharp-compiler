@@ -8,7 +8,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open MinorTransformations
-open OptimizingTransformation
 
 
 /// Returns whether a statements is purely classical.

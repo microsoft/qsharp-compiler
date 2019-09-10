@@ -6,7 +6,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilerOptimization
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.Utils
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.OptimizingTransformation
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.MinorTransformations
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRenaming
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRemoving
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementRemoving
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.LoopUnrolling
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
@@ -22,7 +25,12 @@ type Optimizations() =
         let mutable tree = List.ofSeq tree
         let callables = GlobalCallableResolutions tree |> Callables
 
+        tree <- List.map (StripAllRangeInformation().Transform) tree
+        tree <- List.map (VariableRenamer().Transform) tree
+
         let optimizers: OptimizingTransformation list = [
+            VariableRemover()
+            StatementRemover()
             ConstantPropagator(callables)
             LoopUnroller(callables, 40)
             CallableInliner(callables)
