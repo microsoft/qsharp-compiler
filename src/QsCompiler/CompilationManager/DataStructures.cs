@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Contains the end of line comment without any leading or trailing whitespace, and without the comment slashes. 
         /// Is null if no such comment exists. 
-        /// Documenting comments (i.e. trippe-slash comments) are *not* considered to be end of line comments. 
+        /// Documenting comments (i.e. triple-slash comments) are *not* considered to be end of line comments. 
         /// All comments which *either* follow non-whitespace content or do not start with triple-slash are considered end of line comments.
         /// </summary>
         public readonly string EndOfLineComment;
