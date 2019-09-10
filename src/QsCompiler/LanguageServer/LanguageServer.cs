@@ -34,6 +34,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         private readonly CoalesceingQueue FileEvents;
 
         private string ClientName;
+        private Version ClientVersion;
         private ClientCapabilities ClientCapabilities;
         private readonly EditorState EditorState;
 
@@ -44,6 +45,19 @@ namespace Microsoft.Quantum.QsLanguageServer
             supportedFormats?.Any() ?? false
                 ? supportedFormats.Contains(MarkupKind.Markdown) ? MarkupKind.Markdown : supportedFormats.First()
                 : MarkupKind.PlainText;
+
+        /// <summary>
+        /// Returns true if the client name matches the given name.
+        /// </summary>
+        private bool ClientNameIs(string name) =>
+            name != null && name.Equals(this.ClientName, StringComparison.InvariantCultureIgnoreCase);
+
+        /// <summary>
+        /// Returns true if the client version is the same as the given version or later, or if the client version is
+        /// unknown.
+        /// </summary>
+        private bool ClientVersionIsAtLeast(Version version) =>
+            version == null || this.ClientVersion == null || this.ClientVersion >= version;
 
 
         // methods required for basic functionality
@@ -146,9 +160,18 @@ namespace Microsoft.Quantum.QsLanguageServer
             var doneWithInit = this.WaitForInit?.WaitOne(20000) ?? false;
             if (!doneWithInit) return new InitializeError { Retry = true };
             var param = Utils.TryJTokenAs<InitializeParams>(arg);
-
-            this.ClientName = param.InitializationOptions as string;
             this.ClientCapabilities = param.Capabilities;
+
+            if (param.InitializationOptions is JObject options)
+            {
+                if (options.TryGetValue("name", out var name))
+                    this.ClientName = name.ToString();
+                if (options.TryGetValue("version", out var version)
+                        && !Version.TryParse(version.ToString(), out this.ClientVersion))
+                    this.ClientVersion = null;
+            }
+            bool supportsCompletion = !ClientNameIs("VisualStudio") || ClientVersionIsAtLeast(new Version(16, 3));
+            bool useTriggerCharWorkaround = ClientNameIs("VisualStudio") && ClientVersionIsAtLeast(new Version(16, 3));
 
             var rootUri = param.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out Uri uri) ? uri : null);
             this.WorkspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
@@ -158,11 +181,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var capabilities = new ServerCapabilities
             {
                 TextDocumentSync = new TextDocumentSyncOptions(),
-                // Disable completion in Visual Studio until a bug where completion is not dismissed after typing
-                // whitespace is fixed.
-                CompletionProvider = "VisualStudio".Equals(this.ClientName, StringComparison.InvariantCultureIgnoreCase)
-                    ? null
-                    : new CompletionOptions(),
+                CompletionProvider = supportsCompletion ? new CompletionOptions() : null,
                 SignatureHelpProvider = new SignatureHelpOptions(),
                 ExecuteCommandProvider = new ExecuteCommandOptions(),
             };
@@ -178,11 +197,12 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.HoverProvider = true;
             capabilities.DocumentHighlightProvider = true;
             capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "(", "," };
-            capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities 
+            capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities
             if (capabilities.CompletionProvider != null)
             {
                 capabilities.CompletionProvider.ResolveProvider = true;
-                capabilities.CompletionProvider.TriggerCharacters = new[] { "." };
+                capabilities.CompletionProvider.TriggerCharacters =
+                    useTriggerCharWorkaround ? new[] { ".", " ", "(" } : new[] { "." };
             }
 
             this.WaitForInit = null;
@@ -449,8 +469,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 // We hence inject close notifications for VS if a file has been deleted on disk. 
                 // While this will hopefully cover the most common cases of edits in- and outside the editor,
                 // it is not currently possible to get the correct behavior for all cases!
-                if (fileEvent.FileChangeType == FileChangeType.Deleted &&
-                    "VisualStudio".Equals(this.ClientName, StringComparison.InvariantCultureIgnoreCase))
+                if (fileEvent.FileChangeType == FileChangeType.Deleted && ClientNameIs("VisualStudio"))
                 {
                     this.LogToWindow($"The file '{fileEvent.Uri.LocalPath}' has been deleted on disk.", MessageType.Info);
                     _ = this.EditorState.CloseFileAsync(new TextDocumentIdentifier { Uri = fileEvent.Uri });
