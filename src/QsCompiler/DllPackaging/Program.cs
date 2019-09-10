@@ -2,8 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using McMaster.Extensions.CommandLineUtils;
@@ -11,6 +9,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.CodeAnalysis.Emit;
+
 
 namespace Microsoft.Quantum.QsCompiler
 {
