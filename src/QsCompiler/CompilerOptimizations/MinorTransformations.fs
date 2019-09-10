@@ -13,18 +13,6 @@ open Utils
 open Printer
 
 
-/// A SyntaxTreeTransformation that does nothing (for debugging purposes)
-type internal DoNothingTransformation() =
-    inherit SyntaxTreeTransformation()
-
-    override __.Transform x =
-        let newX = base.Transform x
-        if x <> newX then
-            // For some reason, even though we did literally nothing, they aren't equal
-            ()
-        newX
-
-
 /// Represents a transformation meant to optimize a syntax tree
 type internal OptimizingTransformation() =
     inherit SyntaxTreeTransformation()
@@ -32,7 +20,7 @@ type internal OptimizingTransformation() =
     let mutable changed = false
 
     /// Returns whether the syntax tree has been modified since this function was last called
-    member internal this.checkChanged() =
+    member internal __.checkChanged() =
         let x = changed
         changed <- false
         x
@@ -40,20 +28,11 @@ type internal OptimizingTransformation() =
     /// Checks whether the syntax tree changed at all
     override this.Transform x =
         let newX = base.Transform x
-        if x <> newX then
+        if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then
             let s1 = printNamespace x
             let s2 = printNamespace newX
-            if s1 <> s2 then
-                printfn "%s made change! Size went from %d to %d" (this.GetType().Name) s1.Length s2.Length
-                changed <- true
-            else
-                // This block shouldn't execute in theory, but it does in practice
-                // TODO - figure out what causes this and fix it
-                ()
-        else
-            // This block should execute in theory, but it doesn't in practice
-            // TODO - figure out what causes this and fix it
-            ()
+            printfn "%s made change! Size went from %d to %d" (this.GetType().Name) s1.Length s2.Length
+            changed <- true
         newX
 
 

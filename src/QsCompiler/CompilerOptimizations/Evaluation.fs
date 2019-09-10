@@ -75,6 +75,8 @@ type internal FunctionEvaluator(callables: Callables) =
 
         match statement.Statement with
         | QsExpressionStatement _ ->
+            // We do nothing in this case because we're evaluating a function, and expression
+            // statements inside functions never have side effects, so we can skip evaluating them.
             ()
         | QsReturnStatement expr ->
             let! value = this.evaluateExpression expr
