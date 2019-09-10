@@ -13,6 +13,18 @@ open Utils
 open Printer
 
 
+/// A SyntaxTreeTransformation that does nothing (for debugging purposes)
+type internal DoNothingTransformation() =
+    inherit SyntaxTreeTransformation()
+
+    override __.Transform x =
+        let newX = base.Transform x
+        if x <> newX then
+            // For some reason, even though we did literally nothing, they aren't equal
+            ()
+        newX
+
+
 /// Represents a transformation meant to optimize a syntax tree
 type internal OptimizingTransformation() =
     inherit SyntaxTreeTransformation()
@@ -28,7 +40,7 @@ type internal OptimizingTransformation() =
     /// Checks whether the syntax tree changed at all
     override this.Transform x =
         let newX = base.Transform x
-        if not (x.Equals newX) then
+        if x <> newX then
             let s1 = printNamespace x
             let s2 = printNamespace newX
             if s1 <> s2 then
@@ -38,10 +50,14 @@ type internal OptimizingTransformation() =
                 // This block shouldn't execute in theory, but it does in practice
                 // TODO - figure out what causes this and fix it
                 ()
+        else
+            // This block should execute in theory, but it doesn't in practice
+            // TODO - figure out what causes this and fix it
+            ()
         newX
 
 
-/// A scope transformation that counts how many times each variable is referenced
+/// A ScopeTransformation that counts how many times each variable is referenced
 type internal ReferenceCounter() =
     inherit ScopeTransformation()
 
@@ -65,7 +81,7 @@ type internal ReferenceCounter() =
     }
 
 
-/// A scope transformation that substitutes type parameters according to the given dictionary
+/// A ScopeTransformation that substitutes type parameters according to the given dictionary
 type internal ReplaceTypeParams(typeParams: ImmutableDictionary<QsTypeParameter, ResolvedType>) =
     inherit ScopeTransformation()
 

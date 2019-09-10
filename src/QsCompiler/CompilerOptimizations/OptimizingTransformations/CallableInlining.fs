@@ -50,6 +50,7 @@ let rec private tryGetQualNameAndFunctors method =
 /// applied to an expression representing the argument to the callable.
 /// Returns None if the input is not a valid expression of this form.
 let private trySplitCall (callables: Callables) = function
+    | x when TypedExpression.IsPartialApplication x -> None
     | CallLikeExpression (method, arg) ->
         tryGetQualNameAndFunctors method |> Option.map (fun (qualName, functors) ->
             functors, callables.get qualName, arg)

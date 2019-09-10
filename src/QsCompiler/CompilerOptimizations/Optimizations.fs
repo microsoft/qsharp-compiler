@@ -28,6 +28,9 @@ type Optimizations() =
         tree <- List.map (StripAllRangeInformation().Transform) tree
         tree <- List.map (VariableRenamer().Transform) tree
 
+        // For debugging purposes
+        tree <- List.map (DoNothingTransformation().Transform) tree
+
         let optimizers: OptimizingTransformation list = [
             VariableRemover()
             StatementRemover()

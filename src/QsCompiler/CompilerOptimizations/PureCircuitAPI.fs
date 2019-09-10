@@ -10,7 +10,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 open ComputationExpressions
 open Utils
-open Printer
 
 
 /// Any constant expression
@@ -189,9 +188,9 @@ let private optimizeCircuit (circuit: Circuit): Circuit option =
 /// If this succeeds, optimizes the circuit and returns the new list of Q# expressions.
 /// Otherwise, returns the given list.
 let internal optimizeExprList callables (exprList: TypedExpression list): TypedExpression list =
-    let s = List.map (fun x -> printExpr x.Expression) exprList
+    (* let s = List.map (fun x -> printExpr x.Expression) exprList
     if exprList.Length >= 5 then
-        printfn "Optimizing %O" s
+        printfn "Optimizing %O" s*)
     maybe {
         let! circuit, cc = toCircuit callables exprList
         try

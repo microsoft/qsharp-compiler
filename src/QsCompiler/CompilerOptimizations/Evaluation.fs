@@ -30,7 +30,7 @@ type private FunctionInterrupt =
 /// Represents the function invoking a fail statement
 | Failed of TypedExpression
 /// We reached the limit of statement executions
-| OutOfStatements
+| TooManyStatements
 /// We were unable to evaluate the function for some reason
 | CouldNotEvaluate of string
 
@@ -41,7 +41,7 @@ type private Imp<'t> = Imperative<EvalState, 't, FunctionInterrupt>
 /// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
 let private incrementState: Imp<Unit> = imperative {
     let! vars, counter = getState
-    if counter < 1 then yield OutOfStatements
+    if counter < 1 then yield TooManyStatements
     do! putState (vars, counter - 1)
 }
 
@@ -56,11 +56,10 @@ let private setVars callables entry: Imp<Unit> = imperative {
 type internal FunctionEvaluator(callables: Callables) =
 
     /// Casts a BoolLiteral to the corresponding bool
-    let castToBool x: Imp<bool> = imperative {
+    let castToBool x: bool =
         match x.Expression with
-        | BoolLiteral b -> return b
-        | _ -> yield CouldNotEvaluate ("Not a BoolLiteral: " + (printExpr x.Expression))
-    }
+        | BoolLiteral b -> b
+        | _ -> ArgumentException ("Not a BoolLiteral: " + (printExpr x.Expression)) |> raise
 
     /// Evaluates and simplifies a single Q# expression
     member internal __.evaluateExpression expr: Imp<TypedExpression> = imperative {
@@ -95,7 +94,7 @@ type internal FunctionEvaluator(callables: Callables) =
         | QsConditionalStatement s ->
             let mutable evalElseCase = true
             for cond, block in s.ConditionalBlocks do
-                let! value = this.evaluateExpression cond >>= castToBool
+                let! value = this.evaluateExpression cond <&> castToBool
                 if value then
                     do! this.evaluateScope block.Body
                     evalElseCase <- false
@@ -119,12 +118,12 @@ type internal FunctionEvaluator(callables: Callables) =
                 do! setVars callables (fst stmt.LoopItem, loopValue)
                 do! this.evaluateScope stmt.Body
         | QsWhileStatement stmt ->
-            while this.evaluateExpression stmt.Condition >>= castToBool do
+            while this.evaluateExpression stmt.Condition <&> castToBool do
                 do! this.evaluateScope stmt.Body
         | QsRepeatStatement stmt ->
             while true do
                 do! this.evaluateScope stmt.RepeatBlock.Body
-                let! value = this.evaluateExpression stmt.SuccessCondition >>= castToBool
+                let! value = this.evaluateExpression stmt.SuccessCondition <&> castToBool
                 if value then do! Break
                 do! this.evaluateScope stmt.FixupBlock.Body
         | QsQubitScope _ ->
@@ -166,7 +165,7 @@ type internal FunctionEvaluator(callables: Callables) =
             | Interrupt (Failed expr) ->
                 // printfn "Function %O failed with %O" name.Name.Value (prettyPrint expr)
                 None
-            | Interrupt OutOfStatements ->
+            | Interrupt TooManyStatements ->
                 // printfn "Function %O ran out of statements" name.Name.Value
                 None
             | Interrupt (CouldNotEvaluate reason) ->

@@ -139,3 +139,5 @@ let internal updateState f: Imperative<'a, Unit, 'c> = fun s -> Normal ((), f s)
 
 /// The monadic Bind() function as an infix operator
 let inline internal (>>=) m f = imperative.Bind (m, f)
+/// A monadic infix operator version of the pipe function
+let inline internal (<&>) m f = m >>= (f >> imperative.Return)
