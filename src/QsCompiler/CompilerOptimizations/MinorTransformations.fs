@@ -36,7 +36,7 @@ type internal MutationChecker() =
             base.onVariableDeclaration stm
 
         override __.onValueUpdate stm =
-            match stm.Rhs with
+            match stm.Lhs with
             | LocalVarTuple v ->
                 jointFlatten (v, v) |> Seq.iter (function
                 | VariableName name, _ -> mutatedVars <- mutatedVars.Add name
