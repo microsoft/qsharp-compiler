@@ -36,6 +36,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Simulation", "src\QsCompile
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Example", "src\QsCompiler\TestTargets\Simulation\Example\Example.csproj", "{2E331781-F7ED-4EF1-8451-896636C6D93A}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsDllPackaging", "src\QsCompiler\DllPackaging\QsDllPackaging.csproj", "{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -226,6 +228,18 @@ Global
 		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Release|x64.Build.0 = Release|Any CPU
 		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Release|x86.ActiveCfg = Release|Any CPU
 		{2E331781-F7ED-4EF1-8451-896636C6D93A}.Release|x86.Build.0 = Release|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Debug|x64.Build.0 = Debug|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Debug|x86.Build.0 = Debug|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Release|x64.ActiveCfg = Release|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Release|x64.Build.0 = Release|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Release|x86.ActiveCfg = Release|Any CPU
+		{EF4CD8CB-1956-4AF2-8A67-1DEE13954FBD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
