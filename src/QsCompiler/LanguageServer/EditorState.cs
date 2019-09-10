@@ -369,10 +369,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             : null;
 
         /// <summary>
-        /// Resolves additional information for the given completion item.
+        /// Resolves additional information for the given completion item. Returns the original completion item if no
+        /// additional information is available.
         /// <para/>
         /// Returns null if any parameter is null or the file given in the original completion request is invalid or
-        /// ignored, or if the completion to resolve is outdated. 
+        /// ignored.
         /// </summary>
         internal CompletionItem ResolveCompletion(CompletionItem item, CompletionItemData data, MarkupKind format) =>
             item != null && ValidFileUri(data?.TextDocument?.Uri) && !IgnoreFile(data.TextDocument.Uri)
