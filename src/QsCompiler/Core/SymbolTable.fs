@@ -1215,26 +1215,28 @@ and NamespaceManager
         finally syncRoot.ExitReadLock()
 
 
-    /// Generates a hash containing for each resolved type.
-    /// IMPORTANT: Does not incorporate any positional information!
+    /// Generates a hash for a resolved type. Does not incorporate any positional information.
     static member internal TypeHash (t : ResolvedType) = t.Resolution |> function
-        | QsTypeKind.ArrayType b ->
-            hash (0, NamespaceManager.TypeHash b)
-        | QsTypeKind.TupleType ts ->
-            hash (1, (ts |> Seq.map NamespaceManager.TypeHash |> Seq.toList))
-        | QsTypeKind.UserDefinedType udt ->
-            hash (2, udt.Namespace.Value, udt.Name.Value)
-        | QsTypeKind.TypeParameter tp ->
-            hash (3, tp.Origin.Namespace.Value, tp.Origin.Name.Value, tp.TypeName.Value)
-        | QsTypeKind.Operation ((inT, outT), fList) ->
-            hash (4, (inT |> NamespaceManager.TypeHash), (outT |> NamespaceManager.TypeHash), (fList |> JsonConvert.SerializeObject))
-        | QsTypeKind.Function (inT, outT) ->
-            hash (5, (inT |> NamespaceManager.TypeHash), (outT |> NamespaceManager.TypeHash))
-        | kind -> JsonConvert.SerializeObject kind |> hash
+        | QsTypeKind.ArrayType b                    -> hash (0, NamespaceManager.TypeHash b)
+        | QsTypeKind.TupleType ts                   -> hash (1, (ts |> Seq.map NamespaceManager.TypeHash |> Seq.toList))
+        | QsTypeKind.UserDefinedType udt            -> hash (2, udt.Namespace.Value, udt.Name.Value)
+        | QsTypeKind.TypeParameter tp               -> hash (3, tp.Origin.Namespace.Value, tp.Origin.Name.Value, tp.TypeName.Value)
+        | QsTypeKind.Operation ((inT, outT), fList) -> hash (4, (inT |> NamespaceManager.TypeHash), (outT |> NamespaceManager.TypeHash), (fList |> JsonConvert.SerializeObject))
+        | QsTypeKind.Function (inT, outT)           -> hash (5, (inT |> NamespaceManager.TypeHash), (outT |> NamespaceManager.TypeHash))
+        | kind                                      -> JsonConvert.SerializeObject kind |> hash
+
+    /// Generates a hash for a typed expression. Does not incorporate any positional information.
+    static member internal ExpressionHash (ex : TypedExpression) = ex.Expression |> function
+        | StringLiteral (s, _)              -> hash (6, s)
+        | ValueTuple vs                     -> hash (7, (vs |> Seq.map NamespaceManager.ExpressionHash |> Seq.toList))
+        | ValueArray vs                     -> hash (8, (vs |> Seq.map NamespaceManager.ExpressionHash |> Seq.toList))
+        | NewArray (bt, idx)                -> hash (9, NamespaceManager.TypeHash bt, NamespaceManager.ExpressionHash idx)
+        | Identifier (GlobalCallable c, _)  -> hash (10, c.Namespace.Value, c.Name.Value)
+        | kind                              -> JsonConvert.SerializeObject kind |> hash
 
     /// Generates a hash containing full type information about all entries in the given source file.
     /// All entries in the source file have to be fully resolved beforehand.
-    /// That hash does not contain any information about the imported namespaces, attributes, positional information, or about any documentation.
+    /// That hash does not contain any information about the imported namespaces, positional information, or about any documentation.
     /// Returns the generated hash as well as a separate hash providing information about the imported namespaces.
     /// Throws an InvalidOperationException if the given source file contains unresolved entries. 
     member this.HeaderHash source = 
@@ -1243,15 +1245,16 @@ and NamespaceManager
         let inconsistentStateException () = 
             QsCompilerError.Raise "contains unresolved entries despite supposedly being resolved"
             invalidOperationEx |> raise
-        let callableHash (kind, (signature,_), specs) =
+
+        let attributesHash (attributes : QsDeclarationAttribute seq) = 
+            let getHash arg (id : UserDefinedType) = hash (id.Namespace.Value, id.Name.Value, NamespaceManager.ExpressionHash arg)
+            attributes |> QsNullable<_>.Choose (fun att -> att.TypeId |> QsNullable<_>.Map (getHash att.Argument)) |> Seq.toList
+        let callableHash (kind, (signature,_), specs, attributes : QsDeclarationAttribute seq) =
             let signatureHash (signature : ResolvedSignature) = 
                 let argStr = signature.ArgumentType |> NamespaceManager.TypeHash
                 let reStr = signature.ReturnType |> NamespaceManager.TypeHash
                 let nameOrInvalid = function | InvalidName -> InvalidName |> JsonConvert.SerializeObject | ValidName sym -> sym.Value
-                let typeParams =
-                    signature.TypeParameters
-                    |> Seq.map nameOrInvalid
-                    |> Seq.toList
+                let typeParams = signature.TypeParameters |> Seq.map nameOrInvalid |> Seq.toList
                 hash (argStr, reStr, typeParams)
             let specsStr =
                 let genHash (gen : ResolvedGenerator) = 
@@ -1259,12 +1262,12 @@ and NamespaceManager
                     hash (gen.Directive, hash tArgs)
                 let kinds, gens = specs |> Seq.sort |> Seq.toList |> List.unzip
                 hash (kinds, gens |> List.map genHash)
-            hash (kind, specsStr, signatureHash signature)
-        let typeHash (t, typeItems : QsTuple<QsTypeItem>) = 
+            hash (kind, specsStr, signatureHash signature, attributes |> attributesHash)
+        let typeHash (t, typeItems : QsTuple<QsTypeItem>, attributes) = 
             let getItemHash (itemName, itemType) = hash (itemName, NamespaceManager.TypeHash itemType)
             let namedItems = typeItems.Items |> Seq.choose (function | Named item -> Some item | _ -> None)
             let itemHashes = namedItems.Select (fun d -> d.VariableName, d.Type) |> Seq.map getItemHash
-            hash (NamespaceManager.TypeHash t, itemHashes |> Seq.toList)
+            hash (NamespaceManager.TypeHash t, itemHashes |> Seq.toList, attributes |> attributesHash)
 
         syncRoot.EnterReadLock()
         try let relevantNamespaces = Namespaces.Values |> Seq.filter (fun ns -> ns.Sources.Contains source) |> Seq.sortBy (fun ns -> ns.Name)
@@ -1274,12 +1277,12 @@ and NamespaceManager
                     let specs = ns.SpecializationsDefinedInAllSources cName |> Seq.map (fun (kind, (_, resolution)) -> 
                         kind, resolution.Resolved.ValueOrApply inconsistentStateException)
                     let resolved = signature.Resolved.ValueOrApply inconsistentStateException
-                    ns.Name.Value, cName.Value, (kind, resolved, specs)))
+                    ns.Name.Value, cName.Value, (kind, resolved, specs, signature.ResolvedAttributes)))
             let types = relevantNamespaces |> Seq.collect (fun ns -> 
                 let inSources = ns.TypesDefinedInSource source |> Seq.sortBy (fun (tName,_) -> tName.Value)
                 inSources |> Seq.map (fun (tName, qsType) ->
-                    let resolved = qsType.Resolved.ValueOrApply inconsistentStateException
-                    ns.Name.Value, tName.Value, resolved))
+                    let resolved, resItems = qsType.Resolved.ValueOrApply inconsistentStateException
+                    ns.Name.Value, tName.Value, (resolved, resItems, qsType.ResolvedAttributes)))
             let imports = relevantNamespaces |> Seq.collect (fun ns -> 
                 ns.ImportedNamespaces source |> Seq.sortBy (fun x -> x.Value) |> Seq.map (fun opened -> ns.Name.Value, opened.Value)) 
 

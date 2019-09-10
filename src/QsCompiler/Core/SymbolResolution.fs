@@ -264,7 +264,8 @@ module SymbolResolution =
         // For now we support only a restrictive set of valid arguments. 
         let rec ArgExression (ex : QsExpression) : TypedExpression * QsCompilerDiagnostic[] = 
             let diagnostic code range = range |> orDefault |> QsCompilerDiagnostic.Error (code, [])
-            match ex.Expression with
+            // NOTE: if this is adapted, adapt the header hash as well
+            match ex.Expression with 
             | UnitValue          -> (UnitValue, UnitType) |> asTypedExression ex.Range, [||]
             | DoubleLiteral d    -> (DoubleLiteral d, Double) |> asTypedExression ex.Range, [||]
             | IntLiteral i       -> (IntLiteral i, Int) |> asTypedExression ex.Range, [||]
