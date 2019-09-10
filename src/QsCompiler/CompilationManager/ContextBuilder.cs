@@ -333,7 +333,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the index of the preceding non-empty token on the same indenation level, or null if no such token exists.
+        /// Returns the index of the preceding non-empty token on the same indentation level, or null if no such token exists.
         /// Includes empty tokens if includeEmpty is set to true.
         /// Throws an ArgumentNullException if tIndex is null.
         /// </summary>

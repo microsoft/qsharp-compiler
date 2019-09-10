@@ -345,7 +345,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (!compilationExists) continue; // may happen if a file has been modified during global type checking
 
                     var location = new QsLocation(header.Position, header.SymbolRange);
-                    var type = new QsCustomType(compiled.FullName, compiled.SourceFile, location, compiled.Type, compiled.TypeItems, compiled.Documentation, compiled.Comments);
+                    var type = new QsCustomType(compiled.FullName, compiled.Attributes, compiled.SourceFile, location, compiled.Type, compiled.TypeItems, compiled.Documentation, compiled.Comments);
                     this.CompiledTypes[fullName] = type;
                 }
             }
@@ -394,9 +394,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (header.Kind.IsTypeConstructor) 
                     {
                         var specLocation = new QsLocation(header.Position, header.SymbolRange);
-                        var defaultSpec = new QsSpecialization(QsSpecializationKind.QsBody, header.QualifiedName, header.SourceFile, specLocation, 
+                        var defaultSpec = new QsSpecialization(QsSpecializationKind.QsBody, header.QualifiedName, header.Attributes, header.SourceFile, specLocation, 
                             QsNullable<ImmutableArray<ResolvedType>>.Null, header.Signature, SpecializationImplementation.Intrinsic, ImmutableArray<string>.Empty, QsComments.Empty);
-                        this.CompiledCallables[fullName] = new QsCallable(header.Kind, header.QualifiedName, header.SourceFile, specLocation,
+                        this.CompiledCallables[fullName] = new QsCallable(header.Kind, header.QualifiedName, header.Attributes, header.SourceFile, specLocation,
                             header.Signature, header.ArgumentTuple, ImmutableArray.Create<QsSpecialization>(defaultSpec), header.Documentation, QsComments.Empty);
                         continue;
                     }
@@ -417,13 +417,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                         var compiledSpec = compiledSpecs.Single();
                         var specLocation = new QsLocation(specHeader.Position, specHeader.HeaderRange);
-                        return new QsSpecialization(compiledSpec.Kind, compiledSpec.Parent, compiledSpec.SourceFile, specLocation,
+                        return new QsSpecialization(compiledSpec.Kind, compiledSpec.Parent, compiledSpec.Attributes, compiledSpec.SourceFile, specLocation,
                             compiledSpec.TypeArguments, compiledSpec.Signature, compiledSpec.Implementation, compiledSpec.Documentation, compiledSpec.Comments); 
                     })
                     .Where(spec => spec != null).ToImmutableArray();
 
                     var location = new QsLocation(header.Position, header.SymbolRange);
-                    var callable = new QsCallable(compiled.Kind, compiled.FullName, compiled.SourceFile, location, 
+                    var callable = new QsCallable(compiled.Kind, compiled.FullName, compiled.Attributes, compiled.SourceFile, location, 
                         compiled.Signature, compiled.ArgumentTuple, specializations, compiled.Documentation, compiled.Comments); 
                     this.CompiledCallables[fullName] = callable;
                 }
@@ -449,12 +449,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var specSignature = specHeader.Kind.IsQsControlled || specHeader.Kind.IsQsControlledAdjoint 
                     ? SyntaxGenerator.BuildControlled(header.Signature) 
                     : header.Signature;
-                return new QsSpecialization(specHeader.Kind, header.QualifiedName, specHeader.SourceFile, specLocation, 
+                return new QsSpecialization(specHeader.Kind, header.QualifiedName, specHeader.Attributes, specHeader.SourceFile, specLocation, 
                     specHeader.TypeArguments, specSignature, SpecializationImplementation.External, specHeader.Documentation, QsComments.Empty);
             })
             .ToImmutableArray();
             var location = new QsLocation(header.Position, header.SymbolRange);
-            return new QsCallable(header.Kind, header.QualifiedName, header.SourceFile, location, 
+            return new QsCallable(header.Kind, header.QualifiedName, header.Attributes, header.SourceFile, location, 
                 header.Signature, header.ArgumentTuple, specializations, header.Documentation, QsComments.Empty);
         }
 
@@ -466,7 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (header == null) throw new ArgumentNullException(nameof(header));
             var location = new QsLocation(header.Position, header.SymbolRange);
-            return new QsCustomType(header.QualifiedName, header.SourceFile, location, header.Type, header.TypeItems, header.Documentation, QsComments.Empty);
+            return new QsCustomType(header.QualifiedName, header.Attributes, header.SourceFile, location, header.Type, header.TypeItems, header.Documentation, QsComments.Empty);
         }
 
         /// <summary>

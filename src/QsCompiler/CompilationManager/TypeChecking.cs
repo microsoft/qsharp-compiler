@@ -32,35 +32,68 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if the given collection of tokens is null.
         /// Throws an ArgumentNullException if the given function for extracting the declaration is null.
         /// </summary>
-        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<T>)> GetHeaderItems<T>(
-            IEnumerable<(CodeFragment.TokenIndex, ImmutableArray<string>)> tokens,
-            Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> GetDeclaration, string keepInvalid) =>
-            tokens?.Select(tIndex => (tIndex.Item1, HeaderEntry<T>.From(GetDeclaration, tIndex.Item1, tIndex.Item2, keepInvalid)))
-                .Where(tuple => tuple.Item2 != null).Select(tuple => (tuple.Item1, (HeaderEntry<T>)tuple.Item2));
+        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<T>)> GetHeaderItems<T>(this FileContentManager file,
+            IEnumerable<CodeFragment.TokenIndex> tokens,Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> GetDeclaration, string keepInvalid) =>
+            tokens?.Select(tIndex => 
+            {
+                var attributes = ImmutableArray.CreateBuilder<AttributeAnnotation>();
+                CodeFragment precedingFragment = tIndex.GetFragment();
+                for (var preceding = tIndex.PreviousOnScope(includeEmpty: true); preceding != null; preceding = preceding.PreviousOnScope())
+                {
+                    precedingFragment = preceding.GetFragment();
+                    if (precedingFragment.IncludeInCompilation && precedingFragment.Kind is QsFragmentKind.DeclarationAttribute att)
+                    {
+                        var offset = DiagnosticTools.AsTuple(precedingFragment.GetRange().Start);
+                        attributes.Add(new AttributeAnnotation(att.Item1, att.Item2, offset, precedingFragment.Comments));
+                    }
+                    else break;
+                }
+                var docComments = file.DocumentingComments(tIndex.GetFragment().GetRange().Start); 
+                return (tIndex, HeaderEntry<T>.From(GetDeclaration, tIndex, attributes.ToImmutableArray(), docComments, keepInvalid));
+            })
+            ?.Where(tuple => tuple.Item2 != null).Select(tuple => (tuple.Item1, tuple.Item2.Value));
 
         /// <summary>
-        /// For each token in the given sequence, queries the given file for all documenting comments preceding the token.
-        /// Returns a new sequence containing both the token and the associated documentation. 
-        /// Throws the corresponding exceptio if the given sequence of tokens is non-null 
-        /// but contains an null token or a token with a null or invalid range.
+        /// Extracts all documenting comments in the given file preceding the fragment at the given position, 
+        /// ignoring any attribute annotations unless ignorePrecedingAttributes is set to false. 
+        /// Documenting comments may be separated by an empty lines. 
+        /// Strips the preceding triple-slash for the comments, as well as whitespace and the line break at the end. 
+        /// Returns null if no documenting comment is given, or if the documenting comments do not have any non-whitespace content. 
+        /// Throws an ArgumentNullException if the given file or position is null. 
+        /// Throws an ArgumentException if the given position is not a valid position within the given file. 
         /// </summary>
-        private static IEnumerable<(CodeFragment.TokenIndex, ImmutableArray<string>)> WithDocumentingComments
-            (this IEnumerable<CodeFragment.TokenIndex> tokens, FileContentManager file) =>
-            tokens?.Select(token => (token, file.DocumentingComments(token.GetFragment().GetRange().Start)));
+        internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos, bool ignorePrecedingAttributes = true)
+        {
+            if (!Utils.IsValidPosition(pos, file)) throw new ArgumentException(nameof(pos));
+            bool RelevantToken(CodeFragment token) => !(ignorePrecedingAttributes && token.Kind is QsFragmentKind.DeclarationAttribute);
+            bool IsDocCommentLine(string text) => text.StartsWith("///") || text == String.Empty;
+
+            var lastPreceding = file.GetTokenizedLine(pos.Line)
+                .TakeWhile(ContextBuilder.TokensUpTo(new Position(0, pos.Character)))
+                .LastOrDefault(RelevantToken)?.WithUpdatedLineNumber(pos.Line);
+            for (var lineNr = pos.Line; lastPreceding == null && lineNr-- > 0;)
+            { lastPreceding = file.GetTokenizedLine(lineNr).LastOrDefault(RelevantToken)?.WithUpdatedLineNumber(lineNr); }
+
+            var firstRelevant = lastPreceding == null ? 0 : lastPreceding.GetRange().End.Line + 1;
+            return file.GetLines(firstRelevant, pos.Line > firstRelevant ? pos.Line - firstRelevant : 0)
+                .Select(line => line.Text.Trim()).Where(IsDocCommentLine).Select(line => line.TrimStart('/'))
+                .SkipWhile(text => String.IsNullOrWhiteSpace(text)).Reverse()
+                .SkipWhile(text => String.IsNullOrWhiteSpace(text)).Reverse()
+                .ToImmutableArray();
+        }
 
         /// <summary>
         /// Returns the HeaderItems corresponding to all namespaces declared in the given file, or null if the given file is null. 
         /// For namespaces with an invalid namespace name the symbol name in the header item will be set to an UnknownNamespace.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<object>)> GetNamespaceHeaderItems(this FileContentManager file) =>
-            GetHeaderItems(file?.NamespaceDeclarationTokens().WithDocumentingComments(file), 
-                frag => frag.Kind.DeclaredNamespace(), ReservedKeywords.InternalUse.UnknownNamespace);
+            file.GetHeaderItems(file?.NamespaceDeclarationTokens(), frag => frag.Kind.DeclaredNamespace(), ReservedKeywords.InternalUse.UnknownNamespace);
 
         /// <summary>
         /// Returns the HeaderItems corresponding to all open directives with a valid name in the given file, or null if the given file is null. 
         /// </summary>
-        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<(string, QsRangeInfo)>)> GetOpenDirectivesHeaderItems(this FileContentManager file) =>
-            GetHeaderItems(file?.OpenDirectiveTokens().WithDocumentingComments(file), frag =>
+        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<(string, QsRangeInfo)>)> GetOpenDirectivesHeaderItems
+            (this FileContentManager file) => file.GetHeaderItems(file?.OpenDirectiveTokens(), frag =>
             {
                 var dir = frag.Kind.OpenedNamespace();
                 if (dir.IsNull) return QsNullable<Tuple<QsSymbol, (string, QsRangeInfo)>>.Null;
@@ -78,17 +111,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the HeaderItems corresponding to all type declarations with a valid name in the given file, or null if the given file is null. 
         /// </summary>
-        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<QsTuple<Tuple<QsSymbol, QsType>>>)> GetTypeDeclarationHeaderItems(this FileContentManager file) =>
-            GetHeaderItems(file?.TypeDeclarationTokens().WithDocumentingComments(file), 
-                frag => frag.Kind.DeclaredType(), null);
+        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<QsTuple<Tuple<QsSymbol, QsType>>>)> GetTypeDeclarationHeaderItems
+            (this FileContentManager file) => file.GetHeaderItems(file?.TypeDeclarationTokens(), frag => frag.Kind.DeclaredType(), null);
 
         /// <summary>
         /// Returns the HeaderItems corresponding to all callable declarations with a valid name in the given file, or null if the given file is null.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, CallableSignature>>)> GetCallableDeclarationHeaderItems
-            (this FileContentManager file) =>
-            GetHeaderItems(file?.CallableDeclarationTokens().WithDocumentingComments(file), 
-                frag => frag.Kind.DeclaredCallable(), null);
+            (this FileContentManager file) => file.GetHeaderItems(file?.CallableDeclarationTokens(), frag => frag.Kind.DeclaredCallable(), null);
 
         /// <summary>
         /// Given the HeaderEntry of the parent, defines a function that extracts the specialization declaration
@@ -139,7 +169,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static List<(TItem, HeaderEntry<THeader>)> AddItems<TItem,THeader>(
             IEnumerable<(TItem, HeaderEntry<THeader>)> itemsToAdd,
-            Func<Position, Tuple<NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>>, THeader, ImmutableArray<string>, QsCompilerDiagnostic[]> Add,
+            Func<Position, Tuple<NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>>, THeader, ImmutableArray<AttributeAnnotation>, ImmutableArray<string>, QsCompilerDiagnostic[]> Add,
             string fileName, List<Diagnostic> diagnostics)
         {
             if (itemsToAdd == null) throw new ArgumentNullException(nameof(itemsToAdd));
@@ -150,29 +180,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             foreach (var (tIndex, headerItem) in itemsToAdd)
             {
                 var position = headerItem.GetPosition();
-                var messages = Add(position, headerItem.PositionedSymbol, headerItem.Declaration, headerItem.Documentation).ToList();
+                var messages = Add(position, headerItem.PositionedSymbol, headerItem.Declaration, headerItem.Attributes, headerItem.Documentation).ToList();
                 if (!messages.Any(msg => msg.Diagnostic.IsError)) itemsToCompile.Add((tIndex, headerItem));
                 diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(fileName, msg, position)));
             }
             return itemsToCompile;
-        }
-
-        /// <summary>
-        /// Extracts all documenting comments in the given file directly preceding the given position.
-        /// Documenting comments may be separated by an empty line. 
-        /// Strips the preceding triple-slash for the comments, as well as whitespace and the line break at the end. 
-        /// Returns null if no documenting comment is given, or if the documenting comments do not have any non-whitespace content. 
-        /// Throws an ArgumentNullException if the given file or position is null. 
-        /// Throws an ArgumentException if the given position is not a valid position within the given file. 
-        /// </summary>
-        internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos)
-        {
-            if (!Utils.IsValidPosition(pos, file)) throw new ArgumentException(nameof(pos));
-            var docs = new List<string>();
-            var preceding = file.GetLine(pos.Line).Text.Substring(0, pos.Character).Trim();
-            for (var lineNr = pos.Line; lineNr-- > 0 && (preceding.StartsWith("///") || preceding == String.Empty); preceding = file.GetLine(lineNr).Text.Trim())
-            { docs.Add(preceding.TrimStart('/')); }
-            return docs.SkipWhile(line => String.IsNullOrWhiteSpace(line)).Reverse().SkipWhile(line => String.IsNullOrWhiteSpace(line)).ToImmutableArray();
         }
 
         /// <summary>
@@ -214,7 +226,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // add all type declarations
                 var typesToCompile = AddItems(file.GetTypeDeclarationHeaderItems(),
-                    (pos, name, decl, doc) => (ContainingParent(pos, namespaces)).TryAddType(file.FileName, Location(pos, name.Item2), name, decl, doc),
+                    (pos, name, decl, att, doc) => (ContainingParent(pos, namespaces)).TryAddType(file.FileName, Location(pos, name.Item2), name, decl, att, doc),
                     file.FileName.Value, diagnostics);
 
                 var tokensToCompile = new List<(QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>))>();
@@ -226,7 +238,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // add all callable declarations
                 var callablesToCompile = AddItems(file.GetCallableDeclarationHeaderItems(),
-                    (pos, name, decl, doc) => (ContainingParent(pos, namespaces)).TryAddCallableDeclaration(file.FileName, Location(pos, name.Item2), name, decl, doc),
+                    (pos, name, decl, att, doc) => (ContainingParent(pos, namespaces)).TryAddCallableDeclaration(file.FileName, Location(pos, name.Item2), name, decl, att, doc),
                     file.FileName.Value, diagnostics);
 
                 // add all callable specilizations -> TOOD: needs to be adapted for specializations outside the declaration body (not yet supported)
@@ -269,14 +281,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // adding all specializations
             var directChildren = parent.Item1.GetChildren(deep: false);
-            var specializationTokens = directChildren.Where(tIndex => FileHeader.IsCallableSpecialization(tIndex.GetFragment())).WithDocumentingComments(file);
-            var specializations = GetHeaderItems(specializationTokens, frag => SpecializationDeclaration(parent.Item2, frag), null);
+            var specializationTokens = directChildren.Where(tIndex => FileHeader.IsCallableSpecialization(tIndex.GetFragment()));
+            var specializations = file.GetHeaderItems(specializationTokens, frag => SpecializationDeclaration(parent.Item2, frag), null);
             foreach (var (tIndex, headerItem) in specializations)
             {
                 var position = headerItem.GetPosition();
                 var (specKind, generator, introRange) = headerItem.Declaration;
                 var location = new QsLocation(DiagnosticTools.AsTuple(position), introRange);
-                var messages = ns.TryAddCallableSpecialization(specKind, file.FileName, location, parentName, generator, headerItem.Documentation);
+                var messages = ns.TryAddCallableSpecialization(specKind, file.FileName, location, parentName, generator, headerItem.Attributes, headerItem.Documentation);
                 if (!messages.Any(msg => msg.Diagnostic.IsError)) contentToCompile.Add(tIndex);
                 foreach (var msg in messages)
                 { diagnostics.Add(Diagnostics.Generate(file.FileName.Value, msg, position)); }
@@ -303,7 +315,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var omittedSymbol = new QsSymbol(QsSymbolKind<QsSymbol>.OmittedSymbols, QsRangeInfo.Null);
                 var generatorKind = QsSpecializationGeneratorKind<QsSymbol>.NewUserDefinedImplementation(omittedSymbol); 
                 var generator = new QsSpecializationGenerator(QsNullable<ImmutableArray<QsType>>.Null, generatorKind, genRange);
-                var messages = ns.TryAddCallableSpecialization(QsSpecializationKind.QsBody, file.FileName, location, parentName, generator, ImmutableArray<string>.Empty);
+                var messages = ns.TryAddCallableSpecialization(QsSpecializationKind.QsBody, 
+                    file.FileName, location, parentName, generator, ImmutableArray<AttributeAnnotation>.Empty, ImmutableArray<string>.Empty);
                 QsCompilerError.Verify(!messages.Any(), "compiler returned diagnostic(s) for automatically inserted specialization");
                 contentToCompile.Add(parent.Item1);
             }
@@ -363,7 +376,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var namespaces = file.GetNamespaceHeaderItems().Select(tuple => (tuple.Item2.GetPosition(), tuple.Item2.SymbolName)).ToList();
                 AddItems(file.GetOpenDirectivesHeaderItems(),
-                    (pos, name, alias, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces), file.FileName),
+                    (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces), file.FileName),
                     file.FileName.Value, diagnostics);
             }
             finally { file.SyncRoot.ExitReadLock(); }
@@ -1213,7 +1226,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             QsSpecialization GetSpecialization(SpecializationDeclarationHeader spec, ResolvedSignature signature, 
                 SpecializationImplementation implementation, QsComments comments = null) =>
-                new QsSpecialization(spec.Kind, spec.Parent, spec.SourceFile, null,
+                new QsSpecialization(spec.Kind, spec.Parent, spec.Attributes, spec.SourceFile, null,
                     spec.TypeArguments, SyntaxGenerator.WithoutRangeInfo(signature), implementation, spec.Documentation, comments ?? QsComments.Empty);
 
             QsSpecialization BuildSpecialization(QsSpecializationKind kind, ResolvedSignature signature, QsSpecializationGeneratorKind<QsSymbol> gen, FragmentTree.TreeNode root,
@@ -1374,13 +1387,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     }
                     symbolTracker.EndScope();
                     QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
-                    return new QsCallable(info.Kind, parent, info.SourceFile, null, 
+                    return new QsCallable(info.Kind, parent, info.Attributes, info.SourceFile, null, 
                         info.Signature, info.ArgumentTuple, specs, info.Documentation, roots[parent].Item1);
                 }
 
                 var callables = callableRoots.Select(GetSpecializations).Select(GetCallable).ToImmutableArray();
                 var types = typeDeclarations.Select(decl => new QsCustomType(
-                    decl.Key, decl.Value.SourceFile, new QsLocation(decl.Value.Position, decl.Value.SymbolRange), 
+                    decl.Key, decl.Value.Attributes, decl.Value.SourceFile, new QsLocation(decl.Value.Position, decl.Value.SymbolRange), 
                     decl.Value.Type, decl.Value.TypeItems, decl.Value.Documentation, roots[decl.Key].Item1)).ToImmutableArray();
 
                 if (cancellationToken.IsCancellationRequested) return null;

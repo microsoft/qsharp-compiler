@@ -35,7 +35,7 @@ type ErrorCode =
     | InvalidUsingBlockIntro = 3017              
     | InvalidBorrowingBlockIntro = 3018       
     | InvalidBodyDeclaration = 3019
-    | InvalidAdjointDeclaration = 3020       
+    | InvalidAdjointDeclaration = 3020        
     | InvalidControlledDeclaration = 3021    
     | InvalidControlledAdjointDeclaration = 3022
     | InvalidOperationDeclaration = 3023
@@ -201,6 +201,7 @@ type ErrorCode =
     | TypeParameterRedeclaration = 6106
     | UnknownTypeParameterName = 6107
     | UnknownItemName = 6108
+    | NotMarkedAsAttribute = 6109
 
     | ArgumentTupleShapeMismatch = 6201
     | ArgumentTupleMismatch = 6202
@@ -227,6 +228,10 @@ type ErrorCode =
     | PartialApplicationOfTypeParameter = 6223
     | IndirectlyReferencedExpressionType = 6224
     | TypeMismatchInCopyAndUpdateExpr = 6225
+    | InterpolatedStringInAttribute = 6226
+    | ArgumentOfUserDefinedTypeInAttribute = 6227
+    | TypeParameterizedArgumentInAttribute = 6228
+    | AttributeArgumentTypeMismatch = 6229
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -429,8 +434,8 @@ type DiagnosticItem =
             | ErrorCode.MissingUdtItemDeclaration               -> "Missing item. Expecting either a named item (\"itemName : ItemType\"), or an anonymous item as indicated by denoting the type only." 
             | ErrorCode.InvalidUdtItemNameDeclaration           -> "Invalid item name. Expecting an unqualified symbol name."
             | ErrorCode.MissingUdtItemNameDeclaration           -> "Expecting an unqualified symbol name."
-            | ErrorCode.InvalidAttributeArgument                -> "Invalid attribute argument. Expecting an argument tuple of compile-time constants."
-            | ErrorCode.MissingAttributeArgument                -> "Expecting a argument tuple of compile-time constants."
+            | ErrorCode.InvalidAttributeArgument                -> "Invalid attribute argument. Expecting an argument tuple of compile time constants."
+            | ErrorCode.MissingAttributeArgument                -> "Expecting a argument tuple of compile time constants."
             | ErrorCode.InvalidAttributeIdentifier              -> "Invalid attribute identifier. Expecting a qualified or unqualified symbol."
             | ErrorCode.MissingAttributeIdentifier              -> "Expecting an attribute identifier."
                                                             
@@ -524,6 +529,7 @@ type DiagnosticItem =
             | ErrorCode.TypeParameterRedeclaration              -> "A type parameter with that name already exists."
             | ErrorCode.UnknownTypeParameterName                -> "No type parameter with that name exists."
             | ErrorCode.UnknownItemName                         -> "The type {0} does not define an item with name \"{1}\"."
+            | ErrorCode.NotMarkedAsAttribute                    -> "The type {0} is not marked as an attribute. Add \"@Attribute()\" above its declaration to indicate that it may be used as attribute."
                                                 
             | ErrorCode.ArgumentTupleShapeMismatch              -> "The shape of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.ArgumentTupleMismatch                   -> "The type of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
@@ -550,6 +556,10 @@ type DiagnosticItem =
             | ErrorCode.PartialApplicationOfTypeParameter       -> "Generic type parameters cannot be partially resolved."
             | ErrorCode.IndirectlyReferencedExpressionType      -> "The type {0} of the expression is defined in an assembly that is not referenced."
             | ErrorCode.TypeMismatchInCopyAndUpdateExpr         -> "The type {0} of the given expression is not compatible with the expected type {1}."
+            | ErrorCode.InterpolatedStringInAttribute           -> "Interpolated strings cannot be used as attribute arguments."
+            | ErrorCode.ArgumentOfUserDefinedTypeInAttribute    -> "Items of user defined type cannot be used as attribute arguments."
+            | ErrorCode.TypeParameterizedArgumentInAttribute    -> "The type of attribute arguments must be known at compile time."
+            | ErrorCode.AttributeArgumentTypeMismatch           -> "The type of the given argument does not match the expected type."
 
             | ErrorCode.TypeMismatchInReturn                    -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate               -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."
