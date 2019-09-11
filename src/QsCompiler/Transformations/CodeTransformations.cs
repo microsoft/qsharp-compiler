@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
@@ -17,23 +15,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     public static class CodeTransformations
     {
         /// <summary>
-        /// Applying the transformation sets all location information to Null.
-        /// </summary>
-        private class StripLocationInformation :
-            ScopeTransformation<StatementKindTransformation<StripLocationInformation>, NoExpressionTransformations>
-        {
-            public StripLocationInformation() :
-                base(s => new StatementKindTransformation<StripLocationInformation>(s as StripLocationInformation), new NoExpressionTransformations())
-            { }
-
-            public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> loc) =>
-                QsNullable<QsLocation>.Null;
-
-            public static readonly Func<QsScope, QsScope> Apply =
-                new StripLocationInformation().Transform;
-        }
-
-        /// <summary>
         /// Given the body of an operation, auto-generates the (content of the) adjoint specialization, 
         /// under the assumption that operation calls may only ever occur within expression statements, 
         /// and while-loops cannot occur within operations. 
@@ -45,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             scope = new UniqueVariableNames().Transform(scope); 
             scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
             scope = new ReverseOrderOfOperationCalls().Transform(scope);
-            return StripLocationInformation.Apply(scope);
+            return StripPositionInfo.Apply(scope);
         }
 
         /// <summary>
@@ -55,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         public static QsScope GenerateControlled(this QsScope scope)
         {
             scope = ApplyFunctorToOperationCalls.ApplyControlled(scope);
-            return StripLocationInformation.Apply(scope);
+            return StripPositionInfo.Apply(scope);
         }
 
         /// <summary>

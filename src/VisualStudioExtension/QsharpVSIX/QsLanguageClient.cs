@@ -141,23 +141,22 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             }
         }
 
+        /// Setup to get the VS version number including the correct minor version, 
+        /// since the DTE.Version does not seem to accurately reflect that. 
         private static string GetVisualStudioVersion()
         {
             FileVersionInfo versionInfo;
             try
             {
-                versionInfo = GetVersionInfo(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "msenv.dll"));
+                var msenvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "msenv.dll");
+                versionInfo = GetVersionInfo(msenvPath);
             }
             catch (FileNotFoundException)
-            {
-                return null;
-            }
+            { return null; }
 
             // Extract the version number from the string in the format "D16.2", "D16.3", etc.
             var version = Regex.Match(versionInfo.FileVersion, @"D([\d\.]+)");
-            if (version.Success)
-                return version.Groups[1].Value;
-            return null;
+            return version.Success ? version.Groups[1].Value : null;
         }
     }
 }

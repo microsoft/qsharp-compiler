@@ -124,12 +124,13 @@ type SyntaxTreeTransformation() =
     default this.onSpecializationImplementation (spec : QsSpecialization) = 
         let source = this.onSourceFile spec.SourceFile
         let loc = this.onLocation spec.Location
-        let doc = this.onDocumentation spec.Documentation
-        let comments = spec.Comments
+        let attributes = spec.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
         let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> (args |> Seq.map this.Scope.Expression.Type.Transform).ToImmutableArray())
         let signature = this.onSignature spec.Signature
         let impl = this.dispatchSpecializationImplementation spec.Implementation 
-        QsSpecialization.New spec.Kind (source, loc) (spec.Parent, typeArgs, signature, impl, doc, comments)
+        let doc = this.onDocumentation spec.Documentation
+        let comments = spec.Comments
+        QsSpecialization.New spec.Kind (source, loc) (spec.Parent, attributes, typeArgs, signature, impl, doc, comments)
 
     abstract member onBodySpecialization : QsSpecialization -> QsSpecialization
     default this.onBodySpecialization spec = this.onSpecializationImplementation spec
@@ -156,22 +157,24 @@ type SyntaxTreeTransformation() =
     default this.onType t =
         let source = this.onSourceFile t.SourceFile 
         let loc = this.onLocation t.Location
-        let doc = this.onDocumentation t.Documentation
-        let comments = t.Comments
+        let attributes = t.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
         let underlyingType = this.Scope.Expression.Type.Transform t.Type
         let typeItems = this.onTypeItems t.TypeItems
-        QsCustomType.New (source, loc) (t.FullName, typeItems, underlyingType, doc, comments)
+        let doc = this.onDocumentation t.Documentation
+        let comments = t.Comments
+        QsCustomType.New (source, loc) (t.FullName, attributes, typeItems, underlyingType, doc, comments)
 
     abstract member onCallableImplementation : QsCallable -> QsCallable
     default this.onCallableImplementation (c : QsCallable) = 
         let source = this.onSourceFile c.SourceFile
         let loc = this.onLocation c.Location
-        let doc = this.onDocumentation c.Documentation
-        let comments = c.Comments
+        let attributes = c.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
         let signature = this.onSignature c.Signature
         let argTuple = this.onArgumentTuple c.ArgumentTuple
         let specializations = c.Specializations |> Seq.map this.dispatchSpecialization
-        QsCallable.New c.Kind (source, loc) (c.FullName, argTuple, signature, specializations, doc, comments)
+        let doc = this.onDocumentation c.Documentation
+        let comments = c.Comments
+        QsCallable.New c.Kind (source, loc) (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
 
     abstract member onOperation : QsCallable -> QsCallable
     default this.onOperation c = this.onCallableImplementation c
@@ -182,13 +185,16 @@ type SyntaxTreeTransformation() =
     abstract member onTypeConstructor : QsCallable -> QsCallable
     default this.onTypeConstructor c = this.onCallableImplementation c
 
-
     member this.dispatchCallable (c : QsCallable) = 
         let c = this.beforeCallable c
         match c.Kind with 
         | QsCallableKind.Function           -> this.onFunction c
         | QsCallableKind.Operation          -> this.onOperation c
         | QsCallableKind.TypeConstructor    -> this.onTypeConstructor c
+
+
+    abstract member onAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
+    default this.onAttribute att = att 
 
     member this.dispatchNamespaceElement element = 
         match this.beforeNamespaceElement element with
