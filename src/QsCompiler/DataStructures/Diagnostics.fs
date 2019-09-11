@@ -35,21 +35,22 @@ type ErrorCode =
     | InvalidUsingBlockIntro = 3017              
     | InvalidBorrowingBlockIntro = 3018       
     | InvalidBodyDeclaration = 3019
-    | InvalidAdjointDeclaration = 3020       
+    | InvalidAdjointDeclaration = 3020        
     | InvalidControlledDeclaration = 3021    
     | InvalidControlledAdjointDeclaration = 3022
     | InvalidOperationDeclaration = 3023
     | InvalidFunctionDeclaration = 3024
     | InvalidTypeDefinition = 3025
-    | InvalidNamespaceDeclaration = 3026        
-    | InvalidOpenDirective = 3027
-    | InvalidExpressionStatement = 3028 
-    | InvalidConstructorExpression = 3029
-    | MissingArgumentForFunctorGenerator = 3030
-    | InvalidKeywordWithinExpression = 3031
-    | InvalidUseOfReservedKeyword = 3032
-    | ExcessContinuation = 3033
-    | NonCallExprAsStatement = 3034
+    | InvalidDeclarationAttribute = 3026
+    | InvalidNamespaceDeclaration = 3027       
+    | InvalidOpenDirective = 3028
+    | InvalidExpressionStatement = 3029 
+    | InvalidConstructorExpression = 3030
+    | MissingArgumentForFunctorGenerator = 3031
+    | InvalidKeywordWithinExpression = 3032
+    | InvalidUseOfReservedKeyword = 3033
+    | ExcessContinuation = 3034
+    | NonCallExprAsStatement = 3035
 
     | InvalidExpression = 3101
     | MissingExpression = 3102
@@ -105,6 +106,10 @@ type ErrorCode =
     | MissingUdtItemDeclaration = 3234
     | InvalidUdtItemNameDeclaration = 3235
     | MissingUdtItemNameDeclaration = 3236
+    | InvalidAttributeArgument = 3237
+    | MissingAttributeArgument = 3238
+    | InvalidAttributeIdentifier = 3239
+    | MissingAttributeIdentifier = 3240
 
     | EmptyValueArray = 3300 
     | InvalidValueArray = 3301
@@ -142,6 +147,7 @@ type ErrorCode =
     | InvertControlledGenerator = 4112
     | ControlledGenArgMismatch = 4113
     | ControlledAdjointGenArgMismatch = 4114
+    | MisplacedDeclarationAttribute = 4115
 
     | MissingExprInArray = 5001
     | MultipleTypesInArray = 5002
@@ -195,6 +201,7 @@ type ErrorCode =
     | TypeParameterRedeclaration = 6106
     | UnknownTypeParameterName = 6107
     | UnknownItemName = 6108
+    | NotMarkedAsAttribute = 6109
 
     | ArgumentTupleShapeMismatch = 6201
     | ArgumentTupleMismatch = 6202
@@ -221,6 +228,10 @@ type ErrorCode =
     | PartialApplicationOfTypeParameter = 6223
     | IndirectlyReferencedExpressionType = 6224
     | TypeMismatchInCopyAndUpdateExpr = 6225
+    | InterpolatedStringInAttribute = 6226
+    | ArgumentOfUserDefinedTypeInAttribute = 6227
+    | TypeParameterizedArgumentInAttribute = 6228
+    | AttributeArgumentTypeMismatch = 6229
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -358,6 +369,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidOperationDeclaration             -> "Syntax error in operation declaration."          
             | ErrorCode.InvalidFunctionDeclaration              -> "Syntax error in function declaration."           
             | ErrorCode.InvalidTypeDefinition                   -> "Syntax error in type definition."                
+            | ErrorCode.InvalidDeclarationAttribute             -> "Syntax error in declaration attribute."
             | ErrorCode.InvalidNamespaceDeclaration             -> "Syntax error in namespace declaration."           
             | ErrorCode.InvalidOpenDirective                    -> "Syntax error in open-directive."                                           
             | ErrorCode.InvalidExpressionStatement              -> "Syntax error in expression-statement." 
@@ -422,6 +434,10 @@ type DiagnosticItem =
             | ErrorCode.MissingUdtItemDeclaration               -> "Missing item. Expecting either a named item (\"itemName : ItemType\"), or an anonymous item as indicated by denoting the type only." 
             | ErrorCode.InvalidUdtItemNameDeclaration           -> "Invalid item name. Expecting an unqualified symbol name."
             | ErrorCode.MissingUdtItemNameDeclaration           -> "Expecting an unqualified symbol name."
+            | ErrorCode.InvalidAttributeArgument                -> "Invalid attribute argument. Expecting an argument tuple of compile time constants."
+            | ErrorCode.MissingAttributeArgument                -> "Expecting a argument tuple of compile time constants."
+            | ErrorCode.InvalidAttributeIdentifier              -> "Invalid attribute identifier. Expecting a qualified or unqualified symbol."
+            | ErrorCode.MissingAttributeIdentifier              -> "Expecting an attribute identifier."
                                                             
             | ErrorCode.EmptyValueArray                         -> "Empty arrays of undefined type are not supported. Use \"new T[0]\" for a suitable type T instead."
             | ErrorCode.InvalidValueArray                       -> "Syntax error in value array. Expecting a comma separated list of expressions."
@@ -431,7 +447,7 @@ type DiagnosticItem =
             | ErrorCode.DoubleOverflow                          -> "Double literal is outside of the range of valid values."
 
             | ErrorCode.NotWithinGlobalScope                    -> "Namespace declarations can only occur on a global scope."
-            | ErrorCode.NotWithinNamespace                      -> "Declarations and open-directives can only occur within a namespace."
+            | ErrorCode.NotWithinNamespace                      -> "Declarations and their attributes, as well as open-directives can only occur within a namespace."
             | ErrorCode.NotWithinCallable                       -> "Specialization declarations can only occur within an operation or function."
             | ErrorCode.NotWithinSpecialization                 -> "Statements can only occur within a callable or specialization declaration."
             | ErrorCode.MisplacedOpenDirective                  -> "Open directives can only occur at the beginning of a namespace."
@@ -459,7 +475,8 @@ type DiagnosticItem =
             | ErrorCode.InvertControlledGenerator               -> "Invalid generator for controlled specialization. Valid generators are \"distributed\" and \"auto\"."
             | ErrorCode.ControlledGenArgMismatch                -> "The argument to a user-defined controlled specialization must must be of the form \"(ctlQsName, ...)\"."
             | ErrorCode.ControlledAdjointGenArgMismatch         -> "The argument to a user-defined controlled-adjoint specialization must must be of the form \"(ctlQsName, ...)\"."
-                                                            
+            | ErrorCode.MisplacedDeclarationAttribute           -> "An attribute must be followed by a callable declaration, a type declaration, or by another attribute."
+
             | ErrorCode.MissingExprInArray                      -> "Underscores cannot be used to denote missing array elements."
             | ErrorCode.MultipleTypesInArray                    -> "Array items must have a common base type."
             | ErrorCode.InvalidArrayItemIndex                   -> "Expecting an expression of type Int or Range. Got an expression of type {0}."
@@ -512,6 +529,7 @@ type DiagnosticItem =
             | ErrorCode.TypeParameterRedeclaration              -> "A type parameter with that name already exists."
             | ErrorCode.UnknownTypeParameterName                -> "No type parameter with that name exists."
             | ErrorCode.UnknownItemName                         -> "The type {0} does not define an item with name \"{1}\"."
+            | ErrorCode.NotMarkedAsAttribute                    -> "The type {0} is not marked as an attribute. Add \"@Attribute()\" above its declaration to indicate that it may be used as attribute."
                                                 
             | ErrorCode.ArgumentTupleShapeMismatch              -> "The shape of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.ArgumentTupleMismatch                   -> "The type of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
@@ -538,6 +556,10 @@ type DiagnosticItem =
             | ErrorCode.PartialApplicationOfTypeParameter       -> "Generic type parameters cannot be partially resolved."
             | ErrorCode.IndirectlyReferencedExpressionType      -> "The type {0} of the expression is defined in an assembly that is not referenced."
             | ErrorCode.TypeMismatchInCopyAndUpdateExpr         -> "The type {0} of the given expression is not compatible with the expected type {1}."
+            | ErrorCode.InterpolatedStringInAttribute           -> "Interpolated strings cannot be used as attribute arguments."
+            | ErrorCode.ArgumentOfUserDefinedTypeInAttribute    -> "Items of user defined type cannot be used as attribute arguments."
+            | ErrorCode.TypeParameterizedArgumentInAttribute    -> "The type of attribute arguments must be known at compile time."
+            | ErrorCode.AttributeArgumentTypeMismatch           -> "The type of the given argument does not match the expected type."
 
             | ErrorCode.TypeMismatchInReturn                    -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate               -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."

@@ -994,7 +994,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     generator.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name.Value}");
                     generator.AddBlock(() =>
                     {
-                        var explicitImports = openedNS.Where(opened => !SyntaxGenerator.NamespacesToAutoOpen.Contains(opened));
+                        var explicitImports = openedNS.Where(opened => !BuiltIn.NamespacesToAutoOpen.Contains(opened));
                         if (explicitImports.Any() || nsShortNames.Any()) generator.AddToOutput("");
                         foreach (var nsName in explicitImports.OrderBy(name => name))
                         { generator.AddDirective($"{Keywords.importDirectiveHeader.id} {nsName.Value}"); }
@@ -1204,7 +1204,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             return base.onControlledAdjointSpecialization(spec); 
         }
 
-        public override QsCallable beforeCallable(QsCallable c)
+        private QsCallable onCallable(QsCallable c, string declHeader)
         {
             if (!c.Kind.IsTypeConstructor)
             {
@@ -1213,12 +1213,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this.AddComments(c.Comments.OpeningComments);
                 if (c.Comments.OpeningComments.Any() && c.Documentation.Any()) this.AddToOutput("");
                 this.AddDocumentation(c.Documentation);
+                foreach (var attribute in c.Attributes)
+                { this.onAttribute(attribute); }
             }
-            return c;
-        }
 
-        private QsCallable onCallable(QsCallable c, string declHeader)
-        {
             var signature = SyntaxTreeToQs.DeclarationSignature(c, this.Type, this._Scope._StatementKind.beforeInvalidSymbol);
             this._Scope._Expression._Type.onCharacteristicsExpression(c.Signature.Information.Characteristics);
             var characteristics = this._Scope._Expression._Type.Output;
@@ -1268,6 +1266,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             this.AddComments(t.Comments.OpeningComments);
             if (t.Comments.OpeningComments.Any() && t.Documentation.Any()) this.AddToOutput("");
             this.AddDocumentation(t.Documentation);
+            foreach (var attribute in t.Attributes)
+            { this.onAttribute(attribute); } 
 
             (string, ResolvedType) GetItemNameAndType (QsTypeItem item)
             {
@@ -1278,6 +1278,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             var udtTuple = ArgumentTuple<QsTypeItem>(t.TypeItems, GetItemNameAndType, this.Type); 
             this.AddDirective($"{Keywords.typeDeclHeader.id} {t.FullName.Name.Value} = {udtTuple}");
             return t;
+        }
+
+        public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
+        {
+            // do *not* set CurrentComments!
+            this._Scope._Expression.Transform(att.Argument);
+            var arg = this._Scope._Expression._Kind.Output;
+            var argStr = att.Argument.Expression.IsValueTuple || att.Argument.Expression.IsUnitValue ? arg : $"({arg})";
+            var id = att.TypeId.IsValue  
+                ? Identifier.NewGlobalCallable(new QsQualifiedName(att.TypeId.Item.Namespace, att.TypeId.Item.Name))
+                : Identifier.InvalidIdentifier;
+            this._Scope._Expression._Kind.onIdentifier(id, QsNullable<ImmutableArray<ResolvedType>>.Null);
+            this.AddComments(att.Comments.OpeningComments);
+            this.AddToOutput($"@ {this._Scope._Expression._Kind.Output}{argStr}");
+            return att;
         }
 
         public override QsNamespace Transform(QsNamespace ns)
