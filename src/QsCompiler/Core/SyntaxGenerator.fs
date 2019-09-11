@@ -69,6 +69,7 @@ type private StripPositionInfoFromScope() =
 type public StripPositionInfo(setDeclLocToDefault) = 
     inherit SyntaxTreeTransformation()
     let scopeTransformation = new StripPositionInfoFromScope()
+    static let defaultInstance = new StripPositionInfo()
     new() = StripPositionInfo(false)
     
     override this.Scope = scopeTransformation :> ScopeTransformation
@@ -76,11 +77,11 @@ type public StripPositionInfo(setDeclLocToDefault) =
         if not setDeclLocToDefault then loc
         else QsLocation.New ((0,0), QsCompilerDiagnostic.DefaultRange)
 
-    static member private Default = new StripPositionInfo()
-    static member public Apply t = StripPositionInfo.Default.Scope.Expression.Type.Transform t
-    static member public Apply e = StripPositionInfo.Default.Scope.Expression.Transform e
-    static member public Apply s = StripPositionInfo.Default.Scope.Transform s
-    static member public Apply a = StripPositionInfo.Default.Transform a
+    static member public Default = defaultInstance
+    static member public Apply t = defaultInstance.Scope.Expression.Type.Transform t
+    static member public Apply e = defaultInstance.Scope.Expression.Transform e
+    static member public Apply s = defaultInstance.Scope.Transform s
+    static member public Apply a = defaultInstance.Transform a
 
 
 module SyntaxGenerator = 
