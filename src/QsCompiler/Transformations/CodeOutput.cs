@@ -994,7 +994,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     generator.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name.Value}");
                     generator.AddBlock(() =>
                     {
-                        var explicitImports = openedNS.Where(opened => !SyntaxGenerator.NamespacesToAutoOpen.Contains(opened));
+                        var explicitImports = openedNS.Where(opened => !BuiltIn.NamespacesToAutoOpen.Contains(opened));
                         if (explicitImports.Any() || nsShortNames.Any()) generator.AddToOutput("");
                         foreach (var nsName in explicitImports.OrderBy(name => name))
                         { generator.AddDirective($"{Keywords.importDirectiveHeader.id} {nsName.Value}"); }
