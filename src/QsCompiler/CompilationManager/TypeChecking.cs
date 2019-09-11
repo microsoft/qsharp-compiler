@@ -1405,18 +1405,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all locally declared symbols at the given relative position as well as all statements for which these symbols are defined, 
-        /// assuming that the position corresponds to a piece of code within the given scope.  
-        /// Note that the list of statements for which these symbols are defined includes the statement at the given relative position, 
-        /// which may in particular include (some of) the symbol declarations themselves. 
-        /// The given relative position is expected to be relative to the beginning of the specialization declaration -
-        /// or rather to be consistent with the position information saved for statements. 
+        /// This method serves two entirely independent purposes since they require the exact same logic, despite what I would usually consider good practice.
+        /// The first purpose is the following:
+        /// Returns all locally declared symbols visible at the given relative position, 
+        /// assuming that the position corresponds to a piece of code within the given scope.
         /// Note that if the given position does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
         /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though. 
+        /// The second purpose is the following:
+        /// Returns the statements that follow a local declaration at the given relative position, 
+        /// i.e. the statements for which local variables declared at that position are defined. 
+        /// Whether the given relative position is indeed within a statement that declares local variables is not verified. 
+        /// It is important to note that the returned statements are *not* necessarily the set of statements 
+        /// for which the returned set of local variables are valid! 
+        /// The given relative position is expected to be relative to the beginning of the specialization declaration -
+        /// or rather to be consistent with the position information saved for statements. 
         /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
         /// or if the given relative position is not a valid position.
         /// </summary>
-        public static (LocalDeclarations, IEnumerable<QsStatement>) LocalDeclarationsAt(this QsScope scope, Position relativePosition)
+        private static (LocalDeclarations, IEnumerable<QsStatement>) StatementsAfterAndLocalDeclarationsAt(this QsScope scope, Position relativePosition)
         {
             if (scope == null) throw new ArgumentNullException(nameof(scope));
             if (!Utils.IsValidPosition(relativePosition)) throw new ArgumentException(nameof(relativePosition));
@@ -1425,10 +1431,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 => new LocalDeclarations(fst.Variables.Concat(snd.Variables).ToImmutableArray());
             bool BeforePosition(QsNullable<QsLocation> location) =>
                 location.IsValue && DiagnosticTools.AsPosition(location.Item.Offset).IsSmallerThan(relativePosition);
+            bool StartsBeforePosition(QsScope body) => body.Statements.Any() && BeforePosition(body.Statements.First().Location);
 
-            var precedingStatements = scope.Statements.TakeWhile(stm => BeforePosition(stm.Location));
-            if (!precedingStatements.Any()) return (scope.KnownSymbols, scope.Statements);
-            var lastPreceding = precedingStatements.Last();
+            var precedingStatements = scope.Statements.TakeWhile(stm => BeforePosition(stm.Location)).ToImmutableArray();
+            if (precedingStatements.Length == 0) return (scope.KnownSymbols, scope.Statements);
+            var lastPreceding = precedingStatements[precedingStatements.Length-1];
 
             QsScope relevantScope = null;
             if (lastPreceding.Statement is QsStatementKind.QsConditionalStatement condStatement)
@@ -1441,7 +1448,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 relevantScope = preceding.Any() ? preceding.Last().Body : null;
             }
             if (lastPreceding.Statement is QsStatementKind.QsForStatement forStatement)
-            { relevantScope = forStatement.Item.Body; }
+            { relevantScope = forStatement.Item.Body; } 
             if (lastPreceding.Statement is QsStatementKind.QsWhileStatement whileStatement)
             { relevantScope = whileStatement.Item.Body; }
             if (lastPreceding.Statement is QsStatementKind.QsRepeatStatement repeatStatement)
@@ -1458,11 +1465,41 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (lastPreceding.Statement is QsStatementKind.QsQubitScope allocationScope)
             { relevantScope = allocationScope.Item.Body; }
 
-            if (relevantScope != null) return relevantScope.LocalDeclarationsAt(relativePosition);
-            var defined = precedingStatements.Aggregate(scope.KnownSymbols, (decl, statement) => Concat(decl, statement.SymbolDeclarations));
-            var followingStatements = scope.Statements.SkipWhile(stm => BeforePosition(stm.Location));
-            return (defined, new[] { lastPreceding }.Concat(followingStatements));
+            if (relevantScope != null && StartsBeforePosition(relevantScope)) // the relative position is truly within the child scope
+            { return relevantScope.StatementsAfterAndLocalDeclarationsAt(relativePosition); }
+
+            var definedAtPosition = precedingStatements.Take(precedingStatements.Length - 1)
+                .Aggregate(scope.KnownSymbols, (decl, statement) => Concat(decl, statement.SymbolDeclarations));
+            var statementsAfterDecl = relevantScope == null
+                ? scope.Statements.SkipWhile(stm => BeforePosition(stm.Location))
+                : relevantScope.Statements;
+            return (definedAtPosition, statementsAfterDecl);
         }
+
+        /// <summary>
+        /// Returns all locally declared symbols visible at the given relative position, 
+        /// assuming that the position corresponds to a piece of code within the given scope.  
+        /// The given relative position is expected to be relative to the beginning of the specialization declaration -
+        /// or rather to be consistent with the position information saved for statements. 
+        /// Note that if the given position does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
+        /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though. 
+        /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
+        /// or if the given relative position is not a valid position.
+        /// </summary>
+        public static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition) =>
+            StatementsAfterAndLocalDeclarationsAt(scope, relativePosition).Item1;
+
+        /// <summary>
+        /// Returns the statements that follow a local declaration at the given relative position, 
+        /// i.e. the statements for which local variables declared at that position are defined. 
+        /// Whether the given relative position is indeed within a statement that declares local variables is not verified. 
+        /// The given relative position is expected to be relative to the beginning of the specialization declaration -
+        /// or rather to be consistent with the position information saved for statements. 
+        /// Throws an ArgumentException if any of the statements contained in the given scope is not annotated with a valid position,
+        /// or if the given relative position is not a valid position.
+        /// </summary>
+        internal static IEnumerable<QsStatement> StatementsAfterDeclaration(this QsScope scope, Position relativePosition) =>
+            StatementsAfterAndLocalDeclarationsAt(scope, relativePosition).Item2;
 
         /// <summary>
         /// Recomputes the globally defined symbols within the given file and updates the Symbols in the given compilation unit accordingly.
