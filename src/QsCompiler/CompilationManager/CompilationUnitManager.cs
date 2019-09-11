@@ -446,7 +446,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 this.CompilationUnit.GlobalSymbols.Clear();
                 compilation.GlobalSymbols.CopyTo(this.CompilationUnit.GlobalSymbols);
-                this.CompilationUnit.GlobalSymbols.ResolveAll(SyntaxGenerator.NamespacesToAutoOpen);
+                this.CompilationUnit.GlobalSymbols.ResolveAll(BuiltIn.NamespacesToAutoOpen);
             }
             finally { this.CompilationUnit.ExitWriteLock(); }
 

@@ -336,7 +336,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (symbols == null) throw new ArgumentNullException(nameof(symbols));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
-            var declDiagnostics = symbols.ResolveAll(SyntaxGenerator.NamespacesToAutoOpen);
+            var declDiagnostics = symbols.ResolveAll(BuiltIn.NamespacesToAutoOpen);
             var cycleDiagnostics = SyntaxProcessing.SyntaxTree.CheckDefinedTypesForCycles(symbols.DefinedTypes());
 
             void AddDiagnostics(NonNullable<string> source, IEnumerable<Tuple<Tuple<int, int>, QsCompilerDiagnostic>> msgs) =>
