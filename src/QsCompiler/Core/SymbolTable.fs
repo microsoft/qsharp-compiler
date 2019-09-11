@@ -755,7 +755,9 @@ and NamespaceManager
         let processTP (symName, symRange) = 
             if tpNames |> Seq.contains symName then TypeParameter {Origin = parent; TypeName = symName; Range = symRange}, [||]
             else InvalidType, [| symRange.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, []) |]
-        SymbolResolution.ResolveType (processUDT, processTP) qsType
+        syncRoot.EnterReadLock()
+        try SymbolResolution.ResolveType (processUDT, processTP) qsType
+        finally syncRoot.ExitReadLock()
 
     /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the specified source file. 
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined types. 
@@ -1147,14 +1149,6 @@ and NamespaceManager
             | resolutions -> Null, resolutions.Select fst
         finally syncRoot.ExitReadLock()
 
-    /// Returns the names of all namespaces in which a callable with the given name is declared. 
-    member this.NamespacesContainingCallable cName = 
-        // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
-        syncRoot.EnterReadLock()
-        try let containsCallable (ns : Namespace) = ns.ContainsCallable cName |> QsNullable<_>.Map (fun _ -> ns.Name)
-            (Namespaces.Values |> QsNullable<_>.Choose containsCallable).ToImmutableArray()
-        finally syncRoot.ExitReadLock()
-
     /// Given a qualified type name, returns the corresponding TypeDeclarationHeader as Value, 
     /// if the qualifier can be resolved within the given parent namespace and source file, and such a type indeed exists. 
     /// If the source file containing the type declaration is given (i.e. declSource is Some), 
@@ -1206,6 +1200,25 @@ and NamespaceManager
             | resolutions -> Null, resolutions.Select fst
         finally syncRoot.ExitReadLock()
 
+
+    /// Returns the fully qualified namespace name of the given namespace alias (short name). If the alias is already a fully qualified name, 
+    /// returns the name unchanged. Returns null if no such name exists within the given parent namespace and source file.
+    /// Throws an ArgumentException if the given parent namespace does not exist.
+    member this.TryResolveNamespaceAlias alias (nsName, source) =
+        syncRoot.EnterReadLock()
+        try match TryResolveQualifier alias (nsName, source) with
+            | None -> null
+            | Some ns -> ns.Name.Value
+        finally syncRoot.ExitReadLock()
+
+    /// Returns the names of all namespaces in which a callable with the given name is declared. 
+    member this.NamespacesContainingCallable cName = 
+        // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
+        syncRoot.EnterReadLock()
+        try let containsCallable (ns : Namespace) = ns.ContainsCallable cName |> QsNullable<_>.Map (fun _ -> ns.Name)
+            (Namespaces.Values |> QsNullable<_>.Choose containsCallable).ToImmutableArray()
+        finally syncRoot.ExitReadLock()
+
     /// Returns the names of all namespaces in which a type with the given name is declared. 
     member this.NamespacesContainingType tName = 
         // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
@@ -1213,6 +1226,16 @@ and NamespaceManager
         try let containsType (ns : Namespace) = ns.ContainsType tName |> QsNullable<_>.Map (fun _ -> ns.Name)
             (Namespaces.Values |> QsNullable<_>.Choose containsType).ToImmutableArray()
         finally syncRoot.ExitReadLock()
+
+    /// Returns the name of all namespaces declared in source files or referenced assemblies.
+    member this.NamespaceNames () =
+        syncRoot.EnterReadLock()
+        try ImmutableArray.CreateRange Namespaces.Keys
+        finally syncRoot.ExitReadLock()
+
+    /// Returns true if the given namespace name exists in the symbol table.
+    member this.NamespaceExists nsName =
+        Namespaces.ContainsKey nsName
 
 
     /// Generates a hash for a resolved type. Does not incorporate any positional information.

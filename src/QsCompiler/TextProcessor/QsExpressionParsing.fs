@@ -163,7 +163,7 @@ let private boolLiteral =
     ]
 
 /// Parses a Q# int or double literal as QsExpression. 
-let private numericLiteral =
+let internal numericLiteral =
     let verifyAndBuild (nl : NumberLiteral, range) = 
         let format = 
             if   nl.IsBinary      then 2

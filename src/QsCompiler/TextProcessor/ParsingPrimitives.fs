@@ -32,6 +32,9 @@ let private buildQsExpression kind (range : Position * Position) = (kind, range)
 let private buildQsSymbol     kind (range : Position * Position) = (kind, range) |> QsSymbol.New
 let private buildQsType       kind (range : Position * Position) = (kind, range) |> QsType.New
 
+/// returns true if the given char is a valid symbol start - i.e. if it is an ascii letter or an underscore
+let internal isSymbolStart c = isAsciiLetter c || c = '_'
+
 /// returns true if the given char is a valid symbol continuation - i.e. if it is an ascii letter, a digit, or an underscore
 let internal isSymbolContinuation c = isAsciiLetter c || isDigit c || c = '_'
 
