@@ -494,7 +494,7 @@ let private VerifyCallExpr buildCallableKind addError (parent, isDirectRecursion
                     | TypeParameter tp when tp.Origin = entry.Key.Origin && tp.TypeName = entry.Key.TypeName -> typeParam
                     | _ when isDirectRecursion -> r |> addError (ErrorCode.DirectRecursionWithinTemplate, []); invalid // FIXME: support this (see comment above)
                     | _ -> r |> addError (ErrorCode.ConstrainsTypeParameter, [typeParam |> toString]); typeParam
-                else res |> StripRangeInfo.Apply
+                else res |> StripPositionInfo.Apply
             match entry |> Seq.distinctBy fst |> Seq.toList with
             | [(res, r)] -> uniqueResolution (res, r)
             | _ -> entry |> Seq.distinctBy (fst >> StripInferredInfoFromType) |> Seq.toList |> function

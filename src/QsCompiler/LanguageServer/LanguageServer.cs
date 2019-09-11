@@ -39,14 +39,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         private readonly EditorState EditorState;
 
         /// <summary>
-        /// helper function that selects a markup format from the given array of supported formats
-        /// </summary>
-        private MarkupKind ChooseFormat(MarkupKind[] supportedFormats) =>
-            supportedFormats?.Any() ?? false
-                ? supportedFormats.Contains(MarkupKind.Markdown) ? MarkupKind.Markdown : supportedFormats.First()
-                : MarkupKind.PlainText;
-
-        /// <summary>
         /// Returns true if the client name matches the given name.
         /// </summary>
         private bool ClientNameIs(string name) =>
@@ -58,6 +50,14 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         private bool ClientVersionIsAtLeast(Version version) =>
             version == null || this.ClientVersion == null || this.ClientVersion >= version;
+
+        /// <summary>
+        /// helper function that selects a markup format from the given array of supported formats
+        /// </summary>
+        private MarkupKind ChooseFormat(MarkupKind[] supportedFormats) =>
+            supportedFormats?.Any() ?? false
+                ? supportedFormats.Contains(MarkupKind.Markdown) ? MarkupKind.Markdown : supportedFormats.First()
+                : MarkupKind.PlainText;
 
 
         // methods required for basic functionality
@@ -115,16 +115,16 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal Task SendTelemetryAsync(string eventName,
             Dictionary<string, string> properties, Dictionary<string, int> measurements) =>
-#if TELEMETRY
+            #if TELEMETRY
             this.NotifyClientAsync(Methods.TelemetryEventName, new Dictionary<string, object>
             {
                 ["event"] = eventName,
                 ["properties"] = properties,
                 ["measurements"] = measurements
             });
-#else
+            #else
             Task.CompletedTask;
-#endif
+            #endif
 
         /// <summary>
         /// to be called when the server encounters an internal error (i.e. a QsCompilerError is raised)
@@ -379,6 +379,44 @@ namespace Microsoft.Quantum.QsLanguageServer
             catch { return new SymbolInformation[0]; } 
         }
 
+        [JsonRpcMethod(Methods.TextDocumentCompletionName)]
+        public object OnTextDocumentCompletion(JToken arg)
+        {
+            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
+            var task = new Task<CompletionList>(() =>
+            {
+                // Wait for the file manager to finish processing any changes that happened right before this completion request.
+                Thread.Sleep(50);
+                try
+                {
+                    return QsCompilerError.RaiseOnFailure(() =>
+                    EditorState.Completions(param),
+                    "Completions threw an exception");
+                }
+                catch { return null; }
+            });
+            task.Start(TaskScheduler.Default);
+            return task;
+        }
+
+        [JsonRpcMethod(Methods.TextDocumentCompletionResolveName)]
+        public object OnTextDocumentCompletionResolve(JToken arg)
+        {
+            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            var param = Utils.TryJTokenAs<CompletionItem>(arg);
+            var supportedFormats = this.ClientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
+            var format = ChooseFormat(supportedFormats);
+            try
+            {
+                var data = Utils.TryJTokenAs<CompletionItemData>(JToken.FromObject(param?.Data));
+                return QsCompilerError.RaiseOnFailure(() => 
+                EditorState.ResolveCompletion(param, data, format),
+                "ResolveCompletion threw an exception");
+            }
+            catch { return null; }
+        }
+
         [JsonRpcMethod(Methods.TextDocumentCodeActionName)]
         public object OnCodeAction(JToken arg)
         {
@@ -482,43 +520,6 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             foreach (var fileEvent in changes.Where(IsDll))
             { _ = this.EditorState.AssemblyDidChangeOnDiskAsync(fileEvent.Uri); }
-        }
-
-        [JsonRpcMethod(Methods.TextDocumentCompletionName)]
-        public async Task<CompletionList> OnTextDocumentCompletionAsync(JToken arg)
-        {
-            // Wait for the file manager to finish processing any changes that happened right before this completion
-            // request.
-            await Task.Delay(50);
-            try
-            {
-                return QsCompilerError.RaiseOnFailure(
-                    () => EditorState.Completions(Utils.TryJTokenAs<TextDocumentPositionParams>(arg)),
-                    "Completions threw an exception");
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        [JsonRpcMethod(Methods.TextDocumentCompletionResolveName)]
-        public CompletionItem OnTextDocumentCompletionResolve(JToken arg)
-        {
-            try
-            {
-                var item = Utils.TryJTokenAs<CompletionItem>(arg);
-                var data = Utils.TryJTokenAs<CompletionItemData>(JToken.FromObject(item?.Data));
-                var format = ChooseFormat(
-                    this.ClientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat);
-                return QsCompilerError.RaiseOnFailure(
-                    () => EditorState.ResolveCompletion(item, data, format),
-                    "ResolveCompletion threw an exception");
-            }
-            catch
-            {
-                return null;
-            }
         }
     }
 }
