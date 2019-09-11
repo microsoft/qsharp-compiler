@@ -8,8 +8,8 @@ open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.CompilerOptimization
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.Printer
 open Microsoft.Quantum.QsCompiler.Transformations
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 
 
@@ -27,7 +27,9 @@ let private buildSyntaxTree code =
 let private optimize code =
     let mutable tree = buildSyntaxTree code
     tree <- Optimizations.optimize tree
-    String.Join("\n", Seq.map printNamespace tree)
+    let x = SyntaxTreeToQs()
+    Seq.iter (x.Transform >> ignore) tree
+    x.Output
 
 /// Helper function that saves the compiler output as a test case (in the bin directory)
 let private createTestCase path =
@@ -38,10 +40,10 @@ let private createTestCase path =
 /// Asserts that the result of optimizing the _input file matches the result in the _output file
 let private assertOptimization path =
     let code = Path.Combine(Path.GetFullPath ".", path + "_input.qs") |> File.ReadAllText
-    let optimized = optimize code
     let expected = Path.Combine(Path.GetFullPath ".", path + "_output.txt") |> File.ReadAllText
-    let expected = expected.Replace("\r", "")  // Fix newline issues
-    Assert.Equal(expected, optimized)
+    let optimized = optimize code
+    // I remove any \r characters to prevent potential OS compatibility issues
+    Assert.Equal(expected.Replace("\r", ""), optimized.Replace("\r", ""))
 
 
 //////////////////////////////// tests //////////////////////////////////

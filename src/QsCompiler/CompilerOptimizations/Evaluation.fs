@@ -14,7 +14,6 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open ComputationExpressions
 open Utils
-open Printer
 
 
 /// Represents the internal state of a function evaluation.
@@ -59,14 +58,14 @@ type internal FunctionEvaluator(callables: Callables) =
     let castToBool x: bool =
         match x.Expression with
         | BoolLiteral b -> b
-        | _ -> ArgumentException ("Not a BoolLiteral: " + (printExpr x.Expression)) |> raise
+        | _ -> ArgumentException ("Not a BoolLiteral: " + x.Expression.ToString()) |> raise
 
     /// Evaluates and simplifies a single Q# expression
     member internal __.evaluateExpression expr: Imp<TypedExpression> = imperative {
         let! vars, counter = getState
         let result = ExpressionEvaluator(callables, vars, counter / 2).Transform expr
         if isLiteral callables result then return result
-        else yield CouldNotEvaluate ("Not a literal: " + (printExpr result.Expression))
+        else yield CouldNotEvaluate ("Not a literal: " + result.Expression.ToString())
     }
 
     /// Evaluates a single Q# statement
@@ -92,7 +91,7 @@ type internal FunctionEvaluator(callables: Callables) =
             | LocalVarTuple vt ->
                 let! value = this.evaluateExpression s.Rhs
                 do! setVars callables (vt, value)
-            | _ -> yield CouldNotEvaluate ("Unknown LHS of value update statement: " + (printExpr s.Lhs.Expression))
+            | _ -> yield CouldNotEvaluate ("Unknown LHS of value update statement: " + s.Lhs.Expression.ToString())
         | QsConditionalStatement s ->
             let mutable evalElseCase = true
             for cond, block in s.ConditionalBlocks do
@@ -114,7 +113,7 @@ type internal FunctionEvaluator(callables: Callables) =
                 | ValueArray va ->
                     return va :> seq<_>
                 | _ ->
-                    yield CouldNotEvaluate ("Unknown IterationValue in for loop: " + (printExpr iterExpr.Expression))
+                    yield CouldNotEvaluate ("Unknown IterationValue in for loop: " + iterExpr.Expression.ToString())
             }
             for loopValue in iterSeq do
                 do! setVars callables (fst stmt.LoopItem, loopValue)

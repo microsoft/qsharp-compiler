@@ -1,58 +1,68 @@
 namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
-    Function ArcSinh (x) : Double {
-        QsBody Intrinsic
+    
+    function ArcSinh (x : Double) : Double {
+        body intrinsic;
     }
-
-    Function f (x, w) : Int {
-        QsBody (x, w) {
-            mutable y = 1;
-            mutable z = [0, 0, 0, 0, 0];
-            set LocalVariable z = (LocalVariable z w/= 0 <- LocalVariable x);
-            while (LocalVariable z[0] > 0) {
-                set LocalVariable y = (LocalVariable y + LocalVariable w);
-                set LocalVariable z = (LocalVariable z w/= 0 <- (LocalVariable z[0] / 2));
-            }
-            mutable b = 0;
-            for a in LocalVariable z {
-                set LocalVariable b = (LocalVariable b + LocalVariable a);
-            }
-            return (LocalVariable y + LocalVariable b);
+    
+    
+    function f (x : Int, w : Int) : Int {
+        
+        mutable y = 1;
+        mutable z = [0, 0, 0, 0, 0];
+        set z = z w/ 0 <- x;
+        
+        while (z[0] > 0) {
+            set y = y + w;
+            set z = z w/ 0 <- z[0] / 2;
         }
-    }
-
-    Function g1 (x) : Int {
-        QsBody (x) {
-            if (LocalVariable x = 0) {
-                return 0;
-            }
-            if (LocalVariable x = 1) {
-                return 1;
-            }
-            return ((GlobalCallable g1 of (LocalVariable x - 1)) + (GlobalCallable g1 of (LocalVariable x - 2)));
+        
+        mutable b = 0;
+        
+        for (a in z) {
+            set b = b + a;
         }
+        
+        return y + b;
     }
-
-    Function g2 (x) : Int {
-        QsBody (x) {
-            return ((LocalVariable x = 0) ? 0 | ((LocalVariable x = 1) ? 1 | ((GlobalCallable g2 of (LocalVariable x - 1)) + (GlobalCallable g2 of (LocalVariable x - 2)))));
+    
+    
+    function g1 (x : Int) : Int {
+        
+        if (x == 0) {
+            return 0;
         }
-    }
-
-    Function mySin (x) : Double {
-        QsBody (x) {
-            let y = (GlobalCallable ArcSinh of LocalVariable x);
-            if (LocalVariable y = 0.000000) {
-                return 2.000000;
-            }
-            return (GlobalCallable ArcSinh of LocalVariable y);
+        
+        if (x == 1) {
+            return 1;
         }
+        
+        return g1(x - 1) + g1(x - 2);
     }
-
-    Operation Test () : (Int, Int, Int, Int, Double) {
-        QsBody () {
-            let b = (9 + (GlobalCallable g1 of 100));
-            let s = (GlobalCallable mySin of 2.000000);
-            return (LocalVariable b, 2, 3, 5, LocalVariable s);
+    
+    
+    function g2 (x : Int) : Int {
+        
+        return x == 0 ? 0 | (x == 1 ? 1 | g2(x - 1) + g2(x - 2));
+    }
+    
+    
+    function mySin (x : Double) : Double {
+        
+        let y = ArcSinh(x);
+        
+        if (y == 0.0) {
+            return 2.0;
         }
+        
+        return ArcSinh(y);
     }
+    
+    
+    operation Test () : (Int, Int, Int, Int, Double) {
+        
+        let b = 9 + g1(100);
+        let s = mySin(2.0);
+        return (b, 2, 3, 5, s);
+    }
+    
 }

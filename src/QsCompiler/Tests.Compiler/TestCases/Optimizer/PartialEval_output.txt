@@ -1,43 +1,38 @@
 namespace Microsoft.Quantum.Testing.Optimization.PartialEval {
-    Function M (q) : Result {
-        QsBody Intrinsic
+    
+    newtype MyFunc = ((Int -> Int));
+    
+    newtype MyInt = (Int);
+    
+    
+    function h (a : Int, b : Int, c : Int) : Int {
+        
+        return (a + b) + c;
     }
-
-    Function h (a, b, c) : Int {
-        QsBody (a, b, c) {
-            return ((LocalVariable a + LocalVariable b) + LocalVariable c);
-        }
+    
+    
+    function j (a : Int, (b : Int, c : Int, d : Int)) : Int {
+        
+        return ((a + b) + c) + d;
     }
-
-    Function j (a, (b, c, d)) : Int {
-        QsBody (a, (b, c, d)) {
-            return (((LocalVariable a + LocalVariable b) + LocalVariable c) + LocalVariable d);
-        }
+    
+    
+    function k (a : Int, fun : ((Int, Int) -> Int)) : Int {
+        
+        return fun(a, a);
     }
-
-    Function k (a, fun) : Int {
-        QsBody (a, fun) {
-            return (LocalVariable fun of (LocalVariable a, LocalVariable a));
-        }
+    
+    
+    function M (q : Int) : Result {
+        body intrinsic;
     }
-
-    Operation Test () : (Int, Int, Int, Int, Int, Int, Bool) {
-        QsBody () {
-            let o = (GlobalCallable M of 2);
-            let p = (LocalVariable o = One);
-            return (7, 15, 6, 3, 12, 5, LocalVariable p);
-        }
+    
+    
+    operation Test () : (Int, Int, Int, Int, Int, Int, Bool) {
+        
+        let o = M(2);
+        let p = o == One;
+        return (7, 15, 6, 3, 12, 5, p);
     }
-
-    TypeConstructor MyFunc (__Item1__) : MyFunc {
-        QsBody Intrinsic
-    }
-
-    TypeConstructor MyInt (__Item1__) : MyInt {
-        QsBody Intrinsic
-    }
-
-    newtype MyFunc = (Int -> Int);
-
-    newtype MyInt = Int;
+    
 }

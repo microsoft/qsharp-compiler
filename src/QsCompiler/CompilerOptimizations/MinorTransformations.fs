@@ -10,7 +10,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open Utils
-open Printer
 
 
 /// A SyntaxTreeTransformation that finds identifiers in each operators that represent distict values.
@@ -94,9 +93,6 @@ type internal OptimizingTransformation() =
     override this.Transform x =
         let newX = base.Transform x
         if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then
-            let s1 = printNamespace x
-            let s2 = printNamespace newX
-            printfn "%s made change! Size went from %d to %d" (this.GetType().Name) s1.Length s2.Length
             changed <- true
         newX
 
