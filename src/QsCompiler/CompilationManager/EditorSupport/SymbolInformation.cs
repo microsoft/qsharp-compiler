@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (sym == null) return false;
 
             var implementation = compilation.TryGetSpecializationAt(file, position, out var parentName, out var callablePos, out var specPos);
-            var declarations = implementation?.LocalDeclarationsAt(position.Subtract(specPos));
+            var declarations = implementation?.LocalDeclarationsAt(position.Subtract(specPos), includeDeclaredAtPosition: true);
             var locals = compilation.PositionedDeclarations(parentName, callablePos, specPos, declarations);
             var definition = locals.LocalVariable(sym);
 

@@ -610,15 +610,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns all locally declared symbols at the given (absolute) position in the given file
         /// and sets the out parameter to the name of the parent callable at that position, 
         /// assuming that the position corresponds to a piece of code within the given file.  
+        /// If includeDeclaredAtPosition is set to true, then this includes the symbols declared within the statement at the specified position. 
         /// Note that if the given position does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
         /// the returned declarations or the set parent name are not necessarily accurate - they are for any actual piece of code, though. 
         /// If the given file or position is null, or if the locally declared symbols could not be determined, returns an empty LocalDeclarations object. 
         /// Sets the parent name to null, if no parent could be determind.
         /// </summary>
-        internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName parentCallable)
+        internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName parentCallable, bool includeDeclaredAtPosition = false)
         {
             var implementation = this.TryGetSpecializationAt(file, pos, out parentCallable, out var callablePos, out var specPos);
-            var declarations = implementation?.LocalDeclarationsAt(pos.Subtract(specPos));
+            var declarations = implementation?.LocalDeclarationsAt(pos.Subtract(specPos), includeDeclaredAtPosition);
             return this.PositionedDeclarations(parentCallable, callablePos, specPos, declarations); 
         }
     }

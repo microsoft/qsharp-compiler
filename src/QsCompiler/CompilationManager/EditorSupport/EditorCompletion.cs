@@ -296,7 +296,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException(nameof(position));
             return
                 compilation
-                .TryGetLocalDeclarations(file, position, out _)
+                .TryGetLocalDeclarations(file, position, out _, includeDeclaredAtPosition: false)
                 .Variables
                 .Where(variable => !mutableOnly || variable.InferredInformation.IsMutable)
                 .Select(variable => new CompletionItem()
