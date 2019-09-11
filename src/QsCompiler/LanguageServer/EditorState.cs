@@ -370,7 +370,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         /// <summary>
         /// Resolves additional information for the given completion item. Returns the original completion item if no
-        /// additional information is available.
+        /// additional information is available, or if the completion item is no longer valid or accurate.
         /// <para/>
         /// Returns null if any parameter is null or the file given in the original completion request is invalid or
         /// ignored.
