@@ -518,9 +518,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 var namespaceElements = definedCallables.Concat(importedCallables).Concat(definedTypes).Concat(importedTypes);
                 var documentation = this.GlobalSymbols.Documentation();
+                string QualifiedName(QsQualifiedName fullName) => $"{fullName.Namespace.Value}.{fullName.Name.Value}";
+                string ElementName(QsNamespaceElement e) =>
+                    e is QsNamespaceElement.QsCustomType t ? QualifiedName(t.Item.FullName) :
+                    e is QsNamespaceElement.QsCallable c ? QualifiedName(c.Item.FullName) : null;
                 return namespaceElements
                     .ToLookup(element => element.Item1, element => element.Item2)
-                    .Select(elements => new QsNamespace(elements.Key, elements.ToImmutableArray(), documentation[elements.Key]))
+                    .Select(elements => new QsNamespace(elements.Key, elements.OrderBy(ElementName).ToImmutableArray(), documentation[elements.Key]))
                     .ToImmutableArray();
             }
             finally { this.SyncRoot.ExitReadLock(); }
