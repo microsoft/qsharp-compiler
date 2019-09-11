@@ -487,7 +487,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentNullException(nameof(compilation));
             if (data == null)
                 throw new ArgumentNullException(nameof(data));
-            if (data.QualifiedName == null || data.SourceFile == null)
+            if (data.QualifiedName == null
+                    || data.SourceFile == null
+                    || !compilation.GlobalSymbols.NamespaceExists(data.QualifiedName.Namespace))
                 return null;
 
             switch (kind)
