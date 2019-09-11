@@ -610,7 +610,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns all locally declared symbols at the given (absolute) position in the given file
         /// and sets the out parameter to the name of the parent callable at that position, 
         /// assuming that the position corresponds to a piece of code within the given file.  
-        /// If includeDeclaredAtPosition is set to true, then this includes the symbols declared within the statement at the specified position. 
+        /// If includeDeclaredAtPosition is set to true, then this includes the symbols declared within the statement at the specified position, 
+        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations). 
         /// Note that if the given position does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
         /// the returned declarations or the set parent name are not necessarily accurate - they are for any actual piece of code, though. 
         /// If the given file or position is null, or if the locally declared symbols could not be determined, returns an empty LocalDeclarations object. 
