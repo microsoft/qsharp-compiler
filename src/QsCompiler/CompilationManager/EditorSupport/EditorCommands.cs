@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (file == null) return null;
             if (!file.TryGetReferences(compilation, position, out var declLocation, out var locations)) return null;
-            return context?.IncludeDeclaration ?? true && declLocation != null
+            return (context?.IncludeDeclaration ?? true) && declLocation != null
                 ? new[] { declLocation }.Concat(locations).ToArray()
                 : locations.ToArray();
         }
