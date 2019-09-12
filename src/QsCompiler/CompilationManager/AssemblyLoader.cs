@@ -18,8 +18,12 @@ namespace Microsoft.Quantum.QsCompiler
     /// The standard can be found here: https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-335.pdf,
     /// and the section on custom attributes starts on page 267. 
     /// </summary>
-    public static class AttributeReader
+    public static class AssemblyLoader
     {
+        // tools for loading the compiled syntax tree from the dll resource (later setup for shipping Q# libraries)
+
+        // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)
+
         /// <summary>
         /// There are two possible handle kinds in use for the constructor of a custom attribute, 
         /// one pointing to the MethodDef table and one to the MemberRef table, see p.216 in the ECMA standard linked above and 

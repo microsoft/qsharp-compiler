@@ -1052,6 +1052,33 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        private static ImmutableArray<(string, string)>? GetQsAttributes(Uri asm,
+            Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
+        {
+            try
+            {
+                try { AssemblyName.GetAssemblyName(asm.LocalPath); } // will throw if the file is not a valid assembly
+                catch (FileLoadException) { } // the file is already loaded -> we can ignore that one
+                // TODO: TRY LOOK THROUGH THE RESOURCES
+                return AssemblyLoader.GetQsCompilerAttributes(asm).ToImmutableArray();
+            }
+            catch (BadImageFormatException ex)
+            {
+                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.FileIsNotAnAssembly, new[] { asm.LocalPath }, MessageSource(asm)));
+                onException?.Invoke(ex);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.CouldNotLoadBinaryFile, new[] { asm.LocalPath }, MessageSource(asm)));
+                onException?.Invoke(ex);
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Uses FilterFiles to filter the given project files, and generates the corresponding errors and warnings.
         /// For each existing project file, calls GetOutputPath on it to obtain the path to the built dll for the project.
         /// For any exception due to a failure of GetOutputPath the given onException action is invoked. 
@@ -1096,20 +1123,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             foreach (var projFile in missingDlls.Select(dll => projectDlls[dll]))
             { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.MissingProjectReferenceDll, new[] { projFile.LocalPath }, MessageSource(projFile))); }
 
-            ImmutableArray<(string, string)>? GetQsAttributes(Uri asm)
-            {
-                try
-                {
-                    try { AssemblyName.GetAssemblyName(asm.LocalPath); } // will throw if the file is not a valid assembly
-                    catch (FileLoadException) { } // the file is already loaded -> we can ignore that one
-                    return AttributeReader.GetQsCompilerAttributes(asm).ToImmutableArray();
-                }
-                catch (Exception ex) // any exception here is really a failure of GetOutputPath and will be treated as an unexpected exception
-                {
-                    onException?.Invoke(ex);
-                    return null;
-                }
-            }
+            ImmutableArray<(string, string)>? GetQsAttributes(Uri asm) =>
+                ProjectManager.GetQsAttributes(asm, onException: onException); // an exception here is a failure of GetOutputPath and will be treated as unexpected exception
 
             var attributes = existingProjectDlls
                 .Select(file => (file, GetQsAttributes(file)))
@@ -1134,27 +1149,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
             if (references == null) throw new ArgumentNullException(nameof(references));
-            ImmutableArray<(string, string)>? GetQsAttributes(Uri asm)
-            {
-                try
-                {
-                    try { AssemblyName.GetAssemblyName(asm.LocalPath); } // will throw if the file is not a valid assembly
-                    catch (FileLoadException) { } // the file is already loaded -> we can ignore that one
-                    return AttributeReader.GetQsCompilerAttributes(asm).ToImmutableArray();
-                }
-                catch (BadImageFormatException ex)
-                {
-                    onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.FileIsNotAnAssembly, new[] { asm.LocalPath }, MessageSource(asm)));
-                    onException?.Invoke(ex);
-                    return null;
-                }
-                catch (Exception ex)
-                {
-                    onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.CouldNotLoadBinaryFile, new[] { asm.LocalPath }, MessageSource(asm)));
-                    onException?.Invoke(ex);
-                    return null;
-                }
-            }
+            ImmutableArray<(string, string)>? GetQsAttributes(Uri asm) =>
+                ProjectManager.GetQsAttributes(asm, onDiagnostic, onException);
 
             var relevant = references.Where(file => file.IndexOf("mscorlib.dll", StringComparison.InvariantCultureIgnoreCase) < 0);
             var assembliesToLoad = FilterFiles(relevant,
