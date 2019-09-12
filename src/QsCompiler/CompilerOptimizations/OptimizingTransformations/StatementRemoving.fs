@@ -21,7 +21,8 @@ type internal StatementRemover(removeFunctions) =
 
         /// Given a statement, returns a sequence of statements to replace this statement with.
         /// Removes useless statements, such as variable declarations with discarded values.
-        /// Simplifies statements, such as replacing ScopeStatements with their contents.
+        /// Replaces ScopeStatements and empty qubit allocations with the statements they contain.
+        /// Splits tuple declaration and updates into single declarations or updates for each variable.
         /// Splits QsQubitScopes by replacing register allocations with single qubit allocations.
         override __.TransformStatement stmt =
             let c = SideEffectChecker()

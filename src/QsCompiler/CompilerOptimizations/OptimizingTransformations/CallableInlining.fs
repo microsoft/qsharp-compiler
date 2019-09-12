@@ -131,9 +131,6 @@ type internal CallableInliner(callables) =
     let mutable currentCallable: QsCallable option = None
     let mutable renamer: VariableRenamer option = None
 
-    /// The random generator to give unique variable names
-    let random = System.Random()
-
     let tryInline expr =
         maybe {
             let! ii = tryGetInliningInfo callables expr

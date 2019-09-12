@@ -52,9 +52,9 @@ type internal ConstantPropagator(callables) =
         /// The StatementKindTransformation used to evaluate constants
         override scope.StatementKind = { new StatementKindTransformation() with
             override __.ExpressionTransformation x = scope.Expression.Transform x
-            override __.LocationTransformation x = scope.onLocation x
+            override __.LocationTransformation x = x
             override __.ScopeTransformation x = scope.Transform x
-            override __.TypeTransformation x = scope.Expression.Type.Transform x
+            override __.TypeTransformation x = x
 
             override so.onVariableDeclaration stm =
                 let lhs = so.onSymbolTuple stm.Lhs

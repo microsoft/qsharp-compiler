@@ -24,10 +24,10 @@ type internal LoopUnroller(callables, maxSize) =
 
     override __.Scope = { new ScopeTransformation() with
         override scope.StatementKind = { new StatementKindTransformation() with
-            override __.ExpressionTransformation x = scope.Expression.Transform x
-            override __.LocationTransformation x = scope.onLocation x
+            override __.ExpressionTransformation x = x
+            override __.LocationTransformation x = x
             override __.ScopeTransformation x = scope.Transform x
-            override __.TypeTransformation x = scope.Expression.Type.Transform x
+            override __.TypeTransformation x = x
 
             override this.onForStatement stm =
                 let loopVar = fst stm.LoopItem |> this.onSymbolTuple

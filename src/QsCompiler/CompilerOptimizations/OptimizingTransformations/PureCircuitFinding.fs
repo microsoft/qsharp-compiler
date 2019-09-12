@@ -63,12 +63,4 @@ type internal PureCircuitFinder(callables) =
             finishCircuit()
 
             QsScope.New (newStatements, scope.KnownSymbols)
-
-
-        override this.StatementKind = { new StatementKindTransformation () with
-            override __.ScopeTransformation s = this.Transform s
-            override __.ExpressionTransformation ex = this.Expression.Transform ex
-            override __.TypeTransformation t = this.Expression.Type.Transform t
-            override __.LocationTransformation l = this.onLocation l
-        }
     }

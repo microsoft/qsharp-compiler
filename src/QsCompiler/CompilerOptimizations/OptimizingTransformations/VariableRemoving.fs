@@ -26,10 +26,10 @@ type internal VariableRemover() =
 
     override __.Scope = { new ScopeTransformation() with
         override this.StatementKind = { new StatementKindTransformation() with
-            override __.ExpressionTransformation x = this.Expression.Transform x
-            override __.LocationTransformation x = this.onLocation x
+            override __.ExpressionTransformation x = x
+            override __.LocationTransformation x = x
             override __.ScopeTransformation x = this.Transform x
-            override __.TypeTransformation x = this.Expression.Type.Transform x
+            override __.TypeTransformation x = x
 
             override stmtKind.onSymbolTuple syms =
                 match syms with

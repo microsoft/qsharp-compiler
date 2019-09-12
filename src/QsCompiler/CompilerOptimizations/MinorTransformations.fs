@@ -12,7 +12,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Utils
 
 
-/// A SyntaxTreeTransformation that finds identifiers in each operators that represent distict values.
+/// A SyntaxTreeTransformation that finds identifiers in each implementation that represent distict values.
 /// Should be called at the QsCallable level, not as the QsNamespace level, as it's meant to operate on a single callable.
 type internal FindDistinctQubits() =
     inherit SyntaxTreeTransformation()
@@ -31,9 +31,9 @@ type internal FindDistinctQubits() =
     override __.Scope = { new ScopeTransformation() with
         override this.StatementKind = { new StatementKindTransformation() with
             override __.ScopeTransformation s = this.Transform s
-            override __.ExpressionTransformation ex = this.Expression.Transform ex
-            override __.TypeTransformation t = this.Expression.Type.Transform t
-            override __.LocationTransformation l = this.onLocation l
+            override __.ExpressionTransformation ex = ex
+            override __.TypeTransformation t = t
+            override __.LocationTransformation l = l
 
             override __.onQubitScope stm =
                 stm.Binding.Lhs |> flatten |> Seq.iter (function
@@ -44,7 +44,7 @@ type internal FindDistinctQubits() =
     }
 
 
-/// A ScopeTransformation that tracks what outside variables the transformed code could mutate
+/// A ScopeTransformation that tracks what variables the transformed code could mutate
 type internal MutationChecker() =
     inherit ScopeTransformation()
 
@@ -56,9 +56,9 @@ type internal MutationChecker() =
 
     override this.StatementKind = { new StatementKindTransformation() with
         override __.ScopeTransformation s = this.Transform s
-        override __.ExpressionTransformation ex = this.Expression.Transform ex
-        override __.TypeTransformation t = this.Expression.Type.Transform t
-        override __.LocationTransformation l = this.onLocation l
+        override __.ExpressionTransformation ex = ex
+        override __.TypeTransformation t = t
+        override __.LocationTransformation l = l
 
         override __.onVariableDeclaration stm =
             flatten stm.Lhs |> Seq.iter (function
@@ -90,7 +90,7 @@ type internal OptimizingTransformation() =
         x
 
     /// Checks whether the syntax tree changed at all
-    override this.Transform x =
+    override __.Transform x =
         let newX = base.Transform x
         if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then
             changed <- true
@@ -109,7 +109,7 @@ type internal ReferenceCounter() =
     override this.Expression = { new ExpressionTransformation() with
         override expr.Kind = { new ExpressionKindTransformation() with
             override __.ExpressionTransformation ex = expr.Transform ex
-            override __.TypeTransformation t = expr.Type.Transform t
+            override __.TypeTransformation t = t
 
             override __.onIdentifier (sym, tArgs) =
                 match sym with
@@ -160,7 +160,7 @@ type internal SideEffectChecker() =
     override __.Expression = { new ExpressionTransformation() with
         override expr.Kind = { new ExpressionKindTransformation() with
             override __.ExpressionTransformation ex = expr.Transform ex
-            override __.TypeTransformation t = expr.Type.Transform t
+            override __.TypeTransformation t = t
 
             override __.onFunctionCall (method, arg) =
                 anyOutput <- true
@@ -176,8 +176,8 @@ type internal SideEffectChecker() =
     override this.StatementKind = { new StatementKindTransformation() with
         override __.ScopeTransformation s = this.Transform s
         override __.ExpressionTransformation ex = this.Expression.Transform ex
-        override __.TypeTransformation t = this.Expression.Type.Transform t
-        override __.LocationTransformation l = this.onLocation l
+        override __.TypeTransformation t = t
+        override __.LocationTransformation l = l
 
         override __.onValueUpdate stm =
             let mutatesState = match stm.Lhs with LocalVarTuple x when isAllDiscarded x -> false | _ -> true

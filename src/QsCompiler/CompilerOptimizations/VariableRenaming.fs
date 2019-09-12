@@ -99,7 +99,7 @@ type internal VariableRenamer() =
         override __.Expression = { new ExpressionTransformation() with
             override expr.Kind = { new ExpressionKindTransformation() with
                 override __.ExpressionTransformation ex = expr.Transform ex
-                override __.TypeTransformation t = expr.Type.Transform t
+                override __.TypeTransformation t = t
 
                 override __.onIdentifier (sym, tArgs) =
                     maybe {
@@ -115,9 +115,9 @@ type internal VariableRenamer() =
 
         override this.StatementKind = { new StatementKindTransformation() with
             override __.ExpressionTransformation x = this.Expression.Transform x
-            override __.LocationTransformation x = this.onLocation x
+            override __.LocationTransformation x = x
             override __.ScopeTransformation x = this.Transform x
-            override __.TypeTransformation x = this.Expression.Type.Transform x
+            override __.TypeTransformation x = x
 
             override this.onSymbolTuple syms =
                 match syms with
