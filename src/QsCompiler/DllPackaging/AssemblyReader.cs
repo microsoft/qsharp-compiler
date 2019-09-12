@@ -16,12 +16,9 @@ namespace Microsoft.Quantum.QsCompiler
 
     public class AssemblyReader : IDisposable
     {
-        public bool IsQuantumAssembly => isQuantumAssembly.Value;
-
         private FileStream fileStream;
         private PEReader peReader;
         private MetadataReader metadataReader;
-        private readonly Lazy<bool> isQuantumAssembly;
 
         public AssemblyReader(Uri asm)
         {
@@ -32,80 +29,40 @@ namespace Microsoft.Quantum.QsCompiler
             fileStream = File.OpenRead(asm.LocalPath);
             peReader = new PEReader(fileStream);
             metadataReader = peReader.GetMetadataReader();
-
-            isQuantumAssembly = new Lazy<bool>(() =>
-                GetResourceNames()
-                    .Any(
-                        name => name == WellKnown.AST_RESOURCE_NAME
-                    )
-            );
         }
 
-        private ImmutableDictionary<string, ManifestResource> GetResources() =>
-            metadataReader
-                .ManifestResources
-                .Select(
-                    handle => metadataReader.GetManifestResource(handle)
-                )
+        private ImmutableDictionary<string, ManifestResource> Resources =>
+            metadataReader.ManifestResources
+                .Select(metadataReader.GetManifestResource)
                 .ToImmutableDictionary(
                     resource => metadataReader.GetString(resource.Name),
                     resource => resource
                 );
 
-        private IEnumerable<string> GetResourceNames() =>
-            GetResources().Keys;
-
-        private ManifestResource GetAstResource()
-        {
-            if (!IsQuantumAssembly)
-            {
-                throw new IOException("Assembly is not a quantum assembly, or is a legacy quantum assembly.");
-            }
-
-            return GetResources()[WellKnown.AST_RESOURCE_NAME];
-        }
+        public bool TryGetManifestResource(out ManifestResource qResource) =>
+            Resources.TryGetValue(WellKnown.AST_RESOURCE_NAME, out qResource);
 
         public IEnumerable<QsNamespace> GetAst()
         {
-            var resource = GetAstResource();
-            if (!resource.Implementation.IsNil)
-            {
-                throw new IOException("AST data missing from assembly.");
-            }
+            if (!TryGetManifestResource(out var resource) || resource.Implementation.IsNil)
+            { return ImmutableArray<QsNamespace>.Empty; }
 
-            // We know the offset of the resource we want relative to the
-            // resources directory. Thus, if we find the resources directory
-            // we know where in the image the thing we want is.
-            if (!peReader.PEHeaders.TryGetDirectoryOffset(
-                    peReader.PEHeaders.CorHeader.ResourcesDirectory,
-                    out var directoryOffset
-            ))
-            {
-                throw new IOException("Could not find resources directory.");
-            }
+            // The offset of the resource is relative to the resources directory. 
+            // We hence need to know the offset of the directory itself in order to load it. 
+            var resourceDir = peReader.PEHeaders.CorHeader.ResourcesDirectory;
+            if (!peReader.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset))
+            { return ImmutableArray<QsNamespace>.Empty; }
 
-            // NOTE: This is going to be very slow, as it loads the entire
-            //       assembly into a managed array, byte by byte. On the other
-            //       hand, it at least avoids needing an unsafe block.
-            //       The alternative would be to contribute a fix to PEMemoryBlock
-            //       to expose a ReadOnlySpan.
-            var image = peReader
-                .GetEntireImage();
-            var resourceLength = BitConverter.ToInt32(image
-                // NOTE: The following cast will fail for large Q# ASTs (> 4GB).
-                //       On the other hand, given current performance problems
-                //       due to avoiding unsafety, we will likely have much larger
-                //       problems first.
-                .GetContent((int)resource.Offset + directoryOffset, sizeof(Int32))
-                .ToArray(),
-                0
-            );
-            var resourceData = image
-                .GetContent((int)resource.Offset + sizeof(Int32) + directoryOffset, resourceLength)
-                .ToArray();
+            // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
+            // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB. 
+            // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
+            var image = peReader.GetEntireImage(); // uses int to denote the length and access parameters
+            var absResourceOffset = (int)resource.Offset + directoryOffset;
 
-            var memoryStream = new MemoryStream(resourceData);
-            return CompilationLoader.ReadBinary(memoryStream);
+            // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
+            var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(Int32)).ToArray(), 0);
+            var resourceData = image.GetContent(absResourceOffset + sizeof(Int32), resourceLength).ToArray();
+            return CompilationLoader.ReadBinary(new MemoryStream(resourceData));
         }
 
         #region IDisposable Support
