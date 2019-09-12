@@ -1450,7 +1450,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 relevantScope = preceding.Any() ? preceding.Last().Body : null;
             }
             if (lastPreceding.Statement is QsStatementKind.QsForStatement forStatement)
-            { relevantScope = forStatement.Item.Body; } 
+            { relevantScope = forStatement.Item.Body; }
             if (lastPreceding.Statement is QsStatementKind.QsWhileStatement whileStatement)
             { relevantScope = whileStatement.Item.Body; }
             if (lastPreceding.Statement is QsStatementKind.QsRepeatStatement repeatStatement)
