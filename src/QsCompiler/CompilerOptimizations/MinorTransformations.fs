@@ -211,6 +211,16 @@ type [<AbstractClass>] internal StatementCollectorTransformation() =
         QsScope.New (statements, parentSymbols)
 
 
+/// A SyntaxTreeTransformation that removes all known symbols from anywhere in the AST
+type internal StripAllKnownSymbols() =
+    inherit SyntaxTreeTransformation()
+
+    override __.Scope = { new ScopeTransformation() with
+        override this.Transform scope =
+            QsScope.New (scope.Statements |> Seq.map this.onStatement, LocalDeclarations.Empty)
+    }
+
+
 /// A SyntaxTreeTransformation that removes all range information from anywhere in the AST
 type internal StripAllRangeInformation() =
     inherit SyntaxTreeTransformation()

@@ -28,6 +28,7 @@ type Optimizations() =
         let removeFunctions = false
         let maxSize = 40
 
+        tree <- List.map (StripAllKnownSymbols().Transform) tree
         tree <- List.map (StripAllRangeInformation().Transform) tree
         tree <- List.map (VariableRenamer().Transform) tree
 
