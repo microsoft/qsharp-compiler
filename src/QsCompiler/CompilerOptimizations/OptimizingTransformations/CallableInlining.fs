@@ -162,6 +162,8 @@ type internal CallableInliner(callables) =
         }
 
     /// Inline an expression representing a callable with exactly one return statement.
+    /// This single return statement must be at the end of the function body, as otherwise
+    /// there's either dead code or an implicit return statement at the end of the body.
     /// Returns None if the expression cannot be safely inlined.
     let safeInlineReturn expr =
         maybe {
