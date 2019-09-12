@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.CompilerOptimization
 
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler
 
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.Utils
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.MinorTransformations
@@ -29,7 +29,7 @@ type Optimizations() =
         let maxSize = 40
 
         tree <- List.map (StripAllKnownSymbols().Transform) tree
-        tree <- List.map (StripAllRangeInformation().Transform) tree
+        tree <- tree |> List.map StripPositionInfo.Apply
         tree <- List.map (VariableRenamer().Transform) tree
 
         let optimizers: OptimizingTransformation list = [

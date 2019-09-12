@@ -125,30 +125,11 @@ type internal VariableRenamer() =
                 | VariableNameTuple items -> Seq.map this.onSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
                 | InvalidItem | DiscardedItem -> syms
 
-            override this.onVariableDeclaration stm =
-                let rhs = this.ExpressionTransformation stm.Rhs
-                let lhs = this.onSymbolTuple stm.Lhs
-                QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
-
-            override this.onForStatement stm =
-                let iterVals = this.ExpressionTransformation stm.IterationValues
-                let loopVar = fst stm.LoopItem |> this.onSymbolTuple
-                let loopVarType = this.TypeTransformation (snd stm.LoopItem)
-                let body = this.ScopeTransformation stm.Body
-                QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement
-
             override __.onRepeatStatement stm =
                 renamingStack <- enterScope renamingStack
                 skipScope <- true
                 let result = base.onRepeatStatement stm
                 renamingStack <- exitScope renamingStack
                 result
-
-            override this.onQubitScope (stm : QsQubitScope) =
-                let kind = stm.Kind
-                let rhs = this.onQubitInitializer stm.Binding.Rhs
-                let lhs = this.onSymbolTuple stm.Binding.Lhs
-                let body = this.ScopeTransformation stm.Body
-                QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
         }
     }

@@ -219,22 +219,3 @@ type internal StripAllKnownSymbols() =
         override this.Transform scope =
             QsScope.New (scope.Statements |> Seq.map this.onStatement, LocalDeclarations.Empty)
     }
-
-
-/// A SyntaxTreeTransformation that removes all range information from anywhere in the AST
-type internal StripAllRangeInformation() =
-    inherit SyntaxTreeTransformation()
-
-    override __.Scope = { new ScopeTransformation() with
-
-        override __.onLocation _ = Null
-
-        override __.Expression = { new ExpressionTransformation() with
-
-            override __.onRangeInformation _ = Null
-
-            override __.Type = { new ExpressionTypeTransformation() with
-                override __.onRangeInformation _ = Null
-            }
-        }
-    }
