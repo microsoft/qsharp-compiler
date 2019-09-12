@@ -412,6 +412,7 @@ type LocalDeclarations = { // keeping things here as arrays for resource reasons
     Variables : ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>
 }
     with 
+    member this.IsEmpty = this.Variables.Length = 0
     static member Empty = {Variables = ImmutableArray.Empty}
 
 

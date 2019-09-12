@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (sym == null) return false;
 
             var implementation = compilation.TryGetSpecializationAt(file, position, out var parentName, out var callablePos, out var specPos);
-            var declarations = implementation?.LocalDeclarationsAt(position.Subtract(specPos)).Item1;
+            var declarations = implementation?.LocalDeclarationsAt(position.Subtract(specPos), includeDeclaredAtPosition: true);
             var locals = compilation.PositionedDeclarations(parentName, callablePos, specPos, declarations);
             var definition = locals.LocalVariable(sym);
 
@@ -219,7 +219,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             else // the given position corresponds to a variable declared as part of a specialization declaration or implementation
             {
                 var defStart = DiagnosticTools.GetAbsolutePosition(defOffset, defRange.Item1);
-                var statements = implementation.LocalDeclarationsAt(defStart.Subtract(specPos)).Item2;
+                var statements = implementation.StatementsAfterDeclaration(defStart.Subtract(specPos));
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
                 var rootOffset = DiagnosticTools.AsTuple(specPos); 
                 referenceLocations = IdentifierLocation.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Distinct().Select(AsLocation);
