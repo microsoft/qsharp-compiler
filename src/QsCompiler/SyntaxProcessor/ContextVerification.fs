@@ -43,6 +43,26 @@ let private verifyDeclaration (context : SyntaxTokenContext) =
             | _ -> errMsg
     context.Parents |> Array.toList |> isNamespace
 
+/// Verifies that either there is no preceding fragment in the given context, 
+/// or the preceding fragment is another open directive.
+/// Verifies that the direct parent is a namespace declaration. 
+/// Returns an array with suitable diagnostics.
+let private verifyOpenDirective context = 
+    match context.Previous with 
+    | Value (OpenDirective _) | Null -> verifyDeclaration context 
+    | Value InvalidFragment -> false, [||]
+    | _ -> false, [| (ErrorCode.MisplacedOpenDirective |> Error, context.Range) |] // open directives may only occur at the beginning of a namespace
+
+/// Verifies that the next fragment is either another attribute or a function, operation, or type declaration. 
+/// Verifies that the direct parent is a namespace declaration. 
+/// Returns an array with suitable diagnostics.
+let private verifyDeclarationAttribute context =
+    match context.Next with 
+    | Value (FunctionDeclaration _) | Value (OperationDeclaration _) | Value (TypeDefinition _) | Value (DeclarationAttribute _) -> verifyDeclaration context
+    | Value InvalidFragment -> false, [||]
+    | _ -> false, [| (ErrorCode.MisplacedDeclarationAttribute |> Error, context.Range) |]
+    
+
 /// Verifies that the given generator is a valid generator for the callable body - 
 /// i.e. verifies that the generator is either a user defined implementation, or intrinsic.
 /// Does *not* verify whether the symbol tuple for a user defined implementation is correct.
@@ -71,7 +91,6 @@ let private checkForInvalidControlledGenerator range = function
 /// Returns an array with suitable diagnostics.
 let private checkForInvalidControlledAdjointGenerator _ = function
     | _ -> [||]
-
 
 /// Verifies that the direct parent of the given context is either an operation or a function declaration.
 /// If the direct parent is a function, verifies that the given specialization is a body specialization.
@@ -187,16 +206,6 @@ let private followedByApply context =
     | Value InvalidFragment -> false, [||]
     | _ -> false, [| (ErrorCode.MissingContinuationApply |> Error, context.Range) |]
 
-/// Verifies that either there is no preceding fragment in the given context, 
-/// or the preceding fragment is another open directive.
-/// Verifies that the direct parent is a namespace declaration. 
-/// Returns an array with suitable diagnostics.
-let private verifyOpenDirective context = 
-    match context.Previous with 
-    | Value (OpenDirective _) | Null -> verifyDeclaration context 
-    | Value InvalidFragment -> false, [||]
-    | _ -> false, [| (ErrorCode.MisplacedOpenDirective |> Error, context.Range) |] // open directives may only occur at the beginning of a namespace
-
 
 type ContextVerification = delegate of SyntaxTokenContext -> (bool * QsCompilerDiagnostic[]) 
 
@@ -236,6 +245,7 @@ let VerifySyntaxTokenContext =
             | FunctionDeclaration           _ -> verifyDeclaration context
             | TypeDefinition                _ -> verifyDeclaration context
             | OpenDirective                 _ -> verifyOpenDirective context
+            | DeclarationAttribute          _ -> verifyDeclarationAttribute context
             | NamespaceDeclaration          _ -> verifyNamespace context
             | InvalidFragment               _ -> false, [||] // excluded from the compilation
         |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x,y) -> QsCompilerDiagnostic.New (x, []) y)

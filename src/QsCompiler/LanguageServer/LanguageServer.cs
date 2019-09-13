@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Reactive.Linq;
 using Microsoft.Quantum.QsCompiler;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol; 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -33,8 +34,22 @@ namespace Microsoft.Quantum.QsLanguageServer
         private readonly CoalesceingQueue FileEvents;
 
         private string ClientName;
+        private Version ClientVersion;
         private ClientCapabilities ClientCapabilities;
         private readonly EditorState EditorState;
+
+        /// <summary>
+        /// Returns true if the client name matches the given name.
+        /// </summary>
+        private bool ClientNameIs(string name) =>
+            name != null && name.Equals(this.ClientName, StringComparison.InvariantCultureIgnoreCase);
+
+        /// <summary>
+        /// Returns true if the client version is the same as the given version or later, or if the client version is
+        /// unknown.
+        /// </summary>
+        private bool ClientVersionIsAtLeast(Version version) =>
+            version == null || this.ClientVersion == null || this.ClientVersion >= version;
 
         /// <summary>
         /// helper function that selects a markup format from the given array of supported formats
@@ -100,16 +115,16 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal Task SendTelemetryAsync(string eventName,
             Dictionary<string, string> properties, Dictionary<string, int> measurements) =>
-#if TELEMETRY
+            #if TELEMETRY
             this.NotifyClientAsync(Methods.TelemetryEventName, new Dictionary<string, object>
             {
                 ["event"] = eventName,
                 ["properties"] = properties,
                 ["measurements"] = measurements
             });
-#else
+            #else
             Task.CompletedTask;
-#endif
+            #endif
 
         /// <summary>
         /// to be called when the server encounters an internal error (i.e. a QsCompilerError is raised)
@@ -145,9 +160,18 @@ namespace Microsoft.Quantum.QsLanguageServer
             var doneWithInit = this.WaitForInit?.WaitOne(20000) ?? false;
             if (!doneWithInit) return new InitializeError { Retry = true };
             var param = Utils.TryJTokenAs<InitializeParams>(arg);
-
-            this.ClientName = param.InitializationOptions as string;
             this.ClientCapabilities = param.Capabilities;
+
+            if (param.InitializationOptions is JObject options)
+            {
+                if (options.TryGetValue("name", out var name))
+                    this.ClientName = name.ToString();
+                if (options.TryGetValue("version", out var version)
+                        && !Version.TryParse(version.ToString(), out this.ClientVersion))
+                    this.ClientVersion = null;
+            }
+            bool supportsCompletion = !ClientNameIs("VisualStudio") || ClientVersionIsAtLeast(new Version(16, 3));
+            bool useTriggerCharWorkaround = ClientNameIs("VisualStudio") && ClientVersionIsAtLeast(new Version(16, 3));
 
             var rootUri = param.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out Uri uri) ? uri : null);
             this.WorkspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
@@ -157,7 +181,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var capabilities = new ServerCapabilities
             {
                 TextDocumentSync = new TextDocumentSyncOptions(),
-                CompletionProvider = null,
+                CompletionProvider = supportsCompletion ? new CompletionOptions() : null,
                 SignatureHelpProvider = new SignatureHelpOptions(),
                 ExecuteCommandProvider = new ExecuteCommandOptions(),
             };
@@ -173,7 +197,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.HoverProvider = true;
             capabilities.DocumentHighlightProvider = true;
             capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "(", "," };
-            capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities 
+            capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities
+            if (capabilities.CompletionProvider != null)
+            {
+                capabilities.CompletionProvider.ResolveProvider = true;
+                capabilities.CompletionProvider.TriggerCharacters =
+                    useTriggerCharWorkaround ? new[] { ".", " ", "(" } : new[] { "." };
+            }
 
             this.WaitForInit = null;
             return new InitializeResult { Capabilities = capabilities };
@@ -349,6 +379,44 @@ namespace Microsoft.Quantum.QsLanguageServer
             catch { return new SymbolInformation[0]; } 
         }
 
+        [JsonRpcMethod(Methods.TextDocumentCompletionName)]
+        public object OnTextDocumentCompletion(JToken arg)
+        {
+            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
+            var task = new Task<CompletionList>(() =>
+            {
+                // Wait for the file manager to finish processing any changes that happened right before this completion request.
+                Thread.Sleep(50);
+                try
+                {
+                    return QsCompilerError.RaiseOnFailure(() =>
+                    EditorState.Completions(param),
+                    "Completions threw an exception");
+                }
+                catch { return null; }
+            });
+            task.Start(TaskScheduler.Default);
+            return task;
+        }
+
+        [JsonRpcMethod(Methods.TextDocumentCompletionResolveName)]
+        public object OnTextDocumentCompletionResolve(JToken arg)
+        {
+            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            var param = Utils.TryJTokenAs<CompletionItem>(arg);
+            var supportedFormats = this.ClientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
+            var format = ChooseFormat(supportedFormats);
+            try
+            {
+                var data = Utils.TryJTokenAs<CompletionItemData>(JToken.FromObject(param?.Data));
+                return QsCompilerError.RaiseOnFailure(() => 
+                EditorState.ResolveCompletion(param, data, format),
+                "ResolveCompletion threw an exception");
+            }
+            catch { return null; }
+        }
+
         [JsonRpcMethod(Methods.TextDocumentCodeActionName)]
         public object OnCodeAction(JToken arg)
         {
@@ -439,8 +507,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 // We hence inject close notifications for VS if a file has been deleted on disk. 
                 // While this will hopefully cover the most common cases of edits in- and outside the editor,
                 // it is not currently possible to get the correct behavior for all cases!
-                if (fileEvent.FileChangeType == FileChangeType.Deleted &&
-                    "VisualStudio".Equals(this.ClientName, StringComparison.InvariantCultureIgnoreCase))
+                if (fileEvent.FileChangeType == FileChangeType.Deleted && ClientNameIs("VisualStudio"))
                 {
                     this.LogToWindow($"The file '{fileEvent.Uri.LocalPath}' has been deleted on disk.", MessageType.Info);
                     _ = this.EditorState.CloseFileAsync(new TextDocumentIdentifier { Uri = fileEvent.Uri });

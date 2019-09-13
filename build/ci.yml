@@ -4,7 +4,7 @@ trigger:
 
 variables:
   Build.Major: 0
-  Build.Minor: 0
+  Build.Minor: 9
   Assembly.Version: $(Build.BuildNumber)
   Assembly.Constants: ''
   Drops.Dir: $(Build.ArtifactStagingDirectory)/drops

@@ -250,8 +250,8 @@ and ExpressionTypeTransformation(?enable) =
 
     abstract member onCallableInformation : CallableInformation -> CallableInformation
     default this.onCallableInformation opInfo = 
-        let inferred = opInfo.InferredInformation
         let characteristics = this.onCharacteristicsExpression opInfo.Characteristics
+        let inferred = opInfo.InferredInformation
         CallableInformation.New (characteristics, inferred)
 
     abstract member onUserDefinedType : UserDefinedType -> ExpressionType
@@ -362,8 +362,8 @@ and ExpressionTransformation(?enableKindTransformations) =
     abstract member Transform : TypedExpression -> TypedExpression
     default this.Transform (ex : TypedExpression) =
         let range                = this.onRangeInformation ex.Range
-        let kind                 = this.Kind.Transform ex.Expression
         let typeParamResolutions = ex.TypeParameterResolutions
+        let kind                 = this.Kind.Transform ex.Expression
         let exType               = this.Type.Transform ex.ResolvedType
         let inferredInfo         = this.onExpressionInformation ex.InferredInformation
         TypedExpression.New (kind, typeParamResolutions, exType, inferredInfo, range)

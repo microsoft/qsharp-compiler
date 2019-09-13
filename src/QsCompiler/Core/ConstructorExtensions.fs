@@ -177,9 +177,10 @@ type ResolvedSignature with
     }
 
 type QsSpecialization with 
-    static member New kind (source, location) (parent, typeArgs, signature, implementation, documentation, comments) = {
+    static member New kind (source, location) (parent, attributes, typeArgs, signature, implementation, documentation, comments) = {
         Kind = kind
         Parent = parent
+        Attributes = attributes
         SourceFile = source
         Location = location
         TypeArguments = typeArgs
@@ -194,9 +195,10 @@ type QsSpecialization with
     static member NewControlledAdjoint = QsSpecialization.New QsControlledAdjoint
 
 type QsCallable with 
-    static member New kind (source, location) (name, argTuple, signature, specializations : IEnumerable<_>, documentation, comments) = {
+    static member New kind (source, location) (name, attributes, argTuple, signature, specializations : IEnumerable<_>, documentation, comments) = {
         Kind = kind
         FullName = name
+        Attributes = attributes
         SourceFile = source
         Location = location
         Signature = signature
@@ -210,13 +212,22 @@ type QsCallable with
     static member NewTypeConstructor = QsCallable.New QsCallableKind.TypeConstructor
 
 type QsCustomType with
-    static member New (source, location) (name, items, underlyingType, documentation, comments) = {
+    static member New (source, location) (name, attributes, items, underlyingType, documentation, comments) = {
         FullName = name
+        Attributes = attributes
         SourceFile = source
         Location = location
         Type = underlyingType
         TypeItems = items
         Documentation = documentation
+        Comments = comments
+    }
+
+type QsDeclarationAttribute with 
+    static member New (typeId, arg, pos, comments) = {
+        TypeId = typeId
+        Argument = arg
+        Offset = pos
         Comments = comments
     }
 

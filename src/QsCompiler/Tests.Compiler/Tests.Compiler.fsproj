@@ -48,6 +48,7 @@
     <Compile Include="TestUtils.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
+    <Compile Include="CompletionParsingTests.fs" />
     <Compile Include="SetupVerificationTests.fs" />
     <Compile Include="GlobalVerificationTests.fs" />
     <Compile Include="LocalVerificationTests.fs" />
@@ -56,8 +57,7 @@
     <Compile Include="TransformationTests.fs" />
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="RegexTests.fs" />
-    <Compile Include="AttributesMocks.fs" />
-    <Compile Include="AttributesTests.fs" />
+    <Compile Include="SerializationTests.fs" />
     <Compile Include="CommandLineTests.fs" />
     <Compile Include="SymbolManagementTests.fs" />
   </ItemGroup>

@@ -1,6 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.VisualStudio.LanguageServer.Client;
+using Microsoft.VisualStudio.Threading;
+using Microsoft.VisualStudio.Utilities;
+using Newtonsoft.Json.Linq;
+using StreamJsonRpc;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
@@ -9,20 +14,17 @@ using System.IO;
 using System.IO.Pipes;
 using System.Reflection;
 using System.Security.Principal;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.LanguageServer.Client;
-using Microsoft.VisualStudio.Threading;
-using Microsoft.VisualStudio.Utilities;
-using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
+using static System.Diagnostics.FileVersionInfo;
 
 
 namespace Microsoft.Quantum.QsLanguageExtensionVS
 {
     [ContentType("Q#")]
     [Export(typeof(ILanguageClient))]
-    public class QsLanguageClient : VisualStudio.Shell.AsyncPackage, ILanguageClient, ILanguageClientCustomMessage 
+    public class QsLanguageClient : VisualStudio.Shell.AsyncPackage, ILanguageClient, ILanguageClientCustomMessage
     {
         public QsLanguageClient() : base() =>
             CustomMessageTarget = new CustomServerNotifications();
@@ -33,7 +35,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         public object CustomMessageTarget { get; }
 
         /// called third, before initializing the server
-        public Task AttachForCustomMessageAsync(JsonRpc rpc) => 
+        public Task AttachForCustomMessageAsync(JsonRpc rpc) =>
             Task.CompletedTask; // we don't need to send custom messages
 
         // properties required by ILanguageClient
@@ -41,7 +43,11 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         public string Name => "Q# Language Extension"; // name as displayed to the user
         public IEnumerable<string> ConfigurationSections => null; // null is fine if the client does not provide settings
         public IEnumerable<string> FilesToWatch => null; // we use our own watcher rather than the one of the LSP Client
-        public object InitializationOptions => "VisualStudio";
+        public object InitializationOptions => JObject.FromObject(new
+        {
+            name = "VisualStudio",
+            version = GetVisualStudioVersion()
+        });
 
         // events required by ILanguageClient
 
@@ -133,6 +139,24 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
                 catch (Exception ex)
                 { Debug.Assert(false, $"error sending telemetry: \n{ex}"); }
             }
+        }
+
+        /// Setup to get the VS version number including the correct minor version, 
+        /// since the DTE.Version does not seem to accurately reflect that. 
+        private static string GetVisualStudioVersion()
+        {
+            FileVersionInfo versionInfo;
+            try
+            {
+                var msenvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "msenv.dll");
+                versionInfo = GetVersionInfo(msenvPath);
+            }
+            catch (FileNotFoundException)
+            { return null; }
+
+            // Extract the version number from the string in the format "D16.2", "D16.3", etc.
+            var version = Regex.Match(versionInfo.FileVersion, @"D([\d\.]+)");
+            return version.Success ? version.Groups[1].Value : null;
         }
     }
 }

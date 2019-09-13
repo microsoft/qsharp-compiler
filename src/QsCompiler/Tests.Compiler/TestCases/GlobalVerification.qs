@@ -4,6 +4,7 @@
 /// This namespace contains test cases for syntax tree verification
 namespace Microsoft.Quantum.Testing.GlobalVerification {
 
+    open Microsoft.Quantum.Testing.Attributes;
     open Microsoft.Quantum.Testing.General;
     open Microsoft.Quantum.Testing.GlobalVerification.N3;
     open Microsoft.Quantum.Testing.GlobalVerification.N4 as N4;
@@ -1482,4 +1483,119 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
             apply { DoNothing(); } 
         }
     }
+
+
+    // valid declaration attributes
+
+    @ Attribute()
+    newtype CustomAttribute = Double;
+    @ Attribute()
+    newtype AttAsUserDefType = CustomAttribute;
+    @ Attribute()
+    newtype AttArrayAsUserDefType = CustomAttribute[];
+
+    @ Attribute()
+    @ AttType1()
+    newtype AttType1 = Unit;
+    @ Attribute()
+    @ AttType2()
+    newtype AttType2 = Unit;
+
+
+    @ IntAttribute(0b111)
+    @ StringAttribute("")
+    @ BigIntArrayAttribute([0xF0a00101L])
+    @ PauliResultAttribute (PauliX, Zero)
+    operation ValidAttributes1 () : Unit {}
+
+    @ IntAttribute(0b111)
+    @ StringAttribute("")
+    @ BigIntArrayAttribute([0xF0a00101L])
+    @ PauliResultAttribute (PauliX, Zero)
+    function ValidAttributes2 () : Unit {}
+
+    @ IntAttribute(0b111)
+    @ StringAttribute("")
+    @ BigIntArrayAttribute([0xF0a00101L])
+    @ PauliResultAttribute (PauliX, Zero)
+    newtype ValidAttributes3 = Unit;
+
+    @ BigIntArrayAttribute(new BigInt[3])
+    function ValidAttributes4 () : Unit {}
+
+    @ StringAttribute($"some text")
+    function ValidAttributes5 () : Unit {}
+
+    @ CustomAttribute(1.)
+    function ValidAttributes6 () : Unit {}
+
+    @ Microsoft.Quantum.Testing.Attributes.CustomAttribute()
+    function ValidAttributes7 () : Unit {}
+
+    @ Microsoft.Quantum.Core.IntTupleAttribute(1,1)
+    function ValidAttributes8 () : Unit {}
+
+    @ Microsoft.Quantum.Testing.Attributes.IntTupleAttribute(1,1)
+    function ValidAttributes9 () : Unit {}
+
+    @ AttType1()
+    @ AttType2()
+    function ValidAttributes10 () : Unit {}
+
+    @ Attribute() // silently ignored 
+    operation ValidAttributes11 () : Unit {}
+
+    @ Attribute() // silently ignored
+    function ValidAttributes12 () : Unit {}
+
+
+    // invalid declaration attributes
+
+    @ StringAttribute($"{1}")
+    function InvalidAttributes1 () : Unit {}
+
+    @ IntTupleAttribute(1,1)
+    function InvalidAttributes2 () : Unit {}
+
+    @ NonExistent()
+    function InvalidAttributes3 () : Unit {}
+
+    @ Undefined.NonExistent()
+    function InvalidAttributes4 () : Unit {}
+
+    @ Microsoft.Quantum.Core.NonExistent()
+    function InvalidAttributes5 () : Unit {}
+
+    @ Microsoft.Quantum.Testing.Attributes.CustomAttribute(1.)
+    function InvalidAttributes6 () : Unit {}
+
+    @ AttAsUserDefType(CustomAttribute(1.))
+    function InvalidAttributes7 () : Unit {}
+
+    @ AttArrayAsUserDefType(new CustomAttribute[0])
+    function InvalidAttributes8 () : Unit {}
+
+    operation InvalidAttributes9 () : Unit {    
+        @ IntAttribute(1)
+        body(...) {}
+    }
+
+    operation InvalidAttributes10 () : Unit {    
+        body(...) {}
+        @ IntAttribute(1)
+        adjoint(...) {}
+    }
+
+    operation InvalidAttributes11 () : Unit {    
+        body(...) {}
+        @ IntAttribute(1)
+        controlled (cs, ...) {}
+    }
+
+    operation InvalidAttributes12 () : Unit {    
+        @ IntAttribute(1)
+        controlled adjoint (cs, ...) {}
+        body(...) {}
+    }
+
 }
