@@ -15,6 +15,7 @@ open Newtonsoft.Json
 /// to be removed as soon as we ship our own binary instead of compiled C#
 type TypeDeclarationHeader = {
     QualifiedName   : QsQualifiedName
+    Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
     Position        : int * int
     SymbolRange     : QsPositionInfo * QsPositionInfo
@@ -27,6 +28,7 @@ type TypeDeclarationHeader = {
 
     static member New (customType : QsCustomType) = {
         QualifiedName   = customType.FullName
+        Attributes      = customType.Attributes
         SourceFile      = customType.SourceFile
         Position        = customType.Location.Offset
         SymbolRange     = customType.Location.Range
@@ -39,6 +41,8 @@ type TypeDeclarationHeader = {
         let (success, header) =
             try true, JsonConvert.DeserializeObject<TypeDeclarationHeader>(json, JsonConverters.All false)
             with _ -> false, JsonConvert.DeserializeObject<TypeDeclarationHeader>(json, JsonConverters.All true)
+        let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
+        let header = if attributesAreNullOrDefault then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         if not (Object.ReferenceEquals(header.TypeItems, null)) then success, header
         else false, {header with TypeItems = ImmutableArray.Create (header.Type |> Anonymous |> QsTupleItem) |> QsTuple}
 
@@ -50,6 +54,7 @@ type TypeDeclarationHeader = {
 type CallableDeclarationHeader = { 
     Kind            : QsCallableKind
     QualifiedName   : QsQualifiedName
+    Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
     Position        : int * int
     SymbolRange     : QsPositionInfo * QsPositionInfo
@@ -63,6 +68,7 @@ type CallableDeclarationHeader = {
     static member New (callable : QsCallable) = {
         Kind            = callable.Kind
         QualifiedName   = callable.FullName
+        Attributes      = callable.Attributes
         SourceFile      = callable.SourceFile
         Position        = callable.Location.Offset
         SymbolRange     = callable.Location.Range
@@ -81,6 +87,8 @@ type CallableDeclarationHeader = {
         let (success, header) = 
             try true, JsonConvert.DeserializeObject<CallableDeclarationHeader>(json, JsonConverters.All false)
             with _ -> false, JsonConvert.DeserializeObject<CallableDeclarationHeader>(json, JsonConverters.All true)
+        let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
+        let header = if attributesAreNullOrDefault then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         let header = {header with ArgumentTuple = header.ArgumentTuple |> setInferredInfo}
         if Object.ReferenceEquals(header.Signature.Information, null) || Object.ReferenceEquals(header.Signature.Information.Characteristics, null) then 
             false, {header with Signature = {header.Signature with Information = CallableInformation.Invalid}}
@@ -96,6 +104,7 @@ type SpecializationDeclarationHeader = {
     TypeArguments   : QsNullable<ImmutableArray<ResolvedType>>
     Information     : CallableInformation
     Parent          : QsQualifiedName    
+    Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
     Position        : int * int
     HeaderRange     : QsPositionInfo*QsPositionInfo
@@ -109,6 +118,7 @@ type SpecializationDeclarationHeader = {
         TypeArguments   = specialization.TypeArguments
         Information     = specialization.Signature.Information
         Parent          = specialization.Parent 
+        Attributes      = specialization.Attributes
         SourceFile      = specialization.SourceFile
         Position        = specialization.Location.Offset
         HeaderRange     = specialization.Location.Range
@@ -123,6 +133,8 @@ type SpecializationDeclarationHeader = {
             with _ -> false, JsonConvert.DeserializeObject<SpecializationDeclarationHeader>(json, JsonConverters.All true)
         let infoIsNull = Object.ReferenceEquals(header.Information, null)
         let typeArgsAreNull = Object.ReferenceEquals(header.TypeArguments, null)
+        let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
+        let header = if attributesAreNullOrDefault then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         if not (infoIsNull || typeArgsAreNull) then success, header
         else
             let information = if not infoIsNull then header.Information else CallableInformation.Invalid

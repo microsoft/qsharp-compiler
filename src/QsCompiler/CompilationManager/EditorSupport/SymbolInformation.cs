@@ -39,7 +39,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given reference location is null.
         /// </summary>
         internal static Location AsLocation(IdentifierReferences.Location loc) =>
-            AsLocation(loc.SourceFile, DiagnosticTools.StatementPosition(loc.RootNode, loc.StatementOffset), loc.SymbolRange);
+            AsLocation(loc.SourceFile, DiagnosticTools.StatementPosition(loc.DeclarationOffset, loc.RelativeStatementLocation.Offset), loc.SymbolRange);
 
         /// <summary>
         /// Returns the SymbolInformation for all namespace declarations in the file.
@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (sym == null) return false;
 
             var implementation = compilation.TryGetSpecializationAt(file, position, out var parentName, out var callablePos, out var specPos);
-            var declarations = implementation?.LocalDeclarationsAt(position.Subtract(specPos)).Item1;
+            var declarations = implementation?.LocalDeclarationsAt(position.Subtract(specPos), includeDeclaredAtPosition: true);
             var locals = compilation.PositionedDeclarations(parentName, callablePos, specPos, declarations);
             var definition = locals.LocalVariable(sym);
 
@@ -212,17 +212,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .Where(spec => spec.SourceFile.Value == file.FileName.Value)
                     .SelectMany(spec =>
                         spec.Implementation is SpecializationImplementation.Provided impl
-                            ? IdentifierLocation.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location)
+                            ? IdentifierLocation.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Offset)
                             : ImmutableArray<IdentifierReferences.Location>.Empty)
                     .Distinct().Select(AsLocation);
             }
             else // the given position corresponds to a variable declared as part of a specialization declaration or implementation
             {
                 var defStart = DiagnosticTools.GetAbsolutePosition(defOffset, defRange.Item1);
-                var statements = implementation.LocalDeclarationsAt(defStart.Subtract(specPos)).Item2;
+                var statements = implementation.StatementsAfterDeclaration(defStart.Subtract(specPos));
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
-                var rootLoc = new QsLocation(DiagnosticTools.AsTuple(specPos), null); // null is fine here since it won't be used
-                referenceLocations = IdentifierLocation.Find(definition.Item.Item1, scope, file.FileName, rootLoc).Distinct().Select(AsLocation);
+                var rootOffset = DiagnosticTools.AsTuple(specPos); 
+                referenceLocations = IdentifierLocation.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Distinct().Select(AsLocation);
             }
             declarationLocation = AsLocation(file.FileName, definition.Item.Item2, defRange);
             return true;

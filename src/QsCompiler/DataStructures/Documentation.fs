@@ -139,7 +139,7 @@ type QsExpression with
             | QsExpressionKind.UnitValue ->
                 [
                     "# Summary"
-                    "Object of type Unit."
+                    "Unit value."
                 ]
             | QsExpressionKind.IntLiteral _ -> 
                 [
