@@ -17,6 +17,7 @@ using Newtonsoft.Json.Bson;
 
 namespace Microsoft.Quantum.QsCompiler
 {
+    // TODO: MOVE TO DATA STRUCTURES
     public static class WellKnown
     {
         public const string AST_RESOURCE_NAME = "__qsharp_data__.bson";
