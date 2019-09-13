@@ -449,17 +449,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws an ArgumentNullException if the given stream is null.
         /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        public static IEnumerable<QsNamespace> ReadBinary(Stream stream)
-        {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            using (var reader = new BsonDataReader(stream))
-            {
-                reader.ReadRootValueAsArray = true;
-                var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
-                var serializer = JsonSerializer.CreateDefault(settings);
-                return serializer.Deserialize<IEnumerable<QsNamespace>>(reader);
-            }
-        }
+        public static IEnumerable<QsNamespace> ReadBinary(Stream stream) =>
+            AssemblyLoader.LoadSyntaxTree(stream);
 
         /// <summary>
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder. 

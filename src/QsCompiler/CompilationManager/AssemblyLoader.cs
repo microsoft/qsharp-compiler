@@ -9,10 +9,22 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using Microsoft.Quantum.QsCompiler.Serialization;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Bson;
 
 
 namespace Microsoft.Quantum.QsCompiler
 {
+    public static class WellKnown
+    {
+        public const string AST_RESOURCE_NAME = "__qsharp_data__.bson";
+        public const string METADATA_NAMESPACE = "__qsharp__";
+        public const string METADATA_TYPE = "Metadata";
+        public const string DEPENDENCIES_FIELD = "Dependencies";
+    }
+
     /// <summary>
     /// This class relies on the ECMA-335 standard to extract information contained in compiled binaries. 
     /// The standard can be found here: https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-335.pdf,
@@ -20,7 +32,145 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public static class AssemblyLoader
     {
+        /// <summary>
+        /// Given the full name of an assembly, opens the file and reads its custom attributes and
+        /// returns a tuple containing the name of the attribute and the constructor argument 
+        /// for all attributes defined in the Microsoft.Quantum* namespace.  
+        /// 
+        /// ...
+        /// Throws an ArgumentNullException if the given uri is null. 
+        /// Throws a FileNotFoundException if no file with the given name exists. 
+        /// Throws the corresponding exceptions if the information cannot be extracted.
+        /// </summary>
+        public static IEnumerable<QsNamespace> LoadReferencedAssembly(Uri asm)
+        {
+            if (asm == null) throw new ArgumentNullException(nameof(asm));
+            if (!File.Exists(asm.LocalPath))
+            { throw new FileNotFoundException($"the file '{asm}' given to the attribute reader does not exist"); }
+
+            using (var stream = File.OpenRead(asm.LocalPath))
+            { return LoadReferencedAssembly(stream); }
+        }
+
+        /// <summary>
+        /// Given a file stream with the content of a dotnet dll, returns any Q# syntax tree included as a resource.
+        /// Returns an empty enumerable if the given dll does not include such a resource. 
+        /// 
+        /// ...
+        /// Throws an ArgumentNullException if the given stream is null.
+        /// May throw an exception if the given binary file has been compiled with a different compiler version.
+        /// </summary>
+        private static IEnumerable<QsNamespace> LoadReferencedAssembly(Stream stream)
+        {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            using (var assemblyFile = new PEReader(stream))
+            {
+                // FIXME
+                var loaded = FromResource(assemblyFile, out var syntaxTree);
+                var attributes = LoadHeaderAttributes(assemblyFile);
+                return syntaxTree;
+            }
+        }
+
+
         // tools for loading the compiled syntax tree from the dll resource (later setup for shipping Q# libraries)
+
+        /// <summary>
+        /// Given a stream containing the binary representation of compiled Q# code, returns the corresponding syntax tree.
+        /// Throws an ArgumentNullException if the given stream is null.
+        /// May throw an exception if the given binary file has been compiled with a different compiler version.
+        /// </summary>
+        public static IEnumerable<QsNamespace> LoadSyntaxTree(Stream stream)
+        {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            using (var reader = new BsonDataReader(stream))
+            {
+                reader.ReadRootValueAsArray = true;
+                var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
+                var serializer = JsonSerializer.CreateDefault(settings);
+                return serializer.Deserialize<IEnumerable<QsNamespace>>(reader);
+            }
+        }
+
+        /// <summary>
+        /// Creates a dictionary of all manifest resources in the given reader. 
+        /// Returns null if the given reader is null. 
+        /// </summary>
+        private static ImmutableDictionary<string, ManifestResource> Resources(this MetadataReader reader) =>
+            reader?.ManifestResources
+                .Select(reader.GetManifestResource)
+                .ToImmutableDictionary(
+                    resource => reader.GetString(resource.Name),
+                    resource => resource
+                );
+
+        /// <summary>
+        /// Given a reader for the byte stream of a dotnet dll, loads any Q# syntax tree included as a resource.
+        /// Returns true as well as the loaded tree if the given dll includes a suitable resource, 
+        /// and returns false as well as an empty sequence otherwise. 
+        /// Throws an ArgumentNullException if any of the given readers is null.
+        /// May throw an exception if the given binary file has been compiled with a different compiler version.
+        /// </summary>
+        private static bool FromResource(PEReader assemblyFile, out IEnumerable<QsNamespace> syntaxTree)
+        {
+            if (assemblyFile == null) throw new ArgumentNullException(nameof(assemblyFile));
+            var metadataReader = assemblyFile.GetMetadataReader();
+            syntaxTree = ImmutableArray<QsNamespace>.Empty;
+
+            // The offset of resources is relative to the resources directory. 
+            // It is possible that there is no offset given because a valid dll allows for extenal resources. 
+            // In all Q# dlls there will be a resource with the specific name chosen by the compiler. 
+            var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
+            if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
+                !metadataReader.Resources().TryGetValue(WellKnown.AST_RESOURCE_NAME, out var resource) ||
+                resource.Implementation.IsNil)
+            { return false; }
+
+            // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
+            // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB. 
+            // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
+            var image = assemblyFile.GetEntireImage(); // uses int to denote the length and access parameters
+            var absResourceOffset = (int)resource.Offset + directoryOffset;
+
+            // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
+            var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(Int32)).ToArray(), 0);
+            var resourceData = image.GetContent(absResourceOffset + sizeof(Int32), resourceLength).ToArray();
+            syntaxTree = LoadSyntaxTree(new MemoryStream(resourceData));
+            return true;
+        }
+
+        /// <summary>
+        /// Given a reader for the byte stream of a dotnet dll, returns any Q# syntax tree included as a resource.
+        /// Returns an empty sequence if the given dll does not include such a resource. 
+        /// Throws an ArgumentNullException if any of the given readers is null.
+        /// May throw an exception if the given binary file has been compiled with a different compiler version.
+        /// </summary>
+        //private static IEnumerable<QsNamespace> FromResource(PEReader assemblyFile)
+        //{
+        //    if (assemblyFile == null) throw new ArgumentNullException(nameof(assemblyFile));
+        //    var metadataReader = assemblyFile.GetMetadataReader();
+        //
+        //    // The offset of resources is relative to the resources directory. 
+        //    // It is possible that there is no offset given because a valid dll allows for extenal resources. 
+        //    // In all Q# dlls there will be a resource with the specific name chosen by the compiler. 
+        //    var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
+        //    if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
+        //        !metadataReader.Resources().TryGetValue(WellKnown.AST_RESOURCE_NAME, out var resource) ||
+        //        resource.Implementation.IsNil)
+        //    { return ImmutableArray<QsNamespace>.Empty; } 
+        //
+        //    // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
+        //    // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB. 
+        //    // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
+        //    var image = assemblyFile.GetEntireImage(); // uses int to denote the length and access parameters
+        //    var absResourceOffset = (int)resource.Offset + directoryOffset;
+        //
+        //    // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
+        //    var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(Int32)).ToArray(), 0);
+        //    var resourceData = image.GetContent(absResourceOffset + sizeof(Int32), resourceLength).ToArray();
+        //    return LoadSyntaxTree(new MemoryStream(resourceData));
+        //}
+
 
         // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)
 
@@ -73,42 +223,21 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given a stream with the bytes of an assembly, read its custom attributes and
+        /// Given a reader for the byte stream of a dotnet dll, read its custom attributes and
         /// returns a tuple containing the name of the attribute and the constructor argument 
         /// for all attributes defined in a Microsoft.Quantum* namespace.  
         /// Throws an ArgumentNullException if the given stream is null. 
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </summary>
-        public static IEnumerable<(string, string)> GetQsCompilerAttributes(Stream stream)
+        private static IEnumerable<(string, string)> LoadHeaderAttributes(PEReader assemblyFile)
         {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            using (var assemblyFile = new PEReader(stream))
-            {
-                var metadataReader = assemblyFile.GetMetadataReader();
-                return metadataReader.GetAssemblyDefinition().GetCustomAttributes()
-                    .Select(metadataReader.GetCustomAttribute)
-                    .Select(attribute => GetAttribute(metadataReader, attribute))
-                    .Where(ctorItems => ctorItems.HasValue)
-                    .Select(ctorItems => ctorItems.Value).ToImmutableArray();
-            }
-        }
-
-        /// <summary>
-        /// Given the full name of an assembly, opens the file and reads its custom attributes and
-        /// returns a tuple containing the name of the attribute and the constructor argument 
-        /// for all attributes defined in the Microsoft.Quantum* namespace.  
-        /// Throws an ArgumentNullException if the given uri is null. 
-        /// Throws a FileNotFoundException if no file with the given name exists. 
-        /// Throws the corresponding exceptions if the information cannot be extracted.
-        /// </summary>
-        public static IEnumerable<(string, string)> GetQsCompilerAttributes(Uri asm)
-        {
-            if (asm == null) throw new ArgumentNullException(nameof(asm));
-            if (!File.Exists(asm.LocalPath))
-            { throw new FileNotFoundException($"the file '{asm}' given to the attribute reader does not exist"); }
-
-            using (var stream = File.OpenRead(asm.LocalPath))
-            { return GetQsCompilerAttributes(stream); }
+            if (assemblyFile == null) throw new ArgumentNullException(nameof(assemblyFile));
+            var metadataReader = assemblyFile.GetMetadataReader();
+            return metadataReader.GetAssemblyDefinition().GetCustomAttributes()
+                .Select(metadataReader.GetCustomAttribute)
+                .Select(attribute => GetAttribute(metadataReader, attribute))
+                .Where(ctorItems => ctorItems.HasValue)
+                .Select(ctorItems => ctorItems.Value).ToImmutableArray();
         }
     }
 }

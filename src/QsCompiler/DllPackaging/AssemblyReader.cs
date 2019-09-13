@@ -39,12 +39,9 @@ namespace Microsoft.Quantum.QsCompiler
                     resource => resource
                 );
 
-        public bool TryGetManifestResource(out ManifestResource qResource) =>
-            Resources.TryGetValue(WellKnown.AST_RESOURCE_NAME, out qResource);
-
         public IEnumerable<QsNamespace> GetAst()
         {
-            if (!TryGetManifestResource(out var resource) || resource.Implementation.IsNil)
+            if (!Resources.TryGetValue(WellKnown.AST_RESOURCE_NAME, out var resource) || resource.Implementation.IsNil)
             { return ImmutableArray<QsNamespace>.Empty; }
 
             // The offset of the resource is relative to the resources directory. 
