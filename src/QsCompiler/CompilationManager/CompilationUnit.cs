@@ -36,6 +36,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.Specializations = specs?.ToImmutableArray() ?? ImmutableArray<SpecializationDeclarationHeader>.Empty;
                 this.Types = types?.ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty; 
             }
+
+            internal Headers(IEnumerable<(string, string)> attributes)
+                : this(References.CallableHeaders(attributes), References.SpecializationHeaders(attributes), References.TypeHeaders(attributes))
+            { }
         }
 
         /// <summary>
@@ -70,6 +74,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private References(ImmutableDictionary<NonNullable<string>, Headers> refs) =>
             this.Declarations = refs;
 
+        private static Func<(string, string), string> IsDeclaration(string declarationType) => (attribute) =>
+        {
+            var (typeName, serialization) = attribute;
+            if (!typeName.Equals(declarationType, StringComparison.InvariantCultureIgnoreCase)) return null;
+            return serialization;
+        };
+
+        internal static IEnumerable<CallableDeclarationHeader> CallableHeaders(IEnumerable<(string, string)> attributes) =>
+            attributes.Select(IsDeclaration("CallableDeclarationAttribute")).Where(v => v != null)
+                .Select(CallableDeclarationHeader.FromJson).Select(built => built.Item2);
+
+        internal static IEnumerable<SpecializationDeclarationHeader> SpecializationHeaders(IEnumerable<(string, string)> attributes) =>
+            attributes.Select(IsDeclaration("SpecializationDeclarationAttribute")).Where(v => v != null)
+                .Select(SpecializationDeclarationHeader.FromJson).Select(built => built.Item2);
+
+        internal static IEnumerable<TypeDeclarationHeader> TypeHeaders(IEnumerable<(string, string)> attributes) =>
+            attributes.Select(IsDeclaration("TypeDeclarationAttribute")).Where(v => v != null)
+                .Select(TypeDeclarationHeader.FromJson).Select(built => built.Item2);
+
         /// <summary>
         /// NOTE: Does not do any verification of the arguments and hence needs to remain private!
         /// Throws an ArgumentException if the absolute file path for a given Uri cannot be determined. 
@@ -77,34 +100,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private References(IEnumerable<KeyValuePair<NonNullable<string>, ImmutableArray<(string, string)>>> attributes, 
             out ImmutableHashSet<NonNullable<string>> serializationErrors)
-        {
-            Func<(string, string), string> IsDeclaration(string declarationType) => (attribute) =>
-            {
-                var (typeName, serialization) = attribute;
-                if (!typeName.Equals(declarationType, StringComparison.InvariantCulture)) return null;
-                return serialization;
-            };
-            
-            var callableAttr = attributes.Select(kv => (kv.Key, kv.Value.Select(IsDeclaration("CallableDeclarationAttribute")).Where(v => v != null)));
-            var specsAttr = attributes.Select(kv => (kv.Key, kv.Value.Select(IsDeclaration("SpecializationDeclarationAttribute")).Where(v => v != null)));                
-            var typeAttr = attributes.Select(kv => (kv.Key, kv.Value.Select(IsDeclaration("TypeDeclarationAttribute")).Where(v => v != null)));
+        {            
+            var errs = ImmutableHashSet.CreateBuilder<NonNullable<string>>(); // FIXME
 
-            var errs = new HashSet<NonNullable<string>>(); 
-            (NonNullable<string>, T) Build<T>(Func<string, Tuple<bool, T>> builder, string arg, NonNullable<string> source)
-            {
-                var (success, built) = builder(arg);
-                if (!success) errs.Add(source);
-                return (source, built); 
-            }
-
-            var callables = callableAttr
-                .SelectMany(kv => kv.Item2.Select(v => Build(CallableDeclarationHeader.FromJson, v, kv.Item1)))
+            var callables = attributes
+                .SelectMany(kv => CallableHeaders(kv.Value).Select(h => (kv.Key, h)))
                 .ToLookup(kv => kv.Item1, kv => kv.Item2.FromSource(kv.Item1)); 
-            var specializations = specsAttr
-                .SelectMany(kv => kv.Item2.Select(v => Build(SpecializationDeclarationHeader.FromJson, v, kv.Item1)))
+            var specializations = attributes
+                .SelectMany(kv => SpecializationHeaders(kv.Value).Select(h => (kv.Key, h)))
                 .ToLookup(kv => kv.Item1, kv => kv.Item2.FromSource(kv.Item1));
-            var types = typeAttr
-                .SelectMany(kv => kv.Item2.Select(v => Build(TypeDeclarationHeader.FromJson, v, kv.Item1)))
+            var types = attributes
+                .SelectMany(kv => TypeHeaders(kv.Value).Select(h => (kv.Key, h)))
                 .ToLookup(kv => kv.Item1, kv => kv.Item2.FromSource(kv.Item1));
 
             serializationErrors = errs.ToImmutableHashSet(); 

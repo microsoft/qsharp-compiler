@@ -1159,8 +1159,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(file => (file, GetQsAttributes(file)))
                 .Where(asm => asm.Item2.HasValue)
                 .ToImmutableDictionary(asm => projectDlls[asm.Item1], asm => asm.Item2.Value);
-            if (!References.TryInitializeFrom(attributes, out var builtRefs, out var errs))
-            { QsCompilerError.Raise("error while extracting custom attributes from project references"); }
+            //if (!References.TryInitializeFrom(attributes, out var builtRefs, out var errs))
+            //{ QsCompilerError.Raise("error while extracting custom attributes from project references"); }
             foreach (var file in errs) onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.CouldNotExtractHeaders, new[] { file.LocalPath }, MessageSource(file))); 
             return builtRefs;
         }
@@ -1197,8 +1197,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(file => (file, GetQsAttributes(file)))
                 .Where(asm => asm.Item2.HasValue)
                 .ToImmutableDictionary(asm => asm.Item1, asm => asm.Item2.Value);
-            if (!References.TryInitializeFrom(attributes, out var builtRefs, out var errs))
-            { QsCompilerError.Raise("error while extracting custom attributes from references"); }
+            //if (!References.TryInitializeFrom(attributes, out var builtRefs, out var errs))
+            //{ QsCompilerError.Raise("error while extracting custom attributes from references"); }
             foreach (var file in errs) onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.CouldNotExtractHeaders, new[] { file.LocalPath }, MessageSource(file)));
             return builtRefs;
         }

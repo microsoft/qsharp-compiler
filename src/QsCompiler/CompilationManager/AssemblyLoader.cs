@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -61,6 +62,10 @@ namespace Microsoft.Quantum.QsCompiler
                 // FIXME
                 var loaded = FromResource(assemblyFile, out var syntaxTree);
                 var attributes = LoadHeaderAttributes(assemblyFile);
+                var headers = new References.Headers(attributes);
+
+                //if (!References.TryInitializeFrom(attributes, out var builtRefs, out var errs))
+                //{ QsCompilerError.Raise("error while extracting custom attributes from project references"); }
                 return syntaxTree;
             }
         }
@@ -207,7 +212,7 @@ namespace Microsoft.Quantum.QsCompiler
                 var _ = attrReader.ReadUInt16(); // All custom attributes start with 0x0001, so read that now and discard it.
                 try
                 {
-                    var serialization = attrReader.ReadSerializedString(); // FIXME: this needs to be made more robust!
+                    var serialization = attrReader.ReadSerializedString(); // FIXME: this needs to be made more robust
                     return (metadataReader.GetString(name), serialization);
                 }
                 catch { return null; }
