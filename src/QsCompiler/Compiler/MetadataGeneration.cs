@@ -6,19 +6,12 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    public static class WellKnown
-    {
-        public const string AST_RESOURCE_NAME = "__qsharp_data__.bson";
-        public const string METADATA_NAMESPACE = "__qsharp__";
-        public const string METADATA_TYPE = "Metadata";
-        public const string DEPENDENCIES_FIELD = "Dependencies";
-    }
-
     internal static class MetadataGeneration
     {
         public static ArrayTypeSyntax WithOmittedRankSpecifiers(this ArrayTypeSyntax syntax) =>
@@ -47,8 +40,8 @@ namespace Microsoft.Quantum.QsCompiler
                 aliases.Select(alias =>
                     TypeOfExpression(
                         QualifiedName(
-                            AliasQualifiedName(IdentifierName(alias), IdentifierName(WellKnown.METADATA_NAMESPACE)),
-                            IdentifierName(WellKnown.METADATA_TYPE)
+                            AliasQualifiedName(IdentifierName(alias), IdentifierName(AssemblyConstants.METADATA_NAMESPACE)),
+                            IdentifierName(AssemblyConstants.METADATA_TYPE)
                         )
                     )
                 );
@@ -68,8 +61,8 @@ namespace Microsoft.Quantum.QsCompiler
                         ArrayType(typeName).WithOmittedRankSpecifiers()
                     )
                     .WithVariables(
-                        SingletonSeparatedList<VariableDeclaratorSyntax>(
-                            VariableDeclarator(Identifier(WellKnown.DEPENDENCIES_FIELD))
+                        SingletonSeparatedList(
+                            VariableDeclarator(Identifier(AssemblyConstants.DEPENDENCIES_FIELD))
                             .WithInitializer(
                                 EqualsValueClause(dependenciesInitializer)
                             )
@@ -84,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler
                     )
                 );
             var classDef =
-                ClassDeclaration(WellKnown.METADATA_TYPE)
+                ClassDeclaration(AssemblyConstants.METADATA_TYPE)
                     .WithModifiers(
                         TokenList(Token(SyntaxKind.PublicKeyword), Token(SyntaxKind.StaticKeyword))
                     )
@@ -92,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler
                         SingletonList<MemberDeclarationSyntax>(metadataField)
                     );
             var namespaceDef =
-                NamespaceDeclaration(IdentifierName(WellKnown.METADATA_NAMESPACE))
+                NamespaceDeclaration(IdentifierName(AssemblyConstants.METADATA_NAMESPACE))
                     .WithMembers(
                         SingletonList<MemberDeclarationSyntax>(classDef)
                     );

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Newtonsoft.Json;
@@ -17,15 +18,6 @@ using Newtonsoft.Json.Bson;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    // TODO: MOVE TO DATA STRUCTURES
-    public static class WellKnown
-    {
-        public const string AST_RESOURCE_NAME = "__qsharp_data__.bson";
-        public const string METADATA_NAMESPACE = "__qsharp__";
-        public const string METADATA_TYPE = "Metadata";
-        public const string DEPENDENCIES_FIELD = "Dependencies";
-    }
-
     /// <summary>
     /// This class relies on the ECMA-335 standard to extract information contained in compiled binaries. 
     /// The standard can be found here: https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-335.pdf,
@@ -123,7 +115,7 @@ namespace Microsoft.Quantum.QsCompiler
             // In all Q# dlls there will be a resource with the specific name chosen by the compiler. 
             var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
             if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-                !metadataReader.Resources().TryGetValue(WellKnown.AST_RESOURCE_NAME, out var resource) ||
+                !metadataReader.Resources().TryGetValue(AssemblyConstants.AST_RESOURCE_NAME, out var resource) ||
                 resource.Implementation.IsNil)
             { return false; }
 
