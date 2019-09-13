@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var symbolInfo = file?.TryGetQsSymbolInfo(position, true, out CodeFragment _); // includes the end position 
             if (symbolInfo == null || compilation == null) return null;
 
-            var locals = compilation.TryGetLocalDeclarations(file, position, out var cName);
+            var locals = compilation.TryGetLocalDeclarations(file, position, out var cName, includeDeclaredAtPosition: true);
             if (cName == null) return null;
 
             var found =
@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (file == null) return null;
             if (!file.TryGetReferences(compilation, position, out var declLocation, out var locations)) return null;
-            return context?.IncludeDeclaration ?? true && declLocation != null
+            return (context?.IncludeDeclaration ?? true) && declLocation != null
                 ? new[] { declLocation }.Concat(locations).ToArray()
                 : locations.ToArray();
         }
@@ -176,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (symbolInfo == null || compilation == null) return null;
             if (symbolInfo.UsedLiterals.Any()) return GetHover(symbolInfo.UsedLiterals.Single().LiteralInfo(markdown).Value);
 
-            var locals = compilation.TryGetLocalDeclarations(file, position, out var cName);
+            var locals = compilation.TryGetLocalDeclarations(file, position, out var cName, includeDeclaredAtPosition: true);
             var nsName = cName?.Namespace.Value ?? file.TryGetNamespaceAt(position);
             if (nsName == null) return null;
 

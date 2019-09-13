@@ -163,7 +163,7 @@ let private boolLiteral =
     ]
 
 /// Parses a Q# int or double literal as QsExpression. 
-let private numericLiteral =
+let internal numericLiteral =
     let verifyAndBuild (nl : NumberLiteral, range) = 
         let format = 
             if   nl.IsBinary      then 2
@@ -368,9 +368,9 @@ let internal callLikeExpr =
 let private termParser tupleExpr = 
     choice [
         // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly. 
-        attempt unitValue        
+        attempt unitValue 
         attempt newArray         
-        attempt callLikeExpr     
+        attempt callLikeExpr // needs to be after unitValue
         attempt itemAccessExpr // needs to be after callLikeExpr
         attempt valueArray // needs to be after arryItemExpr
         attempt tupleExpr // needs to be after unitValue, arrayItemExpr, and callLikeExpr
@@ -384,6 +384,4 @@ let private termParser tupleExpr =
 
 qsExpression.TermParser <- termParser (valueTuple expr)
 qsArgument.TermParser <- missingExpr <|> termParser (valueTuple argument) // missing needs to be first
-
-
 

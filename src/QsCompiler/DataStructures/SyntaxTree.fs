@@ -412,6 +412,7 @@ type LocalDeclarations = { // keeping things here as arrays for resource reasons
     Variables : ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>
 }
     with 
+    member this.IsEmpty = this.Variables.Length = 0
     static member Empty = {Variables = ImmutableArray.Empty}
 
 
@@ -572,6 +573,21 @@ type QsLocalSymbol =
 | InvalidName
 
 
+/// used to represent an attribute attached to a type, callable, or specialization declaration.
+type QsDeclarationAttribute = {
+    /// Identifies the user defined type that the attribute instantiates.
+    /// The range information describes the range occupied by the attribute identifier relative to the attribute offset.
+    /// Is Null only if the correct attribute could not be determined. Attributes set to Null should be ignored. 
+    TypeId : QsNullable<UserDefinedType>
+    /// Contains the argument with which the attribute is instantiated. 
+    Argument : TypedExpression
+    /// Represents the position in the source file where the attribute is used.
+    Offset : int * int 
+    /// contains comments in the code associated with the attached attribute
+    Comments : QsComments
+}
+
+
 /// Fully resolved Q# callable signature
 type ResolvedSignature = {
     /// contains the names of the type parameters for the callable, 
@@ -603,9 +619,12 @@ type SpecializationImplementation =
 /// depending on the type of the argument it is called with (type specializations), 
 /// and/or which functors are applied to the call.
 type QsSpecialization = {
+    /// contains the functor specialization kind (specialization for body, adjoint, controlled, or controlled adjoint)
     Kind : QsSpecializationKind
     /// the fully qualified name of the callable this specialization extends
     Parent : QsQualifiedName
+    /// contains all attributes associated with the specialization
+    Attributes : ImmutableArray<QsDeclarationAttribute>
     /// identifier for the file the specialization is declared in (not necessarily the same as the one of the callable it extends)
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared specialization. 
@@ -629,9 +648,12 @@ type QsSpecialization = {
 
 /// describes a Q# function, operation, or type constructor
 type QsCallable = {
+    /// contains the callable kind (function, operation, or type constructor)
     Kind : QsCallableKind
-    /// the name of the callable
+    /// contains the name of the callable
     FullName : QsQualifiedName
+    /// contains all attributes associated with the callable
+    Attributes : ImmutableArray<QsDeclarationAttribute>
     /// identifier for the file the callable is declared in
     SourceFile : NonNullable<string> 
     /// Contains the location information for the declared callable. 
@@ -668,7 +690,10 @@ type QsTypeItem =
 
 /// describes a Q# user defined type 
 type QsCustomType = {
+    /// contains the name of the type
     FullName : QsQualifiedName
+    /// contains all attributes associated with the type
+    Attributes : ImmutableArray<QsDeclarationAttribute>
     /// identifier for the file the type is declared in
     SourceFile : NonNullable<string> 
     /// Contains the location information for the declared type. 
