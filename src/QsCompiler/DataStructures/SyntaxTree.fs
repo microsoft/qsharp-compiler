@@ -618,6 +618,8 @@ type QsSpecialization = {
     Parent : QsQualifiedName
     /// contains all attributes associated with the specialization
     Attributes : ImmutableArray<QsDeclarationAttribute>
+    /// contains the minimum target capability level for this specialization
+    RequiredCapability : int
     /// identifier for the file the specialization is declared in (not necessarily the same as the one of the callable it extends)
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared specialization.
@@ -638,6 +640,8 @@ type QsSpecialization = {
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithImplementation impl = {this with Implementation = impl}
+
+    static member UnsetRequiredCapability = -1
 
 
 /// describes a Q# function, operation, or type constructor

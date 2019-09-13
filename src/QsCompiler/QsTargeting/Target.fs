@@ -9,26 +9,16 @@ open System.Threading
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Diagnostics
 
-type Target(builtIns : NamespaceManager, capabilities : TargetCapabilities) =
+type Target(builtIns : NamespaceManager, capabilityLevel : int) =
     member this.BuiltIns with get () = builtIns
 
-    member this.Capabilities with get () = capabilities
+    member this.CapabilityLevel with get () = capabilityLevel
 
-    member this.ValidateCallable (callable : QsCallable) : List<DiagnosticItem> = 
-        let xformer = new TVScopeTransformation(this.Capabilities)
-
-        let processSpecialization (spec : QsSpecialization) =
-            match spec.Implementation with
-            | Provided(_, scope) ->  xformer.Transform scope |> ignore
-            | _ -> ()
-
-        callable.Specializations |> Seq.iter processSpecialization
-
-        xformer.Diagnostics
+    member this.ValidateSpecialization (spec : QsSpecialization) : List<DiagnosticItem> = 
+        let diagnostics = new List<DiagnosticItem>()
+        if spec.RequiredCapability > this.CapabilityLevel
+        then diagnostics.Add(Error ErrorCode.UnexpectedCompilerException)
+        diagnostics
 
     member this.ValidateSyntaxTree (ns : QsNamespace, cancellationToken : CancellationToken) : List<DiagnosticItem> = 
-        let xformer = new TVTreeTransformation(this.Capabilities)
-
-        xformer.Transform ns |> ignore
-
-        xformer.Diagnostics
+        new List<DiagnosticItem>()
