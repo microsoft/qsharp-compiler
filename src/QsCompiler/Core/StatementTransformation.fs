@@ -110,11 +110,6 @@ type StatementKindTransformation(?enable) =
         let body = this.ScopeTransformation stm.Body
         QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
 
-    abstract member onScopeStatement : QsScopeStatement -> QsStatementKind
-    default this.onScopeStatement (stm : QsScopeStatement) = 
-        let body = this.ScopeTransformation stm.Body
-        QsScopeStatement.New body |> QsScopeStatement
-
     abstract member onAllocateQubits : QsQubitScope -> QsStatementKind
     default this.onAllocateQubits stm = this.onQubitScope stm
 
@@ -146,7 +141,6 @@ type StatementKindTransformation(?enable) =
         | QsRepeatStatement stm      -> this.onRepeatStatement      (stm)
         | QsConjugation stm          -> this.onConjugation          (stm)
         | QsQubitScope stm           -> this.dispatchQubitScope     (stm  |> beforeQubitScope)
-        | QsScopeStatement stm       -> this.onScopeStatement       (stm)
 
 
 and ScopeTransformation(?enableStatementKindTransformations) =

@@ -1,7 +1,8 @@
 namespace Microsoft.Quantum.Testing.Optimization.Arithmetic {
-    Operation Test () : Int {
-        QsBody () {
-            return 4;
-        }
+    
+    operation Test () : Int {
+        
+        return 4;
     }
+    
 }

@@ -3,10 +3,13 @@
 
 namespace Microsoft.Quantum.QsCompiler.CompilerOptimization
 
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler
 
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.Types
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.OptimizingTransformation
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.Utils
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.MinorTransformations
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRenaming
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRemoving
+open Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementRemoving
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.LoopUnrolling
 open Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
@@ -20,14 +23,23 @@ type Optimizations() =
     /// Optimizes the given sequence of namespaces, returning a new list of namespaces
     static member optimize (tree: seq<_>) =
         let mutable tree = List.ofSeq tree
-        let callables = GlobalCallableResolutions tree |> makeCallables
+        let callables = GlobalCallableResolutions tree |> Callables
+
+        let removeFunctions = false
+        let maxSize = 40
+
+        tree <- List.map (StripAllKnownSymbols().Transform) tree
+        tree <- tree |> List.map StripPositionInfo.Apply
+        tree <- List.map (VariableRenamer().Transform) tree
 
         let optimizers: OptimizingTransformation list = [
+            VariableRemover()
+            StatementRemover(removeFunctions)
             ConstantPropagator(callables)
-            LoopUnroller(callables, 40)
+            LoopUnroller(callables, maxSize)
             CallableInliner(callables)
             StatementReorderer()
-            PureCircuitFinder()
+            PureCircuitFinder(callables)
         ]
         for opt in optimizers do
             tree <- List.map opt.Transform tree

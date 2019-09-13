@@ -4,7 +4,7 @@
 /// This namespace contains test cases for function evaluation
 namespace Microsoft.Quantum.Testing.Optimization.FunctionEval {
     operation Test () : (Int, Int, Int, Int, Double) {
-        let b = f(1, 8);
+        let b = f(1, 8) + g1(100);
         let (c, d, e) = (g2(3), g2(4), g2(5));
         let s = mySin(2.0);
         return (b, c, d, e, s);

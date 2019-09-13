@@ -3,7 +3,6 @@
 
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
 
-open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -11,10 +10,9 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-open Types
 open Utils
 open Evaluation
-open OptimizingTransformation
+open MinorTransformations
 
 
 /// Returns whether the given expression should be propagated as a constant.
@@ -27,7 +25,7 @@ let rec private shouldPropagate callables expr =
         | Identifier _ | ArrayItem _ | UnwrapApplication _ | NamedItem _
         | ValueTuple _ | ValueArray _ | RangeLiteral _ | NewArray _ -> true
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
-            when (getCallable callables qualName).Kind = TypeConstructor -> true
+            when (callables.get qualName).Kind = TypeConstructor -> true
         | a when TypedExpression.IsPartialApplication a -> true
         | _ -> false
         && Seq.forall id sub))
@@ -38,35 +36,25 @@ type internal ConstantPropagator(callables) =
     inherit OptimizingTransformation()
 
     /// The current dictionary that maps variables to the values we substitute for them
-    let mutable constants = Constants []
-    /// How many times we should skip entering the next scope we encounter
-    let mutable skipScopes = 0
+    let mutable constants = Map.empty
 
+
+    override __.onProvidedImplementation (argTuple, body) =
+        constants <- Map.empty
+        base.onProvidedImplementation (argTuple, body)
 
     /// The ScopeTransformation used to evaluate constants
-    override syntaxTree.Scope = { new ScopeTransformation() with
-
-        override scope.Transform x =
-            if skipScopes > 0 then
-                skipScopes <- skipScopes - 1
-                let result = base.Transform x
-                skipScopes <- skipScopes + 1
-                result
-            else
-                constants <- enterScope constants
-                let result = base.Transform x
-                constants <- exitScope constants
-                result
+    override __.Scope = { new ScopeTransformation() with
 
         /// The ExpressionTransformation used to evaluate constant expressions
-        override scope.Expression = upcast ExpressionEvaluator(callables, constants, 10)
+        override __.Expression = upcast ExpressionEvaluator(callables, constants, 1000)
 
         /// The StatementKindTransformation used to evaluate constants
         override scope.StatementKind = { new StatementKindTransformation() with
-            override so.ExpressionTransformation x = scope.Expression.Transform x
-            override so.LocationTransformation x = scope.onLocation x
-            override so.ScopeTransformation x = scope.Transform x
-            override so.TypeTransformation x = scope.Expression.Type.Transform x
+            override __.ExpressionTransformation x = scope.Expression.Transform x
+            override __.LocationTransformation x = x
+            override __.ScopeTransformation x = scope.Transform x
+            override __.TypeTransformation x = x
 
             override so.onVariableDeclaration stm =
                 let lhs = so.onSymbolTuple stm.Lhs
@@ -91,20 +79,12 @@ type internal ConstantPropagator(callables) =
 
                 match cbList, newDefault with
                 | [], Value x ->
-                    x.Body |> QsScopeStatement.New |> QsScopeStatement
+                    x.Body |> newScopeStatement
                 | [], Null ->
-                    QsScope.New ([], LocalDeclarations.New []) |> QsScopeStatement.New |> QsScopeStatement
+                    QsScope.New ([], LocalDeclarations.New []) |> newScopeStatement
                 | _ ->
                     let cases = cbList |> Seq.map (fun (c, b) -> (Option.get c, b))
                     QsConditionalStatement.New (cases, newDefault) |> QsConditionalStatement
-
-            override this.onRepeatStatement stm =
-                constants <- enterScope constants
-                skipScopes <- skipScopes + 1
-                let result = base.onRepeatStatement stm
-                skipScopes <- skipScopes - 1
-                constants <- exitScope constants
-                result
 
             override this.onQubitScope (stm : QsQubitScope) =
                 let kind = stm.Kind
@@ -114,11 +94,9 @@ type internal ConstantPropagator(callables) =
                 jointFlatten (lhs, rhs) |> Seq.iter (fun (l, r) ->
                     match l, r.Resolution with
                     | VariableName name, QubitRegisterAllocation {Expression = IntLiteral num} ->
-                        if num > int64 (1 <<< 30) then
-                            ArgumentException "Cannot allocate qubit arrays of this size" |> raise
                         let arrayIden = Identifier (LocalVariable name, Null) |> wrapExpr (ArrayType (ResolvedType.New Qubit))
                         let elemI = fun i -> ArrayItem (arrayIden, IntLiteral (int64 i) |> wrapExpr Int)
-                        let expr = Seq.init (int num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray |> wrapExpr (ArrayType (ResolvedType.New Qubit))
+                        let expr = Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray |> wrapExpr (ArrayType (ResolvedType.New Qubit))
                         constants <- defineVar (fun _ -> true) constants (name.Value, expr)
                     | _ -> ())
 

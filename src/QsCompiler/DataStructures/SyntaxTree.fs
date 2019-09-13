@@ -531,12 +531,6 @@ and QsQubitScope = {
 }
 
 
-/// Statement block
-and QsScopeStatement = {
-    Body : QsScope
-}
-
-
 and QsStatementKind = 
 | QsExpressionStatement  of TypedExpression
 | QsReturnStatement      of TypedExpression
@@ -549,7 +543,6 @@ and QsStatementKind =
 | QsRepeatStatement      of QsRepeatStatement
 | QsConjugation          of QsConjugation
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
-| QsScopeStatement       of QsScopeStatement
 
 
 and QsStatement = {

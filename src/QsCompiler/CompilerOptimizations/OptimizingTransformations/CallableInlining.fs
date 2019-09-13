@@ -4,15 +4,17 @@
 module Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
 
 open System.Collections.Generic
+open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open ComputationExpressions
-open Types
 open Utils
-open OptimizingTransformation
+open MinorTransformations
+open VariableRenaming
 
 
 /// Represents all the functors applied to an operation call
@@ -48,10 +50,11 @@ let rec private tryGetQualNameAndFunctors method =
 /// Assumes the input is zero or more functors applied to a global callable identifier,
 /// applied to an expression representing the argument to the callable.
 /// Returns None if the input is not a valid expression of this form.
-let private trySplitCall callables = function
+let private trySplitCall (callables: Callables) = function
+    | x when TypedExpression.IsPartialApplication x -> None
     | CallLikeExpression (method, arg) ->
         tryGetQualNameAndFunctors method |> Option.map (fun (qualName, functors) ->
-            functors, getCallable callables qualName, arg)
+            functors, callables.get qualName, arg)
     | _ -> None
 
 
@@ -79,15 +82,19 @@ type private InliningInfo = {
     arg: TypedExpression
     specArgs: QsArgumentTuple
     body: QsScope
+    returnType: ResolvedType
 }
+
 
 /// Tries to construct an InliningInfo from the given expression.
 /// Returns None if the expression is not a callable invocation that can be inlined.
 let private tryGetInliningInfo callables expr =
     maybe {
-        let! functors, callable, arg = trySplitCall callables expr
+        let! functors, callable, arg = trySplitCall callables expr.Expression
         let! specArgs, body = tryGetProvidedImpl callable functors
-        return { functors = functors; callable = callable; arg = arg; specArgs = specArgs; body = body }
+        let body = ReplaceTypeParams(expr.TypeParameterResolutions).Transform body
+        let returnType = ReplaceTypeParams(expr.TypeParameterResolutions).Expression.Type.Transform callable.Signature.ReturnType
+        return { functors = functors; callable = callable; arg = arg; specArgs = specArgs; body = body; returnType = returnType }
     }
 
 
@@ -100,7 +107,7 @@ let private tryGetInliningInfo callables expr =
 let rec private findAllCalls (callables: Callables) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
     scope |> findAllBaseStatements |> Seq.iter (function
         | QsExpressionStatement ex ->
-            match tryGetInliningInfo callables ex.Expression with
+            match tryGetInliningInfo callables ex with
             | Some ii ->
                 // Only recurse if we haven't processed this callable yet
                 if found.Add ii.callable.FullName then
@@ -122,42 +129,86 @@ type internal CallableInliner(callables) =
 
     // The current callable we're in the process of transforming
     let mutable currentCallable: QsCallable option = None
+    let mutable renamer: VariableRenamer option = None
 
-    /// Inline an expression as a ScopeStatement, with many checks to ensure correctness.
-    /// Returns None if the expression cannot be safely inlined.
-    let safeInline expr =
+    let tryInline expr =
         maybe {
             let! ii = tryGetInliningInfo callables expr
 
-            do! check (countReturnStatements ii.body = 0)
-            let! current = currentCallable
-            do! check (cannotReachCallable callables ii.body current.FullName)
+            let! currentCallable = currentCallable
+            let! renamer = renamer
+            renamer.clearStack()
+            do! check (cannotReachCallable callables ii.body currentCallable.FullName)
             do! check (ii.functors.controlled < 2)
             // TODO - support multiple Controlled functors
             do! check (cannotReachCallable callables ii.body ii.callable.FullName || isLiteral callables ii.arg)
 
             let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
-            let newStatements = ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
-            return {ii.body with Statements = newStatements} |> QsScopeStatement.New |> QsScopeStatement
+            let newStatements =
+                ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
+                |> Seq.map renamer.Scope.onStatement
+                |> Seq.map (fun s -> s.Statement)
+                |> ImmutableArray.CreateRange
+            return ii, newStatements
+        }
+
+    /// Inline an expression representing a callable with no return statements.
+    /// Returns None if the expression cannot be safely inlined.
+    let safeInline expr =
+        maybe {
+            let! ii, newStatements = tryInline expr
+            do! check (countReturnStatements ii.body = 0)
+            return newStatements
+        }
+
+    /// Inline an expression representing a callable with exactly one return statement.
+    /// This single return statement must be at the end of the function body, as otherwise
+    /// there's either dead code or an implicit return statement at the end of the body.
+    /// Returns None if the expression cannot be safely inlined.
+    let safeInlineReturn expr =
+        maybe {
+            let! ii, newStatements = tryInline expr
+
+            do! check (countReturnStatements ii.body = 1)
+            let lastStatement = newStatements.[newStatements.Length-1]
+            let! returnExpr = match lastStatement with QsReturnStatement ex -> Some ex | _ -> None
+            let newStatements = newStatements.RemoveAt (newStatements.Length-1)
+
+            return newStatements, returnExpr
         }
 
 
-    override this.onCallableImplementation c =
-        let prev = currentCallable
+    override __.Transform x =
+        let x = base.Transform x
+        VariableRenamer().Transform x
+
+    override __.onCallableImplementation c =
+        let renamerVal = VariableRenamer()
+        let c = renamerVal.onCallableImplementation c
         currentCallable <- Some c
-        let result = base.onCallableImplementation c
-        currentCallable <- prev
-        result
+        renamer <- Some renamerVal
+        base.onCallableImplementation c
 
-    override syntaxTree.Scope = { new ScopeTransformation() with
+    override __.Scope = upcast { new StatementCollectorTransformation() with
 
-        override scope.StatementKind = { new StatementKindTransformation() with
-            override stmtKind.ExpressionTransformation x = scope.Expression.Transform x
-            override stmtKind.LocationTransformation x = scope.onLocation x
-            override stmtKind.ScopeTransformation x = scope.Transform x
-            override stmtKind.TypeTransformation x = scope.Expression.Type.Transform x
-
-            override this.onExpressionStatement ex =
-                safeInline ex.Expression |? QsExpressionStatement ex
-        }
+        /// Given a statement, returns a sequence of statements to replace this statement with.
+        /// Inlines simple calls that have exactly 0 or 1 return statements.
+        override __.TransformStatement stmt =
+            maybe {
+                match stmt with
+                | QsExpressionStatement ex ->
+                    match safeInline ex with
+                    | Some stmts ->
+                        return upcast stmts
+                    | None ->
+                        let! stmts, returnExpr = safeInlineReturn ex
+                        return Seq.append stmts [QsExpressionStatement returnExpr]
+                | QsVariableDeclaration s ->
+                    let! stmts, returnExpr = safeInlineReturn s.Rhs
+                    return Seq.append stmts [QsVariableDeclaration {s with Rhs = returnExpr}]
+                | QsValueUpdate s ->
+                    let! stmts, returnExpr = safeInlineReturn s.Rhs
+                    return Seq.append stmts [QsValueUpdate {s with Rhs = returnExpr}]
+                | _ -> return! None
+            } |? Seq.singleton stmt
     }

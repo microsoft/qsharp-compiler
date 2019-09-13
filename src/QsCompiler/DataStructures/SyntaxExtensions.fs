@@ -297,6 +297,8 @@ type QsStatement with
     /// then by finding all the substatements of the statement, then by applying MapFold to each substatement,
     /// then combining all the results with the "folder" function. Returns the output of the "folder" function.
     /// Is used as a general way to traverse any statement, simplifying the code for the BaseStatements function.
+    /// Even if a statement could be executed multiple times, such as the body of a ForStatement or the outer
+    /// block of a Conjugation, the Fold function will process the statement only once.
     static member public Fold folder stmt =
         let subStmts =
             match stmt.Statement with
@@ -311,10 +313,9 @@ type QsStatement with
                     (match s.Default with Null -> Seq.empty | Value v -> upcast v.Body.Statements))
             | QsForStatement s -> upcast s.Body.Statements
             | QsWhileStatement s -> upcast s.Body.Statements
-            | QsConjugation s -> Seq.append s.OuterTransformation.Body.Statements s.InnerTransformation.Body.Statements // FIXME: not sure this folder makes sense...
+            | QsConjugation s -> Seq.append s.OuterTransformation.Body.Statements s.InnerTransformation.Body.Statements
             | QsRepeatStatement s -> Seq.append s.RepeatBlock.Body.Statements s.FixupBlock.Body.Statements
             | QsQubitScope s -> upcast s.Body.Statements
-            | QsScopeStatement s -> upcast s.Body.Statements
         folder (Seq.map (QsStatement.Fold folder) subStmts) stmt
 
     /// Returns true if the statement has a sub-statement satisfying the given condition.

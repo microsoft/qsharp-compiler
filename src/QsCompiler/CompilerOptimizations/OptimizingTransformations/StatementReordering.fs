@@ -7,8 +7,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-open SideEffectChecking
-open OptimizingTransformation
+open MinorTransformations
 
 
 /// Returns whether a statements is purely classical.
@@ -33,7 +32,7 @@ let rec private reorderStatements = function
     else a :: reorderStatements (b :: tail)
 | x -> x
 
-/// The SyntaxTreeTransformation used to remove useless statements
+/// The SyntaxTreeTransformation used to reorder statements
 type internal StatementReorderer() =
     inherit OptimizingTransformation()
 

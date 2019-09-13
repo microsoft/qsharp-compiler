@@ -9,27 +9,31 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open ComputationExpressions
-open Types
 open Utils
-open OptimizingTransformation
+open MinorTransformations
+open VariableRenaming
 
 
 /// The SyntaxTreeTransformation used to unroll loops
 type internal LoopUnroller(callables, maxSize) =
     inherit OptimizingTransformation()
 
-    override syntaxTree.Scope = { new ScopeTransformation() with
-        override scope.StatementKind = { new StatementKindTransformation() with
-            override stmtKind.ExpressionTransformation x = scope.Expression.Transform x
-            override stmtKind.LocationTransformation x = scope.onLocation x
-            override stmtKind.ScopeTransformation x = scope.Transform x
-            override stmtKind.TypeTransformation x = scope.Expression.Type.Transform x
+    override __.Transform x =
+        let x = base.Transform x
+        VariableRenamer().Transform x
 
-            override stmtKind.onForStatement stm =
-                let loopVar = fst stm.LoopItem |> stmtKind.onSymbolTuple
-                let iterVals = stmtKind.ExpressionTransformation stm.IterationValues
-                let loopVarType = stmtKind.TypeTransformation (snd stm.LoopItem)
-                let body = stmtKind.ScopeTransformation stm.Body
+    override __.Scope = { new ScopeTransformation() with
+        override scope.StatementKind = { new StatementKindTransformation() with
+            override __.ExpressionTransformation x = x
+            override __.LocationTransformation x = x
+            override __.ScopeTransformation x = scope.Transform x
+            override __.TypeTransformation x = x
+
+            override this.onForStatement stm =
+                let loopVar = fst stm.LoopItem |> this.onSymbolTuple
+                let iterVals = this.ExpressionTransformation stm.IterationValues
+                let loopVarType = this.TypeTransformation (snd stm.LoopItem)
+                let body = this.ScopeTransformation stm.Body
                 maybe {
                     let! iterValsList =
                         match iterVals.Expression with
@@ -41,9 +45,9 @@ type internal LoopUnroller(callables, maxSize) =
                     let iterRange = iterValsList |> List.map (fun x ->
                         let variableDecl = QsBinding.New ImmutableBinding (loopVar, x) |> QsVariableDeclaration |> wrapStmt
                         let innerScope = { stm.Body with Statements = stm.Body.Statements.Insert(0, variableDecl) }
-                        innerScope |> QsScopeStatement.New |> QsScopeStatement |> wrapStmt)
+                        innerScope |> newScopeStatement |> wrapStmt)
                     let outerScope = QsScope.New (iterRange, stm.Body.KnownSymbols)
-                    return outerScope |> QsScopeStatement.New |> QsScopeStatement |> stmtKind.Transform
+                    return outerScope |> newScopeStatement |> this.Transform
                 }
                 |? (QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement)
         }

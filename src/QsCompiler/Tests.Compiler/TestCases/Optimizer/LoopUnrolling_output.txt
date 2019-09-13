@@ -1,9 +1,29 @@
 namespace Microsoft.Quantum.Testing.Optimization.LoopUnrolling {
-    Operation Test () : Int {
-        QsBody () {
-            mutable r = 0;
-            set LocalVariable r = 3;
-            return LocalVariable r;
+    
+    operation Test () : Int {
+        
+        mutable r = 0;
+        
+        using ((__qsItem0__qs__, __qsItem1__qs__, __qsItem2__qs__, __qsItem3__qs__, __qsItem4__qs__, __qsItem5__qs__, __qsItem6__qs__, __qsItem7__qs__, __qsItem8__qs__, __qsItem9__qs__) = (Qubit(), Qubit(), Qubit(), Qubit(), Qubit(), Qubit(), Qubit(), Qubit(), Qubit(), Qubit())) {
+            X(__qsItem0__qs__);
+            X(__qsItem1__qs__);
+            X(__qsItem2__qs__);
+            X(__qsItem3__qs__);
+            X(__qsItem4__qs__);
+            X(__qsItem5__qs__);
+            X(__qsItem6__qs__);
+            X(__qsItem7__qs__);
+            X(__qsItem8__qs__);
+            X(__qsItem9__qs__);
         }
+        
+        set r = 3;
+        return r;
     }
+    
+    
+    operation X (q : Qubit) : Unit {
+        body intrinsic;
+    }
+    
 }

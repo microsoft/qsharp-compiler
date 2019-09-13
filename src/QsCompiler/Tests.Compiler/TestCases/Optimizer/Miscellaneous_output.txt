@@ -1,252 +1,278 @@
 namespace Microsoft.Quantum.Testing {
-    Function pickM (p, d) : (Qubit => Result) {
-        QsBody (p, d) {
-            let twice = (LocalVariable d * 2.000000);
-            if (LocalVariable twice > 1.000000) {
-                if (LocalVariable p = PauliZ) {
-                    return GlobalCallable op0;
-                }
-            }
-            return GlobalCallable M;
-        }
+    
+    newtype BigEndianRegister = (Qubit[]);
+    
+    newtype OtherTuple = (OtherType, Int);
+    
+    newtype OtherType = (Int, Qubit[]);
+    
+    newtype QubitAlias = (Qubit);
+    
+    
+    // First comment
+    operation CNOT (q1 : Qubit, q2 : Qubit) : Unit
+    is Ctl + Adj {
+        body intrinsic;
+        adjoint self;
     }
-
-    Operation CNOT (q1, q2) : UnitType {
-        QsAdjoint Intrinsic
-        QsBody Intrinsic
-        QsControlled Intrinsic
-        QsControlledAdjoint Intrinsic
+    
+    
+    operation M (q : Qubit) : Result {
+        body intrinsic;
     }
-
-    Operation M (q) : Result {
-        QsBody Intrinsic
+    
+    
+    operation op0 (q : Qubit) : Result {
+        
+        return One;
     }
-
-    Operation Test () : UnitType {
-        QsBody () {
-            Allocate ((q1, q2, qs) = (Qubit(), Qubit(), new Qubit[5])) {
-                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[1]));
-                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[2]));
-                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[3]));
-                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable qs[4]));
-                let r = (GlobalCallable M of LocalVariable q1);
-                if (LocalVariable r = One) {
-                    let _ = (GlobalCallable op0 of LocalVariable qs[0]);
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[1]));
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[2]));
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[3]));
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[4]));
-                    let _ = (GlobalCallable op0 of LocalVariable qs[2]);
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[1]));
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[2]));
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[3]));
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[4]));
-                    let _ = (GlobalCallable op0 of LocalVariable qs[4]);
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[1]));
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[2]));
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[3]));
-                    (GlobalCallable CNOT of (LocalVariable q2, LocalVariable qs[4]));
-                } else {
-                    fail "r is supposed to be Zero";
-                }
+    
+    
+    operation op1 (q1 : Qubit, r1 : BigEndianRegister) : Unit
+    is Ctl + Adj {
+        adjoint self;
+        
+        body (...) {
+            Adjoint CNOT(q1, (r1!)[0]);
+            
+            for (item in r1!) {
+                CNOT(q1, item);
+                CNOT(q1, item);
+                CNOT(q1, item);
             }
         }
-    }
-
-    Operation op0 (q) : Result {
-        QsBody (q) {
-            repeat {
-                mutable res = [Zero, Zero];
+        
+        ///automatically generated QsControlled specialization for Microsoft.Quantum.Testing.op1
+        controlled (__controlQubits__, ...) {
+            Controlled (Adjoint CNOT)(__controlQubits__, (q1, (r1!)[0]));
+            
+            for (item in r1!) {
+                Controlled CNOT(__controlQubits__, (q1, item));
+                Controlled CNOT(__controlQubits__, (q1, item));
+                Controlled CNOT(__controlQubits__, (q1, item));
             }
-            until (LocalVariable res[0] = One)
-            fixup {
-                set LocalVariable res = (LocalVariable res w/= 0 <- One);
-            }
-            return One;
         }
     }
-
-    Operation op1 (q1, r1) : UnitType {
-        QsAdjoint Generated SelfInverse
-        QsBody (q1, r1) {
-            ((Adjoint GlobalCallable CNOT) of (LocalVariable q1, (Unwrap LocalVariable r1)[0]));
-            for item in (Unwrap LocalVariable r1) {
-                (GlobalCallable CNOT of (LocalVariable q1, LocalVariable item));
+    
+    
+    operation op2 (q2 : Qubit, n2 : Int, b2 : BigEndianRegister, q : QubitAlias) : Unit
+    is Adj + Ctl {
+        
+        body (...) {
+            Adjoint CNOT(q2, (b2!)[0]);
+            
+            for (item in b2!) {
+                CNOT(q2, item);
+                CNOT(q2, item);
+                CNOT(q2, item);
             }
-        }
-        QsControlled (__controlQubits__, (q1, r1)) {
-            ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable __controlQubits__, (LocalVariable q1, (Unwrap LocalVariable r1)[0])));
-            for item in (Unwrap LocalVariable r1) {
-                ((Controlled GlobalCallable CNOT) of (LocalVariable __controlQubits__, (LocalVariable q1, LocalVariable item)));
-            }
-        }
-        QsControlledAdjoint Generated SelfInverse
-    }
-
-    Operation op2 (q2, n2, b2, q) : UnitType {
-        QsAdjoint (q2, n2, b2, q) {
-            let r = (GlobalCallable op0 of LocalVariable q2);
-            if (LocalVariable r = One) {
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[5]);
-                ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
-                for item in (Unwrap LocalVariable b2) {
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable item));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable item));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable item));
+            
+            let r = M(q2);
+            
+            if (r == One) {
+                Adjoint CNOT(q!, (b2!)[0]);
+                
+                for (__qsVar1__item__ in b2!) {
+                    CNOT(q!, __qsVar1__item__);
+                    CNOT(q!, __qsVar1__item__);
+                    CNOT(q!, __qsVar1__item__);
                 }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[4]);
-                ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
-                for __qsVar1__item__ in (Unwrap LocalVariable b2) {
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
+                
+                Adjoint CNOT(q!, (b2!)[0]);
+                
+                for (__qsVar2__item__ in b2!) {
+                    CNOT(q!, __qsVar2__item__);
+                    CNOT(q!, __qsVar2__item__);
+                    CNOT(q!, __qsVar2__item__);
                 }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[3]);
-                ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
-                for __qsVar2__item__ in (Unwrap LocalVariable b2) {
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
-                }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[2]);
-                ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
-                for __qsVar3__item__ in (Unwrap LocalVariable b2) {
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
-                }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[1]);
-                ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
-                for __qsVar4__item__ in (Unwrap LocalVariable b2) {
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar4__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar4__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar4__item__));
-                }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[0]);
-                ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
-                for __qsVar5__item__ in (Unwrap LocalVariable b2) {
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar5__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar5__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar5__item__));
+                
+                Adjoint CNOT(q!, (b2!)[0]);
+                
+                for (__qsVar3__item__ in b2!) {
+                    CNOT(q!, __qsVar3__item__);
+                    CNOT(q!, __qsVar3__item__);
+                    CNOT(q!, __qsVar3__item__);
                 }
             }
-            ((Adjoint GlobalCallable CNOT) of (LocalVariable q2, (Unwrap LocalVariable b2)[0]));
-            for __qsVar6__item__ in (Unwrap LocalVariable b2) {
-                (GlobalCallable CNOT of (LocalVariable q2, LocalVariable __qsVar6__item__));
-            }
-        }
-        QsBody (q2, n2, b2, q) {
-            ((Adjoint GlobalCallable CNOT) of (LocalVariable q2, (Unwrap LocalVariable b2)[0]));
-            for item in (Unwrap LocalVariable b2) {
-                (GlobalCallable CNOT of (LocalVariable q2, LocalVariable item));
-            }
-            let r = (GlobalCallable M of LocalVariable q2);
-            if (LocalVariable r = One) {
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[0]);
-                ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
-                for __qsVar1__item__ in (Unwrap LocalVariable b2) {
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__));
-                }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[2]);
-                ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
-                for __qsVar2__item__ in (Unwrap LocalVariable b2) {
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__));
-                }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[4]);
-                ((Adjoint GlobalCallable CNOT) of ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0]));
-                for __qsVar3__item__ in (Unwrap LocalVariable b2) {
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
-                    (GlobalCallable CNOT of ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__));
-                }
-            } else {
+            else {
                 fail "r is supposed to be Zero";
             }
         }
-        QsControlled (ctrls, (q2, n2, b2, q)) {
-            ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable ctrls, (LocalVariable q2, (Unwrap LocalVariable b2)[0])));
-            for item in (Unwrap LocalVariable b2) {
-                ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, (LocalVariable q2, LocalVariable item)));
+        
+        adjoint (...) {
+            Adjoint CNOT(q!, (b2!)[0]);
+            
+            for (item in b2!) {
+                CNOT(q!, item);
+                CNOT(q!, item);
+                CNOT(q!, item);
             }
-            let r = (GlobalCallable M of LocalVariable q2);
-            if (LocalVariable r = One) {
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[0]);
-                ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable ctrls, ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0])));
-                for __qsVar1__item__ in (Unwrap LocalVariable b2) {
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar1__item__)));
+            
+            Adjoint CNOT(q!, (b2!)[0]);
+            
+            for (__qsVar1__item__ in b2!) {
+                CNOT(q!, __qsVar1__item__);
+                CNOT(q!, __qsVar1__item__);
+                CNOT(q!, __qsVar1__item__);
+            }
+            
+            Adjoint CNOT(q!, (b2!)[0]);
+            
+            for (__qsVar2__item__ in b2!) {
+                CNOT(q!, __qsVar2__item__);
+                CNOT(q!, __qsVar2__item__);
+                CNOT(q!, __qsVar2__item__);
+            }
+            
+            Adjoint CNOT(q!, (b2!)[0]);
+            
+            for (__qsVar3__item__ in b2!) {
+                CNOT(q!, __qsVar3__item__);
+                CNOT(q!, __qsVar3__item__);
+                CNOT(q!, __qsVar3__item__);
+            }
+            
+            Adjoint CNOT(q!, (b2!)[0]);
+            
+            for (__qsVar4__item__ in b2!) {
+                CNOT(q!, __qsVar4__item__);
+                CNOT(q!, __qsVar4__item__);
+                CNOT(q!, __qsVar4__item__);
+            }
+            
+            Adjoint CNOT(q!, (b2!)[0]);
+            
+            for (__qsVar5__item__ in b2!) {
+                CNOT(q!, __qsVar5__item__);
+                CNOT(q!, __qsVar5__item__);
+                CNOT(q!, __qsVar5__item__);
+            }
+            
+            Adjoint CNOT(q2, (b2!)[0]);
+            
+            for (__qsVar6__item__ in b2!) {
+                CNOT(q2, __qsVar6__item__);
+                CNOT(q2, __qsVar6__item__);
+                CNOT(q2, __qsVar6__item__);
+            }
+        }
+        
+        controlled (ctrls, ...) {
+            Controlled (Adjoint CNOT)(ctrls, (q2, (b2!)[0]));
+            
+            for (item in b2!) {
+                Controlled CNOT(ctrls, (q2, item));
+                Controlled CNOT(ctrls, (q2, item));
+                Controlled CNOT(ctrls, (q2, item));
+            }
+            
+            let r = M(q2);
+            
+            if (r == One) {
+                Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
+                
+                for (__qsVar1__item__ in b2!) {
+                    Controlled CNOT(ctrls, (q!, __qsVar1__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar1__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar1__item__));
                 }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[1]);
-                ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable ctrls, ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0])));
-                for __qsVar2__item__ in (Unwrap LocalVariable b2) {
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar2__item__)));
+                
+                Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
+                
+                for (__qsVar2__item__ in b2!) {
+                    Controlled CNOT(ctrls, (q!, __qsVar2__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar2__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar2__item__));
                 }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[2]);
-                ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable ctrls, ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0])));
-                for __qsVar3__item__ in (Unwrap LocalVariable b2) {
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar3__item__)));
+                
+                Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
+                
+                for (__qsVar3__item__ in b2!) {
+                    Controlled CNOT(ctrls, (q!, __qsVar3__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar3__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar3__item__));
                 }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[3]);
-                ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable ctrls, ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0])));
-                for __qsVar4__item__ in (Unwrap LocalVariable b2) {
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar4__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar4__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar4__item__)));
+                
+                Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
+                
+                for (__qsVar4__item__ in b2!) {
+                    Controlled CNOT(ctrls, (q!, __qsVar4__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar4__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar4__item__));
                 }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[4]);
-                ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable ctrls, ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0])));
-                for __qsVar5__item__ in (Unwrap LocalVariable b2) {
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar5__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar5__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar5__item__)));
+                
+                Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
+                
+                for (__qsVar5__item__ in b2!) {
+                    Controlled CNOT(ctrls, (q!, __qsVar5__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar5__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar5__item__));
                 }
-                let _ = (GlobalCallable op0 of (Unwrap LocalVariable b2)[5]);
-                ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable ctrls, ((Unwrap LocalVariable q), (Unwrap LocalVariable b2)[0])));
-                for __qsVar6__item__ in (Unwrap LocalVariable b2) {
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar6__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar6__item__)));
-                    ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, ((Unwrap LocalVariable q), LocalVariable __qsVar6__item__)));
+                
+                Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
+                
+                for (__qsVar6__item__ in b2!) {
+                    Controlled CNOT(ctrls, (q!, __qsVar6__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar6__item__));
+                    Controlled CNOT(ctrls, (q!, __qsVar6__item__));
                 }
             }
         }
-        QsControlledAdjoint (ctrls, (q2, n2, b2, q)) {
-            ((Controlled (Adjoint GlobalCallable CNOT)) of (LocalVariable ctrls, (LocalVariable q2, (Unwrap LocalVariable b2)[0])));
-            for item in (Unwrap LocalVariable b2) {
-                ((Controlled GlobalCallable CNOT) of (LocalVariable ctrls, (LocalVariable q2, LocalVariable item)));
+        
+        controlled adjoint (ctrls, ...) {
+            Controlled (Adjoint CNOT)(ctrls, (q2, (b2!)[0]));
+            
+            for (item in b2!) {
+                Controlled CNOT(ctrls, (q2, item));
+                Controlled CNOT(ctrls, (q2, item));
+                Controlled CNOT(ctrls, (q2, item));
             }
         }
     }
-
-    TypeConstructor BigEndianRegister (__Item1__) : BigEndianRegister {
-        QsBody Intrinsic
+    
+    
+    function pickM (p : Pauli, d : Double) : (Qubit => Result) {
+        
+        let twice = d * 2.0;
+        
+        if (twice > 1.0) {
+            
+            if (p == PauliZ) {
+                return op0;
+            }
+        }
+        
+        return M;
     }
-
-    TypeConstructor OtherTuple (__Item1__, __Item2__) : OtherTuple {
-        QsBody Intrinsic
+    
+    
+    operation Test () : Unit {
+        
+        using ((q1, q2, __qsItem1__qs__, __qsItem2__qs__, __qsItem3__qs__, __qsItem4__qs__) = (Qubit(), Qubit(), Qubit(), Qubit(), Qubit(), Qubit())) {
+            CNOT(q1, __qsItem1__qs__);
+            CNOT(q1, __qsItem2__qs__);
+            CNOT(q1, __qsItem3__qs__);
+            CNOT(q1, __qsItem4__qs__);
+            let r = M(q1);
+            
+            if (r == One) {
+                CNOT(q2, __qsItem1__qs__);
+                CNOT(q2, __qsItem2__qs__);
+                CNOT(q2, __qsItem3__qs__);
+                CNOT(q2, __qsItem4__qs__);
+                CNOT(q2, __qsItem1__qs__);
+                CNOT(q2, __qsItem2__qs__);
+                CNOT(q2, __qsItem3__qs__);
+                CNOT(q2, __qsItem4__qs__);
+                CNOT(q2, __qsItem1__qs__);
+                CNOT(q2, __qsItem2__qs__);
+                CNOT(q2, __qsItem3__qs__);
+                CNOT(q2, __qsItem4__qs__);
+            }
+            else {
+                fail "r is supposed to be Zero";
+            }
+        }
     }
-
-    TypeConstructor OtherType (__Item1__, __Item2__) : OtherType {
-        QsBody Intrinsic
-    }
-
-    TypeConstructor QubitAlias (__Item1__) : QubitAlias {
-        QsBody Intrinsic
-    }
-
-    newtype BigEndianRegister = Qubit[];
-
-    newtype OtherTuple = (OtherType, Int);
-
-    newtype OtherType = (Int, Qubit[]);
-
-    newtype QubitAlias = Qubit;
+    
 }
