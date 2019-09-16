@@ -50,7 +50,7 @@
         },
         {
           "name": "keyword.other.qsharp",
-          "match": "\\b(new|not|and|or|\\.\\.(\\.)|w\/)\\b"
+          "match": "\\b(new|not|and|or|w\/)\\b"
         },
         {
           "comment": "C# reserved words which can't be used in Q#, A-D",
