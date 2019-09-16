@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a list of suggested completion items for the given position.
         /// <para/>
         /// Returns null if any argument is null or the position is invalid.
-        /// Returns an completion list if the given position is within a comment. 
+        /// Returns an empty completion list if the given position is within a comment. 
         /// </summary>
         public static CompletionList Completions(
             this FileContentManager file, CompilationUnit compilation, Position position)
