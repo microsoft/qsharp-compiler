@@ -65,18 +65,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// <summary>
     /// Provides code completion for the language server.
     /// </summary>
-    internal static class EditorCompletion
+    internal static class CodeCompletion
     {
         /// <summary>
         /// Returns a list of suggested completion items for the given position.
         /// <para/>
         /// Returns null if any argument is null or the position is invalid.
+        /// Returns an completion list if the given position is within a comment. 
         /// </summary>
         public static CompletionList Completions(
             this FileContentManager file, CompilationUnit compilation, Position position)
         {
             if (file == null || compilation == null || position == null || !Utils.IsValidPosition(position))
                 return null;
+            if (file.GetLine(position.Line).WithoutEnding.Length < position.Character)
+                return Enumerable.Empty<CompletionItem>().ToCompletionList(false);
 
             var (scope, previous) = GetCompletionEnvironment(file, position, out var fragment);
             if (scope == null)
@@ -227,7 +230,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
             }
-            return Array.Empty<CompletionItem>();
+            return Enumerable.Empty<CompletionItem>();
         }
 
         /// <summary>
