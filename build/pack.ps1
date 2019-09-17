@@ -29,8 +29,55 @@ function Pack-One() {
     }
 }
 
+
 Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects'
 Pack-One '../src/QsCompiler/CommandLineTool/QsCommandLineTool.csproj' '-IncludeReferencedProjects'
+
+##
+# Q# Language Server (self-contained)
+##
+
+$Runtimes = @("win10-x64", "linux-x64", "osx-x64");
+
+function New-TemporaryDirectory {
+    $parent = [System.IO.Path]::GetTempPath()
+    $name = [System.IO.Path]::GetRandomFileName()
+    New-Item -ItemType Directory -Path (Join-Path $parent $name)
+}
+
+function Pack-SelfContained() {
+    param(
+        [string] $Project
+    );
+
+    Write-Host "##[info]Packing $Project as a self-contained deployment...";
+    $Runtimes | ForEach-Object {
+        $TargetDir = New-TemporaryDirectory;
+        $ArchiveDir = Join-Path $Env:BLOBS_OUTDIR (
+            [System.IO.Path]::GetFileNameWithoutExtension($Project)
+        );
+        New-Item -ItemType Directory -Path $ArchiveDir -Force -ErrorAction SilentlyContinue;
+
+        try {
+            $ArchivePath = Join-Path $ArchiveDir "$_.zip";
+            dotnet publish  `
+                $Project `
+                --self-contained `
+                --runtime $_ `
+                --output $TargetDir;
+            Write-Host "##[info]Writing self-contained deployment to $ArchivePath..."
+            Compress-Archive `
+                -Path $TargetDir `
+                -DestinationPath $ArchivePath;
+        } catch {
+            $Script:all_ok = $false;
+        } finally {
+            Remove-Item -Recurse $TargetDir -ErrorAction Continue;
+        }
+    };
+}
+
+Pack-SelfContained "../src/QsCompiler/LanguageServer/QsLanguageServer.csproj"
 
 ##
 # VS Code Extension
