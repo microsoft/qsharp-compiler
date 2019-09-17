@@ -88,7 +88,7 @@ export class LanguageServer {
         //     and catch errors there.
         var response : {stdout: string, stderr: string};
         try {
-            response = await promisify(cp.exec)(`${lsPath} --version`);
+            response = await promisify(cp.exec)(`"${lsPath}" --version`);
         } catch (err) {
             console.log(`[qsharp-lsp] Error while fetching LSP version: ${err}`);
             throw err;
