@@ -25,6 +25,8 @@ import { promisify } from 'util';
 import { StreamInfo, LanguageClient, ServerOptions, RevealOutputChannelOn, LanguageClientOptions, CloseAction, ErrorAction, State } from 'vscode-languageclient';
 import { sendTelemetryEvent, EventNames, ErrorSeverities, forwardServerTelemetry } from './telemetry';
 
+import DecompressZip = require('decompress-zip');
+
 // EXPORTS /////////////////////////////////////////////////////////////////////
 
 namespace CommonPaths {
@@ -153,6 +155,35 @@ export class LanguageServer {
             throw new Error(`Language server returned error when reporting version: ${response.stderr}`);
         }
         return new LanguageServer(lsPath, response.stdout.trim(), context);
+    }
+
+    static decompressServerBlob(context : vscode.ExtensionContext, blobPath : string) : Thenable<void> {
+        return vscode.window.withProgress(
+            {
+                cancellable: false,
+                location: vscode.ProgressLocation.Window,
+                title: "Unpacking Q# language server..."
+            },
+            (progress, token) => {
+                return new Promise((resolve, reject) => {
+                    let unzipper = new DecompressZip(blobPath);
+                    let targetPath = path.join(context.globalStoragePath, CommonPaths.storageRelativePath);
+                    unzipper.on('progress', (index, count) => {
+                        progress.report({
+                            message: `Unpacking ${index} of ${count}...`
+                        });
+                    });
+                    unzipper.on('error', reject);
+                    unzipper.on('extract', log => {
+                        console.log(log);
+                        resolve();
+                    });
+                    unzipper.extract({
+                        path: targetPath
+                    });
+                });
+            }
+        );
     }
 
     /**

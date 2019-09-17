@@ -108,9 +108,13 @@ export async function activate(context: vscode.ExtensionContext) {
     // Start the language server client.
     let languageServer = await LanguageServer.fromContext(context);
     if (languageServer === null) {
-        // TODO: handle this error more gracefully by downloading the
-        //       Q#LS blob.
-        throw new Error("Could not find language server.");
+        // Try again after downloading.
+        await LanguageServer.decompressServerBlob(context, "TODO");
+        languageServer = await LanguageServer.fromContext(context);
+        if (languageServer === null) {
+            // TODO: handle this error more gracefully.
+            throw new Error("Could not find language server.");
+        }
     }
     let client = await languageServer.startClient(rootFolder);
     let disposable = client.start();
