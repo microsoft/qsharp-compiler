@@ -5,10 +5,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo, State, CloseAction, ErrorAction, RevealOutputChannelOn } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions, ServerOptions, State, CloseAction, ErrorAction, RevealOutputChannelOn } from 'vscode-languageclient';
 
-import * as net from 'net';
-import * as portfinder from 'portfinder';
 import { isAbsolute } from 'path';
 import * as url from 'url';
 
@@ -31,88 +29,6 @@ function findRootFolder() : string {
     } else {
         return '';
     }
-}
-
-/**
- * Given a server, attempts to listen on a given port, incrementing the port
- * number on failure, and yielding the actual port that was used.
- *
- * @param server The server that will be listened on.
- * @param port The first port to try listening on.
- * @param maxPort The highest port number before considering the promise a
- *     failure.
- * @param hostname The hostname that the server should listen on.
- * @returns A promise that yields the actual port number used, or that fails
- *     when net.Server yields an error other than EADDRINUSE or when all ports
- *     up to and including maxPort are already in use.
- */
-function listenPromise(server: net.Server, port: number, maxPort: number, hostname: string): Promise<number> {
-    return new Promise((resolve, reject) => {
-        if (port >= maxPort) {
-            reject("Could not find an open port.");
-        }
-        server.listen(port, hostname)
-            .on('listening', () => resolve(port))
-            .on('error', (err) => {
-                // The 'error' callback lists that err has type Error, which
-                // is not specific enough to ensure that the property "code"
-                // exists. We cast through any to work around this typing
-                // bug, but that's not good at all.
-                //
-                // To try and mitigate the impact of casting through any,
-                // we check explicitly if err.code exists first. In the case
-                // that it doesn't, we fail through with err as intended.
-                //
-                // See
-                //     https://github.com/angular/angularfire2/issues/666
-                // for another example of a very similar bug.
-                if ("code" in err && (err as any).code === "EADDRINUSE") {
-                    // portfinder accidentally gave us a port that was already in use,
-                    // which can happen due to race conditions. Let's try the next few
-                    // ports in case we get lucky.
-                    resolve(listenPromise(server, port + 1, maxPort, hostname));
-                }
-                // If we got any other error, reject the promise here; there's
-                // nothing else we can do.
-                reject(err);
-            });
-    });
-}
-
-function startServer(languageServer : LanguageServer, rootFolder : string): (() => Thenable<StreamInfo>) {
-    return () => new Promise((resolve, reject) => {
-
-        let server = net.createServer(socket => {
-            // We use an explicit cast here as a workaround for a bug in @types/node.
-            // https://github.com/DefinitelyTyped/DefinitelyTyped/issues/17020
-            resolve({
-                reader: socket,
-                writer: socket
-            } as StreamInfo);
-        });
-
-        // Begin by trying to find an appropriate port to pass along to the LSP executable.
-        portfinder.getPortPromise({'port': 8091})
-            .then(port => {
-                console.log(`[qsharp-lsp] Found port at ${port}.`);
-                // We found a port, so let's go along and use it to
-                // make a socket server.
-                return listenPromise(server, port, port + 10, '127.0.0.1');
-            })
-            .then((actualPort) => {
-                console.log(`[qsharp-lsp] Successfully listening on port ${actualPort}, spawning server.`);
-                return languageServer.spawn(actualPort, rootFolder);
-            })
-            .then((childProcess) => {
-                console.log(`[qsharp-lsp] started QsLanguageServer.exe as PID ${childProcess.pid}.`);
-            })
-            .catch(err => {
-                // Could not find a port...
-                console.log(`[qsharp-lsp] Could not open an unused port: ${err}.`);
-                reject(err);
-            });
-
-    });
 }
 
 // this method is called when your extension is activated
@@ -191,11 +107,10 @@ export async function activate(context: vscode.ExtensionContext) {
     let languageServer = await LanguageServer.fromContext(context);
     if (languageServer === null) {
         // TODO: handle this error more gracefully by downloading the
-        //       Q#LS blog.
+        //       Q#LS blob.
         throw new Error("Could not find language server.");
     }
-    let serverOptions: ServerOptions =
-        startServer(languageServer, rootFolder);
+    let serverOptions: ServerOptions = languageServer.start(rootFolder);
 
     let clientOptions: LanguageClientOptions = {
         initializationOptions: {
