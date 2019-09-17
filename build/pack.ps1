@@ -66,7 +66,7 @@ function Pack-SelfContained() {
                 --output $TargetDir;
             Write-Host "##[info]Writing self-contained deployment to $ArchivePath..."
             Compress-Archive `
-                -Path $TargetDir `
+                -Path (Join-Path $TargetDir *) `
                 -DestinationPath $ArchivePath;
         } catch {
             $Script:all_ok = $false;

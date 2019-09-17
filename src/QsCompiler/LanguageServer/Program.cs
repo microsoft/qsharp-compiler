@@ -18,17 +18,13 @@ namespace Microsoft.Quantum.QsLanguageServer
         Socket
     }
 
+    [VersionOptionFromMember(MemberName="Version")]
     public class Server
     {
-        public static int Main(string[] args)
-        {
-            var app = new CommandLineApplication<Server>();
-            app.VersionOption(
-                "--version",
-                () => typeof(Server).Assembly.GetName().Version.ToString()
-            );
-            return app.Execute(args);
-        }
+        public static int Main(string[] args) =>
+            CommandLineApplication.Execute<Server>(args);
+
+        string Version => typeof(Server).Assembly.GetName().Version.ToString();
 
         [Option(
             "-l|--log",

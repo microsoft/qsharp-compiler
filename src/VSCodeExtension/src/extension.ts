@@ -9,75 +9,16 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo, State
 
 import * as net from 'net';
 import * as portfinder from 'portfinder';
-import * as cp from 'child_process';
 import { isAbsolute } from 'path';
 import * as url from 'url';
-import * as tmp from 'tmp';
-
-import { ChildProcess } from 'child_process';
 
 import { startTelemetry, EventNames, sendTelemetryEvent, reporter, ErrorSeverities, forwardServerTelemetry } from './telemetry';
-import { DotnetInfo, requireDotNetSdk } from './dotnet';
+import { DotnetInfo, requireDotNetSdk, findDotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
 import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp } from './commands';
+import { LanguageServer } from './languageServer';
 
 const extensionStartedAt = Date.now();
-
-/**
- * Invokes a new process for the language server, using the `dotnet` tool provided with
- * the .NET Core SDK.
- *
- * @param dotNetSdk Path to the .NET Core SDK.
- * @param assemblyPath Path to the language server assembly.
- * @param port TCP port to use to talk to the language server.
- * @param rootFolder Folder to use as the root for the new language server instance.
- */
-function spawnServerProcess(
-        dotNetSdk : string,
-        assemblyPath : string,
-        port : Number,
-        rootFolder : string
-    ) : Promise<ChildProcess>
-{
-
-    return new Promise((resolve, reject) => {
-        tmp.tmpName({
-            prefix: "qsharp-",
-            postfix: ".log",
-        }, (err, logFile) => {
-
-            var args: string[];
-            if (err) {
-                console.log(`[qsharp-lsp] Error finding temporary file for logging: ${err}.`);
-                args = args = [assemblyPath, `--port=${port}`]
-            } else {
-                console.log(`[qsharp-lsp] Writing language server log to ${logFile}.`);
-                args = [assemblyPath, `--port=${port}`, `--log=${logFile}`];
-            }
-
-            let process = cp.spawn(
-                dotNetSdk,
-                args,
-                {
-                    cwd: rootFolder
-                }
-            ).on('error', err => {
-                console.log(`[qsharp-lsp] Child process spawn failed with ${err}.`);
-                if (reject) { reject(err); }
-            }).on('exit', (exitCode, signal) => {
-                console.log(`[qsharp-lsp] QsLanguageServer.exe exited with code ${exitCode} and signal ${signal}.`);
-            });
-
-            process.stderr.on('data', (data) => {
-                console.error(`[qsharp-lsp] ${data}`);
-            });
-            process.stdout.on('data', (data) => {
-                console.log(`[qsharp-lsp] ${data}`);
-            });
-            resolve(process);
-        });
-    });
-}
 
 /**
  * Returns the root folder for the current workspace.
@@ -138,7 +79,7 @@ function listenPromise(server: net.Server, port: number, maxPort: number, hostna
     });
 }
 
-function startServer(dotNetSdk : DotnetInfo, assemblyPath : string, rootFolder : string): (() => Thenable<StreamInfo>) {
+function startServer(languageServer : LanguageServer, rootFolder : string): (() => Thenable<StreamInfo>) {
     return () => new Promise((resolve, reject) => {
 
         let server = net.createServer(socket => {
@@ -160,7 +101,7 @@ function startServer(dotNetSdk : DotnetInfo, assemblyPath : string, rootFolder :
             })
             .then((actualPort) => {
                 console.log(`[qsharp-lsp] Successfully listening on port ${actualPort}, spawning server.`);
-                return spawnServerProcess(dotNetSdk.path, assemblyPath, actualPort, rootFolder);
+                return languageServer.spawn(actualPort, rootFolder);
             })
             .then((childProcess) => {
                 console.log(`[qsharp-lsp] started QsLanguageServer.exe as PID ${childProcess.pid}.`);
@@ -238,27 +179,23 @@ export async function activate(context: vscode.ExtensionContext) {
             ? configPath
             : context.asAbsolutePath(configPath);
 
-    let dotNetSdk: DotnetInfo;
+    // Get any .NET Core SDK version number to report.
+    var dotNetSdk : DotnetInfo | undefined;
     try {
-        dotNetSdk = await requireDotNetSdk(
-            packageInfo === undefined ? undefined : packageInfo.requiredDotNetCoreSDK
-        );
-    } catch (error) {
-        sendTelemetryEvent(EventNames.error, {
-            id:  "dotnet-missing", 
-            severity: ErrorSeverities.Error,
-            reason: error.message
-        });
-        console.log(`[qsharp-lsp] Could not find .NET Core SDK: ${error}`);
-        return;
+        dotNetSdk = await findDotNetSdk();
+    } catch {
+        dotNetSdk = undefined;
     }
-    console.log(`[qsharp-lsp] Found the .NET Core SDK at ${dotNetSdk.path}.`);
-
 
     // Start the language server client.
-
+    let languageServer = await LanguageServer.fromContext(context);
+    if (languageServer === null) {
+        // TODO: handle this error more gracefully by downloading the
+        //       Q#LS blog.
+        throw new Error("Could not find language server.");
+    }
     let serverOptions: ServerOptions =
-        startServer(dotNetSdk, languageServerPath, rootFolder);
+        startServer(languageServer, rootFolder);
 
     let clientOptions: LanguageClientOptions = {
         initializationOptions: {
@@ -319,13 +256,17 @@ export async function activate(context: vscode.ExtensionContext) {
             console.log(`[qsharp-lsp] State ${states[stateChangeEvent.oldState]} -> ${states[stateChangeEvent.newState]}`);
         })
     );
+
+    // When we're ready, send the telemetry event that we started successfully.
     client
         .onReady().then(() => {
             let elapsed = Date.now() - extensionStartedAt;
             sendTelemetryEvent(
                 EventNames.lspReady,
                 {
-                    'dotnetVersion': dotNetSdk.version
+                    'dotnetVersion': dotNetSdk !== undefined
+                                        ? dotNetSdk.version
+                                        : "<missing>"
                 },
                 {
                     'elapsedTime': elapsed
