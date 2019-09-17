@@ -10,6 +10,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as net from 'net';
+import * as url from 'url';
 
 // import * as request from 'request';
 
@@ -21,7 +22,8 @@ import * as tmp from 'tmp';
 import * as portfinder from 'portfinder';
 
 import { promisify } from 'util';
-import { StreamInfo } from 'vscode-languageclient';
+import { StreamInfo, LanguageClient, ServerOptions, RevealOutputChannelOn, LanguageClientOptions, CloseAction, ErrorAction, State } from 'vscode-languageclient';
+import { sendTelemetryEvent, EventNames, ErrorSeverities, forwardServerTelemetry } from './telemetry';
 
 // EXPORTS /////////////////////////////////////////////////////////////////////
 
@@ -110,13 +112,15 @@ function listenPromise(server: net.Server, port: number, maxPort: number, hostna
     });
 }
 
-
 export class LanguageServer {
     private path : string;
     private version : string;
-    private constructor(path : string, version : string) {
+    private context : vscode.ExtensionContext;
+
+    private constructor(path : string, version : string, context : vscode.ExtensionContext) {
         this.path = path;
         this.version = version;
+        this.context = context;
         // TODO: remove. This is only here to mark version as used until we get that logic up and running.
         console.log(`Found Q# language server version ${this.version}`);
     }
@@ -148,7 +152,7 @@ export class LanguageServer {
         if (response.stderr.trim().length !== 0) {
             throw new Error(`Language server returned error when reporting version: ${response.stderr}`);
         }
-        return new LanguageServer(lsPath, response.stdout.trim());
+        return new LanguageServer(lsPath, response.stdout.trim(), context);
     }
 
     /**
@@ -198,7 +202,7 @@ export class LanguageServer {
         return process;
     }
 
-    start(rootFolder : string): (() => Thenable<StreamInfo>) {
+    private startOptions(rootFolder : string): ServerOptions {
         return () => new Promise((resolve, reject) => {
 
             let server = net.createServer(socket => {
@@ -232,5 +236,93 @@ export class LanguageServer {
                 });
 
         });
+    }
+
+    async startClient(rootFolder : string) : Promise<LanguageClient> {
+        const languageServerStartedAt = Date.now();
+        let serverOptions = this.startOptions(rootFolder);
+
+        let clientOptions: LanguageClientOptions = {
+            initializationOptions: {
+                client: "VSCode",
+            },
+            documentSelector: [
+                {scheme: "file", language: "qsharp"}
+            ],
+            revealOutputChannelOn: RevealOutputChannelOn.Never,
+
+            // Due to the known issue
+            // https://github.com/Microsoft/vscode-languageserver-node/issues/105,
+            // we use the workaround from
+            // https://github.com/felixfbecker/vscode-php-intellisense/pull/23
+            // to convert URIs in and out of VS Code's internal formatting through
+            // the "uri" NPM package.
+            uriConverters: {
+                // VS Code by default %-encodes even the colon after the drive letter
+                // NodeJS handles it much better
+                code2Protocol: uri => url.format(url.parse(uri.toString(true))),
+                protocol2Code: str => vscode.Uri.parse(str)
+            },
+
+            errorHandler: {
+                closed: () => {
+                    return CloseAction.Restart;
+                },
+                error: (error, message, count) => {
+                    sendTelemetryEvent(EventNames.error, {
+                        id: error.name,
+                        severity: ErrorSeverities.Error,
+                        reason: error.message
+                    });
+                    // By default, continue the server as best as possible.
+                    return ErrorAction.Continue;
+                }
+            }
+        };
+
+        let client = new LanguageClient(
+            'qsharp',
+            'Q# Language Extension',
+            serverOptions,
+            clientOptions
+        );
+        this.context.subscriptions.push(
+            // The definition of the StateChangeEvent has changed in recent versions of VS Code,
+            // so we use a dictionary from enum of different states to strings to make sure that
+            // the debug log is useful even if the enum changes.
+            client.onDidChangeState(stateChangeEvent => {
+                var states : { [key in State]: string } = {
+                    [State.Running]: "running",
+                    [State.Starting]: "starting",
+                    [State.Stopped]: "stopped"
+                };
+                console.log(`[qsharp-lsp] State ${states[stateChangeEvent.oldState]} -> ${states[stateChangeEvent.newState]}`);
+            })
+        );
+
+        client.onDidChangeState(
+            (event) => {
+                if (event.oldState === State.Running && event.newState === State.Stopped) {
+                    sendTelemetryEvent(EventNames.lspStopped);
+                }
+            }
+        );
+        client.onTelemetry(forwardServerTelemetry);
+
+        // When we're ready, send the telemetry event that we started successfully.
+        client
+        .onReady().then(() => {
+            let elapsed = Date.now() - languageServerStartedAt;
+            sendTelemetryEvent(
+                EventNames.lspReady,
+                {},
+                {
+                    'elapsedTime': elapsed
+                }
+            );
+        });
+
+        return client;
+
     }
 }
