@@ -53,13 +53,12 @@ function Pack-SelfContained() {
     Write-Host "##[info]Packing $Project as a self-contained deployment...";
     $Runtimes | ForEach-Object {
         $TargetDir = New-TemporaryDirectory;
-        $ArchiveDir = Join-Path $Env:BLOBS_OUTDIR (
-            [System.IO.Path]::GetFileNameWithoutExtension($Project)
-        );
+        $BaseName = [System.IO.Path]::GetFileNameWithoutExtension($Project);
+        $ArchiveDir = Join-Path $Env:BLOBS_OUTDIR $BaseName;
         New-Item -ItemType Directory -Path $ArchiveDir -Force -ErrorAction SilentlyContinue;
 
         try {
-            $ArchivePath = Join-Path $ArchiveDir "$_.zip";
+            $ArchivePath = Join-Path $ArchiveDir "$BaseName-$_-$Env:ASSEMBLY_VERSION.zip";
             dotnet publish  `
                 $Project `
                 --self-contained `
