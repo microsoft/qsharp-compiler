@@ -71,6 +71,28 @@ function tmpName(config : tmp.SimpleOptions) : Promise<string> {
     });
 }
 
+function sha256sum(path : string) : Promise<string> {
+    return new Promise((resolve, reject) => {
+        // Node.js hashes are an odd kind of stream, see
+        // https://stackoverflow.com/a/18658613 for an example.
+        // What we need to do is set up the events on the file read stream
+        // to end the hash stream when it ends, so that pipe does everything
+        // for us automatically.
+        var readStream = fs.createReadStream(path);
+        var hash = crypto.createHash('sha256');
+        hash.setEncoding('hex');
+
+        readStream
+            .on('end', () => {
+                hash.end();
+                resolve(hash.read().toString());
+            })
+            .on('error', reject);
+
+        readStream.pipe(hash);
+    });
+}
+
 /**
  * Given a server, attempts to listen on a given port, incrementing the port
  * number on failure, and yielding the actual port that was used.
@@ -254,9 +276,7 @@ export class LanguageServer {
             }
         );
         if (blob.sha256 !== "<DISABLED>") {
-            var sha256 = crypto.createHash('sha256');
-            fs.createReadStream(downloadTarget).pipe(sha256);
-            var digest = sha256.digest('hex');
+            let digest = await sha256sum(downloadTarget);
             if (digest.localeCompare(blob.sha256, [], { sensitivity: 'base' })  !== 0) {
                 let reason = `Expected SHA256 sum ${blob.sha256}, got ${digest}.`;
                 console.log(`[qsharp-lsp] ${reason}`);
