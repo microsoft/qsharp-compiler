@@ -181,7 +181,8 @@ type QsSpecialization with
         Kind = kind
         Parent = parent
         Attributes = attributes
-        RequiredCapability = QsSpecialization.UnsetRequiredCapability
+        RequiredCapability = CapabilityLevel.Unset
+        LocalRequiredCapability = CapabilityLevel.Unset
         SourceFile = source
         Location = location
         TypeArguments = typeArgs

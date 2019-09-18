@@ -9,7 +9,7 @@ open System.Threading
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Diagnostics
 
-type Target(builtIns : NamespaceManager, capabilityLevel : int) =
+type Target(builtIns : NamespaceManager, capabilityLevel : CapabilityLevel) =
     member this.BuiltIns with get () = builtIns
 
     member this.CapabilityLevel with get () = capabilityLevel

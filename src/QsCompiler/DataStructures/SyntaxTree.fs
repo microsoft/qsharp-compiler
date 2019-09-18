@@ -608,8 +608,18 @@ type SpecializationImplementation =
 | Generated of QsGeneratorDirective // Invert and Distribute will be replaced by Provided before sending to code gen
 
 
-/// For each callable various specialization exist describing how it acts
-/// depending on the type of the argument it is called with (type specializations),
+/// Different targets provide different levels of Q# support. Some targets can execute any Q# code,
+/// while others are very limited in the Q# constructs that they can process.
+type CapabilityLevel =
+| Minimal = 1
+| Basic = 2
+| Medium = 3
+| Advanced = 4
+| Full = 5
+| Unset = -1
+
+/// For each callable various specialization exist describing how it acts 
+/// depending on the type of the argument it is called with (type specializations), 
 /// and/or which functors are applied to the call.
 type QsSpecialization = {
     /// contains the functor specialization kind (specialization for body, adjoint, controlled, or controlled adjoint)
@@ -618,8 +628,10 @@ type QsSpecialization = {
     Parent : QsQualifiedName
     /// contains all attributes associated with the specialization
     Attributes : ImmutableArray<QsDeclarationAttribute>
-    /// contains the minimum target capability level for this specialization
-    RequiredCapability : int
+    /// contains the minimum target capability level for this specialization, including its entire call tree
+    RequiredCapability : CapabilityLevel
+    /// contains the minimum target capability level for this specialization's code, not including anything it calls
+    LocalRequiredCapability : CapabilityLevel
     /// identifier for the file the specialization is declared in (not necessarily the same as the one of the callable it extends)
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared specialization.
@@ -640,8 +652,6 @@ type QsSpecialization = {
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithImplementation impl = {this with Implementation = impl}
-
-    static member UnsetRequiredCapability = -1
 
 
 /// describes a Q# function, operation, or type constructor

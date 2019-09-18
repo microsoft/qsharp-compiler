@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="ValidatingTransformations.fs" />
+    <Compile Include="CapabilityLevels.fs" />
     <Compile Include="Target.fs" />
   </ItemGroup>
 
