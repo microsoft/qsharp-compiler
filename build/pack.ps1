@@ -74,7 +74,9 @@ function Write-Hash() {
     Write-Host "New blob data: $($packageData."blobs".$BlobPlatform | ConvertTo-Json)";
     $packageData `
         | ConvertTo-Json -Depth 32 `
-        | Out-File $TargetPath;
+        | Set-Content `
+            -Path $TargetPath `
+            -Encoding (New-Object System.Text.UTF8Encoding $false);
 }
 
 function Pack-SelfContained() {
