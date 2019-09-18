@@ -8,9 +8,10 @@
 import * as vscode from 'vscode';
 import * as os from 'os';
 import * as path from 'path';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 import * as net from 'net';
 import * as url from 'url';
+import * as crypto from 'crypto';
 
 // import * as request from 'request';
 
@@ -26,6 +27,8 @@ import { StreamInfo, LanguageClient, ServerOptions, RevealOutputChannelOn, Langu
 import { sendTelemetryEvent, EventNames, ErrorSeverities, forwardServerTelemetry } from './telemetry';
 
 import DecompressZip = require('decompress-zip');
+import { getPackageInfo } from './packageInfo';
+import request = require('request');
 
 // EXPORTS /////////////////////////////////////////////////////////////////////
 
@@ -33,7 +36,7 @@ namespace CommonPaths {
     export const storageRelativePath = "server";
     export const executableNames = {
         darwin: "", // TODO
-        linux: "", // TODO
+        linux: "Microsoft.Quantum.QsLanguageServer",
         win32: "Microsoft.Quantum.QsLanguageServer.exe",
         aix: null,
         android: null,
@@ -127,6 +130,19 @@ export class LanguageServer {
         console.log(`Found Q# language server version ${this.version}`);
     }
 
+    static async clearCache(context : vscode.ExtensionContext) : Promise<void> {
+        let cachePath = path.join(context.globalStoragePath, CommonPaths.storageRelativePath);
+        return new Promise<void>((resolve, reject) => {
+            fs.remove(cachePath, err => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
     static async fromContext(context : vscode.ExtensionContext) : Promise<LanguageServer | null> {
         // TODO: allow overloading language server name from preferences.
         // Look at the global storage path for the context to try and find the
@@ -154,15 +170,25 @@ export class LanguageServer {
         if (response.stderr.trim().length !== 0) {
             throw new Error(`Language server returned error when reporting version: ${response.stderr}`);
         }
+
+        let version = response.stdout.trim();
+        let info = getPackageInfo(context);
+        if (info && info.assemblyVersion && info.assemblyVersion !== version) {
+            console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.assemblyVersion}. Clearing cached version.`);
+            await LanguageServer.clearCache(context);
+            return null;
+        }
+
         return new LanguageServer(lsPath, response.stdout.trim(), context);
     }
 
-    static decompressServerBlob(context : vscode.ExtensionContext, blobPath : string) : Thenable<void> {
+    private static decompressServerBlob(context : vscode.ExtensionContext, blobPath : string) : Thenable<void> {
+        console.log(`[qsharp-lsp] Decompressing ${blobPath}.`);
         return vscode.window.withProgress(
             {
                 cancellable: false,
                 location: vscode.ProgressLocation.Window,
-                title: "Unpacking Q# language server..."
+                title: "Unpacking Q# language server"
             },
             (progress, token) => {
                 return new Promise((resolve, reject) => {
@@ -170,10 +196,13 @@ export class LanguageServer {
                     let targetPath = path.join(context.globalStoragePath, CommonPaths.storageRelativePath);
                     unzipper.on('progress', (index, count) => {
                         progress.report({
-                            message: `Unpacking ${index} of ${count}...`
+                            message: `File ${index} of ${count}...`
                         });
                     });
-                    unzipper.on('error', reject);
+                    unzipper.on('error', err => {
+                        console.log(`[qsharp-lsp] Error while decompressing language server blog: ${err}`);
+                        reject(err);
+                    });
                     unzipper.on('extract', log => {
                         console.log(log);
                         resolve();
@@ -184,6 +213,63 @@ export class LanguageServer {
                 });
             }
         );
+    }
+
+    static async downloadLanguageServer(context : vscode.ExtensionContext) : Promise<void> {
+        let info = getPackageInfo(context);
+        if (info === undefined || info.blobs === undefined) {
+            throw new Error("Package info did not contain information about language server blobs.");
+        }
+        let blob = info.blobs[os.platform()];
+        let downloadTarget = await tmpName({postfix: ".zip"});
+        console.log(`[qsharp-lsp] Downloading ${blob.url} to ${downloadTarget}.`);
+        await vscode.window.withProgress(
+            {
+                cancellable: false,
+                location: vscode.ProgressLocation.Window,
+                title: "Downloading Q# language server"
+            },
+            (progress, token) => {
+                var bytesReceived = 0;
+                return new Promise((resolve, reject) => {
+                    request
+                        .get(blob.url)
+                        .on('error', reject)
+                        .on('data', data => {
+                            bytesReceived += data.length;
+                            let ofMessage = blob.size
+                                ? `/ ${blob.size}`
+                                : "";
+                            progress.report({
+                                message: `${bytesReceived}${ofMessage} bytes...`
+                            });
+                        })
+                        .pipe(fs.createWriteStream(downloadTarget))
+                        .on('close', resolve);
+                });
+            }
+        );
+        if (blob.sha256 !== "<DISABLED>") {
+            var sha256 = crypto.createHash('sha256');
+            fs.createReadStream(downloadTarget).pipe(sha256);
+            var digest = sha256.digest('hex');
+            if (digest.localeCompare(blob.sha256, [], { sensitivity: 'base' })  !== 0) {
+                console.log(`[qsharp-lsp] Expected SHA256 sum ${blob.sha256}, got ${digest}.`);
+            } else {
+                console.log(`[qsharp-lsp] Done downloading. Got expected SHA256 sum: ${digest}.`);
+            }
+        }
+        try {
+            await this.decompressServerBlob(context, downloadTarget);
+            console.log("[qsharp-lsp] Done decompressing, language server should be there.");
+        } catch (err) {
+            console.log(err);
+            throw new Error(err);
+        } finally {
+            console.log("[qsharp-lsp] Removing downloaded ZIP.");
+            fs.remove(downloadTarget);
+        }
+        // TODO: delete temp file.
     }
 
     /**

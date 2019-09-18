@@ -109,7 +109,7 @@ export async function activate(context: vscode.ExtensionContext) {
     let languageServer = await LanguageServer.fromContext(context);
     if (languageServer === null) {
         // Try again after downloading.
-        await LanguageServer.decompressServerBlob(context, "TODO");
+        await LanguageServer.downloadLanguageServer(context);
         languageServer = await LanguageServer.fromContext(context);
         if (languageServer === null) {
             // TODO: handle this error more gracefully.
