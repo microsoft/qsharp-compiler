@@ -6,6 +6,8 @@ $ErrorActionPreference = 'Stop'
 & "$PSScriptRoot/set-env.ps1"
 $all_ok = $True
 
+Write-Host "##[info]PowerShell version: $($PSVersionTable.PSVersion)"
+
 ##
 # Q# compiler
 ##
