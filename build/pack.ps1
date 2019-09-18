@@ -125,6 +125,9 @@ Pack-SelfContained `
     -Project "../src/QsCompiler/LanguageServer/QsLanguageServer.csproj" `
     -PackageData "../src/VSCodeExtension/package.json"
 
+Write-Host "Final package.json:"
+Get-Content "../src/VSCodeExtension/package.json" | Write-Host
+
 ##
 # VS Code Extension
 ##
