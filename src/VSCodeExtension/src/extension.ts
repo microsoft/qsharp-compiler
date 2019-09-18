@@ -107,7 +107,24 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Start the language server client.
     let languageServer = new LanguageServer(context, rootFolder);
-    await languageServer.start();
+    await languageServer
+        .start()
+        .catch(
+            err => {
+                console.log(`[qsharp-lsp] Language server failed to start: ${err}`);
+                let reportFeedbackItem = "Report feedback...";
+                vscode.window.showErrorMessage(
+                    `Language server failed to start: ${err}`,
+                    reportFeedbackItem
+                ).then(
+                    item => {
+                        vscode.env.openExternal(vscode.Uri.parse(
+                            "https://github.com/microsoft/qsharp-compiler/issues/new?assignees=&labels=bug,Area-IDE&template=bug_report.md&title="
+                        ));
+                    }
+                );
+            }
+        );
 
 }
 

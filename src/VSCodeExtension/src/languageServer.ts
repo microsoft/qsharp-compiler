@@ -258,7 +258,9 @@ export class LanguageServer {
             fs.createReadStream(downloadTarget).pipe(sha256);
             var digest = sha256.digest('hex');
             if (digest.localeCompare(blob.sha256, [], { sensitivity: 'base' })  !== 0) {
-                console.log(`[qsharp-lsp] Expected SHA256 sum ${blob.sha256}, got ${digest}.`);
+                let reason = `Expected SHA256 sum ${blob.sha256}, got ${digest}.`;
+                console.log(`[qsharp-lsp] ${reason}`);
+                throw new Error(reason);
             } else {
                 console.log(`[qsharp-lsp] Done downloading. Got expected SHA256 sum: ${digest}.`);
             }
@@ -280,15 +282,12 @@ export class LanguageServer {
      * Invokes a new process for the language server, using the `dotnet` tool provided with
      * the .NET Core SDK.
      *
-     * @param dotNetSdk Path to the .NET Core SDK.
-     * @param assemblyPath Path to the language server assembly.
      * @param port TCP port to use to talk to the language server.
-     * @param rootFolder Folder to use as the root for the new language server instance.
      */
-    async spawnProcess(port : number, rootFolder : string) : Promise<cp.ChildProcess> {
+    async spawnProcess(port : number) : Promise<cp.ChildProcess> {
         if (this.serverExe === undefined) {
             // Try to find the exe, and fail out if not found.
-            if (!this.findExecutable()) {
+            if (!await this.findExecutable()) {
                 throw new Error("Could not find language server executable to spawn.");
             } else {
                 // Assert that the exe info is there so that TypeScript is happy;
@@ -315,7 +314,7 @@ export class LanguageServer {
             this.serverExe.path,
             args,
             {
-                cwd: rootFolder
+                cwd:  this.rootFolder
             }
         ).on('error', err => {
             console.log(`[qsharp-lsp] Child process spawn failed with ${err}.`);
@@ -356,7 +355,7 @@ export class LanguageServer {
                 })
                 .then((actualPort) => {
                     console.log(`[qsharp-lsp] Successfully listening on port ${actualPort}, spawning server.`);
-                    return this.spawnProcess(actualPort, this.rootFolder);
+                    return this.spawnProcess(actualPort);
                 })
                 .then((childProcess) => {
                     console.log(`[qsharp-lsp] started QsLanguageServer.exe as PID ${childProcess.pid}.`);
@@ -458,7 +457,7 @@ export class LanguageServer {
     }
 
     async start(retries : number = 3) : Promise<void> {
-        if (!this.findExecutable()) {
+        if (!await this.findExecutable()) {
             // Try again after downloading.
             try {
                 await this.downloadLanguageServer();
@@ -480,6 +479,7 @@ export class LanguageServer {
                             vscode.env.openExternal(vscode.Uri.parse(
                                 "https://github.com/microsoft/qsharp-compiler/issues/new?assignees=&labels=bug,Area-IDE&template=bug_report.md&title="
                             ));
+                            return;
                             break;
                     }
                 }
