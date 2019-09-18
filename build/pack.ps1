@@ -76,7 +76,7 @@ function Write-Hash() {
         | ConvertTo-Json -Depth 32 `
         | Set-Content `
             -Path $TargetPath `
-            -Encoding (New-Object System.Text.UTF8Encoding $false);
+            -Encoding UTF8NoBom;
 }
 
 function Pack-SelfContained() {
