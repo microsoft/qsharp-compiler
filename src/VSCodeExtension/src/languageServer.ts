@@ -118,20 +118,20 @@ function listenPromise(server: net.Server, port: number, maxPort: number, hostna
 }
 
 export class LanguageServer {
-    private path : string;
-    private version : string;
+    private serverExe : {
+        path : string,
+        version : string
+    } | undefined;
     private context : vscode.ExtensionContext;
+    private rootFolder : string;
 
-    private constructor(path : string, version : string, context : vscode.ExtensionContext) {
-        this.path = path;
-        this.version = version;
+    constructor(context : vscode.ExtensionContext, rootFolder : string) {
         this.context = context;
-        // TODO: remove. This is only here to mark version as used until we get that logic up and running.
-        console.log(`Found Q# language server version ${this.version}`);
+        this.rootFolder = rootFolder;
     }
 
-    static async clearCache(context : vscode.ExtensionContext) : Promise<void> {
-        let cachePath = path.join(context.globalStoragePath, CommonPaths.storageRelativePath);
+    async clearCache() : Promise<void> {
+        let cachePath = path.join(this.context.globalStoragePath, CommonPaths.storageRelativePath);
         return new Promise<void>((resolve, reject) => {
             fs.remove(cachePath, err => {
                 if (err) {
@@ -143,7 +143,7 @@ export class LanguageServer {
         });
     }
 
-    static async fromContext(context : vscode.ExtensionContext) : Promise<LanguageServer | null> {
+    async findExecutable() : Promise<boolean> {
         // TODO: allow overloading language server name from preferences.
         // Look at the global storage path for the context to try and find the
         // language server executable.
@@ -151,10 +151,10 @@ export class LanguageServer {
         if (exeName === null) {
             throw new Error(`Unsupported platform: ${os.platform()}`);
         }
-        let lsPath = path.join(context.globalStoragePath, CommonPaths.storageRelativePath, exeName);
+        let lsPath = path.join(this.context.globalStoragePath, CommonPaths.storageRelativePath, exeName);
         if (!await isPathExecutable(lsPath)) {
             // Language server didn't exist or wasn't executable.
-            return null;
+            return false;
         }
         // NB: There is a possible race condition here, as per node docs. An
         //     alternative approach might be to simply run the language server
@@ -172,17 +172,21 @@ export class LanguageServer {
         }
 
         let version = response.stdout.trim();
-        let info = getPackageInfo(context);
+        let info = getPackageInfo(this.context);
         if (info && info.assemblyVersion && info.assemblyVersion !== version) {
             console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.assemblyVersion}. Clearing cached version.`);
-            await LanguageServer.clearCache(context);
-            return null;
+            await this.clearCache();
+            return false;
         }
 
-        return new LanguageServer(lsPath, response.stdout.trim(), context);
+        this.serverExe = {
+            path: lsPath,
+            version: version
+        };
+        return true;
     }
 
-    private static decompressServerBlob(context : vscode.ExtensionContext, blobPath : string) : Thenable<void> {
+    private decompressServerBlob(blobPath : string) : Thenable<void> {
         console.log(`[qsharp-lsp] Decompressing ${blobPath}.`);
         return vscode.window.withProgress(
             {
@@ -193,7 +197,7 @@ export class LanguageServer {
             (progress, token) => {
                 return new Promise((resolve, reject) => {
                     let unzipper = new DecompressZip(blobPath);
-                    let targetPath = path.join(context.globalStoragePath, CommonPaths.storageRelativePath);
+                    let targetPath = path.join(this.context.globalStoragePath, CommonPaths.storageRelativePath);
                     unzipper.on('progress', (index, count) => {
                         progress.report({
                             message: `File ${index} of ${count}...`
@@ -215,8 +219,8 @@ export class LanguageServer {
         );
     }
 
-    static async downloadLanguageServer(context : vscode.ExtensionContext) : Promise<void> {
-        let info = getPackageInfo(context);
+    async downloadLanguageServer() : Promise<void> {
+        let info = getPackageInfo(this.context);
         if (info === undefined || info.blobs === undefined) {
             throw new Error("Package info did not contain information about language server blobs.");
         }
@@ -260,7 +264,7 @@ export class LanguageServer {
             }
         }
         try {
-            await this.decompressServerBlob(context, downloadTarget);
+            await this.decompressServerBlob(downloadTarget);
             console.log("[qsharp-lsp] Done decompressing, language server should be there.");
         } catch (err) {
             console.log(err);
@@ -282,6 +286,17 @@ export class LanguageServer {
      * @param rootFolder Folder to use as the root for the new language server instance.
      */
     async spawnProcess(port : number, rootFolder : string) : Promise<cp.ChildProcess> {
+        if (this.serverExe === undefined) {
+            // Try to find the exe, and fail out if not found.
+            if (!this.findExecutable()) {
+                throw new Error("Could not find language server executable to spawn.");
+            } else {
+                // Assert that the exe info is there so that TypeScript is happy;
+                // this should be post-condition of findExecutable returning true.
+                console.assert(this.serverExe !== undefined, "Language server path not set after successfully finding executable. This should never happen.");
+                this.serverExe = this.serverExe!;
+            }
+        }
         var args: string[];
         var logFile: string;
         try {
@@ -297,7 +312,7 @@ export class LanguageServer {
         }
 
         let process = cp.spawn(
-            this.path,
+            this.serverExe.path,
             args,
             {
                 cwd: rootFolder
@@ -319,7 +334,7 @@ export class LanguageServer {
         return process;
     }
 
-    private startOptions(rootFolder : string): ServerOptions {
+    private startOptions(): ServerOptions {
         return () => new Promise((resolve, reject) => {
 
             let server = net.createServer(socket => {
@@ -341,7 +356,7 @@ export class LanguageServer {
                 })
                 .then((actualPort) => {
                     console.log(`[qsharp-lsp] Successfully listening on port ${actualPort}, spawning server.`);
-                    return this.spawnProcess(actualPort, rootFolder);
+                    return this.spawnProcess(actualPort, this.rootFolder);
                 })
                 .then((childProcess) => {
                     console.log(`[qsharp-lsp] started QsLanguageServer.exe as PID ${childProcess.pid}.`);
@@ -355,9 +370,9 @@ export class LanguageServer {
         });
     }
 
-    async startClient(rootFolder : string) : Promise<LanguageClient> {
+    private async startClient() : Promise<LanguageClient> {
         const languageServerStartedAt = Date.now();
-        let serverOptions = this.startOptions(rootFolder);
+        let serverOptions = this.startOptions();
 
         let clientOptions: LanguageClientOptions = {
             initializationOptions: {
@@ -427,8 +442,7 @@ export class LanguageServer {
         client.onTelemetry(forwardServerTelemetry);
 
         // When we're ready, send the telemetry event that we started successfully.
-        client
-        .onReady().then(() => {
+        client.onReady().then(() => {
             let elapsed = Date.now() - languageServerStartedAt;
             sendTelemetryEvent(
                 EventNames.lspReady,
@@ -441,5 +455,44 @@ export class LanguageServer {
 
         return client;
 
+    }
+
+    async start(retries : number = 3) : Promise<void> {
+        if (!this.findExecutable()) {
+            // Try again after downloading.
+            try {
+                await this.downloadLanguageServer();
+            } catch (err) {
+                console.log(`[qsharp-lsp] Error downloading language server: ${err}. ${retries} left.`);
+                if (retries > 0) {
+                    return this.start(retries - 1);
+                } else {
+                    let retryItem = "Try again";
+                    let reportFeedbackItem = "Report feedback...";
+                    switch (await vscode.window.showErrorMessage(
+                        "Could not download Q# language server.",
+                        retryItem, reportFeedbackItem
+                    )) {
+                        case retryItem:
+                            return this.start(1);
+                            break;
+                        case reportFeedbackItem:
+                            vscode.env.openExternal(vscode.Uri.parse(
+                                "https://github.com/microsoft/qsharp-compiler/issues/new?assignees=&labels=bug,Area-IDE&template=bug_report.md&title="
+                            ));
+                            break;
+                    }
+                }
+            }
+            if (!this.findExecutable()) {
+                // TODO: handle this error more gracefully.
+                throw new Error("Could not find language server.");
+            }
+        }
+        let client = await this.startClient();
+        let disposable = client.start();
+        this.context.subscriptions.push(disposable);
+
+        console.log("[qsharp-lsp] Started LanguageClient object.");
     }
 }

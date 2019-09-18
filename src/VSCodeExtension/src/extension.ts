@@ -106,22 +106,9 @@ export async function activate(context: vscode.ExtensionContext) {
     //         : context.asAbsolutePath(configPath);
 
     // Start the language server client.
-    let languageServer = await LanguageServer.fromContext(context);
-    if (languageServer === null) {
-        // Try again after downloading.
-        await LanguageServer.downloadLanguageServer(context);
-        languageServer = await LanguageServer.fromContext(context);
-        if (languageServer === null) {
-            // TODO: handle this error more gracefully.
-            throw new Error("Could not find language server.");
-        }
-    }
-    let client = await languageServer.startClient(rootFolder);
-    let disposable = client.start();
+    let languageServer = new LanguageServer(context, rootFolder);
+    await languageServer.start();
 
-    console.log("[qsharp-lsp] Started LanguageClient object.");
-
-    context.subscriptions.push(disposable);
 }
 
 // this method is called when your extension is deactivated
