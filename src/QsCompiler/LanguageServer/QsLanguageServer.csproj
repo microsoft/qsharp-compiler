@@ -6,6 +6,10 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
+  <!-- Workaround for https://github.com/dotnet/cli/issues/9514, see https://stackoverflow.com/a/51644988/267841. -->
+  <PropertyGroup>
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+  </PropertyGroup>
   <PropertyGroup>
     <!-- Provide a solution directory in case we are invoked from the dotnet core SDK. -->
     <SolutionDir>$(MSBuildProjectDirectory)\..\..\..\</SolutionDir>
