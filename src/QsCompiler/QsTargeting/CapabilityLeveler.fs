@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Targeting.CapabilityLeveler
+module Microsoft.Quantum.QsCompiler.Targeting.Leveler
 
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -14,14 +14,14 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
-type internal SpecializationKey =
+type private SpecializationKey =
     {
         QualifiedName : QsQualifiedName
         Kind : QsSpecializationKind
         TypeArgString : string
     }
 
-type CapabilityLevelManager() =
+type private CapabilityLevelManager() =
     let sep = '|'
     let levels = new Dictionary<SpecializationKey, CapabilityLevel>()
     let dependencies = new Dictionary<SpecializationKey, HashSet<SpecializationKey>>()
@@ -40,6 +40,9 @@ type CapabilityLevelManager() =
                             |> String.concat (sep.ToString())
         { QualifiedName = name; Kind = kind; TypeArgString = typeArgString }
 
+    let SpecToKey (spec : QsSpecialization) =
+        SpecInfoToKey spec.Parent spec.Kind spec.TypeArguments
+
     let StringToTypeArray (ts : string) =
         let lookupString s = 
             match keyTypes.TryGetValue(s) with
@@ -50,93 +53,147 @@ type CapabilityLevelManager() =
         then Null
         else Value (typeSequence |> ImmutableArray.ToImmutableArray)
 
-    let rec WalkDependencyTree root (accum : HashSet<SpecializationKey>) =
-        match dependencies.TryGetValue(root) with
-        | true, next -> 
-            next |> Seq.fold (fun (a : HashSet<SpecializationKey>) k -> if a.Add(k) then WalkDependencyTree k a else a) accum
-        | false, _ -> accum
-
-    member this.GetSpecializationLevel(name, kind, types) =
-        let key = SpecInfoToKey name kind types
-        match levels.TryGetValue(key) with
-        | true, level -> level
-        | false, _ -> CapabilityLevel.Unset
-
-    member this.SetSpecializationLevel(name, kind, types, level) =
-        let key = SpecInfoToKey name kind types
-        levels.[key] <- level
-
-    member this.AddDependency(callerName, callerKind, callerTypes, calledName, calledKind, calledTypes) =
-        let callerKey = SpecInfoToKey callerName callerKind callerTypes
-        let calledKey = SpecInfoToKey calledName calledKind calledTypes
+    let RecordDependency callerKey calledKey =
         match dependencies.TryGetValue(callerKey) with
         | true, deps -> deps.Add(calledKey) |> ignore
         | false, _ -> let newDeps = new HashSet<SpecializationKey>()
                       newDeps.Add(calledKey) |> ignore
                       dependencies.[callerKey] <- newDeps
 
-    member this.FlushDependencies(callerName, callerKind, callerTypes) =
-        let key = SpecInfoToKey callerName callerKind callerTypes
+    let rec WalkDependencyTree root (accum : HashSet<SpecializationKey>) =
+        match dependencies.TryGetValue(root) with
+        | true, next -> 
+            next |> Seq.fold (fun (a : HashSet<SpecializationKey>) k -> if a.Add(k) then WalkDependencyTree k a else a) accum
+        | false, _ -> accum
+
+    member this.GetSpecializationLevel(spec) =
+        let key = SpecToKey spec
+        match levels.TryGetValue(key) with
+        | true, level -> level
+        | false, _ -> CapabilityLevel.Unset
+
+    member this.SetSpecializationLevel(spec, level) =
+        let key = SpecToKey spec
+        levels.[key] <- level
+
+    member this.AddDependency(callerSpec, calledSpec) =
+        let callerKey = SpecToKey callerSpec
+        let calledKey = SpecToKey calledSpec
+        RecordDependency callerKey calledKey
+
+    member this.AddDependency(callerSpec, calledName, calledKind, calledTypeArgs) =
+        let callerKey = SpecToKey callerSpec
+        let calledKey = SpecInfoToKey calledName calledKind calledTypeArgs
+        RecordDependency callerKey calledKey
+
+    member this.AddDependency(callerName, callerKind, callerTypeArgs, calledName, calledKind, calledTypeArgs) =
+        let callerKey = SpecInfoToKey callerName callerKind callerTypeArgs
+        let calledKey = SpecInfoToKey calledName calledKind calledTypeArgs
+        RecordDependency callerKey calledKey
+
+    member this.FlushDependencies(callerSpec) =
+        let key = SpecToKey callerSpec
         dependencies.Remove(key) |> ignore
 
-    member this.GetDependencies(callerName, callerKind, callerTypes) =
-        let key = SpecInfoToKey callerName callerKind callerTypes
+    member this.GetDependencies(callerSpec) =
+        let key = SpecToKey callerSpec
         match dependencies.TryGetValue(key) with
         | true, deps -> 
             deps |> Seq.map (fun key -> (key.QualifiedName, key.Kind, key.TypeArgString |> StringToTypeArray))
         | false, _ -> Seq.empty
 
-    member this.GetDependencyTree(callerName, callerKind, callerTypes) =
-        let key = SpecInfoToKey callerName callerKind callerTypes
+    member this.GetDependencyTree(callerSpec) =
+        let key = SpecToKey callerSpec
         WalkDependencyTree key (new HashSet<SpecializationKey>(key |> Seq.singleton))
         |> Seq.filter (fun k -> k <> key)
         |> Seq.map (fun key -> (key.QualifiedName, key.Kind, key.TypeArgString |> StringToTypeArray))
 
-    member this.GetDependencyLevel(callerName, callerKind, callerTypes) =
+    member this.GetDependencyLevel(callerSpec) =
         let getLevel k =
             match levels.TryGetValue(k) with
             | true, level -> level
             | false, _ -> CapabilityLevel.Unset
-        let key = SpecInfoToKey callerName callerKind callerTypes
+        let key = SpecToKey callerSpec
         let deps = WalkDependencyTree key (new HashSet<SpecializationKey>(key |> Seq.singleton)) 
                    |> Seq.filter (fun k -> k <> key)
         if Seq.isEmpty deps 
         then CapabilityLevel.Unset
         else deps |> Seq.map getLevel |> Seq.max
 
-type internal CapabilityInfoHolder(context : QsNamespace seq) =
+let private manager = new CapabilityLevelManager()        
+        
+type private CapabilityInfoHolder(spec) =
     let mutable localLevel = CapabilityLevel.Minimal
-    let mutable calledLevel = CapabilityLevel.Minimal
-    let callables = context |> GlobalCallableResolutions
-
-    member this.GetCallableLevel(name, modifier, types) =
-        match callables.TryGetValue(name) with
-        | true, callable -> 
-            callable.Specializations |> Seq.filter (fun spec -> spec.Kind = modifier && spec.TypeArguments = types)
-                                     |> Seq.map (fun a -> a.RequiredCapability)
-                                     |> Seq.tryExactlyOne
-        | false, _ -> None
 
     member this.LocalLevel with get() = localLevel and set(n) = if n > localLevel then localLevel <- n
-    member this.CalledLevel with get() = calledLevel and set(n) = if n > calledLevel then calledLevel <- n
 
-type internal ExpressionKindLeveler(holder : CapabilityInfoHolder) =
+    member this.Specialization with get() = spec
+
+type private ExpressionKindLeveler(holder : CapabilityInfoHolder) =
     inherit ExpressionKindTransformation()
 
     let exprXformer = new ExpressionLeveler(holder)
+    let mutable inCall = false
+    let mutable adjoint = false
+    let mutable controlled = false
+
+    member private this.HandleCallable method arg =
+        inCall <- true
+        adjoint <- false
+        controlled <- false
+        let method = this.ExpressionTransformation method
+        inCall <- false
+        let arg = this.ExpressionTransformation arg
+        CallLikeExpression(method, arg)
 
     override this.ExpressionTransformation x = exprXformer.Transform x
     override this.TypeTransformation x = x
 
-    override this.onOperationCall(ex1, ex2) =
-        base.onOperationCall(ex1, ex2)
+    override this.onOperationCall(method, arg) =
+        this.HandleCallable method arg
 
-and internal ExpressionLeveler(holder : CapabilityInfoHolder) =
+    override this.onFunctionCall(method, arg) =
+        this.HandleCallable method arg
+
+    override this.onAdjointApplication(ex) =
+        adjoint <- true
+        base.onAdjointApplication(ex)
+
+    override this.onControlledApplication(ex) =
+        controlled <- true
+        base.onControlledApplication(ex)
+
+    override this.onIdentifier(sym, typeArgs) =
+        match sym with
+        | GlobalCallable(name) ->
+            if inCall
+            then
+                let kind = match adjoint, controlled with
+                           | false, false -> QsBody
+                           | false, true  -> QsControlled
+                           | true,  false -> QsAdjoint
+                           | true,  true  -> QsControlledAdjoint
+                manager.AddDependency(holder.Specialization, name, kind, typeArgs)
+            else
+                // The callable is being used in a non-call context, such as being
+                /// assigned to a variable or passed as an argument to another callable,
+                // which means it could get a functor applied at some later time.
+                // We're conservative and add all 4 possible kinds.
+                manager.AddDependency(holder.Specialization, name, QsBody, typeArgs)
+                manager.AddDependency(holder.Specialization, name, QsControlled, typeArgs)
+                manager.AddDependency(holder.Specialization, name, QsAdjoint, typeArgs)
+                manager.AddDependency(holder.Specialization, name, QsControlledAdjoint, typeArgs)
+        | _ -> ()
+        base.onIdentifier(sym, typeArgs)
+
+and private ExpressionLeveler(holder : CapabilityInfoHolder) =
     inherit ExpressionTransformation()
 
     let kindXformer = new ExpressionKindLeveler(holder)
 
-and internal StatementLeveler(holder : CapabilityInfoHolder) =
+    override this.Kind = upcast kindXformer    
+
+and private StatementLeveler(holder : CapabilityInfoHolder) =
     inherit StatementKindTransformation()
 
     let scopeXformer = new ScopeLeveler(holder)
@@ -147,16 +204,12 @@ and internal StatementLeveler(holder : CapabilityInfoHolder) =
     override this.TypeTransformation x = x
     override this.LocationTransformation x = x
 
-and internal ScopeLeveler(holder : CapabilityInfoHolder) =
+and private ScopeLeveler(holder : CapabilityInfoHolder) =
     inherit ScopeTransformation()
 
     override this.StatementKind = upcast new StatementLeveler(holder)
 
-type TreeLeveler(context : QsNamespace seq) =
-    inherit SyntaxTreeTransformation()
-
-    let mutable currentCallableLevel = None : (CapabilityLevel * CapabilityLevel) option
-
+let ProcessSpecialization(callable : QsCallable, spec : QsSpecialization) =
     let checkForLevelAttributes (attrs : QsDeclarationAttribute seq) =
         let isLevelAttribute (a : QsDeclarationAttribute) = 
             match a.TypeId with
@@ -165,44 +218,44 @@ type TreeLeveler(context : QsNamespace seq) =
         let getLevelFromArgument (a : QsDeclarationAttribute) =
             match a.Argument.Expression with
             | IntLiteral n -> let level = enum<CapabilityLevel> (int n)
-                              Some (level, level)
+                              Some level
             | _ -> None
         let levels = attrs |> Seq.filter isLevelAttribute |> List.ofSeq
         match levels with
         | [ level ] -> getLevelFromArgument level
         | [] -> None
         | _ -> None
+    let computeLevelFromImplementation () =
+        match spec.Implementation with
+        | SpecializationImplementation.Provided (_, code) -> 
+            // Compute the capability levels by walking the code
+            let holder = new CapabilityInfoHolder(spec)
+            let xform = new ScopeLeveler(holder)
+            xform.Transform code |> ignore
+            Some holder.LocalLevel
+        | SpecializationImplementation.Intrinsic -> 
+            Some CapabilityLevel.Minimal
+        | SpecializationImplementation.External -> 
+            None
+        | SpecializationImplementation.Generated _ -> 
+            // TODO: Find the "base" specialization and use it's level
+            Some CapabilityLevel.Unset
+    // We always have to walk the implementation in order to reset call dependencies,
+    // even if the local level is set by an attribute.
+    manager.FlushDependencies(spec)
+    let levelFromImplementation = computeLevelFromImplementation()
+    // Now we can get the max level of called routines
+    let calledLevel = manager.GetDependencyLevel(spec)
 
-    let transformSpecialization (spec : QsSpecialization) =
-        let computeLevelFromImplementation () =
-            match spec.Implementation with
-            | SpecializationImplementation.Provided (_, code) -> 
-                // Compute the capability levels by walking the code
-                let holder = new CapabilityInfoHolder(context)
-                let xform = new ScopeLeveler(holder)
-                xform.Transform code |> ignore
-                Some (holder.LocalLevel, holder.CalledLevel)
-            | SpecializationImplementation.Intrinsic -> 
-                Some (CapabilityLevel.Minimal, CapabilityLevel.Minimal)
-            | SpecializationImplementation.External -> 
-                None
-            | SpecializationImplementation.Generated _ -> 
-                // TODO: Find the "base" specialization and use it's levels
-                Some (CapabilityLevel.Unset, CapabilityLevel.Unset)
-        // If there is a Level attribute for this specific specialization, use it; otherwise,
-        // use the level from Level attribute for the containing callable, if any; as a last
-        // resort, check the actual implementation.
-        let local, called = spec.Attributes 
-                            |> checkForLevelAttributes 
-                            |> Option.orElse currentCallableLevel
-                            |> Option.orElseWith computeLevelFromImplementation
-                            |> Option.defaultValue (CapabilityLevel.Unset, CapabilityLevel.Unset)
-        { spec with LocalRequiredCapability = local; RequiredCapability = called }
-    
-    override this.onSpecializationImplementation spec = 
-        transformSpecialization spec
+    // If there is a Level attribute for this specific specialization, use it; otherwise,
+    // use the level from Level attribute for the containing callable, if any; as a last
+    // resort, check the actual implementation.
+    let localLevel = checkForLevelAttributes spec.Attributes
+                     |> Option.orElse (checkForLevelAttributes callable.Attributes)
+                     |> Option.orElse levelFromImplementation
+                     |> Option.defaultValue CapabilityLevel.Unset
+    manager.SetSpecializationLevel(spec, localLevel)
 
-    override this.beforeCallable callable =
-        currentCallableLevel <- checkForLevelAttributes callable.Attributes
-        base.beforeCallable callable
+    (localLevel, calledLevel)
+
         
