@@ -50,6 +50,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             { }
         }
 
+        private static Func<(string, string), string> IsDeclaration(string declarationType) => (attribute) =>
+        {
+            var (typeName, serialization) = attribute;
+            if (!typeName.Equals(declarationType, StringComparison.InvariantCultureIgnoreCase)) return null;
+            return serialization;
+        };
+
+        private static IEnumerable<CallableDeclarationHeader> CallableHeaders(IEnumerable<(string, string)> attributes) =>
+            attributes.Select(IsDeclaration("CallableDeclarationAttribute")).Where(v => v != null)
+                .Select(CallableDeclarationHeader.FromJson).Select(built => built.Item2);
+
+        private static IEnumerable<SpecializationDeclarationHeader> SpecializationHeaders(IEnumerable<(string, string)> attributes) =>
+            attributes.Select(IsDeclaration("SpecializationDeclarationAttribute")).Where(v => v != null)
+                .Select(SpecializationDeclarationHeader.FromJson).Select(built => built.Item2);
+
+        private static IEnumerable<TypeDeclarationHeader> TypeHeaders(IEnumerable<(string, string)> attributes) =>
+            attributes.Select(IsDeclaration("TypeDeclarationAttribute")).Where(v => v != null)
+                .Select(TypeDeclarationHeader.FromJson).Select(built => built.Item2);
+
+
         /// <summary>
         /// Dictionary that maps the id of a referenced assembly (given by its location on disk) to the headers defined in that assembly.
         /// </summary>
@@ -81,25 +101,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal References(ImmutableDictionary<NonNullable<string>, Headers> refs) =>
             this.Declarations = refs;
-
-        private static Func<(string, string), string> IsDeclaration(string declarationType) => (attribute) =>
-        {
-            var (typeName, serialization) = attribute;
-            if (!typeName.Equals(declarationType, StringComparison.InvariantCultureIgnoreCase)) return null;
-            return serialization;
-        };
-
-        private static IEnumerable<CallableDeclarationHeader> CallableHeaders(IEnumerable<(string, string)> attributes) =>
-            attributes.Select(IsDeclaration("CallableDeclarationAttribute")).Where(v => v != null)
-                .Select(CallableDeclarationHeader.FromJson).Select(built => built.Item2);
-
-        private static IEnumerable<SpecializationDeclarationHeader> SpecializationHeaders(IEnumerable<(string, string)> attributes) =>
-            attributes.Select(IsDeclaration("SpecializationDeclarationAttribute")).Where(v => v != null)
-                .Select(SpecializationDeclarationHeader.FromJson).Select(built => built.Item2);
-
-        private static IEnumerable<TypeDeclarationHeader> TypeHeaders(IEnumerable<(string, string)> attributes) =>
-            attributes.Select(IsDeclaration("TypeDeclarationAttribute")).Where(v => v != null)
-                .Select(TypeDeclarationHeader.FromJson).Select(built => built.Item2);
     }
 
 

@@ -258,7 +258,7 @@ type ErrorCode =
     | UnknownProjectReference = 7007
     | CouldNotLoadSourceFile = 7008
     | FileIsNotAnAssembly = 7010
-    | CouldNotExtractHeaders = 7011
+    | OutdatedAssemblyFormat = 7011
     | MissingProjectReferenceDll = 7012
     | InvalidProjectOutputPath = 7013
     | SourceFilesMissing = 7014
@@ -586,7 +586,7 @@ type DiagnosticItem =
             | ErrorCode.UnknownProjectReference                 -> "Could not find the project file for the referenced project \"{0}\"."
             | ErrorCode.CouldNotLoadSourceFile                  -> "Unable to load source file \"{0}\"."
             | ErrorCode.FileIsNotAnAssembly                     -> "The given file \"{0}\" is not an valid assembly."
-            | ErrorCode.CouldNotExtractHeaders                  -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
+            | ErrorCode.OutdatedAssemblyFormat                  -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
             | ErrorCode.MissingProjectReferenceDll              -> "Missing binary file for project reference \"{0}\". Build the referenced project for its content to be detected correctly."
             | ErrorCode.InvalidProjectOutputPath                -> "Invalid project output path for project \"{0}\"."
             | ErrorCode.SourceFilesMissing                      -> "No source files have been specified."

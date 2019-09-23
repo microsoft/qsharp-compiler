@@ -10,7 +10,6 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -37,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws a FileNotFoundException if no file with the given name exists. 
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </summary>
-        public static References.Headers LoadReferencedAssembly(Uri asm)
+        public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers)
         {
             if (asm == null) throw new ArgumentNullException(nameof(asm));
             if (!File.Exists(asm.LocalPath))
@@ -46,9 +45,11 @@ namespace Microsoft.Quantum.QsCompiler
             using (var stream = File.OpenRead(asm.LocalPath))
             using (var assemblyFile = new PEReader(stream))
             {
-                return FromResource(assemblyFile, out var syntaxTree)
+                var loadedFromResource = FromResource(assemblyFile, out var syntaxTree);
+                headers = loadedFromResource
                     ? new References.Headers(syntaxTree)
                     : new References.Headers(LoadHeaderAttributes(assemblyFile));
+                return loadedFromResource;
             }
         }
 

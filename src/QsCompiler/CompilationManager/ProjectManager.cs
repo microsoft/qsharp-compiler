@@ -1091,7 +1091,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 try { AssemblyName.GetAssemblyName(asm.LocalPath); } // will throw if the file is not a valid assembly
                 catch (FileLoadException) { } // the file is already loaded -> we can ignore that one
-                return AssemblyLoader.LoadReferencedAssembly(asm);
+                if (!AssemblyLoader.LoadReferencedAssembly(asm, out var headers))
+                { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.OutdatedAssemblyFormat, new[] { asm.LocalPath }, MessageSource(asm).Value)); }
+                return headers;
             }
             catch (BadImageFormatException ex)
             {
@@ -1154,14 +1156,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             foreach (var projFile in missingDlls.Select(dll => projectDlls[dll]))
             { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.MissingProjectReferenceDll, new[] { projFile.LocalPath }, MessageSource(projFile).Value)); }
 
-
             var headers = existingProjectDlls
                 .Select(file => (file, LoadReferencedDll(file)))
                 .Where(asm => asm.Item2 != null)
                 .ToImmutableDictionary(asm => MessageSource(projectDlls[asm.Item1]), asm => asm.Item2);
-            //if (!References.TryInitializeFrom(attributes, out var builtRefs, out var errs))
-            //{ QsCompilerError.Raise("error while extracting custom attributes from project references"); }
-            //foreach (var file in errs) onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.CouldNotExtractHeaders, new[] { file.LocalPath }, MessageSource(file))); 
             return new References(headers);
         }
 
@@ -1197,9 +1195,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(file => (file, LoadReferencedDll(file)))
                 .Where(asm => asm.Item2 != null)
                 .ToImmutableDictionary(asm => MessageSource(asm.Item1), asm => asm.Item2);
-            //if (!References.TryInitializeFrom(attributes, out var builtRefs, out var errs))
-            //{ QsCompilerError.Raise("error while extracting custom attributes from references"); }
-            //foreach (var file in errs) onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.CouldNotExtractHeaders, new[] { file.LocalPath }, MessageSource(file)));
             return new References(headers);
         }
     }
