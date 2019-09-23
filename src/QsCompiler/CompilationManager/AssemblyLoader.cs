@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -36,37 +37,18 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws a FileNotFoundException if no file with the given name exists. 
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </summary>
-        public static IEnumerable<QsNamespace> LoadReferencedAssembly(Uri asm)
+        public static References.Headers LoadReferencedAssembly(Uri asm)
         {
             if (asm == null) throw new ArgumentNullException(nameof(asm));
             if (!File.Exists(asm.LocalPath))
             { throw new FileNotFoundException($"the file '{asm}' given to the attribute reader does not exist"); }
 
             using (var stream = File.OpenRead(asm.LocalPath))
-            { return LoadReferencedAssembly(stream); }
-        }
-
-        /// <summary>
-        /// Given a file stream with the content of a dotnet dll, returns any Q# syntax tree included as a resource.
-        /// Returns an empty enumerable if the given dll does not include such a resource. 
-        /// 
-        /// ...
-        /// Throws an ArgumentNullException if the given stream is null.
-        /// May throw an exception if the given binary file has been compiled with a different compiler version.
-        /// </summary>
-        private static IEnumerable<QsNamespace> LoadReferencedAssembly(Stream stream)
-        {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
             using (var assemblyFile = new PEReader(stream))
             {
-                // FIXME
-                var loaded = FromResource(assemblyFile, out var syntaxTree);
-                var attributes = LoadHeaderAttributes(assemblyFile);
-                var headers = new References.Headers(attributes);
-
-                //if (!References.TryInitializeFrom(attributes, out var builtRefs, out var errs))
-                //{ QsCompilerError.Raise("error while extracting custom attributes from project references"); }
-                return syntaxTree;
+                return FromResource(assemblyFile, out var syntaxTree)
+                    ? new References.Headers(syntaxTree)
+                    : new References.Headers(LoadHeaderAttributes(assemblyFile));
             }
         }
 

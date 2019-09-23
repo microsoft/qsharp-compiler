@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
@@ -24,21 +25,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public class Headers
         {
             public readonly ImmutableArray<CallableDeclarationHeader> Callables;
-            public readonly ImmutableArray<SpecializationDeclarationHeader> Specializations;
+            public readonly ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)> Specializations;
             public readonly ImmutableArray<TypeDeclarationHeader> Types;
 
-            public Headers(
+            internal Headers(
                 IEnumerable<CallableDeclarationHeader> callables = null, 
-                IEnumerable<SpecializationDeclarationHeader> specs = null, 
+                IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation)> specs = null, 
                 IEnumerable<TypeDeclarationHeader> types = null)
             {
+                this.Types = types?.ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty;
                 this.Callables = callables?.ToImmutableArray() ?? ImmutableArray<CallableDeclarationHeader>.Empty;
-                this.Specializations = specs?.ToImmutableArray() ?? ImmutableArray<SpecializationDeclarationHeader>.Empty;
-                this.Types = types?.ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty; 
+                this.Specializations = specs?.Select(s => (s.Item1, s.Item2 ?? SpecializationImplementation.External)).ToImmutableArray() 
+                    ?? ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)>.Empty;
             }
 
-            internal Headers(IEnumerable<(string, string)> attributes)
-                : this(References.CallableHeaders(attributes), References.SpecializationHeaders(attributes), References.TypeHeaders(attributes))
+            internal Headers(IEnumerable<QsNamespace> syntaxTree)
+                // TODO: IMPLEMENT ...
+                : this(Enumerable.Empty<(string, string)>()) { }
+
+            internal Headers(IEnumerable<(string, string)> attributes) : this(
+                References.CallableHeaders(attributes), 
+                References.SpecializationHeaders(attributes).Select(h => (h, (SpecializationImplementation)null)), 
+                References.TypeHeaders(attributes))
             { }
         }
 
@@ -48,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly ImmutableDictionary<NonNullable<string>, Headers> Declarations; 
 
         public static References Empty = 
-            new References(Enumerable.Empty<KeyValuePair<NonNullable<string>, ImmutableArray<(string, string)>>>(), out var _);
+            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty);
 
         /// <summary>
         /// Throws an ArgumentNullException if the given argument is null. 
@@ -71,7 +79,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// NOTE: Does not do any verification of the arguments whatsoever and hence needs to remain private!
         /// IMPORTANT: this class relies on the fact tha the corresponding references need to be listed for all declaration headers!
         /// </summary>
-        private References(ImmutableDictionary<NonNullable<string>, Headers> refs) =>
+        internal References(ImmutableDictionary<NonNullable<string>, Headers> refs) =>
             this.Declarations = refs;
 
         private static Func<(string, string), string> IsDeclaration(string declarationType) => (attribute) =>
@@ -81,67 +89,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return serialization;
         };
 
-        internal static IEnumerable<CallableDeclarationHeader> CallableHeaders(IEnumerable<(string, string)> attributes) =>
+        private static IEnumerable<CallableDeclarationHeader> CallableHeaders(IEnumerable<(string, string)> attributes) =>
             attributes.Select(IsDeclaration("CallableDeclarationAttribute")).Where(v => v != null)
                 .Select(CallableDeclarationHeader.FromJson).Select(built => built.Item2);
 
-        internal static IEnumerable<SpecializationDeclarationHeader> SpecializationHeaders(IEnumerable<(string, string)> attributes) =>
+        private static IEnumerable<SpecializationDeclarationHeader> SpecializationHeaders(IEnumerable<(string, string)> attributes) =>
             attributes.Select(IsDeclaration("SpecializationDeclarationAttribute")).Where(v => v != null)
                 .Select(SpecializationDeclarationHeader.FromJson).Select(built => built.Item2);
 
-        internal static IEnumerable<TypeDeclarationHeader> TypeHeaders(IEnumerable<(string, string)> attributes) =>
+        private static IEnumerable<TypeDeclarationHeader> TypeHeaders(IEnumerable<(string, string)> attributes) =>
             attributes.Select(IsDeclaration("TypeDeclarationAttribute")).Where(v => v != null)
                 .Select(TypeDeclarationHeader.FromJson).Select(built => built.Item2);
-
-        /// <summary>
-        /// NOTE: Does not do any verification of the arguments and hence needs to remain private!
-        /// Throws an ArgumentException if the absolute file path for a given Uri cannot be determined. 
-        /// Throws the corresponding exception if the given argument are null or cannot be processed. 
-        /// </summary>
-        private References(IEnumerable<KeyValuePair<NonNullable<string>, ImmutableArray<(string, string)>>> attributes, 
-            out ImmutableHashSet<NonNullable<string>> serializationErrors)
-        {            
-            var errs = ImmutableHashSet.CreateBuilder<NonNullable<string>>(); // FIXME
-
-            var callables = attributes
-                .SelectMany(kv => CallableHeaders(kv.Value).Select(h => (kv.Key, h)))
-                .ToLookup(kv => kv.Item1, kv => kv.Item2.FromSource(kv.Item1)); 
-            var specializations = attributes
-                .SelectMany(kv => SpecializationHeaders(kv.Value).Select(h => (kv.Key, h)))
-                .ToLookup(kv => kv.Item1, kv => kv.Item2.FromSource(kv.Item1));
-            var types = attributes
-                .SelectMany(kv => TypeHeaders(kv.Value).Select(h => (kv.Key, h)))
-                .ToLookup(kv => kv.Item1, kv => kv.Item2.FromSource(kv.Item1));
-
-            serializationErrors = errs.ToImmutableHashSet(); 
-            this.Declarations = attributes.ToImmutableDictionary(
-                a => a.Key, 
-                a => new Headers(callables[a.Key], specializations[a.Key], types[a.Key]  )
-            ); 
-        }
-
-        /// <summary>
-        /// Returns the built references as well as the ids of all files with attributes that could not be deserialized as out parameter. 
-        /// Throws an ArgumentNullException if the given attributes are null. 
-        /// </summary>
-        internal static bool TryInitializeFrom(
-            IEnumerable<KeyValuePair<Uri, ImmutableArray<(string, string)>>> attributes,
-            out References references, out IEnumerable<Uri> serializationErrors)
-        {
-            if (attributes == null) throw new ArgumentNullException(nameof(attributes));
-            NonNullable<string> GetId(Uri uri) =>
-                CompilationUnitManager.TryGetFileId(uri, out var id) ?
-                    id : throw new ArgumentException("expecting an absolute file uri for all references");
-            var sources = attributes.ToImmutableDictionary(kv => GetId(kv.Key));
-            var items = sources.Select(kv => new KeyValuePair<NonNullable<string>, ImmutableArray<(string, string)>>(kv.Key, kv.Value.Value));
-
-            ImmutableHashSet<NonNullable<string>> errs = null; 
-            (references, serializationErrors) = (References.Empty, ImmutableHashSet<Uri>.Empty); 
-            try { references = new References(items, out errs); }
-            catch { return false; }
-            serializationErrors = errs.Select(id => sources[id].Key);
-            return true;
-        }
     }
 
 
@@ -193,7 +151,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.Externals = externals ?? throw new ArgumentNullException(nameof(externals));
                 this.GlobalSymbols = new NamespaceManager(this, 
                     this.Externals.Declarations.Values.SelectMany(h => h.Callables), 
-                    this.Externals.Declarations.Values.SelectMany(h => h.Specializations), 
+                    this.Externals.Declarations.Values.SelectMany(h => h.Specializations.Select(t => new Tuple<SpecializationDeclarationHeader, SpecializationImplementation>(t.Item1, t.Item2))), 
                     this.Externals.Declarations.Values.SelectMany(h => h.Types));
             }
             finally { this.ExitWriteLock(); }
@@ -443,20 +401,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// constructs a QsCallable with the implementation of each specialization set to External. 
         /// Throws an ArgumentNullException if the given header is null.
         /// </summary>
-        public QsCallable GetImportedCallable(CallableDeclarationHeader header)
+        private QsCallable GetImportedCallable(CallableDeclarationHeader header)
         {
             // TODO: this needs to be adapted if we want to support external specializations
             if (header == null) throw new ArgumentNullException(nameof(header));
             var importedSpecs = this.GlobalSymbols.ImportedSpecializations(header.QualifiedName);
-            var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName).Select(defined => defined.Item2);
-            var specializations = importedSpecs.Concat(definedSpecs).Select(specHeader =>
+            var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName);
+            QsCompilerError.Verify(definedSpecs.Length == 0, "external specializations are currently not supported");
+            var specializations = importedSpecs.Select(imported =>
             {
+                var (specHeader, implementation) = imported;
                 var specLocation = new QsLocation(specHeader.Position, specHeader.HeaderRange);
                 var specSignature = specHeader.Kind.IsQsControlled || specHeader.Kind.IsQsControlledAdjoint 
                     ? SyntaxGenerator.BuildControlled(header.Signature) 
                     : header.Signature;
                 return new QsSpecialization(specHeader.Kind, header.QualifiedName, specHeader.Attributes, specHeader.SourceFile, specLocation, 
-                    specHeader.TypeArguments, specSignature, SpecializationImplementation.External, specHeader.Documentation, QsComments.Empty);
+                    specHeader.TypeArguments, specSignature, implementation, specHeader.Documentation, QsComments.Empty);
             })
             .ToImmutableArray();
             var location = new QsLocation(header.Position, header.SymbolRange);
@@ -468,7 +428,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Constructs a suitable type for a given type declaration header. 
         /// Throws an ArgumentNullException if the given header is null.
         /// </summary>
-        public QsCustomType GetImportedType(TypeDeclarationHeader header)
+        private QsCustomType GetImportedType(TypeDeclarationHeader header)
         {
             if (header == null) throw new ArgumentNullException(nameof(header));
             var location = new QsLocation(header.Position, header.SymbolRange);
