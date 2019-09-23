@@ -46,10 +46,11 @@ namespace Microsoft.Quantum.QsCompiler
             using (var assemblyFile = new PEReader(stream))
             {
                 var loadedFromResource = FromResource(assemblyFile, out var syntaxTree);
+                var attributes = loadedFromResource ? Enumerable.Empty<(string, string)>() : LoadHeaderAttributes(assemblyFile);
                 headers = loadedFromResource
                     ? new References.Headers(syntaxTree)
-                    : new References.Headers(LoadHeaderAttributes(assemblyFile));
-                return loadedFromResource;
+                    : new References.Headers(attributes);
+                return loadedFromResource || !attributes.Any();
             }
         }
 
