@@ -1123,6 +1123,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (refProjectFiles == null) throw new ArgumentNullException(nameof(refProjectFiles));
             if (GetOutputPath == null) throw new ArgumentNullException(nameof(GetOutputPath));
+            References.Headers LoadReferencedDll(Uri asm) =>
+                ProjectManager.LoadReferencedDll(asm, onException: onException); // any exception here is really a failure of GetOutputPath and will be treated as an unexpected exception
 
             var existingProjectFiles = FilterFiles(refProjectFiles,
                 out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
