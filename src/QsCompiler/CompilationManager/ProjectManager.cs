@@ -1082,11 +1082,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// 
+        /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly.
+        /// Generates suitable diagostics if the specified assembly could not be found or its content could not be loaded,
+        /// and calls the given onDiagnostic action on all generated diagnostics.
+        /// Catches any thrown exception and calls onException on it if it is specified and not null.
+        /// Throws an ArgumentNullException if the given uri is null. 
         /// </summary>
         private static References.Headers LoadReferencedDll(Uri asm,
             Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
+            if (asm == null) throw new ArgumentNullException(nameof(asm));
             try
             {
                 try { AssemblyName.GetAssemblyName(asm.LocalPath); } // will throw if the file is not a valid assembly
@@ -1166,7 +1171,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Uses FilterFiles to filter the given references binary files, and generates the corresponding errors and warnings.
         /// Ignores any binary files that contain mscorlib.dll or a similar variant in their name.
-        /// Logs a suitable error if a file is not an assembly using the given logger. 
         /// Generates a suitable error message for each binary file that could not be loaded. 
         /// Calls the given onDiagnostic action on all generated diagnostics.
         /// Returns a dictionary that maps each existing dll to the Q# attributes it contains. 

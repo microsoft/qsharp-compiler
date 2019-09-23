@@ -27,11 +27,10 @@ namespace Microsoft.Quantum.QsCompiler
     public static class AssemblyLoader
     {
         /// <summary>
-        /// Given the full name of an assembly, opens the file and reads its custom attributes and
-        /// returns a tuple containing the name of the attribute and the constructor argument 
-        /// for all attributes defined in the Microsoft.Quantum* namespace.  
-        /// 
-        /// ...
+        /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly, 
+        /// and returns the loaded content as out parameter.
+        /// Returns false if some of the content could not be loaded successfully, 
+        /// possibly because the referenced assembly has been compiled with an older compiler version. 
         /// Throws an ArgumentNullException if the given uri is null. 
         /// Throws a FileNotFoundException if no file with the given name exists. 
         /// Throws the corresponding exceptions if the information cannot be extracted.
@@ -120,38 +119,6 @@ namespace Microsoft.Quantum.QsCompiler
             syntaxTree = LoadSyntaxTree(new MemoryStream(resourceData));
             return true;
         }
-
-        /// <summary>
-        /// Given a reader for the byte stream of a dotnet dll, returns any Q# syntax tree included as a resource.
-        /// Returns an empty sequence if the given dll does not include such a resource. 
-        /// Throws an ArgumentNullException if any of the given readers is null.
-        /// May throw an exception if the given binary file has been compiled with a different compiler version.
-        /// </summary>
-        //private static IEnumerable<QsNamespace> FromResource(PEReader assemblyFile)
-        //{
-        //    if (assemblyFile == null) throw new ArgumentNullException(nameof(assemblyFile));
-        //    var metadataReader = assemblyFile.GetMetadataReader();
-        //
-        //    // The offset of resources is relative to the resources directory. 
-        //    // It is possible that there is no offset given because a valid dll allows for extenal resources. 
-        //    // In all Q# dlls there will be a resource with the specific name chosen by the compiler. 
-        //    var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
-        //    if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-        //        !metadataReader.Resources().TryGetValue(WellKnown.AST_RESOURCE_NAME, out var resource) ||
-        //        resource.Implementation.IsNil)
-        //    { return ImmutableArray<QsNamespace>.Empty; } 
-        //
-        //    // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
-        //    // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB. 
-        //    // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
-        //    var image = assemblyFile.GetEntireImage(); // uses int to denote the length and access parameters
-        //    var absResourceOffset = (int)resource.Offset + directoryOffset;
-        //
-        //    // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
-        //    var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(Int32)).ToArray(), 0);
-        //    var resourceData = image.GetContent(absResourceOffset + sizeof(Int32), resourceLength).ToArray();
-        //    return LoadSyntaxTree(new MemoryStream(resourceData));
-        //}
 
 
         // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)
