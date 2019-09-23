@@ -17,8 +17,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         SyntaxTreeTransformation<NoScopeTransformations>
     {
         /// <summary>
-        /// Returns a hash set containing all source files in the given namespace(s).
-        /// Throws an ArgumentNullException if any of the given namespaces is null. 
+        /// Returns a hash set containing all source files in the given namespaces.
+        /// Throws an ArgumentNullException if the given sequence or any of the given namespaces is null. 
         /// </summary>
         public static ImmutableHashSet<NonNullable<string>> Apply(IEnumerable<QsNamespace> namespaces)
         {
