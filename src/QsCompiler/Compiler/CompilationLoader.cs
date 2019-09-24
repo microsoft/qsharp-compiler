@@ -47,10 +47,10 @@ namespace Microsoft.Quantum.QsCompiler
         public struct Configuration
         {
             /// <summary>
-            /// Uri to the project file (if any). 
-            /// The name of the project file with a suitable extension will be used as the name of the generated binary file.
+            /// The name of the project. Used as assembly name in the generated dll. 
+            /// The name of the project with a suitable extension will also be used as the name of the generated binary file.
             /// </summary>
-            public Uri ProjectFile;
+            public string ProjectName;
             /// <summary>
             /// If set to true, the syntax tree rewrite step that replaces all generation directives 
             /// for all functor specializations is executed during compilation.   
@@ -72,10 +72,22 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public string BuildOutputFolder;
             /// <summary>
+            /// Output path for the dll containing the compiled binaries. 
+            /// No dll will be generated unless this path is specified and valid. 
+            /// </summary>
+            public string DllOutputPath;
+            /// <summary>
             /// Dictionary that maps an arbitarily chosen target name to the build targets to call with the path to the compiled binary.
             /// The specified targets (dictionary values) will only be invoked if a binary file was generated successfully.
             /// </summary>
             public ImmutableDictionary<string, BuildTarget> Targets;
+
+            /// <summary>
+            /// Indicates whether a serialization of the syntax tree needs to be generated. 
+            /// This is the case if either the output path for the compiled binary is specified, or teh o
+            /// </summary>
+            internal bool SerializeSyntaxTree =>
+                BuildOutputFolder != null || DllOutputPath != null;
         }
 
         private class ExecutionStatus
@@ -86,7 +98,9 @@ namespace Microsoft.Quantum.QsCompiler
             internal int FunctorSupport = -1;
             internal int TreeTrimming = -1;
             internal int Documentation = -1;
+            internal int Serialization = -1;
             internal int BinaryFormat = -1;
+            internal int DllGeneration = -1;
             internal Dictionary<string, int> BuildTargets;
 
             internal ExecutionStatus(IEnumerable<string> targets) =>
@@ -102,7 +116,9 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
+                WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
+                WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
                 !this.BuildTargets.Values.Any(status => !WasSuccessful(true, status))
                 ? 0 : 1;
         }
@@ -142,10 +158,20 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public Status Documentation => GetStatus(this.CompilationStatus.Documentation);
         /// <summary>
+        /// Indicates whether the built compilation could be serialized successfully. 
+        /// This step is only executed if either the binary representation or a dll is emitted. 
+        /// </summary>
+        public Status Serialization => GetStatus(this.CompilationStatus.Serialization);
+        /// <summary>
         /// Indicates whether a binary representation for the generated syntax tree has been generated successfully. 
         /// This step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status BinaryFormat => GetStatus(this.CompilationStatus.BinaryFormat);
+        /// <summary>
+        /// Indicates whether a dll containing the compiled binary has been generated successfully. 
+        /// This step is only executed if the corresponding configuration is specified. 
+        /// </summary>
+        public Status DllGeneration => GetStatus(this.CompilationStatus.DllGeneration);
         /// <summary>
         /// Indicates whether the specified build target executed successfully. 
         /// Returns a status NotRun if no target with the given id was listed for execution in the set configuration. 
@@ -188,6 +214,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// contains the absolute path where the binary representation of the generated syntax tree has been written to disk
         /// </summary>
         public readonly string PathToCompiledBinary;
+        /// <summary>
+        /// contains the absolute path where the generated dll containing the compiled binary has been written to disk
+        /// </summary>
+        public readonly string DllOutputPath;
 
         /// <summary>
         /// Builds the compilation for the source files and references loaded by the given loaders,
@@ -235,13 +265,15 @@ namespace Microsoft.Quantum.QsCompiler
                 if (this.GeneratedSyntaxTree == null || !rewrite.Success) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
             }
 
-            // generating the compiled binary
+            // generating the compiled binary and dll
 
             using (var ms = new MemoryStream())
             {
-                this.PathToCompiledBinary = this.GenerateBinary(ms);
-                ms.Seek(0, SeekOrigin.Begin);
-                this.GenerateDll(ms, NonNullable<string>.New("MyDll")); // FIXME ...
+                var serialized = this.Config.SerializeSyntaxTree && this.SerializeSyntaxTree(ms);
+                if (serialized && this.Config.BuildOutputFolder != null)
+                { this.PathToCompiledBinary = this.GenerateBinary(ms); }
+                if (serialized && this.Config.DllOutputPath != null)
+                { this.DllOutputPath = this.GenerateDll(ms); }
             }
 
             // executing the specified generation steps 
@@ -416,67 +448,123 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Creates a binary representation of the generated syntax tree using the given memory stream. 
-        /// Generates a file name at random and writes the content of that stream into a file within the specified build output folder. 
+        /// Writes a binary representation of the generated syntax tree to the given memory stream. 
         /// Logs suitable diagnostics in the process and modifies the compilation status accordingly.
-        /// Returns the absolute path of the file where the binary representation has been generated. 
-        /// Returns null without doing anything if no build output folder is specified in the set configuration. 
-        /// Does *not* close the given memory stream. 
+        /// Does *not* close the given memory stream, and
+        /// returns true if the serialization has been successfully generated. 
+        /// Throws an ArgumentNullException if the given memory stream is null. 
         /// </summary>
-        private string GenerateBinary(MemoryStream ms)
+        private bool SerializeSyntaxTree(MemoryStream ms)
         {
-            if (this.Config.BuildOutputFolder == null) return null;
-            var projId = NonNullable<string>.New(this.Config.ProjectFile?.AbsolutePath ?? Path.GetFullPath(Path.GetRandomFileName()));
-            var target = GeneratedFile(projId, this.Config.BuildOutputFolder, ".bson", "");
+            if (ms == null) throw new ArgumentNullException(nameof(ms));
+            this.CompilationStatus.Serialization = 0;
 
-            this.CompilationStatus.BinaryFormat = 0;            
+            var serialized = this.GeneratedSyntaxTree != null;
             using (var writer = new BsonDataWriter(ms) { CloseOutput = false })
             {
-                var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
+                var settings = new JsonSerializerSettings
+                { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
                 var serializer = JsonSerializer.CreateDefault(settings);
-                if (this.GeneratedSyntaxTree != null) serializer.Serialize(writer, this.GeneratedSyntaxTree);
-                else this.LogAndUpdate(ref this.CompilationStatus.BinaryFormat, ErrorCode.GeneratingBinaryFailed, Enumerable.Empty<string>());
+                try { serializer.Serialize(writer, this.GeneratedSyntaxTree ?? Enumerable.Empty<QsNamespace>()); }
+                catch (Exception ex)
+                {
+                    this.LogAndUpdate(ref this.CompilationStatus.Serialization, ex);
+                    serialized = false;
+                }
             }
-
-            using (var file = new FileStream(target, FileMode.Create, FileAccess.Write))
-            { ms.WriteTo(file); }
-            return target;
+            if (!serialized) this.LogAndUpdate(ref this.CompilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
+            return serialized;
         }
 
-        private void GenerateDll(MemoryStream serialization, NonNullable<string> outputPath, string assemblyName = null)
+        /// <summary>
+        /// Backtracks to the beginning of the given memory stream and writes its content to disk,  
+        /// generating a suitable bson file in the specified build output folder using the project name as file name.
+        /// Generates a file name at random if no project name is specified.  
+        /// Logs suitable diagnostics in the process and modifies the compilation status accordingly.
+        /// Returns the absolute path of the file where the binary representation has been generated. 
+        /// Returns null if the binary file could not be generated. 
+        /// Does *not* close the given memory stream. 
+        /// Throws an ArgumentNullException if the given memory stream is null. 
+        /// </summary>
+        private string GenerateBinary(MemoryStream serialization)
         {
             if (serialization == null) throw new ArgumentNullException(nameof(serialization));
-            if (serialization.Length == 0) return;
+            this.CompilationStatus.BinaryFormat = 0;
 
-            // If System.Object can't be found as a reference a warning is generated. 
-            // To avoid that warning, we package that reference as well. 
-            var systemObjRef = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
-            var references = this.VerifiedCompilation.References
-                .Select((dllFile, idx) =>
-                    MetadataReference.CreateFromFile(dllFile.Value) // FIXME: NEED TO MAKE THIS RESILIENT & MAKE SURE ALL REFS ARE FOUND...
-                        .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{idx}" })) // referenced Q# dlls are recognized based on this alias 
-                .Append(systemObjRef);
-
-            var tree = MetadataGeneration.GenerateAssemblyMetadata(references);
-            var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
-                assemblyName ?? Path.GetFileNameWithoutExtension(outputPath.Value),
-                syntaxTrees: new[] { tree },
-                references: references,
-                options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
-            );
-
-            // Finally, we can emit the assembly to a file.
-            var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
-            using (var outputStream = File.OpenWrite(outputPath.Value))
+            var projId = NonNullable<string>.New(Path.GetFullPath(this.Config.ProjectName ?? Path.GetRandomFileName()));
+            var outFolder = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.BuildOutputFolder) ? "." : this.Config.BuildOutputFolder);
+            var target = GeneratedFile(projId, outFolder, ".bson", "");
+            try
             {
-                var result = compilation.Emit(outputStream,
-                    options: new CodeAnalysis.Emit.EmitOptions(includePrivateMembers: true),
-                    manifestResources: new CodeAnalysis.ResourceDescription[] { astResource }
+                serialization.Seek(0, SeekOrigin.Begin);
+                using (var file = new FileStream(target, FileMode.Create, FileAccess.Write))
+                { serialization.WriteTo(file); }
+                return target;
+            }
+            catch (Exception ex)
+            {
+                this.LogAndUpdate(ref this.CompilationStatus.BinaryFormat, ex);
+                this.LogAndUpdate(ref this.CompilationStatus.BinaryFormat, ErrorCode.GeneratingBinaryFailed, Enumerable.Empty<string>());
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Backtracks to the beginning of the given memory stream and, 
+        /// assuming the given memory stream contains a serialization of the compiled syntax tree, 
+        /// generates a dll containing the compiled binary at the specified dll output path. 
+        /// Logs suitable diagnostics in the process and modifies the compilation status accordingly.
+        /// Returns the absolute path of the file where the dll has been generated. 
+        /// Returns null if the dll could not be generated. 
+        /// Does *not* close the given memory stream. 
+        /// Throws an ArgumentNullException if the given memory stream is null. 
+        /// </summary>
+        private string GenerateDll(MemoryStream serialization)
+        {
+            if (serialization == null) throw new ArgumentNullException(nameof(serialization));
+            this.CompilationStatus.DllGeneration = 0;
+
+            var outputPath = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DllOutputPath) ? "." : this.Config.DllOutputPath);
+            outputPath = Path.ChangeExtension(outputPath, "dll");
+            try
+            {
+                // If System.Object can't be found as a reference a warning is generated. 
+                // To avoid that warning, we package that reference as well. 
+                var systemObjRef = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+                var references = this.VerifiedCompilation.References
+                    .Select((dllFile, idx) => 
+                        MetadataReference.CreateFromFile(dllFile.Value)
+                        .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{idx}" })) // referenced Q# dlls are recognized based on this alias 
+                    .Append(systemObjRef);
+
+                var tree = MetadataGeneration.GenerateAssemblyMetadata(references);
+                var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
+                    this.Config.ProjectName ?? Path.GetFileNameWithoutExtension(outputPath),
+                    syntaxTrees: new[] { tree },
+                    references: references,
+                    options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
                 );
 
-                //foreach (var diagnostic in result.Diagnostics)
-                //{ Log($"{diagnostic.Id}: {diagnostic.GetMessage()}"); }
+                using (var outputStream = File.OpenWrite(outputPath))
+                {
+                    serialization.Seek(0, SeekOrigin.Begin);
+                    var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
+                    var result = compilation.Emit(outputStream,
+                        options: new CodeAnalysis.Emit.EmitOptions(includePrivateMembers: true),
+                        manifestResources: new CodeAnalysis.ResourceDescription[] { astResource }
+                    );
+
+                    var errs = result.Diagnostics.Where(d => d.Severity >= CodeAnalysis.DiagnosticSeverity.Error);
+                    if (errs.Any()) throw new Exception($"error(s) on emitting dll: {Environment.NewLine}{String.Join(Environment.NewLine, errs.Select(d => d.GetMessage()))}");
+                    return outputPath;
+                }
             }
+            catch (Exception ex)
+            {
+                this.LogAndUpdate(ref this.CompilationStatus.DllGeneration, ex);
+                this.LogAndUpdate(ref this.CompilationStatus.DllGeneration, ErrorCode.GeneratingDllFailed, Enumerable.Empty<string>());
+                return null;
+            } 
         }
 
         /// <summary>

@@ -269,8 +269,10 @@ type ErrorCode =
     | CsGenerationFailed = 7103
     | QsGenerationFailed = 7104
     | DocGenerationFailed = 7105
-    | GeneratingBinaryFailed = 7106
-    | TargetExecutionFailed = 7107
+    | SerializationFailed = 7106
+    | GeneratingBinaryFailed = 7107
+    | GeneratingDllFailed = 7108
+    | TargetExecutionFailed = 7109
 
 
 type WarningCode = 
@@ -597,7 +599,9 @@ type DiagnosticItem =
             | ErrorCode.CsGenerationFailed                      -> "Unable to generate C# code to run within the simulation framework."
             | ErrorCode.QsGenerationFailed                      -> "Unable to generate formatted Q# code based on the built syntax tree."
             | ErrorCode.DocGenerationFailed                     -> "Unable to generate documentation for the compiled code."
+            | ErrorCode.SerializationFailed                     -> "Unable to serialize the built compilation."
             | ErrorCode.GeneratingBinaryFailed                  -> "Unable to generate binary format for the compilation."
+            | ErrorCode.GeneratingDllFailed                     -> "Unable to generate dll containing the compiled binary."
             | ErrorCode.TargetExecutionFailed                   -> "Processing of the compiled binary with the target {0} failed."
             | _                                                 -> "" 
         code |> ApplyArguments             

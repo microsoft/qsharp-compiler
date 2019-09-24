@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var specifiesTargets = options.Targets != null && options.Targets.Any();
             var loadOptions = new CompilationLoader.Configuration
             {
-                ProjectFile = options.ProjectName == null ? null : new Uri(Path.GetFullPath(options.ProjectName)),
+                ProjectName = options.ProjectName,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = false,
                 DocumentationOutputFolder = options.DocFolder,
