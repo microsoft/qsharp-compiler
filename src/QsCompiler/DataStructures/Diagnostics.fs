@@ -258,7 +258,7 @@ type ErrorCode =
     | UnknownProjectReference = 7007
     | CouldNotLoadSourceFile = 7008
     | FileIsNotAnAssembly = 7010
-    | OutdatedAssemblyFormat = 7011
+    | UnrecognizedContentInReference = 7011
     | MissingProjectReferenceDll = 7012
     | InvalidProjectOutputPath = 7013
     | SourceFilesMissing = 7014
@@ -304,6 +304,7 @@ type WarningCode =
     | UnknownBinaryFile = 7007
     | CouldNotLoadBinaryFile = 7008
     | ReferencesSetToNull = 7009
+    | UnrecognizedContentInReference = 7010
     | UnresolvedItemsInGeneratedQs = 7101
     | TargetExitedAbnormally = 7102
 
@@ -588,7 +589,7 @@ type DiagnosticItem =
             | ErrorCode.UnknownProjectReference                 -> "Could not find the project file for the referenced project \"{0}\"."
             | ErrorCode.CouldNotLoadSourceFile                  -> "Unable to load source file \"{0}\"."
             | ErrorCode.FileIsNotAnAssembly                     -> "The given file \"{0}\" is not an valid assembly."
-            | ErrorCode.OutdatedAssemblyFormat                  -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
+            | ErrorCode.UnrecognizedContentInReference          -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
             | ErrorCode.MissingProjectReferenceDll              -> "Missing binary file for project reference \"{0}\". Build the referenced project for its content to be detected correctly."
             | ErrorCode.InvalidProjectOutputPath                -> "Invalid project output path for project \"{0}\"."
             | ErrorCode.SourceFilesMissing                      -> "No source files have been specified."
@@ -636,6 +637,7 @@ type DiagnosticItem =
             | WarningCode.UnknownBinaryFile                     -> "Could not find the binary file \"{0}\" to include as reference in the compilation."
             | WarningCode.CouldNotLoadBinaryFile                -> "Unable to load binary file \"{0}\"."
             | WarningCode.ReferencesSetToNull                   -> "No references given to include in the compilation."
+            | WarningCode.UnrecognizedContentInReference        -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
 
             | WarningCode.UnresolvedItemsInGeneratedQs          -> "Some item(s) could not be resolved during compilation."
             | WarningCode.TargetExitedAbnormally                -> "Processing of the compiled binary with the target {0} exited with an abnormal exit code {1}."

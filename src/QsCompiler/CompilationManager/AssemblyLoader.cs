@@ -47,8 +47,8 @@ namespace Microsoft.Quantum.QsCompiler
                 var loadedFromResource = FromResource(assemblyFile, out var syntaxTree);
                 var attributes = loadedFromResource ? Enumerable.Empty<(string, string)>() : LoadHeaderAttributes(assemblyFile);
                 headers = loadedFromResource
-                    ? new References.Headers(syntaxTree)
-                    : new References.Headers(attributes);
+                    ? new References.Headers(asm, syntaxTree)
+                    : new References.Headers(asm, attributes);
                 return loadedFromResource || !attributes.Any();
             }
         }

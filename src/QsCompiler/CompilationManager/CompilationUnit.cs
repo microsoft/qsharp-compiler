@@ -28,22 +28,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public readonly ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)> Specializations;
             public readonly ImmutableArray<TypeDeclarationHeader> Types;
 
-            internal Headers(
+            private Headers(string source,
                 IEnumerable<CallableDeclarationHeader> callables = null, 
                 IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation)> specs = null, 
                 IEnumerable<TypeDeclarationHeader> types = null)
             {
-                this.Types = types?.ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty;
-                this.Callables = callables?.ToImmutableArray() ?? ImmutableArray<CallableDeclarationHeader>.Empty;
-                this.Specializations = specs?.Select(s => (s.Item1, s.Item2 ?? SpecializationImplementation.External)).ToImmutableArray() 
+                NonNullable<string> SourceOr(NonNullable<string> origSource) => NonNullable<string>.New(source ?? origSource.Value);
+                this.Types = types?.Select(t => t.FromSource(SourceOr(t.SourceFile))).ToImmutableArray() ?? ImmutableArray<TypeDeclarationHeader>.Empty;
+                this.Callables = callables?.Select(c => c.FromSource(SourceOr(c.SourceFile))).ToImmutableArray() ?? ImmutableArray<CallableDeclarationHeader>.Empty;
+                this.Specializations = specs?.Select(s => (s.Item1.FromSource(SourceOr(s.Item1.SourceFile)), s.Item2 ?? SpecializationImplementation.External)).ToImmutableArray() 
                     ?? ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)>.Empty;
             }
 
-            internal Headers(IEnumerable<QsNamespace> syntaxTree)
+            internal Headers(Uri source, IEnumerable<QsNamespace> syntaxTree)
                 // TODO: IMPLEMENT ...
-                : this(Enumerable.Empty<(string, string)>()) { }
+                : this(source, Enumerable.Empty<(string, string)>()) { }
 
-            internal Headers(IEnumerable<(string, string)> attributes) : this(
+            internal Headers(Uri source, IEnumerable<(string, string)> attributes) : this(
+                CompilationUnitManager.TryGetFileId(source, out var id) ? id.Value : null,
                 References.CallableHeaders(attributes), 
                 References.SpecializationHeaders(attributes).Select(h => (h, (SpecializationImplementation)null)), 
                 References.TypeHeaders(attributes))
