@@ -40,9 +40,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     ?? ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)>.Empty;
             }
 
-            internal Headers(Uri source, IEnumerable<QsNamespace> syntaxTree)
-                // TODO: IMPLEMENT ...
-                : this(source, Enumerable.Empty<(string, string)>()) { }
+            internal Headers(Uri source, IEnumerable<QsNamespace> syntaxTree) : this (
+                CompilationUnitManager.TryGetFileId(source, out var id) ? id.Value : null, 
+                syntaxTree.Callables().Select(CallableDeclarationHeader.New),
+                syntaxTree.Specializations().Select(s => (SpecializationDeclarationHeader.New(s), s.Implementation)), 
+                syntaxTree.Types().Select(TypeDeclarationHeader.New))
+            { }
 
             internal Headers(Uri source, IEnumerable<(string, string)> attributes) : this(
                 CompilationUnitManager.TryGetFileId(source, out var id) ? id.Value : null,
