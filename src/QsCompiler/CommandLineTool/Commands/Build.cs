@@ -97,6 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 SkipSyntaxTreeTrimming = false,
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (specifiesTargets ? "." : null),
+                DllOutputPath = " ", // generating the dll in the same location as the .bson file
                 Targets = options.Targets.ToImmutableDictionary(id => id, DefineTarget)
             }; 
 

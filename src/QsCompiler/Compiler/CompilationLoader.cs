@@ -524,7 +524,8 @@ namespace Microsoft.Quantum.QsCompiler
             if (serialization == null) throw new ArgumentNullException(nameof(serialization));
             this.CompilationStatus.DllGeneration = 0;
 
-            var outputPath = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DllOutputPath) ? "." : this.Config.DllOutputPath);
+            var fallbackFileName = (this.PathToCompiledBinary ?? this.Config.ProjectName) ?? Path.GetRandomFileName();
+            var outputPath = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DllOutputPath) ? fallbackFileName : this.Config.DllOutputPath);
             outputPath = Path.ChangeExtension(outputPath, "dll");
             try
             {
