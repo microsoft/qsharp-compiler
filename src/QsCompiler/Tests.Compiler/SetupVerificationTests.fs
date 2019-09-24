@@ -11,6 +11,7 @@ open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
@@ -35,10 +36,13 @@ type CompilerTests (srcFolder, files, output:ITestOutputHelper) =
     let callables = syntaxTree |> GlobalCallableResolutions
     let types = syntaxTree |> GlobalTypeResolutions
 
-    let diagnostics =         
+    let diagnostics =
+        let getCallableStart (c : QsCallable) = 
+            if c.Attributes.Length = 0 then c.Location.Offset 
+            else c.Attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
         [for file in compilation.SourceFiles do
             let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile.Value = file.Value)
-            let locations = containedCallables.Select(fun kv -> kv.Key, kv.Value.Location.Offset) |> Seq.sortBy snd |> Seq.toArray
+            let locations = containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart) |> Seq.sortBy snd |> Seq.toArray
             let mutable containedDiagnostics = compilation.Diagnostics file |> Seq.sortBy (fun d -> DiagnosticTools.AsTuple d.Range.Start)
             
             for i = 1 to locations.Length do

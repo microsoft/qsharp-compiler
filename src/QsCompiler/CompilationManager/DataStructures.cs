@@ -25,13 +25,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal readonly string Text;
         internal readonly string LineEnding; // contains the line break for this line (included in text)
         /// <summary>
-        /// contains the text content of the line, without any end of line comment and *without* the line break
+        /// contains the text content of the line, without any end of line or doc comment and *without* the line break
         /// </summary>
         public readonly string WithoutEnding;
         /// <summary>
-        /// Contains the end of line comment without and leading or trailing whitespace, and without the comment slashes.
-        /// Is null if not such comment exists. 
-        /// -> Note comments which *either* follow non-whitespace content or do not start with triple-slash are considered end of line comments.
+        /// Contains the end of line comment without any leading or trailing whitespace, and without the comment slashes. 
+        /// Is null if no such comment exists. 
+        /// Documenting comments (i.e. triple-slash comments) are *not* considered to be end of line comments. 
+        /// All comments which *either* follow non-whitespace content or do not start with triple-slash are considered end of line comments.
         /// </summary>
         public readonly string EndOfLineComment;
 
@@ -42,15 +43,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         // -> i.e. -1 means the string starts on a previous line, and an end delimiter that is equal to Text.Length means that the string continues on the next line
         internal readonly ImmutableArray<int> StringDelimiters; // note that this property is only properly initialized *after* knowing the sourrounding lines
 
-        public CodeLine(string text, IEnumerable<int> delimiters, int eofComment, int indentation, IEnumerable<int> excessBrackets)
+        public CodeLine(string text, IEnumerable<int> delimiters, int eolComment, int indentation, IEnumerable<int> excessBrackets)
         {
             this.Text = text;
             this.LineEnding = Utils.EndOfLine.Match(text).Value; // empty string if the matching failed
 
             var lineLength = text.Length - LineEnding.Length;
-            if (eofComment > lineLength) eofComment = lineLength;
-            this.WithoutEnding = text.Substring(0, eofComment);
-            var commentStr = text.Substring(eofComment, lineLength - eofComment).Trim();
+            if (eolComment > lineLength) eolComment = lineLength;
+            this.WithoutEnding = text.Substring(0, eolComment);
+            var commentStr = text.Substring(eolComment, lineLength - eolComment).Trim();
             var isDocComment = String.IsNullOrWhiteSpace(this.WithoutEnding) && (commentStr.Length - commentStr.TrimStart('/').Length == 3);
             var hasComment = commentStr.StartsWith("//") && !isDocComment;
             this.EndOfLineComment = hasComment ? commentStr.Substring(2) : null;
@@ -59,8 +60,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.Indentation = indentation;
             this.ExcessBracketPositions = excessBrackets.ToImmutableArray();
 
-            if (eofComment < 0 || (eofComment != text.Length && eofComment > text.Length - this.LineEnding.Length))
-                throw new ArgumentOutOfRangeException(nameof(eofComment));
+            if (eolComment < 0 || (eolComment != text.Length && eolComment > text.Length - this.LineEnding.Length))
+                throw new ArgumentOutOfRangeException(nameof(eolComment));
             ScopeTracking.VerifyStringDelimiters(text, delimiters);
             ScopeTracking.VerifyExcessBracketPositions(this, excessBrackets);
         }
@@ -372,11 +373,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal readonly Tuple<NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>> PositionedSymbol;
 
         internal readonly T Declaration;
+        internal readonly ImmutableArray<AttributeAnnotation> Attributes;
         internal readonly ImmutableArray<string> Documentation;
         internal readonly QsComments Comments;
 
         private HeaderEntry(CodeFragment.TokenIndex tIndex, Position offset, 
-            (NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>) sym, T decl, ImmutableArray<string> doc, QsComments comments)
+            (NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>) sym, T decl, ImmutableArray<AttributeAnnotation> attributes, ImmutableArray<string> doc, QsComments comments)
         {
             if (tIndex == null) throw new ArgumentNullException(nameof(tIndex));
             if (!Utils.IsValidPosition(offset)) throw new ArgumentException(nameof(offset));
@@ -385,6 +387,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.SymbolName = sym.Item1;
             this.PositionedSymbol = new Tuple<NonNullable<string>, Tuple<QsPositionInfo, QsPositionInfo>>(sym.Item1, sym.Item2);
             this.Declaration = decl;
+            this.Attributes = attributes;
             this.Documentation = doc;
             this.Comments = comments ?? QsComments.Empty;
         }
@@ -400,7 +403,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// Throws an ArgumentNullException if the given token index is null.
         /// </summary>
         static internal HeaderEntry<T>? From(Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> GetDeclaration, 
-            CodeFragment.TokenIndex tIndex, ImmutableArray<string> doc, string keepInvalid = null)
+            CodeFragment.TokenIndex tIndex, ImmutableArray<AttributeAnnotation> attributes, ImmutableArray<string> doc, string keepInvalid = null)
         {
             if (GetDeclaration == null) throw new ArgumentNullException(nameof(GetDeclaration));
             if (tIndex == null) throw new ArgumentNullException(nameof(tIndex));
@@ -424,7 +427,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             return symName == null 
                 ? (HeaderEntry<T>?)null 
-                : new HeaderEntry<T>(tIndex, fragmentStart, (NonNullable<string>.New(symName), symRange), decl, doc, fragment.Comments);
+                : new HeaderEntry<T>(tIndex, fragmentStart, (NonNullable<string>.New(symName), symRange), decl, attributes, doc, fragment.Comments);
         }
     }
 

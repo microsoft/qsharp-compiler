@@ -32,6 +32,9 @@ let private buildQsExpression kind (range : Position * Position) = (kind, range)
 let private buildQsSymbol     kind (range : Position * Position) = (kind, range) |> QsSymbol.New
 let private buildQsType       kind (range : Position * Position) = (kind, range) |> QsType.New
 
+/// returns true if the given char is a valid symbol start - i.e. if it is an ascii letter or an underscore
+let internal isSymbolStart c = isAsciiLetter c || c = '_'
+
 /// returns true if the given char is a valid symbol continuation - i.e. if it is an ascii letter, a digit, or an underscore
 let internal isSymbolContinuation c = isAsciiLetter c || isDigit c || c = '_'
 
@@ -71,3 +74,5 @@ let internal missingExpr     = keyword "_" |>> buildQsExpression MissingExpr
 let internal discardedSymbol = keyword "_" |>> buildQsSymbol MissingSymbol
 /// parses an omitted-symbols-indicator ("...") as a term and returnes the corresponding Q# expression
 let internal omittedSymbols  = keyword "..." |>> buildQsSymbol OmittedSymbols
+/// parses the introductory char to a Q# attribute as a term and returns its range
+let internal attributeIntro  = term (pchar '@') |>> snd
