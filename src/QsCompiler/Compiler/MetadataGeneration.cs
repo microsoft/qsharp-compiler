@@ -31,7 +31,9 @@ namespace Microsoft.Quantum.QsCompiler
 
         internal static CodeAnalysis.SyntaxTree GenerateAssemblyMetadata(IEnumerable<MetadataReference> references)
         {
-            var aliases = references.Select(reference => reference.Properties.Aliases.First());
+            var aliases = references
+                .Select(reference => reference.Properties.Aliases.FirstOrDefault(alias => alias.StartsWith(AssemblyConstants.QSHARP_REFERENCE))) // FIXME: improve...
+                .Where(alias => alias != null);
             var typeName =
                 QualifiedName(
                     AliasQualifiedName(

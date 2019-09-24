@@ -13,13 +13,10 @@ using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
-
-using CodeAnalysis = Microsoft.CodeAnalysis;
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 
 
@@ -244,7 +241,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.PathToCompiledBinary = this.GenerateBinary(ms);
                 ms.Seek(0, SeekOrigin.Begin);
-                this.GenerateDll(ms, NonNullable<string>.New("MyDll")); // FIXME
+                this.GenerateDll(ms, NonNullable<string>.New("MyDll")); // FIXME ...
             }
 
             // executing the specified generation steps 
@@ -446,11 +443,10 @@ namespace Microsoft.Quantum.QsCompiler
             return target;
         }
 
-        private string GenerateDll(MemoryStream serialization, NonNullable<string> assemblyName)
+        private void GenerateDll(MemoryStream serialization, NonNullable<string> outputPath, string assemblyName = null)
         {
-            if (this.Config.BuildOutputFolder == null) return null;
-            var dllId = NonNullable<string>.New(Path.GetFullPath(assemblyName.Value + ".dll"));
-            var target = GeneratedFile(dllId, this.Config.BuildOutputFolder, ".bson", "");
+            if (serialization == null) throw new ArgumentNullException(nameof(serialization));
+            if (serialization.Length == 0) return;
 
             // If System.Object can't be found as a reference a warning is generated. 
             // To avoid that warning, we package that reference as well. 
@@ -458,12 +454,12 @@ namespace Microsoft.Quantum.QsCompiler
             var references = this.VerifiedCompilation.References
                 .Select((dllFile, idx) =>
                     MetadataReference.CreateFromFile(dllFile.Value) // FIXME: NEED TO MAKE THIS RESILIENT & MAKE SURE ALL REFS ARE FOUND...
-                        .WithAliases(new string[] { $"reference{idx}" })) // convenient alias for that reference
+                        .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{idx}" })) // referenced Q# dlls are recognized based on this alias 
                 .Append(systemObjRef);
 
             var tree = MetadataGeneration.GenerateAssemblyMetadata(references);
             var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
-                assemblyName.Value,
+                assemblyName ?? Path.GetFileNameWithoutExtension(outputPath.Value),
                 syntaxTrees: new[] { tree },
                 references: references,
                 options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
@@ -471,7 +467,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             // Finally, we can emit the assembly to a file.
             var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
-            using (var outputStream = File.OpenWrite(target))
+            using (var outputStream = File.OpenWrite(outputPath.Value))
             {
                 var result = compilation.Emit(outputStream,
                     options: new CodeAnalysis.Emit.EmitOptions(includePrivateMembers: true),
@@ -481,7 +477,6 @@ namespace Microsoft.Quantum.QsCompiler
                 //foreach (var diagnostic in result.Diagnostics)
                 //{ Log($"{diagnostic.Id}: {diagnostic.GetMessage()}"); }
             }
-            return target;
         }
 
         /// <summary>
