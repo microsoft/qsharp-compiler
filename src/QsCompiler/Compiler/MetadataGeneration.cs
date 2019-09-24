@@ -12,6 +12,10 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Microsoft.Quantum.QsCompiler
 {
+    /// <summary>
+    /// The sole purpose of this module is to generate a C# class that explicitly uses referenced Q# content. 
+    /// This is a hack to force that these references are not dopped upon Emit due to being ununsed. 
+    /// </summary>
     internal static class MetadataGeneration
     {
         public static ArrayTypeSyntax WithOmittedRankSpecifiers(this ArrayTypeSyntax syntax) =>

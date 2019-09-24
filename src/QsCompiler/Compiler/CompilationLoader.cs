@@ -10,12 +10,17 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Documentation;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
+
+using CodeAnalysis = Microsoft.CodeAnalysis;
+using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 
 
 namespace Microsoft.Quantum.QsCompiler
@@ -236,7 +241,11 @@ namespace Microsoft.Quantum.QsCompiler
             // generating the compiled binary
 
             using (var ms = new MemoryStream())
-            { this.PathToCompiledBinary = this.GenerateBinary(ms); }
+            {
+                this.PathToCompiledBinary = this.GenerateBinary(ms);
+                ms.Seek(0, SeekOrigin.Begin);
+                this.GenerateDll(ms, NonNullable<string>.New("MyDll")); // FIXME
+            }
 
             // executing the specified generation steps 
 
@@ -420,6 +429,9 @@ namespace Microsoft.Quantum.QsCompiler
         private string GenerateBinary(MemoryStream ms)
         {
             if (this.Config.BuildOutputFolder == null) return null;
+            var projId = NonNullable<string>.New(this.Config.ProjectFile?.AbsolutePath ?? Path.GetFullPath(Path.GetRandomFileName()));
+            var target = GeneratedFile(projId, this.Config.BuildOutputFolder, ".bson", "");
+
             this.CompilationStatus.BinaryFormat = 0;            
             using (var writer = new BsonDataWriter(ms) { CloseOutput = false })
             {
@@ -429,10 +441,46 @@ namespace Microsoft.Quantum.QsCompiler
                 else this.LogAndUpdate(ref this.CompilationStatus.BinaryFormat, ErrorCode.GeneratingBinaryFailed, Enumerable.Empty<string>());
             }
 
-            var projId = NonNullable<string>.New(this.Config.ProjectFile?.AbsolutePath ?? Path.GetFullPath(Path.GetRandomFileName()));
-            var target = GeneratedFile(projId, this.Config.BuildOutputFolder, ".bson", "");
             using (var file = new FileStream(target, FileMode.Create, FileAccess.Write))
             { ms.WriteTo(file); }
+            return target;
+        }
+
+        private string GenerateDll(MemoryStream serialization, NonNullable<string> assemblyName)
+        {
+            if (this.Config.BuildOutputFolder == null) return null;
+            var dllId = NonNullable<string>.New(Path.GetFullPath(assemblyName.Value + ".dll"));
+            var target = GeneratedFile(dllId, this.Config.BuildOutputFolder, ".bson", "");
+
+            // If System.Object can't be found as a reference a warning is generated. 
+            // To avoid that warning, we package that reference as well. 
+            var systemObjRef = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+            var references = this.VerifiedCompilation.References
+                .Select((dllFile, idx) =>
+                    MetadataReference.CreateFromFile(dllFile.Value) // FIXME: NEED TO MAKE THIS RESILIENT & MAKE SURE ALL REFS ARE FOUND...
+                        .WithAliases(new string[] { $"reference{idx}" })) // convenient alias for that reference
+                .Append(systemObjRef);
+
+            var tree = MetadataGeneration.GenerateAssemblyMetadata(references);
+            var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
+                assemblyName.Value,
+                syntaxTrees: new[] { tree },
+                references: references,
+                options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
+            );
+
+            // Finally, we can emit the assembly to a file.
+            var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
+            using (var outputStream = File.OpenWrite(target))
+            {
+                var result = compilation.Emit(outputStream,
+                    options: new CodeAnalysis.Emit.EmitOptions(includePrivateMembers: true),
+                    manifestResources: new CodeAnalysis.ResourceDescription[] { astResource }
+                );
+
+                //foreach (var diagnostic in result.Diagnostics)
+                //{ Log($"{diagnostic.Id}: {diagnostic.GetMessage()}"); }
+            }
             return target;
         }
 
