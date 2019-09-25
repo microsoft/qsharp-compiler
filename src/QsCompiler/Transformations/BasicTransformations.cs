@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     public class FilterBySourceFile :
         SyntaxTreeTransformation<NoScopeTransformations>
     {
-        public static QsNamespace Apply(QsNamespace ns, NonNullable<string> fileId)
+        public static QsNamespace Apply(QsNamespace ns, params NonNullable<string>[] fileId)
         {
             if (ns == null) throw new ArgumentNullException(nameof(ns));
             var filter = new FilterBySourceFile(fileId);
@@ -71,10 +71,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         private readonly List<(int, QsNamespaceElement)> Elements;
         private readonly Func<NonNullable<string>, bool> IsInSource;
 
-        public FilterBySourceFile(NonNullable<string> fileId) :
+        public FilterBySourceFile(params NonNullable<string>[] fileIds) :
             base(new NoScopeTransformations())
         {
-            this.IsInSource = s => s.Value == fileId.Value;
+            var sourcesToKeep = fileIds.Select(f => f.Value).ToImmutableHashSet();
+            this.IsInSource = s => sourcesToKeep.Contains(s.Value);
             this.Elements = new List<(int, QsNamespaceElement)>();
         }
 

@@ -474,13 +474,22 @@ namespace Microsoft.Quantum.QsCompiler
             if (ms == null) throw new ArgumentNullException(nameof(ms));
             this.CompilationStatus.Serialization = 0;
 
+            // FIXME: this needs to be revised
+            var invalidReferences = this.LoadDiagnostics
+                .Filter(DiagnosticTools.WarningType(WarningCode.UnrecognizedContentInReference))
+                .Select(d => d.Source).ToImmutableHashSet();
+            var validSources = this.GeneratedSyntaxTree == null
+                ? new NonNullable<string>[0]
+                : GetSourceFiles.Apply(this.GeneratedSyntaxTree).Where(s => !invalidReferences.Contains(s.Value)).ToArray();
+
             var serialized = this.GeneratedSyntaxTree != null;
             using (var writer = new BsonDataWriter(ms) { CloseOutput = false })
             {
                 var settings = new JsonSerializerSettings
                 { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
                 var serializer = JsonSerializer.CreateDefault(settings);
-                try { serializer.Serialize(writer, this.GeneratedSyntaxTree ?? Enumerable.Empty<QsNamespace>()); }
+                var validTree = this.GeneratedSyntaxTree?.Select(ns => FilterBySourceFile.Apply(ns, validSources));
+                try { serializer.Serialize(writer, validTree ?? Enumerable.Empty<QsNamespace>()); }
                 catch (Exception ex)
                 {
                     this.LogAndUpdate(ref this.CompilationStatus.Serialization, ex);
@@ -509,6 +518,7 @@ namespace Microsoft.Quantum.QsCompiler
             var projId = NonNullable<string>.New(Path.GetFullPath(this.Config.ProjectName ?? Path.GetRandomFileName()));
             var outFolder = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.BuildOutputFolder) ? "." : this.Config.BuildOutputFolder);
             var target = GeneratedFile(projId, outFolder, ".bson", "");
+
             try
             {
                 serialization.Seek(0, SeekOrigin.Begin);
