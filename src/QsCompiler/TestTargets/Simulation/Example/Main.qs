@@ -3,8 +3,10 @@
 
 namespace Microsoft.Quantum.Testing.Simulation
 {
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Canon;
+    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Testing;
+
 
     /// # Summary
     /// This operation serves as main entry point of the application
