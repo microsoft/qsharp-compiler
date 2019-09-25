@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal readonly string Text;
         internal readonly string LineEnding; // contains the line break for this line (included in text)
         /// <summary>
-        /// contains the text content of the line, without any end of line comment and *without* the line break
+        /// contains the text content of the line, without any end of line or doc comment and *without* the line break
         /// </summary>
         public readonly string WithoutEnding;
         /// <summary>
