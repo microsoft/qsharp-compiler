@@ -271,8 +271,8 @@ let qsBNOTop          = QsOperator.New("~~~"         ,   45, true)
 let qsNOTop           = QsOperator.New(notOperator.id,   45, true)
 let qsNEGop           = QsOperator.New("-"           ,   45, true)
 
-let qsSetUnion        = QsOperator.New("+", 10, true)
-let qsSetIntersection = QsOperator.New("*", 20, true)
+let qsSetUnion        = QsOperator.New("+"           ,   10, true)
+let qsSetIntersection = QsOperator.New("*"           ,   20, true)
 
 // As far as the precedence rules of Q# go, 
 // there are operators (the things above, processed by an operator precedence parser), 

@@ -104,7 +104,7 @@ namespace Microsoft.Quantum.QsCompiler
             var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
             if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
                 !metadataReader.Resources().TryGetValue(AssemblyConstants.AST_RESOURCE_NAME, out var resource) ||
-                resource.Implementation.IsNil)
+                !resource.Implementation.IsNil)
             { return false; }
 
             // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
