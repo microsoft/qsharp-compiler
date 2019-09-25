@@ -1,9 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.9.1908.2906" />        
+    <PackageReference Include="Microsoft.Quantum.Standard" Version="0.9.1908.2906" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\CommandLineTool\QsCommandLineTool.csproj">
@@ -12,11 +17,9 @@
     <ProjectReference Include="..\Target\Simulation.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\Library\Library.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
-    <ExecutionTestsDir>ExecutionTests\</ExecutionTestsDir>
     <GenFilesDir>generated\</GenFilesDir>
     <SimulationTarget>"..\Target\bin\$(Configuration)\netcoreapp2.1\Simulation.dll"</SimulationTarget>
     <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
@@ -24,13 +27,6 @@
 
   <ItemGroup>
     <Folder Include="$(GenFilesDir)" />
-    <Compile Remove="..\Target\Driver.cs" />
-    <Compile Include="..\Target\Driver.cs">
-      <Visible>false</Visible>
-    </Compile>
-    <None Include="..\..\..\Tests.Compiler\TestCases\ExecutionTests\*.*">
-      <Link>$(ExecutionTestsDir)%(RecursiveDir)%(Filename)%(Extension)</Link>
-    </None>
   </ItemGroup>
 
   <Target Name="QsharpClean" BeforeTargets="Clean">
@@ -39,8 +35,8 @@
       <Compile Remove="@(RemoveFiles)" />
     </ItemGroup>
     <Delete Files="@(RemoveFiles)" />
-  </Target>  
-  
+  </Target>
+
   <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveAssemblyReferences;QsharpClean" BeforeTargets="CoreCompile">
     <MakeDir Directories="$(GenFilesDir)" />
     <ItemGroup>
@@ -56,5 +52,5 @@
     <ItemGroup>
       <Compile Include="$(GenFilesDir)**\*.g.cs" Exclude="@(Compile)" />
     </ItemGroup>
-  </Target>    
+  </Target>
 </Project>
