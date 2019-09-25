@@ -6,7 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.9.1908.2906" />        
     <PackageReference Include="Microsoft.Quantum.Standard" Version="0.9.1908.2906" />
   </ItemGroup>
 
@@ -14,25 +13,16 @@
     <ProjectReference Include="..\..\..\CommandLineTool\QsCommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\Target\Simulation.csproj">
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
 
   <PropertyGroup>
     <GenFilesDir>generated\</GenFilesDir>
-    <SimulationTarget>"..\Target\bin\$(Configuration)\netcoreapp2.1\Simulation.dll"</SimulationTarget>
     <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Folder Include="$(GenFilesDir)" />
-  </ItemGroup>
 
   <Target Name="QsharpClean" BeforeTargets="Clean">
     <ItemGroup>
       <RemoveFiles Include="$(GenFilesDir)**" />
-      <Compile Remove="@(RemoveFiles)" />
     </ItemGroup>
     <Delete Files="@(RemoveFiles)" />
   </Target>
@@ -45,12 +35,9 @@
       <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) -t "$(SimulationTarget)"</QscCommand>
+      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir)</QscCommand>
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
     <Delete Files="$(GenFilesDir)$(MSBuildProjectName).bson" />
-    <ItemGroup>
-      <Compile Include="$(GenFilesDir)**\*.g.cs" Exclude="@(Compile)" />
-    </ItemGroup>
   </Target>
 </Project>
