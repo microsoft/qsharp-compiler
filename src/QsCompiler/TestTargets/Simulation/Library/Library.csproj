@@ -16,28 +16,18 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <GenFilesDir>generated\</GenFilesDir>
     <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
   </PropertyGroup>
 
-  <Target Name="QsharpClean" BeforeTargets="Clean">
-    <ItemGroup>
-      <RemoveFiles Include="$(GenFilesDir)**" />
-    </ItemGroup>
-    <Delete Files="@(RemoveFiles)" />
-  </Target>
-
-  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveAssemblyReferences;QsharpClean" BeforeTargets="CoreCompile">
-    <MakeDir Directories="$(GenFilesDir)" />
+  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" AfterTargets="CoreBuild">
     <ItemGroup>
       <QsReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
       <QsSourceFiles Include="@(None)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '.qs$')) == true" />
       <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir)</QscCommand>
+      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
-    <Delete Files="$(GenFilesDir)$(MSBuildProjectName).bson" />
   </Target>
 </Project>
