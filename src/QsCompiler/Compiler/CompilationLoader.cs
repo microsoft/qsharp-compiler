@@ -13,6 +13,7 @@ using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
@@ -191,31 +192,36 @@ namespace Microsoft.Quantum.QsCompiler
 
 
         /// <summary>
-        /// logger used to log all diagnostic events during compilation
+        /// Logger used to log all diagnostic events during compilation.
         /// </summary>
         private readonly ILogger Logger;
         /// <summary>
-        /// configuration specifying the compilation steps to execute
+        /// Configuration specifying the compilation steps to execute.
         /// </summary>
         private readonly Configuration Config;
         /// <summary>
-        /// used to track the status of individual compilation steps
+        /// Used to track the status of individual compilation steps.
         /// </summary>
-        private ExecutionStatus CompilationStatus;
+        private readonly ExecutionStatus CompilationStatus;
         /// <summary>
-        /// contains the initial compilation built by the compilation unit manager after verification
+        /// Contains all diagnostics generated upon source file and reference loading.
+        /// All other diagnostics can be accessed via the VerifiedCompilation.
+        /// </summary>
+        public ImmutableArray<Diagnostic> LoadDiagnostics;
+        /// <summary>
+        /// Contains the initial compilation built by the compilation unit manager after verification.
         /// </summary>
         public readonly CompilationUnitManager.Compilation VerifiedCompilation;
         /// <summary>
-        /// contains the syntax tree after executing all configured rewrite steps
+        /// Contains the syntax tree after executing all configured rewrite steps.
         /// </summary>
         public readonly IEnumerable<QsNamespace> GeneratedSyntaxTree;
         /// <summary>
-        /// contains the absolute path where the binary representation of the generated syntax tree has been written to disk
+        /// Contains the absolute path where the binary representation of the generated syntax tree has been written to disk.
         /// </summary>
         public readonly string PathToCompiledBinary;
         /// <summary>
-        /// contains the absolute path where the generated dll containing the compiled binary has been written to disk
+        /// Contains the absolute path where the generated dll containing the compiled binary has been written to disk.
         /// </summary>
         public readonly string DllOutputPath;
 
@@ -232,6 +238,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.Logger = logger;
             this.Config = options ?? new Configuration();
             this.CompilationStatus = new ExecutionStatus(this.Config.Targets?.Keys ?? Enumerable.Empty<string>());
+            this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles) ?? throw new ArgumentNullException("unable to load source files");
             var references = loadReferences?.Invoke(this.LoadAssemblies) ?? throw new ArgumentNullException("unable to load referenced binary files");
 
@@ -423,8 +430,12 @@ namespace Microsoft.Quantum.QsCompiler
         {
             this.CompilationStatus.SourceFileLoading = 0;
             if (sources == null) this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, ErrorCode.SourceFilesMissing, Enumerable.Empty<string>());
-            void onDiagnostic(Diagnostic d) => this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, d);
             void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, ex);
+            void onDiagnostic(Diagnostic d)
+            {
+                this.LoadDiagnostics = this.LoadDiagnostics.Add(d);
+                this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, d);
+            }
             var sourceFiles = ProjectManager.LoadSourceFiles(sources ?? Enumerable.Empty<string>(), onDiagnostic, onException);
             this.PrintResolvedFiles(sourceFiles.Keys);
             return sourceFiles;
@@ -440,8 +451,12 @@ namespace Microsoft.Quantum.QsCompiler
         {
             this.CompilationStatus.ReferenceLoading = 0;
             if (refs == null) this.Logger?.Log(WarningCode.ReferencesSetToNull, Enumerable.Empty<string>());
-            void onDiagnostic(Diagnostic d) => this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, d);
             void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, ex);
+            void onDiagnostic(Diagnostic d)
+            {
+                this.LoadDiagnostics = this.LoadDiagnostics.Add(d);
+                this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, d);
+            }
             var references = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), onDiagnostic, onException);
             this.PrintResolvedAssemblies(references.Declarations.Keys);
             return references;
@@ -527,22 +542,29 @@ namespace Microsoft.Quantum.QsCompiler
             var fallbackFileName = (this.PathToCompiledBinary ?? this.Config.ProjectName) ?? Path.GetRandomFileName();
             var outputPath = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DllOutputPath) ? fallbackFileName : this.Config.DllOutputPath);
             outputPath = Path.ChangeExtension(outputPath, "dll");
+
+            // FIXME: this needs to be revised
+            var usedReferences = GetSourceFiles.Apply(this.GeneratedSyntaxTree);
+            var invalidReferences = this.LoadDiagnostics
+                .Filter(DiagnosticTools.WarningType(WarningCode.UnrecognizedContentInReference))
+                .Select(d => d.Source).ToImmutableHashSet();
+            var validReferences = usedReferences
+                .Where(file => file.Value.EndsWith(".dll") && !invalidReferences.Contains(file.Value));
+
             try
             {
                 // If System.Object can't be found as a reference a warning is generated. 
                 // To avoid that warning, we package that reference as well. 
-                var systemObjRef = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
-                var references = this.VerifiedCompilation.References
-                    .Select((dllFile, idx) => 
+                var references = validReferences.Select((dllFile, idx) => 
                         MetadataReference.CreateFromFile(dllFile.Value)
                         .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{idx}" })) // referenced Q# dlls are recognized based on this alias 
-                    .Append(systemObjRef);
+                    .Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
 
                 var tree = MetadataGeneration.GenerateAssemblyMetadata(references);
                 var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
                     this.Config.ProjectName ?? Path.GetFileNameWithoutExtension(outputPath),
                     syntaxTrees: new[] { tree },
-                    references: references,
+                    references: references, // we only include Q# references, and only those that are needed and have been fully loaded
                     options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
                 );
 
