@@ -330,4 +330,3 @@ ASALocalRun/
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
 /src/QsCompiler/TestTargets/Simulation/Example/generated
-/src/QsCompiler/TestTargets/Simulation/Library/generated

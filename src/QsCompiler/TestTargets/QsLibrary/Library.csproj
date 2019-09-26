@@ -20,7 +20,7 @@
     <QscExe>dotnet "..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
   </PropertyGroup>
   
-  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="Clean" AfterTargets="CoreBuild">
+  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" AfterTargets="CoreBuild">
     <ItemGroup>
       <QsReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
       <QsSourceFiles Include="@(None)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '.qs$')) == true" />
@@ -30,5 +30,9 @@
       <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
+  </Target>
+  
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="dotnet clean Library.csproj" />
   </Target>
 </Project>
