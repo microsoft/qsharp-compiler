@@ -19,8 +19,8 @@
   <PropertyGroup>
     <QscExe>dotnet "..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
   </PropertyGroup>
-
-  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" AfterTargets="CoreBuild">
+  
+  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="Clean" AfterTargets="CoreBuild">
     <ItemGroup>
       <QsReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
       <QsSourceFiles Include="@(None)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '.qs$')) == true" />
