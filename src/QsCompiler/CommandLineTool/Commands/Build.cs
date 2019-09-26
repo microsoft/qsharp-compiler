@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// The output folder is set to the current directory if one or more targets have been specified but the output folder was left unspecified.
         /// Returns a suitable error code if one of the compilation or generation steps fails.
         /// </summary>
-        /// <exception cref="System.ArgumentNullException">If any of the given arguments is null.</exception>
+        /// <exception cref="ArgumentNullException">If any of the given arguments is null.</exception>
         /// </summary>
         public static int Run(BuildOptions options, ConsoleLogger logger)
         {
@@ -92,11 +92,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var specifiesTargets = options.Targets != null && options.Targets.Any();
             var loadOptions = new CompilationLoader.Configuration
             {
-                ProjectFile = options.ProjectName == null ? null : new Uri(Path.GetFullPath(options.ProjectName)),
+                ProjectName = options.ProjectName,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = false,
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (specifiesTargets ? "." : null),
+                DllOutputPath = " ", // generating the dll in the same location as the .bson file
                 Targets = options.Targets.ToImmutableDictionary(id => id, DefineTarget)
             }; 
 

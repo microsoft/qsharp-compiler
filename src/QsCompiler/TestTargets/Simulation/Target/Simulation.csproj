@@ -14,6 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Driver.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\..\..\CommandLineTool\TargetOptions.cs" Link="TargetOptions.cs" />
   </ItemGroup>
 

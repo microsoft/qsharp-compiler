@@ -258,7 +258,7 @@ type ErrorCode =
     | UnknownProjectReference = 7007
     | CouldNotLoadSourceFile = 7008
     | FileIsNotAnAssembly = 7010
-    | CouldNotExtractHeaders = 7011
+    | UnrecognizedContentInReference = 7011
     | MissingProjectReferenceDll = 7012
     | InvalidProjectOutputPath = 7013
     | SourceFilesMissing = 7014
@@ -269,8 +269,10 @@ type ErrorCode =
     | CsGenerationFailed = 7103
     | QsGenerationFailed = 7104
     | DocGenerationFailed = 7105
-    | GeneratingBinaryFailed = 7106
-    | TargetExecutionFailed = 7107
+    | SerializationFailed = 7106
+    | GeneratingBinaryFailed = 7107
+    | GeneratingDllFailed = 7108
+    | TargetExecutionFailed = 7109
 
 
 type WarningCode = 
@@ -302,6 +304,7 @@ type WarningCode =
     | UnknownBinaryFile = 7007
     | CouldNotLoadBinaryFile = 7008
     | ReferencesSetToNull = 7009
+    | UnrecognizedContentInReference = 7010
     | UnresolvedItemsInGeneratedQs = 7101
     | TargetExitedAbnormally = 7102
 
@@ -586,7 +589,7 @@ type DiagnosticItem =
             | ErrorCode.UnknownProjectReference                 -> "Could not find the project file for the referenced project \"{0}\"."
             | ErrorCode.CouldNotLoadSourceFile                  -> "Unable to load source file \"{0}\"."
             | ErrorCode.FileIsNotAnAssembly                     -> "The given file \"{0}\" is not an valid assembly."
-            | ErrorCode.CouldNotExtractHeaders                  -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
+            | ErrorCode.UnrecognizedContentInReference          -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
             | ErrorCode.MissingProjectReferenceDll              -> "Missing binary file for project reference \"{0}\". Build the referenced project for its content to be detected correctly."
             | ErrorCode.InvalidProjectOutputPath                -> "Invalid project output path for project \"{0}\"."
             | ErrorCode.SourceFilesMissing                      -> "No source files have been specified."
@@ -597,7 +600,9 @@ type DiagnosticItem =
             | ErrorCode.CsGenerationFailed                      -> "Unable to generate C# code to run within the simulation framework."
             | ErrorCode.QsGenerationFailed                      -> "Unable to generate formatted Q# code based on the built syntax tree."
             | ErrorCode.DocGenerationFailed                     -> "Unable to generate documentation for the compiled code."
+            | ErrorCode.SerializationFailed                     -> "Unable to serialize the built compilation."
             | ErrorCode.GeneratingBinaryFailed                  -> "Unable to generate binary format for the compilation."
+            | ErrorCode.GeneratingDllFailed                     -> "Unable to generate dll containing the compiled binary."
             | ErrorCode.TargetExecutionFailed                   -> "Processing of the compiled binary with the target {0} failed."
             | _                                                 -> "" 
         code |> ApplyArguments             
@@ -632,6 +637,7 @@ type DiagnosticItem =
             | WarningCode.UnknownBinaryFile                     -> "Could not find the binary file \"{0}\" to include as reference in the compilation."
             | WarningCode.CouldNotLoadBinaryFile                -> "Unable to load binary file \"{0}\"."
             | WarningCode.ReferencesSetToNull                   -> "No references given to include in the compilation."
+            | WarningCode.UnrecognizedContentInReference        -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
 
             | WarningCode.UnresolvedItemsInGeneratedQs          -> "Some item(s) could not be resolved during compilation."
             | WarningCode.TargetExitedAbnormally                -> "Processing of the compiled binary with the target {0} exited with an abnormal exit code {1}."

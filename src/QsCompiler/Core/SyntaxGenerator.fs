@@ -13,41 +13,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
-type BuiltIn = {
-    /// contains the name of the callable
-    Name : NonNullable<string>
-    /// contains the name of the namespace in which the callable is defined
-    Namespace : NonNullable<string>
-    /// contains the names of the type parameters without the leading tick (')
-    TypeParameters : ImmutableArray<NonNullable<string>>
-}
-    with 
-    static member CoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
-    static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
-    static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
-
-    static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
-
-
-    static member Length = {
-        Name = "Length" |> NonNullable<string>.New
-        Namespace = BuiltIn.CoreNamespace
-        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
-    }
-
-    static member IndexRange = {
-        Name = "IndexRange" |> NonNullable<string>.New
-        Namespace = BuiltIn.StandardArrayNamespace
-        TypeParameters = ImmutableArray.Empty
-    }
-
-    static member Attribute = {
-        Name = "Attribute" |> NonNullable<string>.New
-        Namespace = BuiltIn.CoreNamespace
-        TypeParameters = ImmutableArray.Empty
-    }
-
-
 // transformations used to strip range information for auto-generated syntax
 
 type private StripPositionInfoFromType () = 
