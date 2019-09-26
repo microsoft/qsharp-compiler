@@ -85,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
-            /// This is the case if either the output path for the compiled binary is specified, or teh o
+            /// This is the case if either the build output folder is specified or the dll output path is specified.
             /// </summary>
             internal bool SerializeSyntaxTree =>
                 BuildOutputFolder != null || DllOutputPath != null;
