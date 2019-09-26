@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.QsCompiler
 {
     /// <summary>
     /// The sole purpose of this module is to generate a C# class that explicitly uses referenced Q# content. 
-    /// This is a hack to force that these references are not dopped upon Emit due to being ununsed. 
+    /// This is a hack to force that these references are not dropped upon Emit due to being unused. 
     /// This is needed (only) if we want to build dlls using the command line compiler without relying on the dotnet core project system.
     /// </summary>
     internal static class MetadataGeneration
