@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="QsharpClean">
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
@@ -31,8 +31,11 @@
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
   </Target>
-  
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="dotnet clean Library.csproj" />
+
+  <Target Name="QsharpClean">
+    <ItemGroup>
+      <RemoveFiles Include="$(OutputPath)**" Condition="'$(DesignTimeBuild)' != 'true'" />
+    </ItemGroup>
+    <Delete Files="@(RemoveFiles)" />
   </Target>
 </Project>
