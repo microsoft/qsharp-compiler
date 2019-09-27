@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="QsharpClean">
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="EnsureRecompileOnChange">
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
@@ -20,6 +20,13 @@
   <PropertyGroup>
     <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
   </PropertyGroup>
+
+  <Target Name="EnsureRecompileOnChange">
+    <ItemGroup>
+      <UpToDateCheckInput Include="@(None)" />
+      <UpToDateCheckInput Include="@(Content)" />
+    </ItemGroup>
+  </Target>
   
   <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" AfterTargets="CoreBuild">
     <ItemGroup>
@@ -31,12 +38,5 @@
       <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
-  </Target>
-
-  <Target Name="QsharpClean">
-    <ItemGroup>
-      <RemoveFiles Include="$(OutputPath)**" Condition="'$(DesignTimeBuild)' != 'true'" />
-    </ItemGroup>
-    <Delete Files="@(RemoveFiles)" />
   </Target>
 </Project>
