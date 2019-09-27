@@ -11,13 +11,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\CommandLineTool\QsCommandLineTool.csproj">
+    <ProjectReference Include="..\..\..\CommandLineTool\QsCommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
 
   <PropertyGroup>
-    <QscExe>dotnet "..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
+    <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
   </PropertyGroup>
   
   <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" AfterTargets="CoreBuild">
