@@ -457,7 +457,9 @@ namespace Microsoft.Quantum.QsCompiler
                 this.LoadDiagnostics = this.LoadDiagnostics.Add(d);
                 this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, d);
             }
-            var references = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), onDiagnostic, onException);
+            var headers = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), onDiagnostic, onException);
+            var projId =this.Config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.Config.ProjectName), "qsproj");
+            var references = new References(headers, (code, args) => onDiagnostic(Errors.LoadError(code, args, projId)));
             this.PrintResolvedAssemblies(references.Declarations.Keys);
             return references;
         }

@@ -253,13 +253,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (projectReferences == null) throw new ArgumentNullException(nameof(projectReferences));
 
                 var diagnostics = new List<Diagnostic>();
-                var loaded = ProjectManager.LoadProjectReferences(
+                var loadedHeaders = ProjectManager.LoadProjectReferences(
                     projectReferences, GetProjectOutputPath(projectOutputPaths, diagnostics),
                     diagnostics.Add, this.Manager.LogException);
-                this.ProjectReferenceDiagnostics = diagnostics.ToImmutableArray();
 
-                this.LoadedProjectReferences = loaded;
-                var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences);
+                this.LoadedProjectReferences = new References(loadedHeaders, null);
+                var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
+                    (code,args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile).Value)));
+                this.ProjectReferenceDiagnostics = diagnostics.ToImmutableArray();
                 return this.Manager.UpdateReferencesAsync(importedDeclarations, suppressVerification: skipVerification);
             }
 
@@ -280,19 +281,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (!this.SpecifiedProjectReferences.Contains(projectReference) || !this.IsLoaded) return;
 
                 var diagnostics = new List<Diagnostic>();
-                var loaded = ProjectManager.LoadProjectReferences(
+                var loadedHeaders = ProjectManager.LoadProjectReferences(
                     new string[] { projectReference.LocalPath }, GetProjectOutputPath(projectOutputPaths, diagnostics),
                     diagnostics.Add, this.Manager.LogException);
-                this.ProjectReferenceDiagnostics = this.ProjectReferenceDiagnostics
-                    .RemoveAll(d => d.Source == MessageSource(projectReference).Value && d.Code != WarningCode.DuplicateProjectReference.Code())
-                    .Concat(diagnostics).ToImmutableArray();
-                this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
+                var loaded = new References(loadedHeaders, null);
 
                 QsCompilerError.Verify(!loaded.Declarations.Any() ||
                     (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key.Value == projRefId.Value),
                     $"loaded references upon loading {projectReference.LocalPath}: {String.Join(", ", loaded.Declarations.Select(r => r.Value))}");
-                this.LoadedProjectReferences = this.LoadedProjectReferences.Remove(projRefId).CombineWith(loaded);
-                var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences);
+                this.LoadedProjectReferences = this.LoadedProjectReferences.Remove(projRefId, null).CombineWith(loaded, null);
+                var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
+                    (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile).Value)));
+
+                this.ProjectReferenceDiagnostics = this.ProjectReferenceDiagnostics.RemoveAll(d =>
+                        (d.Source == MessageSource(projectReference).Value && d.Code != WarningCode.DuplicateProjectReference.Code())
+                        || DiagnosticTools.ErrorType(ErrorCode.ConflictInReferences)(d))
+                    .Concat(diagnostics).ToImmutableArray();
+                this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
                 this.Manager.UpdateReferencesAsync(importedDeclarations);
             }
 
@@ -308,11 +313,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (references == null) throw new ArgumentNullException(nameof(references));
 
                 var diagnostics = new List<Diagnostic>();
-                var loaded = ProjectManager.LoadReferencedAssemblies(references, diagnostics.Add, this.Manager.LogException);
-                this.ReferenceDiagnostics = diagnostics.ToImmutableArray();
+                var loadedHeaders = ProjectManager.LoadReferencedAssemblies(references, 
+                    diagnostics.Add, this.Manager.LogException);
 
-                this.LoadedReferences = loaded;
-                var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences);
+                this.LoadedReferences = new References(loadedHeaders, null);
+                var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
+                    (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile).Value)));                    
+                this.ReferenceDiagnostics = diagnostics.ToImmutableArray();
                 return this.Manager.UpdateReferencesAsync(importedDeclarations, suppressVerification: skipVerification);
             }
 
@@ -329,17 +336,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (!this.SpecifiedReferences.Contains(reference) || !this.IsLoaded) return;
 
                 var diagnostics = new List<Diagnostic>();
-                var loaded = ProjectManager.LoadReferencedAssemblies(new string[] { reference.LocalPath }, diagnostics.Add, this.Manager.LogException);
-                this.ReferenceDiagnostics = this.ReferenceDiagnostics
-                    .RemoveAll(d => d.Source == MessageSource(reference).Value && d.Code != WarningCode.DuplicateBinaryFile.Code())
-                    .Concat(diagnostics).ToImmutableArray();
-                this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
+                var loadedHeaders = ProjectManager.LoadReferencedAssemblies(new string[] { reference.LocalPath },
+                    diagnostics.Add, this.Manager.LogException);
+                var loaded = new References(loadedHeaders, null);
 
                 QsCompilerError.Verify(!loaded.Declarations.Any() || 
                     (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key.Value == refId.Value),
                     $"loaded references upon loading {reference.LocalPath}: {String.Join(", ", loaded.Declarations.Select(r => r.Value))}");
-                this.LoadedReferences = this.LoadedReferences.Remove(refId).CombineWith(loaded);
-                var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences);
+                this.LoadedReferences = this.LoadedReferences.Remove(refId, null).CombineWith(loaded, null);
+                var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
+                    (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile).Value)));
+
+                this.ReferenceDiagnostics = this.ReferenceDiagnostics.RemoveAll(d => 
+                        (d.Source == MessageSource(reference).Value && d.Code != WarningCode.DuplicateBinaryFile.Code())
+                        || DiagnosticTools.ErrorType(ErrorCode.ConflictInReferences)(d))
+                    .Concat(diagnostics).ToImmutableArray();
+                this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
                 this.Manager.UpdateReferencesAsync(importedDeclarations);
             }
 
@@ -1124,8 +1136,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a dictionary that maps each project file for which the corresponding dll content could be loaded to the Q# attributes it contains. 
         /// Throws an ArgumentNullException if the given sequence of project references or the given GetOutputPath function is null.
         /// </summary>
-        public static References LoadProjectReferences(
-            IEnumerable<string> refProjectFiles, Func<Uri, Uri> GetOutputPath,
+        public static ImmutableDictionary<NonNullable<string>, References.Headers> LoadProjectReferences(
+            IEnumerable<string> refProjectFiles, Func<Uri, Uri> GetOutputPath, 
             Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
             if (refProjectFiles == null) throw new ArgumentNullException(nameof(refProjectFiles));
@@ -1161,11 +1173,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             foreach (var projFile in missingDlls.Select(dll => projectDlls[dll]))
             { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.MissingProjectReferenceDll, new[] { projFile.LocalPath }, MessageSource(projFile).Value)); }
 
-            var headers = existingProjectDlls
+            return existingProjectDlls
                 .Select(file => (file, LoadReferencedDll(file)))
                 .Where(asm => asm.Item2 != null)
                 .ToImmutableDictionary(asm => MessageSource(projectDlls[asm.Item1]), asm => asm.Item2);
-            return new References(headers);
         }
 
         /// <summary>
@@ -1176,7 +1187,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a dictionary that maps each existing dll to the Q# attributes it contains. 
         /// Throws an ArgumentNullException if the given sequence of referenced binaries is null.
         /// </summary>
-        public static References LoadReferencedAssemblies(IEnumerable<string> references,
+        public static ImmutableDictionary<NonNullable<string>, References.Headers> LoadReferencedAssemblies(IEnumerable<string> references,
             Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
             if (references == null) throw new ArgumentNullException(nameof(references));
@@ -1195,11 +1206,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onException?.Invoke(ex);
             }
 
-            var headers = assembliesToLoad
+            return assembliesToLoad
                 .Select(file => (file, LoadReferencedDll(file)))
                 .Where(asm => asm.Item2 != null)
                 .ToImmutableDictionary(asm => MessageSource(asm.Item1), asm => asm.Item2);
-            return new References(headers);
         }
     }
 }

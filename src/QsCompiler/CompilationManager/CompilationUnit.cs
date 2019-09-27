@@ -9,6 +9,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -41,7 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // TODO: keep indirect references? 
-            // -> need to make sure it's fine to pull in the same reference mulitple times though...
+            // -> would need to make sure it's fine to pull in the same reference multiple times though...
             internal Headers(Uri source, IEnumerable<QsNamespace> syntaxTree) : this (
                 CompilationUnitManager.TryGetFileId(source, out var id) ? id.Value : null, 
                 syntaxTree.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
@@ -83,31 +84,57 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly ImmutableDictionary<NonNullable<string>, Headers> Declarations; 
 
         public static References Empty = 
-            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty);
+            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty, null);
 
         /// <summary>
-        /// Throws an ArgumentNullException if the given argument is null. 
+        /// Combines the current references with the given references, and verifies that there are no conflicts. 
+        /// Calls the given Action onError with suitable diagnostics if two or more references conflict, 
+        /// i.e. if two or more references contain a declaration with the same fully qualified name. 
+        /// Throws an ArgumentNullException if the given dictionary of references is null. 
         /// Throws an ArgumentException if the given set shares references with the current one. 
         /// </summary>
-        internal References CombineWith(References other)
+        internal References CombineWith(References other, Action<ErrorCode, string[]> onError)
         {
             if (other == null) throw new ArgumentNullException(nameof(other));
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any()) throw new ArgumentException("common references exist");
-            return new References (this.Declarations.AddRange(other.Declarations)); 
+            return new References (this.Declarations.AddRange(other.Declarations), onError); 
         }
 
         /// <summary>
         /// Returns a new collection with the given reference and all its entries removed. 
+        /// Verifies that there are no conflicts for the new set of references. 
+        /// Calls the given Action onError with suitable diagnostics if two or more references conflict, 
+        /// i.e. if two or more references contain a declaration with the same fully qualified name. 
+        /// Throws an ArgumentNullException if the given diagnostics are null. 
         /// </summary>
-        internal References Remove(NonNullable<string> source) =>
-            new References(this.Declarations.Remove(source));
+        internal References Remove(NonNullable<string> source, Action<ErrorCode, string[]> onError) =>
+            new References(this.Declarations.Remove(source), onError);
 
         /// <summary>
-        /// NOTE: Does not do any verification of the arguments whatsoever and hence needs to remain private!
-        /// IMPORTANT: this class relies on the fact tha the corresponding references need to be listed for all declaration headers!
+        /// Given a dictionary that maps the ids of dll files to the corresponding headers,
+        /// initializes a new set of references based on the given headers and verifies that there are no conflicts. 
+        /// Calls the given Action onError with suitable diagnostics if two or more references conflict, 
+        /// i.e. if two or more references contain a declaration with the same fully qualified name. 
+        /// Throws an ArgumentNullException if the given dictionary of references is null. 
         /// </summary>
-        internal References(ImmutableDictionary<NonNullable<string>, Headers> refs) =>
-            this.Declarations = refs;
+        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, Action<ErrorCode, string[]> onError)
+        {
+            this.Declarations = refs ?? throw new ArgumentNullException(nameof(refs));
+            if (onError == null) return;
+
+            var conflictingCallables = refs.Values.SelectMany(r => r.Callables)
+                .GroupBy(c => c.QualifiedName).Where(g => g.Count() != 1)
+                .Select(g => (g.Key, String.Join(", ", g.Select(c => c.SourceFile.Value))));
+            var conflictingTypes = refs.Values.SelectMany(r => r.Types)
+                .GroupBy(t => t.QualifiedName).Where(g => g.Count() != 1)
+                .Select(g => (g.Key, String.Join(", ", g.Select(c => c.SourceFile.Value))));
+
+            foreach (var (name, conflicts) in conflictingCallables.Concat(conflictingTypes).Distinct())
+            {
+                var diagArgs = new[] { $"{name.Namespace.Value}.{name.Name.Value}", conflicts };
+                onError?.Invoke(ErrorCode.ConflictInReferences, diagArgs);
+            }
+        }
     }
 
 
