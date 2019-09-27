@@ -234,7 +234,7 @@ and private ExpressionLeveler(holder : CapabilityInfoHolder) =
 
     override this.Kind = upcast kindXformer    
 
-and private StatementLeveler(holder : CapabilityInfoHolder) =
+type private StatementLeveler(holder : CapabilityInfoHolder) =
     inherit StatementKindTransformation()
 
     let scopeXformer = new ScopeLeveler(holder)
@@ -244,6 +244,10 @@ and private StatementLeveler(holder : CapabilityInfoHolder) =
     override this.ExpressionTransformation x = exprXformer.Transform x
     override this.TypeTransformation x = x
     override this.LocationTransformation x = x
+
+    override this.onRepeatStatement(s) =
+        holder.LocalLevel <- CapabilityLevel.Advanced
+        base.onRepeatStatement(s)
 
 and private ScopeLeveler(holder : CapabilityInfoHolder) =
     inherit ScopeTransformation()
