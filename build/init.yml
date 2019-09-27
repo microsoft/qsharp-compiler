@@ -21,3 +21,8 @@ steps:
     command: custom
     verbose: false
     customCommand: 'install -g vsce'
+
+- task: UseDotNet@2
+  inputs:
+    packageType: sdk
+    version: '2.2.105'
