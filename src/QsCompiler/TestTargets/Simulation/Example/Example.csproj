@@ -17,7 +17,6 @@
     <ProjectReference Include="..\Target\Simulation.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\CoreLibrary\CoreLibrary.csproj" />
     <ProjectReference Include="..\..\Libraries\Library1\Library1.csproj" />
   </ItemGroup>
 
