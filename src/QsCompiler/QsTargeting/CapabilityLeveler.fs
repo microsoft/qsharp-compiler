@@ -186,6 +186,47 @@ type private ExpressionKindLeveler(holder : CapabilityInfoHolder) =
         | _ -> ()
         base.onIdentifier(sym, typeArgs)
 
+    override this.Transform(kind) =
+        match kind with 
+        | UnwrapApplication _
+        | ValueTuple _
+        | ArrayItem _
+        | NamedItem _
+        | ValueArray _
+        | NewArray _
+        | IntLiteral _
+        | BigIntLiteral _
+        | DoubleLiteral _
+        | BoolLiteral _
+        | StringLiteral _
+        | RangeLiteral _
+        | CopyAndUpdate _
+        | CONDITIONAL _
+        | EQ _ 
+        | NEQ _
+        | LT _ 
+        | LTE _
+        | GT _ 
+        | GTE _
+        | AND _
+        | OR _ 
+        | ADD _
+        | SUB _
+        | MUL _
+        | DIV _
+        | POW _
+        | MOD _
+        | LSHIFT _
+        | RSHIFT _
+        | BXOR _ 
+        | BOR _
+        | BAND _ 
+        | NOT _
+        | NEG _
+        | BNOT _ -> holder.LocalLevel <- CapabilityLevel.Medium
+        | _ -> ()
+        base.Transform(kind)
+
 and private ExpressionLeveler(holder : CapabilityInfoHolder) =
     inherit ExpressionTransformation()
 
