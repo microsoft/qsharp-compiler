@@ -16,9 +16,7 @@ namespace Microsoft.Quantum.Testing.ExecutionTests
 
     operation TypeInReferencedProject () : Unit {
         mutable arr = new Complex[1];
-        for (i in 0 .. Length(arr) - 1) {
-            set arr w/= i <- Complex(1.,0.);
-        }
+        set arr w/= 0 <- Complex(1.,0.);
         Message($"{arr}");
     }
 }
