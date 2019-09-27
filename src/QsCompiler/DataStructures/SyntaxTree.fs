@@ -636,6 +636,7 @@ type QsSpecialization = {
     Comments : QsComments
 }
     with 
+    member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithImplementation impl = {this with Implementation = impl}
 
 
@@ -670,6 +671,7 @@ type QsCallable = {
     Comments : QsComments
 }
     with 
+    member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithSpecializations (getSpecs : Func<_,_>) = {this with Specializations = getSpecs.Invoke(this.Specializations)}
 
 
@@ -705,6 +707,8 @@ type QsCustomType = {
     /// contains comments in the code associated with this declarations
     Comments : QsComments
 }
+    with 
+    member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
 
 
 /// Describes a valid Q# namespace element.
