@@ -12,9 +12,6 @@ namespace Microsoft.Quantum.Core {
     newtype Attribute = Unit;
 
     @ Attribute()
-    newtype External = String;
-
-    @ Attribute()
     newtype IntTupleAttribute = (Int, Int);
 }
 
