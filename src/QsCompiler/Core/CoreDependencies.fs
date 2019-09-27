@@ -41,3 +41,9 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
+    static member External = {
+        Name = "External" |> NonNullable<string>.New
+        Namespace = BuiltIn.CoreNamespace
+        TypeParameters = ImmutableArray.Empty
+    }
+

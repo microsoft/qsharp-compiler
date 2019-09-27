@@ -444,6 +444,33 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Builds a syntax tree containing the given callables and types, 
+        /// and attaches the documentation specified by the given dictionary - if any - to each namespace. 
+        /// All elements within a namespace will be sorted in alphabetical order. 
+        /// Throws an ArgumentNullException if the given callables or types are null. 
+        /// </summary>
+        public static ImmutableArray<QsNamespace> NewSyntaxTree(
+            IEnumerable<QsCallable> callables, IEnumerable<QsCustomType> types, 
+            IReadOnlyDictionary<NonNullable<string>, ILookup<NonNullable<string>, ImmutableArray<string>>> documentation = null)
+        {
+            if (callables == null) throw new ArgumentNullException(nameof(callables));
+            if (types == null) throw new ArgumentNullException(nameof(types));
+            var emptyLookup = new NonNullable<string>[0].ToLookup(ns => ns, _ => ImmutableArray<string>.Empty);
+
+            string QualifiedName(QsQualifiedName fullName) => $"{fullName.Namespace.Value}.{fullName.Name.Value}";
+            string ElementName(QsNamespaceElement e) =>
+                e is QsNamespaceElement.QsCustomType t ? QualifiedName(t.Item.FullName) :
+                e is QsNamespaceElement.QsCallable c ? QualifiedName(c.Item.FullName) : null;
+            var namespaceElements = callables.Select(c => (c.FullName.Namespace, QsNamespaceElement.NewQsCallable(c)))
+                .Concat(types.Select(t => (t.FullName.Namespace, QsNamespaceElement.NewQsCustomType(t))));
+            return namespaceElements
+                .ToLookup(element => element.Item1, element => element.Item2)
+                .Select(elements => new QsNamespace(elements.Key, elements.OrderBy(ElementName).ToImmutableArray(), 
+                    documentation != null && documentation.TryGetValue(elements.Key, out var doc) ? doc : emptyLookup))
+                .ToImmutableArray();
+        }
+
+        /// <summary>
         /// Returns the syntax tree based on the current state of the compilation.
         /// Note that functor generation directives are *not* evaluated in the the returned tree,
         /// and the returned tree may contain invalid parts. 
@@ -480,26 +507,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // build the syntax tree
 
-                (NonNullable<string>, QsNamespaceElement) GetNamespaceElementForImportedCallable(CallableDeclarationHeader header) =>
-                    (header.QualifiedName.Namespace, QsNamespaceElement.NewQsCallable(this.GetImportedCallable(header)));
-                (NonNullable<string>, QsNamespaceElement) GetNamespaceElementForImportedType(TypeDeclarationHeader header) =>
-                    (header.QualifiedName.Namespace, QsNamespaceElement.NewQsCustomType(this.GetImportedType(header)));
-
-                var definedCallables = this.CompiledCallables.Select(callable => (callable.Key.Namespace, QsNamespaceElement.NewQsCallable(callable.Value)));
-                var importedCallables = this.GlobalSymbols.ImportedCallables().Select(imported => GetNamespaceElementForImportedCallable(imported));
-                var definedTypes = this.CompiledTypes.Select(type => (type.Key.Namespace, QsNamespaceElement.NewQsCustomType(type.Value)));
-                var importedTypes = this.GlobalSymbols.ImportedTypes().Select(imported => GetNamespaceElementForImportedType(imported));
-
-                var namespaceElements = definedCallables.Concat(importedCallables).Concat(definedTypes).Concat(importedTypes);
-                var documentation = this.GlobalSymbols.Documentation();
-                string QualifiedName(QsQualifiedName fullName) => $"{fullName.Namespace.Value}.{fullName.Name.Value}";
-                string ElementName(QsNamespaceElement e) =>
-                    e is QsNamespaceElement.QsCustomType t ? QualifiedName(t.Item.FullName) :
-                    e is QsNamespaceElement.QsCallable c ? QualifiedName(c.Item.FullName) : null;
-                return namespaceElements
-                    .ToLookup(element => element.Item1, element => element.Item2)
-                    .Select(elements => new QsNamespace(elements.Key, elements.OrderBy(ElementName).ToImmutableArray(), documentation[elements.Key]))
-                    .ToImmutableArray();
+                var callables = this.CompiledCallables.Values.Concat(this.GlobalSymbols.ImportedCallables().Select(this.GetImportedCallable));
+                var types = this.CompiledTypes.Values.Concat(this.GlobalSymbols.ImportedTypes().Select(this.GetImportedType));
+                return CompilationUnit.NewSyntaxTree(callables, types, this.GlobalSymbols.Documentation());
             }
             finally { this.SyncRoot.ExitReadLock(); }
         }
