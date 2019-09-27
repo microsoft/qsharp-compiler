@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Quantum.Standard" Version="0.9.1908.2906" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\CommandLineTool\QsCommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
