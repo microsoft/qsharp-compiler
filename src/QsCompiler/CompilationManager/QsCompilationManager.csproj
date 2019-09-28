@@ -6,7 +6,6 @@
     <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsCompilationManager</AssemblyName>
-    <LanguageVersion>7.3</LanguageVersion>
   </PropertyGroup>
 
   <ItemGroup>

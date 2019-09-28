@@ -43,15 +43,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // TODO: keep indirect references? 
             // -> would need to make sure it's fine to pull in the same reference multiple times though...
-            internal Headers(Uri source, IEnumerable<QsNamespace> syntaxTree) : this (
-                CompilationUnitManager.TryGetFileId(source, out var id) ? id.Value : null, 
+            internal Headers(NonNullable<string> source, IEnumerable<QsNamespace> syntaxTree) : this (
+                source.Value, 
                 syntaxTree.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
                 syntaxTree.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), s.Implementation)), 
                 syntaxTree.Types().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(TypeDeclarationHeader.New))
             { }
 
-            internal Headers(Uri source, IEnumerable<(string, string)> attributes) : this(
-                CompilationUnitManager.TryGetFileId(source, out var id) ? id.Value : null,
+            internal Headers(NonNullable<string> source, IEnumerable<(string, string)> attributes) : this(
+                source.Value,
                 References.CallableHeaders(attributes), 
                 References.SpecializationHeaders(attributes).Select(h => (h, (SpecializationImplementation)null)), 
                 References.TypeHeaders(attributes))
