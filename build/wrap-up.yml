@@ -10,12 +10,6 @@ steps:
     testResultsFiles: '$(System.DefaultWorkingDirectory)/**/*.trx'
     testRunTitle: 'Q# compiler tests'
 
-- task: PublishSymbols@1
-  displayName: 'Publish symbols'
-  continueOnError: true
-  inputs:
-    SearchPattern: '**\bin\**\*.pdb'
-
 - task: CopyFiles@2
   displayName: 'Copy extensions to: $(VSIX.Outdir)'
   condition: succeededOrFailed()

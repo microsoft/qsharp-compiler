@@ -38,8 +38,8 @@ namespace Microsoft.Quantum.QsCompiler
         public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers)
         {
             if (asm == null) throw new ArgumentNullException(nameof(asm));
-            if (!File.Exists(asm.LocalPath))
-            { throw new FileNotFoundException($"the file '{asm}' given to the attribute reader does not exist"); }
+            if (!CompilationUnitManager.TryGetFileId(asm, out var id) || !File.Exists(asm.LocalPath))
+            { throw new FileNotFoundException($"the uti '{asm}' given to the assembly loader is invalid or the file does not exist"); }
 
             using (var stream = File.OpenRead(asm.LocalPath))
             using (var assemblyFile = new PEReader(stream))
@@ -47,8 +47,8 @@ namespace Microsoft.Quantum.QsCompiler
                 var loadedFromResource = FromResource(assemblyFile, out var syntaxTree);
                 var attributes = loadedFromResource ? Enumerable.Empty<(string, string)>() : LoadHeaderAttributes(assemblyFile);
                 headers = loadedFromResource
-                    ? new References.Headers(asm, syntaxTree)
-                    : new References.Headers(asm, attributes);
+                    ? new References.Headers(id, syntaxTree)
+                    : new References.Headers(id, attributes);
                 return loadedFromResource || !attributes.Any();
             }
         }

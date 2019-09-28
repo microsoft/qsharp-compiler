@@ -192,6 +192,7 @@ type ErrorCode =
     | AliasForNamespaceAlreadyExists = 6018
     | AliasForOpenedNamespace = 6019
     | InvalidNamespaceAliasName = 6020 // i.e. the chosen alias already exists
+    | ConflictInReferences = 6021
 
     | ExpectingUnqualifiedSymbol = 6101
     | ExpectingItemName = 6102
@@ -523,6 +524,7 @@ type DiagnosticItem =
             | ErrorCode.AliasForNamespaceAlreadyExists          -> "The namespace had already been opened as \"{0}\"."
             | ErrorCode.AliasForOpenedNamespace                 -> "Namespace is already open. Cannot open namespace under a different name."
             | ErrorCode.InvalidNamespaceAliasName               -> "A namespace or a namespace short name \"{0}\" already exists."
+            | ErrorCode.ConflictInReferences                    -> "Could not resolve conflict between {0} declared in {1}."
                                                             
             | ErrorCode.ExpectingUnqualifiedSymbol              -> "Expecting an unqualified symbol name."
             | ErrorCode.ExpectingItemName                       -> "Expecting an item name, i.e. an unqualified symbol."
