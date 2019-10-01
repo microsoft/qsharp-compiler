@@ -31,11 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            foreach (var ns in namespaces)
-            {
-                filter.Transform(ns);
-            }
-            return namespaces;
+            return namespaces.Select(ns => filter.Transform(ns));
         }
 
         public static IEnumerable<QsNamespace> Apply(params QsNamespace[] namespaces)
