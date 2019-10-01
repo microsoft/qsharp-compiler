@@ -294,9 +294,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             (this FileContentManager file, CompilationUnit compilation, Range range)
         {
             if (file == null || compilation == null || range?.Start == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
-            var indexRangeNamespaces = compilation.GlobalSymbols.NamespacesContainingCallable(SyntaxGenerator.BuiltInCallables.IndexRange.Name);
-            if (!indexRangeNamespaces.Contains(SyntaxGenerator.BuiltInCallables.IndexRange.Namespace)) return Enumerable.Empty<(string, WorkspaceEdit)>();
-            var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, SyntaxGenerator.BuiltInCallables.IndexRange.Namespace);
+            var indexRangeNamespaces = compilation.GlobalSymbols.NamespacesContainingCallable(BuiltIn.IndexRange.Name);
+            if (!indexRangeNamespaces.Contains(BuiltIn.IndexRange.Namespace)) return Enumerable.Empty<(string, WorkspaceEdit)>();
+            var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, BuiltIn.IndexRange.Namespace);
 
             /// Returns true the given expression is of the form "0 .. Length(args) - 1", 
             /// as well as the range of the entire expression and the argument tuple "(args)" as out parameters. 
@@ -308,7 +308,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     SUBExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral subIntLiteralExpression && subIntLiteralExpression.Item == 1L &&  // .. 1 from ..
                     SUBExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.CallLikeExpression callLikeExression &&                                      // .. a call ..
                     callLikeExression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.Identifier identifier &&                                                 // .. to and identifier ..
-                    identifier.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol symName && symName.Item.Value == SyntaxGenerator.BuiltInCallables.Length.Name.Value &&                 // .. "Length" called with ..
+                    identifier.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol symName && symName.Item.Value == BuiltIn.Length.Name.Value &&                                          // .. "Length" called with ..
                     callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple && callLikeExression.Item2.Range.IsValue)          // .. a valid argument tuple
                 {
                     exprRange = DiagnosticTools.GetAbsoluteRange(offset, iterExpr.Range.Item);
@@ -330,7 +330,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     yield return new TextEdit()
                     {
                         Range = new Range() { Start = iterExprRange.Start, End = argTupleRange.Start },
-                        NewText = SyntaxGenerator.BuiltInCallables.IndexRange.Name.Value
+                        NewText = BuiltIn.IndexRange.Name.Value
                     };
                     yield return new TextEdit()
                     {

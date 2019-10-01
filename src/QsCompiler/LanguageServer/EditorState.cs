@@ -358,6 +358,28 @@ namespace Microsoft.Quantum.QsLanguageServer
         public ILookup<string, WorkspaceEdit> CodeActions(CodeActionParams param) =>
             ValidFileUri(param?.TextDocument?.Uri) && !IgnoreFile(param.TextDocument.Uri) ? this.Projects.CodeActions(param) : null;
 
+        /// <summary>
+        /// Returns a list of suggested completion items for the given location.
+        /// <para/>
+        /// Returns null if the given file is listed as to be ignored, or if the given parameter or its uri or position is null.
+        /// </summary>
+        public CompletionList Completions(TextDocumentPositionParams param) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !IgnoreFile(param.TextDocument.Uri)
+            ? this.Projects.Completions(param)
+            : null;
+
+        /// <summary>
+        /// Resolves additional information for the given completion item. Returns the original completion item if no
+        /// additional information is available, or if the completion item is no longer valid or accurate.
+        /// <para/>
+        /// Returns null if any parameter is null or the file given in the original completion request is invalid or
+        /// ignored.
+        /// </summary>
+        internal CompletionItem ResolveCompletion(CompletionItem item, CompletionItemData data, MarkupKind format) =>
+            item != null && ValidFileUri(data?.TextDocument?.Uri) && !IgnoreFile(data.TextDocument.Uri)
+            ? this.Projects.ResolveCompletion(item, data, format)
+            : null;
+
 
         // utils to query the editor state server for testing purposes 
         // -> explicitly part of this class because any access to the resources may need to be coordinated as well

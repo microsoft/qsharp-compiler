@@ -164,7 +164,7 @@ let rec private singleAdditionalArg mismatchErr (qsSym : QsSymbol) =
     | sym -> sym |> singleAndOmitted |> nameAndRange false
 
 
-let private StripRangeInfo = (new SyntaxGenerator.StripRangeInfo()).onArgumentTuple
+let private StripRangeInfo = StripPositionInfo.Default.onArgumentTuple
 
 /// Given the declared argument tuple of a callable, and the declared symbol tuple for the corresponding body specialization,
 /// verifies that the symbol tuple indeed has the expected shape for that specialization.

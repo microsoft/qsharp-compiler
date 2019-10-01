@@ -54,7 +54,7 @@
     <PropertyGroup>
       <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) -t "$(SimulationTarget)"</QscCommand>
     </PropertyGroup>
-    <Exec Command="$(QscCommand)" IgnoreExitCode="true" />
+    <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
     <Delete Files="$(GenFilesDir)$(MSBuildProjectName).bson" />
     <ItemGroup>
       <Compile Include="$(GenFilesDir)**\*.g.cs" Exclude="@(Compile)" />
