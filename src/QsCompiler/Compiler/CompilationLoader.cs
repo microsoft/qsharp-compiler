@@ -218,14 +218,14 @@ namespace Microsoft.Quantum.QsCompiler
 
             // executing the specified rewrite steps 
 
+            this.GeneratedSyntaxTree = Transformations.Monomorphization.ResolveGenericsSyntax.Apply(this.GeneratedSyntaxTree);
+
             if (this.Config.GenerateFunctorSupport)
             {
                 this.CompilationStatus.FunctorSupport = 0;
                 var functorSpecGenerated = this.GeneratedSyntaxTree != null && FunctorGeneration.GenerateFunctorSpecializations(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree);
                 if (!functorSpecGenerated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
             }
-
-            this.GeneratedSyntaxTree = Transformations.Monomorphization.ResolveGenericsSyntax.Apply(this.GeneratedSyntaxTree);
 
             if (!this.Config.SkipSyntaxTreeTrimming)
             {
