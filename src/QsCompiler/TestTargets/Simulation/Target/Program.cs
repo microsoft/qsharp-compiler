@@ -21,7 +21,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
         private static void GenerateFromBinary(string outputFolder, string pathToBinary)
         {
             var syntaxTree = CompilationLoader.ReadBinary(pathToBinary).ToArray();
-            var allSources = GetSourceFiles.Apply(syntaxTree).Where(file => file.Value.EndsWith(".qs"));
+            var allSources = GetSourceFiles.Apply(syntaxTree); // also generate the code for referenced libraries
             foreach (var source in allSources)
             {
                 var content = SimulationCode.generate(source, syntaxTree);

@@ -10,12 +10,15 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Documentation;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
+using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 
 
 namespace Microsoft.Quantum.QsCompiler
@@ -45,10 +48,10 @@ namespace Microsoft.Quantum.QsCompiler
         public struct Configuration
         {
             /// <summary>
-            /// Uri to the project file (if any). 
-            /// The name of the project file with a suitable extension will be used as the name of the generated binary file.
+            /// The name of the project. Used as assembly name in the generated dll. 
+            /// The name of the project with a suitable extension will also be used as the name of the generated binary file.
             /// </summary>
-            public Uri ProjectFile;
+            public string ProjectName;
             /// <summary>
             /// If set to true, the syntax tree rewrite step that replaces all generation directives 
             /// for all functor specializations is executed during compilation.   
@@ -70,10 +73,22 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public string BuildOutputFolder;
             /// <summary>
+            /// Output path for the dll containing the compiled binaries. 
+            /// No dll will be generated unless this path is specified and valid. 
+            /// </summary>
+            public string DllOutputPath;
+            /// <summary>
             /// Dictionary that maps an arbitarily chosen target name to the build targets to call with the path to the compiled binary.
             /// The specified targets (dictionary values) will only be invoked if a binary file was generated successfully.
             /// </summary>
             public ImmutableDictionary<string, BuildTarget> Targets;
+
+            /// <summary>
+            /// Indicates whether a serialization of the syntax tree needs to be generated. 
+            /// This is the case if either the build output folder is specified or the dll output path is specified.
+            /// </summary>
+            internal bool SerializeSyntaxTree =>
+                BuildOutputFolder != null || DllOutputPath != null;
         }
 
         private class ExecutionStatus
@@ -84,7 +99,9 @@ namespace Microsoft.Quantum.QsCompiler
             internal int FunctorSupport = -1;
             internal int TreeTrimming = -1;
             internal int Documentation = -1;
+            internal int Serialization = -1;
             internal int BinaryFormat = -1;
+            internal int DllGeneration = -1;
             internal Dictionary<string, int> BuildTargets;
 
             internal ExecutionStatus(IEnumerable<string> targets) =>
@@ -100,7 +117,9 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
+                WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
+                WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
                 !this.BuildTargets.Values.Any(status => !WasSuccessful(true, status))
                 ? 0 : 1;
         }
@@ -140,10 +159,20 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public Status Documentation => GetStatus(this.CompilationStatus.Documentation);
         /// <summary>
+        /// Indicates whether the built compilation could be serialized successfully. 
+        /// This step is only executed if either the binary representation or a dll is emitted. 
+        /// </summary>
+        public Status Serialization => GetStatus(this.CompilationStatus.Serialization);
+        /// <summary>
         /// Indicates whether a binary representation for the generated syntax tree has been generated successfully. 
         /// This step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status BinaryFormat => GetStatus(this.CompilationStatus.BinaryFormat);
+        /// <summary>
+        /// Indicates whether a dll containing the compiled binary has been generated successfully. 
+        /// This step is only executed if the corresponding configuration is specified. 
+        /// </summary>
+        public Status DllGeneration => GetStatus(this.CompilationStatus.DllGeneration);
         /// <summary>
         /// Indicates whether the specified build target executed successfully. 
         /// Returns a status NotRun if no target with the given id was listed for execution in the set configuration. 
@@ -163,29 +192,38 @@ namespace Microsoft.Quantum.QsCompiler
 
 
         /// <summary>
-        /// logger used to log all diagnostic events during compilation
+        /// Logger used to log all diagnostic events during compilation.
         /// </summary>
         private readonly ILogger Logger;
         /// <summary>
-        /// configuration specifying the compilation steps to execute
+        /// Configuration specifying the compilation steps to execute.
         /// </summary>
         private readonly Configuration Config;
         /// <summary>
-        /// used to track the status of individual compilation steps
+        /// Used to track the status of individual compilation steps.
         /// </summary>
-        private ExecutionStatus CompilationStatus;
+        private readonly ExecutionStatus CompilationStatus;
         /// <summary>
-        /// contains the initial compilation built by the compilation unit manager after verification
+        /// Contains all diagnostics generated upon source file and reference loading.
+        /// All other diagnostics can be accessed via the VerifiedCompilation.
+        /// </summary>
+        public ImmutableArray<Diagnostic> LoadDiagnostics;
+        /// <summary>
+        /// Contains the initial compilation built by the compilation unit manager after verification.
         /// </summary>
         public readonly CompilationUnitManager.Compilation VerifiedCompilation;
         /// <summary>
-        /// contains the syntax tree after executing all configured rewrite steps
+        /// Contains the syntax tree after executing all configured rewrite steps.
         /// </summary>
         public readonly IEnumerable<QsNamespace> GeneratedSyntaxTree;
         /// <summary>
-        /// contains the absolute path where the binary representation of the generated syntax tree has been written to disk
+        /// Contains the absolute path where the binary representation of the generated syntax tree has been written to disk.
         /// </summary>
         public readonly string PathToCompiledBinary;
+        /// <summary>
+        /// Contains the absolute path where the generated dll containing the compiled binary has been written to disk.
+        /// </summary>
+        public readonly string DllOutputPath;
 
         /// <summary>
         /// Builds the compilation for the source files and references loaded by the given loaders,
@@ -200,6 +238,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.Logger = logger;
             this.Config = options ?? new Configuration();
             this.CompilationStatus = new ExecutionStatus(this.Config.Targets?.Keys ?? Enumerable.Empty<string>());
+            this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles) ?? throw new ArgumentNullException("unable to load source files");
             var references = loadReferences?.Invoke(this.LoadAssemblies) ?? throw new ArgumentNullException("unable to load referenced binary files");
 
@@ -233,10 +272,16 @@ namespace Microsoft.Quantum.QsCompiler
                 if (this.GeneratedSyntaxTree == null || !rewrite.Success) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
             }
 
-            // generating the compiled binary
+            // generating the compiled binary and dll
 
             using (var ms = new MemoryStream())
-            { this.PathToCompiledBinary = this.GenerateBinary(ms); }
+            {
+                var serialized = this.Config.SerializeSyntaxTree && this.SerializeSyntaxTree(ms);
+                if (serialized && this.Config.BuildOutputFolder != null)
+                { this.PathToCompiledBinary = this.GenerateBinary(ms); }
+                if (serialized && this.Config.DllOutputPath != null)
+                { this.DllOutputPath = this.GenerateDll(ms); }
+            }
 
             // executing the specified generation steps 
 
@@ -385,8 +430,12 @@ namespace Microsoft.Quantum.QsCompiler
         {
             this.CompilationStatus.SourceFileLoading = 0;
             if (sources == null) this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, ErrorCode.SourceFilesMissing, Enumerable.Empty<string>());
-            void onDiagnostic(Diagnostic d) => this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, d);
             void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, ex);
+            void onDiagnostic(Diagnostic d)
+            {
+                this.LoadDiagnostics = this.LoadDiagnostics.Add(d);
+                this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, d);
+            }
             var sourceFiles = ProjectManager.LoadSourceFiles(sources ?? Enumerable.Empty<string>(), onDiagnostic, onException);
             this.PrintResolvedFiles(sourceFiles.Keys);
             return sourceFiles;
@@ -402,57 +451,172 @@ namespace Microsoft.Quantum.QsCompiler
         {
             this.CompilationStatus.ReferenceLoading = 0;
             if (refs == null) this.Logger?.Log(WarningCode.ReferencesSetToNull, Enumerable.Empty<string>());
-            void onDiagnostic(Diagnostic d) => this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, d);
             void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, ex);
-            var references = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), onDiagnostic, onException);
+            void onDiagnostic(Diagnostic d)
+            {
+                this.LoadDiagnostics = this.LoadDiagnostics.Add(d);
+                this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, d);
+            }
+            var headers = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), onDiagnostic, onException);
+            var projId =this.Config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.Config.ProjectName), "qsproj");
+            var references = new References(headers, (code, args) => onDiagnostic(Errors.LoadError(code, args, projId)));
             this.PrintResolvedAssemblies(references.Declarations.Keys);
             return references;
         }
 
         /// <summary>
-        /// Creates a binary representation of the generated syntax tree using the given memory stream. 
-        /// Generates a file name at random and writes the content of that stream into a file within the specified build output folder. 
+        /// Writes a binary representation of the generated syntax tree to the given memory stream. 
         /// Logs suitable diagnostics in the process and modifies the compilation status accordingly.
-        /// Returns the absolute path of the file where the binary representation has been generated. 
-        /// Returns null without doing anything if no build output folder is specified in the set configuration. 
-        /// Does *not* close the given memory stream. 
+        /// Does *not* close the given memory stream, and
+        /// returns true if the serialization has been successfully generated. 
+        /// Throws an ArgumentNullException if the given memory stream is null. 
         /// </summary>
-        private string GenerateBinary(MemoryStream ms)
+        private bool SerializeSyntaxTree(MemoryStream ms)
         {
-            if (this.Config.BuildOutputFolder == null) return null;
-            this.CompilationStatus.BinaryFormat = 0;            
+            if (ms == null) throw new ArgumentNullException(nameof(ms));
+            this.CompilationStatus.Serialization = 0;
+
+            // FIXME: this needs to be revised
+            var invalidReferences = this.LoadDiagnostics
+                .Filter(DiagnosticTools.WarningType(WarningCode.UnrecognizedContentInReference))
+                .Select(d => d.Source).ToImmutableHashSet();
+            var validSources = this.GeneratedSyntaxTree == null
+                ? new NonNullable<string>[0]
+                : GetSourceFiles.Apply(this.GeneratedSyntaxTree).Where(s => !invalidReferences.Contains(s.Value)).ToArray();
+
+            var serialized = this.GeneratedSyntaxTree != null;
             using (var writer = new BsonDataWriter(ms) { CloseOutput = false })
             {
-                var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
+                var settings = new JsonSerializerSettings
+                { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
                 var serializer = JsonSerializer.CreateDefault(settings);
-                if (this.GeneratedSyntaxTree != null) serializer.Serialize(writer, this.GeneratedSyntaxTree);
-                else this.LogAndUpdate(ref this.CompilationStatus.BinaryFormat, ErrorCode.GeneratingBinaryFailed, Enumerable.Empty<string>());
+                var validTree = this.GeneratedSyntaxTree?.Select(ns => FilterBySourceFile.Apply(ns, validSources));
+                try { serializer.Serialize(writer, validTree ?? Enumerable.Empty<QsNamespace>()); }
+                catch (Exception ex)
+                {
+                    this.LogAndUpdate(ref this.CompilationStatus.Serialization, ex);
+                    serialized = false;
+                }
             }
+            if (!serialized) this.LogAndUpdate(ref this.CompilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
+            return serialized;
+        }
 
-            var projId = NonNullable<string>.New(this.Config.ProjectFile?.AbsolutePath ?? Path.GetFullPath(Path.GetRandomFileName()));
-            var target = GeneratedFile(projId, this.Config.BuildOutputFolder, ".bson", "");
-            using (var file = new FileStream(target, FileMode.Create, FileAccess.Write))
-            { ms.WriteTo(file); }
-            return target;
+        /// <summary>
+        /// Backtracks to the beginning of the given memory stream and writes its content to disk,  
+        /// generating a suitable bson file in the specified build output folder using the project name as file name.
+        /// Generates a file name at random if no project name is specified.  
+        /// Logs suitable diagnostics in the process and modifies the compilation status accordingly.
+        /// Returns the absolute path of the file where the binary representation has been generated. 
+        /// Returns null if the binary file could not be generated. 
+        /// Does *not* close the given memory stream. 
+        /// Throws an ArgumentNullException if the given memory stream is null. 
+        /// </summary>
+        private string GenerateBinary(MemoryStream serialization)
+        {
+            if (serialization == null) throw new ArgumentNullException(nameof(serialization));
+            this.CompilationStatus.BinaryFormat = 0;
+
+            var projId = NonNullable<string>.New(Path.GetFullPath(this.Config.ProjectName ?? Path.GetRandomFileName()));
+            var outFolder = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.BuildOutputFolder) ? "." : this.Config.BuildOutputFolder);
+            var target = GeneratedFile(projId, outFolder, ".bson", "");
+
+            try
+            {
+                serialization.Seek(0, SeekOrigin.Begin);
+                using (var file = new FileStream(target, FileMode.Create, FileAccess.Write))
+                { serialization.WriteTo(file); }
+                return target;
+            }
+            catch (Exception ex)
+            {
+                this.LogAndUpdate(ref this.CompilationStatus.BinaryFormat, ex);
+                this.LogAndUpdate(ref this.CompilationStatus.BinaryFormat, ErrorCode.GeneratingBinaryFailed, Enumerable.Empty<string>());
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Backtracks to the beginning of the given memory stream and, 
+        /// assuming the given memory stream contains a serialization of the compiled syntax tree, 
+        /// generates a dll containing the compiled binary at the specified dll output path. 
+        /// Logs suitable diagnostics in the process and modifies the compilation status accordingly.
+        /// Returns the absolute path of the file where the dll has been generated. 
+        /// Returns null if the dll could not be generated. 
+        /// Does *not* close the given memory stream. 
+        /// Throws an ArgumentNullException if the given memory stream is null. 
+        /// </summary>
+        private string GenerateDll(MemoryStream serialization)
+        {
+            if (serialization == null) throw new ArgumentNullException(nameof(serialization));
+            this.CompilationStatus.DllGeneration = 0;
+
+            var fallbackFileName = (this.PathToCompiledBinary ?? this.Config.ProjectName) ?? Path.GetRandomFileName();
+            var outputPath = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DllOutputPath) ? fallbackFileName : this.Config.DllOutputPath);
+            outputPath = Path.ChangeExtension(outputPath, "dll");
+
+            // FIXME: this needs to be revised
+            var usedReferences = GetSourceFiles.Apply(this.GeneratedSyntaxTree);
+            var invalidReferences = this.LoadDiagnostics
+                .Filter(DiagnosticTools.WarningType(WarningCode.UnrecognizedContentInReference))
+                .Select(d => d.Source).ToImmutableHashSet();
+            var validReferences = usedReferences
+                .Where(file => file.Value.EndsWith(".dll") && !invalidReferences.Contains(file.Value));
+
+            try
+            {
+                // If System.Object can't be found as a reference a warning is generated. 
+                // To avoid that warning, we package that reference as well. 
+                var references = validReferences.Select((dllFile, idx) => 
+                        MetadataReference.CreateFromFile(dllFile.Value)
+                        .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{idx}" })) // referenced Q# dlls are recognized based on this alias 
+                    .Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+
+                var tree = MetadataGeneration.GenerateAssemblyMetadata(references);
+                var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
+                    this.Config.ProjectName ?? Path.GetFileNameWithoutExtension(outputPath),
+                    syntaxTrees: new[] { tree },
+                    references: references, // we only include Q# references, and only those that are needed and have been fully loaded
+                    options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
+                );
+
+                using (var outputStream = File.OpenWrite(outputPath))
+                {
+                    serialization.Seek(0, SeekOrigin.Begin);
+                    var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
+                    var result = compilation.Emit(outputStream,
+                        options: new CodeAnalysis.Emit.EmitOptions(includePrivateMembers: true),
+                        manifestResources: new CodeAnalysis.ResourceDescription[] { astResource }
+                    );
+
+                    var errs = result.Diagnostics.Where(d => d.Severity >= CodeAnalysis.DiagnosticSeverity.Error);
+                    if (errs.Any()) throw new Exception($"error(s) on emitting dll: {Environment.NewLine}{String.Join(Environment.NewLine, errs.Select(d => d.GetMessage()))}");
+                    return outputPath;
+                }
+            }
+            catch (Exception ex)
+            {
+                this.LogAndUpdate(ref this.CompilationStatus.DllGeneration, ex);
+                this.LogAndUpdate(ref this.CompilationStatus.DllGeneration, ErrorCode.GeneratingDllFailed, Enumerable.Empty<string>());
+                return null;
+            } 
         }
 
         /// <summary>
         /// Given the path to a Q# binary file, reads the content of that file and returns the corresponding syntax tree. 
         /// Throws the corresponding exception if the given path does not correspond to a suitable binary file.
-        /// Potentially throws an exception in particular also if the given binary file has been compiled with a different compiler version. 
+        /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        public static IEnumerable<QsNamespace> ReadBinary(string file)
-        {
-            byte[] binary = File.ReadAllBytes(Path.GetFullPath(file));
-            var ms = new MemoryStream(binary);
-            using (var reader = new BsonDataReader(ms))
-            {
-                reader.ReadRootValueAsArray = true;
-                var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
-                var serializer = JsonSerializer.CreateDefault(settings);
-                return serializer.Deserialize<IEnumerable<QsNamespace>>(reader);
-            }
-        }
+        public static IEnumerable<QsNamespace> ReadBinary(string file) =>
+            ReadBinary(new MemoryStream(File.ReadAllBytes(Path.GetFullPath(file))));
+
+        /// <summary>
+        /// Given a stream with the content of a Q# binary file, returns the corresponding syntax tree.
+        /// Throws an ArgumentNullException if the given stream is null.
+        /// May throw an exception if the given binary file has been compiled with a different compiler version.
+        /// </summary>
+        public static IEnumerable<QsNamespace> ReadBinary(Stream stream) =>
+            AssemblyLoader.LoadSyntaxTree(stream);
 
         /// <summary>
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder. 

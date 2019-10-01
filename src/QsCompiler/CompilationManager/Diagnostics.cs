@@ -89,7 +89,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // warnings 70**
 
-        internal static Diagnostic LoadWarning(WarningCode code, IEnumerable<string> args, string source) =>
+        public static Diagnostic LoadWarning(WarningCode code, IEnumerable<string> args, string source) =>
             new Diagnostic
             {
                 Severity = DiagnosticSeverity.Warning,
@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // errors 70**
 
-        internal static Diagnostic LoadError(ErrorCode code, IEnumerable<string> args, string source) =>
+        public static Diagnostic LoadError(ErrorCode code, IEnumerable<string> args, string source) =>
             new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,
