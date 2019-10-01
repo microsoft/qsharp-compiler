@@ -1,33 +1,27 @@
 <?xml version="1.0"?>
-<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+<package>
+<!--package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd"-->
   <metadata>
     <id>Microsoft.Quantum.Sdk</id>
     <version>$version$</version>
-    <title>Microsoft Quantum Project Templates</title>
+    <title>Microsoft Quantum Sdk</title>
     <authors>Microsoft</authors>
     <owners>QuantumEngineering, Microsoft</owners>
-
     <license type="expression">MIT</license>
-    <projectUrl>https://docs.microsoft.com/en-us/quantum</projectUrl>
-    <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
-
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>TODO.</description>
-
+    <description>The Q# compiler.</description>
     <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
-
-    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
-    <tags>Quantum Q# Qsharp</tags>
-
+    <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
+    <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
+    <copyright>$copyright$</copyright>
+    <tags>Quantum Q# Qsharp </tags>
     <packageTypes>
       <packageType name="Sdk" />
     </packageTypes>
   </metadata>
-  
   <files>
     <file src="Sdk\**\*" target="Sdk"/>
     <file src="DefaultItems\**\*" target="DefaultItems"/>
     <file src="Content\**\*" target="Content"/>
   </files>
-
 </package>
