@@ -66,9 +66,6 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             InvalidOperationException "the content of the namespace manager associated with this symbol tracker has changed" |> raise
         globals
 
-    /// recursively sets all range information of a ResolvedType to Null
-    let StripRangeInfo: ResolvedType -> ResolvedType = SyntaxGenerator.StripRangeInfo.Apply
-
     /// Denotes a property of the parent callable associated with this symbol tracker,  
     /// such as information about the kind, the type parameters, the returns type, and the source file it is declared in.
     /// IMPORTANT: these need to be adapted if we want to support type specializations and/or external specializations!
@@ -78,7 +75,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
         | Value decl -> 
             let isOperation = decl.Kind |> function | QsCallableKind.Operation -> true | _ -> false
             let validTypeParams = decl.Signature.TypeParameters |> Seq.choose (function | ValidName name -> Some name | InvalidName -> None)
-            isOperation, validTypeParams.ToImmutableArray(), decl.Signature.ReturnType |> StripRangeInfo // NOTE: valid only since we do not yet support external and/or type specializations
+            isOperation, validTypeParams.ToImmutableArray(), decl.Signature.ReturnType |> StripPositionInfo.Apply // NOTE: valid only since we do not yet support external and/or type specializations
     
     /// If a local variable with the given name is visible on the current scope, 
     /// returns the dictionary that contains its declaration as Value.
@@ -208,7 +205,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             properties |> LocalVariableDeclaration.New false, ImmutableArray<_>.Empty
 
         let buildCallable kind (fullName : QsQualifiedName) (decl : ResolvedSignature) = 
-            let argType, returnType = decl.ArgumentType |> StripRangeInfo, decl.ReturnType |> StripRangeInfo
+            let argType, returnType = decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
             let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.New 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
 
@@ -227,7 +224,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             match localVariableWithName sym with 
             | Value dict ->
                 let decl = dict.[sym]
-                let properties = (defaultLoc, LocalVariable sym, decl.Type |> StripRangeInfo, decl.InferredInformation.HasLocalQuantumDependency)
+                let properties = (defaultLoc, LocalVariable sym, decl.Type |> StripPositionInfo.Apply, decl.InferredInformation.HasLocalQuantumDependency)
                 properties |> LocalVariableDeclaration.New decl.InferredInformation.IsMutable, ImmutableArray<_>.Empty
             | Null -> globalCallableWithName (None, sym) |> resolveGlobal 
 
@@ -244,7 +241,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     member this.ResolveType addDiagnostic (qsType : QsType) = 
         let (resolved, errs) = GlobalSymbols().ResolveType (this.Parent, typeParameters, this.SourceFile) qsType 
         for err in errs do addDiagnostic err
-        resolved |> StripRangeInfo
+        resolved |> StripPositionInfo.Apply
 
     /// Given the fully qualified name of a user defined type, returns its declaration as Some.
     /// Adds a suitable error using the given function and returns None if no declaration can be found.
@@ -258,7 +255,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// Adds a suitable diagnostic and returns an invalid type if the underlying type could not be determined.
     member this.GetUnderlyingType addError (udt : UserDefinedType) = 
         match this.TryGetTypeDeclaration addError udt with
-        | Value decl -> decl.Type |> StripRangeInfo
+        | Value decl -> decl.Type |> StripPositionInfo.Apply
         | Null -> InvalidType |> ResolvedType.New 
         
     /// Given the fully qualified name of a user defined type as well as the identifier specifying an item, 
@@ -272,5 +269,5 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             | InvalidIdentifier -> InvalidType |> ResolvedType.New
             | GlobalCallable _ -> addError (ErrorCode.ExpectingItemName, []); InvalidType |> ResolvedType.New
             | LocalVariable name -> decl.TypeItems.Items |> Seq.choose (namedWithName name.Value) |> Seq.toList |> function
-                | [itemDecl] -> itemDecl.Type |> StripRangeInfo
+                | [itemDecl] -> itemDecl.Type |> StripPositionInfo.Apply
                 | _ -> addError (ErrorCode.UnknownItemName, [udt.Name.Value; name.Value]); InvalidType |> ResolvedType.New

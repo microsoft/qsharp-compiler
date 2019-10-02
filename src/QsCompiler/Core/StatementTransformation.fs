@@ -50,14 +50,14 @@ type StatementKindTransformation(?enable) =
 
     abstract member onVariableDeclaration : QsBinding<TypedExpression> -> QsStatementKind
     default this.onVariableDeclaration stm = 
-        let lhs = this.onSymbolTuple stm.Lhs
         let rhs = this.ExpressionTransformation stm.Rhs
+        let lhs = this.onSymbolTuple stm.Lhs
         QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
 
     abstract member onValueUpdate : QsValueUpdate -> QsStatementKind
     default this.onValueUpdate stm = 
-        let lhs = this.ExpressionTransformation stm.Lhs
         let rhs = this.ExpressionTransformation stm.Rhs
+        let lhs = this.ExpressionTransformation stm.Lhs
         QsValueUpdate.New (lhs, rhs) |> QsValueUpdate
 
     member private this.onPositionedBlock (intro : TypedExpression option, block : QsPositionedBlock) = 
@@ -77,8 +77,8 @@ type StatementKindTransformation(?enable) =
 
     abstract member onForStatement : QsForStatement -> QsStatementKind
     default this.onForStatement stm = 
-        let loopVar = fst stm.LoopItem |> this.onSymbolTuple
         let iterVals = this.ExpressionTransformation stm.IterationValues
+        let loopVar = fst stm.LoopItem |> this.onSymbolTuple
         let loopVarType = this.TypeTransformation (snd stm.LoopItem)
         let body = this.ScopeTransformation stm.Body
         QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement
@@ -103,8 +103,8 @@ type StatementKindTransformation(?enable) =
 
     member private this.onQubitScope (stm : QsQubitScope) = 
         let kind = stm.Kind
-        let lhs = this.onSymbolTuple stm.Binding.Lhs
         let rhs = this.onQubitInitializer stm.Binding.Rhs
+        let lhs = this.onSymbolTuple stm.Binding.Lhs
         let body = this.ScopeTransformation stm.Body
         QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
 

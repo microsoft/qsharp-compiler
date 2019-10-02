@@ -27,9 +27,6 @@
     <Compile Include="SyntaxExtensions.fs" />
     <Compile Include="Documentation.fs" />
     <Compile Include="Serialization.fs" />
-    <Compile Include="DeclarationHeaders.fs" />
-    <Compile Include="SymbolResolution.fs" />
-    <Compile Include="SymbolTable.fs" />
   </ItemGroup>
   
   <ItemGroup>
