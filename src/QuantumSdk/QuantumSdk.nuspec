@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
-<package>
-<!--package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd"-->
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
   <metadata>
     <id>Microsoft.Quantum.Sdk</id>
     <version>$version$</version>
