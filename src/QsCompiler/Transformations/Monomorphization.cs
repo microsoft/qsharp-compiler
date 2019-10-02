@@ -31,11 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            // Function for determining if callable is a generic
-            Func<QsQualifiedName, bool> isGeneric = callable =>
-                generics.Any(generic => generic.Name.Value == callable.Name.Value && generic.Namespace.Value == callable.Namespace.Value);
-
-            var filter = new ResolveGenericsSyntax(new ResolveGenericsScope(isGeneric));
+            var filter = new ResolveGenericsSyntax(new ResolveGenericsScope());
             return namespaces.Select(ns => filter.Transform(ns));
         }
 
@@ -50,38 +46,65 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     public class ResolveGenericsScope :
             ScopeTransformation<ResolveGenericsExpression>
     {
-        public ResolveGenericsScope(Func<QsQualifiedName, bool> isGeneric) : base(new ResolveGenericsExpression(isGeneric)) { }
-
-        //public override QsStatementKind onExpressionStatement(TypedExpression te)
-        //{
-        //    return QsStatementKind.NewQsExpressionStatement(te);
-        //}
+        public ResolveGenericsScope() : base(new ResolveGenericsExpression()) { }
     }
 
     public class ResolveGenericsExpression :
         ExpressionTransformation<ResolvedGenericsExpressionKind>
     {
-        public ResolveGenericsExpression(Func<QsQualifiedName, bool> isGeneric) :
-            base(ex => new ResolvedGenericsExpressionKind(ex as ResolveGenericsExpression, isGeneric)) { }
+        public ResolveGenericsExpression() : base(ex => new ResolvedGenericsExpressionKind(ex as ResolveGenericsExpression)) { }
+
+        public override TypedExpression Transform(TypedExpression ex)
+        {
+            ImmutableDictionary<QsTypeParameter, ResolvedType> types = ex.TypeParameterResolutions;
+
+            if (types.Any() && ex.Expression is QsExpressionKind<TypedExpression, Identifier, ResolvedType>.CallLikeExpression call)
+            {
+                string prefix = CreateTypePrefix(types);
+
+                // For now, only resolve identifiers of global callables
+                if (call.Item1.Expression is QsExpressionKind<TypedExpression, Identifier, ResolvedType>.Identifier id &&
+                    id.Item1 is Identifier.GlobalCallable globalCallable)
+                {
+                    // Rebuild the method with the updated identifier
+                    ex = new TypedExpression(
+                        QsExpressionKind<TypedExpression, Identifier, ResolvedType>.NewCallLikeExpression(
+                            new TypedExpression(
+                                QsExpressionKind<TypedExpression, Identifier, ResolvedType>.NewIdentifier(
+                                    Identifier.NewGlobalCallable(new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(prefix + globalCallable.Item.Name.Value))),
+                                    id.Item2
+                                    ),
+                                call.Item1.TypeParameterResolutions,
+                                call.Item1.ResolvedType,
+                                call.Item1.InferredInformation,
+                                call.Item1.Range
+                                ),
+                            call.Item2
+                            ),
+                        ex.TypeParameterResolutions,
+                        ex.ResolvedType,
+                        ex.InferredInformation,
+                        ex.Range
+                        );
+                }
+            }
+
+            return base.Transform(ex);
+        }
+
+        private string CreateTypePrefix(ImmutableDictionary<QsTypeParameter, ResolvedType> typeDict)
+        {
+            return "_" + String.Join("", typeDict
+                .ToList()
+                .OrderBy(kvp => kvp.Key.TypeName)
+                .Select(kvp => kvp.Key.TypeName.Value + "_" + kvp.Value.Resolution.ToString() + "_")
+                );
+        }
     }
 
     public class ResolvedGenericsExpressionKind :
         ExpressionKindTransformation<ResolveGenericsExpression>
     {
-        public ResolvedGenericsExpressionKind(ResolveGenericsExpression expr, Func<QsQualifiedName, bool> isGeneric) : base(expr)
-        {
-            this.isGeneric = isGeneric;
-        }
-
-        private Func<QsQualifiedName, bool> isGeneric;
-
-        public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
-        {
-            if (sym is Identifier.GlobalCallable temp && this.isGeneric(temp.Item))
-            {
-                sym = Identifier.NewGlobalCallable(new QsQualifiedName(temp.Item.Namespace, NonNullable<string>.New("REWRITE_" + temp.Item.Name.Value)));
-            }
-            return base.onIdentifier(sym, tArgs);
-        }
+        public ResolvedGenericsExpressionKind(ResolveGenericsExpression expr) : base(expr) { }
     }
 }
