@@ -12,6 +12,7 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
@@ -60,6 +61,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool SkipSyntaxTreeTrimming;
             /// <summary>
+            /// Replaces all usages of type parameterized callables wiht the concrete callable instantiation.
+            /// Removes parameterized types from the syntax tree.
+            /// </summary>
+            public bool Monomorphization; 
+            /// <summary>
             /// If the output folder is not null, 
             /// documentation is generated in the specified folder based on doc comments in the source code. 
             /// </summary>
@@ -83,6 +89,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal int Validation = -1;
             internal int FunctorSupport = -1;
             internal int TreeTrimming = -1;
+            internal int Monomorphization = -1;
             internal int Documentation = -1;
             internal int BinaryFormat = -1;
             internal Dictionary<string, int> BuildTargets;
@@ -99,6 +106,7 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
+                WasSuccessful(options.Monomorphization, this.Monomorphization) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 !this.BuildTargets.Values.Any(status => !WasSuccessful(true, status))
@@ -134,6 +142,11 @@ namespace Microsoft.Quantum.QsCompiler
         /// This rewrite step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status FunctorSupport => GetStatus(this.CompilationStatus.FunctorSupport);
+        /// <summary>
+        /// Indicates whether all the type parameterizated callables were resolved to concrete callables.
+        /// This rewrite step is only executed if the corresponding configuration is specified. 
+        /// </summary>
+        public Status Monomorphization => GetStatus(this.CompilationStatus.Monomorphization);
         /// <summary>
         /// Indicates whether documentation for the compilation was generated successfully. 
         /// This step is only executed if the corresponding configuration is specified. 
@@ -218,7 +231,13 @@ namespace Microsoft.Quantum.QsCompiler
 
             // executing the specified rewrite steps 
 
-            this.GeneratedSyntaxTree = Transformations.Monomorphization.ResolveGenericsSyntax.Apply(this.GeneratedSyntaxTree);
+            if (this.Config.Monomorphization)
+            {
+                this.CompilationStatus.Monomorphization = 0;
+                void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.Monomorphization, ex); 
+                var succeeded = this.GeneratedSyntaxTree != null && CodeTransformations.Monomorphisize(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree, onException);
+                if (!succeeded) this.LogAndUpdate(ref this.CompilationStatus.Monomorphization, ErrorCode.MonomorphizationFailed, Enumerable.Empty<string>());
+            }
 
             if (this.Config.GenerateFunctorSupport)
             {
