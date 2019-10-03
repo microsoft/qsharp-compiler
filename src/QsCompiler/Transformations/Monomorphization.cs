@@ -11,10 +11,11 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
+
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
     public class ResolveGenericsSyntax :
-        SyntaxTreeTransformation<ResolveGenericsScope>
+        SyntaxTreeTransformation<ScopeTransformation<ResolveGenericsExpression>>
     {
         public static IEnumerable<QsNamespace> Apply(IEnumerable<QsNamespace> namespaces)
         {
@@ -31,28 +32,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            var filter = new ResolveGenericsSyntax(new ResolveGenericsScope());
+            var filter = new ResolveGenericsSyntax(new ScopeTransformation<ResolveGenericsExpression>(new ResolveGenericsExpression()));
             return namespaces.Select(ns => filter.Transform(ns));
         }
 
         public static IEnumerable<QsNamespace> Apply(params QsNamespace[] namespaces)
         {
-            return Apply(namespaces);
+            return Apply((IEnumerable<QsNamespace>)namespaces);
         }
 
-        public ResolveGenericsSyntax(ResolveGenericsScope scope) : base(scope) { }
-    }
-
-    public class ResolveGenericsScope :
-            ScopeTransformation<ResolveGenericsExpression>
-    {
-        public ResolveGenericsScope() : base(new ResolveGenericsExpression()) { }
+        public ResolveGenericsSyntax(ScopeTransformation<ResolveGenericsExpression> scope) : base(scope) { }
     }
 
     public class ResolveGenericsExpression :
-        ExpressionTransformation<ResolvedGenericsExpressionKind>
+        ExpressionTransformation<ExpressionKindTransformation<ResolveGenericsExpression>>
     {
-        public ResolveGenericsExpression() : base(ex => new ResolvedGenericsExpressionKind(ex as ResolveGenericsExpression)) { }
+        public ResolveGenericsExpression() : base(ex => new ExpressionKindTransformation<ResolveGenericsExpression>(ex as ResolveGenericsExpression)) { }
 
         public override TypedExpression Transform(TypedExpression ex)
         {
@@ -100,11 +95,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 .Select(kvp => kvp.Key.TypeName.Value + "_" + kvp.Value.Resolution.ToString() + "_")
                 );
         }
-    }
-
-    public class ResolvedGenericsExpressionKind :
-        ExpressionKindTransformation<ResolveGenericsExpression>
-    {
-        public ResolvedGenericsExpressionKind(ResolveGenericsExpression expr) : base(expr) { }
     }
 }
