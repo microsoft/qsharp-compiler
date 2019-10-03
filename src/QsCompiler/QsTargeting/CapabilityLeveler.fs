@@ -3,16 +3,15 @@
 
 module Microsoft.Quantum.QsCompiler.Targeting.Leveler
 
+open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open System.Collections.Immutable
 open System.Collections.Generic
-open System
-open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
-open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 type private SpecializationKey =
     {
@@ -231,6 +230,9 @@ and private ExpressionLeveler(holder : CapabilityInfoHolder) =
     inherit ExpressionTransformation()
 
     let kindXformer = new ExpressionKindLeveler(holder)
+    let mutable isSimpleResultTest = true
+
+    member this.IsSimpleResultTest with get() = isSimpleResultTest and set(value) = isSimpleResultTest <- value
 
     override this.Kind = upcast kindXformer    
 
@@ -241,9 +243,23 @@ type private StatementLeveler(holder : CapabilityInfoHolder) =
     let exprXformer = new ExpressionLeveler(holder)
 
     override this.ScopeTransformation x = scopeXformer.Transform x
-    override this.ExpressionTransformation x = exprXformer.Transform x
+    override this.ExpressionTransformation x = 
+        exprXformer.IsSimpleResultTest <- true
+        exprXformer.Transform x
     override this.TypeTransformation x = x
     override this.LocationTransformation x = x
+
+    override this.onConditionalStatement(stm) =
+        let processCase (condition, block : QsPositionedBlock) =
+            let location = block.Location
+            let comments = block.Comments
+            let expr = this.ExpressionTransformation condition
+            if not exprXformer.IsSimpleResultTest then holder.LocalLevel <- CapabilityLevel.Medium
+            let body = this.ScopeTransformation block.Body
+            expr, QsPositionedBlock.New comments location body
+        let cases = stm.ConditionalBlocks |> Seq.map processCase
+        let defaultCase = stm.Default |> QsNullable<_>.Map (fun b -> this.onPositionedBlock (None, b) |> snd)
+        QsConditionalStatement.New (cases, defaultCase) |> QsConditionalStatement
 
     override this.onRepeatStatement(s) =
         holder.LocalLevel <- CapabilityLevel.Advanced
