@@ -11,7 +11,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
     public class ResolveGenericsSyntax :
@@ -51,6 +50,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         public override TypedExpression Transform(TypedExpression ex)
         {
+            // TODO: This should be recursive and use a more robust data structure to handle the type information for generics
             ImmutableDictionary<QsTypeParameter, ResolvedType> types = ex.TypeParameterResolutions;
 
             if (types.Any() && ex.Expression is QsExpressionKind<TypedExpression, Identifier, ResolvedType>.CallLikeExpression call)

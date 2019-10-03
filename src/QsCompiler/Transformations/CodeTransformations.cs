@@ -55,7 +55,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             new InlineConjugationStatements().Transform(scope);
 
         /// <summary>
-        /// ...
+        /// Eliminates all type parameterized callables from the scope by replacing their definitions and references to concrete
+        /// versions of the callable.
         /// Throws an ArgumentNullException if the given syntaxTree is null.
         /// </summary>
         public static bool Monomorphisize(IEnumerable<QsNamespace> syntaxTree, out IEnumerable<QsNamespace> result, 
