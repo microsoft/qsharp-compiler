@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--Copyright, Microsoft Corporation, All rights reserved.-->
+<ProjectSchemaDefinitions
+    xmlns="http://schemas.microsoft.com/build/2009/properties">
+
+    <ContentType
+	    Name="QsharpSourceFile" 
+	    DisplayName="Q# source file" 
+	    ItemType="QsCompile">
+    </ContentType>
+
+    <ContentType
+        Name="Markdown"
+        DisplayName="Documentation"
+        ItemType="None">
+    </ContentType>
+
+    <ItemType Name="QsCompile" DisplayName="Compile"/>
+    <ItemType Name="None" DisplayName="None"/>
+
+    <FileExtension Name=".qs" ContentType="QsharpSourceFile" />
+    <FileExtension Name=".md" ContentType="Markdown"/>
+</ProjectSchemaDefinitions>

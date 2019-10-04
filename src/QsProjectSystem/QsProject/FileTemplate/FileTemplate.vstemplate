@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" xmlns:sdk="http://schemas.microsoft.com/developer/vstemplate-sdkextension/2010">
+  <TemplateData>
+    <Name>Q# File</Name>
+    <Description>Q# file template.</Description>
+    <Icon>mobius_strip_icon.png</Icon>
+    <TemplateID>2be99031-bf87-4253-b33e-e0e7025e038f</TemplateID>
+    <ProjectType>Q♯</ProjectType>
+    <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp>
+    <DefaultName>Transformation.qs</DefaultName>
+    <AppliesTo>QSharpProject</AppliesTo>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem ReplaceParameters="true">Transformation.qs</ProjectItem>
+  </TemplateContent>
+</VSTemplate>
