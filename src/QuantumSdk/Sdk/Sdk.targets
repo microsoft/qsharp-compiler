@@ -6,6 +6,8 @@
     </MSBuildAllProjects>
   </PropertyGroup>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
+  <!--Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" /-->
 
   <Target Name="InvalidOutputTypeTarget" BeforeTargets="CoreCompile">
     <Error Condition = "'$(ResolvedQsharpOutputType)' == ''" Text="Invalid OutputType '$(OutputType)' for quantum project. Only 'Exe' and 'Library' are supported for quantum compilation." />
