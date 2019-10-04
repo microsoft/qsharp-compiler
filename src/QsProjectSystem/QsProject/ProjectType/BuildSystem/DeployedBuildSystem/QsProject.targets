@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectCapability Include="QSharpProject" />
+    <ProjectCapability Include="DeclaredSourceItems" />
     <ProjectCapability Include="ReferencesFolder" />
     <ProjectCapability Include="AssemblyReferences" />
     <ProjectCapability Include="ProjectReferences" />
@@ -66,14 +67,13 @@
     <!--DefaultContentType>Content</DefaultContentType-->
   </PropertyGroup>
 
-  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+  <!--Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" /-->
   <!--
       MSBuildAllProjects is used to keep track of all projects the build depends on.
       We make all targets depending on it to make sure everything rebuilds.
-  >
+  -->
   <PropertyGroup>
-    <MSBuildAllProjects Condition="Exists('$(MSBuildProjectFullPath)')">$(MSBuildAllProjects);$(MSBuildProjectFullPath)</MSBuildAllProjects>
-    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">$(MSBuildAllProjects);$(MSBuildProjectFullPath)</MSBuildAllProjects>
   </PropertyGroup>
 
 
@@ -92,5 +92,5 @@
         <ProjectReferenceOriginalItemSpec>%(OriginalProjectReferenceItemSpec)</ProjectReferenceOriginalItemSpec>
       </ReferencePath>
     </ItemGroup>
-  </Target-->  
+  </Target>  
 </Project>
