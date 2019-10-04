@@ -120,6 +120,9 @@ type private CapabilityLevelManager() =
         else deps |> Seq.map getLevel |> Seq.max
 
 let private manager = new CapabilityLevelManager()        
+
+let private isResult ex =
+    match ex.ResolvedType.Resolution with | Result -> true | _ -> false
         
 type private CapabilityInfoHolder(spec) =
     let mutable localLevel = CapabilityLevel.Minimal
@@ -135,6 +138,9 @@ type private ExpressionKindLeveler(holder : CapabilityInfoHolder) =
     let mutable inCall = false
     let mutable adjoint = false
     let mutable controlled = false
+    let mutable isSimpleResultTest = true
+
+    member this.IsSimpleResultTest with get() = isSimpleResultTest and set(value) = isSimpleResultTest <- value
 
     member private this.HandleCallable method arg =
         inCall <- true
@@ -201,14 +207,12 @@ type private ExpressionKindLeveler(holder : CapabilityInfoHolder) =
         | RangeLiteral _
         | CopyAndUpdate _
         | CONDITIONAL _
-        | EQ _ 
         | NEQ _
         | LT _ 
         | LTE _
         | GT _ 
         | GTE _
         | AND _
-        | OR _ 
         | ADD _
         | SUB _
         | MUL _
@@ -222,7 +226,13 @@ type private ExpressionKindLeveler(holder : CapabilityInfoHolder) =
         | BAND _ 
         | NOT _
         | NEG _
-        | BNOT _ -> holder.LocalLevel <- CapabilityLevel.Medium
+        | BNOT _ -> 
+            holder.LocalLevel <- CapabilityLevel.Medium
+        | OR _  ->
+            isSimpleResultTest <- false
+        | EQ (ex1, ex2) -> 
+            if not (isResult ex1 && isResult ex2)
+            then isSimpleResultTest <- false
         | _ -> ()
         base.Transform(kind)
 
@@ -230,11 +240,11 @@ and private ExpressionLeveler(holder : CapabilityInfoHolder) =
     inherit ExpressionTransformation()
 
     let kindXformer = new ExpressionKindLeveler(holder)
-    let mutable isSimpleResultTest = true
 
-    member this.IsSimpleResultTest with get() = isSimpleResultTest and set(value) = isSimpleResultTest <- value
+    override this.Kind = upcast kindXformer
 
-    override this.Kind = upcast kindXformer    
+    member this.IsSimpleResultTest with get() = kindXformer.IsSimpleResultTest 
+                                    and set(v) = kindXformer.IsSimpleResultTest <- v
 
 type private StatementLeveler(holder : CapabilityInfoHolder) =
     inherit StatementKindTransformation()
@@ -251,12 +261,12 @@ type private StatementLeveler(holder : CapabilityInfoHolder) =
 
     override this.onConditionalStatement(stm) =
         let processCase (condition, block : QsPositionedBlock) =
-            let location = block.Location
-            let comments = block.Comments
             let expr = this.ExpressionTransformation condition
-            if not exprXformer.IsSimpleResultTest then holder.LocalLevel <- CapabilityLevel.Medium
+            if not exprXformer.IsSimpleResultTest 
+            then holder.LocalLevel <- CapabilityLevel.Medium
+            else holder.LocalLevel <- CapabilityLevel.Basic
             let body = this.ScopeTransformation block.Body
-            expr, QsPositionedBlock.New comments location body
+            expr, QsPositionedBlock.New block.Comments block.Location body
         let cases = stm.ConditionalBlocks |> Seq.map processCase
         let defaultCase = stm.Default |> QsNullable<_>.Map (fun b -> this.onPositionedBlock (None, b) |> snd)
         QsConditionalStatement.New (cases, defaultCase) |> QsConditionalStatement
@@ -264,6 +274,22 @@ type private StatementLeveler(holder : CapabilityInfoHolder) =
     override this.onRepeatStatement(s) =
         holder.LocalLevel <- CapabilityLevel.Advanced
         base.onRepeatStatement(s)
+
+    override this.onWhileStatement(s) =
+        holder.LocalLevel <- CapabilityLevel.Advanced
+        base.onWhileStatement(s)
+
+    override this.onValueUpdate(s) =
+        holder.LocalLevel <- CapabilityLevel.Advanced
+        base.onValueUpdate(s)
+
+    override this.onVariableDeclaration(s) =
+        if s.Kind = QsBindingKind.MutableBinding 
+        then holder.LocalLevel <- CapabilityLevel.Advanced
+        else
+            if not (isResult s.Rhs)
+            then holder.LocalLevel <- CapabilityLevel.Advanced
+        base.onVariableDeclaration(s)
 
 and private ScopeLeveler(holder : CapabilityInfoHolder) =
     inherit ScopeTransformation()
