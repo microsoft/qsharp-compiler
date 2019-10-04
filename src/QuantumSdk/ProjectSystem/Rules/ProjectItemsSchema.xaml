@@ -5,6 +5,8 @@
       Name="QsharpSourceFile" 
       DisplayName="Q# source file" 
       ItemType="QsharpCompile">
+    <NameValuePair Name="DefaultMetadata_SubType" Value="Code"/>
+    <NameValuePair Name="DefaultMetadata_Generator" Value="MSBuild:Compile"/>      
   </ContentType>
 
   <ItemType Name="QsharpCompile" DisplayName="Q# compiler"/>
