@@ -1,37 +1,4 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- Workaround issues in MSBuild versions previous to 16.0. -->
-  <PropertyGroup>
-    <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
-      $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
-    </MSBuildAllProjects>
-  </PropertyGroup>
-
-  <Choose>
-    <When Condition="'$(OutputType)' == 'Library' Or '$(OutputType)' == ''">
-      <PropertyGroup>
-        <ResolvedQsharpOutputType>QsharpLibrary</ResolvedQsharpOutputType>
-      </PropertyGroup>
-
-      <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
-        <TargetFramework>netstandard2.0</TargetFramework>
-      </PropertyGroup>
-
-    </When>
-    <When Condition="'$(OutputType)' == 'Exe'">
-      <PropertyGroup>
-        <ResolvedQsharpOutputType>QsharpExe</ResolvedQsharpOutputType>
-      </PropertyGroup>
-
-      <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
-        <TargetFramework>netcoreapp2.1</TargetFramework>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup>
-        <ResolvedQsharpOutputType></ResolvedQsharpOutputType>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose> 
 
   <Target Name="InvalidOutputTypeTarget" BeforeTargets="CoreCompile">
     <Error Condition = "'$(ResolvedQsharpOutputType)' == ''" Text="Invalid OutputType '$(OutputType)' for quantum project. Only 'Exe' and 'Library' are supported for quantum compilation." />
@@ -40,6 +7,7 @@
 
   <Import Project="$(MSBuildThisFileDirectory)..\DefaultItems\DefaultPackages.targets"/>
   <Import Project="$(MSBuildThisFileDirectory)..\DefaultItems\DefaultContent.targets"/>
+  <Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.targets"/>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
 
 </Project>

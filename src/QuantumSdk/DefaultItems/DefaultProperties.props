@@ -1,0 +1,23 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Workaround issues in MSBuild versions previous to 16.0. -->
+  <PropertyGroup>
+    <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
+      $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
+    </MSBuildAllProjects>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <QsharpLangVersion>0.9</QsharpLangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(QdkVersion)' == ''">
+    <!-- TODO: inject version of the SDK package itself. -->
+    <QdkVersion>0.9.1908.2906</QdkVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(PlatformTarget)' == ''">
+      <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+</Project>
+ 

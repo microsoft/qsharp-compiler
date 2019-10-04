@@ -1,25 +1,34 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- Workaround issues in MSBuild versions previous to 16.0. -->
-  <PropertyGroup>
-    <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
-      $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
-    </MSBuildAllProjects>
-  </PropertyGroup>
 
-  <PropertyGroup>
-    <QsharpLangVersion>0.9</QsharpLangVersion>
-  </PropertyGroup>
+  <Choose>
+    <When Condition="'$(OutputType)' == 'Library' Or '$(OutputType)' == ''">
+      <PropertyGroup>
+        <ResolvedQsharpOutputType>QsharpLibrary</ResolvedQsharpOutputType>
+      </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(QdkVersion)' == ''">
-    <!-- TODO: inject version of the SDK package itself. -->
-    <QdkVersion>0.9.1908.2906</QdkVersion>
-  </PropertyGroup>
+      <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
+        <TargetFramework>netstandard2.0</TargetFramework>
+      </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(PlatformTarget)' == ''">
-      <PlatformTarget>x64</PlatformTarget>
-  </PropertyGroup>
+    </When>
+    <When Condition="'$(OutputType)' == 'Exe'">
+      <PropertyGroup>
+        <ResolvedQsharpOutputType>QsharpExe</ResolvedQsharpOutputType>
+      </PropertyGroup>
 
-  <!-- Import the default .NET Core SDK package now that all properties relevant to Q# have been set. -->
+      <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <ResolvedQsharpOutputType></ResolvedQsharpOutputType>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+  
+
+  <Import Project="$(MSBuildThisFileDirectory)..\DefaultItems\DefaultProperties.props"/>
+  <Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.props"/>
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
-
 </Project>
