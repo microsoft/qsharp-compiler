@@ -22,5 +22,6 @@
     <file src="Sdk\**\*" target="Sdk"/>
     <file src="DefaultItems\**\*" target="DefaultItems"/>
     <file src="Content\**\*" target="Content"/>
+    <file src="ProjectSystem\**\*" target="ProjectSystem"/>
   </files>
 </package>

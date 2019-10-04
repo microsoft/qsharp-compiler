@@ -19,5 +19,11 @@
       <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
+  <ItemDefinitionGroup>
+    <Compile>
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemDefinitionGroup>
+
 </Project>
  

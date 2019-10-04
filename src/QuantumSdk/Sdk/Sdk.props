@@ -1,5 +1,12 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+  <PropertyGroup>
+    <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
+      $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
+    </MSBuildAllProjects>
+  </PropertyGroup>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
+
   <Choose>
     <When Condition="'$(OutputType)' == 'Library' Or '$(OutputType)' == ''">
       <PropertyGroup>
@@ -26,9 +33,7 @@
       </PropertyGroup>
     </Otherwise>
   </Choose>
-  
 
   <Import Project="$(MSBuildThisFileDirectory)..\DefaultItems\DefaultProperties.props"/>
   <Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.props"/>
-  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
 </Project>
