@@ -36,4 +36,15 @@
     <BoolProperty Name="Visible" Visible="false" />
     <StringProperty Name="DependentUpon" Visible="false" />
     <StringProperty Name="Link" Visible="false" />
+
+    <EnumProperty
+        Name="CopyToOutputDirectory"
+        DisplayName="Copy to Output Directory"
+        Category="Advanced"
+        Description="Specifies the source file will be copied to the output directory.">
+        <EnumValue Name="Never" DisplayName="Do not copy"/>
+        <EnumValue Name="Always" DisplayName="Copy always"/>
+        <EnumValue Name="PreserveNewest" DisplayName="Copy if newer"/>
+    </EnumProperty>
+
 </Rule>
