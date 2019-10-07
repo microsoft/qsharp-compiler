@@ -13,5 +13,5 @@
     <Error Condition = "'$(ResolvedQsharpOutputType)' == ''" Text="Invalid OutputType '$(OutputType)' for quantum project. Only 'Exe' and 'Library' are supported for quantum compilation." />
   </Target>
 
-  <!--Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.targets"/-->
+  <Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.targets"/>
 </Project>

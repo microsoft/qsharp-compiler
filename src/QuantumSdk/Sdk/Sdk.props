@@ -27,5 +27,5 @@
     </Otherwise>
   </Choose>
 
-  <!--Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.props"/-->
+  <Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.props"/>
 </Project>
