@@ -4,6 +4,6 @@
     open Microsoft.Quantum.Intrinsic;
 
     operation HelloQ () : Unit {
-        Message("Hello quantum world library!");
+        Message("Hello quantum world!");
     }
 }
