@@ -1,6 +1,6 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- Workaround issues in MSBuild versions previous to 16.0. -->
   <PropertyGroup>
+    <!-- Workaround issues in MSBuild versions prior to 16.0. -->
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>

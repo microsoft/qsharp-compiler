@@ -1,30 +1,23 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-
   <PropertyGroup>
+    <!-- Workaround issues in MSBuild versions prior to 16.0. -->
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>
   </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)..\DefaultItems\DefaultItems.props"/>
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
 
   <Choose>
-    <When Condition="'$(OutputType)' == 'Library' Or '$(OutputType)' == ''">
+    <When Condition="'$(OutputType)' == 'Library'">
       <PropertyGroup>
         <ResolvedQsharpOutputType>QsharpLibrary</ResolvedQsharpOutputType>
       </PropertyGroup>
-
-      <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
-        <TargetFramework>netstandard2.0</TargetFramework>
-      </PropertyGroup>
-
     </When>
     <When Condition="'$(OutputType)' == 'Exe'">
       <PropertyGroup>
         <ResolvedQsharpOutputType>QsharpExe</ResolvedQsharpOutputType>
-      </PropertyGroup>
-
-      <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
-        <TargetFramework>netcoreapp2.1</TargetFramework>
       </PropertyGroup>
     </When>
     <Otherwise>
@@ -34,6 +27,5 @@
     </Otherwise>
   </Choose>
 
-  <Import Project="$(MSBuildThisFileDirectory)..\DefaultItems\DefaultItems.props"/>
   <!--Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.props"/-->
 </Project>

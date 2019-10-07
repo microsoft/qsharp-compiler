@@ -1,6 +1,6 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- Workaround issues in MSBuild versions previous to 16.0. -->
   <PropertyGroup>
+    <!-- Workaround issues in MSBuild versions prior to 16.0. -->
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>
@@ -10,20 +10,23 @@
     <QsharpLangVersion>0.9</QsharpLangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(PlatformTarget)' == ''">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(OutputType)' == ''">
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
+    <TargetFramework Condition=" '$(OutputType)' == 'Exe' ">netcoreapp2.1</TargetFramework>
+    <TargetFramework Condition=" '$(OutputType)' == 'Library' ">netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
   <PropertyGroup Condition=" '$(QdkVersion)' == ''">
     <!-- TODO: inject version of the SDK package itself. -->
     <QdkVersion>0.9.1908.2906</QdkVersion>
   </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(PlatformTarget)' == ''">
-      <PlatformTarget>x64</PlatformTarget>
-  </PropertyGroup>
-
-  <ItemDefinitionGroup>
-    <Compile>
-      <SubType>Code</SubType>
-    </Compile>
-  </ItemDefinitionGroup>
 
 </Project>
  
