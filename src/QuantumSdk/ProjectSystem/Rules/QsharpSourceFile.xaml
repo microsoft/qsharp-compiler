@@ -1,5 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Rule
+﻿<Rule
 	Name="QsharpSourceFile"
 	DisplayName="Q# source file" 
 	PageTemplate="generic"
@@ -9,6 +8,11 @@
     <Rule.DataSource>
         <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" ItemType="QsharpCompile" SourceOfDefaultValue="AfterContext" />
     </Rule.DataSource>
+
+    <Rule.Categories>
+        <Category Name="Advanced" DisplayName="Advanced"/>
+        <Category Name="Misc" DisplayName="Misc"/>
+    </Rule.Categories>
 
     <StringProperty
         Name="Identity"
@@ -41,10 +45,6 @@
     <BoolProperty Name="Visible" Visible="False" />
     <BoolProperty Name="AutoGen" Visible="false" Description="A value indicating whether this is a generated file."/>    
 
-    <Rule.Categories>
-        <Category Name="Advanced" DisplayName="Advanced"/>
-        <Category Name="Misc" DisplayName="Misc"/>
-    </Rule.Categories>
 
     <StringProperty
         Name="FileNameAndExtension"

@@ -1,12 +1,11 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
+﻿<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
 
   <ContentType
       Name="QsharpSourceFile" 
       DisplayName="Q# source file" 
       ItemType="QsharpCompile">
-    <NameValuePair Name="DefaultMetadata_SubType" Value="Code"/>
-    <NameValuePair Name="DefaultMetadata_Generator" Value="MSBuild:Compile"/>      
+    <!--NameValuePair Name="DefaultMetadata_SubType" Value="Code"/>
+    <NameValuePair Name="DefaultMetadata_Generator" Value="MSBuild:Compile"/-->      
   </ContentType>
 
   <ItemType Name="QsharpCompile" DisplayName="Q# compiler"/>

@@ -1,12 +1,15 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <!-- Workaround issues in MSBuild versions prior to 16.0. -->
+    <!-- Work around issues in MSBuild versions prior to 16.0. -->
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>
   </PropertyGroup>
 
   <PropertyGroup>
+    <!-- C# language version (Driver, if applicable) -->
+    <LangVersion>latest</LangVersion>
+    <!-- TODO: inject version of the SDK package itself. -->
     <QsharpLangVersion>0.9</QsharpLangVersion>
   </PropertyGroup>
 
@@ -19,8 +22,8 @@
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
-    <TargetFramework Condition=" '$(OutputType)' == 'Exe' ">netcoreapp2.1</TargetFramework>
     <TargetFramework Condition=" '$(OutputType)' == 'Library' ">netstandard2.0</TargetFramework>
+    <TargetFramework Condition=" '$(OutputType)' == 'Exe' ">netcoreapp2.1</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(QdkVersion)' == ''">
