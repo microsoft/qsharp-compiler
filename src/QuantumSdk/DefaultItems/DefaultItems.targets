@@ -14,4 +14,9 @@
     </When>
   </Choose>  
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Quantum.Development.Kit" Version="$(QdkVersion)" IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.Quantum.Standard" Version="$(QdkVersion)" IsImplicitlyDefined="true" />
+  </ItemGroup>
+
 </Project>
