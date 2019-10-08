@@ -219,3 +219,12 @@ module InternalUse =
     
     // TODO: ReservedForFutureUse = ...
 
+
+/// contains specific names used within Q# dlls
+module AssemblyConstants = 
+
+    let AST_RESOURCE_NAME = "__qsharp_data__.bson";
+    let METADATA_NAMESPACE = "__qsharp__";
+    let QSHARP_REFERENCE = "__qsharp_reference__";
+    let METADATA_TYPE = "Metadata";
+    let DEPENDENCIES_FIELD = "Dependencies";

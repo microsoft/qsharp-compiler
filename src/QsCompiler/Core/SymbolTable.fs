@@ -221,7 +221,7 @@ type private PartialNamespace private
 and Namespace private
     (name, parts : IEnumerable<KeyValuePair<NonNullable<string>,PartialNamespace>>,
      CallablesInReferences : ImmutableDictionary<NonNullable<string>, CallableDeclarationHeader>,
-     SpecializationsInReferences : ILookup<NonNullable<string>, SpecializationDeclarationHeader>,
+     SpecializationsInReferences : ILookup<NonNullable<string>, SpecializationDeclarationHeader * SpecializationImplementation>,
      TypesInReferences : ImmutableDictionary<NonNullable<string>, TypeDeclarationHeader>) =
 
     /// dictionary containing a PartialNamespaces for each source file which implements a part of this namespace -
@@ -265,7 +265,7 @@ and Namespace private
         let initialSources = sources |> Seq.distinct |> Seq.map (fun source -> new KeyValuePair<_,_>(source, new PartialNamespace(name, source)))
         let typesInRefs = typesInRefs.Where (fun (header : TypeDeclarationHeader) -> header.QualifiedName.Namespace = name)
         let callablesInRefs = callablesInRefs.Where(fun (header : CallableDeclarationHeader) -> header.QualifiedName.Namespace = name)
-        let specializationsInRefs = specializationsInRefs.Where(fun (header : SpecializationDeclarationHeader) -> header.Parent.Namespace = name)
+        let specializationsInRefs = specializationsInRefs.Where(fun (header : SpecializationDeclarationHeader, _) -> header.Parent.Namespace = name)
 
         // ignore ambiguous/clashing references
         let FilterUnique (g : IGrouping<_,_>) = 
@@ -276,7 +276,7 @@ and Namespace private
 
         let types = typesInRefs.ToImmutableDictionary(fun t -> t.QualifiedName.Name)
         let callables = callablesInRefs.ToImmutableDictionary(fun c -> c.QualifiedName.Name)
-        let specializations = specializationsInRefs.Where(fun s -> callables.ContainsKey s.Parent.Name).ToLookup(fun s -> s.Parent.Name)
+        let specializations = specializationsInRefs.Where(fun (s, _) -> callables.ContainsKey s.Parent.Name).ToLookup(fun (s, _) -> s.Parent.Name)
         new Namespace(name, initialSources, callables, specializations, types)
 
 
@@ -606,7 +606,7 @@ and Namespace private
 and NamespaceManager 
     (syncRoot : IReaderWriterLock,
      callablesInRefs : IEnumerable<CallableDeclarationHeader>, 
-     specializationsInRefs : IEnumerable<SpecializationDeclarationHeader>,
+     specializationsInRefs : IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
      typesInRefs : IEnumerable<TypeDeclarationHeader>) = 
     // This class itself does not use any concurrency, 
     // so anything that is accessible within the class only does not apply any locks.
@@ -623,7 +623,7 @@ and NamespaceManager
     let Namespaces = 
         let namespaces = new Dictionary<NonNullable<string>, Namespace>()
         let callables = callablesInRefs.ToLookup(fun header -> header.QualifiedName.Namespace)
-        let specializations = specializationsInRefs.ToLookup(fun header -> header.Parent.Namespace)
+        let specializations = specializationsInRefs.ToLookup(fun (header,_) -> header.Parent.Namespace)
         let types = typesInRefs.ToLookup(fun header -> header.QualifiedName.Namespace)
         let getKeys (lookup : ILookup<_,_>) = lookup |> Seq.map (fun group -> group.Key)
         let namespacesInRefs = (getKeys callables).Concat(getKeys specializations).Concat(getKeys types) |> Seq.distinct
