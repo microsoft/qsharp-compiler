@@ -6,13 +6,11 @@
     </MSBuildAllProjects>
   </PropertyGroup>
 
-  <Choose>
-    <When Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">
-      <ItemGroup>
-        <Compile Include="$(MSBuildThisFileDirectory)..\Content\Driver.cs" />
-      </ItemGroup>
-    </When>
-  </Choose>  
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)..\Content\Driver.cs" Condition="'$(OutputType)' == 'Exe'" >
+      <Visible>false</Visible>
+    </Compile>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Quantum.Standard" Version="$(QdkVersion)" IsImplicitlyDefined="true" />
