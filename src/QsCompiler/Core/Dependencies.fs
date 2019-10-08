@@ -23,16 +23,18 @@ type BuiltIn = {
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
 
 
+    // hard dependencies in Microsoft.Quantum.Core
+
     static member Length = {
         Name = "Length" |> NonNullable<string>.New
         Namespace = BuiltIn.CoreNamespace
         TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
     }
 
-    static member IndexRange = {
-        Name = "IndexRange" |> NonNullable<string>.New
-        Namespace = BuiltIn.StandardArrayNamespace
-        TypeParameters = ImmutableArray.Empty
+    static member RangeReverse = {
+        Name = "RangeReverse" |> NonNullable<string>.New
+        Namespace = BuiltIn.CoreNamespace
+        TypeParameters = ImmutableArray.Empty    
     }
 
     static member Attribute = {
@@ -41,3 +43,17 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
+    static member EntryPoint = {
+        Name = "EntryPoint" |> NonNullable<string>.New
+        Namespace = BuiltIn.CoreNamespace
+        TypeParameters = ImmutableArray.Empty
+    }
+
+
+    // "weak dependencies" in other namespaces (e.g. things used for code actions)
+
+    static member IndexRange = {
+        Name = "IndexRange" |> NonNullable<string>.New
+        Namespace = BuiltIn.StandardArrayNamespace
+        TypeParameters = ImmutableArray.Empty
+    }
