@@ -6,10 +6,6 @@
     </MSBuildAllProjects>
   </PropertyGroup>
 
-  <ItemGroup>
-    <QsharpCompile Include="**\*.qs" />
-  </ItemGroup>
-
   <Choose>
     <When Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">
       <ItemGroup>
