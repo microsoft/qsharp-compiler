@@ -1,9 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
+using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
+using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
@@ -18,6 +21,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// Given the body of an operation, auto-generates the (content of the) adjoint specialization, 
         /// under the assumption that operation calls may only ever occur within expression statements, 
         /// and while-loops cannot occur within operations. 
+        /// Throws an ArgumentNullException if the given scope is null.
         /// </summary>
         public static QsScope GenerateAdjoint(this QsScope scope)
         {
@@ -32,6 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// <summary>
         /// Given the body of an operation, auto-generates the (content of the) controlled specialization 
         /// using the default name for control qubits.
+        /// Throws an ArgumentNullException if the given scope is null.
         /// </summary>
         public static QsScope GenerateControlled(this QsScope scope)
         {
@@ -44,9 +49,32 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// The generation of the adjoint for the outer block is subject to the same limitation as any adjoint auto-generation. 
         /// In particular, it is only guaranteed to be valid if operation calls only occur within expression statements, and 
         /// throws an InvalidOperationException if the outer block contains while-loops. 
+        /// Throws an ArgumentNullException if the given scope is null.
         /// </summary>
         public static QsScope InlineConjugations(this QsScope scope) =>
-            new InlineConjugationStatements().Transform(scope); 
+            new InlineConjugationStatements().Transform(scope);
+
+        /// <summary>
+        /// Eliminates all type parameterized callables from the scope by replacing their definitions and references to concrete
+        /// versions of the callable.
+        /// Throws an ArgumentNullException if the given syntaxTree is null.
+        /// </summary>
+        public static bool Monomorphisize(IEnumerable<QsNamespace> syntaxTree, out IEnumerable<QsNamespace> result, 
+            Action<Exception> onException = null) 
+        {
+            if (syntaxTree == null) throw new ArgumentNullException(nameof(syntaxTree));
+            result = syntaxTree;
+            try
+            {
+                result = ResolveGenericsSyntax.Apply(syntaxTree);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                onException?.Invoke(ex);
+                return false;
+            }
+        }
     }
 }
 

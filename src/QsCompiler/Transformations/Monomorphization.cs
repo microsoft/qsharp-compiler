@@ -40,39 +40,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     }
 
     public class ResolveGenericsSyntax :
-        SyntaxTreeTransformation<ResolveGenericsScope>
+        SyntaxTreeTransformation<ScopeTransformation<ResolveGenericsExpression>>
     {
         public static IEnumerable<QsNamespace> Apply(IEnumerable<QsNamespace> namespaces)
         {
-            //var temp = new Dictionary<Concretion, int>();
-            //Concretion conA = new Concretion();
-            //Concretion conB = new Concretion();
-            //
-            //conA.Add((
-            //    NonNullable<string>.New("TypeVarA"),
-            //    LocalTypeKind.Int
-            //    ));
-            //
-            //conA.Add((
-            //    NonNullable<string>.New("TypeVarB"),
-            //    LocalTypeKind.NewTupleType(ImmutableArray.Create(ResolvedType.New(LocalTypeKind.Int), ResolvedType.New(LocalTypeKind.Double)))
-            //    ));
-            //
-            //conB.Add((
-            //    NonNullable<string>.New("TypeVarA"),
-            //    LocalTypeKind.Int
-            //    ));
-            //
-            //temp.Add(conA, 12);
-            //temp.Add(conB, 4);
-            //
-            //conB.Add((
-            //    NonNullable<string>.New("TypeVarB"),
-            //    LocalTypeKind.NewTupleType(ImmutableArray.Create(ResolvedType.New(LocalTypeKind.Int), ResolvedType.New(LocalTypeKind.Double)))
-            //    ));
-            //
-            //var result = temp[conB];
-
             if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
 
             // Get list of generics
@@ -89,33 +60,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            var filter = new ResolveGenericsSyntax(new ResolveGenericsScope(generics));
+            var filter = new ResolveGenericsSyntax(new ScopeTransformation<ResolveGenericsExpression>(new ResolveGenericsExpression(generics)));
             return namespaces.Select(ns => filter.Transform(ns));
         }
 
         public static IEnumerable<QsNamespace> Apply(params QsNamespace[] namespaces)
         {
-            return Apply(namespaces);
+            return Apply((IEnumerable<QsNamespace>)namespaces);
         }
 
-        public ResolveGenericsSyntax(ResolveGenericsScope scope) : base(scope) { }
-    }
-
-    public class ResolveGenericsScope :
-            ScopeTransformation<ResolveGenericsExpression>
-    {
-        internal ResolveGenericsScope(GenericsCrate generics) : base(new ResolveGenericsExpression(generics)) { }
+        public ResolveGenericsSyntax(ScopeTransformation<ResolveGenericsExpression> scope) : base(scope) { }
     }
 
     public class ResolveGenericsExpression :
-        ExpressionTransformation<ResolvedGenericsExpressionKind>
+        ExpressionTransformation<ExpressionKindTransformation<ResolveGenericsExpression>>
     {
         private GenericsCrate Generics;
 
-        internal ResolveGenericsExpression(GenericsCrate generics) : base(ex => new ResolvedGenericsExpressionKind(ex as ResolveGenericsExpression)) { Generics = generics; }
+        internal ResolveGenericsExpression(GenericsCrate generics) : base(ex => new ExpressionKindTransformation<ResolveGenericsExpression>(ex as ResolveGenericsExpression)) { Generics = generics; }
 
         public override TypedExpression Transform(TypedExpression ex)
         {
+            // TODO: This should be recursive and use a more robust data structure to handle the type information for generics
             ImmutableDictionary<QsTypeParameter, ResolvedType> types = ex.TypeParameterResolutions;
 
             if (types.Any() && ex.Expression is QsExpressionKind<TypedExpression, Identifier, ResolvedType>.CallLikeExpression call)
@@ -190,20 +156,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             return Identifier.NewGlobalCallable(new QsQualifiedName(globalCallable.Item.Namespace, name));
         }
-
-        //private string CreateTypePrefix(ImmutableDictionary<QsTypeParameter, ResolvedType> typeDict)
-        //{
-        //    return "_" + String.Join("", typeDict
-        //        .ToList()
-        //        .OrderBy(kvp => kvp.Key.TypeName)
-        //        .Select(kvp => kvp.Key.TypeName.Value + "_" + kvp.Value.Resolution.ToString() + "_")
-        //        );
-        //}
-    }
-
-    public class ResolvedGenericsExpressionKind :
-        ExpressionKindTransformation<ResolveGenericsExpression>
-    {
-        public ResolvedGenericsExpressionKind(ResolveGenericsExpression expr) : base(expr) { }
     }
 }
