@@ -423,8 +423,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.CompilationStatus.BinaryFormat = 0;            
             using (var writer = new BsonDataWriter(ms) { CloseOutput = false })
             {
-                var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
-                var serializer = JsonSerializer.CreateDefault(settings);
+                var serializer = Json.Serializer(Json.Converters(false));
                 if (this.GeneratedSyntaxTree != null) serializer.Serialize(writer, this.GeneratedSyntaxTree);
                 else this.LogAndUpdate(ref this.CompilationStatus.BinaryFormat, ErrorCode.GeneratingBinaryFailed, Enumerable.Empty<string>());
             }
@@ -448,8 +447,7 @@ namespace Microsoft.Quantum.QsCompiler
             using (var reader = new BsonDataReader(ms))
             {
                 reader.ReadRootValueAsArray = true;
-                var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
-                var serializer = JsonSerializer.CreateDefault(settings);
+                var serializer = Json.Serializer(Json.Converters(false));
                 return serializer.Deserialize<IEnumerable<QsNamespace>>(reader);
             }
         }
