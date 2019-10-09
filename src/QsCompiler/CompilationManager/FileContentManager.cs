@@ -14,6 +14,7 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -179,7 +180,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or if the syntax check delimiters are null. 
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private static void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, Range syntaxCheckDelimiters, int lineNrChange)
+        private static void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, LSP.Range syntaxCheckDelimiters, int lineNrChange)
         {
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
             if (!Utils.IsValidRange(syntaxCheckDelimiters)) throw new ArgumentException(nameof(syntaxCheckDelimiters));
@@ -203,7 +204,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
         private static void DelayInvalidateOrUpdate(ManagedList<Diagnostic> diagnostics, ManagedList<Diagnostic> updated,
-            Range syntaxCheckDelimiters, int lineNrChange)
+            LSP.Range syntaxCheckDelimiters, int lineNrChange)
         {
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
             if (updated == null) throw new ArgumentNullException(nameof(updated));
@@ -262,7 +263,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null. 
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateSyntaxDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
+        private void InvalidateOrUpdateSyntaxDiagnostics(LSP.Range syntaxCheckDelimiters, int lineNrChange) =>
             InvalidateOrUpdateBySyntaxCheckDelimeters(this.SyntaxDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
 
@@ -329,7 +330,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null. 
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateHeaderDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
+        private void InvalidateOrUpdateHeaderDiagnostics(LSP.Range syntaxCheckDelimiters, int lineNrChange) =>
             DelayInvalidateOrUpdate(this.HeaderDiagnostics, this.UpdatedHeaderDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
 
@@ -358,7 +359,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics to update or the syntax check delimiters are null. 
         /// Throws an ArgumentException if the given start and end position do not denote a valid range.
         /// </summary>
-        private void InvalidateOrUpdateSemanticDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
+        private void InvalidateOrUpdateSemanticDiagnostics(LSP.Range syntaxCheckDelimiters, int lineNrChange) =>
             DelayInvalidateOrUpdate(this.SemanticDiagnostics, this.UpdatedSemanticDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
 
@@ -447,7 +448,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.Content.Replace(start, count, replacements);
                 var lineNrChange = replacements.Count - count;
                 var syntaxCheckInUpdated = this.GetSyntaxCheckDelimiters(start, replacements.Count);
-                var syntaxCheckInOriginal = new Range
+                var syntaxCheckInOriginal = new LSP.Range
                 {
                     Start = syntaxCheckInUpdated.Start,
                     End = syntaxCheckInUpdated.End == this.End() ? origFileEnd : syntaxCheckInUpdated.End.WithUpdatedLineNumber(-lineNrChange)
@@ -584,7 +585,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if the given range is not a valid range.
         /// Throws an ArgumentOutOfRangeException if the line number of the range end is larger than the number of currently saved tokens.
         /// </summary>
-        private void RemoveTokensInRange(Range range)
+        private void RemoveTokensInRange(LSP.Range range)
         {
             this.Tokens.SyncRoot.EnterWriteLock();
             try
@@ -738,7 +739,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// whose content has been edited since the last call to this routine.
         /// Invalidates all semantic diagnostics withing the corresponding Ranges.
         /// </summary>
-        internal void MarkCallableAsContentEdited(IEnumerable<(Range, QsQualifiedName)> edited)
+        internal void MarkCallableAsContentEdited(IEnumerable<(LSP.Range, QsQualifiedName)> edited)
         {
             foreach (var (range, callableName) in edited)
             {
@@ -891,7 +892,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 if (text == null) throw new ArgumentNullException(nameof(text));
                 var change = new TextDocumentContentChangeEvent
-                { Range = new Range { Start = new Position(0, 0), End = this.End() }, RangeLength = 0, Text = text }; // fixme: range length is not accurate, but also not used...
+                { Range = new LSP.Range { Start = new Position(0, 0), End = this.End() }, RangeLength = 0, Text = text }; // fixme: range length is not accurate, but also not used...
                 this.PushChange(change, out bool processed);
                 if (!processed) this.Flush();
             }
@@ -974,7 +975,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all namespace declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        internal IEnumerable<(NonNullable<string>, Range)> GetNamespaceDeclarations()
+        internal IEnumerable<(NonNullable<string>, LSP.Range)> GetNamespaceDeclarations()
         {
             var decl = this.FilterFragments(this.Header.GetNamespaceDeclarations, FileHeader.IsNamespaceDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredNamespaceName(InternalUse.UnknownNamespace), fragment.GetRange()))
@@ -985,7 +986,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all type declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        internal IEnumerable<(NonNullable<string>, Range)> GetTypeDeclarations()
+        internal IEnumerable<(NonNullable<string>, LSP.Range)> GetTypeDeclarations()
         {
             var decl = this.FilterFragments(this.Header.GetTypeDeclarations, FileHeader.IsTypeDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredTypeName(null), fragment.GetRange()))
@@ -996,7 +997,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all callable declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        internal IEnumerable<(NonNullable<string>, Range)> GetCallableDeclarations()
+        internal IEnumerable<(NonNullable<string>, LSP.Range)> GetCallableDeclarations()
         {
             var decl = this.FilterFragments(this.Header.GetCallableDeclarations, FileHeader.IsCallableDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredCallableName(null), fragment.GetRange()))
