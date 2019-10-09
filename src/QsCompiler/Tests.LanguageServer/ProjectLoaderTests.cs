@@ -52,6 +52,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp2.1"));
             Assert.IsTrue(loader.IsSupportedQsFramework("netstandard2.2"));
             Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp2.2"));
+            Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp3.0"));
         }
 
         [TestMethod]
