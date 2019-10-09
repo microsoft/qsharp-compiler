@@ -78,7 +78,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 ("test7", "net461"),
                 ("test8", null),
                 ("test9", "netcoreapp2.0"),
-                ("test10", "netcoreapp2.1")
+                ("test10", "netcoreapp2.1"),
+                ("test11", "netcoreapp3.0")
             };
 
             foreach (var (project, framework) in testProjects)
@@ -196,6 +197,21 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             qsFiles = new string[]
             {
                 Path.Combine(projDir, "Operation10.qs")
+            };
+
+            Assert.IsTrue(context.UsesIntrinsics());
+            Assert.IsTrue(context.UsesCanon());
+            CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
+
+            (projectFile, context) = Context("test11");
+            projDir = Path.GetDirectoryName(projectFile);
+            Assert.IsNotNull(context);
+            Assert.AreEqual("test11.dll", Path.GetFileName(context.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.OutputPath).StartsWith(projDir));
+
+            qsFiles = new string[]
+            {
+                Path.Combine(projDir, "Operation11.qs")
             };
 
             Assert.IsTrue(context.UsesIntrinsics());

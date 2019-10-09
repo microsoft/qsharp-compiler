@@ -285,7 +285,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             var defaultLocation = new Location
             {
                 Uri = param?.TextDocument?.Uri,
-                Range = param?.Position == null ? null : new Range { Start = param.Position, End = param.Position }
+                Range = param?.Position != null 
+                    ? new VisualStudio.LanguageServer.Protocol.Range { Start = param.Position, End = param.Position }
+                    : null
             };
             try
             {
