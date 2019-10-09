@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -420,12 +421,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // set declStart to the position of the first attribute attached to the declaration
             bool EmptyOrFirstAttribute(IEnumerable<CodeFragment> line, out CodeFragment att)
             {
-                att = line.Reverse().TakeWhile(t => t.Kind is QsFragmentKind.DeclarationAttribute).LastOrDefault();
-                return att != null || !line.Any();
+                att = line?.Reverse().TakeWhile(t => t.Kind is QsFragmentKind.DeclarationAttribute).LastOrDefault();
+                return att != null || (line != null && !line.Any());
             }
             var preceding = file.GetTokenizedLine(declStart.Line).TakeWhile(ContextBuilder.TokensUpTo(new Position(0, declStart.Character)));
-            for (var lineNr = declStart.Line; lineNr-- > 0 && EmptyOrFirstAttribute(preceding, out var precedingAttribute); preceding = file.GetTokenizedLine(lineNr))
-            { if (precedingAttribute != null) declStart = precedingAttribute.GetRange().Start.WithUpdatedLineNumber(lineNr+1); }
+            for (var lineNr = declStart.Line; EmptyOrFirstAttribute(preceding, out var precedingAttribute); )
+            {
+                if (precedingAttribute != null)
+                { declStart = precedingAttribute.GetRange().Start.WithUpdatedLineNumber(lineNr); }
+                preceding = lineNr-- > 0 ? file.GetTokenizedLine(lineNr) : (IEnumerable<CodeFragment>)null;
+            }
 
             var docPrefix = "/// ";
             var endLine = $"{Environment.NewLine}{file.GetLine(declStart.Line).Text.Substring(0, declStart.Character)}";
