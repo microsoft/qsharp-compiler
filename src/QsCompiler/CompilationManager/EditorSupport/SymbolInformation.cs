@@ -165,8 +165,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
             (referenceLocations, declarationLocation) = (null, null);
-            var symbolInfo = file?.TryGetQsSymbolInfo(position, true, out var _); // includes the end position 
-            if (symbolInfo == null || compilation == null) return false;
+            if (file == null || compilation == null) return false;
+            var symbolInfo = file.TryGetQsSymbolInfo(position, true, out var fragment); // includes the end position 
+            if (symbolInfo == null || fragment?.Kind is QsFragmentKind.NamespaceDeclaration) return false;
 
             var sym = symbolInfo.UsedTypes.Any()
                 && symbolInfo.UsedTypes.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt ? udt.Item
