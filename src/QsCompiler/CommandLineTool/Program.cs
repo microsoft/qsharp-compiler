@@ -33,21 +33,25 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public const int FUNCTOR_GENERATION_ERRORS = -4;
         /// <summary>
+        /// Return code indicating that pre-evaluating the built compilation if possible failed.
+        /// </summary>
+        public const int PREEVALUATION_ERRORS = -5;
+        /// <summary>
         /// Return code indicating that generating a binary file with the content of the built compilation failed.
         /// </summary>
-        public const int BINARY_GENERATION_ERRORS = -5;
+        public const int BINARY_GENERATION_ERRORS = -6;
         /// <summary>
         /// Return code indicating that generating formatted Q# code based on the built compilation failed.
         /// </summary>
-        public const int CODE_GENERATION_ERRORS = -6;
+        public const int CODE_GENERATION_ERRORS = -7;
         /// <summary>
         /// Return code indicating that generating documentation for the built compilation failed.
         /// </summary>
-        public const int DOC_GENERATION_ERRORS = -7;
+        public const int DOC_GENERATION_ERRORS = -8;
         /// <summary>
         /// Return code indicating that invoking the specified target(s) with the path to the file containing the built compilation failed.
         /// </summary>
-        public const int TARGET_EXECUTION_ERRORS = -8;
+        public const int TARGET_EXECUTION_ERRORS = -9;
         /// <summary>
         /// Return code indicating that an unexpected exception was thrown when executing the invoked command to the Q# command line compiler.
         /// </summary>
@@ -58,6 +62,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             loaded.ReferenceLoading == CompilationLoader.Status.Failed ? ReturnCode.UNRESOLVED_FILES :
             loaded.Validation == CompilationLoader.Status.Failed ? ReturnCode.COMPILATION_ERRORS :
             loaded.FunctorSupport == CompilationLoader.Status.Failed ? ReturnCode.FUNCTOR_GENERATION_ERRORS :
+            loaded.PreEvaluation == CompilationLoader.Status.Failed ? ReturnCode.PREEVALUATION_ERRORS :
             loaded.Documentation == CompilationLoader.Status.Failed ? ReturnCode.DOC_GENERATION_ERRORS :
             loaded.BinaryFormat == CompilationLoader.Status.Failed ? ReturnCode.BINARY_GENERATION_ERRORS :
             loaded.AllTargets == CompilationLoader.Status.Failed ? ReturnCode.TARGET_EXECUTION_ERRORS :
