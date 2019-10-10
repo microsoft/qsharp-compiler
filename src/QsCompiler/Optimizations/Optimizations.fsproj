@@ -5,7 +5,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <AssemblyName>Microsoft.Quantum.QsCompilerOptimizations</AssemblyName>
+    <AssemblyName>Microsoft.Quantum.QsOptimizations</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,8 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Core\QsCore.fsproj" />
-    <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
+    <ProjectReference Include="..\Core\Core.fsproj" />
+    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

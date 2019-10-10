@@ -122,7 +122,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CommandLineTool\QsCommandLineTool.csproj" />
+    <ProjectReference Include="..\CommandLineTool\CommandLineTool.csproj" />
     <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
