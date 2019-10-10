@@ -25,11 +25,11 @@ let private isPureQuantum stmt =
 
 /// Reorders a list of statements such that the pure classical statements occur before the pure quantum statements
 let rec private reorderStatements = function
-| a :: b :: tail ->
-    if isPureQuantum a && isPureClassical b
-    then b :: reorderStatements (a :: tail)
-    else a :: reorderStatements (b :: tail)
-| x -> x
+    | a :: b :: tail ->
+        if isPureQuantum a && isPureClassical b
+        then b :: reorderStatements (a :: tail)
+        else a :: reorderStatements (b :: tail)
+    | x -> x
 
 /// The SyntaxTreeTransformation used to reorder statements
 type internal StatementReorderer() =

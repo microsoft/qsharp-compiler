@@ -29,8 +29,8 @@ let private tryGet key = List.tryPick (Map.tryFind key)
 /// Returns a copy of the given variable stack with the given key set to the given value.
 /// Throws an ArgumentException if the given variable stack is empty.
 let private set (key, value) = function
-| [] -> ArgumentException "No scope to define variables in" |> raise
-| head :: tail -> Map.add key value head :: tail
+    | [] -> ArgumentException "No scope to define variables in" |> raise
+    | head :: tail -> Map.add key value head :: tail
 
 /// A regex that matches the original name of a mangled variable name
 let private varNameRegex = Regex("^__qsVar\d+__(.+)__$")
@@ -68,9 +68,9 @@ type internal VariableRenamer() =
 
     /// Processes the initial argument tuple from the function declaration
     let rec processArgTuple = function
-    | QsTupleItem {VariableName = ValidName name} -> generateUniqueName name.Value |> ignore
-    | QsTupleItem {VariableName = InvalidName} -> ()
-    | QsTuple items -> Seq.iter processArgTuple items
+        | QsTupleItem {VariableName = ValidName name} -> generateUniqueName name.Value |> ignore
+        | QsTupleItem {VariableName = InvalidName} -> ()
+        | QsTuple items -> Seq.iter processArgTuple items
 
     member __.clearStack() =
         renamingStack <- [Map.empty]

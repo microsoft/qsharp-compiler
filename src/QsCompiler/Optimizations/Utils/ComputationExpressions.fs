@@ -82,49 +82,44 @@ type internal ImperativeBuilder() =
     member this.Yield (x: 'c): Imperative<'a, 'b, 'c> = (fun _ -> Interrupt x)
     member this.YieldFrom (m: Imperative<'a, 'b, 'c>): Imperative<'a, 'b, 'c> = m
 
-    member this.Bind (m: Imperative<'a, 'b, 'c>, f: 'b -> Imperative<'a, 'b2, 'c>): Imperative<'a, 'b2, 'c> =
-        (fun s1 ->
-            match m s1 with
-            | Normal (value, s2) -> f value s2
-            | Break s2 -> Break s2
-            | Interrupt x -> Interrupt x)
+    member this.Bind (m: Imperative<'a, 'b, 'c>, f: 'b -> Imperative<'a, 'b2, 'c>) = fun s1 ->
+        match m s1 with
+        | Normal (value, s2) -> f value s2
+        | Break s2 -> Break s2
+        | Interrupt x -> Interrupt x
 
     member this.Zero (): Imperative<'a, Unit, 'c> = (fun s -> Normal ((), s))
 
-    member this.Combine (m1: Imperative<'a, Unit, 'c>, m2: Imperative<'a, 'b, 'c>): Imperative<'a, 'b, 'c> =
-        (fun s1 ->
-            match m1 s1 with
-            | Normal ((), s2) -> m2 s2
-            | Break s2 -> Break s2
-            | Interrupt x -> Interrupt x)
+    member this.Combine (m1: Imperative<'a, Unit, 'c>, m2: Imperative<'a, 'b, 'c>) = fun s1 ->
+        match m1 s1 with
+        | Normal ((), s2) -> m2 s2
+        | Break s2 -> Break s2
+        | Interrupt x -> Interrupt x
 
-    member this.CombineLoopIters (m1: Imperative<'a, Unit, 'c>, m2: Imperative<'a, Unit, 'c>): Imperative<'a, Unit, 'c> =
-        (fun s1 ->
-            match m1 s1 with
-            | Normal ((), s2) -> m2 s2
-            | Break s2 -> Normal ((), s2)
-            | Interrupt x -> Interrupt x)
+    member this.CombineLoopIters (m1: Imperative<'a, Unit, 'c>, m2: Imperative<'a, Unit, 'c>) = fun s1 ->
+        match m1 s1 with
+        | Normal ((), s2) -> m2 s2
+        | Break s2 -> Normal ((), s2)
+        | Interrupt x -> Interrupt x
 
     member this.Delay (f: Unit -> Imperative<'a, 'b, 'c>): Imperative<'a, 'b, 'c> = f ()
 
-    member this.While (guard: Unit -> Imperative<'a, bool, 'c>, f: Imperative<'a, Unit, 'c>): Imperative<'a, Unit, 'c> =
-        (fun s1 ->
-            match guard() s1 with
-            | Normal (true, s2) -> this.CombineLoopIters (f, this.While (guard, f)) s2
-            | Normal (false, s2) -> Normal ((), s2)
-            | Break _ -> Exception "Cannot break in condition of while loop" |> raise
-            | Interrupt x -> Interrupt x)
+    member this.While (guard: Unit -> Imperative<'a, bool, 'c>, f: Imperative<'a, Unit, 'c>) = fun s1 ->
+        match guard() s1 with
+        | Normal (true, s2) -> this.CombineLoopIters (f, this.While (guard, f)) s2
+        | Normal (false, s2) -> Normal ((), s2)
+        | Break _ -> Exception "Cannot break in condition of while loop" |> raise
+        | Interrupt x -> Interrupt x
 
-    member this.While (guard: Unit -> bool, f: Imperative<'a, Unit, 'c>): Imperative<'a, Unit, 'c> =
+    member this.While (guard: Unit -> bool, f: Imperative<'a, Unit, 'c>) =
         this.While (guard >> this.Return, f)
 
-    member this.For (sequence: list<'d>, body: 'd -> Imperative<'a, Unit, 'c>): Imperative<'a, Unit, 'c> =
-        (fun s1 ->
-            match sequence with
-            | [] -> Normal ((), s1)
-            | head :: tail -> this.CombineLoopIters (body head, this.For (tail, body)) s1)
+    member this.For (sequence: list<'d>, body: 'd -> Imperative<'a, Unit, 'c>) = fun s1 ->
+        match sequence with
+        | [] -> Normal ((), s1)
+        | head :: tail -> this.CombineLoopIters (body head, this.For (tail, body)) s1
 
-    member this.For (sequence: seq<'d>, body: 'd -> Imperative<'a, Unit, 'c>): Imperative<'a, Unit, 'c> =
+    member this.For (sequence: seq<'d>, body: 'd -> Imperative<'a, Unit, 'c>) =
         this.For (List.ofSeq sequence, body)
 
 /// A computation expression used to evaluate imperative, stateful code.

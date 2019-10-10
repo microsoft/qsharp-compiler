@@ -27,8 +27,7 @@ type internal Callables (m: ImmutableDictionary<QsQualifiedName, QsCallable>) =
 
     /// Gets the QsCallable with the given qualified name.
     /// Throws an KeyNotFoundException if no such callable exists.
-    member __.get qualName =
-        m.[qualName]
+    member __.get qualName = m.[qualName]
 
 
 /// Returns whether a given expression is a literal (and thus a constant)
@@ -107,9 +106,9 @@ let internal rangeLiteralToSeq (r: ExprKind): seq<int64> =
 /// Returns None if any of the elements of the given list is None.
 /// Otherwise, returns the given list, casting each option to its Some case.
 let rec internal optionListToListOption = function
-| [] -> Some []
-| None :: _ -> None
-| Some head :: tail -> Option.map (fun t2 -> head :: t2) (optionListToListOption tail)
+    | [] -> Some []
+    | None :: _ -> None
+    | Some head :: tail -> Option.map (fun t2 -> head :: t2) (optionListToListOption tail)
 
 
 /// Returns the given list without the elements at the given indices
@@ -201,7 +200,6 @@ let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpressi
             | [_], _ -> [arg]
             | _, Tuple args -> args
             | _ -> failwithf "args must be a tuple"
-        // assert items2.Length = items3.Length
         items |> List.mapFold (fun args t1 ->
             if TypedExpression.ContainsMissing t1 then
                 match args with
@@ -215,14 +213,12 @@ let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpressi
 
 /// Computes exponentiation for 64-bit integers
 let internal longPow (a: int64) (b: int64): int64 =
-    if b < 0L then
-        failwithf "Negative power %d not supported for integer exponentiation." b
+    if b < 0L then failwithf "Negative power %d not supported for integer exponentiation." b
     let mutable x = a
     let mutable power = b
     let mutable returnValue = 1L;
     while power <> 0L do
-        if (power &&& 1L) = 1L then
-            returnValue <- returnValue * x
+        if (power &&& 1L) = 1L then returnValue <- returnValue * x
         x <- x * x
         power <- power >>> 1
     returnValue
@@ -256,9 +252,9 @@ let internal scopeLength (scope: QsScope): int =
 
 /// Returns whether all variables in a symbol tuple are discarded
 let rec internal isAllDiscarded = function
-| DiscardedItem -> true
-| VariableNameTuple items -> Seq.forall isAllDiscarded items
-| _ -> false
+    | DiscardedItem -> true
+    | VariableNameTuple items -> Seq.forall isAllDiscarded items
+    | _ -> false
 
 
 /// Casts an int64 to an int, throwing an ArgumentException if outside the allowed range

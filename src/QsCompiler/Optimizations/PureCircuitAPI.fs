@@ -14,18 +14,18 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 /// Any constant expression
 type Literal =
-| IntLiteral            of int64
-| DoubleLiteral         of double
-| PauliLiteral          of QsPauli
-| PauliArray            of QsPauli list
+    | IntLiteral            of int64
+    | DoubleLiteral         of double
+    | PauliLiteral          of QsPauli
+    | PauliArray            of QsPauli list
 
 /// Any expression
 type Expression =
-| Literal               of Literal
-| Tuple                 of Expression list
-| Qubit                 of int
-| QubitArray            of int list
-| UnknownValue          of int
+    | Literal               of Literal
+    | Tuple                 of Expression list
+    | Qubit                 of int
+    | QubitArray            of int list
+    | UnknownValue          of int
 
 /// A call to a quantum gate, with the given functors and arguments
 type GateCall = {

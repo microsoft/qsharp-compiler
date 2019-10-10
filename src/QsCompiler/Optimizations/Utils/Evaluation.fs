@@ -23,14 +23,14 @@ type private EvalState = Map<string, TypedExpression> * int
 /// Represents any interrupt to the normal control flow of a function evaluation.
 /// Includes return statements, errors, and (if they were added) break/continue statements.
 type private FunctionInterrupt =
-/// Represents the function invoking a return statement
-| Returned of TypedExpression
-/// Represents the function invoking a fail statement
-| Failed of TypedExpression
-/// We reached the limit of statement executions
-| TooManyStatements
-/// We were unable to evaluate the function for some reason
-| CouldNotEvaluate of string
+    /// Represents the function invoking a return statement
+    | Returned of TypedExpression
+    /// Represents the function invoking a fail statement
+    | Failed of TypedExpression
+    /// We reached the limit of statement executions
+    | TooManyStatements
+    /// We were unable to evaluate the function for some reason
+    | CouldNotEvaluate of string
 
 /// A shorthand for the specific Imperative type used by several functions in this file
 type private Imp<'t> = Imperative<EvalState, 't, FunctionInterrupt>
@@ -153,27 +153,13 @@ type internal FunctionEvaluator(callables: Callables) =
         | Provided (specArgs, scope) ->
             let vars = defineVarTuple (isLiteral callables) Map.empty (toSymbolTuple specArgs, arg)
             match this.evaluateScope scope (vars, stmtsLeft) with
-            | Normal _ ->
-                // printfn "Function %O didn't return anything" name.Name.Value
-                None
-            | Break _ ->
-                // printfn "Function %O ended with a break statement" name.Name.Value
-                None
-            | Interrupt (Returned expr) ->
-                // printfn "Function %O returned %O" name.Name.Value (prettyPrint expr)
-                Some expr
-            | Interrupt (Failed expr) ->
-                // printfn "Function %O failed with %O" name.Name.Value (prettyPrint expr)
-                None
-            | Interrupt TooManyStatements ->
-                // printfn "Function %O ran out of statements" name.Name.Value
-                None
-            | Interrupt (CouldNotEvaluate reason) ->
-                // printfn "Could not evaluate function %O on arg %O for reason %O" name.Name.Value (prettyPrint arg.Expression) reason
-                None
-        | _ ->
-            // printfn "Implementation not provided for: %O" name
-            None
+            | Normal _ ->  None
+            | Break _ -> None
+            | Interrupt (Returned expr) -> Some expr
+            | Interrupt (Failed _) -> None
+            | Interrupt TooManyStatements -> None
+            | Interrupt (CouldNotEvaluate reason) -> None
+        | _ -> None
 
 
 /// The ExpressionTransformation used to evaluate constant expressions

@@ -22,8 +22,8 @@ type internal FindDistinctQubits() =
 
     override __.onProvidedImplementation (argTuple, body) =
         argTuple |> toSymbolTuple |> flatten |> Seq.iter (function
-        | VariableName name -> _distinctNames <- _distinctNames.Add name
-        | _ -> ())
+            | VariableName name -> _distinctNames <- _distinctNames.Add name
+            | _ -> ())
         base.onProvidedImplementation (argTuple, body)
 
     override __.Scope = { new ScopeTransformation() with
@@ -60,16 +60,16 @@ type internal MutationChecker() =
 
         override __.onVariableDeclaration stm =
             flatten stm.Lhs |> Seq.iter (function
-            | VariableName name -> declaredVars <- declaredVars.Add name
-            | _ -> ())
+                | VariableName name -> declaredVars <- declaredVars.Add name
+                | _ -> ())
             base.onVariableDeclaration stm
 
         override __.onValueUpdate stm =
             match stm.Lhs with
             | LocalVarTuple v ->
                 flatten v |> Seq.iter (function
-                | VariableName name -> mutatedVars <- mutatedVars.Add name
-                | _ -> ())
+                    | VariableName name -> mutatedVars <- mutatedVars.Add name
+                    | _ -> ())
             | _ -> ()
             base.onValueUpdate stm
     }
@@ -90,8 +90,7 @@ type internal OptimizingTransformation() =
     /// Checks whether the syntax tree changed at all
     override __.Transform x =
         let newX = base.Transform x
-        if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then
-            changed <- true
+        if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then changed <- true
         newX
 
 
@@ -111,8 +110,7 @@ type internal ReferenceCounter() =
 
             override __.onIdentifier (sym, tArgs) =
                 match sym with
-                | LocalVariable name ->
-                    numUses <- numUses.Add (name, this.getNumUses name + 1)
+                | LocalVariable name -> numUses <- numUses.Add (name, this.getNumUses name + 1)
                 | _ -> ()
                 base.onIdentifier (sym, tArgs)
         }
@@ -129,10 +127,8 @@ type internal ReplaceTypeParams(typeParams: ImmutableDictionary<QsTypeParameter,
         override __.Type = { new ExpressionTypeTransformation() with
             override __.onTypeParameter tp =
                 let key = tp.Origin, tp.TypeName
-                if typeMap.ContainsKey key then
-                    typeMap.[key].Resolution
-                else
-                    base.onTypeParameter tp
+                if typeMap.ContainsKey key then typeMap.[key].Resolution
+                else base.onTypeParameter tp
             }
     }
 
