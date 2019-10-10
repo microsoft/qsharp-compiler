@@ -671,6 +671,7 @@ type QsCallable = {
 }
     with 
     member this.WithSpecializations (getSpecs : Func<_,_>) = {this with Specializations = getSpecs.Invoke(this.Specializations)}
+    member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
 
 
 /// used to represent the named and anonymous items in a user defined type
@@ -732,6 +733,8 @@ type QsNamespace = {
     /// The key is the name of the source file the documentation has been specified in. 
     Documentation : ILookup<NonNullable<string>, ImmutableArray<string>>
 }
+    with
+    member this.WithElements (getElements : Func<_,_>) = {this with Elements = getElements.Invoke(this.Elements)}
 
 
 
