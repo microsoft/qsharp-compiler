@@ -29,8 +29,8 @@ function Pack-One() {
     }
 }
 
-Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects'
-Pack-One '../src/QsCompiler/CommandLineTool/QsCommandLineTool.csproj' '-IncludeReferencedProjects'
+Pack-One '../src/QsCompiler/Compiler/Compiler.csproj' '-IncludeReferencedProjects'
+Pack-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj' '-IncludeReferencedProjects'
 Pack-One '../src/ProjectTemplates/Microsoft.Quantum.ProjectTemplates.nuspec'
 
 ##
