@@ -1,19 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRenaming
+module Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming
 
 open System
 open System.Collections.Immutable
 open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
-
-open ComputationExpressions
-open Utils
 
 
 /// Returns a copy of the given variable stack inside of a new scope

@@ -1,18 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.Utils
+module Microsoft.Quantum.QsCompiler.Optimizations.Utils
 
 open System
 open System.Collections.Immutable
 open System.Numerics
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-
-open ComputationExpressions
 
 
 /// Shorthand for a QsExpressionKind

@@ -1,15 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.MinorTransformations
+module Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
 
 open System.Collections.Immutable
-open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
-
-open Utils
 
 
 /// A SyntaxTreeTransformation that finds identifiers in each implementation that represent distict values.

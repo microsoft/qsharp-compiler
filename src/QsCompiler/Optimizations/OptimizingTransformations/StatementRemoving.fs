@@ -1,16 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementRemoving
+module Microsoft.Quantum.QsCompiler.Optimizations.StatementRemoving
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-
-open Utils
-open MinorTransformations
 
 
 /// The SyntaxTreeTransformation used to remove useless statements

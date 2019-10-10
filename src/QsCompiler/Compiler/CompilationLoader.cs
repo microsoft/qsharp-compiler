@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
-using Microsoft.Quantum.QsCompiler.CompilerOptimization;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Documentation;
@@ -257,7 +256,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.CompilationStatus.Optimizations = 0;
                 try
                 {
-                    this.GeneratedSyntaxTree = Optimizations.optimize(this.GeneratedSyntaxTree);
+                    this.GeneratedSyntaxTree = Optimizations.Optimizations.optimize(this.GeneratedSyntaxTree);
                 }
                 catch (Exception ex)
                 {

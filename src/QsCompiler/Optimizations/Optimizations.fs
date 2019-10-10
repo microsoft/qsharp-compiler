@@ -1,20 +1,19 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.CompilerOptimization
+namespace Microsoft.Quantum.QsCompiler.Optimizations
 
 open Microsoft.Quantum.QsCompiler
-
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.Utils
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.MinorTransformations
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRenaming
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRemoving
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementRemoving
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.LoopUnrolling
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.StatementReordering
-open Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitFinding
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
+open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
+open Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming
+open Microsoft.Quantum.QsCompiler.Optimizations.VariableRemoving
+open Microsoft.Quantum.QsCompiler.Optimizations.StatementRemoving
+open Microsoft.Quantum.QsCompiler.Optimizations.ConstantPropagation
+open Microsoft.Quantum.QsCompiler.Optimizations.LoopUnrolling
+open Microsoft.Quantum.QsCompiler.Optimizations.CallableInlining
+open Microsoft.Quantum.QsCompiler.Optimizations.StatementReordering
+open Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitFinding
 
 
 /// This class has static functions to perform high-level combinations of optimizations

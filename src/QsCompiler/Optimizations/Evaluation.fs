@@ -1,19 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.Evaluation
+module Microsoft.Quantum.QsCompiler.Optimizations.Evaluation
 
 open System
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
-
-open ComputationExpressions
-open Utils
 
 
 /// Represents the internal state of a function evaluation.

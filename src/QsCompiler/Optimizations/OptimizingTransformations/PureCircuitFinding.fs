@@ -1,16 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitFinding
+module Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitFinding
 
+open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
+open Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitAPI
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
-
-open Utils
-open PureCircuitAPI
-open MinorTransformations
 
 
 /// Returns whether an expression is an operation call
