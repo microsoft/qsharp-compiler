@@ -20,13 +20,13 @@
     <Compile Include="SyntaxBuilder.fs" />
     <Compile Include="QsTypeParsing.fs" />
     <Compile Include="QsExpressionParsing.fs" />
+    <Compile Include="QsFragmentParsing.fs" />
+    <Compile Include="TextProcessing.fs" />
     <Compile Include="CodeCompletion\CodeCompletion.fs" />
     <Compile Include="CodeCompletion\ParsingPrimitives.fs" />
     <Compile Include="CodeCompletion\TypeParsing.fs" />
     <Compile Include="CodeCompletion\ExpressionParsing.fs" />
     <Compile Include="CodeCompletion\FragmentParsing.fs" />
-    <Compile Include="QsFragmentParsing.fs" />
-    <Compile Include="TextProcessing.fs" />
   </ItemGroup>
 
   <ItemGroup>
