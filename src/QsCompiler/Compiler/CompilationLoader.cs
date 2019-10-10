@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -10,9 +11,9 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Documentation;
-using Microsoft.Quantum.QsCompiler.Optimizations;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
@@ -249,14 +250,9 @@ namespace Microsoft.Quantum.QsCompiler
             if (this.Config.AttemptFullPreEvaluation)
             {
                 this.CompilationStatus.PreEvaluation = 0;
-                try
-                {
-                    this.GeneratedSyntaxTree = PreEvalution.All(this.GeneratedSyntaxTree);
-                }
-                catch (Exception ex)
-                {
-                    this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ex);
-                }
+                void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ex);
+                var evaluated = this.GeneratedSyntaxTree != null && CodeTransformations.PreEvaluateAll(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree, onException);
+                if (!evaluated) this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ErrorCode.PreEvaluationFailed, Enumerable.Empty<string>()); 
             }
 
             // generating the compiled binary

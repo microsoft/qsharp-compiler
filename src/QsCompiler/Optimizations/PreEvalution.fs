@@ -21,6 +21,8 @@ type PreEvalution =
 
     /// Attempts to pre-evaluate the given sequence of namespaces as much as possible
     static member All (arg : QsNamespace seq) =
+
+        // TODO: these should be configurable
         let removeFunctions = false
         let maxSize = 40
 
