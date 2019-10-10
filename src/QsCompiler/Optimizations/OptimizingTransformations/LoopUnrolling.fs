@@ -1,17 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.LoopUnrolling
+module Microsoft.Quantum.QsCompiler.Optimizations.LoopUnrolling
 
+open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
+open Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
-
-open ComputationExpressions
-open Utils
-open MinorTransformations
-open VariableRenaming
 
 
 /// The SyntaxTreeTransformation used to unroll loops

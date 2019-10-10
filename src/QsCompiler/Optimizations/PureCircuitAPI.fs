@@ -1,32 +1,31 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.PureCircuitAPI
+module Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitAPI
 
 open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-
-open ComputationExpressions
-open Utils
 
 
 /// Any constant expression
 type Literal =
-| IntLiteral            of int64
-| DoubleLiteral         of double
-| PauliLiteral          of QsPauli
-| PauliArray            of QsPauli list
+    | IntLiteral            of int64
+    | DoubleLiteral         of double
+    | PauliLiteral          of QsPauli
+    | PauliArray            of QsPauli list
 
 /// Any expression
 type Expression =
-| Literal               of Literal
-| Tuple                 of Expression list
-| Qubit                 of int
-| QubitArray            of int list
-| UnknownValue          of int
+    | Literal               of Literal
+    | Tuple                 of Expression list
+    | Qubit                 of int
+    | QubitArray            of int list
+    | UnknownValue          of int
 
 /// A call to a quantum gate, with the given functors and arguments
 type GateCall = {

@@ -1,19 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.VariableRenaming
+module Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming
 
 open System
 open System.Collections.Immutable
 open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
-
-open ComputationExpressions
-open Utils
 
 
 /// Returns a copy of the given variable stack inside of a new scope
@@ -31,8 +29,8 @@ let private tryGet key = List.tryPick (Map.tryFind key)
 /// Returns a copy of the given variable stack with the given key set to the given value.
 /// Throws an ArgumentException if the given variable stack is empty.
 let private set (key, value) = function
-| [] -> ArgumentException "No scope to define variables in" |> raise
-| head :: tail -> Map.add key value head :: tail
+    | [] -> ArgumentException "No scope to define variables in" |> raise
+    | head :: tail -> Map.add key value head :: tail
 
 /// A regex that matches the original name of a mangled variable name
 let private varNameRegex = Regex("^__qsVar\d+__(.+)__$")
@@ -70,9 +68,9 @@ type internal VariableRenamer() =
 
     /// Processes the initial argument tuple from the function declaration
     let rec processArgTuple = function
-    | QsTupleItem {VariableName = ValidName name} -> generateUniqueName name.Value |> ignore
-    | QsTupleItem {VariableName = InvalidName} -> ()
-    | QsTuple items -> Seq.iter processArgTuple items
+        | QsTupleItem {VariableName = ValidName name} -> generateUniqueName name.Value |> ignore
+        | QsTupleItem {VariableName = InvalidName} -> ()
+        | QsTuple items -> Seq.iter processArgTuple items
 
     member __.clearStack() =
         renamingStack <- [Map.empty]

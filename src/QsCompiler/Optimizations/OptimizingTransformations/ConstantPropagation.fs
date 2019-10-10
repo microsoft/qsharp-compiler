@@ -1,25 +1,24 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.ConstantPropagation
+module Microsoft.Quantum.QsCompiler.Optimizations.ConstantPropagation
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Optimizations.Evaluation
+open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-open Utils
-open Evaluation
-open MinorTransformations
-
 
 /// Returns whether the given expression should be propagated as a constant.
 /// For a statement of the form "let x = [expr];", if shouldPropagate(expr) is true,
 /// then we should substitute [expr] for x wherever x occurs in future code.
-let rec private shouldPropagate callables expr =
-    expr |> TypedExpression.MapFold (fun ex -> ex.Expression) (fun sub ex ->
+let rec private shouldPropagate callables (expr : TypedExpression) =
+    let folder ex sub = 
         isLiteral callables ex ||
         (match ex.Expression with
         | Identifier _ | ArrayItem _ | UnwrapApplication _ | NamedItem _
@@ -28,7 +27,8 @@ let rec private shouldPropagate callables expr =
             when (callables.get qualName).Kind = TypeConstructor -> true
         | a when TypedExpression.IsPartialApplication a -> true
         | _ -> false
-        && Seq.forall id sub))
+        && Seq.forall id sub)
+    expr.Fold folder
 
 
 /// The SyntaxTreeTransformation used to evaluate constants

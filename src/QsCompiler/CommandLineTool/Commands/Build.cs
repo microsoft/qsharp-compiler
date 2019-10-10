@@ -47,8 +47,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public string DocFolder { get; set; }
 
             [Option("proj", Required = false, SetName = CODE_MODE,
-            HelpText = "Name of the project; needs to be usable as file name.")]
+            HelpText = "Name of the project (needs to be usable as file name).")]
             public string ProjectName { get; set; }
+
+            [Option("trim", Required = false, Default = 1,
+            HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
+            public int TrimLevel { get; set; }
         }
 
 
@@ -94,8 +98,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 ProjectFile = options.ProjectName == null ? null : new Uri(Path.GetFullPath(options.ProjectName)),
                 GenerateFunctorSupport = true,
-                DoOptimizationSteps = true,
-                SkipSyntaxTreeTrimming = false,
+                SkipSyntaxTreeTrimming = options.TrimLevel == 0,
+                AttemptFullPreEvaluation = options.TrimLevel > 1,
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (specifiesTargets ? "." : null),
                 Targets = options.Targets.ToImmutableDictionary(id => id, DefineTarget)

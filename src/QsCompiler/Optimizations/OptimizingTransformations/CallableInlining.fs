@@ -1,20 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.CompilerOptimization.CallableInlining
+module Microsoft.Quantum.QsCompiler.Optimizations.CallableInlining
 
 open System.Collections.Generic
 open System.Collections.Immutable
-open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
+open Microsoft.Quantum.QsCompiler.Optimizations.Utils
+open Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
-
-open ComputationExpressions
-open Utils
-open MinorTransformations
-open VariableRenaming
 
 
 /// Represents all the functors applied to an operation call
@@ -105,7 +103,7 @@ let private tryGetInliningInfo callables expr =
 /// Mutates the given HashSet by adding all the found callables to the set.
 /// Is used to prevent inlining recursive functions into themselves forever.
 let rec private findAllCalls (callables: Callables) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
-    scope |> findAllBaseStatements |> Seq.iter (function
+    scope |> findAllSubStatements |> Seq.iter (function
         | QsExpressionStatement ex ->
             match tryGetInliningInfo callables ex with
             | Some ii ->

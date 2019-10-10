@@ -2,17 +2,18 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
-using Microsoft.Quantum.QsCompiler.CompilerOptimization;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
@@ -61,9 +62,10 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool SkipSyntaxTreeTrimming;
             /// <summary>
-            /// If set to true, the syntax tree rewrite steps that optimize the code are executed during compilation.
+            /// If set to true, the compiler attempts to pre-evaluate the built compilation as much as possible.
+            /// This is an experimental feature that will change over time. 
             /// </summary>
-            public bool DoOptimizationSteps;
+            public bool AttemptFullPreEvaluation;
             /// <summary>
             /// If the output folder is not null,
             /// documentation is generated in the specified folder based on doc comments in the source code.
@@ -87,7 +89,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal int ReferenceLoading = -1;
             internal int Validation = -1;
             internal int FunctorSupport = -1;
-            internal int Optimizations = -1;
+            internal int PreEvaluation = -1;
             internal int TreeTrimming = -1;
             internal int Documentation = -1;
             internal int BinaryFormat = -1;
@@ -104,22 +106,12 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
-                WasSuccessful(options.DoOptimizationSteps, this.Optimizations) &&
+                WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 !this.BuildTargets.Values.Any(status => !WasSuccessful(true, status))
                 ? 0 : 1;
-
-            internal bool NoFailuresYet =>
-                this.SourceFileLoading <= 0 &&
-                this.ReferenceLoading <= 0 &&
-                this.Validation <= 0 &&
-                this.FunctorSupport <= 0 &&
-                this.Optimizations <= 0 &&
-                this.Documentation <= 0 &&
-                this.BinaryFormat <= 0 &&
-                this.BuildTargets.Values.All(status => status <= 0);
         }
 
         /// <summary>
@@ -151,6 +143,11 @@ namespace Microsoft.Quantum.QsCompiler
         /// This rewrite step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status FunctorSupport => GetStatus(this.CompilationStatus.FunctorSupport);
+        /// <summary>
+        /// Indicates whether the pre-evaluation step executed successfully. 
+        /// This rewrite step is only executed if the corresponding configuration is specified. 
+        /// </summary>
+        public Status PreEvaluation => GetStatus(this.CompilationStatus.PreEvaluation);
         /// <summary>
         /// Indicates whether documentation for the compilation was generated successfully. 
         /// This step is only executed if the corresponding configuration is specified. 
@@ -250,19 +247,12 @@ namespace Microsoft.Quantum.QsCompiler
                 if (this.GeneratedSyntaxTree == null || !rewrite.Success) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
             }
 
-            // executing the specified optimization steps
-
-            if (this.CompilationStatus.NoFailuresYet && this.Config.DoOptimizationSteps)
+            if (this.Config.AttemptFullPreEvaluation)
             {
-                this.CompilationStatus.Optimizations = 0;
-                try
-                {
-                    this.GeneratedSyntaxTree = Optimizations.optimize(this.GeneratedSyntaxTree);
-                }
-                catch (Exception ex)
-                {
-                    this.LogAndUpdate(ref this.CompilationStatus.Optimizations, ex);
-                }
+                this.CompilationStatus.PreEvaluation = 0;
+                void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ex);
+                var evaluated = this.GeneratedSyntaxTree != null && CodeTransformations.PreEvaluateAll(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree, onException);
+                if (!evaluated) this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ErrorCode.PreEvaluationFailed, Enumerable.Empty<string>()); 
             }
 
             // generating the compiled binary

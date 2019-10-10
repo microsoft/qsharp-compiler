@@ -7,7 +7,7 @@ open System
 open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.CompilerOptimization
+open Microsoft.Quantum.QsCompiler.Optimizations
 open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
@@ -26,7 +26,7 @@ let private buildSyntaxTree code =
 /// Given a string of valid Q# code, outputs the optimized AST as a string
 let private optimize code =
     let mutable tree = buildSyntaxTree code
-    tree <- Optimizations.optimize tree
+    tree <- PreEvalution.All tree
     let x = SyntaxTreeToQs()
     Seq.iter (x.Transform >> ignore) tree
     x.Output
