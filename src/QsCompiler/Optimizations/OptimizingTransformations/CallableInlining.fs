@@ -103,7 +103,7 @@ let private tryGetInliningInfo callables expr =
 /// Mutates the given HashSet by adding all the found callables to the set.
 /// Is used to prevent inlining recursive functions into themselves forever.
 let rec private findAllCalls (callables: Callables) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
-    scope |> findAllBaseStatements |> Seq.iter (function
+    scope |> findAllSubStatements |> Seq.iter (function
         | QsExpressionStatement ex ->
             match tryGetInliningInfo callables ex with
             | Some ii ->

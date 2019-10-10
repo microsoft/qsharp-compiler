@@ -33,7 +33,7 @@ type internal Callables (m: ImmutableDictionary<QsQualifiedName, QsCallable>) =
 
 /// Returns whether a given expression is a literal (and thus a constant)
 let rec internal isLiteral (callables: Callables) (expr: TypedExpression): bool =
-    expr |> TypedExpression.MapFold (fun ex -> ex.Expression) (fun sub ex ->
+    let folder ex sub = 
         match ex.Expression with
         | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ | StringLiteral _
         | UnitValue | MissingExpr | Identifier (GlobalCallable _, _)
@@ -43,7 +43,8 @@ let rec internal isLiteral (callables: Callables) (expr: TypedExpression): bool 
             when (callables.get qualName).Kind = TypeConstructor -> true
         | a when TypedExpression.IsPartialApplication a -> true
         | _ -> false
-        && Seq.forall id sub)
+        && Seq.forall id sub
+    expr.Fold folder
 
 
 /// If check(value) is true, returns a Constants with the given variable defined as the given value.
@@ -240,16 +241,17 @@ let rec internal takeWhilePlus1 (f: 'A -> bool) (l : list<'A>) =
 
 
 /// Returns a sequence of all statements contained directly or indirectly in this scope
-let internal findAllBaseStatements (scope: QsScope) =
-    scope.Statements |> Seq.collect (QsStatement.ExtractAll (fun s -> [s.Statement]))
+let internal findAllSubStatements (scope: QsScope) =
+    let statementKind (s : QsStatement) = s.Statement
+    scope.Statements |> Seq.collect (fun stm -> stm.ExtractAll (statementKind >> Seq.singleton))
 
 /// Returns the number of return statements in this scope
 let internal countReturnStatements (scope: QsScope): int =
-    scope |> findAllBaseStatements |> Seq.sumBy (function QsReturnStatement _ -> 1 | _ -> 0)
+    scope |> findAllSubStatements |> Seq.sumBy (function QsReturnStatement _ -> 1 | _ -> 0)
 
 /// Returns the number of statements in this scope
 let internal scopeLength (scope: QsScope): int =
-    scope |> findAllBaseStatements |> Seq.length
+    scope |> findAllSubStatements |> Seq.length
 
 
 /// Returns whether all variables in a symbol tuple are discarded
@@ -263,13 +265,13 @@ let rec internal isAllDiscarded = function
 let internal safeCastInt64 (i: int64): int =
     if i > int64 (1 <<< 30) || i < -int64 (1 <<< 30) then
         ArgumentException "Integer is too large for 32 bits" |> raise
-    int i
+    else int i
 
 /// Casts a BigInteger to an int, throwing an ArgumentException if outside the allowed range
 let internal safeCastBigInt (i: BigInteger): int =
     if BigInteger.Abs(i) > BigInteger (1 <<< 30) then
         ArgumentException "Integer is too large for 32 bits" |> raise
-    int i
+    else int i
 
 
 /// Creates a new scope statement wrapping the given block
