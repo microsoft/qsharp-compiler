@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
+    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

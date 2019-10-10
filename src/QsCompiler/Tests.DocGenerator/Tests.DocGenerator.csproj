@@ -21,8 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
-    <ProjectReference Include="..\DocumentationParser\QsDocumentationParser.csproj" />
+    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
+    <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
   </ItemGroup>
 
 </Project>

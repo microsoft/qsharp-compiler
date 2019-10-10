@@ -23,10 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DocumentationParser\QsDocumentationParser.csproj" />
-    <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
-    <ProjectReference Include="..\Transformations\QsTransformations.csproj" />
-    <ProjectReference Include="..\Core\QsCore.fsproj" />
+    <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
+    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
+    <ProjectReference Include="..\Transformations\Transformations.csproj" />
+    <ProjectReference Include="..\Core\Core.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

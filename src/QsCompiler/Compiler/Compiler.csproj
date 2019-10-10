@@ -8,8 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CompilationManager\QsCompilationManager.csproj" />
-    <ProjectReference Include="..\DocumentationParser\QsDocumentationParser.csproj" />
+    <ProjectReference Include="..\CompilationManager\CompilationManager.csproj" />
+    <ProjectReference Include="..\Optimizations\Optimizations.fsproj" />
+    <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
   </ItemGroup>
 
   <ItemGroup>

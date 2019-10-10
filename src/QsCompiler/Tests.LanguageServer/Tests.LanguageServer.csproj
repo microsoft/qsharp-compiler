@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\LanguageServer\QsLanguageServer.csproj">
+    <ProjectReference Include="..\LanguageServer\LanguageServer.csproj">
       <Private>true</Private>
     </ProjectReference>
   </ItemGroup>
