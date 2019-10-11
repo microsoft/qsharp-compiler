@@ -13,7 +13,6 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
 
 
@@ -39,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             if (asm == null) throw new ArgumentNullException(nameof(asm));
             if (!CompilationUnitManager.TryGetFileId(asm, out var id) || !File.Exists(asm.LocalPath))
-            { throw new FileNotFoundException($"the uti '{asm}' given to the assembly loader is invalid or the file does not exist"); }
+            { throw new FileNotFoundException($"the uri '{asm}' given to the assembly loader is invalid or the file does not exist"); }
 
             using (var stream = File.OpenRead(asm.LocalPath))
             using (var assemblyFile = new PEReader(stream))
