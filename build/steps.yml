@@ -25,9 +25,9 @@ steps:
 - task: VSBuild@1
   displayName: 'Pack VisualStudio extension'
   inputs:
-    vsVersion: 'latest'
     solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
     msbuildArgs: >
+      /p:VisualStudioVersion=16.3
       /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)
