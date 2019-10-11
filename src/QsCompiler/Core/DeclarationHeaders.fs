@@ -6,6 +6,7 @@ namespace Microsoft.Quantum.QsCompiler
 open System
 open System.Collections.Immutable
 open System.IO
+open System.Text
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Serialization
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -15,12 +16,18 @@ open Newtonsoft.Json
 
 /// to be removed in future releases
 type private DeclarationHeader = 
+
     static member internal FromJson<'T> json = 
         let deserialize converters =             
             let reader = new JsonTextReader(new StringReader(json));
             (converters |> Json.Serializer).Deserialize<'T>(reader)
         try true, Json.Converters false |> deserialize
         with _ -> false, Json.Converters true |> deserialize
+
+    static member internal ToJson obj = 
+        let builder = new StringBuilder()
+        (Json.Converters false |> Json.Serializer).Serialize(new StringWriter(builder), obj)
+        builder.ToString()
 
 
 /// to be removed in future releases
@@ -56,7 +63,7 @@ type TypeDeclarationHeader = {
         else false, {header with TypeItems = ImmutableArray.Create (header.Type |> Anonymous |> QsTupleItem) |> QsTuple}
 
     member this.ToJson() : string  =
-        JsonConvert.SerializeObject(this, Json.Converters false) // FIXME
+        DeclarationHeader.ToJson this
 
 
 /// to be removed in future releases
@@ -102,7 +109,7 @@ type CallableDeclarationHeader = {
         else success, header
 
     member this.ToJson() : string  =
-        JsonConvert.SerializeObject(this, Json.Converters false) // FIXME
+        DeclarationHeader.ToJson this
 
 
 /// to be removed in future releases
@@ -147,7 +154,7 @@ type SpecializationDeclarationHeader = {
             false, {header with Information = information; TypeArguments = typeArguments }
 
     member this.ToJson() : string  =
-        JsonConvert.SerializeObject(this, Json.Converters false) // FIXME
+        DeclarationHeader.ToJson this
         
 
 
