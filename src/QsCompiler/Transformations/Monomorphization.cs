@@ -9,10 +9,12 @@ using System.Linq;
 using System.Runtime;
 using System.Runtime.InteropServices;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.Optimizations;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+//using Microsoft.Quantum.QsCompiler.Optimizations;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
@@ -93,6 +95,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         {
             return Apply((IEnumerable<QsNamespace>)namespaces);
         }
+        
+        private ResolveGenericsSyntax(ScopeTransformation<ResolveGenericsExpression> scope, GenericsCrate generics) : base(scope) { this.Generics = generics; }
 
         public override QsNamespace Transform(QsNamespace ns)
         {
@@ -110,12 +114,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
                 else
                 {
-                    return new ImmutableArray<QsNamespaceElement>() { elem };
+                    return ImmutableArray.Create(elem);
                 }
             }).ToImmutableArray());
         }
-
-        private ResolveGenericsSyntax(ScopeTransformation<ResolveGenericsExpression> scope, GenericsCrate generics) : base(scope) { this.Generics = generics; }
     }
 
     public class ResolveGenericsExpression :
@@ -197,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
                 name = NonNullable<string>.New(nameString);
 
-                var replaceParamsTransform = new ReplaceTypeParams(types);
+                var replaceParamsTransform = new MinorTransformations.ReplaceTypeParams(types);
                 QsCallable newCallable = original
                     // TODO: this is currently specific to Provided, but should be generalized
                     .WithSpecializations(specs => specs.Select(specialization =>
@@ -214,13 +216,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
 
             return Identifier.NewGlobalCallable(new QsQualifiedName(globalCallable.Item.Namespace, name));
-        }
-
-        // DUMMY CLASS
-        // temporary until PR #177 is completed and must be removed afterwards
-        private class ReplaceTypeParams : ScopeTransformation
-        {
-            public ReplaceTypeParams(ImmutableDictionary<QsTypeParameter, ResolvedType> typeParams) : base(true) { }
         }
     }
 

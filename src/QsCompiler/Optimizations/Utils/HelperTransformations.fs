@@ -118,7 +118,7 @@ type internal ReferenceCounter() =
 
 
 /// A ScopeTransformation that substitutes type parameters according to the given dictionary
-type internal ReplaceTypeParams(typeParams: ImmutableDictionary<QsTypeParameter, ResolvedType>) =
+type public ReplaceTypeParams(typeParams: ImmutableDictionary<QsTypeParameter, ResolvedType>) =
     inherit ScopeTransformation()
 
     let typeMap = typeParams |> Seq.map (function KeyValue (a, b) -> (a.Origin, a.TypeName), b) |> Map
