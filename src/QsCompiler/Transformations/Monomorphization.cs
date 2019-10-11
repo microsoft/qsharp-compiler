@@ -39,47 +39,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     public class ResolveGenericsSyntax :
         SyntaxTreeTransformation<ScopeTransformation<ResolveGenericsExpression>>
     {
-        // DUMMY TEST FUNCTION - should be deleted
-        private static void TestHash()
-        {
-            var temp = new Dictionary<Concretion, int>();
-            Concretion conA = new Concretion();
-            Concretion conB = new Concretion();
-            
-            conA.Add((
-                NonNullable<string>.New("TypeVarA"),
-                LocalTypeKind.Int
-                ));
-            
-            conA.Add((
-                NonNullable<string>.New("TypeVarB"),
-                LocalTypeKind.NewTupleType(ImmutableArray.Create(ResolvedType.New(LocalTypeKind.Int), ResolvedType.New(LocalTypeKind.Double)))
-                ));
-            
-            conB.Add((
-                NonNullable<string>.New("TypeVarA"),
-                LocalTypeKind.Int
-                ));
-            
-            temp.Add(conA, 12);
-            temp.Add(conB, 4);
-            
-            conB.Add((
-                NonNullable<string>.New("TypeVarB"),
-                LocalTypeKind.NewTupleType(ImmutableArray.Create(ResolvedType.New(LocalTypeKind.Int), ResolvedType.New(LocalTypeKind.Double)))
-                ));
-            
-            var result = temp[conB];
-
-            return;
-        }
-
         private GenericsCrate Generics;
 
         public static IEnumerable<QsNamespace> Apply(IEnumerable<QsNamespace> namespaces)
         {
-            //TestHash();
-
             if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
 
             // Get list of generics
@@ -219,11 +182,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             return base.onIdentifier(sym, tArgs);
         }
     }
+
     #endregion
 
     #region ReplaceTypeParams
 
-    public class ReplaceTypeParamsSyntax :
+    internal class ReplaceTypeParamsSyntax :
         SyntaxTreeTransformation<MinorTransformations.ReplaceTypeParams>
     {
         public static QsCallable Apply(ImmutableDictionary<QsTypeParameter, ResolvedType> typeParams, QsCallable callable)
