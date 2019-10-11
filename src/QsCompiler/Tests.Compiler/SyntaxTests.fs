@@ -167,8 +167,8 @@ let ``Expression literal tests`` () =
         (minIntMinus1Str,         true,    toExpr (NEG (IntLiteral ((int64)absMinIntMinus1) |> toExpr)),          [Error ErrorCode.IntOverflow]);
         (maxIntPlus1.ToString(),  true,    toExpr (NEG (IntLiteral ((int64)maxIntPlus1) |> toExpr)),              []); // no error, will pop up at runtime
         (maxIntPlus2.ToString(),  true,    toExpr (IntLiteral ((int64)maxIntPlus2)),                              [Error ErrorCode.IntOverflow]);
-        (doublePrecBound,         true,    toExpr (DoubleLiteral System.Double.NaN),                              [Error ErrorCode.DoubleOverflow]);
-        (minusDoublePrecBound,    true,    toExpr (NEG (DoubleLiteral System.Double.NaN |> toExpr)),              [Error ErrorCode.DoubleOverflow]);
+        (doublePrecBound,         true,    toExpr (DoubleLiteral System.Double.PositiveInfinity),                 [Error ErrorCode.DoubleOverflow]);
+        (minusDoublePrecBound,    true,    toExpr (NEG (DoubleLiteral System.Double.PositiveInfinity |> toExpr)), [Error ErrorCode.DoubleOverflow]);
         (minInt.ToString(),       true,    toExpr (NEG (NEG (IntLiteral minInt |> toExpr) |> toExpr)),            []); 
         (maxInt.ToString(),       true,    toExpr (IntLiteral maxInt),                                            []); 
         (minDouble.ToString("R"), true,    toExpr (NEG (DoubleLiteral -minDouble |> toExpr)),                     []); 
