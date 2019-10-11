@@ -126,7 +126,7 @@ function Pack-SelfContained() {
 }
 
 Pack-SelfContained `
-    -Project "../src/QsCompiler/LanguageServer/QsLanguageServer.csproj" `
+    -Project "../src/QsCompiler/LanguageServer/LanguageServer.csproj" `
     -PackageData "../src/VSCodeExtension/package.json"
 
 Write-Host "Final package.json:"
