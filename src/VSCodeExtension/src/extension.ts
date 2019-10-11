@@ -98,13 +98,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
     let rootFolder = findRootFolder();
 
-    // let config = vscode.workspace.getConfiguration("quantumDevKit");
-    // let configPath = config['languageServerPath'];
-    // let languageServerPath =
-    //     isAbsolute(configPath)
-    //         ? configPath
-    //         : context.asAbsolutePath(configPath);
-
     // Start the language server client.
     let languageServer = new LanguageServer(context, rootFolder);
     await languageServer

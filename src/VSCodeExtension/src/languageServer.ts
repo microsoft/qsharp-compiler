@@ -35,7 +35,7 @@ import request = require('request');
 namespace CommonPaths {
     export const storageRelativePath = "server";
     export const executableNames = {
-        darwin: "", // TODO
+        darwin: "Microsoft.Quantum.QsLanguageServer",
         linux: "Microsoft.Quantum.QsLanguageServer",
         win32: "Microsoft.Quantum.QsLanguageServer.exe",
         aix: null,
@@ -166,14 +166,29 @@ export class LanguageServer {
     }
 
     async findExecutable() : Promise<boolean> {
-        // TODO: allow overloading language server name from preferences.
-        // Look at the global storage path for the context to try and find the
-        // language server executable.
-        let exeName = CommonPaths.executableNames[os.platform()];
-        if (exeName === null) {
-            throw new Error(`Unsupported platform: ${os.platform()}`);
+        let lsPath : string | undefined | null = undefined;
+        // Before anything else, look at the user's configuration to see
+        // if they set a path manually for the language server.
+        let packageInfo = getPackageInfo(this.context);
+        if (packageInfo !== undefined) {
+            let config = vscode.workspace.getConfiguration(packageInfo.name);
+            lsPath = config.get("quantumDevKit.languageServerPath");
         }
-        let lsPath = path.join(this.context.globalStoragePath, CommonPaths.storageRelativePath, exeName);
+
+        // If lsPath is still undefined or null, then we didn't have a manual
+        // path set up above.
+        if (lsPath === undefined || lsPath === null) {
+            // Look at the global storage path for the context to try and find the
+            // language server executable.
+            let exeName = CommonPaths.executableNames[os.platform()];
+            if (exeName === null) {
+                throw new Error(`Unsupported platform: ${os.platform()}`);
+            }
+            lsPath = path.join(this.context.globalStoragePath, CommonPaths.storageRelativePath, exeName);
+        }
+
+        // Since lsPath has been set unconditionally, we can now proceed to
+        // check if it's valid or not.
         if (!await isPathExecutable(lsPath)) {
             // Language server didn't exist or wasn't executable.
             return false;
@@ -295,12 +310,11 @@ export class LanguageServer {
             console.log("[qsharp-lsp] Removing downloaded ZIP.");
             fs.remove(downloadTarget);
         }
-        // TODO: delete temp file.
     }
 
     /**
-     * Invokes a new process for the language server, using the `dotnet` tool provided with
-     * the .NET Core SDK.
+     * Invokes a new process for the language server, using the executable found
+     * by the findExecutable method.
      *
      * @param port TCP port to use to talk to the language server.
      */
@@ -505,7 +519,10 @@ export class LanguageServer {
                 }
             }
             if (!this.findExecutable()) {
-                // TODO: handle this error more gracefully.
+                // NB: This case should never occur, as we only get to this
+                //     point in control flow by passing the try/catch above
+                //     without throwing an error. If we get here something
+                //     seriously wrong has occurred inside the extension.
                 throw new Error("Could not find language server.");
             }
         }

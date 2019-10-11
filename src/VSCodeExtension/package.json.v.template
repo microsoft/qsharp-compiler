@@ -72,9 +72,9 @@
             "properties": {
                 "quantumDevKit.languageServerPath": {
                     "scope": "resource",
-                    "type": "string",
+                    "type": ["string", "null"],
                     "description": "Path to the language server assembly for Q#.",
-                    "default": "bin/Microsoft.Quantum.QsLanguageServer.dll"
+                    "default": null
                 }
             }
         },
