@@ -28,26 +28,25 @@ steps:
 #    command: 'restore'
 #    restoreSolution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
 
-#- task: MSBuild@1
-#  displayName: 'Pack Visual Studio extension'
-#  inputs:
-#    msbuildVersion: 'latest'
-#    solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
-#    msbuildArguments: >
-#      /p:VisualStudioVersion=16.3
-#      /p:DefineConstants=$(Assembly.Constants) 
-#      /p:AssemblyVersion=$(Assembly.Version)
-#    configuration: $(Build.Configuration)
-
-- task: VSBuild@1
+- task: MSBuild@1
   displayName: 'Pack Visual Studio extension'
   inputs:
+    msbuildVersion: 'latest'
     solution: '$(System.DefaultWorkingDirectory)/src/VisualStudioExtension/QsharpVSIX/QsharpVSIX.csproj'
-    msbuildArgs: >
-      /t:ResolveProjectReferences;CreateVsixContainer 
+    msbuildArguments: >
       /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
-    configuration: '$(Build.Configuration)'
+    configuration: $(Build.Configuration)
+
+#- task: VSBuild@1
+#  displayName: 'Pack Visual Studio extension'
+#  inputs:
+#    solution: '$(System.DefaultWorkingDirectory)/src/VisualStudioExtension/QsharpVSIX/QsharpVSIX.csproj'
+#    msbuildArgs: >
+#      /t:ResolveProjectReferences;CreateVsixContainer 
+#      /p:DefineConstants=$(Assembly.Constants) 
+#      /p:AssemblyVersion=$(Assembly.Version)
+#    configuration: '$(Build.Configuration)'
 
 
 - template: wrap-up.yml
