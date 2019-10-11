@@ -30,8 +30,8 @@ function Build-One {
 }
 
 Build-One 'build' '../QsCompiler.sln'
-Build-One 'publish' '../src/QsCompiler/CommandLineTool/QsCommandLineTool.csproj'
-Build-One 'publish' '../src/QsCompiler/LanguageServer/QsLanguageServer.csproj'
+Build-One 'publish' '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj'
+Build-One 'publish' '../src/QsCompiler/LanguageServer/LanguageServer.csproj'
 
 
 ##

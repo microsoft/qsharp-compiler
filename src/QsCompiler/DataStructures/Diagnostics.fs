@@ -274,6 +274,7 @@ type ErrorCode =
     | GeneratingBinaryFailed = 7107
     | GeneratingDllFailed = 7108
     | TargetExecutionFailed = 7109
+    | PreEvaluationFailed = 7110
 
 
 type WarningCode = 
@@ -606,6 +607,7 @@ type DiagnosticItem =
             | ErrorCode.GeneratingBinaryFailed                  -> "Unable to generate binary format for the compilation."
             | ErrorCode.GeneratingDllFailed                     -> "Unable to generate dll containing the compiled binary."
             | ErrorCode.TargetExecutionFailed                   -> "Processing of the compiled binary with the target {0} failed."
+            | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
             | _                                                 -> "" 
         code |> ApplyArguments             
              
