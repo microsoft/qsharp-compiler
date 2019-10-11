@@ -4,7 +4,7 @@
   <PropertyGroup>
     <AssemblyName>qsc</AssemblyName>
     <AssemblyTitle>Microsoft Q# compiler command line tool.</AssemblyTitle>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
@@ -29,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Compiler\QsCompiler.csproj" />
+    <ProjectReference Include="..\Compiler\Compiler.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -18,21 +18,21 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsharpLibTemplate", "src\Vi
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LanguageServer", "LanguageServer", "{EEC1E3AF-9958-4A04-BD62-163955CB3AD1}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsTextProcessor", "src\QsCompiler\TextProcessor\QsTextProcessor.fsproj", "{79A94B62-A36E-48D4-8BF1-BFA0C86F1C05}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "TextProcessor", "src\QsCompiler\TextProcessor\TextProcessor.fsproj", "{79A94B62-A36E-48D4-8BF1-BFA0C86F1C05}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsLanguageServer", "src\QsCompiler\LanguageServer\QsLanguageServer.csproj", "{DAC0C843-3BF1-41B0-AE7B-A2CC2AA62A12}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LanguageServer", "src\QsCompiler\LanguageServer\LanguageServer.csproj", "{DAC0C843-3BF1-41B0-AE7B-A2CC2AA62A12}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsDataStructures", "src\QsCompiler\DataStructures\QsDataStructures.fsproj", "{6519DDC6-B712-456D-80E4-501FEEAD52A1}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "DataStructures", "src\QsCompiler\DataStructures\DataStructures.fsproj", "{6519DDC6-B712-456D-80E4-501FEEAD52A1}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsSyntaxProcessor", "src\QsCompiler\SyntaxProcessor\QsSyntaxProcessor.fsproj", "{3EB46539-3843-44C0-B511-37CD752FD3A3}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SyntaxProcessor", "src\QsCompiler\SyntaxProcessor\SyntaxProcessor.fsproj", "{3EB46539-3843-44C0-B511-37CD752FD3A3}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "QsCore", "src\QsCompiler\Core\QsCore.fsproj", "{B3D3D668-4C5B-4A5A-96AB-EC5687FABACC}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Core", "src\QsCompiler\Core\Core.fsproj", "{B3D3D668-4C5B-4A5A-96AB-EC5687FABACC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsTransformations", "src\QsCompiler\Transformations\QsTransformations.csproj", "{1E95FEBE-6FEA-42DD-A6D6-91946F1D3EBB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transformations", "src\QsCompiler\Transformations\Transformations.csproj", "{1E95FEBE-6FEA-42DD-A6D6-91946F1D3EBB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsCompilationManager", "src\QsCompiler\CompilationManager\QsCompilationManager.csproj", "{71248191-ABDE-4241-9FD9-B073D553AAA3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CompilationManager", "src\QsCompiler\CompilationManager\CompilationManager.csproj", "{71248191-ABDE-4241-9FD9-B073D553AAA3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsDocumentationParser", "src\QsCompiler\DocumentationParser\QsDocumentationParser.csproj", "{2544C34F-7E1C-47C5-871F-19D531FD2ADD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentationParser", "src\QsCompiler\DocumentationParser\DocumentationParser.csproj", "{2544C34F-7E1C-47C5-871F-19D531FD2ADD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <RootNamespace>Microsoft.Quantum.QsCompiler.Documentation.Testing</RootNamespace>
     <AssemblyName>Tests.Microsoft.Quantum.QsDocumentationParser</AssemblyName>
@@ -21,8 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
-    <ProjectReference Include="..\DocumentationParser\QsDocumentationParser.csproj" />
+    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
+    <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
   </ItemGroup>
 
 </Project>

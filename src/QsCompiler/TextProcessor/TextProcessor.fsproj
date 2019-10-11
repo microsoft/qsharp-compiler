@@ -4,7 +4,7 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsTextProcessor</AssemblyName>
   </PropertyGroup>
 
@@ -20,13 +20,13 @@
     <Compile Include="SyntaxBuilder.fs" />
     <Compile Include="QsTypeParsing.fs" />
     <Compile Include="QsExpressionParsing.fs" />
+    <Compile Include="QsFragmentParsing.fs" />
+    <Compile Include="TextProcessing.fs" />
     <Compile Include="CodeCompletion\CodeCompletion.fs" />
     <Compile Include="CodeCompletion\ParsingPrimitives.fs" />
     <Compile Include="CodeCompletion\TypeParsing.fs" />
     <Compile Include="CodeCompletion\ExpressionParsing.fs" />
     <Compile Include="CodeCompletion\FragmentParsing.fs" />
-    <Compile Include="QsFragmentParsing.fs" />
-    <Compile Include="TextProcessing.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,7 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
+    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
   </ItemGroup>
 
 </Project>

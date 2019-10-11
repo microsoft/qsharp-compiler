@@ -1,0 +1,8 @@
+namespace Microsoft.Quantum.Testing.Optimization.Arithmetic {
+    
+    operation Test () : Int {
+        
+        return 4;
+    }
+    
+}

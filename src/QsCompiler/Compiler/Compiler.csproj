@@ -2,14 +2,15 @@
   <Import Project="..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsCompiler</AssemblyName>
     <AssemblyTitle>Microsoft Q# compiler library.</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CompilationManager\QsCompilationManager.csproj" />
-    <ProjectReference Include="..\DocumentationParser\QsDocumentationParser.csproj" />
+    <ProjectReference Include="..\CompilationManager\CompilationManager.csproj" />
+    <ProjectReference Include="..\Optimizations\Optimizations.fsproj" />
+    <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
   </ItemGroup>
 
   <ItemGroup>

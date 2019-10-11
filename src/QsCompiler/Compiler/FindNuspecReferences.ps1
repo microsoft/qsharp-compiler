@@ -10,14 +10,14 @@
 # FParsec or F#) are not listed and the package doesn't work.
 #
 # We don't want to hardcode the list of dependencies on the .nuspec, as they can quickly become out-of-sync.
-# This script will find the PackageReferences recursively on the QsCompiler project and add them
+# This script will find the PackageReferences recursively on the Compiler project and add them
 # to its nuspec, so we can then create the package using nuget pack with the corresponding dependencies listed.
 #
 # nuget is tracking this problem at: https://github.com/NuGet/Home/issues/4491
 ########################################
 
 # Start with the nuspec template
-$nuspec = [xml](Get-Content "QsCompiler.nuspec.template")
+$nuspec = [xml](Get-Content "Compiler.nuspec.template")
 $dep = $nuspec.CreateElement('dependencies', $nuspec.package.metadata.NamespaceURI)
 
 
@@ -52,10 +52,10 @@ function Add-NuGetDependencyFromCsprojToNuspec($PathToCsproj)
     }
 }
 
-# Find all dependencies on QsCompiler.csproj
-Add-NuGetDependencyFromCsprojToNuspec "QsCompiler.csproj" $dep
+# Find all dependencies on Compiler.csproj
+Add-NuGetDependencyFromCsprojToNuspec "Compiler.csproj" $dep
 
 # Save into .nuspec file:
 $nuspec.package.metadata.AppendChild($dep)
-$nuspec.Save("$PSScriptRoot\QsCompiler.nuspec")
+$nuspec.Save("$PSScriptRoot\Compiler.nuspec")
 

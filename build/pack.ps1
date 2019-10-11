@@ -31,9 +31,9 @@ function Pack-One() {
     }
 }
 
-
-Pack-One '../src/QsCompiler/Compiler/QsCompiler.csproj' '-IncludeReferencedProjects'
-Pack-One '../src/QsCompiler/CommandLineTool/QsCommandLineTool.csproj' '-IncludeReferencedProjects'
+Pack-One '../src/QsCompiler/Compiler/Compiler.csproj' '-IncludeReferencedProjects'
+Pack-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj' '-IncludeReferencedProjects'
+Pack-One '../src/ProjectTemplates/Microsoft.Quantum.ProjectTemplates.nuspec'
 
 ##
 # Q# Language Server (self-contained)
@@ -169,8 +169,7 @@ if (Get-Command msbuild -ErrorAction SilentlyContinue) {
             throw
         }
     } Catch {
-        Write-Host "##vso[task.logissue type=error;]Failed to pack VS extension."
-        $all_ok = $False
+        Write-Host "##vso[task.logissue type=warning;]Failed to pack VS extension."
     }
 } else {    
     Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip creation of VisualStudio extension package"
@@ -180,5 +179,8 @@ Pop-Location
 if (-not $all_ok) 
 {
     throw "Packing failed. Check the logs."
+    exit 1
+} else {
+    exit 0
 }
 
