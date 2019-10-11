@@ -14,12 +14,13 @@ using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-//using Microsoft.Quantum.QsCompiler.Optimizations;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
     using LocalTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using GenericsCrate = Dictionary<QsQualifiedName, (QsCallable, Dictionary<Concretion, QsCallable>)>;
+
+    #region Monomorphization
 
     internal class Concretion : HashSet<(NonNullable<string>, LocalTypeKind)>
     {
@@ -100,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         public override QsNamespace Transform(QsNamespace ns)
         {
-            base.Transform(ns);
+            ns = base.Transform(ns);
 
             // Add concrete definitions for callables found in the generics data structure back into the syntax tree
             // Remove generic definitions
@@ -198,18 +199,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 // - check in concretion dict for current generic
 
                 name = NonNullable<string>.New(nameString);
-
-                var replaceParamsTransform = new MinorTransformations.ReplaceTypeParams(types);
-                QsCallable newCallable = original
-                    // TODO: this is currently specific to Provided, but should be generalized
-                    .WithSpecializations(specs => specs.Select(specialization =>
-                    {
-                        if (specialization.Implementation is SpecializationImplementation.Provided prov)
-                        {
-                            return specialization.WithImplementation(SpecializationImplementation.NewProvided(prov.Item1, replaceParamsTransform.Transform(prov.Item2)));
-                        }
-                        return specialization;
-                    }).ToImmutableArray())
+                
+                QsCallable newCallable = ReplaceTypeParamsSyntax.Apply(types, original)
                     .WithFullName(fullname => new QsQualifiedName(globalCallable.Item.Namespace, name));
 
                 concretions.Add(target, newCallable);
@@ -228,4 +219,42 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             return base.onIdentifier(sym, tArgs);
         }
     }
+    #endregion
+
+    #region ReplaceTypeParams
+
+    public class ReplaceTypeParamsSyntax :
+        SyntaxTreeTransformation<MinorTransformations.ReplaceTypeParams>
+    {
+        public static QsCallable Apply(ImmutableDictionary<QsTypeParameter, ResolvedType> typeParams, QsCallable callable)
+        {
+            if (callable == null) throw new ArgumentNullException(nameof(callable));
+
+            var filter = new ReplaceTypeParamsSyntax(new MinorTransformations.ReplaceTypeParams(typeParams));
+
+            // Create a holding namespace to use transform on
+            var ns = new QsNamespace(NonNullable<string>.New(""), ImmutableArray.Create(QsNamespaceElement.NewQsCallable(callable)), Enumerable.Empty<ImmutableArray<string>>().ToLookup(x => NonNullable<string>.New("")) );
+            ns = filter.Transform(ns);
+
+            // Extract back out the transformed callable
+            return ((QsNamespaceElement.QsCallable)ns.Elements.First()).Item;
+        }
+
+        public ReplaceTypeParamsSyntax(MinorTransformations.ReplaceTypeParams scope) : base(scope) { }
+
+        public override ResolvedSignature onSignature(ResolvedSignature s)
+        {
+            // Remove the type parameters from the signature
+            s = new ResolvedSignature(
+                ImmutableArray<QsLocalSymbol>.Empty,
+                s.ArgumentType,
+                s.ReturnType,
+                s.Information
+                );
+            return base.onSignature(s);
+        }
+    }
+
+    #endregion
+
 }
