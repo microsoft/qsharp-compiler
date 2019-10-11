@@ -70,8 +70,7 @@ if (Get-Command msbuild -ErrorAction SilentlyContinue) {
             throw
         }
     } Catch {
-        Write-Host "##vso[task.logissue type=error;]Failed to pack VS extension."
-        $all_ok = $False
+        Write-Host "##vso[task.logissue type=warning;]Failed to pack VS extension."
     }
 } else {    
     Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip creation of VisualStudio extension package"
@@ -81,5 +80,8 @@ Pop-Location
 if (-not $all_ok) 
 {
     throw "Packing failed. Check the logs."
+    exit 1
+} else {
+    exit 0
 }
 
