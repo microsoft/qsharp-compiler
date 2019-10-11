@@ -11,9 +11,9 @@ steps:
 # Pre-reqs
 ##
 - task: NuGetToolInstaller@0
-  displayName: 'Use NuGet 4.9.3'
+  displayName: 'Use NuGet 5.2.0'
   inputs:
-    versionSpec: '4.9.3'
+    versionSpec: '5.2.0'
 
 - task: Npm@1
   displayName: 'Install vsce'
