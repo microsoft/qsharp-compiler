@@ -99,5 +99,8 @@ Pop-Location
 if (-not $all_ok) 
 {
     throw "Building failed. Check the logs."
-}
+    exit 1
+} else {
+    exit 0
+} 
 
