@@ -14,7 +14,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CompilationManager\QsCompilationManager.csproj">
+    <ProjectReference Include="..\CompilationManager\CompilationManager.csproj">
       <Private>true</Private>
     </ProjectReference>
   </ItemGroup>
