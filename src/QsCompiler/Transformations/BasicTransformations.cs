@@ -32,7 +32,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         /// Returns a hash set containing all source files in the given namespace(s).
         /// Throws an ArgumentNullException if any of the given namespaces is null. 
         /// </summary>
-        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) => Apply(namespaces);
+        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) => 
+            Apply((IEnumerable<QsNamespace>)namespaces);
 
         private readonly HashSet<NonNullable<string>> SourceFiles;
         private GetSourceFiles() :
