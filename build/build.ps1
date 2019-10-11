@@ -82,15 +82,13 @@ if (Get-Command nuget -ErrorAction SilentlyContinue) {
                     throw
                 }
             } Catch {
-                Write-Host "##vso[task.logissue type=error;]Failed to build VS extension."
-                $all_ok = $False
+                Write-Host "##vso[task.logissue type=warning;]Failed to build VS extension."
             }
         } else {
             Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip building the VisualStudio extension"
         }
     } Catch {
-        Write-Host "##vso[task.logissue type=error;]Failed to restore VS extension solution."
-        $all_ok = $False
+        Write-Host "##vso[task.logissue type=warning;]Failed to restore VS extension solution."
     }
 } else {
      Write-Host "##vso[task.logissue type=warning;]nuget not installed. Will skip restoring and building the VisualStudio extension solution"
