@@ -22,31 +22,14 @@ steps:
 ##
 # VisualStudio Extension can't be built from the build script as msbuild is not available).
 ##
-#- task: NuGetCommand@2
-#  displayName: 'Restore Visual Studio solution'
-#  inputs:
-#    command: 'restore'
-#    restoreSolution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
-
-- task: MSBuild@1
-  displayName: 'Pack Visual Studio extension'
+- task: VSBuild@1
+  displayName: 'Pack VisualStudio extension'
   inputs:
-    msbuildVersion: 'latest'
-    solution: '$(System.DefaultWorkingDirectory)/src/VisualStudioExtension/QsharpVSIX/QsharpVSIX.csproj'
-    msbuildArguments: >
+    solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
+    msbuildArgs: >
       /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)
-
-#- task: VSBuild@1
-#  displayName: 'Pack Visual Studio extension'
-#  inputs:
-#    solution: '$(System.DefaultWorkingDirectory)/src/VisualStudioExtension/QsharpVSIX/QsharpVSIX.csproj'
-#    msbuildArgs: >
-#      /t:ResolveProjectReferences;CreateVsixContainer 
-#      /p:DefineConstants=$(Assembly.Constants) 
-#      /p:AssemblyVersion=$(Assembly.Version)
-#    configuration: '$(Build.Configuration)'
 
 
 - template: wrap-up.yml
