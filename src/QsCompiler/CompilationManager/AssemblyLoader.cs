@@ -43,12 +43,14 @@ namespace Microsoft.Quantum.QsCompiler
             using (var stream = File.OpenRead(asm.LocalPath))
             using (var assemblyFile = new PEReader(stream))
             {
-                var loadedFromResource = FromResource(assemblyFile, out var syntaxTree);
-                var attributes = loadedFromResource ? Enumerable.Empty<(string, string)>() : LoadHeaderAttributes(assemblyFile);
-                headers = loadedFromResource
-                    ? new References.Headers(id, syntaxTree)
-                    : new References.Headers(id, attributes);
-                return loadedFromResource || !attributes.Any();
+                if (!FromResource(assemblyFile, out var syntaxTree))
+                {
+                    var attributes = LoadHeaderAttributes(assemblyFile);
+                    headers = new References.Headers(id, attributes);
+                    return !attributes.Any(); // just means we have no references
+                }
+                headers = new References.Headers(id, syntaxTree);
+                return true;
             }
         }
 
