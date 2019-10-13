@@ -3,7 +3,7 @@
 
   <PropertyGroup>
     <AssemblyName>Microsoft.Quantum.QsLanguageServer</AssemblyName>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <PropertyGroup>
@@ -28,13 +28,10 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.0.461" ExcludeAssets="runtime" />    
     <!--
       The Microsoft.VisualStudio.LanguageServer.Protocol NuGet package is .NET
-      Standard 2.0 compatible, and thus can be used from the netcoreapp2.0 TFM,
-      but is not marked as being compatible with .NET Standard 2.0. This will
+      Standard 2.0 compatible, but is not marked as such. This will
       cause warnings when we rely on .NET Standard 2.0's compatibility mode.
       Following the advice at
-
           https://docs.microsoft.com/en-us/dotnet/core/porting/third-party-deps#net-framework-compatibility-mode
-
       we disable this warning for the LanguageServer.Protocol package ONLY.
     -->
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="16.0.2264" NoWarn="NU1701" />

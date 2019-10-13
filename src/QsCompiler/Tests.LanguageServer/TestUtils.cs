@@ -76,7 +76,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
 
         /// does not modify range
-        internal static int GetRangeLength(Range range, IReadOnlyList<string> content)
+        internal static int GetRangeLength(VisualStudio.LanguageServer.Protocol.Range range, IReadOnlyList<string> content)
         {
             Assert.IsTrue(Builder.IsValidRange(range));
             if (range.Start.Line == range.End.Line) return range.End.Character - range.Start.Character;

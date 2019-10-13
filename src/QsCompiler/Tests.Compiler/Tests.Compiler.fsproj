@@ -3,7 +3,7 @@
   <Import Project="..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <AssemblyName>Tests.Microsoft.Quantum.QsCompiler</AssemblyName>
     <OutputType>Library</OutputType>
@@ -135,7 +135,7 @@
 
   <Target Name="PrepareExecutionTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
     <PropertyGroup>
-      <ExecutionTarget>"$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp2.1\Example.dll"</ExecutionTarget>
+      <ExecutionTarget>"$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.0\Example.dll"</ExecutionTarget>
     </PropertyGroup>
     <WriteLinesToFile File="$(OutputPath)ExecutionTarget.txt" Lines="$(ExecutionTarget)" Overwrite="true" />
   </Target>

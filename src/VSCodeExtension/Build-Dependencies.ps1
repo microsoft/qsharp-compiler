@@ -9,7 +9,7 @@ param(
     $Force
 )
 
-$TargetMoniker = "netcoreapp2.1";
+$TargetMoniker = "netcoreapp3.0";
 $LanguageServerRoot = Resolve-Path "../QsCompiler/LanguageServer/";
 $RepoRoot = Resolve-Path "../../"
 

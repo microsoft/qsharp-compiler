@@ -81,5 +81,8 @@ Pop-Location
 if (-not $all_ok) 
 {
     throw "Packing failed. Check the logs."
+    exit 1
+} else {
+    exit 0
 }
 
