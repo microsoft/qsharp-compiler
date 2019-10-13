@@ -24,11 +24,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Core\QsCore.fsproj" />
-    <ProjectReference Include="..\DataStructures\QsDataStructures.fsproj" />
-    <ProjectReference Include="..\SyntaxProcessor\QsSyntaxProcessor.fsproj" />
-    <ProjectReference Include="..\TextProcessor\QsTextProcessor.fsproj" />
-    <ProjectReference Include="..\Transformations\QsTransformations.csproj" />
+    <ProjectReference Include="..\Core\Core.fsproj" />
+    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
+    <ProjectReference Include="..\SyntaxProcessor\SyntaxProcessor.fsproj" />
+    <ProjectReference Include="..\TextProcessor\TextProcessor.fsproj" />
+    <ProjectReference Include="..\Transformations\Transformations.csproj" />
   </ItemGroup>
 
   <ItemGroup>

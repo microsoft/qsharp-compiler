@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -61,6 +62,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool SkipSyntaxTreeTrimming;
             /// <summary>
+            /// If set to true, the compiler attempts to pre-evaluate the built compilation as much as possible.
+            /// This is an experimental feature that will change over time. 
+            /// </summary>
+            public bool AttemptFullPreEvaluation;
+            /// <summary>
             /// Replaces all usages of type parameterized callables wiht the concrete callable instantiation.
             /// Removes parameterized types from the syntax tree.
             /// </summary>
@@ -88,6 +94,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal int ReferenceLoading = -1;
             internal int Validation = -1;
             internal int FunctorSupport = -1;
+            internal int PreEvaluation = -1;
             internal int TreeTrimming = -1;
             internal int Monomorphization = -1;
             internal int Documentation = -1;
@@ -105,6 +112,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
+                WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(options.Monomorphization, this.Monomorphization) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
@@ -142,6 +150,11 @@ namespace Microsoft.Quantum.QsCompiler
         /// This rewrite step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status FunctorSupport => GetStatus(this.CompilationStatus.FunctorSupport);
+        /// <summary>
+        /// Indicates whether the pre-evaluation step executed successfully. 
+        /// This rewrite step is only executed if the corresponding configuration is specified. 
+        /// </summary>
+        public Status PreEvaluation => GetStatus(this.CompilationStatus.PreEvaluation);
         /// <summary>
         /// Indicates whether all the type parameterizated callables were resolved to concrete callables.
         /// This rewrite step is only executed if the corresponding configuration is specified. 
@@ -252,6 +265,14 @@ namespace Microsoft.Quantum.QsCompiler
                 var rewrite = new InlineConjugations(onException: ex => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex));
                 this.GeneratedSyntaxTree = this.GeneratedSyntaxTree?.Select(ns => rewrite.Transform(ns))?.ToImmutableArray();
                 if (this.GeneratedSyntaxTree == null || !rewrite.Success) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
+            }
+
+            if (this.Config.AttemptFullPreEvaluation)
+            {
+                this.CompilationStatus.PreEvaluation = 0;
+                void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ex);
+                var evaluated = this.GeneratedSyntaxTree != null && CodeTransformations.PreEvaluateAll(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree, onException);
+                if (!evaluated) this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ErrorCode.PreEvaluationFailed, Enumerable.Empty<string>()); 
             }
 
             // generating the compiled binary

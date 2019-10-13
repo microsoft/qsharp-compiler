@@ -14,6 +14,54 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="TestCases\Optimizer\Arithmetic_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\FunctionEval_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\Inlining_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\LoopUnrolling_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\Miscellaneous_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\NoOp_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\PartialEval_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\Reordering_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\Arithmetic_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\FunctionEval_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\Inlining_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\LoopUnrolling_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\Miscellaneous_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\NoOp_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\PartialEval_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Optimizer\Reordering_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\ExecutionTests\LoggingBasedTests.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -60,6 +108,7 @@
     <Compile Include="SerializationTests.fs" />
     <Compile Include="CommandLineTests.fs" />
     <Compile Include="SymbolManagementTests.fs" />
+    <Compile Include="OptimizationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -73,7 +122,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CommandLineTool\QsCommandLineTool.csproj" />
+    <ProjectReference Include="..\CommandLineTool\CommandLineTool.csproj" />
     <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>

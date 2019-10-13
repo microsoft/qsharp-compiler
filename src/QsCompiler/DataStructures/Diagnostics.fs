@@ -271,6 +271,7 @@ type ErrorCode =
     | DocGenerationFailed = 7105
     | GeneratingBinaryFailed = 7106
     | TargetExecutionFailed = 7107
+    | PreEvaluationFailed = 7108
     | MonomorphizationFailed = 7108
 
 
@@ -600,6 +601,7 @@ type DiagnosticItem =
             | ErrorCode.DocGenerationFailed                     -> "Unable to generate documentation for the compiled code."
             | ErrorCode.GeneratingBinaryFailed                  -> "Unable to generate binary format for the compilation."
             | ErrorCode.TargetExecutionFailed                   -> "Processing of the compiled binary with the target {0} failed."
+            | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
             | ErrorCode.MonomorphizationFailed                  -> "Replacing type parametrizations with the concrete instantiations failed."
             | _                                                 -> "" 
         code |> ApplyArguments             
