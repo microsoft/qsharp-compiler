@@ -2,18 +2,18 @@ steps:
 - template: init.yml
 
 
-- powershell: ./build.ps1
+- pwsh: ./build.ps1
   displayName: "Build all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
 
-- powershell: ./test.ps1
+- pwsh: ./test.ps1
   displayName: "Test all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
   condition: and(succeeded(), ne(variables['Skip.Tests'], 'true'))
 
 
-- powershell: ./pack.ps1
+- pwsh: ./pack.ps1
   displayName: "Pack NuGets and VS Code"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
@@ -22,14 +22,31 @@ steps:
 ##
 # VisualStudio Extension can't be built from the build script as msbuild is not available).
 ##
-- task: VSBuild@1
-  displayName: 'Pack VisualStudio extension'
+#- task: NuGetCommand@2
+#  displayName: 'Restore Visual Studio solution'
+#  inputs:
+#    command: 'restore'
+#    restoreSolution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
+
+- task: MSBuild@1
+  displayName: 'Pack Visual Studio extension'
   inputs:
-    solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
-    msbuildArgs: >
+    msbuildVersion: 'latest'
+    solution: '$(System.DefaultWorkingDirectory)/src/VisualStudioExtension/QsharpVSIX/QsharpVSIX.csproj'
+    msbuildArguments: >
       /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)
+
+#- task: VSBuild@1
+#  displayName: 'Pack Visual Studio extension'
+#  inputs:
+#    solution: '$(System.DefaultWorkingDirectory)/src/VisualStudioExtension/QsharpVSIX/QsharpVSIX.csproj'
+#    msbuildArgs: >
+#      /t:ResolveProjectReferences;CreateVsixContainer 
+#      /p:DefineConstants=$(Assembly.Constants) 
+#      /p:AssemblyVersion=$(Assembly.Version)
+#    configuration: '$(Build.Configuration)'
 
 
 - template: wrap-up.yml

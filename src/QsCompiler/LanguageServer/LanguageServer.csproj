@@ -6,6 +6,10 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
+  <!-- Workaround for https://github.com/dotnet/cli/issues/9514, see https://stackoverflow.com/a/51644988/267841. -->
+  <PropertyGroup>
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+  </PropertyGroup>
   <PropertyGroup>
     <!-- Provide a solution directory in case we are invoked from the dotnet core SDK. -->
     <SolutionDir>$(MSBuildProjectDirectory)\..\..\..\</SolutionDir>
@@ -20,6 +24,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Desktop.Analyzers" Version="1.1.0" />
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.4.0" />
     <PackageReference Include="Microsoft.AnalyzerPowerPack" Version="1.1.0" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.2.2" />
     <PackageReference Include="Microsoft.Build" Version="16.0.461" ExcludeAssets="runtime" />
@@ -38,7 +43,6 @@
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.0.102" />
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="16.0.102" />
     <PackageReference Include="Microsoft.VisualStudio.Validation" Version="15.3.58" />
-    <PackageReference Include="Mono.Options" Version="5.3.0.1" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
     <PackageReference Include="StreamJsonRpc" Version="2.0.167" />
     <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
