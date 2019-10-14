@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -77,7 +78,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (file == null || range?.Start == null || range.End == null) return Enumerable.Empty<CodeFragment>();
             var (start, end) = (range.Start.Line, range.End.Line);
 
-            var fragAtStart = file.TryGetFragmentAt(range?.Start, out var _, includeEnd: true);
+            var fragAtStart = file.TryGetFragmentAt(range.Start, out var _, includeEnd: true);
             var inRange = file.GetTokenizedLine(start).Select(t => t.WithUpdatedLineNumber(start)).Where(ContextBuilder.TokensAfter(range.Start)); // does not include fragAtStart
             inRange = start == end
                 ? inRange.Where(ContextBuilder.TokensStartingBefore(range.End))
@@ -408,17 +409,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             var overlapping = file?.FragmentsOverlappingWithRange(range);
             var fragment = overlapping?.FirstOrDefault();
-            if (fragment?.Kind == null || overlapping.Count() > 1) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
+            if (fragment?.Kind == null || overlapping.Count() != 1) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
 
             var (nsDecl, callableDecl, typeDecl) = (fragment.Kind.DeclaredNamespace(), fragment.Kind.DeclaredCallable(), fragment.Kind.DeclaredType());
             var declSymbol = nsDecl.IsValue ? nsDecl.Item.Item1.Symbol 
                 : callableDecl.IsValue ? callableDecl.Item.Item1.Symbol
                 : typeDecl.IsValue ? typeDecl.Item.Item1.Symbol : null;
-            var declRange = fragment?.GetRange();
-            if (declSymbol == null || file.DocumentingComments(declRange.Start).Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
+            var declStart = fragment.GetRange().Start;
+            if (declSymbol == null || file.DocumentingComments(declStart).Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
+
+            // set declStart to the position of the first attribute attached to the declaration
+            bool EmptyOrFirstAttribute(IEnumerable<CodeFragment> line, out CodeFragment att)
+            {
+                att = line?.Reverse().TakeWhile(t => t.Kind is QsFragmentKind.DeclarationAttribute).LastOrDefault();
+                return att != null || (line != null && !line.Any());
+            }
+            var preceding = file.GetTokenizedLine(declStart.Line).TakeWhile(ContextBuilder.TokensUpTo(new Position(0, declStart.Character)));
+            for (var lineNr = declStart.Line; EmptyOrFirstAttribute(preceding, out var precedingAttribute); )
+            {
+                if (precedingAttribute != null)
+                { declStart = precedingAttribute.GetRange().Start.WithUpdatedLineNumber(lineNr); }
+                preceding = lineNr-- > 0 ? file.GetTokenizedLine(lineNr) : (IEnumerable<CodeFragment>)null;
+            }
 
             var docPrefix = "/// ";
-            var endLine = $"{Environment.NewLine}{file.GetLine(declRange.Start.Line).Text.Substring(0, declRange.Start.Character)}";
+            var endLine = $"{Environment.NewLine}{file.GetLine(declStart.Line).Text.Substring(0, declStart.Character)}";
             var docString = $"{docPrefix}# Summary{endLine}{docPrefix}{endLine}";
 
             var (argTuple, typeParams) =
@@ -441,7 +456,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             );
 
             var whichDecl = $" for {declSymbol.AsDeclarationName(null)}";
-            var suggestedEdit = file.GetWorkspaceEdit(new TextEdit { Range = new Range { Start = declRange.Start, End = declRange.Start }, NewText = docString });
+            var suggestedEdit = file.GetWorkspaceEdit(new TextEdit { Range = new Range { Start = declStart, End = declStart }, NewText = docString });
             return new[] { ($"Add documentation{whichDecl}.", suggestedEdit) };
         }
     }

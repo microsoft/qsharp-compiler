@@ -33,9 +33,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public const int FUNCTOR_GENERATION_ERRORS = -4;
         /// <summary>
+        /// Return code indicating that pre-evaluating the built compilation if possible failed.
+        /// </summary>
+        public const int PREEVALUATION_ERRORS = -5;
+        /// <summary>
         /// Return code indicating that generating a binary file with the content of the built compilation failed.
         /// </summary>
-        public const int BINARY_GENERATION_ERRORS = -5;
+        public const int BINARY_GENERATION_ERRORS = -6;
         /// <summary>
         /// Return code indicating that generating a dll containing the compiled binary failed.
         /// </summary>
@@ -62,6 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             loaded.ReferenceLoading == CompilationLoader.Status.Failed ? ReturnCode.UNRESOLVED_FILES :
             loaded.Validation == CompilationLoader.Status.Failed ? ReturnCode.COMPILATION_ERRORS :
             loaded.FunctorSupport == CompilationLoader.Status.Failed ? ReturnCode.FUNCTOR_GENERATION_ERRORS :
+            loaded.PreEvaluation == CompilationLoader.Status.Failed ? ReturnCode.PREEVALUATION_ERRORS :
             loaded.Documentation == CompilationLoader.Status.Failed ? ReturnCode.DOC_GENERATION_ERRORS :
             loaded.BinaryFormat == CompilationLoader.Status.Failed ? ReturnCode.BINARY_GENERATION_ERRORS :
             loaded.DllGeneration == CompilationLoader.Status.Failed ? ReturnCode.DLL_GENERATION_ERRORS :

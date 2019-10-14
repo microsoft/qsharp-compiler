@@ -171,16 +171,19 @@ type TypedExpression with
 
     // utils for walking the data structure
 
+    /// Returns true if the expression contains missing expressions.
+    /// Returns false otherwise.
+    static member public ContainsMissing (ex : TypedExpression) =
+        match ex.TupleItems with 
+        | Some items when items.Length > 1 -> items |> List.exists TypedExpression.ContainsMissing
+        | Some [] -> true
+        | _ -> false
+
     /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
-    /// Returns false otherwise. 
-    static member public IsPartialApplication kind = 
-        let rec containsMissing (ex : TypedExpression) = 
-            match ex.TupleItems with // we only need to check for top-level missing items
-            | Some items when items.Length > 1 -> items |> List.map containsMissing |> List.contains true
-            | Some [] -> true
-            | _ -> false
-        kind |> function 
-        | CallLikeExpression (_, args) -> args |> containsMissing
+    /// Returns false otherwise.
+    static member public IsPartialApplication kind =
+        match kind with
+        | CallLikeExpression (_, args) -> args |> TypedExpression.ContainsMissing
         | _ -> false
 
     /// Returns true if the expression kind does not contain any inner expressions. 
@@ -198,92 +201,70 @@ type TypedExpression with
         | InvalidExpr -> true
         | _ -> false
 
-    /// Returns true if the expression contains a sub-expression satisfying the given condition.
+    /// Recursively traverses an expression by first applying the given mapper to the expression,
+    /// then finding all sub-expressions recurring on each one, and finally calling the given folder 
+    /// with the original expression as well as the returned results.
+    static member private MapAndFold (mapper: 'E -> QsExpressionKind<'E, _, _>, folder : 'E -> 'A seq -> 'A) (expr: 'E): 'A =
+        let recur = TypedExpression.MapAndFold (mapper, folder)
+        match mapper expr with
+        | NEG ex                             
+        | BNOT ex                            
+        | NOT ex                             
+        | AdjointApplication ex              
+        | ControlledApplication ex           
+        | UnwrapApplication ex    
+        | NamedItem (ex, _)
+        | NewArray (_, ex)                   -> [ex] :> seq<_>
+        | ADD (lhs,rhs)                      
+        | SUB (lhs,rhs)                      
+        | MUL (lhs,rhs)                      
+        | DIV (lhs,rhs)                      
+        | LT (lhs,rhs)                       
+        | LTE (lhs,rhs)                      
+        | GT (lhs,rhs)                       
+        | GTE (lhs,rhs)                      
+        | POW (lhs,rhs)                      
+        | MOD (lhs,rhs)                      
+        | LSHIFT (lhs,rhs)                   
+        | RSHIFT (lhs,rhs)                   
+        | BOR (lhs,rhs)                      
+        | BAND (lhs,rhs)                     
+        | BXOR (lhs,rhs)                     
+        | AND (lhs,rhs)                      
+        | OR (lhs,rhs)                       
+        | EQ (lhs,rhs)                       
+        | NEQ (lhs,rhs)                      
+        | RangeLiteral (lhs, rhs)            
+        | ArrayItem (lhs, rhs)               
+        | CallLikeExpression (lhs,rhs)       -> upcast [lhs; rhs]
+        | CopyAndUpdate (ex1, ex2, ex3)
+        | CONDITIONAL(ex1, ex2, ex3)         -> upcast [ex1; ex2; ex3]
+        | StringLiteral (_,items)            
+        | ValueTuple items                   
+        | ValueArray items                   -> upcast items
+        | kind when TypedExpression.IsAtomic kind -> Seq.empty
+        | _  -> NotImplementedException "missing implementation for the given expression kind" |> raise
+        |> Seq.map recur |> folder expr
+
+    /// Recursively traverses an expression by first recurring on all sub-expressions 
+    /// and then calling the given folder with the original expression as well as the returned results.
+    member public this.Fold folder =
+        let inner (ex : TypedExpression) = ex.Expression
+        this |> TypedExpression.MapAndFold (inner, folder)        
+
+    /// Returns true if the expression satisfies the given condition or contains a sub-expression that does.
     /// Returns false otherwise.
     member public this.Exists (condition : TypedExpression -> bool) =
-        condition this || this.Expression |> function
-            | NEG ex                            
-            | BNOT ex                           
-            | NOT ex  
-            | AdjointApplication ex             
-            | ControlledApplication ex          
-            | UnwrapApplication ex 
-            | NamedItem (ex, _)
-            | NewArray (_, ex)                        -> ex.Exists condition
-            | ADD (lhs,rhs)                     
-            | SUB (lhs,rhs)                     
-            | MUL (lhs,rhs)                     
-            | DIV (lhs,rhs)                     
-            | LT (lhs,rhs)                      
-            | LTE (lhs,rhs)                     
-            | GT (lhs,rhs)                      
-            | GTE (lhs,rhs)                     
-            | POW (lhs,rhs)                     
-            | MOD (lhs,rhs)                     
-            | LSHIFT (lhs,rhs)                  
-            | RSHIFT (lhs,rhs)                  
-            | BOR (lhs,rhs)                     
-            | BAND (lhs,rhs)                    
-            | BXOR (lhs,rhs)                    
-            | AND (lhs,rhs)                     
-            | OR (lhs,rhs)                      
-            | EQ (lhs,rhs)                      
-            | NEQ (lhs,rhs)
-            | RangeLiteral (lhs, rhs)    
-            | ArrayItem (lhs, rhs)              
-            | CallLikeExpression (lhs,rhs)            -> lhs.Exists condition || rhs.Exists condition
-            | CopyAndUpdate(ex1, ex2, ex3)
-            | CONDITIONAL(ex1, ex2, ex3)              -> ex1.Exists condition || ex2.Exists condition || ex3.Exists condition
-            | StringLiteral (_,items)            
-            | ValueTuple items                  
-            | ValueArray items                        -> items |> Seq.map (fun item -> item.Exists condition) |> Seq.contains true 
-            | kind when TypedExpression.IsAtomic kind -> false
-            | _  -> NotImplementedException "missing implementation for the given expression kind" |> raise
+        let inner (ex : TypedExpression) = ex.Expression
+        let fold ex sub = condition ex || sub |> Seq.exists id
+        this |> TypedExpression.MapAndFold (inner, fold)
 
     /// Recursively applies the given function inner to the given item and  
     /// applies the given extraction function to each contained subitem of the returned expression kind.
     /// Returns an enumerable of all extracted items. 
-    static member private ExtractAll (inner : 'E -> QsExpressionKind<'E, _, _>, extract : _ -> IEnumerable<_>) (this : 'E) : IEnumerable<_> = 
-        let recur = TypedExpression.ExtractAll (inner, extract)
-        match inner this with 
-        | NEG ex                            
-        | BNOT ex                           
-        | NOT ex  
-        | AdjointApplication ex             
-        | ControlledApplication ex          
-        | UnwrapApplication ex  
-        | NamedItem (ex, _)
-        | NewArray (_, ex)                        -> ex |> recur
-        | ADD (lhs,rhs)                     
-        | SUB (lhs,rhs)                     
-        | MUL (lhs,rhs)                     
-        | DIV (lhs,rhs)                     
-        | LT (lhs,rhs)                      
-        | LTE (lhs,rhs)                     
-        | GT (lhs,rhs)                      
-        | GTE (lhs,rhs)                     
-        | POW (lhs,rhs)                     
-        | MOD (lhs,rhs)                     
-        | LSHIFT (lhs,rhs)                  
-        | RSHIFT (lhs,rhs)                  
-        | BOR (lhs,rhs)                     
-        | BAND (lhs,rhs)                    
-        | BXOR (lhs,rhs)                    
-        | AND (lhs,rhs)                     
-        | OR (lhs,rhs)                      
-        | EQ (lhs,rhs)                      
-        | NEQ (lhs,rhs)
-        | RangeLiteral (lhs, rhs)    
-        | ArrayItem (lhs, rhs)              
-        | CallLikeExpression (lhs,rhs)            -> (lhs |> recur).Concat (rhs |> recur)
-        | CopyAndUpdate(ex1, ex2, ex3)
-        | CONDITIONAL(ex1, ex2, ex3)              -> ((ex1 |> recur).Concat (ex2 |> recur)).Concat (ex3 |> recur)
-        | StringLiteral (_,items)            
-        | ValueTuple items                  
-        | ValueArray items                        -> items |> Seq.collect recur
-        | kind when TypedExpression.IsAtomic kind -> Seq.empty
-        | _  -> NotImplementedException "missing implementation for the given expression kind" |> raise
-        |> (extract this).Concat
+    static member private ExtractAll (inner : 'E -> QsExpressionKind<'E, _, _>, extract : _ -> seq<_>) (this : 'E) : seq<_> =
+        let fold ex sub = Seq.concat sub |> Seq.append (extract ex)
+        this |> TypedExpression.MapAndFold (inner, fold)
 
     /// Walks the given expression, 
     /// and applies the given extraction function to each contained expression.
@@ -313,6 +294,45 @@ type QsExpression with
     member public this.ExtractAll (extract : _ -> IEnumerable<_>) = 
         let inner (ex : QsExpression) = ex.Expression
         TypedExpression.ExtractAll (inner, extract) this
+
+
+type QsStatement with
+
+    /// Recursively traverses a statement by first recurring on all sub-statements 
+    /// and then calling the given folder with the original statement as well as the returned results.
+    /// Note that sub-statements are determined purely based on the abstraction - 
+    /// i.e. implicitly defined statements like those needed to adjoint the outer block for conjugations 
+    /// are not considered to be sub-statements, in the same way that all sub-statements in e.g. loops and branchings
+    /// will be walked independent on whether or not and how often they will be executed. 
+    member public this.Fold folder =
+        let recur (stm : QsStatement) = stm.Fold folder
+        match this.Statement with
+        | QsExpressionStatement _
+        | QsReturnStatement _
+        | QsFailStatement _
+        | QsVariableDeclaration _
+        | QsValueUpdate _ -> Seq.empty
+        | QsConditionalStatement s ->
+            (Seq.append
+                (s.ConditionalBlocks |> Seq.collect (fun (_, b) -> b.Body.Statements))
+                (match s.Default with Null -> Seq.empty | Value v -> upcast v.Body.Statements))
+        | QsForStatement s -> upcast s.Body.Statements
+        | QsWhileStatement s -> upcast s.Body.Statements
+        | QsConjugation s -> Seq.append s.OuterTransformation.Body.Statements s.InnerTransformation.Body.Statements
+        | QsRepeatStatement s -> Seq.append s.RepeatBlock.Body.Statements s.FixupBlock.Body.Statements
+        | QsQubitScope s -> upcast s.Body.Statements
+        |> Seq.map recur |> folder this
+
+    /// Returns true if the statement satisfies the given condition or contains a sub-statement that does.
+    /// Returns false otherwise.
+    member public this.Exists condition =
+        this.Fold (fun stmt sub -> condition stmt || Seq.exists id sub)
+
+    /// Walks the given statement, 
+    /// and applies the given extraction function to each contained statement.
+    /// Returns an enumerable of all extracted values. 
+    member public this.ExtractAll extract =
+        this.Fold (fun stmt sub -> Seq.concat sub |> Seq.append (extract stmt))
 
 
 type QsTuple<'I> with 

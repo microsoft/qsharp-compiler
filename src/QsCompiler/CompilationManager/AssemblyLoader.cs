@@ -13,7 +13,6 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
 
 
@@ -39,17 +38,19 @@ namespace Microsoft.Quantum.QsCompiler
         {
             if (asm == null) throw new ArgumentNullException(nameof(asm));
             if (!CompilationUnitManager.TryGetFileId(asm, out var id) || !File.Exists(asm.LocalPath))
-            { throw new FileNotFoundException($"the uti '{asm}' given to the assembly loader is invalid or the file does not exist"); }
+            { throw new FileNotFoundException($"the uri '{asm}' given to the assembly loader is invalid or the file does not exist"); }
 
             using (var stream = File.OpenRead(asm.LocalPath))
             using (var assemblyFile = new PEReader(stream))
             {
-                var loadedFromResource = FromResource(assemblyFile, out var syntaxTree);
-                var attributes = loadedFromResource ? Enumerable.Empty<(string, string)>() : LoadHeaderAttributes(assemblyFile);
-                headers = loadedFromResource
-                    ? new References.Headers(id, syntaxTree)
-                    : new References.Headers(id, attributes);
-                return loadedFromResource || !attributes.Any();
+                if (!FromResource(assemblyFile, out var syntaxTree))
+                {
+                    var attributes = LoadHeaderAttributes(assemblyFile);
+                    headers = new References.Headers(id, attributes);
+                    return !attributes.Any(); // just means we have no references
+                }
+                headers = new References.Headers(id, syntaxTree);
+                return true;
             }
         }
 
@@ -67,8 +68,7 @@ namespace Microsoft.Quantum.QsCompiler
             using (var reader = new BsonDataReader(stream))
             {
                 reader.ReadRootValueAsArray = true;
-                var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
-                var serializer = JsonSerializer.CreateDefault(settings);
+                var serializer = Json.Serializer(Json.Converters(false));
                 return serializer.Deserialize<IEnumerable<QsNamespace>>(reader);
             }
         }

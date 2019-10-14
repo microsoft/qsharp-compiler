@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -13,6 +14,7 @@ using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -63,8 +65,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool SkipSyntaxTreeTrimming;
             /// <summary>
-            /// If the output folder is not null, 
-            /// documentation is generated in the specified folder based on doc comments in the source code. 
+            /// If set to true, the compiler attempts to pre-evaluate the built compilation as much as possible.
+            /// This is an experimental feature that will change over time. 
+            /// </summary>
+            public bool AttemptFullPreEvaluation;
+            /// <summary>
+            /// If the output folder is not null,
+            /// documentation is generated in the specified folder based on doc comments in the source code.
             /// </summary>
             public string DocumentationOutputFolder;
             /// <summary>
@@ -97,6 +104,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal int ReferenceLoading = -1;
             internal int Validation = -1;
             internal int FunctorSupport = -1;
+            internal int PreEvaluation = -1;
             internal int TreeTrimming = -1;
             internal int Documentation = -1;
             internal int Serialization = -1;
@@ -115,6 +123,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
+                WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
@@ -153,6 +162,11 @@ namespace Microsoft.Quantum.QsCompiler
         /// This rewrite step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status FunctorSupport => GetStatus(this.CompilationStatus.FunctorSupport);
+        /// <summary>
+        /// Indicates whether the pre-evaluation step executed successfully. 
+        /// This rewrite step is only executed if the corresponding configuration is specified. 
+        /// </summary>
+        public Status PreEvaluation => GetStatus(this.CompilationStatus.PreEvaluation);
         /// <summary>
         /// Indicates whether documentation for the compilation was generated successfully. 
         /// This step is only executed if the corresponding configuration is specified. 
@@ -270,6 +284,14 @@ namespace Microsoft.Quantum.QsCompiler
                 var rewrite = new InlineConjugations(onException: ex => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex));
                 this.GeneratedSyntaxTree = this.GeneratedSyntaxTree?.Select(ns => rewrite.Transform(ns))?.ToImmutableArray();
                 if (this.GeneratedSyntaxTree == null || !rewrite.Success) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
+            }
+
+            if (this.Config.AttemptFullPreEvaluation)
+            {
+                this.CompilationStatus.PreEvaluation = 0;
+                void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ex);
+                var evaluated = this.GeneratedSyntaxTree != null && CodeTransformations.PreEvaluateAll(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree, onException);
+                if (!evaluated) this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ErrorCode.PreEvaluationFailed, Enumerable.Empty<string>()); 
             }
 
             // generating the compiled binary and dll
@@ -487,9 +509,7 @@ namespace Microsoft.Quantum.QsCompiler
             var serialized = this.GeneratedSyntaxTree != null;
             using (var writer = new BsonDataWriter(ms) { CloseOutput = false })
             {
-                var settings = new JsonSerializerSettings
-                { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
-                var serializer = JsonSerializer.CreateDefault(settings);
+                var serializer = Json.Serializer(Json.Converters(false));
                 var validTree = this.GeneratedSyntaxTree?.Select(ns => FilterBySourceFile.Apply(ns, validSources));
                 try { serializer.Serialize(writer, validTree ?? Enumerable.Empty<QsNamespace>()); }
                 catch (Exception ex)

@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
+using System.Collections.Generic;
+using Microsoft.Quantum.QsCompiler.Optimizations;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
@@ -46,7 +49,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// throws an InvalidOperationException if the outer block contains while-loops. 
         /// </summary>
         public static QsScope InlineConjugations(this QsScope scope) =>
-            new InlineConjugationStatements().Transform(scope); 
+            new InlineConjugationStatements().Transform(scope);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static bool PreEvaluateAll(IEnumerable<QsNamespace> syntaxTree, 
+            out IEnumerable<QsNamespace> evaluated, Action<Exception> onException = null)
+        {
+            try { evaluated = PreEvalution.All(syntaxTree); }
+            catch (Exception ex)
+            {
+                onException?.Invoke(ex);
+                evaluated = syntaxTree;
+                return false;
+            }
+            return true;
+        }
     }
 }
 

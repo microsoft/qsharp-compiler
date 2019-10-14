@@ -60,7 +60,8 @@ type StatementKindTransformation(?enable) =
         let lhs = this.ExpressionTransformation stm.Lhs
         QsValueUpdate.New (lhs, rhs) |> QsValueUpdate
 
-    member private this.onPositionedBlock (intro : TypedExpression option, block : QsPositionedBlock) = 
+    abstract member onPositionedBlock : TypedExpression option * QsPositionedBlock -> TypedExpression option * QsPositionedBlock
+    default this.onPositionedBlock (intro : TypedExpression option, block : QsPositionedBlock) = 
         let location = this.LocationTransformation block.Location
         let comments = block.Comments
         let expr = intro |> Option.map this.ExpressionTransformation
@@ -101,7 +102,8 @@ type StatementKindTransformation(?enable) =
         let inner = this.onPositionedBlock (None, stm.InnerTransformation) |> snd
         QsConjugation.New (outer, inner) |> QsConjugation
 
-    member private this.onQubitScope (stm : QsQubitScope) = 
+    abstract member onQubitScope : QsQubitScope -> QsStatementKind
+    default this.onQubitScope (stm : QsQubitScope) = 
         let kind = stm.Kind
         let rhs = this.onQubitInitializer stm.Binding.Rhs
         let lhs = this.onSymbolTuple stm.Binding.Lhs
@@ -120,7 +122,8 @@ type StatementKindTransformation(?enable) =
         | Allocate -> this.onAllocateQubits stm
         | Borrow   -> this.onBorrowQubits stm
 
-    member this.Transform kind = 
+    abstract member Transform : QsStatementKind -> QsStatementKind
+    default this.Transform kind = 
         let beforeBinding (stm : QsBinding<TypedExpression>) = { stm with Lhs = this.beforeVariableDeclaration stm.Lhs }
         let beforeForStatement (stm : QsForStatement) = {stm with LoopItem = (this.beforeVariableDeclaration (fst stm.LoopItem), snd stm.LoopItem)} 
         let beforeQubitScope (stm : QsQubitScope) = {stm with Binding = {stm.Binding with Lhs = this.beforeVariableDeclaration stm.Binding.Lhs}}
