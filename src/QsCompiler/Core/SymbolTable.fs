@@ -1239,7 +1239,7 @@ and NamespaceManager
 
 
     /// Generates a hash for a resolved type. Does not incorporate any positional information.
-    static member public TypeHash (t : ResolvedType) = t.Resolution |> function
+    static member internal TypeHash (t : ResolvedType) = t.Resolution |> function
         | QsTypeKind.ArrayType b                    -> hash (0, NamespaceManager.TypeHash b)
         | QsTypeKind.TupleType ts                   -> hash (1, (ts |> Seq.map NamespaceManager.TypeHash |> Seq.toList))
         | QsTypeKind.UserDefinedType udt            -> hash (2, udt.Namespace.Value, udt.Name.Value)
