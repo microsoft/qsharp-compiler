@@ -3,8 +3,10 @@
 
 namespace Microsoft.Quantum.Testing.Simulation
 {
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Canon;
+    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Testing;
+
 
     /// # Summary
     /// This operation serves as main entry point of the application
@@ -12,6 +14,6 @@ namespace Microsoft.Quantum.Testing.Simulation
     operation Main () : Unit {
 
         // add the code to execute
-        Message("Welcome to Q#!");
+        Log(0, "Welcome to Q#!");
     }
 }

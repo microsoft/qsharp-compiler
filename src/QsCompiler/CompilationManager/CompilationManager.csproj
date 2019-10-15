@@ -19,6 +19,7 @@
     -->
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="16.0.2264" NoWarn="NU1701" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.0.102" />
+    <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.2" />
   </ItemGroup>
 
   <ItemGroup>
