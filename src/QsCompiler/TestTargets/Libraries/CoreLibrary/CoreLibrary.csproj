@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="EnsureRecompileOnChange">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
     <QsharpLangVersion>0.9</QsharpLangVersion>
   </PropertyGroup>
@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
+    <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp3.0\qsc.dll"</QscExe>
   </PropertyGroup>
 
   <Target Name="EnsureRecompileOnChange">
