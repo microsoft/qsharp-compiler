@@ -91,18 +91,6 @@ type QsNamespaceConverter() =
         serializer.Serialize(writer, (value.Name, value.Elements))
 
 
-type JsonConverters =
-    static member All ignoreSerializationException = 
-        [|
-            new NonNullableConverter<string>()                                  :> JsonConverter
-            new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
-            new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
-            new TypedExpressionConverter()                                      :> JsonConverter
-            new ResolvedInitializerConverter()                                  :> JsonConverter
-            new QsNamespaceConverter()                                          :> JsonConverter
-        |]
-
-
 type DictionaryAsArrayResolver () =
     inherit DefaultContractResolver()
 
@@ -112,4 +100,23 @@ type DictionaryAsArrayResolver () =
             (t.IsGenericType && t.GetGenericTypeDefinition() = typeof<IDictionary<_,_>>.GetGenericTypeDefinition())
         if objectType.GetInterfaces().Any(new Func<_,_>(isDictionary)) then base.CreateArrayContract(objectType) :> JsonContract;
         else base.CreateContract(objectType);
+
+
+type Json =
+    static member Converters ignoreSerializationException = 
+        [|
+            new NonNullableConverter<string>()                                  :> JsonConverter
+            new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
+            new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
+            new TypedExpressionConverter()                                      :> JsonConverter
+            new ResolvedInitializerConverter()                                  :> JsonConverter
+            new QsNamespaceConverter()                                          :> JsonConverter
+        |]
+
+    static member Serializer converters = 
+        let settings = new JsonSerializerSettings() 
+        settings.Converters <- converters
+        settings.ContractResolver <- new DictionaryAsArrayResolver()
+        JsonSerializer.CreateDefault(settings)
+
 

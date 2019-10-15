@@ -597,11 +597,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 try { return Query(f, this.CompilationUnit); }
                 catch (Exception ex)
                 {
-#if DEBUG
+                    #if DEBUG
                     this.LogException(ex);
-#else
+                    #else
                     if (!suppressExceptionLogging) this.LogException(ex);
-#endif
+                    #endif
                     return null;
                 }
             }

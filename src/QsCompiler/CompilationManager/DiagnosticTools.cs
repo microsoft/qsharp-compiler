@@ -192,7 +192,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a function that returns true if the ErrorType of the given Diagnostic is one of the given types.
         /// </summary>
-        internal static Func<Diagnostic, bool> ErrorType(params ErrorCode[] types)
+        public static Func<Diagnostic, bool> ErrorType(params ErrorCode[] types)
         {
             var codes = types.Select(err => err.Code());
             return m => m.IsError() && codes.Contains(m.Code);
@@ -201,7 +201,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a function that returns true if the WarningType of the given Diagnostic is one of the given types.
         /// </summary>
-        internal static Func<Diagnostic, bool> WarningType(params WarningCode[] types)
+        public static Func<Diagnostic, bool> WarningType(params WarningCode[] types)
         {
             var codes = types.Select(warn => warn.Code());
             return m => m.IsWarning() && codes.Contains(m.Code);
@@ -227,12 +227,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Extracts all elements satisfying the given condition and which start at a line that is larger or equal to lowerBound.
+        /// Diagnostics without any range information are only extracted if no lower bound is specified or the specified lower bound is smaller than zero. 
         /// Throws an ArgumentNullException if the given condition is null.
         /// </summary>
-        public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound)
+        public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound = -1)
         {
             if (condition == null) throw new ArgumentNullException(nameof(condition));
-            return orig?.Where(m => condition(m) && lowerBound <= m.Range.Start.Line);
+            return orig?.Where(m => condition(m) && lowerBound <= (m.Range?.Start?.Line ?? -1));
         }
 
         /// <summary>

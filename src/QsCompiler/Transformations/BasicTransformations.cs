@@ -17,16 +17,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         SyntaxTreeTransformation<NoScopeTransformations>
     {
         /// <summary>
-        /// Returns a hash set containing all source files in the given namespace(s).
-        /// Throws an ArgumentNullException if any of the given namespaces is null. 
+        /// Returns a hash set containing all source files in the given namespaces.
+        /// Throws an ArgumentNullException if the given sequence or any of the given namespaces is null. 
         /// </summary>
-        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces)
+        public static ImmutableHashSet<NonNullable<string>> Apply(IEnumerable<QsNamespace> namespaces)
         {
             if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
             var filter = new GetSourceFiles();
             foreach(var ns in namespaces) filter.Transform(ns);
             return filter.SourceFiles.ToImmutableHashSet();
         }
+
+        /// <summary>
+        /// Returns a hash set containing all source files in the given namespace(s).
+        /// Throws an ArgumentNullException if any of the given namespaces is null. 
+        /// </summary>
+        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) => 
+            Apply((IEnumerable<QsNamespace>)namespaces);
 
         private readonly HashSet<NonNullable<string>> SourceFiles;
         private GetSourceFiles() :
@@ -55,7 +62,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     public class FilterBySourceFile :
         SyntaxTreeTransformation<NoScopeTransformations>
     {
-        public static QsNamespace Apply(QsNamespace ns, NonNullable<string> fileId)
+        public static QsNamespace Apply(QsNamespace ns, params NonNullable<string>[] fileId)
         {
             if (ns == null) throw new ArgumentNullException(nameof(ns));
             var filter = new FilterBySourceFile(fileId);
@@ -65,10 +72,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         private readonly List<(int, QsNamespaceElement)> Elements;
         private readonly Func<NonNullable<string>, bool> IsInSource;
 
-        public FilterBySourceFile(NonNullable<string> fileId) :
+        public FilterBySourceFile(params NonNullable<string>[] fileIds) :
             base(new NoScopeTransformations())
         {
-            this.IsInSource = s => s.Value == fileId.Value;
+            var sourcesToKeep = fileIds.Select(f => f.Value).ToImmutableHashSet();
+            this.IsInSource = s => sourcesToKeep.Contains(s.Value);
             this.Elements = new List<(int, QsNamespaceElement)>();
         }
 
