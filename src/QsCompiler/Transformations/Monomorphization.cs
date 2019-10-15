@@ -43,14 +43,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     {
         ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> NamespaceCallables;
 
-        public static IEnumerable<QsNamespace> Apply(IEnumerable<QsNamespace> namespaces)
+        public static IEnumerable<QsNamespace> Apply(IEnumerable<QsNamespace> namespaces, QsQualifiedName entryPointName)
         {
             if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
 
             var globals = namespaces.GlobalCallableResolutions();
 
             var entryPoints = globals
-                .Where(x => true) // TODO: get list of entry points
+                .Where(x => // TODO: get list of entry points
+                    x.Key.Namespace.Value == entryPointName.Namespace.Value &&
+                    x.Key.Name.Value == entryPointName.Name.Value)
                 .Select(x => new Request
                 {
                     originalName = x.Key,
@@ -64,11 +66,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             while(requests.Count() > 0)
             {
                 Request currentRequest = requests.Pop();
+
+                // If there is a call to an unknown callable, throw exception
+                if (!globals.ContainsKey(currentRequest.originalName)) throw new ArgumentNullException(); // TODO: need to throw a more valid exception
+
                 var currentResponse = new Response
                 {
                     originalName = currentRequest.originalName,
                     typeResolutions = currentRequest.typeResolutions,
-                    concreteCallable = globals[currentRequest.originalName] // TODO: need to check if valid call
+                    concreteCallable = globals[currentRequest.originalName].WithFullName(name => currentRequest.concreteName)
                 };
 
                 // Rewrite implementation
@@ -116,21 +122,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             // Nothing to change if the current callable is already concrete
             if (current.typeResolutions == null) return current;
 
-            var filter = new ReplaceTypeParamImplementationsSyntax(new MinorTransformations.ReplaceTypeParams(current.typeResolutions.ToImmutableDictionary(param => param.Item1, param => param.Item2)));
+            var filter = new ReplaceTypeParamImplementationsSyntax(
+                new MinorTransformations.ReplaceTypeParams(current.typeResolutions.ToImmutableDictionary(param => param.Item1, param => param.Item2)));
 
-            // Create a holding namespace to use transform on
-            var ns = new QsNamespace(
-                NonNullable<string>.New(""),
-                ImmutableArray.Create(QsNamespaceElement.NewQsCallable(current.concreteCallable)),
-                Enumerable.Empty<ImmutableArray<string>>().ToLookup(x => NonNullable<string>.New("")));
-            ns = filter.Transform(ns);
-
-            // Extract back out the transformed response
+            // Create a new response with the transformed callable
             return new Response
             {
                 originalName = current.originalName,
                 typeResolutions = current.typeResolutions,
-                concreteCallable = ((QsNamespaceElement.QsCallable)ns.Elements.First()).Item
+                concreteCallable = filter.onCallableImplementation(current.concreteCallable)
             };
         }
 
@@ -160,19 +160,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         {
             var filter = new ReplaceTypeParamCallsSyntax(new ScopeTransformation<ReplaceTypeParamCallsExpression>(new ReplaceTypeParamCallsExpression(current, requests, responses)));
 
-            // Create a holding namespace to use transform on
-            var ns = new QsNamespace(
-                NonNullable<string>.New(""),
-                ImmutableArray.Create(QsNamespaceElement.NewQsCallable(current.concreteCallable)),
-                Enumerable.Empty<ImmutableArray<string>>().ToLookup(x => NonNullable<string>.New("")));
-            ns = filter.Transform(ns);
-
-            // Extract back out the transformed callable
+            // Create a new response with the transformed callable
             return new Response
             {
                 originalName = current.originalName,
                 typeResolutions = current.typeResolutions,
-                concreteCallable = ((QsNamespaceElement.QsCallable)ns.Elements.First()).Item
+                concreteCallable = filter.onCallableImplementation(current.concreteCallable)
             };
         }
 
@@ -181,13 +174,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     }
 
     internal class ReplaceTypeParamCallsExpression :
-        ExpressionTransformation<ExpressionKindTransformation>
+        ExpressionTransformation<ReplaceTypeParamCallsExpressionKind>
     {
         private Response CurrentResponse;
         private Stack<Request> Requests;
         private List<Response> Responses;
 
-        public ReplaceTypeParamCallsExpression(Response currentResponse, Stack<Request> requests, List<Response> responses) : base(null)
+        public ReplaceTypeParamCallsExpression(Response currentResponse, Stack<Request> requests, List<Response> responses) :
+            base(ex => new ReplaceTypeParamCallsExpressionKind(ex as ReplaceTypeParamCallsExpression))
         {
             CurrentResponse = currentResponse;
             Requests = requests;
@@ -252,16 +246,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             string name = null;
 
             // Check for recursive call
-            if (CurrentResponse.originalName == globalCallable.Item && CurrentResponse.typeResolutions == target)
+            if (CurrentResponse.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
+                CurrentResponse.originalName.Name.Value == globalCallable.Item.Name.Value &&
+                CurrentResponse.typeResolutions.SetEquals(target))
             {
                 name = CurrentResponse.concreteCallable.FullName.Name.Value;
             }
 
             // Search Requests for identifier
-            if (name != null)
+            if (name == null)
             {
                 name = Requests
-                    .Where(req => req.originalName == globalCallable.Item && req.typeResolutions == target)
+                    .Where(req =>
+                        req.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
+                        req.originalName.Name.Value == globalCallable.Item.Name.Value &&
+                        req.typeResolutions.SetEquals(target))
                     .Select(req => req.concreteName.Name.Value)
                     .FirstOrDefault();
             }
@@ -270,7 +269,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             if (name == null)
             {
                 name = Responses
-                    .Where(res => res.originalName == globalCallable.Item && res.typeResolutions == target)
+                    .Where(res =>
+                        res.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
+                        res.originalName.Name.Value == globalCallable.Item.Name.Value &&
+                        res.typeResolutions.SetEquals(target))
                     .Select(res => res.concreteCallable.FullName.Name.Value)
                     .FirstOrDefault();
             }
@@ -305,5 +307,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         }
     }
 
+    internal class ReplaceTypeParamCallsExpressionKind : ExpressionKindTransformation<ReplaceTypeParamCallsExpression>
+    {
+        public ReplaceTypeParamCallsExpressionKind(ReplaceTypeParamCallsExpression expr) : base(expr) { }
+    }
     #endregion
 }
