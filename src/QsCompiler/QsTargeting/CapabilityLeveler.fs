@@ -65,6 +65,11 @@ type private CapabilityLevelManager() =
             next |> Seq.fold (fun (a : HashSet<SpecializationKey>) k -> if a.Add(k) then WalkDependencyTree k a else a) accum
         | false, _ -> accum
 
+    member this.Reset () =
+        levels.Clear()
+        dependencies.Clear()
+        keyTypes.Clear()
+
     member this.GetSpecializationLevel(spec) =
         let key = SpecToKey spec
         match levels.TryGetValue(key) with
@@ -123,6 +128,15 @@ let private manager = new CapabilityLevelManager()
 
 let private isResult ex =
     match ex.ResolvedType.Resolution with | Result -> true | _ -> false
+        
+let private isQubitType (t : ResolvedType) =
+    match t.Resolution with | Qubit -> true | _ -> false
+        
+let private isQubit ex =
+    ex.ResolvedType |> isQubitType
+        
+let private isQubitArray ex =
+    match ex.ResolvedType.Resolution with | ArrayType t when isQubitType t -> true | _ -> false
         
 type private CapabilityInfoHolder(spec) =
     let mutable localLevel = CapabilityLevel.Minimal
@@ -195,7 +209,6 @@ type private ExpressionKindLeveler(holder : CapabilityInfoHolder) =
         match kind with 
         | UnwrapApplication _
         | ValueTuple _
-        | ArrayItem _
         | NamedItem _
         | ValueArray _
         | NewArray _
@@ -233,6 +246,9 @@ type private ExpressionKindLeveler(holder : CapabilityInfoHolder) =
         | EQ (ex1, ex2) -> 
             if not (isResult ex1 && isResult ex2)
             then isSimpleResultTest <- false
+        | ArrayItem (arr, idx) ->
+            if not (isQubitArray arr)
+            then holder.LocalLevel <- CapabilityLevel.Medium
         | _ -> ()
         base.Transform(kind)
 
@@ -345,4 +361,23 @@ let ProcessSpecialization(callable : QsCallable, spec : QsSpecialization) =
 
     (localLevel, calledLevel)
 
-        
+type TreeLeveler() =
+    inherit SyntaxTreeTransformation()
+
+    do
+        manager.Reset()
+
+    let mutable spec = None : QsSpecialization option
+
+    override this.Scope 
+        with get() = 
+            match spec with
+            | Some s -> 
+                let holder = new CapabilityInfoHolder(s)
+                let xform = new ScopeLeveler(holder)
+                upcast xform
+            | None -> failwith "Scope outside of a specialization"
+
+    override this.onSpecializationImplementation(s) =
+        spec <- Some s
+        base.onSpecializationImplementation(s)
