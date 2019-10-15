@@ -735,31 +735,30 @@ and NamespaceManager
     /// Returns the resolved attributes as well as an array with diagnostics along with the declaration Position. 
     /// Each entry in the returned array of attributes is the resolution for the corresponding entry in the array of defined attributes. 
     member private this.ResolveAttributes (nsName, source) (decl : Resolution<'T,_>) = 
+        let buildError code (offset, range : QsRangeInfo) = offset, range.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (code, [])
         let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (nsName, source)) |> Seq.toList |> List.unzip
-        // entry point verification
-        let isEntryPoint (a : QsDeclarationAttribute) = 
-            let buildError code (offset, range : QsRangeInfo) = offset, range.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (code, [])
-            match a.TypeId with
-            | Value tId when tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value -> a.Argument.Expression |> function
-                | StringLiteral (arg, interpol) when not (interpol.Any()) -> 
-                    match box decl.Defined with 
-                    | :? CallableSignature as signature when not (signature.TypeParameters.Any()) -> 
-                        let validateEntryPointArg (t : QsType) = t.Type |> function 
-                            | Qubit -> (decl.Position, t.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |> Seq.singleton // FIXME MSG 
-                            | QsTypeKind.Operation _ -> (decl.Position, t.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |> Seq.singleton // FIXME MSG 
-                            | QsTypeKind.Function _ -> (decl.Position, t.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |> Seq.singleton // FIXME MSG 
-                            | _ -> Seq.empty
-                        let argErrs = signature.Argument.Items |> Seq.collect (fun (_, itemType) -> itemType.ExtractAll validateEntryPointArg) |> Seq.toArray
-                        if argErrs.Length = 0 then Some arg, [||] else None, argErrs
-                    | _ -> None, [| (a.Offset, tId.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |]                        
-                | _ -> None, [| (a.Offset, a.Argument.Range) |> buildError ErrorCode.InvalidEntryPointName |]
-            | _ -> None, [||]
-        let entryPoints, entryPointErrs = attr |> List.map isEntryPoint |> List.unzip
-        match entryPoints |> List.choose id with 
-        | [entryPointName] -> ()
-        | _ -> () // TODO: generate err for multiple entry point alias??
-        let resAttr, errs = attr |> ImmutableArray.CreateRange, Array.concat (entryPointErrs @ msgs) // FIXME: adapt attribute list somehow?
-        resAttr, errs
+        let validateEntryPoint (a : QsDeclarationAttribute) = 
+            match a.Argument.Expression with
+            | StringLiteral (arg, interpol) when not (interpol.Any()) -> 
+                match box decl.Defined with 
+                | :? CallableSignature as signature when not (signature.TypeParameters.Any()) -> 
+                    let validateEntryPointArg (t : QsType) = t.Type |> function 
+                        | Qubit -> (decl.Position, t.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |> Seq.singleton // FIXME MSG 
+                        | QsTypeKind.Operation _ -> (decl.Position, t.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |> Seq.singleton // FIXME MSG 
+                        | QsTypeKind.Function _ -> (decl.Position, t.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |> Seq.singleton // FIXME MSG 
+                        | _ -> Seq.empty
+                    let argErrs = signature.Argument.Items |> Seq.collect (fun (_, itemType) -> itemType.ExtractAll validateEntryPointArg) |> Seq.toArray
+                    if argErrs.Length = 0 then Some arg, [||] else None, argErrs
+                | _ -> None, [| (a.Offset, a.TypeId |> function | Null -> Null | Value tId -> tId.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |]                        
+            | _ -> None, [| (a.Offset, a.Argument.Range) |> buildError ErrorCode.InvalidEntryPointName |]
+
+        let isEntryPoint (a : QsDeclarationAttribute) = a.TypeId |> function
+            | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value //validateEntryPoint a
+            | _ -> false
+        let entryPoints, resAttr = attr |> List.partition isEntryPoint
+        let entryPointNames, entryPointErrs = entryPoints |> List.map validateEntryPoint |> List.unzip // FIXME: NEED TO INVALIDATE INVALID ENTRY POINTS...
+        // TODO: generate err for multiple entry point alias??
+        entryPoints @ resAttr |> ImmutableArray.CreateRange, Array.concat (entryPointErrs @ msgs) 
 
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
     /// The resolution consists of replacing all unqualified names for user defined types by their qualified name.
