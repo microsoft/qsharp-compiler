@@ -21,6 +21,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
     using Concretion = HashSet<(QsTypeParameter, ResolvedType)>;
+    using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, ImmutableDictionary<QsTypeParameter, ResolvedType>, Identifier>;
 
     internal struct Request
     {
@@ -77,11 +78,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     concreteCallable = globals[currentRequest.originalName].WithFullName(name => currentRequest.concreteName)
                 };
 
+                GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
+                {
+                    return GetConcreteIdentifier(currentResponse, requests, responses, globalCallable, types);
+                };
+
                 // Rewrite implementation
                 currentResponse = ReplaceTypeParamImplementationsSyntax.Apply(currentResponse);
 
                 // Rewrite calls
-                currentResponse = ReplaceTypeParamCallsSyntax.Apply(currentResponse, requests, responses);
+                currentResponse = ReplaceTypeParamCallsSyntax.Apply(currentResponse, getConcreteIdentifier);
 
                 responses.Add(currentResponse);
             }
@@ -107,6 +113,92 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 .Where(elem => elem is QsNamespaceElement.QsCustomType)
                 .Concat(concretesInNs?.Select(call => QsNamespaceElement.NewQsCallable(call)) ?? Enumerable.Empty<QsNamespaceElement>())
                 .ToImmutableArray());
+        }
+
+        private static Concretion CreateConcretion(ImmutableDictionary<QsTypeParameter, ResolvedType> typeDict)
+        {
+            Concretion result = new Concretion();
+            foreach (var kvp in typeDict)
+            {
+                result.Add((kvp.Key, kvp.Value));
+            }
+            return result;
+        }
+
+        private static Identifier GetConcreteIdentifier(
+            Response currentResponse,
+            Stack<Request> requests,
+            List<Response> responses,
+            Identifier.GlobalCallable globalCallable,
+            ImmutableDictionary<QsTypeParameter, ResolvedType> types)
+        {
+            Concretion target = null;
+            if (types != null && !types.IsEmpty)
+            {
+                target = CreateConcretion(types);
+            }
+
+            string name = null;
+
+            // Check for recursive call
+            if (currentResponse.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
+                currentResponse.originalName.Name.Value == globalCallable.Item.Name.Value &&
+                currentResponse.typeResolutions.SetEquals(target))
+            {
+                name = currentResponse.concreteCallable.FullName.Name.Value;
+            }
+
+            // Search Requests for identifier
+            if (name == null)
+            {
+                name = requests
+                    .Where(req =>
+                        req.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
+                        req.originalName.Name.Value == globalCallable.Item.Name.Value &&
+                        req.typeResolutions.SetEquals(target))
+                    .Select(req => req.concreteName.Name.Value)
+                    .FirstOrDefault();
+            }
+
+            // Search Responses for identifier
+            if (name == null)
+            {
+                name = responses
+                    .Where(res =>
+                        res.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
+                        res.originalName.Name.Value == globalCallable.Item.Name.Value &&
+                        res.typeResolutions.SetEquals(target))
+                    .Select(res => res.concreteCallable.FullName.Name.Value)
+                    .FirstOrDefault();
+            }
+
+            // If identifier can't be found, make a new request
+            if (name == null)
+            {
+                if (target != null)
+                {
+                    // Create new name
+                    name = Guid.NewGuid().ToString() + "_" + globalCallable.Item.Name.Value;
+
+                    // TODO: Check for identifier name collisions (not likely)
+                    // - check in global namespace
+                    // - check in concretion dict for current generic
+                }
+                else
+                {
+                    // If this is not a generic, do not change the name
+                    name = globalCallable.Item.Name.Value;
+                }
+
+                requests.Push(new Request()
+                {
+                    originalName = globalCallable.Item,
+                    typeResolutions = target,
+                    concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name))
+                });
+            }
+
+            return Identifier.NewGlobalCallable(new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name)));
         }
     }
 
@@ -156,9 +248,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     internal class ReplaceTypeParamCallsSyntax :
         SyntaxTreeTransformation<ScopeTransformation<ReplaceTypeParamCallsExpression>>
     {
-        public static Response Apply(Response current, Stack<Request> requests, List<Response> responses)
+        public static Response Apply(Response current, GetConcreteIdentifierFunc getConcreteIdentifier)
         {
-            var filter = new ReplaceTypeParamCallsSyntax(new ScopeTransformation<ReplaceTypeParamCallsExpression>(new ReplaceTypeParamCallsExpression(current, requests, responses)));
+            var filter = new ReplaceTypeParamCallsSyntax(new ScopeTransformation<ReplaceTypeParamCallsExpression>(new ReplaceTypeParamCallsExpression(new Dictionary<QsTypeParameter, ResolvedType>(), getConcreteIdentifier)));
 
             // Create a new response with the transformed callable
             return new Response
@@ -176,140 +268,69 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     internal class ReplaceTypeParamCallsExpression :
         ExpressionTransformation<ReplaceTypeParamCallsExpressionKind>
     {
-        private Response CurrentResponse;
-        private Stack<Request> Requests;
-        private List<Response> Responses;
+        private Dictionary<QsTypeParameter, ResolvedType> CurrentParamTypes;
 
-        public ReplaceTypeParamCallsExpression(Response currentResponse, Stack<Request> requests, List<Response> responses) :
-            base(ex => new ReplaceTypeParamCallsExpressionKind(ex as ReplaceTypeParamCallsExpression))
+        public ReplaceTypeParamCallsExpression(Dictionary<QsTypeParameter, ResolvedType> currentParamTypes, GetConcreteIdentifierFunc getConcreteIdentifier) :
+            base(ex => new ReplaceTypeParamCallsExpressionKind(ex as ReplaceTypeParamCallsExpression, currentParamTypes, getConcreteIdentifier))
         {
-            CurrentResponse = currentResponse;
-            Requests = requests;
-            Responses = responses;
+            CurrentParamTypes = currentParamTypes;
         }
 
-        public override TypedExpression Transform(TypedExpression ex)
+        public override ImmutableDictionary<QsTypeParameter, ResolvedType> onTypeParamResolutions(ImmutableDictionary<QsTypeParameter, ResolvedType> typeParams)
         {
-            // TODO: This should be recursive and use a more robust data structure to handle the type information for generics
-            ImmutableDictionary<QsTypeParameter, ResolvedType> types = ex.TypeParameterResolutions;
-
-            if (types.Any() && ex.Expression is QsExpressionKind<TypedExpression, Identifier, ResolvedType>.CallLikeExpression call)
+            // Merge the type params into the current dictionary
+            foreach (var kvp in typeParams)
             {
-                // For now, only resolve identifiers of global callables
-                if (call.Item1.Expression is QsExpressionKind<TypedExpression, Identifier, ResolvedType>.Identifier id &&
-                    id.Item1 is Identifier.GlobalCallable globalCallable)
-                {
-                    // Rebuild the method with the updated identifier
-                    ex = new TypedExpression(
-                        QsExpressionKind<TypedExpression, Identifier, ResolvedType>.NewCallLikeExpression(
-                            new TypedExpression(
-                                QsExpressionKind<TypedExpression, Identifier, ResolvedType>.NewIdentifier(
-                                    GetConcreteIdentifier(globalCallable, types),
-                                    id.Item2
-                                    ),
-                                call.Item1.TypeParameterResolutions,
-                                call.Item1.ResolvedType,
-                                call.Item1.InferredInformation,
-                                call.Item1.Range
-                                ),
-                            call.Item2
-                            ),
-                        ex.TypeParameterResolutions,
-                        ex.ResolvedType,
-                        ex.InferredInformation,
-                        ex.Range
-                        );
-                }
+                CurrentParamTypes.Add(kvp.Key, kvp.Value);
             }
 
-            return base.Transform(ex);
-        }
+            // TODO: empty the dictionary
+            //return ImmutableDictionary<QsTypeParameter, ResolvedType>.Empty;
 
-        private Concretion CreateConcretion(ImmutableDictionary<QsTypeParameter, ResolvedType> typeDict)
-        {
-            Concretion result = new Concretion();
-            foreach (var kvp in typeDict)
-            {
-                result.Add((kvp.Key, kvp.Value));
-            }
-            return result;
-        }
-
-        private Identifier GetConcreteIdentifier(Identifier.GlobalCallable globalCallable, ImmutableDictionary<QsTypeParameter, ResolvedType> types)
-        {
-            Concretion target = null;
-            if (types != null && !types.IsEmpty)
-            {
-                target = CreateConcretion(types);
-            }
-
-            string name = null;
-
-            // Check for recursive call
-            if (CurrentResponse.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
-                CurrentResponse.originalName.Name.Value == globalCallable.Item.Name.Value &&
-                CurrentResponse.typeResolutions.SetEquals(target))
-            {
-                name = CurrentResponse.concreteCallable.FullName.Name.Value;
-            }
-
-            // Search Requests for identifier
-            if (name == null)
-            {
-                name = Requests
-                    .Where(req =>
-                        req.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
-                        req.originalName.Name.Value == globalCallable.Item.Name.Value &&
-                        req.typeResolutions.SetEquals(target))
-                    .Select(req => req.concreteName.Name.Value)
-                    .FirstOrDefault();
-            }
-
-            // Search Responses for identifier
-            if (name == null)
-            {
-                name = Responses
-                    .Where(res =>
-                        res.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
-                        res.originalName.Name.Value == globalCallable.Item.Name.Value &&
-                        res.typeResolutions.SetEquals(target))
-                    .Select(res => res.concreteCallable.FullName.Name.Value)
-                    .FirstOrDefault();
-            }
-
-            // If identifier can't be found, make a new request
-            if (name == null)
-            {
-                if (target != null)
-                {
-                    // Create new name
-                    name = Guid.NewGuid().ToString() + "_" + globalCallable.Item.Name.Value;
-
-                    // TODO: Check for identifier name collisions (not likely)
-                    // - check in global namespace
-                    // - check in concretion dict for current generic
-                }
-                else
-                {
-                    // If this is not a generic, do not change the name
-                    name = globalCallable.Item.Name.Value;
-                }
-
-                Requests.Push(new Request()
-                {
-                    originalName = globalCallable.Item,
-                    typeResolutions = target,
-                    concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name))
-                });
-            }
-
-            return Identifier.NewGlobalCallable(new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name)));
+            return base.onTypeParamResolutions(typeParams);
         }
     }
 
     internal class ReplaceTypeParamCallsExpressionKind : ExpressionKindTransformation<ReplaceTypeParamCallsExpression>
     {
-        public ReplaceTypeParamCallsExpressionKind(ReplaceTypeParamCallsExpression expr) : base(expr) { }
+        private Dictionary<QsTypeParameter, ResolvedType> CurrentParamTypes;
+
+        private GetConcreteIdentifierFunc GetConcreteIdentifier;
+
+        public ReplaceTypeParamCallsExpressionKind(ReplaceTypeParamCallsExpression expr,
+            Dictionary<QsTypeParameter, ResolvedType> currentParamTypes,
+            GetConcreteIdentifierFunc getConcreteIdentifier) : base(expr)
+        {
+            GetConcreteIdentifier = getConcreteIdentifier;
+            CurrentParamTypes = currentParamTypes;
+        }
+
+        public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+        {
+            if (sym is Identifier.GlobalCallable global)
+            {
+                var applicableParams = CurrentParamTypes
+                    .Where(kvp =>
+                        kvp.Key.Origin.Namespace.Value == global.Item.Namespace.Value &&
+                        kvp.Key.Origin.Name.Value == global.Item.Name.Value)
+                    .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                if (applicableParams.Any())
+                {
+                    // Create a new identifier
+                    sym = GetConcreteIdentifier(global, applicableParams);
+                    tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null; // TODO: Check that this is correct
+
+                    // Remove Type Params used from the CurrentParamTypes
+                    foreach (var key in applicableParams.Keys)
+                    {
+                        CurrentParamTypes.Remove(key);
+                    }
+                }
+            }
+            return base.onIdentifier(sym, tArgs);
+        }
     }
+
     #endregion
 }
