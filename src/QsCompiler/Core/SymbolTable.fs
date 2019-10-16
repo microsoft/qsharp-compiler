@@ -737,14 +737,20 @@ and NamespaceManager
     member private this.ResolveAttributes (nsName, source) (decl : Resolution<'T,_>) = 
         let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (nsName, source)) |> Seq.toList |> List.unzip
         let mutable errs = msgs |> Seq.collect id
-        let validateEntryPoint (alreadyDefined, resAttr) (att : QsDeclarationAttribute) = att.TypeId |> function
-            | Value tId when tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value -> 
-                let returnInvalid msg = 
-                    errs <- errs.Concat msg
-                    alreadyDefined, {att with TypeId = Null} :: resAttr
+        let validateEntryPoint (alreadyDefined : int list, resAttr) (att : QsDeclarationAttribute) = 
+            let returnInvalid msg = 
+                errs <- errs.Concat msg
+                alreadyDefined, {att with TypeId = Null} :: resAttr
+            match att.TypeId with
+            | Value tId -> 
                 let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
-                if alreadyDefined then (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Warning (WarningCode.DuplicateAttribute, [tId.Name.Value])) |> Seq.singleton |> returnInvalid
-                else box decl.Defined |> function 
+                let attHash = hash (tId.Namespace.Value, tId.Name.Value, NamespaceManager.ExpressionHash att.Argument)
+                if alreadyDefined.Contains attHash then 
+                    (att.Offset, tId.Range |> orDefault 
+                    |> QsCompilerDiagnostic.Warning (WarningCode.DuplicateAttribute, [tId.Name.Value])) 
+                    |> Seq.singleton |> returnInvalid
+                elif tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value then
+                    match box decl.Defined with
                     | :? CallableSignature as signature when not (signature.TypeParameters.Any()) -> 
                         let validateEntryPointArg (argType : QsType) = 
                             argType.ExtractAll (fun t -> t.Type |> function // ExtractAll recurs on all subtypes (e.g. callable in- and output types as well)
@@ -754,10 +760,11 @@ and NamespaceManager
                             | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPoint, [])) |> Seq.singleton 
                             | _ -> Seq.empty)
                         let argErrs = signature.Argument.Items |> Seq.collect (snd >> validateEntryPointArg)
-                        if argErrs.Any() then returnInvalid argErrs else true, att :: resAttr
+                        if argErrs.Any() then returnInvalid argErrs else attHash :: alreadyDefined, att :: resAttr
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
+                else attHash :: alreadyDefined, att :: resAttr 
             | _ -> alreadyDefined, att :: resAttr
-        let resAttr = attr |> List.fold validateEntryPoint (false, []) |> snd
+        let resAttr = attr |> List.fold validateEntryPoint ([], []) |> snd
         resAttr.Reverse() |> ImmutableArray.CreateRange, errs.ToArray()
 
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
