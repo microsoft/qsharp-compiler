@@ -233,11 +233,10 @@ type ErrorCode =
     | ArgumentOfUserDefinedTypeInAttribute = 6227
     | TypeParameterizedArgumentInAttribute = 6228
     | AttributeArgumentTypeMismatch = 6229
-    | InvalidEntryPointName = 6230
-    | InvalidEntryPointPlacement = 6231
-    | QubitArgumentInEntryPoint = 6232
-    | CallableArgumentInEntryPoint = 6233
-    | UserDefinedTypeInEntryPoint = 6234
+    | InvalidEntryPointPlacement = 6230
+    | QubitArgumentInEntryPoint = 6231
+    | CallableArgumentInEntryPoint = 6232
+    | UserDefinedTypeInEntryPoint = 6233
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -571,7 +570,6 @@ type DiagnosticItem =
             | ErrorCode.ArgumentOfUserDefinedTypeInAttribute    -> "Items of user defined type cannot be used as attribute arguments."
             | ErrorCode.TypeParameterizedArgumentInAttribute    -> "The type of attribute arguments must be known at compile time."
             | ErrorCode.AttributeArgumentTypeMismatch           -> "The type of the given argument does not match the expected type."
-            | ErrorCode.InvalidEntryPointName                   -> "Invalid entry point. Expecting a non-interpolated string argument to identify the entry point."
             | ErrorCode.InvalidEntryPointPlacement              -> "Invalid entry point. Only callables without any type parametrizations are valid entry points."
             | ErrorCode.QubitArgumentInEntryPoint               -> "Invalid entry point. Values of type Qubit may not be passed as arguments to entry points."
             | ErrorCode.CallableArgumentInEntryPoint            -> "Invalid entry point. Values of operation or function type may not be passed as arguments to entry points."
