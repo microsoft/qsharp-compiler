@@ -3,8 +3,12 @@
 
   <PropertyGroup>
     <AssemblyName>Microsoft.Quantum.QsLanguageServer</AssemblyName>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <!-- Workaround for https://github.com/dotnet/cli/issues/9514, see https://stackoverflow.com/a/51644988/267841. -->
+  <PropertyGroup>
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
   </PropertyGroup>
   <PropertyGroup>
     <!-- Provide a solution directory in case we are invoked from the dotnet core SDK. -->
@@ -20,6 +24,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Desktop.Analyzers" Version="1.1.0" />
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.4.0" />
     <PackageReference Include="Microsoft.AnalyzerPowerPack" Version="1.1.0" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.2.2" />
     <PackageReference Include="Microsoft.Build" Version="16.0.461" ExcludeAssets="runtime" />
@@ -28,20 +33,16 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.0.461" ExcludeAssets="runtime" />    
     <!--
       The Microsoft.VisualStudio.LanguageServer.Protocol NuGet package is .NET
-      Standard 2.0 compatible, and thus can be used from the netcoreapp2.0 TFM,
-      but is not marked as being compatible with .NET Standard 2.0. This will
+      Standard 2.0 compatible, but is not marked as such. This will
       cause warnings when we rely on .NET Standard 2.0's compatibility mode.
       Following the advice at
-
           https://docs.microsoft.com/en-us/dotnet/core/porting/third-party-deps#net-framework-compatibility-mode
-
       we disable this warning for the LanguageServer.Protocol package ONLY.
     -->
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="16.0.2264" NoWarn="NU1701" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.0.102" />
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="16.0.102" />
     <PackageReference Include="Microsoft.VisualStudio.Validation" Version="15.3.58" />
-    <PackageReference Include="Mono.Options" Version="5.3.0.1" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
     <PackageReference Include="StreamJsonRpc" Version="2.0.167" />
     <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />

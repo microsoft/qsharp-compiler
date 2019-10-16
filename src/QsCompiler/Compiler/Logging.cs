@@ -7,15 +7,16 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler.Diagnostics 
 {
     public interface ILogger
     {
-        void Log(ErrorCode item, IEnumerable<string> args, string source = null, Range range = null);
-        void Log(WarningCode item, IEnumerable<string> args, string source = null, Range range = null);
-        void Log(InformationCode item, IEnumerable<string> args, string source = null, Range range = null, params string[] messageParam);
+        void Log(ErrorCode item, IEnumerable<string> args, string source = null, LSP.Range range = null);
+        void Log(WarningCode item, IEnumerable<string> args, string source = null, LSP.Range range = null);
+        void Log(InformationCode item, IEnumerable<string> args, string source = null, LSP.Range range = null, params string[] messageParam);
 
         void Log(params Diagnostic[] messages);
         void Log(Exception ex);
@@ -70,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Logs a diagnostic message based on the given error code,
         /// with the given source as the file for which the error occurred.
         /// </summary>
-        public void Log(ErrorCode code, IEnumerable<string> args, string source = null, Range range = null) =>
+        public void Log(ErrorCode code, IEnumerable<string> args, string source = null, LSP.Range range = null) =>
             this.Log(new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,
@@ -84,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Logs a a diagnostic message based on the given warning code,
         /// with the given source as the file for which the error occurred.
         /// </summary>
-        public void Log(WarningCode code, IEnumerable<string> args, string source = null, Range range = null) =>
+        public void Log(WarningCode code, IEnumerable<string> args, string source = null, LSP.Range range = null) =>
             this.Log(new Diagnostic
             {
                 Severity = DiagnosticSeverity.Warning,
@@ -99,7 +100,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// with any message parameters appended on a new line to the message defined by the information code.
         /// The given source is listed as the file for which the error occurred.
         /// </summary>
-        public void Log(InformationCode code, IEnumerable<string> args, string source = null, Range range = null, params string[] messageParam) =>
+        public void Log(InformationCode code, IEnumerable<string> args, string source = null, LSP.Range range = null, params string[] messageParam) =>
             this.Log(new Diagnostic
             {
                 Severity = DiagnosticSeverity.Information,

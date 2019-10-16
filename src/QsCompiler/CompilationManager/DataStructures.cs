@@ -12,6 +12,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
@@ -100,9 +101,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// returns a copy of the CodeFragment Range
         /// </summary>
-        internal Range GetRange() => this.FragmentRange.Copy();
+        internal LSP.Range GetRange() => this.FragmentRange.Copy();
 
-        private readonly Range FragmentRange;
+        private readonly LSP.Range FragmentRange;
         internal readonly Tuple<QsPositionInfo, QsPositionInfo> HeaderRange;
         internal readonly int Indentation;
         internal readonly string Text;
@@ -122,7 +123,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Note that the only thing that may be set to null is the fragment kind - all other properties need to be set upon initialization
         /// </summary>
-        private CodeFragment(int indent, Range r, string text, char next, QsComments comments, QsFragmentKind kind, bool include)
+        private CodeFragment(int indent, LSP.Range r, string text, char next, QsComments comments, QsFragmentKind kind, bool include)
         {
             if (!Utils.IsValidRange(r)) throw new ArgumentException("invalid range for code fragment");
             if (!DelimitingChars.Contains(next) && next != MissingDelimiter) throw new ArgumentException("a CodeFragment needs to be followed by a DelimitingChar");
@@ -136,7 +137,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.IncludeInCompilation = include;
         }
 
-        internal CodeFragment(int indent, Range r, string text, char next, QsFragmentKind kind = null) :
+        internal CodeFragment(int indent, LSP.Range r, string text, char next, QsFragmentKind kind = null) :
             this(indent, r, text, next, null, kind, true)
         { }
 
@@ -158,7 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal CodeFragment WithUpdatedLineNumber(int lineNrChange) => 
             this?.SetRange(this.GetRange().WithUpdatedLineNumber(lineNrChange));
 
-        internal CodeFragment SetRange(Range range) =>
+        internal CodeFragment SetRange(LSP.Range range) =>
             new CodeFragment(this.Indentation, range, this.Text, this.FollowedBy, this.Comments, this.Kind, this.IncludeInCompilation); 
 
         internal CodeFragment SetIndentation(int indent) =>
