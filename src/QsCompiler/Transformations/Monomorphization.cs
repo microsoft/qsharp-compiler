@@ -50,14 +50,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var globals = namespaces.GlobalCallableResolutions();
 
             var entryPoints = globals
-                .Where(x => // TODO: get list of entry points
-                    x.Key.Namespace.Value == entryPointName.Namespace.Value &&
-                    x.Key.Name.Value == entryPointName.Name.Value)
-                .Select(x => new Request
+                .Where(call => // TODO: get list of entry points
+                    call.Key.Namespace.Value == entryPointName.Namespace.Value &&
+                    call.Key.Name.Value == entryPointName.Name.Value)
+                .Select(call => new Request
                 {
-                    originalName = x.Key,
+                    originalName = call.Key,
                     typeResolutions = null,
-                    concreteName = x.Key
+                    concreteName = call.Key
                 });
 
             var requests = new Stack<Request>(entryPoints);

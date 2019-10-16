@@ -85,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             try
             {
                 // TODO: Hard-coded values are given ONLY FOR DEV
-                result = ResolveGenericsSyntax.Apply(syntaxTree, new QsQualifiedName(NonNullable<string>.New("Quantum.Kata.BasicGates"), NonNullable<string>.New("MyFlipState")));
+                result = ResolveGenericsSyntax.Apply(syntaxTree, new QsQualifiedName(NonNullable<string>.New("Quantum.Kata.BasicGates"), NonNullable<string>.New("MyStateFlip")));
                 return true;
             }
             catch (Exception ex)

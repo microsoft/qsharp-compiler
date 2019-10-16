@@ -362,10 +362,10 @@ and ExpressionTransformation(?enableKindTransformations) =
     abstract member onTypeParamResolutions : ImmutableDictionary<QsTypeParameter, ResolvedType> -> ImmutableDictionary<QsTypeParameter, ResolvedType>
     default this.onTypeParamResolutions typeParams =
         typeParams.ToImmutableDictionary(
-            (fun x -> x.Key),
+            (fun kvp -> kvp.Key),
             // TODO: Waiting for the Union Case on transform to be updated
-            //(fun x -> this.Type.onTypeParameter x.Key),
-            (fun x -> this.Type.Transform x.Value))
+            //(fun kvp -> this.Type.onTypeParameter kvp.Key),
+            (fun kvp -> this.Type.Transform kvp.Value))
 
     abstract member Transform : TypedExpression -> TypedExpression
     default this.Transform (ex : TypedExpression) =
