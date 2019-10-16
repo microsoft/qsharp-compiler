@@ -8,8 +8,9 @@ variables:
   Assembly.Version: $(Build.BuildNumber)
   Assembly.Constants: ''
   Drops.Dir: $(Build.ArtifactStagingDirectory)/drops
+  Nuget.Outdir: $(Drops.Dir)/nugets
   VSIX.Outdir: $(Drops.Dir)/vsix
-
+  Blobs.Outdir: $(Drops.Dir)/blobs
 
 jobs:
 - job: "QsCompiler"
