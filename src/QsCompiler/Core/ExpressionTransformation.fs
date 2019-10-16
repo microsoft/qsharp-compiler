@@ -260,12 +260,12 @@ and ExpressionTypeTransformation(?enable) =
         let range = this.onRangeInformation udt.Range
         UserDefinedType.New (ns, name, range) |> ExpressionType.UserDefinedType
 
-    abstract member onTypeParameter : QsTypeParameter -> ExpressionType
+    abstract member onTypeParameter : QsTypeParameter -> QsTypeParameter
     default this.onTypeParameter tp = 
         let origin = tp.Origin
         let name = tp.TypeName
         let range = this.onRangeInformation tp.Range
-        QsTypeParameter.New (origin.Namespace, origin.Name, name, range) |> ExpressionType.TypeParameter
+        QsTypeParameter.New (origin.Namespace, origin.Name, name, range) // |> ExpressionType.TypeParameter
 
     abstract member onUnitType : unit -> ExpressionType
     default this.onUnitType () = ExpressionType.UnitType
@@ -324,7 +324,7 @@ and ExpressionTypeTransformation(?enable) =
         | ExpressionType.TupleType ts                -> this.onTupleType ts
         | ExpressionType.ArrayType b                 -> this.onArrayType b
         | ExpressionType.UserDefinedType udt         -> this.onUserDefinedType udt
-        | ExpressionType.TypeParameter tp            -> this.onTypeParameter tp
+        | ExpressionType.TypeParameter tp            -> this.onTypeParameter tp |> ExpressionType.TypeParameter
         | ExpressionType.Qubit                       -> this.onQubit ()
         | ExpressionType.MissingType                 -> this.onMissingType ()
         | ExpressionType.InvalidType                 -> this.onInvalidType ()
