@@ -731,7 +731,7 @@ and NamespaceManager
         let resolved, msgs = SymbolResolution.ResolveAttribute getAttribute attribute
         resolved, msgs |> Array.map (fun m -> attribute.Position, m)
 
-    /// Resolves the DefinedAttributes of the given declaration using ResolveAttribute. 
+    /// Resolves the DefinedAttributes of the given declaration using ResolveAttribute and Validates any entry points, if any. 
     /// Returns the resolved attributes as well as an array with diagnostics along with the declaration Position. 
     /// Each entry in the returned array of attributes is the resolution for the corresponding entry in the array of defined attributes. 
     member private this.ResolveAttributes (nsName, source) (decl : Resolution<'T,_>) = 
@@ -742,18 +742,20 @@ and NamespaceManager
             | StringLiteral (arg, interpol) when not (interpol.Any()) -> 
                 match box decl.Defined with 
                 | :? CallableSignature as signature when not (signature.TypeParameters.Any()) -> 
-                    let validateEntryPointArg (t : QsType) = t.Type |> function 
-                        | Qubit -> (decl.Position, t.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |> Seq.singleton // FIXME MSG 
-                        | QsTypeKind.Operation _ -> (decl.Position, t.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |> Seq.singleton // FIXME MSG 
-                        | QsTypeKind.Function _ -> (decl.Position, t.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |> Seq.singleton // FIXME MSG 
-                        | _ -> Seq.empty
-                    let argErrs = signature.Argument.Items |> Seq.collect (fun (_, itemType) -> itemType.ExtractAll validateEntryPointArg) |> Seq.toArray
+                    let validateEntryPointArg (argType : QsType) = 
+                        argType.ExtractAll (fun t -> t.Type |> function // ExtractAll recurs on all subtypes (e.g. callable in- and output types as well)
+                        | Qubit -> (decl.Position, t.Range) |> buildError ErrorCode.QubitArgumentInEntryPoint |> Seq.singleton 
+                        | QsTypeKind.Operation _ -> (decl.Position, t.Range) |> buildError ErrorCode.CallableArgumentInEntryPoint |> Seq.singleton 
+                        | QsTypeKind.Function _ -> (decl.Position, t.Range) |> buildError ErrorCode.CallableArgumentInEntryPoint |> Seq.singleton 
+                        | UserDefinedType _ -> (decl.Position, t.Range) |> buildError ErrorCode.UserDefinedTypeInEntryPoint |> Seq.singleton 
+                        | _ -> Seq.empty)
+                    let argErrs = signature.Argument.Items |> Seq.collect (snd >> validateEntryPointArg) |> Seq.toArray
                     if argErrs.Length = 0 then Some arg, [||] else None, argErrs
                 | _ -> None, [| (a.Offset, a.TypeId |> function | Null -> Null | Value tId -> tId.Range) |> buildError ErrorCode.InvalidEntryPointPlacement |]                        
             | _ -> None, [| (a.Offset, a.Argument.Range) |> buildError ErrorCode.InvalidEntryPointName |]
 
         let isEntryPoint (a : QsDeclarationAttribute) = a.TypeId |> function
-            | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value //validateEntryPoint a
+            | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value 
             | _ -> false
         let entryPoints, resAttr = attr |> List.partition isEntryPoint
         let entryPointNames, entryPointErrs = entryPoints |> List.map validateEntryPoint |> List.unzip // FIXME: NEED TO INVALIDATE INVALID ENTRY POINTS...
