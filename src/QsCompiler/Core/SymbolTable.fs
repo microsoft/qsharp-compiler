@@ -731,7 +731,7 @@ and NamespaceManager
         let resolved, msgs = SymbolResolution.ResolveAttribute getAttribute attribute
         resolved, msgs |> Array.map (fun m -> attribute.Position, m)
 
-    /// Resolves the DefinedAttributes of the given declaration using ResolveAttribute and Validates any entry points, if any. 
+    /// Resolves the DefinedAttributes of the given declaration using ResolveAttribute and validates any entry points, if any. 
     /// Returns the resolved attributes as well as an array with diagnostics along with the declaration Position. 
     /// Each entry in the returned array of attributes is the resolution for the corresponding entry in the array of defined attributes. 
     member private this.ResolveAttributes (nsName, source) (decl : Resolution<'T,_>) = 
