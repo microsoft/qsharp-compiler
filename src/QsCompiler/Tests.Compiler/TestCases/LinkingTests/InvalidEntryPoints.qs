@@ -45,4 +45,81 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
         return Default<(Unit -> Unit)>();
     }
 
+    @ EntryPoint()
+    function InvalidEntryPoint11 () : (Unit -> Unit)[] {
+        return Default<(Unit -> Unit)[]>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint12 () : (BigInt, (Unit -> Unit)) {
+        return Default<(BigInt, (Unit -> Unit))>();
+    }
+
+
+    @ EntryPoint()
+    function InvalidEntryPoint13 () : (Qubit -> Unit) {
+        return Default<(Qubit -> Unit)>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint14 () : (Unit -> Qubit) {
+        return Default<(Unit -> Qubit)>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint15 () : (Qubit[] -> Unit) {
+        return Default<(Qubit[] -> Unit)>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint16 () : (Unit -> (Int, Qubit)) {
+        return Default<(Unit -> (Int, Qubit))>();
+    }
+
+
+    @ EntryPoint()
+    function InvalidEntryPoint17 (arg : (Unit => Unit is Adj)) : Unit {}
+
+    @ EntryPoint()
+    function InvalidEntryPoint18 (arg : ((Unit => Unit), Int)) : Unit {}
+
+    @ EntryPoint()
+    function InvalidEntryPoint19 (arg : ((Unit => Unit is Ctl)[], Int)) : Unit {}
+
+    @ EntryPoint()
+    function InvalidEntryPoint20 () : (Unit => Unit is Ctl + Adj) {
+        return Default<(Unit => Unit is Ctl + Adj)>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint21 () : (Unit => Unit)[] {
+        return Default<(Unit => Unit)[]>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint22 () : (BigInt, (Unit => Unit)) {
+        return Default<(BigInt, (Unit => Unit))>();
+    }
+
+
+    @ EntryPoint()
+    function InvalidEntryPoint23 () : (Qubit => Unit is Adj) {
+        return Default<(Qubit => Unit is Adj)>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint24 () : (Unit => Qubit is Ctl) {
+        return Default<(Unit => Qubit is Ctl)>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint25 () : (Qubit[] => Unit) {
+        return Default<(Qubit[] => Unit)>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint26 () : (Unit => (Int, Qubit) is Ctl + Adj) {
+        return Default<(Unit => (Int, Qubit) is Ctl + Adj)>();
+    }
+
 }
