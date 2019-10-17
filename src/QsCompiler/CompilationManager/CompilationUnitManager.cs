@@ -223,7 +223,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Adds the given source file to this compilation unit, adapting the diagnostics for all remaining files as needed.
         /// If a file with that Uri is already listed as source file,
-        /// replaces the current FileContentManager for that file with a new one and initialized its content to the given one. 
+        /// replaces the current FileContentManager for that file with the given one.
+        /// If the content to update is specified and not null, replaces the tracked content in the file manager with the given one. 
         /// Throws an ArgumentNullException if any of the compulsory arguments is null or the set uri is.
         /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri. 
         /// </summary>
