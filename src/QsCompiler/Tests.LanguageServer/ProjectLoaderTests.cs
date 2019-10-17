@@ -47,11 +47,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         {
             var loader = new ProjectLoader();
             Assert.IsTrue(loader.IsSupportedQsFramework("netstandard2.0"));
-            Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp2.0"));
             Assert.IsTrue(loader.IsSupportedQsFramework("netstandard2.1"));
+            Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp2.0"));
             Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp2.1"));
-            Assert.IsTrue(loader.IsSupportedQsFramework("netstandard2.2"));
             Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp2.2"));
+            Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp3.0"));
         }
 
         [TestMethod]
@@ -77,7 +77,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 ("test7", "net461"),
                 ("test8", null),
                 ("test9", "netcoreapp2.0"),
-                ("test10", "netcoreapp2.1")
+                ("test10", "netcoreapp2.1"),
+                ("test11", "netcoreapp3.0"),
+                ("test12", "netstandard2.1"),
             };
 
             foreach (var (project, framework) in testProjects)
@@ -124,7 +126,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public void LoadQsharpCoreLibrary()
+        public void LoadQsharpCoreLibraries()
         {
             var (projectFile, context) = Context("test3");
             var projDir = Path.GetDirectoryName(projectFile);
@@ -138,6 +140,25 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Path.Combine(projDir, "Operation3b.qs"),
                 Path.Combine(projDir, "sub1", "Operation3b.qs"),
                 Path.Combine(projDir, "sub1", "sub2", "Operation3a.qs")
+            };
+
+            Assert.IsTrue(context.UsesIntrinsics());
+            Assert.IsTrue(context.UsesCanon());
+            Assert.IsFalse(context.UsesXunitHelper());
+            CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
+
+            (projectFile, context) = Context("test12");
+            projDir = Path.GetDirectoryName(projectFile);
+            Assert.IsNotNull(context);
+            Assert.AreEqual("test12.dll", Path.GetFileName(context.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.OutputPath).StartsWith(projDir));
+
+            qsFiles = new string[]
+            {
+                Path.Combine(projDir, "Operation12a.qs"),
+                Path.Combine(projDir, "Operation12b.qs"),
+                Path.Combine(projDir, "sub1", "Operation12b.qs"),
+                Path.Combine(projDir, "sub1", "sub2", "Operation12a.qs")
             };
 
             Assert.IsTrue(context.UsesIntrinsics());
@@ -195,6 +216,21 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             qsFiles = new string[]
             {
                 Path.Combine(projDir, "Operation10.qs")
+            };
+
+            Assert.IsTrue(context.UsesIntrinsics());
+            Assert.IsTrue(context.UsesCanon());
+            CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
+
+            (projectFile, context) = Context("test11");
+            projDir = Path.GetDirectoryName(projectFile);
+            Assert.IsNotNull(context);
+            Assert.AreEqual("test11.dll", Path.GetFileName(context.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.OutputPath).StartsWith(projDir));
+
+            qsFiles = new string[]
+            {
+                Path.Combine(projDir, "Operation11.qs")
             };
 
             Assert.IsTrue(context.UsesIntrinsics());

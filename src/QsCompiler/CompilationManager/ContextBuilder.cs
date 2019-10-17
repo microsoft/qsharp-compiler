@@ -11,6 +11,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -74,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if token or the range delimiters are null.
         /// Throws an ArgumentException if the given range is not valid.
         /// </summary>
-        internal static bool IsWithinRange(this CodeFragment token, Range range)
+        internal static bool IsWithinRange(this CodeFragment token, LSP.Range range)
         {
             if (token == null) throw new ArgumentNullException(nameof(token));
             if (!Utils.IsValidRange(range)) throw new ArgumentException("invalid range");
@@ -103,9 +104,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a function that returns true if a given fragment does not overlap with the specified range.
         /// </summary>
-        internal static Func<CodeFragment, bool> NotOverlappingWith(Range relRange) =>
+        internal static Func<CodeFragment, bool> NotOverlappingWith(LSP.Range relRange) =>
             token =>
-                token.IsWithinRange(new Range { Start = new Position(0, 0), End = relRange.Start }) ||
+                token.IsWithinRange(new LSP.Range { Start = new Position(0, 0), End = relRange.Start }) ||
                 (ContextBuilder.TokensAfter(relRange.End))(token);
 
         /// <summary>
@@ -200,7 +201,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given file or range is null.
         /// Throws an ArgumentOutOfRangeException if the given range is not a valid range within file.
         /// </summary>
-        internal static bool ContainsTokensOverlappingWith(this FileContentManager file, Range range)
+        internal static bool ContainsTokensOverlappingWith(this FileContentManager file, LSP.Range range)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
             if (!Utils.IsValidRange(range, file)) throw new ArgumentOutOfRangeException(nameof(range));
@@ -455,7 +456,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// checks which callable declaration they can potentially belong to and returns the fully qualified name of those callables.
         /// Throws an ArgumentNullException if the given file or the collection of changed lines is null.
         /// </summary>
-        internal static IEnumerable<(Range, QsQualifiedName)> CallablesWithContentModifications(this FileContentManager file, IEnumerable<int> changedLines)
+        internal static IEnumerable<(LSP.Range, QsQualifiedName)> CallablesWithContentModifications(this FileContentManager file, IEnumerable<int> changedLines)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
             if (changedLines == null) throw new ArgumentNullException(nameof(changedLines));
@@ -471,11 +472,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // NOTE: The range of modifications that has to trigger an update of the syntax tree for a callable 
             // does need to go up to and include modifications to the line containing the next callable!
             // Otherwise inserting a callable declaration in the middle of an existing callable does not trigger the right behavior!
-            (Range, QsQualifiedName) TypeCheckingRange((Position, QsQualifiedName) lastPreceding, IEnumerable<(Position, QsQualifiedName)> next)
+            (LSP.Range, QsQualifiedName) TypeCheckingRange((Position, QsQualifiedName) lastPreceding, IEnumerable<(Position, QsQualifiedName)> next)
             {
                 var callableStart = lastPreceding.Item1;
                 var callableEnd = next.Any() ? next.First().Item1 : lastInFile;
-                return (new Range { Start = callableStart, End = callableEnd }, lastPreceding.Item2);
+                return (new LSP.Range { Start = callableStart, End = callableEnd }, lastPreceding.Item2);
             }
 
             foreach (var lineNr in changedLines)
