@@ -770,14 +770,17 @@ and NamespaceManager
                             | QsTypeKind.Function _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableArgumentInEntryPoint, [])) |> Seq.singleton 
                             | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPoint, [])) |> Seq.singleton 
                             | _ -> Seq.empty)
-                        let argErrs = signature.Argument.Items |> Seq.collect (snd >> validateEntryPointArg)
+                        let argErrs = signature.Argument.Items.Select(snd).Append signature.ReturnType |> Seq.collect validateEntryPointArg // FIXME: ADAPT ERROR MESSAGES TO INCLUDE RETURN
+                        if (signature.Characteristics.Characteristics |> function | EmptySet | InvalidSetExpr -> false | _ -> true) then // specifies characteristics
+                            errs <- errs.Append (decl.Position, signature.Characteristics.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
+                            // TODO: DON'T ALLOW TO ADD FUNCTOR SPECS TO ENTRY POINTS
                         if argErrs.Any() then returnInvalid argErrs 
                         else GetEntryPoints() |> Seq.tryHead |> function
-                            | None -> attHash :: alreadyDefined, att :: resAttr // TODO: CHECK THAT EXACTLY ONE SPEC EXISTS ...; CHECK RETURN TYPE
+                            | None -> attHash :: alreadyDefined, att :: resAttr
                             | Some (epName, epSource) -> 
                                 let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
                                 (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs)) |> Seq.singleton |> returnInvalid 
-                    | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
+                    | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid // FIXME: BETTER ERRRO MESSAGE
                 else attHash :: alreadyDefined, att :: resAttr 
             | _ -> alreadyDefined, att :: resAttr
         let resAttr = attr |> List.fold validateEntryPoint ([], []) |> snd
