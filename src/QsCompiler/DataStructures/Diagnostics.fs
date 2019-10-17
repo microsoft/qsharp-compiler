@@ -234,9 +234,9 @@ type ErrorCode =
     | TypeParameterizedArgumentInAttribute = 6228
     | AttributeArgumentTypeMismatch = 6229
     | InvalidEntryPointPlacement = 6230
-    | QubitArgumentInEntryPoint = 6231
-    | CallableArgumentInEntryPoint = 6232
-    | UserDefinedTypeInEntryPoint = 6233
+    | QubitTypeInEntryPointSignature = 6231
+    | CallableTypeInEntryPointSignature = 6232
+    | UserDefinedTypeInEntryPointSignature = 6233
     | MultipleEntryPoints = 6234
     | InvalidEntryPointSpecialization = 6235
 
@@ -573,10 +573,10 @@ type DiagnosticItem =
             | ErrorCode.ArgumentOfUserDefinedTypeInAttribute    -> "Items of user defined type cannot be used as attribute arguments."
             | ErrorCode.TypeParameterizedArgumentInAttribute    -> "The type of attribute arguments must be known at compile time."
             | ErrorCode.AttributeArgumentTypeMismatch           -> "The type of the given argument does not match the expected type."
-            | ErrorCode.InvalidEntryPointPlacement              -> "Invalid entry point. Only callables without any type parametrizations are valid entry points."
-            | ErrorCode.QubitArgumentInEntryPoint               -> "Invalid entry point. Values of type Qubit may not be passed as arguments to entry points."
-            | ErrorCode.CallableArgumentInEntryPoint            -> "Invalid entry point. Values of operation or function type may not be passed as arguments to entry points."
-            | ErrorCode.UserDefinedTypeInEntryPoint             -> "Invalid entry point. Values of user defined type may not be passed as arguments to entry points."
+            | ErrorCode.InvalidEntryPointPlacement              -> "Invalid entry point. Entry point attributes may only occur on suitable callables without type-parametrizations."
+            | ErrorCode.QubitTypeInEntryPointSignature          -> "Invalid entry point. Values of type Qubit may not be used as arguments or return values to entry points."
+            | ErrorCode.CallableTypeInEntryPointSignature       -> "Invalid entry point. Values of operation or function type may not be used as arguments or return values to entry points."
+            | ErrorCode.UserDefinedTypeInEntryPointSignature    -> "Invalid entry point. Values of user defined type may not be used as arguments or return values to entry points."
             | ErrorCode.MultipleEntryPoints                     -> "Invalid entry point. An entry point {0} already exists in {1}."
             | ErrorCode.InvalidEntryPointSpecialization         -> "Entry points cannot have any other specializations besides the default body."
 

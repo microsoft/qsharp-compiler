@@ -5,6 +5,7 @@ namespace Microsoft.Quantum.QsCompiler
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
 type BuiltIn = {
@@ -20,7 +21,13 @@ type BuiltIn = {
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
 
+    /// returns the set of namespaces that is automatically opened for each compilation
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
+
+    /// returns true if the given attributes is an entry point attributes
+    static member internal IsEntryPointAttribute (att : QsDeclarationAttribute) = att.TypeId |> function 
+        | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value
+        | Null -> false
 
 
     // hard dependencies in Microsoft.Quantum.Core
