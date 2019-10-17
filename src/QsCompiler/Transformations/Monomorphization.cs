@@ -255,14 +255,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     }
 
     internal class ReplaceTypeParamCallsExpression :
-        ExpressionTransformation<ReplaceTypeParamCallsExpressionKind>
+        ExpressionTransformation<ReplaceTypeParamCallsExpressionKind, ReplaceTypeParamCallsExpressionType>
     {
         private Dictionary<QsTypeParameter, ResolvedType> CurrentParamTypes;
 
         public ReplaceTypeParamCallsExpression(Dictionary<QsTypeParameter, ResolvedType> currentParamTypes, GetConcreteIdentifierFunc getConcreteIdentifier) :
-            base(ex => new ReplaceTypeParamCallsExpressionKind(ex as ReplaceTypeParamCallsExpression, currentParamTypes, getConcreteIdentifier))
+            base(ex => new ReplaceTypeParamCallsExpressionKind(ex as ReplaceTypeParamCallsExpression, currentParamTypes, getConcreteIdentifier),
+                ex => new ReplaceTypeParamCallsExpressionType(ex as ReplaceTypeParamCallsExpression, currentParamTypes))
         {
             CurrentParamTypes = currentParamTypes;
+        }
+
+        public override TypedExpression Transform(TypedExpression ex)
+        {
+            var range                = this.onRangeInformation(ex.Range);
+            var typeParamResolutions = this.onTypeParamResolutions(ex.TypeParameterResolutions);
+            var exType               = this.Type.Transform(ex.ResolvedType);
+            var inferredInfo         = this.onExpressionInformation(ex.InferredInformation);
+            // Change the order so that Kind is transformed last
+            var kind                 = this.Kind.Transform(ex.Expression);
+            return new TypedExpression(kind, typeParamResolutions, exType, inferredInfo, range);
         }
 
         public override Concretion onTypeParamResolutions(Concretion typeParams)
@@ -273,10 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 CurrentParamTypes.Add(kvp.Key, kvp.Value);
             }
 
-            // TODO: empty the dictionary
-            //return ImmutableDictionary<QsTypeParameter, ResolvedType>.Empty;
-
-            return base.onTypeParamResolutions(typeParams);
+            return ImmutableDictionary<QsTypeParameter, ResolvedType>.Empty;
         }
     }
 
@@ -307,7 +316,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     // Create a new identifier
                     sym = GetConcreteIdentifier(global, applicableParams);
-                    tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null; // TODO: Check that this is correct
+                    tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
 
                     // Remove Type Params used from the CurrentParamTypes
                     foreach (var key in applicableParams.Keys)
@@ -317,6 +326,36 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
             return base.onIdentifier(sym, tArgs);
+        }
+    }
+
+    internal class ReplaceTypeParamCallsExpressionType : ExpressionTypeTransformation<ReplaceTypeParamCallsExpression>
+    {
+        private Dictionary<QsTypeParameter, ResolvedType> CurrentParamTypes;
+
+        public ReplaceTypeParamCallsExpressionType(ReplaceTypeParamCallsExpression expr, Dictionary<QsTypeParameter, ResolvedType> currentParamTypes) : base(expr)
+        {
+            CurrentParamTypes = currentParamTypes;
+        }
+
+        private (ResolvedType, ResolvedType) onCallType(ResolvedType it, ResolvedType ot)
+        {
+            var filter = new MinorTransformations.ReplaceTypeParams(CurrentParamTypes.ToImmutableDictionary());
+
+            return (filter.Expression.Type.Transform(it),
+                    filter.Expression.Type.Transform(ot));
+        }
+
+        public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onFunction(ResolvedType it, ResolvedType ot)
+        {
+            (it, ot) = onCallType(it, ot);
+            return base.onFunction(it, ot);
+        }
+
+        public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onOperation(Tuple<ResolvedType, ResolvedType> _arg1, CallableInformation info)
+        {
+            var (it, ot) = onCallType(_arg1.Item1, _arg1.Item2);
+            return base.onOperation(new Tuple<ResolvedType, ResolvedType>(it, ot), info);
         }
     }
 
