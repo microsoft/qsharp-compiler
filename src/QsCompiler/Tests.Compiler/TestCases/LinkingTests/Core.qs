@@ -9,4 +9,8 @@ namespace Microsoft.Quantum.Core {
 
     @ Attribute()
     newtype EntryPoint = Unit;
+
+    function Default<'T>() : 'T {
+        return (new 'T[1])[0];
+    }
 }
