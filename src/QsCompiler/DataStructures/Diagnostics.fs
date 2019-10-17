@@ -237,6 +237,7 @@ type ErrorCode =
     | QubitArgumentInEntryPoint = 6231
     | CallableArgumentInEntryPoint = 6232
     | UserDefinedTypeInEntryPoint = 6233
+    | MultipleEntryPoints = 6234
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -575,6 +576,7 @@ type DiagnosticItem =
             | ErrorCode.QubitArgumentInEntryPoint               -> "Invalid entry point. Values of type Qubit may not be passed as arguments to entry points."
             | ErrorCode.CallableArgumentInEntryPoint            -> "Invalid entry point. Values of operation or function type may not be passed as arguments to entry points."
             | ErrorCode.UserDefinedTypeInEntryPoint             -> "Invalid entry point. Values of user defined type may not be passed as arguments to entry points."
+            | ErrorCode.MultipleEntryPoints                     -> "Invalid entry point. An entry point {0} already exists in {1}."
 
             | ErrorCode.TypeMismatchInReturn                    -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate               -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."

@@ -631,6 +631,17 @@ and NamespaceManager
             namespaces.Add (nsName, new Namespace(nsName, [], callables.[nsName], specializations.[nsName], types.[nsName]))
         namespaces
 
+    /// Returns the full name of all entry points currently resolved in any of the tracked source files. 
+    let GetEntryPoints () = 
+        let isEntryPoint (att : QsDeclarationAttribute) = att.TypeId |> function 
+            | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value
+            | Null -> false
+        let entryPoints = Namespaces.Values |> Seq.collect (fun ns -> 
+            ns.CallablesDefinedInAllSources() |> Seq.choose (fun kvPair ->
+                let cName, (source, (_, decl)) = kvPair.Key, kvPair.Value
+                if decl.ResolvedAttributes |> Seq.exists isEntryPoint then Some ({Namespace = ns.Name; Name = cName}, source) else None))
+        entryPoints.ToImmutableArray()
+
     /// If a namespace with the given name exists, returns that namespace 
     /// as well as all imported namespaces for that namespace in the given source file.
     /// Filters namespaces that have been imported under a different name.
@@ -760,7 +771,12 @@ and NamespaceManager
                             | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPoint, [])) |> Seq.singleton 
                             | _ -> Seq.empty)
                         let argErrs = signature.Argument.Items |> Seq.collect (snd >> validateEntryPointArg)
-                        if argErrs.Any() then returnInvalid argErrs else attHash :: alreadyDefined, att :: resAttr
+                        if argErrs.Any() then returnInvalid argErrs 
+                        else GetEntryPoints() |> Seq.tryHead |> function
+                            | None -> attHash :: alreadyDefined, att :: resAttr // TODO: CHECK THAT EXACTLY ONE SPEC EXISTS ...; CHECK RETURN TYPE
+                            | Some (epName, epSource) -> 
+                                let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
+                                (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs)) |> Seq.singleton |> returnInvalid 
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
                 else attHash :: alreadyDefined, att :: resAttr 
             | _ -> alreadyDefined, att :: resAttr
