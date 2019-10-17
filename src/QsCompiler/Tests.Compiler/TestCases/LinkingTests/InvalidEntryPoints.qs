@@ -2,11 +2,8 @@
 // Licensed under the MIT License.
 
 // needs to be available for testing
-namespace Microsoft.Quantum.Core {
+namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ Attribute()
-    newtype Attribute = Unit;
+    
 
-    @ Attribute()
-    newtype EntryPoint = Unit;
 }

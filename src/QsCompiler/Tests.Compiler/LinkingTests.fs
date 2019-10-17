@@ -31,15 +31,21 @@ type LinkingTests (output:ITestOutputHelper) =
         new CompilationUnitManager(
             new Action<Exception> (fun ex -> failwith ex.Message),
             new Action<PublishDiagnosticParams> (pushDiagnostics))
+    
+    let getManager uri content = 
+        CompilationUnitManager.InitializeFileManager(uri, content, compilation.PublishDiagnostics, compilation.LogException)
 
+    do  let core = Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath 
+        let file = getManager (new Uri(core)) (File.ReadAllText core)
+        compilation.AddOrUpdateSourceFileAsync(file) |> ignore
 
     member private this.CompileAndVerify input = 
         async {
             let fileId = getTempFile()
-            let file = CompilationUnitManager.InitializeFileManager(fileId, input, compilation.PublishDiagnostics, compilation.LogException)
+            let file = getManager fileId input
             do! compilation.AddOrUpdateSourceFileAsync(file) |> Async.AwaitTask
             match diagnostics.TryRemove fileId with 
-            | true, msgs -> ()
+            | true, msgs -> Assert.Empty(msgs) // FIXME
             | false, _ -> Assert.NotNull(null, "failed to get diagnostics")
         
         }
