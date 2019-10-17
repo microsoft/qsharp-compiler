@@ -59,8 +59,8 @@ type SyntaxTreeTransformation() =
         | QsTupleItem (Named item) -> 
             let loc  = item.Position, item.Range
             let t    = this.Scope.Expression.Type.Transform item.Type
-            let mut, qDep = item.InferredInformation.IsMutable, item.InferredInformation.HasLocalQuantumDependency
-            LocalVariableDeclaration<_>.New mut (loc, item.VariableName, t, qDep) |> Named |> QsTupleItem
+            let info = this.Scope.Expression.onExpressionInformation item.InferredInformation
+            LocalVariableDeclaration<_>.New info.IsMutable (loc, item.VariableName, t, info.HasLocalQuantumDependency) |> Named |> QsTupleItem
             
     abstract member onArgumentTuple : QsArgumentTuple -> QsArgumentTuple
     default this.onArgumentTuple arg = 
@@ -69,8 +69,8 @@ type SyntaxTreeTransformation() =
         | QsTupleItem item -> 
             let loc  = item.Position, item.Range
             let t    = this.Scope.Expression.Type.Transform item.Type
-            let mut, qDep = item.InferredInformation.IsMutable, item.InferredInformation.HasLocalQuantumDependency
-            LocalVariableDeclaration<_>.New mut (loc, item.VariableName, t, qDep) |> QsTupleItem
+            let info = this.Scope.Expression.onExpressionInformation item.InferredInformation
+            LocalVariableDeclaration<_>.New info.IsMutable (loc, item.VariableName, t, info.HasLocalQuantumDependency) |> QsTupleItem
 
     abstract member onSignature : ResolvedSignature -> ResolvedSignature
     default this.onSignature (s : ResolvedSignature) = 

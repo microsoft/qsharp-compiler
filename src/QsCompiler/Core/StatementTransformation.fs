@@ -162,16 +162,26 @@ and ScopeTransformation(?enableStatementKindTransformations) =
     abstract member onLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.onLocation loc = loc
 
+    abstract member onLocalDeclarations : LocalDeclarations -> LocalDeclarations
+    default this.onLocalDeclarations decl = 
+        let onLocalVariableDeclaration (local : LocalVariableDeclaration<NonNullable<string>>) = 
+            let loc = local.Position, local.Range
+            let info = this.Expression.onExpressionInformation local.InferredInformation
+            let varType = this.Expression.Type.Transform local.Type 
+            LocalVariableDeclaration.New info.IsMutable (loc, local.VariableName, varType, info.HasLocalQuantumDependency)
+        let variableDeclarations = decl.Variables |> Seq.map onLocalVariableDeclaration |> ImmutableArray.CreateRange
+        LocalDeclarations.New variableDeclarations
+
     abstract member onStatement : QsStatement -> QsStatement
     default this.onStatement stm = 
         let location = this.onLocation stm.Location
         let comments = stm.Comments
         let kind = this.StatementKind.Transform stm.Statement
-        let varDecl = stm.SymbolDeclarations.Variables
+        let varDecl = this.onLocalDeclarations stm.SymbolDeclarations
         QsStatement.New comments location (kind, varDecl)
 
     abstract member Transform : QsScope -> QsScope 
     default this.Transform scope = 
-        let parentSymbols = scope.KnownSymbols
+        let parentSymbols = this.onLocalDeclarations scope.KnownSymbols
         let statements = scope.Statements |> Seq.map this.onStatement
         QsScope.New (statements, parentSymbols)
