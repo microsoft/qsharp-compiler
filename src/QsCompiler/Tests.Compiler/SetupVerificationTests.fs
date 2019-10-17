@@ -38,8 +38,11 @@ type CompilerTests (srcFolder, files, output:ITestOutputHelper) =
 
     let diagnostics =
         let getCallableStart (c : QsCallable) = 
-            if c.Attributes.Length = 0 then c.Location.Offset 
-            else c.Attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
+            let attributes = c.Kind |> function 
+                | TypeConstructor -> types.[c.FullName].Attributes
+                | _ -> c.Attributes
+            if attributes.Length = 0 then c.Location.Offset 
+            else attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
         [for file in compilation.SourceFiles do
             let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile.Value = file.Value)
             let locations = containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart) |> Seq.sortBy snd |> Seq.toArray

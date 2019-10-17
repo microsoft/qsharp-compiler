@@ -5,14 +5,8 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
 open System.Collections.Concurrent
-open System.Collections.Generic
 open System.IO
-open System.Linq
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
-open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions

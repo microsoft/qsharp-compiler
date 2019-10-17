@@ -747,10 +747,10 @@ and NamespaceManager
     /// May throw an ArgumentException if no parent callable with the given name exists. 
     member private this.ResolveAttributes (parent : QsQualifiedName, source) (decl : Resolution<'T,_>) = 
         let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (parent.Namespace, source)) |> Seq.toList |> List.unzip
-        let mutable errs = msgs |> Seq.collect id
+        let errs = new List<_>(msgs |> Seq.collect id)
         let validateEntryPoint (alreadyDefined : int list, resAttr) (att : QsDeclarationAttribute) = 
             let returnInvalid msg = 
-                errs <- errs.Concat msg
+                errs.AddRange msg
                 alreadyDefined, {att with TypeId = Null} :: resAttr
             match att.TypeId with
             | Value tId -> 
@@ -775,7 +775,7 @@ and NamespaceManager
                         match Namespaces.TryGetValue parent.Namespace with 
                         | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
                         | true, ns when not ((ns.SpecializationsDefinedInAllSources parent.Name).Any(fst >> (<>)QsBody) || hasCharacteristics) -> ()
-                        | _ -> errs <- errs.Append (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
+                        | _ -> errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
                         if argErrs.Any() then returnInvalid argErrs 
                         else GetEntryPoints() |> Seq.tryHead |> function
                             | None -> attHash :: alreadyDefined, att :: resAttr
