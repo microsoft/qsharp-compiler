@@ -9,10 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Include="..\Common\DelaySign.fs">
       <Link>DelaySign.fs</Link>
     </Compile>
@@ -33,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.6.2" />
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Update="System.ValueTuple" Version="4.4.0" />
   </ItemGroup>
 
