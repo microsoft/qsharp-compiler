@@ -59,7 +59,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 Request currentRequest = requests.Pop();
 
                 // If there is a call to an unknown callable, throw exception
-                if (!globals.ContainsKey(currentRequest.originalName)) throw new ArgumentNullException(); // TODO: need to throw a more valid exception
+                if (!globals.ContainsKey(currentRequest.originalName))
+                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName.Namespace.Value + "." + currentRequest.originalName.Name.Value}");
 
                 var currentResponse = new Response
                 {
