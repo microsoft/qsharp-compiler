@@ -15,18 +15,18 @@ open Newtonsoft.Json
 
 
 /// to be removed in future releases
-type private DeclarationHeader = 
+module private DeclarationHeader = 
 
-    static member internal FromJson<'T> json = 
-        let deserialize converters =             
+    let FromJson<'T> json = 
+        let deserialize (serializer : JsonSerializer) =             
             let reader = new JsonTextReader(new StringReader(json));
-            (converters |> Json.Serializer).Deserialize<'T>(reader)
-        try true, Json.Converters false |> deserialize
-        with _ -> false, Json.Converters true |> deserialize
+            serializer.Deserialize<'T>(reader)
+        try true, Json.Serializer |> deserialize
+        with _ -> false, Json.PermissiveSerializer |> deserialize
 
-    static member internal ToJson obj = 
+    let ToJson obj = 
         let builder = new StringBuilder()
-        (Json.Converters false |> Json.Serializer).Serialize(new StringWriter(builder), obj)
+        Json.Serializer.Serialize(new StringWriter(builder), obj)
         builder.ToString()
 
 

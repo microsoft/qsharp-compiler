@@ -102,8 +102,9 @@ type DictionaryAsArrayResolver () =
         else base.CreateContract(objectType);
 
 
-type Json =
-    static member Converters ignoreSerializationException = 
+module Json =
+    
+    let Converters ignoreSerializationException = 
         [|
             new NonNullableConverter<string>()                                  :> JsonConverter
             new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
@@ -113,10 +114,15 @@ type Json =
             new QsNamespaceConverter()                                          :> JsonConverter
         |]
 
-    static member Serializer converters = 
+    let Serializer = 
         let settings = new JsonSerializerSettings() 
-        settings.Converters <- converters
+        settings.Converters <- Converters false
         settings.ContractResolver <- new DictionaryAsArrayResolver()
         JsonSerializer.CreateDefault(settings)
 
+    let PermissiveSerializer = 
+        let settings = new JsonSerializerSettings() 
+        settings.Converters <- Converters true
+        settings.ContractResolver <- new DictionaryAsArrayResolver()
+        JsonSerializer.CreateDefault(settings)
 

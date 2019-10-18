@@ -509,9 +509,8 @@ namespace Microsoft.Quantum.QsCompiler
             var serialized = this.GeneratedSyntaxTree != null;
             using (var writer = new BsonDataWriter(ms) { CloseOutput = false })
             {
-                var serializer = Json.Serializer(Json.Converters(false));
                 var validTree = this.GeneratedSyntaxTree?.Select(ns => FilterBySourceFile.Apply(ns, validSources));
-                try { serializer.Serialize(writer, validTree ?? Enumerable.Empty<QsNamespace>()); }
+                try { Json.Serializer.Serialize(writer, validTree ?? Enumerable.Empty<QsNamespace>()); }
                 catch (Exception ex)
                 {
                     this.LogAndUpdate(ref this.CompilationStatus.Serialization, ex);
