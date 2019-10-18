@@ -64,7 +64,7 @@ let private asStatement comments location vars kind = QsStatement.New comments (
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification. 
 let NewExpressionStatement comments location symbols expr = 
     let verifiedExpr, _, diagnostics = VerifyWith VerifyIsUnit symbols expr
-    verifiedExpr |> QsExpressionStatement |> asStatement comments location [], diagnostics
+    verifiedExpr |> QsExpressionStatement |> asStatement comments location LocalDeclarations.Empty, diagnostics
 
 /// Resolves and verifies the given Q# expression given a symbol tracker containing all currently declared symbols,
 /// verifies that the resolved expression is indeed of type String, and builds a Q# fail-statement at the given location from it. 
@@ -72,7 +72,7 @@ let NewExpressionStatement comments location symbols expr =
 let NewFailStatement comments location symbols expr = 
     let verifiedExpr, _, diagnostics = VerifyWith VerifyIsString symbols expr
     let autoGenErrs = (verifiedExpr, expr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency symbols
-    verifiedExpr |> QsFailStatement |> asStatement comments location [], Array.concat [diagnostics; autoGenErrs]
+    verifiedExpr |> QsFailStatement |> asStatement comments location LocalDeclarations.Empty, Array.concat [diagnostics; autoGenErrs]
 
 /// Resolves and verifies the given Q# expression given a symbol tracker containing all currently declared symbols.
 /// Verifies that the type of the resolved expression is indeed compatible with the expected return type associated with the symbol tracker.
@@ -85,7 +85,7 @@ let NewReturnStatement comments (location : QsLocation) (symbols : SymbolTracker
     let VerifyIsReturnType = VerifyAssignment symbols.ExpectedReturnType symbols.Parent ErrorCode.TypeMismatchInReturn
     let verifiedExpr, _, diagnostics = VerifyWith VerifyIsReturnType symbols expr 
     let autoGenErrs = symbols |> onAutoInvertGenerateError ((ErrorCode.ReturnStatementWithinAutoInversion, []), location.Range)
-    verifiedExpr |> QsReturnStatement |> asStatement comments location [], Array.concat [diagnostics; autoGenErrs]
+    verifiedExpr |> QsReturnStatement |> asStatement comments location LocalDeclarations.Empty, Array.concat [diagnostics; autoGenErrs]
 
 /// Given a Q# symbol, as well as the resolved type of the right hand side that is assigned to it, 
 /// shape matches the symbol tuple with the type to determine whether the assignment is valid, and
@@ -149,7 +149,7 @@ let NewValueUpdate comments (location : QsLocation) symbols (lhs : QsExpression,
         | _ -> [||] // both missing and invalid expressions on the lhs are fine
     let refErrs = verifiedLhs |> VerifyMutability
     let autoGenErrs = symbols |> onAutoInvertGenerateError ((ErrorCode.ValueUpdateWithinAutoInversion, []), location.Range) 
-    QsValueUpdate.New(verifiedLhs, verifiedRhs) |> QsValueUpdate |> asStatement comments location [], Array.concat [lhsErrs; refErrs; rhsErrs; autoGenErrs]
+    QsValueUpdate.New(verifiedLhs, verifiedRhs) |> QsValueUpdate |> asStatement comments location LocalDeclarations.Empty, Array.concat [lhsErrs; refErrs; rhsErrs; autoGenErrs]
 
 /// Adds a variable declaration with the given name, quantum dependency, and type at the given location to the given symbol tracker.
 /// Generates the corresponding error(s) if a symbol with the same name is already visible on that scope and/or the given name is not a valid variable name. 
@@ -180,7 +180,7 @@ let private NewBinding kind comments (location : QsLocation) (symbols : SymbolTr
         VerifyBinding addDeclaration (qsSym, (rhs.ResolvedType, qsExpr.RangeOrDefault)) false
     let autoGenErrs = (rhs, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency symbols
     let binding = QsBinding<TypedExpression>.New kind (symTuple, rhs) |> QsVariableDeclaration
-    binding |> asStatement comments location varDeclarations, Array.concat [rhsErrs; errs; autoGenErrs]
+    binding |> asStatement comments location (LocalDeclarations.New varDeclarations), Array.concat [rhsErrs; errs; autoGenErrs]
 
 /// Resolves, verifies and builds the Q# let-statement at the given location binding the given expression to the given symbol.
 /// Adds the corresponding local variable declarations to the given symbol tracker. 
@@ -213,7 +213,7 @@ let NewForStatement comments (location : QsLocation) (symbols : SymbolTracker<_>
         VerifyBinding addDeclaration (qsSym, (itemT, qsExpr.RangeOrDefault)) false
     let autoGenErrs = (iterExpr, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency symbols
     let forLoop body = QsForStatement.New ((symTuple, itemT), iterExpr, body) |> QsForStatement
-    new BlockStatement<_>(forLoop >> asStatement comments location []), Array.concat [iterErrs; varErrs; autoGenErrs] 
+    new BlockStatement<_>(forLoop >> asStatement comments location LocalDeclarations.Empty), Array.concat [iterErrs; varErrs; autoGenErrs] 
 
 /// Given the location of the statement header as well as a symbol tracker containing all currently declared symbols, 
 /// builds the Q# while-statement at the given location with the given expression as condition. 
@@ -222,7 +222,7 @@ let NewForStatement comments (location : QsLocation) (symbols : SymbolTracker<_>
 let NewWhileStatement comments (location : QsLocation) (symbols : SymbolTracker<_>) (qsExpr : QsExpression) =  
     let cond, _, errs = VerifyWith VerifyIsBoolean symbols qsExpr
     let whileLoop body = QsWhileStatement.New (cond, body) |> QsWhileStatement
-    new BlockStatement<_>(whileLoop >> asStatement comments location []), errs
+    new BlockStatement<_>(whileLoop >> asStatement comments location LocalDeclarations.Empty), errs
 
 /// Resolves and verifies the given Q# expression given a symbol tracker containing all currently declared symbols.
 /// Verifies that the type of the resolved expression is indeed of kind Bool.
@@ -242,7 +242,7 @@ let NewIfStatement (ifBlock : TypedExpression * QsPositionedBlock, elifBlocks, e
         | Null -> ArgumentException "no location is set for the given if-block" |> raise
         | Value loc -> loc 
     let condBlocks = seq { yield ifBlock; yield! elifBlocks; }
-    QsConditionalStatement.New (condBlocks, elseBlock) |> QsConditionalStatement |> asStatement QsComments.Empty location []
+    QsConditionalStatement.New (condBlocks, elseBlock) |> QsConditionalStatement |> asStatement QsComments.Empty location LocalDeclarations.Empty
 
 /// Given a positioned block of Q# statements for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
 /// as well as a positioned block of Q# statements for the fixup-block, builds the complete RUS-statement at the given location and returns it.
@@ -253,7 +253,7 @@ let NewRepeatStatement (symbols : SymbolTracker<_>) (repeatBlock : QsPositionedB
         | Null -> ArgumentException "no location is set for the given repeat-block" |> raise
         | Value loc -> loc 
     let autoGenErrs = symbols |> onAutoInvertGenerateError ((ErrorCode.RUSloopWithinAutoInversion, []), location.Range) 
-    QsRepeatStatement.New (repeatBlock, successCondition, fixupBlock) |> QsRepeatStatement |> asStatement QsComments.Empty location [], autoGenErrs
+    QsRepeatStatement.New (repeatBlock, successCondition, fixupBlock) |> QsRepeatStatement |> asStatement QsComments.Empty location LocalDeclarations.Empty, autoGenErrs
 
 /// Given a positioned block of Q# statements specifying the transformation to conjugate (inner transformation V), 
 /// as well as a positioned block of Q# statements specifying the transformation to conjugate it with (outer transformation U), 
@@ -275,7 +275,7 @@ let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) =
     let updateErrs = 
         updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
         |> Seq.map (fun loc -> (loc.Offset, loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))) |> Seq.toArray
-    QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location [], updateErrs
+    QsConjugation.New (outer, inner) |> QsConjugation |> asStatement QsComments.Empty location LocalDeclarations.Empty, updateErrs
 
 /// Given the location of the statement header as well as a symbol tracker containing all currently declared symbols, 
 /// builds the Q# using- or borrowing-statement (depending on the given kind) at the given location
@@ -303,7 +303,7 @@ let private NewBindingScope kind comments (location : QsLocation) (symbols : Sym
         let addDeclaration (name, range) = TryAddDeclaration false symbols (name, (Value location.Offset, range), false)
         VerifyBinding addDeclaration (qsSym, (initializer.Type, rhsRange)) true
     let bindingScope body = QsQubitScope.New kind ((symTuple, initializer), body) |> QsQubitScope
-    new BlockStatement<_>(bindingScope >> asStatement comments location []), Array.concat [initErrs; varErrs]
+    new BlockStatement<_>(bindingScope >> asStatement comments location LocalDeclarations.Empty), Array.concat [initErrs; varErrs]
 
 /// Resolves, verifies and builds the Q# using-statement at the given location binding the given initializer to the given symbol.
 /// Adds the corresponding local variable declarations to the given symbol tracker. 
