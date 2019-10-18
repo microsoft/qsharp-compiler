@@ -17,19 +17,16 @@ open Newtonsoft.Json
 /// to be removed in future releases
 module private DeclarationHeader = 
 
-    let Serializer = Json.Converters false |> Json.Serializer
-    let PermissiveSerializer = Json.Converters true |> Json.Serializer
-
     let FromJson<'T> json = 
         let deserialize (serializer : JsonSerializer) =             
             let reader = new JsonTextReader(new StringReader(json));
             serializer.Deserialize<'T>(reader)
-        try true, Serializer |> deserialize
-        with _ -> false, PermissiveSerializer |> deserialize
+        try true, Json.Serializer |> deserialize
+        with _ -> false, Json.PermissiveSerializer |> deserialize
 
     let ToJson obj = 
         let builder = new StringBuilder()
-        (Json.Converters false |> Json.Serializer).Serialize(new StringWriter(builder), obj)
+        Json.Serializer.Serialize(new StringWriter(builder), obj)
         builder.ToString()
 
 
