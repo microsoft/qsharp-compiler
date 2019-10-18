@@ -43,9 +43,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var globals = namespaces.GlobalCallableResolutions();
 
             var entryPoints = globals
-                .Where(call => // TODO: get list of entry points
-                    call.Key.Namespace.Value == entryPointName.Namespace.Value &&
-                    call.Key.Name.Value == entryPointName.Name.Value)
+                .Where(call => call.Key.IsEqual(entryPointName)) // TODO: get list of entry points
                 .Select(call => new Request
                 {
                     originalName = call.Key,
@@ -239,8 +237,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             string name = null;
 
             // Check for recursive call
-            if (CurrentResponse.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
-                CurrentResponse.originalName.Name.Value == globalCallable.Item.Name.Value &&
+            if (CurrentResponse.originalName.IsEqual(globalCallable.Item) &&
                 CurrentResponse.typeResolutions.SetEquals(target))
             {
                 name = CurrentResponse.concreteCallable.FullName.Name.Value;
@@ -251,8 +248,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 name = Requests
                     .Where(req =>
-                        req.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
-                        req.originalName.Name.Value == globalCallable.Item.Name.Value &&
+                        req.originalName.IsEqual(globalCallable.Item) &&
                         req.typeResolutions.SetEquals(target))
                     .Select(req => req.concreteName.Name.Value)
                     .FirstOrDefault();
@@ -263,8 +259,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 name = Responses
                     .Where(res =>
-                        res.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
-                        res.originalName.Name.Value == globalCallable.Item.Name.Value &&
+                        res.originalName.IsEqual(globalCallable.Item) &&
                         res.typeResolutions.SetEquals(target))
                     .Select(res => res.concreteCallable.FullName.Name.Value)
                     .FirstOrDefault();
