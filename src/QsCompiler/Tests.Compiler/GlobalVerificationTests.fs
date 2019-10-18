@@ -13,7 +13,7 @@ open Xunit.Abstractions
 
 
 type GlobalVerificationTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "GlobalVerification.qs"; "Types.qs"], output)
+    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs";"GlobalVerification.qs";"Types.qs";System.IO.Path.Join("LinkingTests", "Core.qs")], output)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.GlobalVerification" |> NonNullable<_>.New

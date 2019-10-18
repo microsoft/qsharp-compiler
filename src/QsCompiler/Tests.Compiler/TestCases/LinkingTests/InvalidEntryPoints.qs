@@ -10,32 +10,32 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     function InvalidEntryPoint1 (arg : Qubit) : Unit {}
 
     @ EntryPoint()
-    function InvalidEntryPoint2 (arg : (Int, Qubit)) : Unit {}
+    operation InvalidEntryPoint2 (arg : (Int, Qubit)) : Unit {}
 
     @ EntryPoint()
     function InvalidEntryPoint3 (arg : Qubit[]) : Unit {}
 
     @ EntryPoint()
-    function InvalidEntryPoint4 () : Qubit {
+    operation InvalidEntryPoint4 () : Qubit {
         return Default<Qubit>();
     }
 
     @ EntryPoint()
-    function InvalidEntryPoint5 () : ((Int, Qubit), Int) {
+    operation InvalidEntryPoint5 () : ((Int, Qubit), Int) {
         return Default<((Int, Qubit), Int)>();
     }
 
     @ EntryPoint()
-    function InvalidEntryPoint6 () : (Int, Qubit)[] {
+    operation InvalidEntryPoint6 () : (Int, Qubit)[] {
         return Default<(Int, Qubit)[]>();
     }
 
 
     @ EntryPoint()
-    function InvalidEntryPoint7 (arg : (Unit -> Unit)) : Unit {}
+    operation InvalidEntryPoint7 (arg : (Unit -> Unit)) : Unit {}
 
     @ EntryPoint()
-    function InvalidEntryPoint8 (arg : ((Unit -> Unit), Int)) : Unit {}
+    operation InvalidEntryPoint8 (arg : ((Unit -> Unit), Int)) : Unit {}
 
     @ EntryPoint()
     function InvalidEntryPoint9 (arg : ((Unit -> Unit)[], Int)) : Unit {}
@@ -51,13 +51,13 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     }
 
     @ EntryPoint()
-    function InvalidEntryPoint12 () : (BigInt, (Unit -> Unit)) {
+    operation InvalidEntryPoint12 () : (BigInt, (Unit -> Unit)) {
         return Default<(BigInt, (Unit -> Unit))>();
     }
 
 
     @ EntryPoint()
-    function InvalidEntryPoint13 () : (Qubit -> Unit) {
+    operation InvalidEntryPoint13 () : (Qubit -> Unit) {
         return Default<(Qubit -> Unit)>();
     }
 
@@ -81,10 +81,10 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     function InvalidEntryPoint17 (arg : (Unit => Unit is Adj)) : Unit {}
 
     @ EntryPoint()
-    function InvalidEntryPoint18 (arg : ((Unit => Unit), Int)) : Unit {}
+    operation InvalidEntryPoint18 (arg : ((Unit => Unit), Int)) : Unit {}
 
     @ EntryPoint()
-    function InvalidEntryPoint19 (arg : ((Unit => Unit is Ctl)[], Int)) : Unit {}
+    operation InvalidEntryPoint19 (arg : ((Unit => Unit is Ctl)[], Int)) : Unit {}
 
     @ EntryPoint()
     function InvalidEntryPoint20 () : (Unit => Unit is Ctl + Adj) {
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 
     @ EntryPoint()
-    function InvalidEntryPoint23 () : (Qubit => Unit is Adj) {
+    operation InvalidEntryPoint23 () : (Qubit => Unit is Adj) {
         return Default<(Qubit => Unit is Adj)>();
     }
 
@@ -118,8 +118,38 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     }
 
     @ EntryPoint()
-    function InvalidEntryPoint26 () : (Unit => (Int, Qubit) is Ctl + Adj) {
+    operation InvalidEntryPoint26 () : (Unit => (Int, Qubit) is Ctl + Adj) {
         return Default<(Unit => (Int, Qubit) is Ctl + Adj)>();
     }
+
+
+    // arguments and return values of user defined type
+
+    newtype Complex = (Re : Double, Im : Double);
+
+    @ EntryPoint()
+    operation InvalidEntryPoint27 (arg : Complex) : Unit {}
+
+    @ EntryPoint()
+    function InvalidEntryPoint28 (arg : (Int, Complex)) : Unit {}
+
+    @ EntryPoint()
+    function InvalidEntryPoint29 (arg : Complex[]) : Unit {}
+
+    @ EntryPoint()
+    function InvalidEntryPoint30 () : Complex {
+        return Default<Complex>();
+    }
+
+    @ EntryPoint()
+    operation InvalidEntryPoint31 () : ((Int, Complex), Int) {
+        return Default<((Int, Complex), Int)>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint32 () : (Int, Complex)[] {
+        return Default<(Int, Complex)[]>();
+    }
+
 
 }
