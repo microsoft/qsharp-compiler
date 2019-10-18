@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var requests = new Stack<Request>(entryPoints);
             var responses = new List<Response>();
 
-            while(requests.Count() > 0)
+            while(requests.Any())
             {
                 Request currentRequest = requests.Pop();
 
