@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 .Select(call => new Request
                 {
                     originalName = call.Key,
-                    typeResolutions = null,
+                    typeResolutions = Concretion.Empty,
                     concreteName = call.Key
                 });
 
@@ -200,7 +200,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         public static Response Apply(Response current)
         {
             // Nothing to change if the current callable is already concrete
-            if (current.typeResolutions == null) return current;
+            if (current.typeResolutions == Concretion.Empty) return current;
 
             var filter = new ReplaceTypeParamImplementationsSyntax(
                 new MinorTransformations.ReplaceTypeParams(current.typeResolutions.ToImmutableDictionary(param => param.Key, param => param.Value)));
@@ -257,7 +257,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     internal class ReplaceTypeParamCallsExpression :
         ExpressionTransformation<ReplaceTypeParamCallsExpressionKind, ReplaceTypeParamCallsExpressionType>
     {
-        private Dictionary<QsTypeParameter, ResolvedType> CurrentParamTypes;
+        private readonly Dictionary<QsTypeParameter, ResolvedType> CurrentParamTypes;
 
         public ReplaceTypeParamCallsExpression(Dictionary<QsTypeParameter, ResolvedType> currentParamTypes, GetConcreteIdentifierFunc getConcreteIdentifier) :
             base(ex => new ReplaceTypeParamCallsExpressionKind(ex as ReplaceTypeParamCallsExpression, currentParamTypes, getConcreteIdentifier),
@@ -291,7 +291,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
     internal class ReplaceTypeParamCallsExpressionKind : ExpressionKindTransformation<ReplaceTypeParamCallsExpression>
     {
-        private GetConcreteIdentifierFunc GetConcreteIdentifier;
+        private readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
         private Dictionary<QsTypeParameter, ResolvedType> CurrentParamTypes;
 
         public ReplaceTypeParamCallsExpressionKind(ReplaceTypeParamCallsExpression expr,
