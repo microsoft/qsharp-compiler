@@ -68,8 +68,7 @@ namespace Microsoft.Quantum.QsCompiler
             using (var reader = new BsonDataReader(stream))
             {
                 reader.ReadRootValueAsArray = true;
-                var serializer = Json.Serializer(Json.Converters(false));
-                return serializer.Deserialize<IEnumerable<QsNamespace>>(reader);
+                return Json.Serializer.Deserialize<IEnumerable<QsNamespace>>(reader);
             }
         }
 
