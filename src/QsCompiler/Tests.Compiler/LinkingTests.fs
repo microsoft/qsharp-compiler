@@ -56,7 +56,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
-    member this.``Entry point verification`` () = 
+    member this.``Entry point argument and return type verification`` () = 
 
         this.Expect "InvalidEntryPoint1"  [Error ErrorCode.QubitTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint2"  [Error ErrorCode.QubitTypeInEntryPointSignature]
