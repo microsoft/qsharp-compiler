@@ -51,11 +51,14 @@ type LinkingTests (output:ITestOutputHelper) =
     member this.``Entry point specialization verification`` () = 
 
         let entryPointsWithSpecs = Path.Combine ("TestCases", "LinkingTests", "EntryPointSpecializations.qs") |> File.ReadAllText
-        for case in entryPointsWithSpecs.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries) do 
-            this.CompileAndVerify case [Error ErrorCode.InvalidEntryPointSpecialization]
+        for entryPoint in entryPointsWithSpecs.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries) do 
+            this.CompileAndVerify entryPoint [Error ErrorCode.InvalidEntryPointSpecialization]
+
+        let validEntryPoints = Path.Combine ("TestCases", "LinkingTests", "ValidEntryPoints.qs") |> File.ReadAllText
+        for entryPoint in validEntryPoints.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries) do 
+            this.CompileAndVerify entryPoint []
 
         // TODO: MULTIPLE ENTRY POINTS 
-        // TODO: VALID ENTRY POINTS 
 
 
     [<Fact>]
