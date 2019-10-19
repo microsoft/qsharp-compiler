@@ -272,7 +272,7 @@ type ErrorCode =
     | GeneratingBinaryFailed = 7106
     | TargetExecutionFailed = 7107
     | PreEvaluationFailed = 7108
-    | MonomorphizationFailed = 7108
+    | MonomorphizationFailed = 7109
 
 
 type WarningCode = 

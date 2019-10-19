@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Optimizations;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
@@ -83,7 +84,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             result = syntaxTree;
             try
             {
-                result = ResolveGenericsSyntax.Apply(syntaxTree);
+                // TODO: Hard-coded values are given ONLY FOR DEV
+                result = ResolveGenericsSyntax.Apply(syntaxTree, new QsQualifiedName(NonNullable<string>.New("Quantum.Kata.BasicGates"), NonNullable<string>.New("MyStateFlip")));
                 return true;
             }
             catch (Exception ex)
