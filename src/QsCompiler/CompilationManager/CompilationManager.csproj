@@ -9,15 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!--
-      The Microsoft.VisualStudio.LanguageServer.Protocol NuGet package is .NET
-      Standard 2.0 compatible, but is not marked as such. This will cause warnings
-      when we rely on .NET Standard 2.0's compatibility mode.
-      Following the advice at
-          https://docs.microsoft.com/en-us/dotnet/core/porting/third-party-deps#net-framework-compatibility-mode
-      we disable this warning for the LanguageServer.Protocol package ONLY.
-    -->
-    <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="16.3.57" NoWarn="NU1701" />
+    <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="16.3.57" />
     <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.2" />
   </ItemGroup>
 
