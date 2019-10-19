@@ -55,6 +55,27 @@ type LinkingTests (output:ITestOutputHelper) =
         this.Verify (QsQualifiedName.New (ns, name), diag)
 
 
+    // TODO: MULTIPLE ENTRY POINTS 
+    // TODO: ENTRY POINTS ON OPERATIONS THAT HAVE SPECIALIZATIONS
+
+    //this.CompileAndVerify "" |> Async.RunSynchronously
+
+
+    [<Fact>]
+    member this.``Entry point placement verification`` () = 
+    
+        this.Expect "InvalidEntryPointPlacement1" [Error ErrorCode.InvalidEntryPointPlacement]
+        this.Expect "InvalidEntryPointPlacement2" [Error ErrorCode.InvalidEntryPointPlacement]
+        this.Expect "InvalidEntryPointPlacement3" [Error ErrorCode.InvalidEntryPointPlacement]
+
+        // the error messages here should become InvalidEntryPointPlacement if / when 
+        // we support attaching attributes to specializations in general
+        this.Expect "InvalidEntryPointPlacement4" [Error ErrorCode.MisplacedDeclarationAttribute] 
+        this.Expect "InvalidEntryPointPlacement5" [Error ErrorCode.MisplacedDeclarationAttribute]
+        this.Expect "InvalidEntryPointPlacement6" [Error ErrorCode.MisplacedDeclarationAttribute]
+        this.Expect "InvalidEntryPointPlacement7" [Error ErrorCode.MisplacedDeclarationAttribute]
+
+
     [<Fact>]
     member this.``Entry point argument and return type verification`` () = 
 
@@ -96,5 +117,8 @@ type LinkingTests (output:ITestOutputHelper) =
         this.Expect "InvalidEntryPoint31" [Error ErrorCode.UserDefinedTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint32" [Error ErrorCode.UserDefinedTypeInEntryPointSignature]
 
-        //this.CompileAndVerify "" |> Async.RunSynchronously
+        this.Expect "InvalidEntryPoint33" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
+        this.Expect "InvalidEntryPoint34" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
+        this.Expect "InvalidEntryPoint35" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
+        this.Expect "InvalidEntryPoint36" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
 

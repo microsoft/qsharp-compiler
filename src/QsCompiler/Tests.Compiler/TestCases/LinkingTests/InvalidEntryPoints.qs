@@ -1,10 +1,51 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+// The entry point attributes in this file are attached to declarations
+// that cannot be used as entry points and will be thus be ignored.
+
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
+    // tests related to entry point placement verification
+
+    @ EntryPoint()
+    newtype InvalidEntryPointPlacement1 = Int;
+
+    @ EntryPoint()
+    function InvalidEntryPointPlacement2<'T> (a : 'T) : Unit {}
+
+    @ EntryPoint()
+    operation InvalidEntryPointPlacement3<'T> (a : 'T) : Unit {}
+
+    operation InvalidEntryPointPlacement4 () : Unit {
+
+        @ EntryPoint()
+        body(...) {}    
+    }
+
+    operation InvalidEntryPointPlacement5 () : Unit {
+        body (...) {}
+
+        @ EntryPoint()
+        adjoint (...) {}   
+    }
+
+    operation InvalidEntryPointPlacement6 () : Unit {
+        body (...) {}
+
+        @ EntryPoint()
+        controlled (cs, ...) {}
+    }
+
+    operation InvalidEntryPointPlacement7 () : Unit {
+        body (...) {}
+
+        @ EntryPoint()
+        controlled adjoint (cs, ...) {}   
+    }
+
+
     // testing argument and return type restrictions for entry points
-    // -> the entry point attributes below are attached to declarations that cannot be used as entry points and will be ignored 
 
     @ EntryPoint()
     function InvalidEntryPoint1 (arg : Qubit) : Unit {}
@@ -152,4 +193,23 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     }
 
 
+    @ EntryPoint()
+    operation InvalidEntryPoint33 () : (Complex => Unit is Adj) {
+        return Default<(Complex => Unit is Adj)>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint34 () : (Unit => Complex is Ctl) {
+        return Default<(Unit => Complex is Ctl)>();
+    }
+
+    @ EntryPoint()
+    function InvalidEntryPoint35 () : (Complex[] => Unit) {
+        return Default<(Complex[] => Unit)>();
+    }
+
+    @ EntryPoint()
+    operation InvalidEntryPoint36 () : (Unit => (Int, Complex) is Ctl + Adj) {
+        return Default<(Unit => (Int, Complex) is Ctl + Adj)>();
+    }
 }
