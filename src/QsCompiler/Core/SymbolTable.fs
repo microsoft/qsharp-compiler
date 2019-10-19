@@ -849,8 +849,9 @@ and NamespaceManager
     /// Resolves and caches the attached attributes and underlying type of the types declared in all source files of each namespace.
     /// Returns the diagnostics generated upon resolution as well as the root position and file for each diagnostic as tuple.
     member private this.CacheTypeResolution () = 
+        let sortedNamespaces = Namespaces.Values |> Seq.sortBy (fun ns -> ns.Name.Value) |> Seq.toList
         // Since attributes are declared as types, we first need to resolve all types ...
-        let resolutionDiagnostics = Namespaces.Values |> Seq.collect (fun ns ->
+        let resolutionDiagnostics = sortedNamespaces |> Seq.collect (fun ns ->
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let tName, (source, qsType) = kvPair.Key, kvPair.Value
                 let fullName = {Namespace = ns.Name; Name = tName}
@@ -858,7 +859,7 @@ and NamespaceManager
                 ns.SetTypeResolution source (tName, resolved |> Value, ImmutableArray.Empty) 
                 msgs |> Array.map (fun msg -> source, (qsType.Position, msg))))
         // ... before we can resolve the corresponding attributes. 
-        let attributeDiagnostics = Namespaces.Values |> Seq.collect (fun ns ->
+        let attributeDiagnostics = sortedNamespaces |> Seq.collect (fun ns ->
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let tName, (source, qsType) = kvPair.Key, kvPair.Value
                 let parentName = {Namespace = ns.Name; Name = tName}
@@ -875,8 +876,8 @@ and NamespaceManager
     /// Throws an InvalidOperationException if the types corresponding to the attributes to resolve have not been resolved. 
     member private this.CacheCallableResolutions () = 
         // TODO: this needs to be adapted if we support external specializations
-        let diagnostics = Namespaces.Values |> Seq.collect (fun ns -> 
-            ns.CallablesDefinedInAllSources() |> Seq.collect (fun kvPair ->
+        let diagnostics = Namespaces.Values |> Seq.sortBy (fun ns -> ns.Name.Value) |> Seq.collect (fun ns -> 
+            ns.CallablesDefinedInAllSources() |> Seq.sortBy (fun kv -> kv.Key) |> Seq.collect (fun kvPair ->
                 let source, (kind, signature) = kvPair.Value
                 let parent = {Namespace = ns.Name; Name = kvPair.Key}
 
@@ -1344,7 +1345,10 @@ and NamespaceManager
             hash (NamespaceManager.TypeHash t, itemHashes |> Seq.toList, attributes |> attributesHash)
 
         syncRoot.EnterReadLock()
-        try let relevantNamespaces = Namespaces.Values |> Seq.filter (fun ns -> ns.Sources.Contains source) |> Seq.sortBy (fun ns -> ns.Name)
+        try let relevantNamespaces = 
+                Namespaces.Values 
+                |> Seq.filter (fun ns -> ns.Sources.Contains source) 
+                |> Seq.sortBy (fun ns -> ns.Name) |> Seq.toList
             let callables = relevantNamespaces |> Seq.collect (fun ns -> 
                 let inSource = ns.CallablesDefinedInSource source |> Seq.sortBy (fun (cName, _) -> cName.Value) 
                 inSource |> Seq.map (fun (cName, (kind, signature)) -> 

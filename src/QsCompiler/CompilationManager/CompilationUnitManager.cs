@@ -435,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var cancellationToken = runSynchronously ? new CancellationToken() : this.WaitForTypeCheck.Token;
 
             // work with a separate compilation unit instance such that processing of all further edits can go on in parallel
-            var sourceFiles = this.FileContentManagers.Values;
+            var sourceFiles = this.FileContentManagers.Values.OrderBy(m => m.FileName);
             this.ChangedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
             var compilation = new CompilationUnit(this.CompilationUnit.Externals, sourceFiles.Select(file => file.SyncRoot));
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
