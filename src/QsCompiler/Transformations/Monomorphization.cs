@@ -2,21 +2,14 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Runtime;
-using System.Runtime.InteropServices;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Optimizations;
-using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
@@ -51,9 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var globals = namespaces.GlobalCallableResolutions();
 
             var entryPoints = globals
-                .Where(call => // TODO: get list of entry points
-                    call.Key.Namespace.Value == entryPointName.Namespace.Value &&
-                    call.Key.Name.Value == entryPointName.Name.Value)
+                .Where(call => call.Key.IsEqual(entryPointName)) // TODO: get list of entry points
                 .Select(call => new Request
                 {
                     originalName = call.Key,
@@ -64,12 +55,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var requests = new Stack<Request>(entryPoints);
             var responses = new List<Response>();
 
-            while(requests.Count() > 0)
+            while(requests.Any())
             {
                 Request currentRequest = requests.Pop();
 
                 // If there is a call to an unknown callable, throw exception
-                if (!globals.ContainsKey(currentRequest.originalName)) throw new ArgumentNullException(); // TODO: need to throw a more valid exception
+                if (!globals.ContainsKey(currentRequest.originalName))
+                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName.Namespace.Value + "." + currentRequest.originalName.Name.Value}");
 
                 var currentResponse = new Response
                 {
@@ -137,8 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             ImmutableHashSet<KeyValuePair<QsTypeParameter, ResolvedType>> typesHashSet = types.ToImmutableHashSet();
 
             // Check for recursive call
-            if (currentResponse.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
-                currentResponse.originalName.Name.Value == globalCallable.Item.Name.Value &&
+            if (currentResponse.originalName.IsEqual(globalCallable.Item) &&
                 typesHashSet.SetEquals(currentResponse.typeResolutions))
             {
                 name = currentResponse.concreteCallable.FullName.Name.Value;
@@ -149,8 +140,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 name = requests
                     .Where(req =>
-                        req.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
-                        req.originalName.Name.Value == globalCallable.Item.Name.Value &&
+                        req.originalName.IsEqual(globalCallable.Item) &&
                         typesHashSet.SetEquals(req.typeResolutions))
                     .Select(req => req.concreteName.Name.Value)
                     .FirstOrDefault();
@@ -161,8 +151,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 name = responses
                     .Where(res =>
-                        res.originalName.Namespace.Value == globalCallable.Item.Namespace.Value &&
-                        res.originalName.Name.Value == globalCallable.Item.Name.Value &&
+                        res.originalName.IsEqual(globalCallable.Item) &&
                         typesHashSet.SetEquals(res.typeResolutions))
                     .Select(res => res.concreteCallable.FullName.Name.Value)
                     .FirstOrDefault();

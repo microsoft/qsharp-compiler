@@ -163,7 +163,7 @@ type QsQubitScope with
 type QsStatement with 
     static member New comments location (kind, symbolDecl) = {
         Statement = kind
-        SymbolDeclarations = LocalDeclarations.New symbolDecl
+        SymbolDeclarations = symbolDecl
         Location = location
         Comments = comments
     }
