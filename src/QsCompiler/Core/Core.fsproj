@@ -21,7 +21,7 @@
     <Compile Include="ExpressionTransformation.fs" />
     <Compile Include="StatementTransformation.fs" />
     <Compile Include="TreeTransformation.fs" />
-    <Compile Include="CoreDependencies.fs" />
+    <Compile Include="Dependencies.fs" />
     <Compile Include="SyntaxGenerator.fs" />
     <Compile Include="DeclarationHeaders.fs" />
     <Compile Include="SymbolResolution.fs" />

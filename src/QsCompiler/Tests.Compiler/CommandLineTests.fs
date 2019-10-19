@@ -56,7 +56,7 @@ let ``invalid snippet`` () =
 let ``one valid file`` () =
     [|
         "-i"
-        ("TestFiles","test-00.qs") |> Path.Combine
+        ("TestCases","General.qs") |> Path.Combine
         "-v"
     |]
     |> testInput ReturnCode.SUCCESS
@@ -65,8 +65,8 @@ let ``one valid file`` () =
 let ``multiple valid file`` () =
     [|
         "--input" 
-        ("TestFiles","test-00.qs") |> Path.Combine
-        ("TestFiles","test-01.qs") |> Path.Combine
+        ("TestCases","General.qs") |> Path.Combine
+        ("TestCases","LinkingTests","Core.qs") |> Path.Combine
     |]
     |> testInput ReturnCode.SUCCESS
 
@@ -75,7 +75,7 @@ let ``multiple valid file`` () =
 let ``one invalid file`` () =
     [|
         "-i" 
-        ("TestFiles","test-02.qs") |> Path.Combine
+        ("TestCases","TypeChecking.qs") |> Path.Combine
     |]
     |> testInput ReturnCode.COMPILATION_ERRORS
 
@@ -84,8 +84,8 @@ let ``one invalid file`` () =
 let ``mixed files`` () =
     [|
         "-i" 
-        ("TestFiles","test-01.qs") |> Path.Combine
-        ("TestFiles","test-02.qs") |> Path.Combine
+        ("TestCases","LinkingTests","Core.qs") |> Path.Combine
+        ("TestCases","TypeChecking.qs") |> Path.Combine
     |]
     |> testInput ReturnCode.COMPILATION_ERRORS
 
@@ -94,14 +94,14 @@ let ``mixed files`` () =
 let ``missing file`` () =
     [|
         "-i"
-        ("TestFiles","foo-00.qs") |> Path.Combine
+        ("TestCases","NonExistent.qs") |> Path.Combine
     |]
     |> testInput ReturnCode.UNRESOLVED_FILES
     
     [|
         "-i"
-        ("TestFiles","test-01.qs") |> Path.Combine
-        ("TestFiles","foo-00.qs") |> Path.Combine
+        ("TestCases","LinkingTests","Core.qs") |> Path.Combine
+        ("TestCases","NonExistent.qs") |> Path.Combine
     |]
     |> testInput ReturnCode.UNRESOLVED_FILES
 
@@ -110,7 +110,7 @@ let ``missing file`` () =
 let ``invalid argument`` () =
     [|
         "-i"
-        ("TestFiles","test-00.qs") |> Path.Combine
+        ("TestCases","General.qs") |> Path.Combine
         "--foo"
     |]
     |> testInput ReturnCode.INVALID_ARGUMENTS
@@ -121,7 +121,7 @@ let ``missing verb`` () =
     let args = 
         [|
             "-i"
-            ("TestFiles","test-00.qs") |> Path.Combine
+            ("TestCases","General.qs") |> Path.Combine
         |]        
     let result = Program.Main args
     Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
@@ -133,7 +133,7 @@ let ``invalid verb`` () =
         [|
             "foo"
             "-i"
-            ("TestFiles","test-00.qs") |> Path.Combine
+            ("TestCases","General.qs") |> Path.Combine
         |]
     let result = Program.Main args
     Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
@@ -144,7 +144,7 @@ let ``diagnose outputs`` () =
     let args = 
         [|
             "-i"
-            ("TestFiles","test-00.qs") |> Path.Combine
+            ("TestCases","General.qs") |> Path.Combine
             "--tree"
             "--tokenization"
             "--text"
@@ -156,20 +156,20 @@ let ``diagnose outputs`` () =
 
 [<Fact>]
 let ``generate docs`` () =
-    let docsFolder = ("TestFiles", "docs.Out") |> Path.Combine
+    let docsFolder = ("TestCases", "docs.Out") |> Path.Combine
     if (Directory.Exists docsFolder) then
         for file in Directory.GetFiles docsFolder do
             File.Delete file
 
     let toc = Path.Combine (docsFolder, "toc.yml") 
-    let nsDoc = Path.Combine (docsFolder, "Compiler.Tests.yml")
-    let opDoc = Path.Combine (docsFolder, "compiler.tests.test01.yml")
+    let nsDoc = Path.Combine (docsFolder, "Microsoft.Quantum.Testing.General.yml")
+    let opDoc = Path.Combine (docsFolder, "microsoft.quantum.testing.general.unitary.yml")
     let existsAndNotEmpty fileName = fileName |> File.Exists && not (File.ReadAllText fileName |> String.IsNullOrWhiteSpace)
     let args = 
         [|
             "build"
             "--input" 
-            ("TestFiles","test-01.qs") |> Path.Combine
+            ("TestCases","General.qs") |> Path.Combine
             "--doc"
             docsFolder
         |]
@@ -183,59 +183,59 @@ let ``generate docs`` () =
     
 [<Fact>]
 let ``find path relative`` () =
-    let fullPath = Path.Combine (Path.GetFullPath "alpha","beta","c","test-00.qs")
+    let fullPath = Path.Combine (Path.GetFullPath "alpha","beta","c","test-path.qs")
     let options = new BuildCompilation.BuildOptions()
     let id = CompilationUnitManager.TryGetFileId (new Uri(fullPath)) |> snd
-    let expected = Path.Combine (Path.GetFullPath "alpha","beta","c","test-00.g.cs")
+    let expected = Path.Combine (Path.GetFullPath "alpha","beta","c","test-path.g.cs")
     let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
     
 [<Fact>]
 let ``find path relative to outputfolder`` () =
-    let fullPath = Path.Combine(Path.GetFullPath "alpha","beta","c","test-00.qs")
+    let fullPath = Path.Combine(Path.GetFullPath "alpha","beta","c","test-path.qs")
     let options = new BuildCompilation.BuildOptions()
     options.OutputFolder <- Path.Combine (pathRoot,"foo","bar")
     let id = CompilationUnitManager.TryGetFileId (new Uri(fullPath)) |> snd
-    let expected = Path.Combine (pathRoot, "foo", "bar", "alpha", "beta", "c", "test-00.g.cs")
+    let expected = Path.Combine (pathRoot, "foo", "bar", "alpha", "beta", "c", "test-path.g.cs")
     let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
     
 [<Fact>]
 let ``find path relative to relative outputfolder`` () =
-    let fullPath = Path.Combine (Path.GetFullPath "alpha","beta","c","test-00.qs")
+    let fullPath = Path.Combine (Path.GetFullPath "alpha","beta","c","test-path.qs")
     let options = new BuildCompilation.BuildOptions()
     options.OutputFolder <- Path.Combine("..","foo","bar")
     let id = CompilationUnitManager.TryGetFileId (new Uri(fullPath)) |> snd
-    let expected = Path.Combine (parentDir,"foo","bar","alpha","beta","c","test-00.g.cs")
+    let expected = Path.Combine (parentDir,"foo","bar","alpha","beta","c","test-path.g.cs")
     let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
     
 [<Fact>]
 let ``find path absolute`` () =
-    let fileName = Path.Combine (pathRoot,"alpha","beta","c","test-02.qs")
+    let fileName = Path.Combine (pathRoot,"alpha","beta","c","test-path.qs")
     let fullPath = Path.GetFullPath fileName
     let options = new BuildCompilation.BuildOptions()
     let id = CompilationUnitManager.TryGetFileId (new Uri(fullPath)) |> snd
-    let expected = Path.GetFullPath "test-02.g.cs"
+    let expected = Path.GetFullPath "test-path.g.cs"
     let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
    
 [<Fact>]
 let ``find path absolute to outputfolder`` () =
-    let fullPath = Path.Combine (pathRoot, "alpha","beta","c","test-02.qs")
+    let fullPath = Path.Combine (pathRoot, "alpha","beta","c","test-path.qs")
     let options = new BuildCompilation.BuildOptions()
     options.OutputFolder <- Path.Combine (pathRoot, "foo","bar")
     let id = CompilationUnitManager.TryGetFileId (new Uri(fullPath)) |> snd
-    let expected = Path.Combine (pathRoot, "foo","bar", "test-02.g.cs")
+    let expected = Path.Combine (pathRoot, "foo","bar", "test-path.g.cs")
     let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 
 [<Fact>]
 let ``find path relative to here`` () =
-    let fullPath = Path.Combine (Path.GetFullPath "alpha","beta","c","test-03.qs")
+    let fullPath = Path.Combine (Path.GetFullPath "alpha","beta","c","test-path.qs")
     let options = new BuildCompilation.BuildOptions()
     let id = CompilationUnitManager.TryGetFileId (new Uri(fullPath)) |> snd
-    let expected = Path.Combine (Path.GetFullPath "alpha","beta","c","test-03.g.cs")
+    let expected = Path.Combine (Path.GetFullPath "alpha","beta","c","test-path.g.cs")
     let actual = CompilationLoader.GeneratedFile(id, options.OutputFolder, ".g.cs")
     Assert.Equal(expected, actual)
 

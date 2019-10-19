@@ -192,13 +192,15 @@ module InternalUse =
     let UnitArgument = "__unitArg__"
 
     /// contains all keywords reserved due to clashes with auto-generated Q# code, or generated C# code
-    let CsKeywords = 
-        let reserved = [
+    let CsKeywords = ImmutableHashSet.CreateRange [
 
             "Allocate"; 
             "Release"; 
             "Borrow"; 
             "Return";
+
+            "Data";
+            "Item";
 
             "QVoid"; 
             "Int64"; 
@@ -215,7 +217,6 @@ module InternalUse =
             "IOperationFactory"; 
             "IApplyData";
         ]
-        reserved.ToImmutableHashSet()
     
     // TODO: ReservedForFutureUse = ...
 
