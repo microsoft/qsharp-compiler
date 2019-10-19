@@ -18,13 +18,22 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="TestCases\LinkingTests\ValidEntryPoints\EntryPoint2.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="TestCases\LinkingTests\ValidEntryPoints\EntryPoint1.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\LinkingTests\ValidEntryPoints\EntryPoint2.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LinkingTests\InvalidEntryPoints\InvalidEntryPoints.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\InvalidEntryPoints\InvalidEntryPoint1.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\InvalidEntryPoints\InvalidEntryPoint2.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\InvalidEntryPoints\InvalidEntryPoint3.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LinkingTests\Core.qs">

@@ -59,7 +59,11 @@ type LinkingTests (output:ITestOutputHelper) =
     // TODO: MULTIPLE ENTRY POINTS 
     // TODO: ENTRY POINTS ON OPERATIONS THAT HAVE SPECIALIZATIONS
 
-    //this.CompileAndVerify "" |> Async.RunSynchronously
+
+    [<Fact>]
+    member this.``Entry point specialization verification`` () = 
+        
+        this.CompileAndVerify "" |> Async.RunSynchronously
 
 
     [<Fact>]
