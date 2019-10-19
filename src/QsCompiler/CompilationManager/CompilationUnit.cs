@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given dictionary of references is null. 
         /// Throws an ArgumentException if the given set shares references with the current one. 
         /// </summary>
-        internal References CombineWith(References other, Action<ErrorCode, string[]> onError)
+        internal References CombineWith(References other, Action<ErrorCode, string[]> onError = null)
         {
             if (other == null) throw new ArgumentNullException(nameof(other));
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any()) throw new ArgumentException("common references exist");
@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. if two or more references contain a declaration with the same fully qualified name. 
         /// Throws an ArgumentNullException if the given diagnostics are null. 
         /// </summary>
-        internal References Remove(NonNullable<string> source, Action<ErrorCode, string[]> onError) =>
+        internal References Remove(NonNullable<string> source, Action<ErrorCode, string[]> onError = null) =>
             new References(this.Declarations.Remove(source), onError);
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. if two or more references contain a declaration with the same fully qualified name. 
         /// Throws an ArgumentNullException if the given dictionary of references is null. 
         /// </summary>
-        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, Action<ErrorCode, string[]> onError)
+        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, Action<ErrorCode, string[]> onError = null)
         {
             this.Declarations = refs ?? throw new ArgumentNullException(nameof(refs));
             if (onError == null) return;
@@ -199,6 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal void RegisterDependentLock(ReaderWriterLockSlim depLock)
         {
+            #if DEBUG
             if (depLock == null) throw new ArgumentNullException(nameof(depLock));
             this.SyncRoot.EnterWriteLock();
             try
@@ -207,6 +208,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 { this.DependentLocks.Add(depLock); }
             }
             finally { this.SyncRoot.ExitWriteLock(); }
+            #endif
         }
 
         /// <summary>
@@ -216,6 +218,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal void UnregisterDependentLock(ReaderWriterLockSlim depLock)
         {
+            #if DEBUG
             if (depLock == null) throw new ArgumentNullException(nameof(depLock));
             this.SyncRoot.EnterWriteLock();
             try
@@ -224,6 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 { this.DependentLocks.Remove(depLock); }
             }
             finally { this.SyncRoot.ExitWriteLock(); }
+            #endif
         }
 
 

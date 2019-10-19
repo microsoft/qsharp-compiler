@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Testing {
+namespace Microsoft.Quantum.Testing.Transformation {
 
     newtype BigEndianRegister = Qubit[];
     newtype OtherType         = (Int, Qubit[]); 
@@ -47,8 +47,6 @@ namespace Microsoft.Quantum.Testing {
 
         return (M);
     }
-
-
 
     operation op1 (q1 : Qubit, r1 : BigEndianRegister) : Unit 
     is Ctl + Adj {   

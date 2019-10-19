@@ -631,6 +631,14 @@ and NamespaceManager
             namespaces.Add (nsName, new Namespace(nsName, [], callables.[nsName], specializations.[nsName], types.[nsName]))
         namespaces
 
+    /// Returns the full name of all entry points currently resolved in any of the tracked source files. 
+    let GetEntryPoints () = 
+        let entryPoints = Namespaces.Values |> Seq.collect (fun ns -> 
+            ns.CallablesDefinedInAllSources() |> Seq.choose (fun kvPair ->
+                let cName, (source, (_, decl)) = kvPair.Key, kvPair.Value
+                if decl.ResolvedAttributes |> Seq.exists BuiltIn.IsEntryPointAttribute then Some ({Namespace = ns.Name; Name = cName}, source) else None))
+        entryPoints.ToImmutableArray()
+
     /// If a namespace with the given name exists, returns that namespace 
     /// as well as all imported namespaces for that namespace in the given source file.
     /// Filters namespaces that have been imported under a different name.
@@ -705,6 +713,8 @@ and NamespaceManager
     /// Returns the resolved attribute as well as the generated diagnostics.
     /// The TypeId in the resolved attribute is set to Null if the unresolved Id is not a valid identifier 
     /// or if the correct attribute cannot be determined, and is set to the corresponding type identifier otherwise. 
+    /// May throw an ArgumentException if the given parent namespace does not exist,
+    /// or if no source file with the given name is listed as source of that namespace. 
     member private this.ResolveAttribute (parentNS, source) attribute = 
         /// Returns the possible qualifications for the "Attribute" attribute in the given declNS and declSource.
         /// Works fine whether the given declSource is the name of a source file or of a referenced assembly. 
@@ -731,12 +741,52 @@ and NamespaceManager
         let resolved, msgs = SymbolResolution.ResolveAttribute getAttribute attribute
         resolved, msgs |> Array.map (fun m -> attribute.Position, m)
 
-    /// Resolves the DefinedAttributes of the given declaration using ResolveAttribute. 
+    /// Resolves the DefinedAttributes of the given declaration using ResolveAttribute and validates any entry points, if any. 
     /// Returns the resolved attributes as well as an array with diagnostics along with the declaration Position. 
     /// Each entry in the returned array of attributes is the resolution for the corresponding entry in the array of defined attributes. 
-    member private this.ResolveAttributes (nsName, source) (decl : Resolution<_,_>) = 
-        let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (nsName, source)) |> Seq.toList |> List.unzip
-        attr |> ImmutableArray.CreateRange, Array.concat msgs
+    /// May throw an ArgumentException if no parent callable with the given name exists. 
+    member private this.ResolveAttributes (parent : QsQualifiedName, source) (decl : Resolution<'T,_>) = 
+        let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (parent.Namespace, source)) |> Seq.toList |> List.unzip
+        let errs = new List<_>(msgs |> Seq.collect id)
+        let validateEntryPoint (alreadyDefined : int list, resAttr) (att : QsDeclarationAttribute) = 
+            let returnInvalid msg = 
+                errs.AddRange msg
+                alreadyDefined, {att with TypeId = Null} :: resAttr
+            match att.TypeId with
+            | Value tId -> 
+                let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
+                let attHash = hash (tId.Namespace.Value, tId.Name.Value, NamespaceManager.ExpressionHash att.Argument)
+                if alreadyDefined.Contains attHash then 
+                    (att.Offset, tId.Range |> orDefault 
+                    |> QsCompilerDiagnostic.Warning (WarningCode.DuplicateAttribute, [tId.Name.Value])) 
+                    |> Seq.singleton |> returnInvalid
+                elif tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value then
+                    match box decl.Defined with
+                    | :? CallableSignature as signature when not (signature.TypeParameters.Any()) -> 
+                        let validateArgAndReturnTypes (argType : QsType) = 
+                            argType.ExtractAll (fun t -> t.Type |> function // ExtractAll recurs on all subtypes (e.g. callable in- and output types as well)
+                            | Qubit -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.QubitTypeInEntryPointSignature, [])) |> Seq.singleton 
+                            | QsTypeKind.Operation _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton 
+                            | QsTypeKind.Function _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton 
+                            | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPointSignature, [])) |> Seq.singleton 
+                            | _ -> Seq.empty)
+                        let argErrs = signature.Argument.Items.Select(snd).Append signature.ReturnType |> Seq.collect validateArgAndReturnTypes 
+                        let hasCharacteristics = signature.Characteristics.Characteristics |> function | EmptySet | InvalidSetExpr -> false | _ -> true
+                        match Namespaces.TryGetValue parent.Namespace with 
+                        | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
+                        | true, ns when not ((ns.SpecializationsDefinedInAllSources parent.Name).Any(fst >> (<>)QsBody) || hasCharacteristics) -> ()
+                        | _ -> errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
+                        if argErrs.Any() then returnInvalid argErrs 
+                        else GetEntryPoints() |> Seq.tryHead |> function
+                            | None -> attHash :: alreadyDefined, att :: resAttr
+                            | Some (epName, epSource) -> 
+                                let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
+                                (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs)) |> Seq.singleton |> returnInvalid 
+                    | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
+                else attHash :: alreadyDefined, att :: resAttr 
+            | _ -> alreadyDefined, att :: resAttr
+        let resAttr = attr |> List.fold validateEntryPoint ([], []) |> snd
+        resAttr.Reverse() |> ImmutableArray.CreateRange, errs.ToArray()
 
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
     /// The resolution consists of replacing all unqualified names for user defined types by their qualified name.
@@ -799,8 +849,9 @@ and NamespaceManager
     /// Resolves and caches the attached attributes and underlying type of the types declared in all source files of each namespace.
     /// Returns the diagnostics generated upon resolution as well as the root position and file for each diagnostic as tuple.
     member private this.CacheTypeResolution () = 
+        let sortedNamespaces = Namespaces.Values |> Seq.sortBy (fun ns -> ns.Name.Value) |> Seq.toList
         // Since attributes are declared as types, we first need to resolve all types ...
-        let resolutionDiagnostics = Namespaces.Values |> Seq.collect (fun ns ->
+        let resolutionDiagnostics = sortedNamespaces |> Seq.collect (fun ns ->
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let tName, (source, qsType) = kvPair.Key, kvPair.Value
                 let fullName = {Namespace = ns.Name; Name = tName}
@@ -808,10 +859,11 @@ and NamespaceManager
                 ns.SetTypeResolution source (tName, resolved |> Value, ImmutableArray.Empty) 
                 msgs |> Array.map (fun msg -> source, (qsType.Position, msg))))
         // ... before we can resolve the corresponding attributes. 
-        let attributeDiagnostics = Namespaces.Values |> Seq.collect (fun ns ->
+        let attributeDiagnostics = sortedNamespaces |> Seq.collect (fun ns ->
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let tName, (source, qsType) = kvPair.Key, kvPair.Value
-                let resolvedAttributes, msgs = this.ResolveAttributes (ns.Name, source) qsType 
+                let parentName = {Namespace = ns.Name; Name = tName}
+                let resolvedAttributes, msgs = this.ResolveAttributes (parentName, source) qsType 
                 ns.SetTypeResolution source (tName, qsType.Resolved, resolvedAttributes) 
                 msgs |> Array.map (fun msg -> source, msg)))
         resolutionDiagnostics.Concat(attributeDiagnostics).ToArray()
@@ -824,8 +876,8 @@ and NamespaceManager
     /// Throws an InvalidOperationException if the types corresponding to the attributes to resolve have not been resolved. 
     member private this.CacheCallableResolutions () = 
         // TODO: this needs to be adapted if we support external specializations
-        let diagnostics = Namespaces.Values |> Seq.collect (fun ns -> 
-            ns.CallablesDefinedInAllSources() |> Seq.collect (fun kvPair ->
+        let diagnostics = Namespaces.Values |> Seq.sortBy (fun ns -> ns.Name.Value) |> Seq.collect (fun ns -> 
+            ns.CallablesDefinedInAllSources() |> Seq.sortBy (fun kv -> kv.Key) |> Seq.collect (fun kvPair ->
                 let source, (kind, signature) = kvPair.Value
                 let parent = {Namespace = ns.Name; Name = kvPair.Key}
 
@@ -852,9 +904,9 @@ and NamespaceManager
                 let autoResErrs = ns.SetSpecializationResolutions (parent.Name, typeArgsResolution, fun _ _ -> ImmutableArray.Empty, [||])
 
                 // only then can we resolve the generators themselves, as well as the callable and specialization attributes
-                let callableAttributes, attrErrs = this.ResolveAttributes (ns.Name, source) signature
+                let callableAttributes, attrErrs = this.ResolveAttributes (parent, source) signature
                 let resolution _ = SymbolResolution.ResolveGenerator props 
-                let specErrs = ns.SetSpecializationResolutions (parent.Name, resolution, fun attSource -> this.ResolveAttributes (ns.Name, attSource))
+                let specErrs = ns.SetSpecializationResolutions (parent.Name, resolution, fun attSource -> this.ResolveAttributes (parent, attSource))
 
                 // and finally we resolve the overall signature (whose characteristics are the intersection of the one of all bundles)
                 let characteristics = props.Values |> Seq.map (fun bundle -> bundle.BundleInfo) |> Seq.toList
@@ -1293,7 +1345,10 @@ and NamespaceManager
             hash (NamespaceManager.TypeHash t, itemHashes |> Seq.toList, attributes |> attributesHash)
 
         syncRoot.EnterReadLock()
-        try let relevantNamespaces = Namespaces.Values |> Seq.filter (fun ns -> ns.Sources.Contains source) |> Seq.sortBy (fun ns -> ns.Name)
+        try let relevantNamespaces = 
+                Namespaces.Values 
+                |> Seq.filter (fun ns -> ns.Sources.Contains source) 
+                |> Seq.sortBy (fun ns -> ns.Name) |> Seq.toList
             let callables = relevantNamespaces |> Seq.collect (fun ns -> 
                 let inSource = ns.CallablesDefinedInSource source |> Seq.sortBy (fun (cName, _) -> cName.Value) 
                 inSource |> Seq.map (fun (cName, (kind, signature)) -> 

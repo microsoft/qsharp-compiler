@@ -80,10 +80,9 @@ let private buildSyntaxTree code =
 
 //////////////////////////////// tests //////////////////////////////////
 
-
 [<Fact>]
 let ``basic walk`` () = 
-    let tree = Path.Combine(Path.GetFullPath ".", "TestFiles", "test-00.qs") |> File.ReadAllText |> buildSyntaxTree
+    let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
     let counter = new Counter()
     tree |> Seq.map (SyntaxCounter(counter)).Transform |> Seq.toList |> ignore
         
