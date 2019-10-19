@@ -4,7 +4,6 @@
 namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
-open System.Collections.Concurrent
 open System.Collections.Generic
 open System.IO
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -12,62 +11,55 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
 
 
 type LinkingTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) 
-        ["Core.qs"; Path.Combine ("InvalidEntryPoints", "InvalidEntryPoints.qs")], output)
+    inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"], output)
+
+    let compilation = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
 
     let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
-    let diagnostics = new ConcurrentDictionary<Uri, Diagnostic[]>()
-    let pushDiagnostics (param : PublishDiagnosticParams) = 
-        let replace _ _ = param.Diagnostics
-        diagnostics.AddOrUpdate (param.Uri, param.Diagnostics, new Func<_, _, _>(replace))
-        |> ignore
-
-    let compilation = 
-        new CompilationUnitManager(
-            new Action<Exception> (fun ex -> failwith ex.Message),
-            new Action<PublishDiagnosticParams> (pushDiagnostics))
-    
-    let getManager uri content = 
-        CompilationUnitManager.InitializeFileManager(uri, content, compilation.PublishDiagnostics, compilation.LogException)
+    let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilation.PublishDiagnostics, compilation.LogException)
 
     do  let core = Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath 
         let file = getManager (new Uri(core)) (File.ReadAllText core)
         compilation.AddOrUpdateSourceFileAsync(file) |> ignore
-
-    member private this.CompileAndVerify input = 
-        async {
-            let fileId = getTempFile()
-            let file = getManager fileId input
-            do! compilation.AddOrUpdateSourceFileAsync(file) |> Async.AwaitTask
-            match diagnostics.TryRemove fileId with 
-            | true, msgs -> Assert.Empty(msgs)
-            | false, _ -> Assert.NotNull(null, "failed to get diagnostics")
-        }
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.EntryPoints" |> NonNullable<_>.New
         let name = name |> NonNullable<_>.New
         this.Verify (QsQualifiedName.New (ns, name), diag)
 
+    member private this.CompileAndVerify input (diag : DiagnosticItem seq) = 
 
-    // TODO: MULTIPLE ENTRY POINTS 
-    // TODO: ENTRY POINTS ON OPERATIONS THAT HAVE SPECIALIZATIONS
+        let fileId = getTempFile()
+        let file = getManager fileId input
+        let inFile (c : QsCallable) = c.SourceFile = file.FileName
+        
+        compilation.AddOrUpdateSourceFileAsync(file) |> ignore
+        let built = compilation.Build()
+        compilation.TryRemoveSourceFileAsync(fileId, false) |> ignore
+        let tests = new CompilerTests(built, output)
+
+        for callable in built.Callables.Values |> Seq.filter inFile do 
+            tests.Verify (callable.FullName, diag)
 
 
     [<Fact>]
     member this.``Entry point specialization verification`` () = 
-        
-        this.CompileAndVerify "" |> Async.RunSynchronously
+
+        let entryPointsWithSpecs = Path.Combine ("TestCases", "LinkingTests", "EntryPointSpecializations.qs") |> File.ReadAllText
+        for case in entryPointsWithSpecs.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries) do 
+            this.CompileAndVerify case [Error ErrorCode.InvalidEntryPointSpecialization]
+
+        // TODO: MULTIPLE ENTRY POINTS 
+        // TODO: VALID ENTRY POINTS 
 
 
     [<Fact>]
-    member this.``Entry point placement verification`` () = 
+    member this.``Entry point attribute placement verification`` () = 
     
         this.Expect "InvalidEntryPointPlacement1" [Error ErrorCode.InvalidEntryPointPlacement]
         this.Expect "InvalidEntryPointPlacement2" [Error ErrorCode.InvalidEntryPointPlacement]
