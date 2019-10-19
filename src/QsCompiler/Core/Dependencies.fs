@@ -24,7 +24,7 @@ type BuiltIn = {
     /// returns the set of namespaces that is automatically opened for each compilation
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
 
-    /// returns true if the given attributes is an entry point attributes
+    /// returns true if the given attribute is an entry point attribute
     static member internal IsEntryPointAttribute (att : QsDeclarationAttribute) = att.TypeId |> function 
         | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value
         | Null -> false

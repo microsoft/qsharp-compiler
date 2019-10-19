@@ -297,6 +297,7 @@ type WarningCode =
 
     | DiscardingItemInAssignment = 5001 
     | ConditionalEvaluationOfOperationCall = 5002
+    | UseOfDeprecatedCallable = 5003
     | TypeParameterNotResolvedByArgument = 6001
     | ReturnTypeNotResolvedByArgument = 6002
     | NamespaceAleadyOpen = 6003
@@ -639,6 +640,7 @@ type DiagnosticItem =
 
             | WarningCode.DiscardingItemInAssignment            -> "The expression on the right hand side is discarded on assignment and can be ommitted."
             | WarningCode.ConditionalEvaluationOfOperationCall  -> "This expression may be short-circuited, and operation calls may not be executed."
+            | WarningCode.UseOfDeprecatedCallable               -> "The callable {0} has been deprecated. Please use {1} instead."
             | WarningCode.TypeParameterNotResolvedByArgument    -> "The value of the type parameter is not determined by the argument type. It will always have to be explicitly specified by passing type arguments." 
             | WarningCode.ReturnTypeNotResolvedByArgument       -> "The return type is not fully determined by the argument type. It will always have to be explicitly specified by passing type arguments."
             | WarningCode.NamespaceAleadyOpen                   -> "The namespace is already open."

@@ -748,15 +748,17 @@ and NamespaceManager
     member private this.ResolveAttributes (parent : QsQualifiedName, source) (decl : Resolution<'T,_>) = 
         let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (parent.Namespace, source)) |> Seq.toList |> List.unzip
         let errs = new List<_>(msgs |> Seq.collect id)
-        let validateEntryPoint (alreadyDefined : int list, resAttr) (att : QsDeclarationAttribute) = 
+        let validateAttributes (alreadyDefined : int list, resAttr) (att : QsDeclarationAttribute) = 
             let returnInvalid msg = 
                 errs.AddRange msg
                 alreadyDefined, {att with TypeId = Null} :: resAttr
             match att.TypeId with
             | Value tId -> 
                 let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
-                let attHash = hash (tId.Namespace.Value, tId.Name.Value, NamespaceManager.ExpressionHash att.Argument)
-                if alreadyDefined.Contains attHash then 
+                let attributeHash = 
+                    if tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value then hash (tId.Namespace.Value, tId.Name.Value) 
+                    else hash (tId.Namespace.Value, tId.Name.Value, NamespaceManager.ExpressionHash att.Argument)
+                if alreadyDefined.Contains attributeHash then 
                     (att.Offset, tId.Range |> orDefault 
                     |> QsCompilerDiagnostic.Warning (WarningCode.DuplicateAttribute, [tId.Name.Value])) 
                     |> Seq.singleton |> returnInvalid
@@ -778,14 +780,14 @@ and NamespaceManager
                         | _ -> errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
                         if argErrs.Any() then returnInvalid argErrs 
                         else GetEntryPoints() |> Seq.tryHead |> function
-                            | None -> attHash :: alreadyDefined, att :: resAttr
+                            | None -> attributeHash :: alreadyDefined, att :: resAttr
                             | Some (epName, epSource) -> 
                                 let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
                                 (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs)) |> Seq.singleton |> returnInvalid 
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
-                else attHash :: alreadyDefined, att :: resAttr 
+                else attributeHash :: alreadyDefined, att :: resAttr 
             | _ -> alreadyDefined, att :: resAttr
-        let resAttr = attr |> List.fold validateEntryPoint ([], []) |> snd
+        let resAttr = attr |> List.fold validateAttributes ([], []) |> snd
         resAttr.Reverse() |> ImmutableArray.CreateRange, errs.ToArray()
 
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
