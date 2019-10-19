@@ -48,6 +48,20 @@ type LinkingTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
+    member this.``Fail on multiple entry points`` () = 
+
+        let validEntryPoints = Path.Combine ("TestCases", "LinkingTests", "ValidEntryPoints.qs") |> File.ReadAllText
+        let entryPoints = validEntryPoints.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries) 
+        Assert.True (entryPoints.Length > 1)
+
+        let fileId = getTempFile()
+        let file = getManager fileId entryPoints.[0]
+        compilation.AddOrUpdateSourceFileAsync(file) |> ignore
+        this.CompileAndVerify entryPoints.[1] [Error ErrorCode.MultipleEntryPoints]
+        compilation.TryRemoveSourceFileAsync(fileId, false) |> ignore
+
+
+    [<Fact>]
     member this.``Entry point specialization verification`` () = 
 
         let entryPointsWithSpecs = Path.Combine ("TestCases", "LinkingTests", "EntryPointSpecializations.qs") |> File.ReadAllText
@@ -55,10 +69,8 @@ type LinkingTests (output:ITestOutputHelper) =
             this.CompileAndVerify entryPoint [Error ErrorCode.InvalidEntryPointSpecialization]
 
         let validEntryPoints = Path.Combine ("TestCases", "LinkingTests", "ValidEntryPoints.qs") |> File.ReadAllText
-        for entryPoint in validEntryPoints.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries) do 
-            this.CompileAndVerify entryPoint []
-
-        // TODO: MULTIPLE ENTRY POINTS 
+        let entryPoints = validEntryPoints.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries) 
+        for entryPoint in entryPoints do this.CompileAndVerify entryPoint []
 
 
     [<Fact>]
