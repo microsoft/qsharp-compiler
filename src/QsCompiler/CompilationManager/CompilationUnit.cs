@@ -199,6 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal void RegisterDependentLock(ReaderWriterLockSlim depLock)
         {
+            #if DEBUG
             if (depLock == null) throw new ArgumentNullException(nameof(depLock));
             this.SyncRoot.EnterWriteLock();
             try
@@ -207,6 +208,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 { this.DependentLocks.Add(depLock); }
             }
             finally { this.SyncRoot.ExitWriteLock(); }
+            #endif
         }
 
         /// <summary>
@@ -216,6 +218,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal void UnregisterDependentLock(ReaderWriterLockSlim depLock)
         {
+            #if DEBUG
             if (depLock == null) throw new ArgumentNullException(nameof(depLock));
             this.SyncRoot.EnterWriteLock();
             try
@@ -224,6 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 { this.DependentLocks.Remove(depLock); }
             }
             finally { this.SyncRoot.ExitWriteLock(); }
+            #endif
         }
 
 

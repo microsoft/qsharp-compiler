@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     file.Flush();
                     this.PublishDiagnostics(file.Diagnostics());
                 }
-                var task =  this.EnableVerification ? this.SpawnGlobalTypeCheckingAsync(runSynchronously: true) : Task.CompletedTask;
+                var task = this.EnableVerification ? this.SpawnGlobalTypeCheckingAsync(runSynchronously: true) : Task.CompletedTask;
                 QsCompilerError.Verify(task.IsCompleted, "global type checking hasn't completed"); 
                 return execute?.Invoke();
             }
@@ -231,10 +231,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public Task AddOrUpdateSourceFileAsync(FileContentManager file, string updatedContent = null)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
-            this.CompilationUnit.RegisterDependentLock(file.SyncRoot);
-            this.SubscribeToFileManagerEvents(file);
             return this.Processing.QueueForExecutionAsync(() =>
             {
+                this.CompilationUnit.RegisterDependentLock(file.SyncRoot);
+                this.SubscribeToFileManagerEvents(file);
                 this.FileContentManagers.AddOrUpdate(file.FileName, file, (k, v) => file);
                 if (updatedContent != null) file.ReplaceFileContent(updatedContent);
                 this.ChangedFiles.Add(file.FileName);
