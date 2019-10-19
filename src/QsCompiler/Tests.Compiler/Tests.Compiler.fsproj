@@ -18,64 +18,64 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="TestCases\LinkingTests\ValidEntryPoints\EntryPoint2.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\ValidEntryPoints\EntryPoint1.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\InvalidEntryPoints\InvalidEntryPoints.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\LinkingTests\EntryPoint1.qs">
+    <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\LinkingTests\EntryPoint2.qs">
+    <None Include="TestCases\OptimizerTests\FunctionEval_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\LinkingTests\InvalidEntryPoints.qs">
+    <None Include="TestCases\OptimizerTests\Inlining_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\Arithmetic_output.txt">
+    <None Include="TestCases\OptimizerTests\LoopUnrolling_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\FunctionEval_output.txt">
+    <None Include="TestCases\OptimizerTests\Miscellaneous_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\Inlining_output.txt">
+    <None Include="TestCases\OptimizerTests\NoOp_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\LoopUnrolling_output.txt">
+    <None Include="TestCases\OptimizerTests\PartialEval_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\Miscellaneous_output.txt">
+    <None Include="TestCases\OptimizerTests\Reordering_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\NoOp_output.txt">
+    <None Include="TestCases\OptimizerTests\Arithmetic_input.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\PartialEval_output.txt">
+    <None Include="TestCases\OptimizerTests\FunctionEval_input.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\Reordering_output.txt">
+    <None Include="TestCases\OptimizerTests\Inlining_input.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\Arithmetic_input.qs">
+    <None Include="TestCases\OptimizerTests\LoopUnrolling_input.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\FunctionEval_input.qs">
+    <None Include="TestCases\OptimizerTests\Miscellaneous_input.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\Inlining_input.qs">
+    <None Include="TestCases\OptimizerTests\NoOp_input.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\LoopUnrolling_input.qs">
+    <None Include="TestCases\OptimizerTests\PartialEval_input.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\Optimizer\Miscellaneous_input.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="TestCases\Optimizer\NoOp_input.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="TestCases\Optimizer\PartialEval_input.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="TestCases\Optimizer\Reordering_input.qs">
+    <None Include="TestCases\OptimizerTests\Reordering_input.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\ExecutionTests\Packaging.qs" />

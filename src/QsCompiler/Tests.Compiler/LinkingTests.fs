@@ -18,7 +18,8 @@ open Xunit.Abstractions
 
 
 type LinkingTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"], output)
+    inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) 
+        ["Core.qs"; Path.Combine ("InvalidEntryPoints", "InvalidEntryPoints.qs")], output)
 
     let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let diagnostics = new ConcurrentDictionary<Uri, Diagnostic[]>()
