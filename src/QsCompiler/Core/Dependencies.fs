@@ -37,7 +37,10 @@ type BuiltIn = {
     /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
     static member IndicateDeprecation (fullName : QsQualifiedName, range) attributes = 
         let asDeprecatedAttribute (att : QsDeclarationAttribute) = 
-            match att.TypeId, att.Argument.Expression with 
+            let rec unwrap = function  
+                | ValueTuple vs when vs.Length = 1 -> vs.[0].Expression |> unwrap
+                | argEx -> argEx
+            match att.TypeId, unwrap att.Argument.Expression with 
             | Value tId, StringLiteral (str, _) when 
                 tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value -> Some str.Value
             | _ -> None

@@ -787,7 +787,9 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     function UsingDeprecatedType3 (arg : (DeprecatedType -> Unit)) : Unit {}
 
-    function UsingDeprecatedType4 () : DeprecatedType {}
+    function UsingDeprecatedType4 () : DeprecatedType {
+        return Default<DeprecatedType>();
+    }
 
     function UsingDeprecatedType5 () : (DeprecatedType[], Int) {
         return Default<(DeprecatedType[], Int)>();

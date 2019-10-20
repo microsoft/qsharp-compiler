@@ -171,6 +171,6 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "UsingDeprecatedType1"        [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType2"        [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType3"        [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingDeprecatedType4"        [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingDeprecatedType5"        [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType4"        [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType5"        [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
 
