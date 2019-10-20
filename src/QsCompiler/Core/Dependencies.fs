@@ -3,8 +3,11 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
+open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
@@ -28,6 +31,18 @@ type BuiltIn = {
     static member internal IsEntryPointAttribute (att : QsDeclarationAttribute) = att.TypeId |> function 
         | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value
         | Null -> false
+
+    static member CheckForDeprecation (fullName : QsQualifiedName, range) (attributes : ImmutableArray<QsDeclarationAttribute>) = 
+        let asDeprecatedAttribute (att : QsDeclarationAttribute) = 
+            match att.TypeId, att.Argument.Expression with 
+            | Value tId, StringLiteral (str, args) when // FIXME: ERROR MESSAGE IF THERE IS NO SUBSTITUTE GIVEN...
+                tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value &&
+                args.Length = 0 && not (String.IsNullOrWhiteSpace str.Value) -> Some str.Value
+            | _ -> None
+        let deprecatedWarning args = [| range |> QsCompilerDiagnostic.Warning (WarningCode.UseOfDeprecatedCallableOrType, args) |]
+        match attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead with
+        | Some redirect -> deprecatedWarning [sprintf "%s.%s" fullName.Namespace.Value fullName.Name.Value; redirect] 
+        | None -> [| |]
 
 
     // hard dependencies in Microsoft.Quantum.Core

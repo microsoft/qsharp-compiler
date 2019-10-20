@@ -406,22 +406,26 @@ and Namespace private
         | Null -> ArgumentException "no callable with the given name exist within the namespace" |> raise
 
     /// If this namespace contains a declaration for the given type name, 
-    /// returns the name of the source file or the name of the file within a referenced assembly
-    /// in which it is declared as Value, and returns Null otherwise.
+    /// returns a Value with the name of the source file or the name of the file within a referenced assembly
+    /// in which it is declared as well as the currently resolved attributes for the type. Returns Null otherwise.
     member this.ContainsType tName = 
         match TypesInReferences.TryGetValue tName with 
-        | true, tDecl -> Value tDecl.SourceFile
-        | false, _ -> FromSingleSource (fun partialNS -> if partialNS.ContainsType tName then Some partialNS.Source else None)
+        | true, tDecl -> Value (tDecl.SourceFile, tDecl.Attributes)
+        | false, _ -> FromSingleSource (fun partialNS -> partialNS.TryGetType tName |> function 
+            | true, tDecl -> Some (partialNS.Source, tDecl.ResolvedAttributes)
+            | false, _ -> None)
 
     /// If this namespace contains the declaration for the given callable name, 
-    /// returns the name of the source file or the name of the file within a referenced assembly
-    /// in which it is declared as Value, and returns Null otherwise.
+    /// returns a Value with the name of the source file or the name of the file within a referenced assembly
+    /// in which it is declared as well as the currently resolved attributes for the callable. Returns Null otherwise.
     /// If the given callable corresponds to the (auto-generated) type constructor for a user defined type,
     /// returns the file in which that type is declared as source.
     member this.ContainsCallable cName = 
         match CallablesInReferences.TryGetValue cName with 
-        | true, cDecl -> Value cDecl.SourceFile
-        | false, _ -> FromSingleSource (fun partialNS -> if partialNS.ContainsCallable cName then Some partialNS.Source else None)
+        | true, cDecl -> Value (cDecl.SourceFile, cDecl.Attributes)
+        | false, _ -> FromSingleSource (fun partialNS -> partialNS.TryGetCallable cName |> function
+            | true, (_, cDecl) -> Some (partialNS.Source, cDecl.ResolvedAttributes)
+            | false, _ -> None)
 
     /// Sets the resolution for the type with the given name in the given source file to the given type,
     /// and replaces the resolved attributes with the given values.
@@ -560,7 +564,7 @@ and Namespace private
         match Parts.TryGetValue source with 
         | true, partial ->
             match this.ContainsCallable cName with
-            | Value declSource ->
+            | Value (declSource, _) ->
                 let AddAndClearCache () = 
                     CallablesDefinedInAllSourcesCache <- null
                     partial.AddCallableSpecialization location kind (cName, generator, attributes, documentation)
@@ -696,14 +700,17 @@ and NamespaceManager
             | resolutions -> 
                 let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
                 Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
+        let checkResolution attributes (ns, declSource) = 
+            let deprecatedWarnings = BuiltIn.CheckForDeprecation ({Namespace = ns; Name = symName}, symRange |> orDefault) attributes
+            Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings
         match nsName with 
         | None -> tryFind (parentNS, source) (symName, symRange) |> function
-            | Value (ns, declSource), errs -> Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), errs 
+            | Value (ns, (declSource, attributes)), errs -> checkResolution attributes (ns, declSource) |> fun (udt, msgs) -> udt, errs |> Array.append msgs
             | Null, errs -> None, errs
         | Some qualifier -> (parentNS, source) |> TryResolveQualifier qualifier |> function
             | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |] 
             | Some ns -> ns.ContainsType symName |> function
-                | Value declSource -> Some ({Namespace = ns.Name; Name = symName; Range = symRange}, declSource), [||]
+                | Value (declSource, attributes) -> checkResolution attributes (ns.Name, declSource) 
                 | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, []) |]
 
     /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given attribute.
@@ -1197,7 +1204,7 @@ and NamespaceManager
     member this.TryResolveAndGetCallable cName (nsName, source) = 
         syncRoot.EnterReadLock()
         try match (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsCallable cName) with 
-            | [(declNS, declSource)] -> this.TryGetCallableHeader ({Namespace = declNS; Name = cName}, Some declSource) (nsName, source) |> function
+            | [(declNS, (declSource, _))] -> this.TryGetCallableHeader ({Namespace = declNS; Name = cName}, Some declSource) (nsName, source) |> function
                 | Null -> QsCompilerError.Raise "failed to get the callable information about a resolved callable"; Null, Seq.empty
                 | info -> info, seq {yield declNS}
             | resolutions -> Null, resolutions.Select fst
@@ -1248,7 +1255,7 @@ and NamespaceManager
     member this.TryResolveAndGetType tName (nsName, source) = 
         syncRoot.EnterReadLock()
         try match (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsType tName) with 
-            | [(declNS, declSource)] -> this.TryGetTypeHeader ({Namespace = declNS; Name = tName}, Some declSource) (nsName, source) |> function
+            | [(declNS, (declSource, _))] -> this.TryGetTypeHeader ({Namespace = declNS; Name = tName}, Some declSource) (nsName, source) |> function
                 | Null -> QsCompilerError.Raise "failed to get the type information about a resolved type"; Null, Seq.empty
                 | info -> info, seq {yield declNS}
             | resolutions -> Null, resolutions.Select fst

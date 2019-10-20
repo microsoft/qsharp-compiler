@@ -203,20 +203,8 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             let properties = (defaultLoc, InvalidIdentifier, ResolvedType.New InvalidType, false)
             properties |> LocalVariableDeclaration.New false, ImmutableArray<_>.Empty
 
-        let checkForDeprecation (fullName : QsQualifiedName) (attributes : ImmutableArray<QsDeclarationAttribute>) = 
-            let asDeprecatedAttribute (att : QsDeclarationAttribute) = 
-                match att.TypeId, att.Argument.Expression with 
-                | Value tId, StringLiteral (str, args) when 
-                    tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value &&
-                    args.Length = 0 && not (String.IsNullOrWhiteSpace str.Value) -> Some str.Value
-                | _ -> None
-            let deprecatedWarning args = qsSym.RangeOrDefault |> QsCompilerDiagnostic.Warning (WarningCode.UseOfDeprecatedCallable, args) |> addDiagnostic
-            match attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead with
-            | Some redirect -> deprecatedWarning [sprintf "%s.%s" fullName.Namespace.Value fullName.Name.Value; redirect] 
-            | None -> ()
-
         let buildCallable kind fullName (decl : ResolvedSignature) attributes = 
-            checkForDeprecation fullName attributes
+            for msg in BuiltIn.CheckForDeprecation (fullName, qsSym.RangeOrDefault) attributes do msg |> addDiagnostic
             let argType, returnType = decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
             let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.New 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
@@ -251,7 +239,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// For each diagnostic generated during the resolution, calls the given addDiagnostics function on it. 
     /// Returns the resolved type, with all range information stripped.
     member this.ResolveType addDiagnostic (qsType : QsType) = 
-        let (resolved, errs) = GlobalSymbols().ResolveType (this.Parent, typeParameters, this.SourceFile) qsType 
+        let resolved, errs = GlobalSymbols().ResolveType (this.Parent, typeParameters, this.SourceFile) qsType 
         for err in errs do addDiagnostic err
         resolved |> StripPositionInfo.Apply
 
