@@ -771,6 +771,10 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @ Deprecated("NewTypeName")
     newtype RenamedType = Unit;
 
+    newtype DeprecatedItemType = (Unit -> DeprecatedType)[];
+
+    newtype RenamedItemType = (Int, RenamedType);
+
     function UsingDeprecatedConstructor1 () : Unit {
         let _ = DeprecatedType();
     }
@@ -778,6 +782,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     function UsingDeprecatedConstructor2 () : Unit {
         let _ = RenamedType();
     }
+
 
     function UsingDeprecatedType1 () : Unit {
         let _ = new DeprecatedType[0];
@@ -796,7 +801,21 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
 
-    // TODO: SAME THING WITH RENAMED
+    function UsingRenamedType1 () : Unit {
+        let _ = new RenamedType[0];
+    }
+
+    function UsingRenamedType2 (arg : RenamedType) : Unit {}
+
+    function UsingRenamedType3 (arg : (RenamedType -> Unit)) : Unit {}
+
+    function UsingRenamedType4 () : RenamedType {
+        return Default<RenamedType>();
+    }
+
+    function UsingRenamedType5 () : (RenamedType[], Int) {
+        return Default<(RenamedType[], Int)>();
+    }
 
     // TODO: CHECK USING DEPRECATED STUFF AS ATTRIBUTES AND IN UNDERLYING TYPES OF USER DEFINED TYPES
 

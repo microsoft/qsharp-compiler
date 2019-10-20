@@ -168,9 +168,18 @@ type LocalVerificationTests (output:ITestOutputHelper) =
 
         this.Expect "UsingDeprecatedConstructor1" [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedConstructor2" [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "DeprecatedItemType"          [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "RenamedItemType"             [Warning WarningCode.DeprecationWithRedirect]
+
         this.Expect "UsingDeprecatedType1"        [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType2"        [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType3"        [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType4"        [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedType5"        [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
+                                                 
+        this.Expect "UsingRenamedType1"           [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType2"           [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType3"           [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType4"           [Warning WarningCode.DeprecationWithRedirect; Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType5"           [Warning WarningCode.DeprecationWithRedirect; Warning WarningCode.DeprecationWithRedirect]
 
