@@ -24,24 +24,27 @@ type BuiltIn = {
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
 
-    /// returns the set of namespaces that is automatically opened for each compilation
+    /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
 
-    /// returns true if the given attribute is an entry point attribute
-    static member internal IsEntryPointAttribute (att : QsDeclarationAttribute) = att.TypeId |> function 
+    /// Returns true if any of the given attributes indicates an entry point.
+    static member IndicateEntryPoint attributes = 
+        attributes |> Seq.exists (fun att -> att.TypeId |> function 
         | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value
-        | Null -> false
+        | Null -> false)
 
-    static member CheckForDeprecation (fullName : QsQualifiedName, range) (attributes : ImmutableArray<QsDeclarationAttribute>) = 
+    /// Generates a suitable deprecation warning at the given range for the type or callable with the given name based on the given attributes.
+    /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
+    static member IndicateDeprecation (fullName : QsQualifiedName, range) attributes = 
         let asDeprecatedAttribute (att : QsDeclarationAttribute) = 
             match att.TypeId, att.Argument.Expression with 
-            | Value tId, StringLiteral (str, args) when // FIXME: ERROR MESSAGE IF THERE IS NO SUBSTITUTE GIVEN...
-                tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value &&
-                args.Length = 0 && not (String.IsNullOrWhiteSpace str.Value) -> Some str.Value
+            | Value tId, StringLiteral (str, _) when 
+                tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value -> Some str.Value
             | _ -> None
-        let deprecatedWarning args = [| range |> QsCompilerDiagnostic.Warning (WarningCode.UseOfDeprecatedCallableOrType, args) |]
+        let usedName = sprintf "%s.%s" fullName.Namespace.Value fullName.Name.Value
         match attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead with
-        | Some redirect -> deprecatedWarning [sprintf "%s.%s" fullName.Namespace.Value fullName.Name.Value; redirect] 
+        | Some redirect when String.IsNullOrWhiteSpace redirect -> [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithoutRedirect, [usedName]) |]
+        | Some redirect -> [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithRedirect, [usedName; redirect]) |]
         | None -> [| |]
 
 

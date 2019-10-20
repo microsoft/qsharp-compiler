@@ -640,7 +640,7 @@ and NamespaceManager
         let entryPoints = Namespaces.Values |> Seq.collect (fun ns -> 
             ns.CallablesDefinedInAllSources() |> Seq.choose (fun kvPair ->
                 let cName, (source, (_, decl)) = kvPair.Key, kvPair.Value
-                if decl.ResolvedAttributes |> Seq.exists BuiltIn.IsEntryPointAttribute then Some ({Namespace = ns.Name; Name = cName}, source) else None))
+                if decl.ResolvedAttributes |> BuiltIn.IndicateEntryPoint then Some ({Namespace = ns.Name; Name = cName}, source) else None))
         entryPoints.ToImmutableArray()
 
     /// If a namespace with the given name exists, returns that namespace 
@@ -701,7 +701,7 @@ and NamespaceManager
                 let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
                 Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
         let checkResolution attributes (ns, declSource) = 
-            let deprecatedWarnings = BuiltIn.CheckForDeprecation ({Namespace = ns; Name = symName}, symRange |> orDefault) attributes
+            let deprecatedWarnings = attributes |> BuiltIn.IndicateDeprecation ({Namespace = ns; Name = symName}, symRange |> orDefault)
             Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings
         match nsName with 
         | None -> tryFind (parentNS, source) (symName, symRange) |> function
