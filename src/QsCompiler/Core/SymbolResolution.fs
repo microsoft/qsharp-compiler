@@ -71,6 +71,12 @@ module SymbolResolution =
 
     // routines for resolving types and signatures
 
+    /// Returns true if any one of the given unresolved attributes indicates a deprecation. 
+    let internal IndicateDeprecation attributes = attributes |> Seq.exists (fun att -> att.Id.Symbol |> function 
+        | Symbol sym -> sym.Value = BuiltIn.Deprecated.Name.Value // TODO: it would be good to prevent any shadowing of this one...
+        | QualifiedSymbol (ns, sym) -> ns.Value = BuiltIn.Deprecated.Namespace.Value && sym.Value = BuiltIn.Deprecated.Name.Value
+        | _ -> false)
+
     /// helper function for ResolveType and ResolveCallableSignature
     let rec ResolveCharacteristics (ex : Characteristics) = // needs to preserve set parameters
         match ex.Characteristics with

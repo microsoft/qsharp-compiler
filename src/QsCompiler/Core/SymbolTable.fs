@@ -157,11 +157,7 @@ type private PartialNamespace private
             Argument = {Expression = StringLiteral (NonNullable<string>.New "", ImmutableArray.Empty); Range = Null}
             Position = location.Offset
             Comments = QsComments.Empty} 
-        let isDeprecation (att : AttributeAnnotation) = att.Id.Symbol |> function 
-            | Symbol sym -> sym.Value = BuiltIn.Deprecated.Name.Value // TODO: it would be good to prevent any shadowing of this one...
-            | QualifiedSymbol (ns, sym) -> ns.Value = BuiltIn.Deprecated.Namespace.Value && sym.Value = BuiltIn.Deprecated.Name.Value
-            | _ -> false
-        let contructorAttr = if attributes |> Seq.exists isDeprecation then ImmutableArray.Create deprecationWithoutRedirect else ImmutableArray.Empty
+        let contructorAttr = if attributes |> SymbolResolution.IndicateDeprecation then ImmutableArray.Create deprecationWithoutRedirect else ImmutableArray.Empty
 
         TypeDeclarations.Add(tName, (typeTuple, attributes, documentation) |> unresolved location)
         this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), contructorAttr, ImmutableArray.Empty) 
