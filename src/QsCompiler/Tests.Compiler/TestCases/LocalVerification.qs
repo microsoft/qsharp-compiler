@@ -762,4 +762,21 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         return arr[...-1...];        
     } 
 
+
+    // deprecation warnings
+
+    @ Deprecated("")
+    newtype DeprecatedType = Unit;
+
+    @ Deprecated("NewTypeName")
+    newtype RenamedType = Unit;
+
+    function UsingDeprecatedConstructor1 () : Unit {
+        let _ = DeprecatedType();
+    }
+
+    function UsingDeprecatedConstructor2 () : Unit {
+        let _ = RenamedType();
+    }
+
 }

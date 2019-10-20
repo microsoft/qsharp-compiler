@@ -130,7 +130,7 @@ type private PartialNamespace private
     /// Adds the corresponding type constructor to the dictionary of declared callables. 
     /// The given location is associated with both the type constructur and the type itself and accessible via the record properties Position and SymbolRange. 
     /// -> Note that this routine will fail with the standard dictionary.Add error if either a type or a callable with that name already exists. 
-    member this.AddType location (tName, typeTuple, attributes, documentation) = 
+    member this.AddType (location : QsLocation) (tName, typeTuple, attributes, documentation) = 
         let mutable anonItemId = 0
         let withoutRange sym = {Symbol = sym; Range = Null}
         let replaceAnonymous (itemName : QsSymbol, itemType) = // positional info for types in type constructors is removed upon resolution 
@@ -152,8 +152,19 @@ type private PartialNamespace private
             let returnType = {Type = UserDefinedType (QualifiedSymbol (this.Name, tName) |> withoutRange); Range = Null}
             {TypeParameters = ImmutableArray.Empty; Argument = constructorArgument; ReturnType = returnType; Characteristics = {Characteristics = EmptySet; Range = Null}}
 
+        let deprecationWithoutRedirect = {
+            Id = {Symbol = Symbol BuiltIn.Deprecated.Name; Range = Null}
+            Argument = {Expression = StringLiteral (NonNullable<string>.New "", ImmutableArray.Empty); Range = Null}
+            Position = location.Offset
+            Comments = QsComments.Empty} 
+        let isDeprecation (att : AttributeAnnotation) = att.Id.Symbol |> function 
+            | Symbol sym -> sym.Value = BuiltIn.Deprecated.Name.Value // TODO: it would be good to prevent any shadowing of this one...
+            | QualifiedSymbol (ns, sym) -> ns.Value = BuiltIn.Deprecated.Namespace.Value && sym.Value = BuiltIn.Deprecated.Name.Value
+            | _ -> false
+        let contructorAttr = if attributes |> Seq.exists isDeprecation then ImmutableArray.Create deprecationWithoutRedirect else ImmutableArray.Empty
+
         TypeDeclarations.Add(tName, (typeTuple, attributes, documentation) |> unresolved location)
-        this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), ImmutableArray.Empty, ImmutableArray.Empty) 
+        this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), contructorAttr, ImmutableArray.Empty) 
         let bodyGen = {TypeArguments = Null; Generator = QsSpecializationGeneratorKind.Intrinsic; Range = Value location.Range}
         this.AddCallableSpecialization location QsBody (tName, bodyGen, ImmutableArray.Empty, ImmutableArray.Empty) 
 

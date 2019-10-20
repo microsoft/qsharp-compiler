@@ -4,6 +4,7 @@
 namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System.Collections.Generic
+open System.IO
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -13,7 +14,7 @@ open Xunit.Abstractions
 
 
 type LocalVerificationTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "LocalVerification.qs"; "Types.qs"], output)
+    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "LocalVerification.qs"; "Types.qs"; Path.Combine ("LinkingTests", "Core.qs")], output)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.LocalVerification" |> NonNullable<_>.New
@@ -159,3 +160,10 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "InvalidConjugation7" [Error ErrorCode.InvalidReassignmentInApplyBlock]
         this.Expect "InvalidConjugation8" [Error ErrorCode.InvalidReassignmentInApplyBlock]
 
+
+    [<Fact>]
+    member this.``Deprecation warnings`` () =
+        this.Expect "DeprecatedType" []
+        this.Expect "RenamedType"    []
+        this.Expect "UsingDeprecatedConstructor1" [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedConstructor2" [Warning WarningCode.DeprecationWithoutRedirect]
