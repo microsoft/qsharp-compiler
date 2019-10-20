@@ -165,5 +165,12 @@ type LocalVerificationTests (output:ITestOutputHelper) =
     member this.``Deprecation warnings`` () =
         this.Expect "DeprecatedType" []
         this.Expect "RenamedType"    []
+
         this.Expect "UsingDeprecatedConstructor1" [Warning WarningCode.DeprecationWithoutRedirect]
         this.Expect "UsingDeprecatedConstructor2" [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType1"        [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType2"        [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType3"        [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType4"        [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType5"        [Warning WarningCode.DeprecationWithoutRedirect]
+

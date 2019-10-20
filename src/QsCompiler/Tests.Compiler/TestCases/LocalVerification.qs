@@ -779,4 +779,23 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         let _ = RenamedType();
     }
 
+    function UsingDeprecatedType1 () : Unit {
+        let _ = new DeprecatedType[0];
+    }
+
+    function UsingDeprecatedType2 (arg : DeprecatedType) : Unit {}
+
+    function UsingDeprecatedType3 (arg : (DeprecatedType -> Unit)) : Unit {}
+
+    function UsingDeprecatedType4 () : DeprecatedType {}
+
+    function UsingDeprecatedType5 () : (DeprecatedType[], Int) {
+        return Default<(DeprecatedType[], Int)>();
+    }
+
+
+    // TODO: SAME THING WITH RENAMED
+
+    // TODO: CHECK USING DEPRECATED STUFF AS ATTRIBUTES AND IN UNDERLYING TYPES OF USER DEFINED TYPES
+
 }
