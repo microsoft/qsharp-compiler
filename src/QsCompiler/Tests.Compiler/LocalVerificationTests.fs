@@ -163,35 +163,37 @@ type LocalVerificationTests (output:ITestOutputHelper) =
 
     [<Fact>]
     member this.``Deprecation warnings`` () =
-        this.Expect "DeprecatedType" []
-        this.Expect "RenamedType"    []
+        this.Expect "DeprecatedType"               []
+        this.Expect "RenamedType"                  []
+        this.Expect "DuplicateDeprecateAttribute1" [Warning WarningCode.DuplicateAttribute]
+        this.Expect "DuplicateDeprecateAttribute2" [Warning WarningCode.DuplicateAttribute]
 
-        this.Expect "DeprecatedTypeConstructor" [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "RenamedTypeConstructor"    [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingDeprecatedCallable"   [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingRenamedCallable"      [Warning WarningCode.DeprecationWithRedirect]
-
-        this.Expect "DeprecatedItemType1"       [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "DeprecatedItemType2"       [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "RenamedItemType1"          [Warning WarningCode.DeprecationWithRedirect]
-        this.Expect "RenamedItemType2"          [Warning WarningCode.DeprecationWithRedirect]
-
-        this.Expect "UsingDeprecatedAttribute1" [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingDeprecatedAttribute2" [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingDeprecatedAttribute3" [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingRenamedAttribute1"    [Warning WarningCode.DeprecationWithRedirect]
-        this.Expect "UsingRenamedAttribute2"    [Warning WarningCode.DeprecationWithRedirect]
-        this.Expect "UsingRenamedAttribute3"    [Warning WarningCode.DeprecationWithRedirect]
-
-        this.Expect "UsingDeprecatedType1"      [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingDeprecatedType2"      [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingDeprecatedType3"      [Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingDeprecatedType4"      [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
-        this.Expect "UsingDeprecatedType5"      [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
-                                                
-        this.Expect "UsingRenamedType1"         [Warning WarningCode.DeprecationWithRedirect]
-        this.Expect "UsingRenamedType2"         [Warning WarningCode.DeprecationWithRedirect]
-        this.Expect "UsingRenamedType3"         [Warning WarningCode.DeprecationWithRedirect]
-        this.Expect "UsingRenamedType4"         [Warning WarningCode.DeprecationWithRedirect; Warning WarningCode.DeprecationWithRedirect]
-        this.Expect "UsingRenamedType5"         [Warning WarningCode.DeprecationWithRedirect; Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "DeprecatedTypeConstructor"    [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "RenamedTypeConstructor"       [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedCallable"      [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingRenamedCallable"         [Warning WarningCode.DeprecationWithRedirect]
+                                                   
+        this.Expect "DeprecatedItemType1"          [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "DeprecatedItemType2"          [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "RenamedItemType1"             [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "RenamedItemType2"             [Warning WarningCode.DeprecationWithRedirect]
+                                                   
+        this.Expect "UsingDeprecatedAttribute1"    [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedAttribute2"    [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedAttribute3"    [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingRenamedAttribute1"       [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedAttribute2"       [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedAttribute3"       [Warning WarningCode.DeprecationWithRedirect]
+                                                   
+        this.Expect "UsingDeprecatedType1"         [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType2"         [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType3"         [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType4"         [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType5"         [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
+                                                   
+        this.Expect "UsingRenamedType1"            [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType2"            [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType3"            [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType4"            [Warning WarningCode.DeprecationWithRedirect; Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType5"            [Warning WarningCode.DeprecationWithRedirect; Warning WarningCode.DeprecationWithRedirect]
 

@@ -29,7 +29,7 @@ type BuiltIn = {
         | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value
         | Null -> false
 
-    /// Returns true if the given attribute marks the corresponding declaration as entry point. 
+    /// Returns true if the given attribute marks the corresponding declaration as deprecated. 
     static member MarksDeprecation (att : QsDeclarationAttribute) = att.TypeId |> function 
         | Value tId -> tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value
         | Null -> false

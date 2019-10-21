@@ -785,6 +785,14 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @ Deprecated("NewCallableName")
     function RenamedCallable() : Unit {}
 
+    @ Deprecated("")
+    @ Deprecated("")
+    function DuplicateDeprecateAttribute1() : Unit {}
+
+    @ Deprecated("")
+    @ Deprecated("NewName") // will be ignored 
+    function DuplicateDeprecateAttribute2() : Unit {}
+
 
     newtype DeprecatedItemType1 = (Unit -> DeprecatedType)[];
 
