@@ -710,7 +710,7 @@ and NamespaceManager
                 let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
                 Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
         let buildAndReturn (ns, declSource, deprecation, errs) = 
-            let deprecatedWarnings = deprecation |> SymbolResolution.DeprecationError ({Namespace = ns; Name = symName}, symRange |> orDefault)
+            let deprecatedWarnings = deprecation |> SymbolResolution.GenerateDeprecationWarning ({Namespace = ns; Name = symName}, symRange |> orDefault)
             Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings |> Array.append errs
         match nsName with 
         | None -> tryFind (parentNS, source) (symName, symRange) |> function
