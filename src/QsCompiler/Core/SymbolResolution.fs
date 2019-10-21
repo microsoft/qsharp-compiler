@@ -9,6 +9,7 @@ open System.Collections.Immutable
 open System.Linq
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
@@ -71,6 +72,12 @@ module SymbolResolution =
 
     // routines for resolving types and signatures
 
+    let private GetStringArgument inner = function 
+        | Item arg -> inner arg |> function 
+            | StringLiteral (str, interpol) when interpol.Length = 0 -> Some str.Value
+            | _ -> None
+        | _ -> None
+
     /// Returns true if any one of the given unresolved attributes indicates a deprecation. 
     let internal IndicatesDeprecation attribute = attribute.Id.Symbol |> function 
         | Symbol sym -> sym.Value = BuiltIn.Deprecated.Name.Value // TODO: it would be good to prevent any shadowing of this one...
@@ -79,12 +86,8 @@ module SymbolResolution =
 
     let internal CheckForDeprecation attributes = 
         let asDeprecatedAttribute (att : AttributeAnnotation) = 
-            let rec unwrap = function  
-                | ValueTuple (vs : ImmutableArray<QsExpression>) when vs.Length = 1 -> vs.[0].Expression |> unwrap
-                | argEx -> argEx
-            match att |> IndicatesDeprecation, unwrap att.Argument.Expression with 
-            | true, StringLiteral (str, _) -> Some str.Value
-            | _ -> None
+            if att |> IndicatesDeprecation then att.Argument |> GetStringArgument (fun ex -> ex.Expression)
+            else None
         attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead
 
     let DeprecationError (fullName : QsQualifiedName, range) = function
@@ -98,12 +101,9 @@ module SymbolResolution =
     /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
     let _IndicateDeprecation attributes = 
         let asDeprecatedAttribute (att : QsDeclarationAttribute) = 
-            let rec unwrap = function  
-                | ValueTuple vs when vs.Length = 1 -> vs.[0].Expression |> unwrap
-                | argEx -> argEx
-            match att.TypeId, unwrap att.Argument.Expression with 
-            | Value tId, StringLiteral (str, _) when 
-                tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value -> Some str.Value
+            match att.TypeId with 
+            | Value tId when tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value -> 
+                att.Argument |> GetStringArgument (fun ex -> ex.Expression)
             | _ -> None
         attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead 
 
@@ -129,7 +129,7 @@ module SymbolResolution =
     let private TypeParameterResolutionWarnings (argumentType : ResolvedType) (returnType : ResolvedType, range) typeParams = 
         // FIXME: this verification needs to be done for each specialization individually once type specializations are fully supported
         let typeParamsResolvedByArg = 
-            let getTypeParams = function
+            let getTypeParams (t : ResolvedType) = t.Resolution |> function
                 | QsTypeKind.TypeParameter (tp : QsTypeParameter) -> [tp.TypeName].AsEnumerable() 
                 | _ -> Enumerable.Empty()
             argumentType.ExtractAll getTypeParams |> Seq.toList
