@@ -765,11 +765,20 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     // deprecation warnings
 
+    @ Attribute()
+    @ Deprecated("")
+    newtype DeprecatedAttribute = Unit;
+
+    @ Attribute()
+    @ Deprecated("OldAttribute")
+    newtype RenamedAttribute = Unit;
+
     @ Deprecated("")
     newtype DeprecatedType = Unit;
 
     @ Deprecated("NewTypeName")
     newtype RenamedType = Unit;
+
 
     newtype DeprecatedItemType = (Unit -> DeprecatedType)[];
 
@@ -782,6 +791,25 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     function UsingDeprecatedConstructor2 () : Unit {
         let _ = RenamedType();
     }
+
+
+    @ DeprecatedAttribute()
+    function UsingDeprecatedAttribute1 () : Unit {}
+
+    @ DeprecatedAttribute()
+    operation UsingDeprecatedAttribute2 () : Unit {}
+
+    @ DeprecatedAttribute()
+    newtype UsingDeprecatedAttribute3 = Unit;
+
+    @ RenamedAttribute()
+    function UsingRenamedAttribute1 () : Unit {}
+
+    @ RenamedAttribute()
+    operation UsingRenamedAttribute2 () : Unit {}
+
+    @ RenamedAttribute()
+    newtype UsingRenamedAttribute3 = Unit;
 
 
     function UsingDeprecatedType1 () : Unit {
