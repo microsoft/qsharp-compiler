@@ -85,28 +85,41 @@ module SymbolResolution =
         | QualifiedSymbol (ns, sym) -> ns.Value = BuiltIn.Deprecated.Namespace.Value && sym.Value = BuiltIn.Deprecated.Name.Value
         | _ -> false
 
-    let DeprecationError (fullName : QsQualifiedName, range) = function
-        | Some redirect -> 
+    /// Given the redirection extracted by TryFindRedirect, 
+    /// returns an array with diagnostics for using a type or callable with the given name at the given range. 
+    /// Returns an empty array if no redirection was determined, i.e. the given redirection was Null. 
+    let GenerateDeprecationWarning (fullName : QsQualifiedName, range) redirect = redirect |> function
+        | Value redirect -> 
             let usedName = sprintf "%s.%s" fullName.Namespace.Value fullName.Name.Value
             if String.IsNullOrWhiteSpace redirect then [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithoutRedirect, [usedName]) |]
             else [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithRedirect, [usedName; redirect]) |]
-        | None -> [| |]
+        | Null -> [| |]
 
-    let private DiagnosticsForDeprecations (*(fullName : QsQualifiedName, range)*) (getRedirect, getInner) attributes = 
-        let asDeprecatedAttribute = getRedirect >> function
+    /// Applies the given getRedirect function to the given attributes, 
+    /// and extracts the non-interpolated string argument to the first attribute for which getRedirect returned Some. 
+    /// Returns the extracted string argument as Value, or returns Null if getRedirect returned None for all attributes. 
+    /// The extracted string argument may be null if the argument in question was not a non-interpolated string. 
+    let private DetermineRedirection (getRedirect, getInner) attributes = 
+        let redirection = getRedirect >> function
             | Some redirect -> redirect |> AttributeAnnotation.NonInterpolatedStringArgument getInner |> Some
             | None -> None
-        attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead //|> DeprecationError (fullName, range)
+        attributes |> Seq.choose redirection |> Seq.tryHead |> QsNullable<_>.FromOption
 
-    let internal CheckForDeprecation attributes = 
-        let getRedirect (att : AttributeAnnotation) = if att |> IndicatesDeprecation then Some att.Argument else None
-        DiagnosticsForDeprecations (getRedirect, fun ex -> ex.Expression) attributes
-
-    /// Generates a suitable deprecation warning at the given range for the type or callable with the given name based on the given attributes.
+    /// Checks whether the given attributes indicate the the corresponding declaration has been deprecated. 
+    /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise. 
+    /// The returned string is empty or null if the declaration has been deprecated but an alternative is not specified or could not be determined. 
     /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
-    let _IndicateDeprecation attributes = 
+    let internal TryFindRedirectInUnresolved attributes = 
+        let getRedirect (att : AttributeAnnotation) = if att |> IndicatesDeprecation then Some att.Argument else None
+        DetermineRedirection (getRedirect, fun ex -> ex.Expression) attributes
+
+    /// Checks whether the given attributes indicate the the corresponding declaration has been deprecated. 
+    /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise. 
+    /// The returned string is empty or null if the declaration has been deprecated but an alternative is not specified or could not be determined. 
+    /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
+    let TryFindRedirect attributes = 
         let getRedirect (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
-        DiagnosticsForDeprecations (getRedirect, fun ex -> ex.Expression) attributes
+        DetermineRedirection (getRedirect, fun ex -> ex.Expression) attributes
 
 
     // routines for resolving types and signatures

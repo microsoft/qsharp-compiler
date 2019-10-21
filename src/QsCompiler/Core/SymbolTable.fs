@@ -414,24 +414,26 @@ and Namespace private
 
     /// If this namespace contains a declaration for the given type name, 
     /// returns a Value with the name of the source file or the name of the file within a referenced assembly
-    /// in which it is declared as well as the currently resolved attributes for the type. Returns Null otherwise.
+    /// in which it is declared as well as a string option indicating the redirection for the type if it has been deprecated. 
+    /// Returns Null otherwise.
     member this.ContainsType tName = 
         match TypesInReferences.TryGetValue tName with 
-        | true, tDecl -> Value (tDecl.SourceFile, tDecl.Attributes |> SymbolResolution._IndicateDeprecation)
+        | true, tDecl -> Value (tDecl.SourceFile, tDecl.Attributes |> SymbolResolution.TryFindRedirect)
         | false, _ -> FromSingleSource (fun partialNS -> partialNS.TryGetType tName |> function 
-            | true, tDecl -> Some (partialNS.Source, tDecl.DefinedAttributes |> SymbolResolution.CheckForDeprecation)
+            | true, tDecl -> Some (partialNS.Source, tDecl.DefinedAttributes |> SymbolResolution.TryFindRedirectInUnresolved)
             | false, _ -> None)
 
     /// If this namespace contains the declaration for the given callable name, 
     /// returns a Value with the name of the source file or the name of the file within a referenced assembly
-    /// in which it is declared as well as the currently resolved attributes for the callable. Returns Null otherwise.
+    /// in which it is declared as well as a string option indicating the redirection for the callable if it has been deprecated. 
+    /// Returns Null otherwise.
     /// If the given callable corresponds to the (auto-generated) type constructor for a user defined type,
     /// returns the file in which that type is declared as source.
     member this.ContainsCallable cName = 
         match CallablesInReferences.TryGetValue cName with 
-        | true, cDecl -> Value (cDecl.SourceFile, cDecl.Attributes |> SymbolResolution._IndicateDeprecation)
+        | true, cDecl -> Value (cDecl.SourceFile, cDecl.Attributes |> SymbolResolution.TryFindRedirect)
         | false, _ -> FromSingleSource (fun partialNS -> partialNS.TryGetCallable cName |> function
-            | true, (_, cDecl) -> Some (partialNS.Source, cDecl.DefinedAttributes |> SymbolResolution.CheckForDeprecation)
+            | true, (_, cDecl) -> Some (partialNS.Source, cDecl.DefinedAttributes |> SymbolResolution.TryFindRedirectInUnresolved)
             | false, _ -> None)
 
     /// Sets the resolution for the type with the given name in the given source file to the given type,
@@ -707,17 +709,17 @@ and NamespaceManager
             | resolutions -> 
                 let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
                 Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
-        let checkResolution (ns, declSource, deprecation) = 
+        let buildAndReturn (ns, declSource, deprecation, errs) = 
             let deprecatedWarnings = deprecation |> SymbolResolution.DeprecationError ({Namespace = ns; Name = symName}, symRange |> orDefault)
-            Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings
+            Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings |> Array.append errs
         match nsName with 
         | None -> tryFind (parentNS, source) (symName, symRange) |> function
-            | Value (ns, declSource, deprecation), errs -> checkResolution (ns, declSource, deprecation) |> fun (udt, msgs) -> udt, errs |> Array.append msgs
+            | Value (ns, declSource, deprecation), errs -> buildAndReturn (ns, declSource, deprecation, errs)
             | Null, errs -> None, errs
         | Some qualifier -> (parentNS, source) |> TryResolveQualifier qualifier |> function
             | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |] 
             | Some ns -> ns.ContainsType symName |> function
-                | Value (declSource, deprecation) -> checkResolution (ns.Name, declSource, deprecation) 
+                | Value (declSource, deprecation) -> buildAndReturn (ns.Name, declSource, deprecation, [||]) 
                 | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, []) |]
 
     /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given attribute.
