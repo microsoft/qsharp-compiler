@@ -647,7 +647,7 @@ and NamespaceManager
         let entryPoints = Namespaces.Values |> Seq.collect (fun ns -> 
             ns.CallablesDefinedInAllSources() |> Seq.choose (fun kvPair ->
                 let cName, (source, (_, decl)) = kvPair.Key, kvPair.Value
-                if decl.ResolvedAttributes |> BuiltIn.IndicatesEntryPoint then Some ({Namespace = ns.Name; Name = cName}, source) else None))
+                if decl.ResolvedAttributes |> Seq.exists BuiltIn.MarksEntryPoint then Some ({Namespace = ns.Name; Name = cName}, source) else None))
         entryPoints.ToImmutableArray()
 
     /// If a namespace with the given name exists, returns that namespace 

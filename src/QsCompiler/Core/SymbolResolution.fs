@@ -21,6 +21,13 @@ type AttributeAnnotation = {
     Position : int * int
     Comments : QsComments
 }
+    with
+    static member internal NonInterpolatedStringArgument inner = function 
+        | Item arg -> inner arg |> function 
+            | StringLiteral (str, interpol) when interpol.Length = 0 -> str.Value
+            | _ -> null
+        | _ -> null
+
 
 /// used internally for symbol resolution
 type internal Resolution<'T,'R> = internal {
@@ -70,25 +77,13 @@ type SpecializationBundleProperties = internal {
 
 module SymbolResolution = 
 
-    // routines for resolving types and signatures
-
-    let private GetStringArgument inner = function 
-        | Item arg -> inner arg |> function 
-            | StringLiteral (str, interpol) when interpol.Length = 0 -> Some str.Value
-            | _ -> None
-        | _ -> None
+    // routines for giving deprecation warnings
 
     /// Returns true if any one of the given unresolved attributes indicates a deprecation. 
     let internal IndicatesDeprecation attribute = attribute.Id.Symbol |> function 
         | Symbol sym -> sym.Value = BuiltIn.Deprecated.Name.Value // TODO: it would be good to prevent any shadowing of this one...
         | QualifiedSymbol (ns, sym) -> ns.Value = BuiltIn.Deprecated.Namespace.Value && sym.Value = BuiltIn.Deprecated.Name.Value
         | _ -> false
-
-    let internal CheckForDeprecation attributes = 
-        let asDeprecatedAttribute (att : AttributeAnnotation) = 
-            if att |> IndicatesDeprecation then att.Argument |> GetStringArgument (fun ex -> ex.Expression)
-            else None
-        attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead
 
     let DeprecationError (fullName : QsQualifiedName, range) = function
         | Some redirect -> 
@@ -97,17 +92,24 @@ module SymbolResolution =
             else [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithRedirect, [usedName; redirect]) |]
         | None -> [| |]
 
+    let private DiagnosticsForDeprecations (*(fullName : QsQualifiedName, range)*) (getRedirect, getInner) attributes = 
+        let asDeprecatedAttribute = getRedirect >> function
+            | Some redirect -> redirect |> AttributeAnnotation.NonInterpolatedStringArgument getInner |> Some
+            | None -> None
+        attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead //|> DeprecationError (fullName, range)
+
+    let internal CheckForDeprecation attributes = 
+        let getRedirect (att : AttributeAnnotation) = if att |> IndicatesDeprecation then Some att.Argument else None
+        DiagnosticsForDeprecations (getRedirect, fun ex -> ex.Expression) attributes
+
     /// Generates a suitable deprecation warning at the given range for the type or callable with the given name based on the given attributes.
     /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
     let _IndicateDeprecation attributes = 
-        let asDeprecatedAttribute (att : QsDeclarationAttribute) = 
-            match att.TypeId with 
-            | Value tId when tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value -> 
-                att.Argument |> GetStringArgument (fun ex -> ex.Expression)
-            | _ -> None
-        attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead 
+        let getRedirect (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
+        DiagnosticsForDeprecations (getRedirect, fun ex -> ex.Expression) attributes
 
 
+    // routines for resolving types and signatures
 
     /// helper function for ResolveType and ResolveCallableSignature
     let rec ResolveCharacteristics (ex : Characteristics) = // needs to preserve set parameters

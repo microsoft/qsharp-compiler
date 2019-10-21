@@ -3,11 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
-open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
@@ -27,17 +24,15 @@ type BuiltIn = {
     /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
 
-    /// Returns true if any of the given attributes indicates an entry point.
-    static member internal IndicatesEntryPoint attributes = 
-        attributes |> Seq.exists (fun att -> att.TypeId |> function 
+    /// Returns true if the given attribute marks the corresponding declaration as entry point. 
+    static member MarksEntryPoint (att : QsDeclarationAttribute) = att.TypeId |> function 
         | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value
-        | Null -> false)
+        | Null -> false
 
-    /// Returns true if any of the given attributes indicates a deprecation.
-    //static member IndicatesDeprecation attributes = 
-    //    attributes |> Seq.exists (fun att -> att.TypeId |> function 
-    //    | Value tId -> tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value
-    //    | Null -> false)
+    /// Returns true if the given attribute marks the corresponding declaration as entry point. 
+    static member MarksDeprecation (att : QsDeclarationAttribute) = att.TypeId |> function 
+        | Value tId -> tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value
+        | Null -> false
 
 
     // hard dependencies in Microsoft.Quantum.Core
