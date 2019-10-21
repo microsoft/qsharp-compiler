@@ -779,17 +779,38 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @ Deprecated("NewTypeName")
     newtype RenamedType = Unit;
 
+    @ Deprecated("")
+    function DeprecatedCallable() : Unit {}
 
-    newtype DeprecatedItemType = (Unit -> DeprecatedType)[];
+    @ Deprecated("NewCallableName")
+    function RenamedCallable() : Unit {}
 
-    newtype RenamedItemType = (Int, RenamedType);
 
-    function UsingDeprecatedConstructor1 () : Unit {
+    newtype DeprecatedItemType1 = (Unit -> DeprecatedType)[];
+
+    @ Attribute()
+    newtype DeprecatedItemType2 = DeprecatedType;
+
+    newtype RenamedItemType1 = (Int, RenamedType);
+
+    @ Attribute()
+    newtype RenamedItemType2 = RenamedType;
+
+
+    function DeprecatedTypeConstructor () : Unit {
         let _ = DeprecatedType();
     }
 
-    function UsingDeprecatedConstructor2 () : Unit {
+    function RenamedTypeConstructor () : Unit {
         let _ = RenamedType();
+    }
+
+    function UsingDeprecatedCallable () : Unit {
+        DeprecatedCallable();
+    }
+
+    function UsingRenamedCallable () : Unit {
+        RenamedCallable();
     }
 
 
@@ -844,7 +865,4 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     function UsingRenamedType5 () : (RenamedType[], Int) {
         return Default<(RenamedType[], Int)>();
     }
-
-    // TODO: CHECK USING DEPRECATED STUFF AS ATTRIBUTES AND IN UNDERLYING TYPES OF USER DEFINED TYPES
-
 }
