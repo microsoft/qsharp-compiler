@@ -642,7 +642,7 @@ type DiagnosticItem =
             | WarningCode.DiscardingItemInAssignment            -> "The expression on the right hand side is discarded on assignment and can be ommitted."
             | WarningCode.ConditionalEvaluationOfOperationCall  -> "This expression may be short-circuited, and operation calls may not be executed."
             | WarningCode.DeprecationWithRedirect               -> "{0} has been deprecated. Please use {1} instead."
-            | WarningCode.DeprecationWithoutRedirect            -> "(0) has been deprecated."
+            | WarningCode.DeprecationWithoutRedirect            -> "{0} has been deprecated."
             | WarningCode.TypeParameterNotResolvedByArgument    -> "The value of the type parameter is not determined by the argument type. It will always have to be explicitly specified by passing type arguments." 
             | WarningCode.ReturnTypeNotResolvedByArgument       -> "The return type is not fully determined by the argument type. It will always have to be explicitly specified by passing type arguments."
             | WarningCode.NamespaceAleadyOpen                   -> "The namespace is already open."
