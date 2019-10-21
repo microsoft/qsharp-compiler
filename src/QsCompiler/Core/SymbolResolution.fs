@@ -72,10 +72,42 @@ module SymbolResolution =
     // routines for resolving types and signatures
 
     /// Returns true if any one of the given unresolved attributes indicates a deprecation. 
-    let internal IndicateDeprecation attributes = attributes |> Seq.exists (fun att -> att.Id.Symbol |> function 
+    let internal IndicatesDeprecation attribute = attribute.Id.Symbol |> function 
         | Symbol sym -> sym.Value = BuiltIn.Deprecated.Name.Value // TODO: it would be good to prevent any shadowing of this one...
         | QualifiedSymbol (ns, sym) -> ns.Value = BuiltIn.Deprecated.Namespace.Value && sym.Value = BuiltIn.Deprecated.Name.Value
-        | _ -> false)
+        | _ -> false
+
+    let internal CheckForDeprecation attributes = 
+        let asDeprecatedAttribute (att : AttributeAnnotation) = 
+            let rec unwrap = function  
+                | ValueTuple (vs : ImmutableArray<QsExpression>) when vs.Length = 1 -> vs.[0].Expression |> unwrap
+                | argEx -> argEx
+            match att |> IndicatesDeprecation, unwrap att.Argument.Expression with 
+            | true, StringLiteral (str, _) -> Some str.Value
+            | _ -> None
+        attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead
+
+    let DeprecationError (fullName : QsQualifiedName, range) = function
+        | Some redirect -> 
+            let usedName = sprintf "%s.%s" fullName.Namespace.Value fullName.Name.Value
+            if String.IsNullOrWhiteSpace redirect then [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithoutRedirect, [usedName]) |]
+            else [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithRedirect, [usedName; redirect]) |]
+        | None -> [| |]
+
+    /// Generates a suitable deprecation warning at the given range for the type or callable with the given name based on the given attributes.
+    /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
+    let _IndicateDeprecation attributes = 
+        let asDeprecatedAttribute (att : QsDeclarationAttribute) = 
+            let rec unwrap = function  
+                | ValueTuple vs when vs.Length = 1 -> vs.[0].Expression |> unwrap
+                | argEx -> argEx
+            match att.TypeId, unwrap att.Argument.Expression with 
+            | Value tId, StringLiteral (str, _) when 
+                tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value -> Some str.Value
+            | _ -> None
+        attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead 
+
+
 
     /// helper function for ResolveType and ResolveCallableSignature
     let rec ResolveCharacteristics (ex : Characteristics) = // needs to preserve set parameters

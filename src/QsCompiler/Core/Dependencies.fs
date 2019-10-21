@@ -28,27 +28,16 @@ type BuiltIn = {
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
 
     /// Returns true if any of the given attributes indicates an entry point.
-    static member IndicateEntryPoint attributes = 
+    static member internal IndicatesEntryPoint attributes = 
         attributes |> Seq.exists (fun att -> att.TypeId |> function 
         | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value
         | Null -> false)
 
-    /// Generates a suitable deprecation warning at the given range for the type or callable with the given name based on the given attributes.
-    /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
-    static member IndicateDeprecation (fullName : QsQualifiedName, range) attributes = 
-        let asDeprecatedAttribute (att : QsDeclarationAttribute) = 
-            let rec unwrap = function  
-                | ValueTuple vs when vs.Length = 1 -> vs.[0].Expression |> unwrap
-                | argEx -> argEx
-            match att.TypeId, unwrap att.Argument.Expression with 
-            | Value tId, StringLiteral (str, _) when 
-                tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value -> Some str.Value
-            | _ -> None
-        let usedName = sprintf "%s.%s" fullName.Namespace.Value fullName.Name.Value
-        match attributes |> Seq.choose asDeprecatedAttribute |> Seq.tryHead with
-        | Some redirect when String.IsNullOrWhiteSpace redirect -> [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithoutRedirect, [usedName]) |]
-        | Some redirect -> [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithRedirect, [usedName; redirect]) |]
-        | None -> [| |]
+    /// Returns true if any of the given attributes indicates a deprecation.
+    //static member IndicatesDeprecation attributes = 
+    //    attributes |> Seq.exists (fun att -> att.TypeId |> function 
+    //    | Value tId -> tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value
+    //    | Null -> false)
 
 
     // hard dependencies in Microsoft.Quantum.Core

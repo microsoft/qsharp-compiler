@@ -204,7 +204,8 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             properties |> LocalVariableDeclaration.New false, ImmutableArray<_>.Empty
 
         let buildCallable kind fullName (decl : ResolvedSignature) attributes = 
-            for msg in attributes |> BuiltIn.IndicateDeprecation (fullName, qsSym.RangeOrDefault) do msg |> addDiagnostic
+            let deprecated = attributes |> SymbolResolution._IndicateDeprecation |> SymbolResolution.DeprecationError (fullName, qsSym.RangeOrDefault)
+            for msg in deprecated do msg |> addDiagnostic
             let argType, returnType = decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
             let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.New 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
