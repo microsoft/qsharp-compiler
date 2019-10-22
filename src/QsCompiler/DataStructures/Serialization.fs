@@ -73,11 +73,18 @@ type TypedExpressionConverter() =
     inherit JsonConverter<TypedExpression>()
 
     override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : TypedExpression, hasExistingValue : bool, serializer : JsonSerializer) = 
-        let (ex, paramRes, t, info, range) = serializer.Deserialize<QsExpressionKind<TypedExpression, Identifier, ResolvedType> * IEnumerable<KeyValuePair<QsTypeParameter,ResolvedType>> * ResolvedType * InferredExpressionInformation * QsRangeInfo>(reader) 
-        {Expression = ex; TypeParameterResolutions = paramRes.ToImmutableDictionary(); ResolvedType = t; InferredInformation = info; Range = range}
+        let (ex, paramRes, t, info, range) = 
+            serializer.Deserialize< QsExpressionKind<TypedExpression, Identifier, ResolvedType>
+                                    * IEnumerable<QsQualifiedName * NonNullable<string> * ResolvedType> 
+                                    * ResolvedType 
+                                    * InferredExpressionInformation 
+                                    * QsRangeInfo >(reader) 
+        let typeParamResolutions = paramRes.ToImmutableDictionary ((fun (origin, name, _) -> origin, name), (fun (_,_,t) -> t))
+        {Expression = ex; TypeParameterResolutions = typeParamResolutions; ResolvedType = t; InferredInformation = info; Range = range}
 
     override this.WriteJson(writer : JsonWriter, value : TypedExpression, serializer : JsonSerializer) =
-        serializer.Serialize(writer, (value.Expression, value.TypeParameterResolutions, value.ResolvedType, value.InferredInformation, value.Range))
+        let typeParamResolutions = value.TypeParameterResolutions |> Seq.map (fun kv -> fst kv.Key, snd kv.Key, kv.Value)
+        serializer.Serialize(writer, (value.Expression, typeParamResolutions, value.ResolvedType, value.InferredInformation, value.Range))
 
 
 type QsNamespaceConverter() =
@@ -91,18 +98,6 @@ type QsNamespaceConverter() =
         serializer.Serialize(writer, (value.Name, value.Elements))
 
 
-type JsonConverters =
-    static member All ignoreSerializationException = 
-        [|
-            new NonNullableConverter<string>()                                  :> JsonConverter
-            new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
-            new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
-            new TypedExpressionConverter()                                      :> JsonConverter
-            new ResolvedInitializerConverter()                                  :> JsonConverter
-            new QsNamespaceConverter()                                          :> JsonConverter
-        |]
-
-
 type DictionaryAsArrayResolver () =
     inherit DefaultContractResolver()
 
@@ -112,4 +107,29 @@ type DictionaryAsArrayResolver () =
             (t.IsGenericType && t.GetGenericTypeDefinition() = typeof<IDictionary<_,_>>.GetGenericTypeDefinition())
         if objectType.GetInterfaces().Any(new Func<_,_>(isDictionary)) then base.CreateArrayContract(objectType) :> JsonContract;
         else base.CreateContract(objectType);
+
+
+module Json =
+    
+    let Converters ignoreSerializationException = 
+        [|
+            new NonNullableConverter<string>()                                  :> JsonConverter
+            new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
+            new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
+            new TypedExpressionConverter()                                      :> JsonConverter
+            new ResolvedInitializerConverter()                                  :> JsonConverter
+            new QsNamespaceConverter()                                          :> JsonConverter
+        |]
+
+    let Serializer = 
+        let settings = new JsonSerializerSettings() 
+        settings.Converters <- Converters false
+        settings.ContractResolver <- new DictionaryAsArrayResolver()
+        JsonSerializer.CreateDefault(settings)
+
+    let PermissiveSerializer = 
+        let settings = new JsonSerializerSettings() 
+        settings.Converters <- Converters true
+        settings.ContractResolver <- new DictionaryAsArrayResolver()
+        JsonSerializer.CreateDefault(settings)
 

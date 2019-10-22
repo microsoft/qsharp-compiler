@@ -5,6 +5,8 @@ namespace Microsoft.Quantum.QsCompiler
 
 open System
 open System.Collections.Immutable
+open System.IO
+open System.Text
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Serialization
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -12,7 +14,23 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Newtonsoft.Json
 
 
-/// to be removed as soon as we ship our own binary instead of compiled C#
+/// to be removed in future releases
+module private DeclarationHeader = 
+
+    let FromJson<'T> json = 
+        let deserialize (serializer : JsonSerializer) =             
+            let reader = new JsonTextReader(new StringReader(json));
+            serializer.Deserialize<'T>(reader)
+        try true, Json.Serializer |> deserialize
+        with _ -> false, Json.PermissiveSerializer |> deserialize
+
+    let ToJson obj = 
+        let builder = new StringBuilder()
+        Json.Serializer.Serialize(new StringWriter(builder), obj)
+        builder.ToString()
+
+
+/// to be removed in future releases
 type TypeDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
@@ -38,19 +56,17 @@ type TypeDeclarationHeader = {
     }
 
     static member FromJson json =
-        let (success, header) =
-            try true, JsonConvert.DeserializeObject<TypeDeclarationHeader>(json, JsonConverters.All false)
-            with _ -> false, JsonConvert.DeserializeObject<TypeDeclarationHeader>(json, JsonConverters.All true)
+        let (success, header) = DeclarationHeader.FromJson<TypeDeclarationHeader> json
         let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
         let header = if attributesAreNullOrDefault then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         if not (Object.ReferenceEquals(header.TypeItems, null)) then success, header
         else false, {header with TypeItems = ImmutableArray.Create (header.Type |> Anonymous |> QsTupleItem) |> QsTuple}
 
     member this.ToJson() : string  =
-        JsonConvert.SerializeObject(this, JsonConverters.All false)
+        DeclarationHeader.ToJson this
 
 
-/// to be removed as soon as we ship our own binary instead of compiled C#
+/// to be removed in future releases
 type CallableDeclarationHeader = { 
     Kind            : QsCallableKind
     QualifiedName   : QsQualifiedName
@@ -84,9 +100,7 @@ type CallableDeclarationHeader = {
             | QsTupleItem (decl : LocalVariableDeclaration<_>) -> QsTupleItem {decl with InferredInformation = info}
         // we need to make sure that all fields that could possibly be null after deserializing 
         // due to changes of fields over time are initialized to a proper value
-        let (success, header) = 
-            try true, JsonConvert.DeserializeObject<CallableDeclarationHeader>(json, JsonConverters.All false)
-            with _ -> false, JsonConvert.DeserializeObject<CallableDeclarationHeader>(json, JsonConverters.All true)
+        let (success, header) = DeclarationHeader.FromJson<CallableDeclarationHeader> json
         let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
         let header = if attributesAreNullOrDefault then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         let header = {header with ArgumentTuple = header.ArgumentTuple |> setInferredInfo}
@@ -95,10 +109,10 @@ type CallableDeclarationHeader = {
         else success, header
 
     member this.ToJson() : string  =
-        JsonConvert.SerializeObject(this, JsonConverters.All false)
+        DeclarationHeader.ToJson this
 
 
-/// to be removed as soon as we ship our own binary instead of compiled C#
+/// to be removed in future releases
 type SpecializationDeclarationHeader = {
     Kind            : QsSpecializationKind
     TypeArguments   : QsNullable<ImmutableArray<ResolvedType>>
@@ -128,9 +142,7 @@ type SpecializationDeclarationHeader = {
     static member FromJson json =
         // we need to make sure that all fields that could possibly be null after deserializing 
         // due to changes of fields over time are initialized to a proper value
-        let (success, header) = 
-            try true, JsonConvert.DeserializeObject<SpecializationDeclarationHeader>(json, JsonConverters.All false)
-            with _ -> false, JsonConvert.DeserializeObject<SpecializationDeclarationHeader>(json, JsonConverters.All true)
+        let (success, header) = DeclarationHeader.FromJson<SpecializationDeclarationHeader> json
         let infoIsNull = Object.ReferenceEquals(header.Information, null)
         let typeArgsAreNull = Object.ReferenceEquals(header.TypeArguments, null)
         let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
@@ -142,7 +154,7 @@ type SpecializationDeclarationHeader = {
             false, {header with Information = information; TypeArguments = typeArguments }
 
     member this.ToJson() : string  =
-        JsonConvert.SerializeObject(this, JsonConverters.All false)
+        DeclarationHeader.ToJson this
         
 
 

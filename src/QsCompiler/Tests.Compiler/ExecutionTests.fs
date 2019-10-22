@@ -138,3 +138,17 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint U1        
             "
 
+
+    [<Fact>]
+    member this.``Referencing Projects and Packages`` () = 
+        ExecuteAndCompareOutput 
+            "PackageAndProjectReference" "
+                Welcome to Q#!
+                Info: Go check out https://docs.microsoft.com/en-us/quantum/?view=qsharp-preview.
+            "
+        ExecuteAndCompareOutput 
+            "TypeInReferencedProject" "            
+                [Complex((1, 0))]
+            "
+
+

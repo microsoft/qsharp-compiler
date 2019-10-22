@@ -188,7 +188,9 @@ let internal numericLiteral =
                 if format = 16 then BigInteger.Parse(str, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
                 else BigInteger.Parse (nl.String, CultureInfo.InvariantCulture) |> BigIntLiteral |> returnWithRange
             elif isDouble then 
-                try System.Convert.ToDouble (nl.String, CultureInfo.InvariantCulture) |> DoubleLiteral |> returnWithRange
+                try let doubleValue = System.Convert.ToDouble (nl.String, CultureInfo.InvariantCulture)
+                    if System.Double.IsInfinity doubleValue then buildError (preturn range) ErrorCode.DoubleOverflow >>. returnWithRange (doubleValue |> DoubleLiteral)
+                    else returnWithRange (doubleValue |> DoubleLiteral)
                 with | :? System.OverflowException -> buildError (preturn range) ErrorCode.DoubleOverflow >>. returnWithRange (System.Double.NaN |> DoubleLiteral)
             else fail "invalid number format"
         with | _ -> fail "failed to initialize number literal"         

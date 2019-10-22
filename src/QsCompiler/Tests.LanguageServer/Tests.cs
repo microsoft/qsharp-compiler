@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(initReply.Capabilities.DocumentHighlightProvider);
             Assert.IsTrue(initReply.Capabilities.DocumentSymbolProvider);
             Assert.IsFalse(initReply.Capabilities.WorkspaceSymbolProvider);
-            Assert.IsTrue(initReply.Capabilities.RenameProvider);
+            Assert.IsTrue(initReply.Capabilities.RenameProvider.Value is bool supported && supported);
             Assert.IsTrue(initReply.Capabilities.HoverProvider);
             Assert.IsFalse(initReply.Capabilities.DocumentFormattingProvider);
             Assert.IsFalse(initReply.Capabilities.DocumentRangeFormattingProvider);
