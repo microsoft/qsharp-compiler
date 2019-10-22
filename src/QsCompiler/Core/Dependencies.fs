@@ -21,12 +21,17 @@ type BuiltIn = {
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
 
-    /// returns the set of namespaces that is automatically opened for each compilation
+    /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
 
-    /// returns true if the given attributes is an entry point attributes
-    static member internal IsEntryPointAttribute (att : QsDeclarationAttribute) = att.TypeId |> function 
+    /// Returns true if the given attribute marks the corresponding declaration as entry point. 
+    static member MarksEntryPoint (att : QsDeclarationAttribute) = att.TypeId |> function 
         | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value
+        | Null -> false
+
+    /// Returns true if the given attribute marks the corresponding declaration as deprecated. 
+    static member MarksDeprecation (att : QsDeclarationAttribute) = att.TypeId |> function 
+        | Value tId -> tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value
         | Null -> false
 
 
@@ -52,6 +57,12 @@ type BuiltIn = {
 
     static member EntryPoint = {
         Name = "EntryPoint" |> NonNullable<string>.New
+        Namespace = BuiltIn.CoreNamespace
+        TypeParameters = ImmutableArray.Empty
+    }
+
+    static member Deprecated = {
+        Name = "Deprecated" |> NonNullable<string>.New
         Namespace = BuiltIn.CoreNamespace
         TypeParameters = ImmutableArray.Empty
     }

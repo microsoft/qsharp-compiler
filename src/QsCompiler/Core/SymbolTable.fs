@@ -130,7 +130,7 @@ type private PartialNamespace private
     /// Adds the corresponding type constructor to the dictionary of declared callables. 
     /// The given location is associated with both the type constructur and the type itself and accessible via the record properties Position and SymbolRange. 
     /// -> Note that this routine will fail with the standard dictionary.Add error if either a type or a callable with that name already exists. 
-    member this.AddType location (tName, typeTuple, attributes, documentation) = 
+    member this.AddType (location : QsLocation) (tName, typeTuple, attributes, documentation) = 
         let mutable anonItemId = 0
         let withoutRange sym = {Symbol = sym; Range = Null}
         let replaceAnonymous (itemName : QsSymbol, itemType) = // positional info for types in type constructors is removed upon resolution 
@@ -152,8 +152,21 @@ type private PartialNamespace private
             let returnType = {Type = UserDefinedType (QualifiedSymbol (this.Name, tName) |> withoutRange); Range = Null}
             {TypeParameters = ImmutableArray.Empty; Argument = constructorArgument; ReturnType = returnType; Characteristics = {Characteristics = EmptySet; Range = Null}}
 
+        // There are a couple of reasons not just blindly attach all attributes associated with the type to the constructor:
+        // For one, we would need to make sure that the range information for duplications is stripped such that e.g. rename commands are not executed multiple times. 
+        // We would furthermore have to adapt the entry point verification logic below, since type constructors are not valid entry points.
+        let deprecationWithoutRedirect = {
+            Id = {Symbol = Symbol BuiltIn.Deprecated.Name; Range = Null}
+            Argument = {Expression = StringLiteral (NonNullable<string>.New "", ImmutableArray.Empty); Range = Null}
+            Position = location.Offset
+            Comments = QsComments.Empty} 
+        let constructorAttr = // we will attach any attribute that likely indicates a deprecation to the type constructor as well
+            let validDeprecatedQualification qual = String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.Namespace.Value
+            if attributes |> Seq.exists (SymbolResolution.IndicatesDeprecation validDeprecatedQualification) then ImmutableArray.Create deprecationWithoutRedirect 
+            else ImmutableArray.Empty
+
         TypeDeclarations.Add(tName, (typeTuple, attributes, documentation) |> unresolved location)
-        this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), ImmutableArray.Empty, ImmutableArray.Empty) 
+        this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), constructorAttr, ImmutableArray.Empty) 
         let bodyGen = {TypeArguments = Null; Generator = QsSpecializationGeneratorKind.Intrinsic; Range = Value location.Range}
         this.AddCallableSpecialization location QsBody (tName, bodyGen, ImmutableArray.Empty, ImmutableArray.Empty) 
 
@@ -406,22 +419,38 @@ and Namespace private
         | Null -> ArgumentException "no callable with the given name exist within the namespace" |> raise
 
     /// If this namespace contains a declaration for the given type name, 
-    /// returns the name of the source file or the name of the file within a referenced assembly
-    /// in which it is declared as Value, and returns Null otherwise.
-    member this.ContainsType tName = 
+    /// returns a Value with the name of the source file or the name of the file within a referenced assembly
+    /// in which it is declared as well as a string option indicating the redirection for the type if it has been deprecated. 
+    /// Returns Null otherwise.
+    /// Whether the type has been deprecated is determined by checking the associated attributes for an attribute with the corresponding name. 
+    /// Note that if the type is declared in a source files, the *unresolved* attributes will be checked.
+    /// In that case checkDeprecation is used to validate the namespace qualification of the attribute. 
+    /// If checkDeprecation is not specified, it is assumed that no qualification is needed in the relevant namespace and source file.
+    member this.ContainsType (tName, ?checkDeprecation : (string -> bool)) = 
+        let checkDeprecation = defaultArg checkDeprecation (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.Namespace.Value)
         match TypesInReferences.TryGetValue tName with 
-        | true, tDecl -> Value tDecl.SourceFile
-        | false, _ -> FromSingleSource (fun partialNS -> if partialNS.ContainsType tName then Some partialNS.Source else None)
+        | true, tDecl -> Value (tDecl.SourceFile, tDecl.Attributes |> SymbolResolution.TryFindRedirect)
+        | false, _ -> FromSingleSource (fun partialNS -> partialNS.TryGetType tName |> function 
+            | true, tDecl -> Some (partialNS.Source, tDecl.DefinedAttributes |> SymbolResolution.TryFindRedirectInUnresolved checkDeprecation)
+            | false, _ -> None)
 
     /// If this namespace contains the declaration for the given callable name, 
-    /// returns the name of the source file or the name of the file within a referenced assembly
-    /// in which it is declared as Value, and returns Null otherwise.
+    /// returns a Value with the name of the source file or the name of the file within a referenced assembly
+    /// in which it is declared as well as a string option indicating the redirection for the callable if it has been deprecated. 
+    /// Returns Null otherwise.
     /// If the given callable corresponds to the (auto-generated) type constructor for a user defined type,
     /// returns the file in which that type is declared as source.
-    member this.ContainsCallable cName = 
+    /// Whether the callable has been deprecated is determined by checking the associated attributes for an attribute with the corresponding name. 
+    /// Note that if the type is declared in a source files, the *unresolved* attributes will be checked.
+    /// In that case checkDeprecation is used to validate the namespace qualification of the attribute. 
+    /// If checkDeprecation is not specified, it is assumed that no qualification is needed in the relevant namespace and source file.
+    member this.ContainsCallable (cName, ?checkDeprecation : (string -> bool)) = 
+        let checkDeprecation = defaultArg checkDeprecation (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.Namespace.Value)
         match CallablesInReferences.TryGetValue cName with 
-        | true, cDecl -> Value cDecl.SourceFile
-        | false, _ -> FromSingleSource (fun partialNS -> if partialNS.ContainsCallable cName then Some partialNS.Source else None)
+        | true, cDecl -> Value (cDecl.SourceFile, cDecl.Attributes |> SymbolResolution.TryFindRedirect)
+        | false, _ -> FromSingleSource (fun partialNS -> partialNS.TryGetCallable cName |> function
+            | true, (_, cDecl) -> Some (partialNS.Source, cDecl.DefinedAttributes |> SymbolResolution.TryFindRedirectInUnresolved checkDeprecation)
+            | false, _ -> None)
 
     /// Sets the resolution for the type with the given name in the given source file to the given type,
     /// and replaces the resolved attributes with the given values.
@@ -560,7 +589,7 @@ and Namespace private
         match Parts.TryGetValue source with 
         | true, partial ->
             match this.ContainsCallable cName with
-            | Value declSource ->
+            | Value (declSource, _) ->
                 let AddAndClearCache () = 
                     CallablesDefinedInAllSourcesCache <- null
                     partial.AddCallableSpecialization location kind (cName, generator, attributes, documentation)
@@ -636,7 +665,7 @@ and NamespaceManager
         let entryPoints = Namespaces.Values |> Seq.collect (fun ns -> 
             ns.CallablesDefinedInAllSources() |> Seq.choose (fun kvPair ->
                 let cName, (source, (_, decl)) = kvPair.Key, kvPair.Value
-                if decl.ResolvedAttributes |> Seq.exists BuiltIn.IsEntryPointAttribute then Some ({Namespace = ns.Name; Name = cName}, source) else None))
+                if decl.ResolvedAttributes |> Seq.exists BuiltIn.MarksEntryPoint then Some ({Namespace = ns.Name; Name = cName}, source) else None))
         entryPoints.ToImmutableArray()
 
     /// If a namespace with the given name exists, returns that namespace 
@@ -681,7 +710,19 @@ and NamespaceManager
             | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
         | true, ns -> Some ns
 
-    /// Given the qualified or unqualfied name of a type used within the given namespace and source file, 
+    /// Returns the possible qualifications for the built-in type or callable used in the given namespace and source.
+    /// where the given source may either be the name of a source file or of a referenced assembly. 
+    /// Throws an ArgumentException if no namespace with the given name exists. 
+    let PossibleQualifications (declNS, declSource) (builtIn : BuiltIn) = 
+        match Namespaces.TryGetValue declNS with 
+        | true, ns -> (ns.ImportedNamespaces declSource).TryGetValue builtIn.Namespace |> function
+            | true, null when ns.ContainsType builtIn.Name = Null || declNS.Value = builtIn.Namespace.Value -> [""; builtIn.Namespace.Value] 
+            | true, null -> [builtIn.Namespace.Value] // the built-in type or callable is shadowed
+            | true, alias -> [alias; builtIn.Namespace.Value]
+            | false, _ -> [builtIn.Namespace.Value]
+        | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
+
+    /// Given the qualified or unqualfied name of a type used within the given parent namespace and source file, 
     /// determines if such a type exists and returns the full name as Some if it does. 
     /// Returns None if no such type exist, or if the type name is unqualified and ambiguous.
     /// Generates and returns an array with suitable diagnostics.
@@ -689,21 +730,26 @@ and NamespaceManager
     /// or if no source file with the given name is listed as source of that namespace. 
     let TryResolveTypeName (parentNS, source) ((nsName, symName), symRange) = 
         let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
+        let checkQualificationForDeprecation qual = BuiltIn.Deprecated |> PossibleQualifications (parentNS, source) |> Seq.contains qual
+        let buildAndReturn (ns, declSource, deprecation, errs) = 
+            let deprecatedWarnings = deprecation |> SymbolResolution.GenerateDeprecationWarning ({Namespace = ns; Name = symName}, symRange |> orDefault)
+            Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings |> Array.append errs
         let tryFind (parentNS, source) (tName, tRange) = 
-            match (parentNS, source) |> PossibleResolutions (fun ns -> ns.ContainsType tName) with 
+            match (parentNS, source) |> PossibleResolutions (fun ns -> ns.ContainsType (tName, checkQualificationForDeprecation)) with 
             | [] -> Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, []) |]
-            | [res] -> Value res, [||]
+            | [(nsName, (declSource, deprecated))] -> Value (nsName, declSource, deprecated), [||]
             | resolutions -> 
                 let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
                 Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
         match nsName with 
         | None -> tryFind (parentNS, source) (symName, symRange) |> function
-            | Value (ns, declSource), errs -> Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), errs 
+            | Value (ns, declSource, deprecation), errs -> buildAndReturn (ns, declSource, deprecation, errs)
             | Null, errs -> None, errs
         | Some qualifier -> (parentNS, source) |> TryResolveQualifier qualifier |> function
             | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |] 
-            | Some ns -> ns.ContainsType symName |> function
-                | Value declSource -> Some ({Namespace = ns.Name; Name = symName; Range = symRange}, declSource), [||]
+            | Some ns -> 
+                ns.ContainsType (symName, checkQualificationForDeprecation) |> function
+                | Value (declSource, deprecation) -> buildAndReturn (ns.Name, declSource, deprecation, [||]) 
                 | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, []) |]
 
     /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given attribute.
@@ -716,22 +762,11 @@ and NamespaceManager
     /// May throw an ArgumentException if the given parent namespace does not exist,
     /// or if no source file with the given name is listed as source of that namespace. 
     member private this.ResolveAttribute (parentNS, source) attribute = 
-        /// Returns the possible qualifications for the "Attribute" attribute in the given declNS and declSource.
-        /// Works fine whether the given declSource is the name of a source file or of a referenced assembly. 
-        /// Throws an ArgumentException if no namespace with the given name exists. 
-        let possibleQualifications (declNS, declSource) = 
-            match Namespaces.TryGetValue declNS with 
-            | true, ns -> (ns.ImportedNamespaces declSource).TryGetValue BuiltIn.Attribute.Namespace |> function
-                | true, null when ns.ContainsType BuiltIn.Attribute.Name = Null || declNS.Value = BuiltIn.Attribute.Namespace.Value -> [""; BuiltIn.Attribute.Namespace.Value] 
-                | true, null -> [BuiltIn.Attribute.Namespace.Value] // the Attribute attribute in the core namespace is shadowed
-                | true, alias -> [alias; BuiltIn.Attribute.Namespace.Value]
-                | false, _ -> [BuiltIn.Attribute.Namespace.Value]
-            | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
         let getAttribute ((nsName, symName), symRange) = 
             match TryResolveTypeName (parentNS, source) ((nsName, symName), symRange) with
             | Some (udt, declSource), errs ->
                 let fullName = sprintf "%s.%s" udt.Namespace.Value udt.Name.Value
-                let validQualifications = possibleQualifications (udt.Namespace, declSource)
+                let validQualifications = BuiltIn.Attribute |> PossibleQualifications (udt.Namespace, declSource)
                 match Namespaces.TryGetValue udt.Namespace with 
                 | true, ns -> ns.TryGetAttributeInSource declSource (udt.Name, validQualifications) |> function 
                     | None -> None, [| symRange.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (ErrorCode.NotMarkedAsAttribute, [fullName]) |] 
@@ -748,15 +783,17 @@ and NamespaceManager
     member private this.ResolveAttributes (parent : QsQualifiedName, source) (decl : Resolution<'T,_>) = 
         let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (parent.Namespace, source)) |> Seq.toList |> List.unzip
         let errs = new List<_>(msgs |> Seq.collect id)
-        let validateEntryPoint (alreadyDefined : int list, resAttr) (att : QsDeclarationAttribute) = 
+        let validateAttributes (alreadyDefined : int list, resAttr) (att : QsDeclarationAttribute) = 
             let returnInvalid msg = 
                 errs.AddRange msg
                 alreadyDefined, {att with TypeId = Null} :: resAttr
             match att.TypeId with
             | Value tId -> 
                 let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
-                let attHash = hash (tId.Namespace.Value, tId.Name.Value, NamespaceManager.ExpressionHash att.Argument)
-                if alreadyDefined.Contains attHash then 
+                let attributeHash = 
+                    if tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value then hash (tId.Namespace.Value, tId.Name.Value) 
+                    else hash (tId.Namespace.Value, tId.Name.Value, NamespaceManager.ExpressionHash att.Argument)
+                if alreadyDefined.Contains attributeHash then 
                     (att.Offset, tId.Range |> orDefault 
                     |> QsCompilerDiagnostic.Warning (WarningCode.DuplicateAttribute, [tId.Name.Value])) 
                     |> Seq.singleton |> returnInvalid
@@ -778,14 +815,14 @@ and NamespaceManager
                         | _ -> errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
                         if argErrs.Any() then returnInvalid argErrs 
                         else GetEntryPoints() |> Seq.tryHead |> function
-                            | None -> attHash :: alreadyDefined, att :: resAttr
+                            | None -> attributeHash :: alreadyDefined, att :: resAttr
                             | Some (epName, epSource) -> 
                                 let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
                                 (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs)) |> Seq.singleton |> returnInvalid 
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
-                else attHash :: alreadyDefined, att :: resAttr 
+                else attributeHash :: alreadyDefined, att :: resAttr 
             | _ -> alreadyDefined, att :: resAttr
-        let resAttr = attr |> List.fold validateEntryPoint ([], []) |> snd
+        let resAttr = attr |> List.fold validateAttributes ([], []) |> snd
         resAttr.Reverse() |> ImmutableArray.CreateRange, errs.ToArray()
 
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
@@ -1195,7 +1232,7 @@ and NamespaceManager
     member this.TryResolveAndGetCallable cName (nsName, source) = 
         syncRoot.EnterReadLock()
         try match (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsCallable cName) with 
-            | [(declNS, declSource)] -> this.TryGetCallableHeader ({Namespace = declNS; Name = cName}, Some declSource) (nsName, source) |> function
+            | [(declNS, (declSource, _))] -> this.TryGetCallableHeader ({Namespace = declNS; Name = cName}, Some declSource) (nsName, source) |> function
                 | Null -> QsCompilerError.Raise "failed to get the callable information about a resolved callable"; Null, Seq.empty
                 | info -> info, seq {yield declNS}
             | resolutions -> Null, resolutions.Select fst
@@ -1246,7 +1283,7 @@ and NamespaceManager
     member this.TryResolveAndGetType tName (nsName, source) = 
         syncRoot.EnterReadLock()
         try match (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsType tName) with 
-            | [(declNS, declSource)] -> this.TryGetTypeHeader ({Namespace = declNS; Name = tName}, Some declSource) (nsName, source) |> function
+            | [(declNS, (declSource, _))] -> this.TryGetTypeHeader ({Namespace = declNS; Name = tName}, Some declSource) (nsName, source) |> function
                 | Null -> QsCompilerError.Raise "failed to get the type information about a resolved type"; Null, Seq.empty
                 | info -> info, seq {yield declNS}
             | resolutions -> Null, resolutions.Select fst

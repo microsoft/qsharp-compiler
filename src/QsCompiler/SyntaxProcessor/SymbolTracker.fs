@@ -192,8 +192,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
 
     /// Given a Q# symbol used as identifier within the context associated with this symbol tracker, 
     /// returns the resolved identifier, it's type, whether it is mutable, and whether it has any quantum dependencies as LocalVariableDeclaration,  
-    /// along with an immutable array containing the names of its type parameters as UnqualifiedSymbols 
-    /// if the identifier is type parameterized (currently only supported for globally declared callables).
+    /// along with an immutable array containing the names of its type parameters as unqualified symbols if the identifier is type parameterized.
     /// Note that the location information in the returned variable declaration will be set to an arbitrary location, 
     /// and the range information will be stripped for all types.
     /// If the given symbol is not a valid name for an identifier, or the corresponding variable is not visible on the current scope,
@@ -204,16 +203,18 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             let properties = (defaultLoc, InvalidIdentifier, ResolvedType.New InvalidType, false)
             properties |> LocalVariableDeclaration.New false, ImmutableArray<_>.Empty
 
-        let buildCallable kind (fullName : QsQualifiedName) (decl : ResolvedSignature) = 
+        let buildCallable kind fullName (decl : ResolvedSignature) attributes = 
+            let deprecated = attributes |> SymbolResolution.TryFindRedirect |> SymbolResolution.GenerateDeprecationWarning (fullName, qsSym.RangeOrDefault)
+            for msg in deprecated do msg |> addDiagnostic
             let argType, returnType = decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
             let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.New 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
 
         let resolveGlobal = function
             | Value (decl : CallableDeclarationHeader), _ -> decl.Kind |> function 
-                | QsCallableKind.Operation -> buildCallable QsTypeKind.Operation decl.QualifiedName decl.Signature
+                | QsCallableKind.Operation -> buildCallable QsTypeKind.Operation decl.QualifiedName decl.Signature decl.Attributes
                 | QsCallableKind.TypeConstructor
-                | QsCallableKind.Function -> buildCallable (fst >> QsTypeKind.Function) decl.QualifiedName decl.Signature
+                | QsCallableKind.Function -> buildCallable (fst >> QsTypeKind.Function) decl.QualifiedName decl.Signature decl.Attributes
             | Null, (possibleResolutions : NonNullable<string> seq) -> 
                 let ambiguousCallableErr = (ErrorCode.AmbiguousCallable, [String.Join(", ", possibleResolutions |> Seq.map (fun nsName -> nsName.Value))])
                 let errCode = if possibleResolutions.Count() > 1 then ambiguousCallableErr else (ErrorCode.UnknownIdentifier, [])
@@ -239,7 +240,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// For each diagnostic generated during the resolution, calls the given addDiagnostics function on it. 
     /// Returns the resolved type, with all range information stripped.
     member this.ResolveType addDiagnostic (qsType : QsType) = 
-        let (resolved, errs) = GlobalSymbols().ResolveType (this.Parent, typeParameters, this.SourceFile) qsType 
+        let resolved, errs = GlobalSymbols().ResolveType (this.Parent, typeParameters, this.SourceFile) qsType 
         for err in errs do addDiagnostic err
         resolved |> StripPositionInfo.Apply
 

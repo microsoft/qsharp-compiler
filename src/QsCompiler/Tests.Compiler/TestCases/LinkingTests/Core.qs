@@ -10,6 +10,10 @@ namespace Microsoft.Quantum.Core {
     @ Attribute()
     newtype EntryPoint = Unit;
 
+    @ Attribute()
+    newtype Deprecated = String;
+
+
     function Default<'T>() : 'T {
         return (new 'T[1])[0];
     }

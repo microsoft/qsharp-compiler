@@ -9,6 +9,7 @@ open System.Collections.Immutable
 open System.Linq
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
@@ -20,6 +21,13 @@ type AttributeAnnotation = {
     Position : int * int
     Comments : QsComments
 }
+    with
+    static member internal NonInterpolatedStringArgument inner = function 
+        | Item arg -> inner arg |> function 
+            | StringLiteral (str, interpol) when interpol.Length = 0 -> str.Value
+            | _ -> null
+        | _ -> null
+
 
 /// used internally for symbol resolution
 type internal Resolution<'T,'R> = internal {
@@ -69,6 +77,51 @@ type SpecializationBundleProperties = internal {
 
 module SymbolResolution = 
 
+    // routines for giving deprecation warnings
+
+    /// Returns true if any one of the given unresolved attributes indicates a deprecation. 
+    let internal IndicatesDeprecation checkQualification attribute = attribute.Id.Symbol |> function 
+        | Symbol sym -> sym.Value = BuiltIn.Deprecated.Name.Value && checkQualification ""
+        | QualifiedSymbol (ns, sym) -> sym.Value = BuiltIn.Deprecated.Name.Value && (ns.Value = BuiltIn.Deprecated.Namespace.Value || checkQualification ns.Value)
+        | _ -> false
+
+    /// Given the redirection extracted by TryFindRedirect, 
+    /// returns an array with diagnostics for using a type or callable with the given name at the given range. 
+    /// Returns an empty array if no redirection was determined, i.e. the given redirection was Null. 
+    let GenerateDeprecationWarning (fullName : QsQualifiedName, range) redirect = redirect |> function
+        | Value redirect -> 
+            let usedName = sprintf "%s.%s" fullName.Namespace.Value fullName.Name.Value
+            if String.IsNullOrWhiteSpace redirect then [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithoutRedirect, [usedName]) |]
+            else [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithRedirect, [usedName; redirect]) |]
+        | Null -> [| |]
+
+    /// Applies the given getRedirect function to the given attributes, 
+    /// and extracts the non-interpolated string argument to the first attribute for which getRedirect returned Some. 
+    /// Returns the extracted string argument as Value, or returns Null if getRedirect returned None for all attributes. 
+    /// The extracted string argument may be null if the argument in question was not a non-interpolated string. 
+    let private DetermineRedirection (getRedirect, getInner) attributes = 
+        let redirection = getRedirect >> function
+            | Some redirect -> redirect |> AttributeAnnotation.NonInterpolatedStringArgument getInner |> Some
+            | None -> None
+        attributes |> Seq.choose redirection |> Seq.tryHead |> QsNullable<_>.FromOption
+
+    /// Checks whether the given attributes indicate the the corresponding declaration has been deprecated. 
+    /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise. 
+    /// The returned string is empty or null if the declaration has been deprecated but an alternative is not specified or could not be determined. 
+    /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
+    let internal TryFindRedirectInUnresolved checkQualification attributes = 
+        let getRedirect (att : AttributeAnnotation) = if att |> IndicatesDeprecation checkQualification then Some att.Argument else None
+        DetermineRedirection (getRedirect, fun ex -> ex.Expression) attributes
+
+    /// Checks whether the given attributes indicate the the corresponding declaration has been deprecated. 
+    /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise. 
+    /// The returned string is empty or null if the declaration has been deprecated but an alternative is not specified or could not be determined. 
+    /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
+    let TryFindRedirect attributes = 
+        let getRedirect (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
+        DetermineRedirection (getRedirect, fun ex -> ex.Expression) attributes
+
+
     // routines for resolving types and signatures
 
     /// helper function for ResolveType and ResolveCallableSignature
@@ -91,7 +144,7 @@ module SymbolResolution =
     let private TypeParameterResolutionWarnings (argumentType : ResolvedType) (returnType : ResolvedType, range) typeParams = 
         // FIXME: this verification needs to be done for each specialization individually once type specializations are fully supported
         let typeParamsResolvedByArg = 
-            let getTypeParams = function
+            let getTypeParams (t : ResolvedType) = t.Resolution |> function
                 | QsTypeKind.TypeParameter (tp : QsTypeParameter) -> [tp.TypeName].AsEnumerable() 
                 | _ -> Enumerable.Empty()
             argumentType.ExtractAll getTypeParams |> Seq.toList

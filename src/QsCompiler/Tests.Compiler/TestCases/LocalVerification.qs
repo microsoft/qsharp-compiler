@@ -762,4 +762,115 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         return arr[...-1...];        
     } 
 
+
+    // deprecation warnings
+
+    @ Attribute()
+    @ Deprecated("")
+    newtype DeprecatedAttribute = Unit;
+
+    @ Attribute()
+    @ Deprecated("OldAttribute")
+    newtype RenamedAttribute = Unit;
+
+    @ Deprecated("")
+    newtype DeprecatedType = Unit;
+
+    @ Deprecated("NewTypeName")
+    newtype RenamedType = Unit;
+
+    @ Deprecated("")
+    function DeprecatedCallable() : Unit {}
+
+    @ Deprecated("NewCallableName")
+    function RenamedCallable() : Unit {}
+
+    @ Deprecated("")
+    @ Deprecated("")
+    function DuplicateDeprecateAttribute1() : Unit {}
+
+    @ Deprecated("")
+    @ Deprecated("NewName") // will be ignored 
+    function DuplicateDeprecateAttribute2() : Unit {}
+
+
+    newtype DeprecatedItemType1 = (Unit -> DeprecatedType)[];
+
+    @ Attribute()
+    newtype DeprecatedItemType2 = DeprecatedType;
+
+    newtype RenamedItemType1 = (Int, RenamedType);
+
+    @ Attribute()
+    newtype RenamedItemType2 = RenamedType;
+
+
+    function DeprecatedTypeConstructor () : Unit {
+        let _ = DeprecatedType();
+    }
+
+    function RenamedTypeConstructor () : Unit {
+        let _ = RenamedType();
+    }
+
+    function UsingDeprecatedCallable () : Unit {
+        DeprecatedCallable();
+    }
+
+    function UsingRenamedCallable () : Unit {
+        RenamedCallable();
+    }
+
+
+    @ DeprecatedAttribute()
+    function UsingDeprecatedAttribute1 () : Unit {}
+
+    @ DeprecatedAttribute()
+    operation UsingDeprecatedAttribute2 () : Unit {}
+
+    @ DeprecatedAttribute()
+    newtype UsingDeprecatedAttribute3 = Unit;
+
+    @ RenamedAttribute()
+    function UsingRenamedAttribute1 () : Unit {}
+
+    @ RenamedAttribute()
+    operation UsingRenamedAttribute2 () : Unit {}
+
+    @ RenamedAttribute()
+    newtype UsingRenamedAttribute3 = Unit;
+
+
+    function UsingDeprecatedType1 () : Unit {
+        let _ = new DeprecatedType[0];
+    }
+
+    function UsingDeprecatedType2 (arg : DeprecatedType) : Unit {}
+
+    function UsingDeprecatedType3 (arg : (DeprecatedType -> Unit)) : Unit {}
+
+    function UsingDeprecatedType4 () : DeprecatedType {
+        return Default<DeprecatedType>();
+    }
+
+    function UsingDeprecatedType5 () : (DeprecatedType[], Int) {
+        return Default<(DeprecatedType[], Int)>();
+    }
+
+
+    function UsingRenamedType1 () : Unit {
+        let _ = new RenamedType[0];
+    }
+
+    function UsingRenamedType2 (arg : RenamedType) : Unit {}
+
+    function UsingRenamedType3 (arg : (RenamedType -> Unit)) : Unit {}
+
+    function UsingRenamedType4 () : RenamedType {
+        return Default<RenamedType>();
+    }
+
+    function UsingRenamedType5 () : (RenamedType[], Int) {
+        return Default<(RenamedType[], Int)>();
+    }
 }
