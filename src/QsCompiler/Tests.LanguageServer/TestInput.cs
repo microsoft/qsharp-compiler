@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return filename;
         }
 
-        private Range GetRandomRange(IReadOnlyList<string> content)
+        private VisualStudio.LanguageServer.Protocol.Range GetRandomRange(IReadOnlyList<string> content)
         {
             var (startLine, endLine) = (rnd.Next(0, content.Count), rnd.Next(0, content.Count));
             var (startChar, endChar) = (rnd.Next(0, content[startLine].Length + 1), rnd.Next(0, content[endLine].Length + 1));
@@ -83,7 +83,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 ((endLine, endChar), (startLine, startChar));
             if (startLine == endLine && startChar > endChar) (startChar, endChar) = (endChar, startChar);
 
-            var range = new Range { Start = new Position(startLine, startChar), End = new Position(endLine, endChar) };
+            var range = new VisualStudio.LanguageServer.Protocol.Range 
+            { 
+                Start = new Position(startLine, startChar), 
+                End = new Position(endLine, endChar) 
+            };
             Assert.IsTrue(Builder.IsValidRange(range));
             return range;
         }
@@ -106,7 +110,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
         private TextDocumentContentChangeEvent DeleteAll(IReadOnlyList<string> content)
         {
-            var changeRange = new Range
+            var changeRange = new VisualStudio.LanguageServer.Protocol.Range
             {
                 Start = new Position(0,0),
                 End = content.Any() ? new Position(content.Count - 1, content.Last().Length) : new Position(0,0)

@@ -17,17 +17,7 @@ open Xunit
 open Xunit.Abstractions
 
 
-type CompilerTests (srcFolder, files, output:ITestOutputHelper) = 
-
-    let compilation = 
-        let compileFiles (files : IEnumerable<_>) =
-            let mgr = new CompilationUnitManager(fun ex -> failwith ex.Message)
-            files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText) 
-            |> CompilationUnitManager.InitializeFileManagers
-            |> mgr.AddOrUpdateSourceFilesAsync 
-            |> ignore
-            mgr.Build() 
-        files |> Seq.map (fun file -> Path.Combine (srcFolder, file)) |> compileFiles 
+type CompilerTests (compilation : CompilationUnitManager.Compilation, output:ITestOutputHelper) = 
 
     let syntaxTree = 
         match compilation.SyntaxTree.Values |> FunctorGeneration.GenerateFunctorSpecializations with 
@@ -38,8 +28,11 @@ type CompilerTests (srcFolder, files, output:ITestOutputHelper) =
 
     let diagnostics =
         let getCallableStart (c : QsCallable) = 
-            if c.Attributes.Length = 0 then c.Location.Offset 
-            else c.Attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
+            let attributes = c.Kind |> function 
+                | TypeConstructor -> types.[c.FullName].Attributes
+                | _ -> c.Attributes
+            if attributes.Length = 0 then c.Location.Offset 
+            else attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
         [for file in compilation.SourceFiles do
             let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile.Value = file.Value)
             let locations = containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart) |> Seq.sortBy snd |> Seq.toArray
@@ -93,3 +86,15 @@ type CompilerTests (srcFolder, files, output:ITestOutputHelper) =
         this.Verify (name, infs)
         let other = expected |> Seq.choose (function | Warning _ | Error _ -> None | item -> Some item)
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
+
+
+    static member Compile srcFolder files = 
+        let compileFiles (files : IEnumerable<_>) =
+            let mgr = new CompilationUnitManager(fun ex -> failwith ex.Message)
+            files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText) 
+            |> CompilationUnitManager.InitializeFileManagers
+            |> mgr.AddOrUpdateSourceFilesAsync 
+            |> ignore
+            mgr.Build() 
+        files |> Seq.map (fun file -> Path.Combine (srcFolder, file)) |> compileFiles 
+

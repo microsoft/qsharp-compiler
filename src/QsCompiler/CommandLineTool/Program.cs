@@ -41,6 +41,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public const int BINARY_GENERATION_ERRORS = -6;
         /// <summary>
+        /// Return code indicating that generating a dll containing the compiled binary failed.
+        /// </summary>
+        public const int DLL_GENERATION_ERRORS = -6;
+        /// <summary>
         /// Return code indicating that generating formatted Q# code based on the built compilation failed.
         /// </summary>
         public const int CODE_GENERATION_ERRORS = -7;
@@ -65,10 +69,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             loaded.PreEvaluation == CompilationLoader.Status.Failed ? ReturnCode.PREEVALUATION_ERRORS :
             loaded.Documentation == CompilationLoader.Status.Failed ? ReturnCode.DOC_GENERATION_ERRORS :
             loaded.BinaryFormat == CompilationLoader.Status.Failed ? ReturnCode.BINARY_GENERATION_ERRORS :
+            loaded.DllGeneration == CompilationLoader.Status.Failed ? ReturnCode.DLL_GENERATION_ERRORS :
             loaded.AllTargets == CompilationLoader.Status.Failed ? ReturnCode.TARGET_EXECUTION_ERRORS :
             loaded.Success != CompilationLoader.Status.Succeeded ? ReturnCode.UNEXPECTED_ERROR :
             ReturnCode.SUCCESS;
     }
+
 
     public static class Program
     {

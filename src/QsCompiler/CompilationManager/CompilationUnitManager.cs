@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     file.Flush();
                     this.PublishDiagnostics(file.Diagnostics());
                 }
-                var task =  this.EnableVerification ? this.SpawnGlobalTypeCheckingAsync(runSynchronously: true) : Task.CompletedTask;
+                var task = this.EnableVerification ? this.SpawnGlobalTypeCheckingAsync(runSynchronously: true) : Task.CompletedTask;
                 QsCompilerError.Verify(task.IsCompleted, "global type checking hasn't completed"); 
                 return execute?.Invoke();
             }
@@ -223,17 +223,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Adds the given source file to this compilation unit, adapting the diagnostics for all remaining files as needed.
         /// If a file with that Uri is already listed as source file,
-        /// replaces the current FileContentManager for that file with a new one and initialized its content to the given one. 
+        /// replaces the current FileContentManager for that file with the given one.
+        /// If the content to update is specified and not null, replaces the tracked content in the file manager with the given one. 
         /// Throws an ArgumentNullException if any of the compulsory arguments is null or the set uri is.
         /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri. 
         /// </summary>
         public Task AddOrUpdateSourceFileAsync(FileContentManager file, string updatedContent = null)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
-            this.CompilationUnit.RegisterDependentLock(file.SyncRoot);
-            this.SubscribeToFileManagerEvents(file);
             return this.Processing.QueueForExecutionAsync(() =>
             {
+                this.CompilationUnit.RegisterDependentLock(file.SyncRoot);
+                this.SubscribeToFileManagerEvents(file);
                 this.FileContentManagers.AddOrUpdate(file.FileName, file, (k, v) => file);
                 if (updatedContent != null) file.ReplaceFileContent(updatedContent);
                 this.ChangedFiles.Add(file.FileName);
@@ -434,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var cancellationToken = runSynchronously ? new CancellationToken() : this.WaitForTypeCheck.Token;
 
             // work with a separate compilation unit instance such that processing of all further edits can go on in parallel
-            var sourceFiles = this.FileContentManagers.Values;
+            var sourceFiles = this.FileContentManagers.Values.OrderBy(m => m.FileName);
             this.ChangedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
             var compilation = new CompilationUnit(this.CompilationUnit.Externals, sourceFiles.Select(file => file.SyncRoot));
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
@@ -597,11 +598,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 try { return Query(f, this.CompilationUnit); }
                 catch (Exception ex)
                 {
-#if DEBUG
+                    #if DEBUG
                     this.LogException(ex);
-#else
+                    #else
                     if (!suppressExceptionLogging) this.LogException(ex);
-#endif
+                    #endif
                     return null;
                 }
             }

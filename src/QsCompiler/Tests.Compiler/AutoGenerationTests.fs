@@ -13,7 +13,7 @@ open Xunit.Abstractions
 
 
 type FunctorAutoGenTests (output:ITestOutputHelper) =
-    inherit CompilerTests("TestCases", ["General.qs"; "FunctorGeneration.qs"], output)
+    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "FunctorGeneration.qs"], output)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.FunctorGeneration" |> NonNullable<_>.New

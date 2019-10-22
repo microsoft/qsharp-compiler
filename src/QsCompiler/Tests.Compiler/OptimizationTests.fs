@@ -51,40 +51,40 @@ let private assertOptimization path =
 
 [<Fact>]
 let ``arithmetic evaluation`` () =
-    // createTestCase "TestCases/Optimizer/Arithmetic"
-    assertOptimization "TestCases/Optimizer/Arithmetic"
+    // createTestCase "TestCases/OptimizerTests/Arithmetic"
+    assertOptimization "TestCases/OptimizerTests/Arithmetic"
 
 [<Fact>]
 let ``function evaluation`` () =
-    // createTestCase "TestCases/Optimizer/FunctionEval"
-    assertOptimization "TestCases/Optimizer/FunctionEval"
+    // createTestCase "TestCases/OptimizerTests/FunctionEval"
+    assertOptimization "TestCases/OptimizerTests/FunctionEval"
 
 [<Fact>]
 let ``inlining`` () =
-    // createTestCase "TestCases/Optimizer/Inlining"
-    assertOptimization "TestCases/Optimizer/Inlining"
+    // createTestCase "TestCases/OptimizerTests/Inlining"
+    assertOptimization "TestCases/OptimizerTests/Inlining"
 
 [<Fact>]
 let ``loop unrolling`` () =
-    // createTestCase "TestCases/Optimizer/LoopUnrolling"
-    assertOptimization "TestCases/Optimizer/LoopUnrolling"
+    // createTestCase "TestCases/OptimizerTests/LoopUnrolling"
+    assertOptimization "TestCases/OptimizerTests/LoopUnrolling"
 
 [<Fact>]
 let ``miscellaneous`` () =
-    // createTestCase "TestCases/Optimizer/Miscellaneous"
-    assertOptimization "TestCases/Optimizer/Miscellaneous"
+    // createTestCase "TestCases/OptimizerTests/Miscellaneous"
+    assertOptimization "TestCases/OptimizerTests/Miscellaneous"
 
 [<Fact>]
 let ``no op`` () =
-    // createTestCase "TestCases/Optimizer/NoOp"
-    assertOptimization "TestCases/Optimizer/NoOp"
+    // createTestCase "TestCases/OptimizerTests/NoOp"
+    assertOptimization "TestCases/OptimizerTests/NoOp"
 
 [<Fact>]
 let ``partial evaluation`` () =
-    // createTestCase "TestCases/Optimizer/PartialEval"
-    assertOptimization "TestCases/Optimizer/PartialEval"
+    // createTestCase "TestCases/OptimizerTests/PartialEval"
+    assertOptimization "TestCases/OptimizerTests/PartialEval"
 
 [<Fact>]
 let ``reordering`` () =
-    // createTestCase "TestCases/Optimizer/Reordering"
-    assertOptimization "TestCases/Optimizer/Reordering"
+    // createTestCase "TestCases/OptimizerTests/Reordering"
+    assertOptimization "TestCases/OptimizerTests/Reordering"

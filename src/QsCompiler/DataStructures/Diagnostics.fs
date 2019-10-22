@@ -192,6 +192,7 @@ type ErrorCode =
     | AliasForNamespaceAlreadyExists = 6018
     | AliasForOpenedNamespace = 6019
     | InvalidNamespaceAliasName = 6020 // i.e. the chosen alias already exists
+    | ConflictInReferences = 6021
 
     | ExpectingUnqualifiedSymbol = 6101
     | ExpectingItemName = 6102
@@ -232,6 +233,12 @@ type ErrorCode =
     | ArgumentOfUserDefinedTypeInAttribute = 6227
     | TypeParameterizedArgumentInAttribute = 6228
     | AttributeArgumentTypeMismatch = 6229
+    | InvalidEntryPointPlacement = 6230
+    | QubitTypeInEntryPointSignature = 6231
+    | CallableTypeInEntryPointSignature = 6232
+    | UserDefinedTypeInEntryPointSignature = 6233
+    | MultipleEntryPoints = 6234
+    | InvalidEntryPointSpecialization = 6235
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -258,7 +265,7 @@ type ErrorCode =
     | UnknownProjectReference = 7007
     | CouldNotLoadSourceFile = 7008
     | FileIsNotAnAssembly = 7010
-    | CouldNotExtractHeaders = 7011
+    | UnrecognizedContentInReference = 7011
     | MissingProjectReferenceDll = 7012
     | InvalidProjectOutputPath = 7013
     | SourceFilesMissing = 7014
@@ -269,10 +276,12 @@ type ErrorCode =
     | CsGenerationFailed = 7103
     | QsGenerationFailed = 7104
     | DocGenerationFailed = 7105
-    | GeneratingBinaryFailed = 7106
-    | TargetExecutionFailed = 7107
-    | PreEvaluationFailed = 7108
-    | MonomorphizationFailed = 7109
+    | SerializationFailed = 7106
+    | GeneratingBinaryFailed = 7107
+    | GeneratingDllFailed = 7108
+    | TargetExecutionFailed = 7109
+    | PreEvaluationFailed = 7110
+    | MonomorphizationFailed = 7111
 
 
 type WarningCode = 
@@ -289,11 +298,14 @@ type WarningCode =
 
     | DiscardingItemInAssignment = 5001 
     | ConditionalEvaluationOfOperationCall = 5002
+    | DeprecationWithRedirect = 5003
+    | DeprecationWithoutRedirect = 5004
     | TypeParameterNotResolvedByArgument = 6001
     | ReturnTypeNotResolvedByArgument = 6002
     | NamespaceAleadyOpen = 6003
     | NamespaceAliasIsAlreadyDefined = 6004 // same alias for the same namespace, hence (only) a warning
     | MissingBodyDeclaration = 6005
+    | DuplicateAttribute = 6201
     | GeneratorDirectiveWillBeIgnored = 6301
     | UnreachableCode = 6302
 
@@ -304,6 +316,7 @@ type WarningCode =
     | UnknownBinaryFile = 7007
     | CouldNotLoadBinaryFile = 7008
     | ReferencesSetToNull = 7009
+    | UnrecognizedContentInReference = 7010
     | UnresolvedItemsInGeneratedQs = 7101
     | TargetExitedAbnormally = 7102
 
@@ -522,6 +535,7 @@ type DiagnosticItem =
             | ErrorCode.AliasForNamespaceAlreadyExists          -> "The namespace had already been opened as \"{0}\"."
             | ErrorCode.AliasForOpenedNamespace                 -> "Namespace is already open. Cannot open namespace under a different name."
             | ErrorCode.InvalidNamespaceAliasName               -> "A namespace or a namespace short name \"{0}\" already exists."
+            | ErrorCode.ConflictInReferences                    -> "Could not resolve conflict between {0} declared in {1}."
                                                             
             | ErrorCode.ExpectingUnqualifiedSymbol              -> "Expecting an unqualified symbol name."
             | ErrorCode.ExpectingItemName                       -> "Expecting an item name, i.e. an unqualified symbol."
@@ -562,6 +576,12 @@ type DiagnosticItem =
             | ErrorCode.ArgumentOfUserDefinedTypeInAttribute    -> "Items of user defined type cannot be used as attribute arguments."
             | ErrorCode.TypeParameterizedArgumentInAttribute    -> "The type of attribute arguments must be known at compile time."
             | ErrorCode.AttributeArgumentTypeMismatch           -> "The type of the given argument does not match the expected type."
+            | ErrorCode.InvalidEntryPointPlacement              -> "Invalid entry point. Entry point attributes may only occur on suitable callables without type-parametrizations."
+            | ErrorCode.QubitTypeInEntryPointSignature          -> "Invalid entry point. Values of type Qubit may not be used as arguments or return values to entry points."
+            | ErrorCode.CallableTypeInEntryPointSignature       -> "Invalid entry point. Values of operation or function type may not be used as arguments or return values to entry points."
+            | ErrorCode.UserDefinedTypeInEntryPointSignature    -> "Invalid entry point. Values of user defined type may not be used as arguments or return values to entry points."
+            | ErrorCode.MultipleEntryPoints                     -> "Invalid entry point. An entry point {0} already exists in {1}."
+            | ErrorCode.InvalidEntryPointSpecialization         -> "Entry points cannot have any other specializations besides the default body."
 
             | ErrorCode.TypeMismatchInReturn                    -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate               -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."
@@ -588,7 +608,7 @@ type DiagnosticItem =
             | ErrorCode.UnknownProjectReference                 -> "Could not find the project file for the referenced project \"{0}\"."
             | ErrorCode.CouldNotLoadSourceFile                  -> "Unable to load source file \"{0}\"."
             | ErrorCode.FileIsNotAnAssembly                     -> "The given file \"{0}\" is not an valid assembly."
-            | ErrorCode.CouldNotExtractHeaders                  -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
+            | ErrorCode.UnrecognizedContentInReference          -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
             | ErrorCode.MissingProjectReferenceDll              -> "Missing binary file for project reference \"{0}\". Build the referenced project for its content to be detected correctly."
             | ErrorCode.InvalidProjectOutputPath                -> "Invalid project output path for project \"{0}\"."
             | ErrorCode.SourceFilesMissing                      -> "No source files have been specified."
@@ -599,7 +619,9 @@ type DiagnosticItem =
             | ErrorCode.CsGenerationFailed                      -> "Unable to generate C# code to run within the simulation framework."
             | ErrorCode.QsGenerationFailed                      -> "Unable to generate formatted Q# code based on the built syntax tree."
             | ErrorCode.DocGenerationFailed                     -> "Unable to generate documentation for the compiled code."
+            | ErrorCode.SerializationFailed                     -> "Unable to serialize the built compilation."
             | ErrorCode.GeneratingBinaryFailed                  -> "Unable to generate binary format for the compilation."
+            | ErrorCode.GeneratingDllFailed                     -> "Unable to generate dll containing the compiled binary."
             | ErrorCode.TargetExecutionFailed                   -> "Processing of the compiled binary with the target {0} failed."
             | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
             | ErrorCode.MonomorphizationFailed                  -> "Replacing type parametrizations with the concrete instantiations failed."
@@ -621,11 +643,14 @@ type DiagnosticItem =
 
             | WarningCode.DiscardingItemInAssignment            -> "The expression on the right hand side is discarded on assignment and can be ommitted."
             | WarningCode.ConditionalEvaluationOfOperationCall  -> "This expression may be short-circuited, and operation calls may not be executed."
+            | WarningCode.DeprecationWithRedirect               -> "{0} has been deprecated. Please use {1} instead."
+            | WarningCode.DeprecationWithoutRedirect            -> "{0} has been deprecated."
             | WarningCode.TypeParameterNotResolvedByArgument    -> "The value of the type parameter is not determined by the argument type. It will always have to be explicitly specified by passing type arguments." 
             | WarningCode.ReturnTypeNotResolvedByArgument       -> "The return type is not fully determined by the argument type. It will always have to be explicitly specified by passing type arguments."
             | WarningCode.NamespaceAleadyOpen                   -> "The namespace is already open."
             | WarningCode.NamespaceAliasIsAlreadyDefined        -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration                -> "A body specification for this callable is missing. The callable is assumed to be intrinsic."
+            | WarningCode.DuplicateAttribute                    -> "The attribute {0} is a duplication and will be ignored."
             | WarningCode.GeneratorDirectiveWillBeIgnored       -> "Generation directive ignored. A specialization of this callable has been declared as intrinsic."
             | WarningCode.UnreachableCode                       -> "This statement will never be executed."
 
@@ -636,6 +661,7 @@ type DiagnosticItem =
             | WarningCode.UnknownBinaryFile                     -> "Could not find the binary file \"{0}\" to include as reference in the compilation."
             | WarningCode.CouldNotLoadBinaryFile                -> "Unable to load binary file \"{0}\"."
             | WarningCode.ReferencesSetToNull                   -> "No references given to include in the compilation."
+            | WarningCode.UnrecognizedContentInReference        -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
 
             | WarningCode.UnresolvedItemsInGeneratedQs          -> "Some item(s) could not be resolved during compilation."
             | WarningCode.TargetExitedAbnormally                -> "Processing of the compiled binary with the target {0} exited with an abnormal exit code {1}."

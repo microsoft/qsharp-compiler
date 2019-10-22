@@ -192,13 +192,15 @@ module InternalUse =
     let UnitArgument = "__unitArg__"
 
     /// contains all keywords reserved due to clashes with auto-generated Q# code, or generated C# code
-    let CsKeywords = 
-        let reserved = [
+    let CsKeywords = ImmutableHashSet.CreateRange [
 
             "Allocate"; 
             "Release"; 
             "Borrow"; 
             "Return";
+
+            "Data";
+            "Item";
 
             "QVoid"; 
             "Int64"; 
@@ -215,7 +217,15 @@ module InternalUse =
             "IOperationFactory"; 
             "IApplyData";
         ]
-        reserved.ToImmutableHashSet()
     
     // TODO: ReservedForFutureUse = ...
 
+
+/// contains specific names used within Q# dlls
+module AssemblyConstants = 
+
+    let AST_RESOURCE_NAME = "__qsharp_data__.bson";
+    let METADATA_NAMESPACE = "__qsharp__";
+    let QSHARP_REFERENCE = "__qsharp_reference__";
+    let METADATA_TYPE = "Metadata";
+    let DEPENDENCIES_FIELD = "Dependencies";

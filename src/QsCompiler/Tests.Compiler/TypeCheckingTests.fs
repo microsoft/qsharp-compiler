@@ -13,7 +13,7 @@ open Xunit.Abstractions
 
 
 type TypeCheckingTests (output:ITestOutputHelper) =
-    inherit CompilerTests("TestCases", ["General.qs"; "TypeChecking.qs"; "Types.qs"], output)
+    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "TypeChecking.qs"; "Types.qs"], output)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.TypeChecking" |> NonNullable<_>.New
@@ -60,6 +60,11 @@ type TypeCheckingTests (output:ITestOutputHelper) =
         this.Expect "CommonBaseType17" []
         this.Expect "CommonBaseType18" [Warning WarningCode.TypeParameterNotResolvedByArgument; Warning WarningCode.TypeParameterNotResolvedByArgument; Warning WarningCode.ReturnTypeNotResolvedByArgument]
         this.Expect "CommonBaseType19" [Error ErrorCode.MultipleTypesInArray]
+        this.Expect "CommonBaseType20" []
+        this.Expect "CommonBaseType21" []
+        this.Expect "CommonBaseType22" []
+        this.Expect "CommonBaseType23" []
+        this.Expect "CommonBaseType24" [Error ErrorCode.MultipleTypesInArray]
 
 
     [<Fact>]

@@ -38,6 +38,11 @@ type QsNullable<'T> = // to avoid having to include the F# core in the C# part o
     static member Choose fct (seq : _ seq) = 
         seq |> Seq.choose (fct >> function | Null -> None | Value v -> Some v) 
 
+    /// Converts the given F# Option to a QsNullable.
+    static member FromOption opt = opt |> function 
+        | Some v -> Value v
+        | None -> Null
+
 
 [<Struct>]
 type NonNullable<'T> = private Item of 'T with
