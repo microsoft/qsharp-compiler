@@ -118,7 +118,7 @@ type internal ReferenceCounter() =
 
 
 /// A ScopeTransformation that substitutes type parameters according to the given dictionary
-type internal ReplaceTypeParams(typeParams: ImmutableDictionary<_, ResolvedType>) =
+type public ReplaceTypeParams(typeParams: ImmutableDictionary<_, ResolvedType>) =
     inherit ScopeTransformation()
 
     override __.Expression = { new ExpressionTransformation() with
