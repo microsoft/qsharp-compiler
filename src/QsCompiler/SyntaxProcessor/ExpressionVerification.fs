@@ -355,7 +355,7 @@ let private VerifyIdentifier addDiagnostic (symbols : SymbolTracker<_>) (sym, tA
             | MissingType -> ResolvedType.New MissingType 
             | _ -> symbols.ResolveType addDiagnostic tArg)) |> QsNullable<_>.Map (fun args -> args.ToImmutableArray())
     let resId, typeParams = symbols.ResolveIdentifier addDiagnostic sym
-    let identifier, info = Identifier (resId.VariableName, resolvedTargs), resId.InferredInformation
+    let identifier, info = Identifier (resId.VariableName, resolvedTargs), resId.InferredInformation 
 
     // resolve type parameters (if any) with the given type arguments
     // Note: type parameterized objects are never mutable - remember they are not the same as an identifier containing a template...!
@@ -370,11 +370,11 @@ let private VerifyIdentifier addDiagnostic (symbols : SymbolTracker<_>) (sym, tA
         sym.RangeOrDefault |> QsCompilerDiagnostic.Error (ErrorCode.WrongNumberOfTypeArguments, [typeParams.Length.ToString()]) |> addDiagnostic 
         invalidWithoutTargs false
     | GlobalCallable id, Value res -> 
-        let resolutions =
-            [for (tp, ta) in res |> Seq.zip typeParams do if not ta.isMissing then yield (tp, ta)] 
+        let resolutions = 
+            [for (tp, ta) in res |> Seq.zip typeParams do if not ta.isMissing then yield (tp, ta |> StripPositionInfo.Apply)] 
             |> List.choose (fun (tp, ta) -> tp |> function
                 | InvalidName -> None // invalid type parameters cannot possibly turn up in the identifier type ... (they don't parse)
-                | ValidName tpName -> Some ((QsQualifiedName.New(id.Namespace, id.Name), tpName), ta))
+                | ValidName tpName -> Some ((QsQualifiedName.New(id.Namespace, id.Name), tpName), ta)) 
         let typeParamLookUp = resolutions.ToImmutableDictionary(fst, snd)
         let exInfo = InferredExpressionInformation.New (isMutable = false, quantumDep = info.HasLocalQuantumDependency)
         TypedExpression.New (identifier, typeParamLookUp, resId.Type, exInfo, sym.Range)
