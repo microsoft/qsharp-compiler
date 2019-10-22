@@ -374,7 +374,7 @@ let private VerifyIdentifier addDiagnostic (symbols : SymbolTracker<_>) (sym, tA
             [for (tp, ta) in res |> Seq.zip typeParams do if not ta.isMissing then yield (tp, ta)] 
             |> List.choose (fun (tp, ta) -> tp |> function
                 | InvalidName -> None // invalid type parameters cannot possibly turn up in the identifier type ... (they don't parse)
-                | ValidName tpName -> Some (QsTypeParameter.New (id.Namespace, id.Name, tpName, Null), ta))
+                | ValidName tpName -> Some ((QsQualifiedName.New(id.Namespace, id.Name), tpName), ta))
         let typeParamLookUp = resolutions.ToImmutableDictionary(fst, snd)
         let exInfo = InferredExpressionInformation.New (isMutable = false, quantumDep = info.HasLocalQuantumDependency)
         TypedExpression.New (identifier, typeParamLookUp, resId.Type, exInfo, sym.Range)
@@ -416,7 +416,7 @@ let internal TypeMatchArgument addTypeParameterResolution targetType argType =
         QsCompilerError.Verify (not exType.isMissing, "expression type is missing")
         match targetT.Resolution, exType.Resolution with 
         | QsTypeKind.MissingType           , _                                                  -> [||] // the lhs of a set-statement may contain underscores
-        | QsTypeKind.TypeParameter tp      , _                                                  -> addTypeParameterResolution (tp, exType); [||] // lhs is a type parameter of the *called* callable!
+        | QsTypeKind.TypeParameter tp      , _                                                  -> addTypeParameterResolution ((tp.Origin, tp.TypeName), exType); [||] // lhs is a type parameter of the *called* callable!
         | QsTypeKind.ArrayType b1          , QsTypeKind.ArrayType b2                            -> compareArrayBaseTypes b1 b2
         | QsTypeKind.TupleType ts1         , QsTypeKind.TupleType ts2                           -> compareTuple variance ts1 ts2
         | QsTypeKind.UserDefinedType udt1  , QsTypeKind.UserDefinedType udt2   when udt1 = udt2 -> [||] 
@@ -446,7 +446,7 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
         if containsInvalid then invalid
         else remaining |> function | [] -> None | [t] -> Some t | _ -> TupleType (remaining.ToImmutableArray()) |> ResolvedType.New |> Some
     
-    let lookUp = new List<QsTypeParameter * (ResolvedType * (QsPositionInfo * QsPositionInfo))>()
+    let lookUp = new List<(QsQualifiedName * NonNullable<string>) * (ResolvedType * (QsPositionInfo * QsPositionInfo))>()
     let addTpResolution range (tp, exT) = lookUp.Add (tp, (exT, range))
     let rec recur (targetT : ResolvedType, argEx : QsExpression) = 
         let pushErrs errCodes = for code in errCodes do argEx.RangeOrDefault |> addError code
@@ -478,7 +478,7 @@ let private VerifyCallExpr buildCallableKind addError (parent, isDirectRecursion
             let uniqueResolution (res, r) = 
                 if res |> containsMissing then 
                     r |> addError (ErrorCode.PartialApplicationOfTypeParameter, []); invalid
-                elif entry.Key.Origin = parent then // resolution of an internal type parameter
+                elif fst entry.Key = parent then // resolution of an internal type parameter
                     // Internal type parameters may occur on the lhs 
                     // 1.) due to explicitly provided type arguments to the called expression
                     // 2.) because the call is a direct recursion
@@ -489,9 +489,9 @@ let private VerifyCallExpr buildCallableKind addError (parent, isDirectRecursion
                     // we need to have a way to distinguish the type parameters of the returned partial application expression from the ones in the parent function... 
                     // Because I don't want to take the risk of doing major modifications to the resolution routine shortly before a release, 
                     // we will prevent (direct) recursive calls to generic functions for now. 
-                    let typeParam = entry.Key |> TypeParameter |> ResolvedType.New
+                    let typeParam = QsTypeParameter.New(fst entry.Key, snd entry.Key, Null) |> TypeParameter |> ResolvedType.New
                     match res.Resolution with 
-                    | TypeParameter tp when tp.Origin = entry.Key.Origin && tp.TypeName = entry.Key.TypeName -> typeParam
+                    | TypeParameter tp when tp.Origin = fst entry.Key && tp.TypeName = snd entry.Key -> typeParam
                     | _ when isDirectRecursion -> r |> addError (ErrorCode.DirectRecursionWithinTemplate, []); invalid // FIXME: support this (see comment above)
                     | _ -> r |> addError (ErrorCode.ConstrainsTypeParameter, [typeParam |> toString]); typeParam
                 else res |> StripPositionInfo.Apply
@@ -518,22 +518,22 @@ let private VerifyCallExpr buildCallableKind addError (parent, isDirectRecursion
 /// Calls the given function addError on all generated errors. 
 /// IMPORTANT: ignores any external type parameter occuring in expectedType without raising an error!
 let internal VerifyAssignment expectedType parent mismatchErr addError (rhsType, rhsRange) =
-    let tpResolutions = new List<QsTypeParameter * ResolvedType>()
-    let addTpResolution (tp : QsTypeParameter, exT) = 
+    let tpResolutions = new List<(QsQualifiedName * NonNullable<string>) * ResolvedType>()
+    let addTpResolution (key, exT) = 
         // we can ignoring external type parameters, 
         // since for a set-statement these can only occur if either the lhs can either not be set or has been assigned previously
         // and for a return statement the expected return type cannot contain external type parameters by construction 
-        if tp.Origin = parent then tpResolutions.Add (tp, exT)
+        if fst key = parent then tpResolutions.Add (key, exT)
     let errCodes = TypeMatchArgument addTpResolution expectedType rhsType
-    let containsNonTrivialResolution (tp : IGrouping<QsTypeParameter, ResolvedType>) = 
+    let containsNonTrivialResolution (tp : IGrouping<_, ResolvedType>) = 
         let notResolvedToItself (x : ResolvedType) = 
             match x.Resolution with
-            | TypeParameter p -> p.Origin <> tp.Key.Origin || p.TypeName <> tp.Key.TypeName 
+            | TypeParameter p -> p.Origin <> fst tp.Key || p.TypeName <> snd tp.Key 
             | _ -> not x.isInvalid
         tp |> Seq.exists notResolvedToItself
     let nonTrivialResolutions = 
         tpResolutions.ToLookup(fst, snd).Where containsNonTrivialResolution 
-        |> Seq.map (fun g -> g.Key |> TypeParameter |> ResolvedType.New |> toString) |> Seq.toList
+        |> Seq.map (fun g -> QsTypeParameter.New (fst g.Key, snd g.Key, Null) |> TypeParameter |> ResolvedType.New |> toString) |> Seq.toList
     if nonTrivialResolutions.Any() then 
         rhsRange |> addError (ErrorCode.ConstrainsTypeParameter, [String.Join(", ", nonTrivialResolutions)])
     if errCodes.Length <> 0 then rhsRange |> addError (mismatchErr, [rhsType |> toString; expectedType |> toString])

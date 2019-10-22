@@ -25,8 +25,8 @@ type UserDefinedType with
     }
 
 type QsTypeParameter with 
-    static member New (nsName, cName, tName, range) = {
-        Origin = QsQualifiedName.New(nsName, cName)
+    static member New (fullName, tName, range) = {
+        Origin = fullName
         TypeName = tName
         Range = range
     }
