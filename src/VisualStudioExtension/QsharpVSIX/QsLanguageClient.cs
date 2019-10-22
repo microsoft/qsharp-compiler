@@ -88,6 +88,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
 
                 var root = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 var serverPath = Path.Combine(root, "LanguageServer");
+                var exe = Path.Combine(serverPath, "Microsoft.Quantum.QsLanguageServer.exe");
                 var time = DateTime.Now.Ticks;
                 string ServerReaderPipe = $"QsLanguageServerReaderPipe{time}";
                 string ServerWriterPipe = $"QsLanguageServerWriterPipe{time}";
@@ -95,11 +96,10 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
 
                 ProcessStartInfo info = new ProcessStartInfo
                 {
-                    FileName = "dotnet",
-                    WorkingDirectory = serverPath,
+                    FileName = exe,
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    Arguments = $"Microsoft.Quantum.QsLanguageServer.dll --writer={ServerWriterPipe} --reader={ServerReaderPipe} --log={LogPath}"
+                    Arguments = $"--writer={ServerWriterPipe} --reader={ServerReaderPipe} --log={LogPath}"
                 };
 
                 Process process = new Process { StartInfo = info };

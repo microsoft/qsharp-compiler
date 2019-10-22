@@ -132,7 +132,7 @@ type ResolvedType with
     /// Returns an enumerable of all extracted return values. 
     member this.ExtractAll (extract : _ -> IEnumerable<_>) : IEnumerable<_> = 
         let inner (t : ResolvedType) = t.Resolution
-        ResolvedType.ExtractAll (inner, (inner >> extract)) this
+        ResolvedType.ExtractAll (inner, extract) this
 
 
 type QsType with 
@@ -388,6 +388,24 @@ let (| Missing | _ |) arg =
 
 
 // look-up for udt and global callables
+
+[<Extension>]
+let Types (syntaxTree : IEnumerable<QsNamespace>) = 
+    syntaxTree |> Seq.collect (fun ns -> ns.Elements |> Seq.choose (function
+    | QsCustomType t -> Some t
+    | _ -> None))
+
+[<Extension>]
+let Callables (syntaxTree : IEnumerable<QsNamespace>) = 
+    syntaxTree |> Seq.collect (fun ns -> ns.Elements |> Seq.choose (function
+    | QsCallable c -> Some c
+    | _ -> None))
+
+[<Extension>]
+let Specializations (syntaxTree : IEnumerable<QsNamespace>) = 
+    syntaxTree |> Seq.collect (fun ns -> ns.Elements |> Seq.collect (function
+    | QsCallable c -> c.Specializations
+    | _ -> ImmutableArray.Empty))
 
 [<Extension>]
 let GlobalTypeResolutions (syntaxTree : IEnumerable<QsNamespace>) = 

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -189,7 +190,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if any of the given ranges is null.
         /// Throws an ArgumentException if any of the given ranges is not valid.
         /// </summary>
-        internal static bool Overlaps(this Range range1, Range range2)
+        internal static bool Overlaps(this LSP.Range range1, LSP.Range range2)
         {
             if (!IsValidRange(range1) || !IsValidRange(range2)) throw new ArgumentException("invalid range given for comparison");
             var (first, second) = range1.Start.IsSmallerThan(range2.Start) ? (range1, range2) : (range2, range1);
@@ -203,7 +204,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given position or range is null.
         /// Throws an ArgumentException if the given position or range is not valid.
         /// </summary>
-        internal static bool IsWithinRange(this Position pos, Range range, bool includeEnd = false)
+        internal static bool IsWithinRange(this Position pos, LSP.Range range, bool includeEnd = false)
         {
             if (!IsValidPosition(pos) || !IsValidRange(range)) throw new ArgumentException("invalid position or range given for comparison");
             return range.Start.IsSmallerThanOrEqualTo(pos) && (includeEnd ? pos.IsSmallerThanOrEqualTo(range.End) : pos.IsSmallerThan(range.End));
@@ -213,7 +214,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns true if the given range is valid, i.e. if both start and end are valid positions, and start is smaller than or equal to end.
         /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
-        public static bool IsValidRange(Range range) =>
+        public static bool IsValidRange(LSP.Range range) =>
             IsValidPosition(range?.Start) && IsValidPosition(range.End) && range.Start.IsSmallerThanOrEqualTo(range.End); 
 
         /// <summary>
@@ -221,7 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// i.e. if both start and end are valid positions within the given file, and start is smaller than or equal to end.
         /// Throws an ArgumentNullException if an argument is null.
         /// </summary>
-        internal static bool IsValidRange(Range range, FileContentManager file) =>
+        internal static bool IsValidRange(LSP.Range range, FileContentManager file) =>
             IsValidPosition(range?.Start, file) && IsValidPosition(range.End, file) && range.Start.IsSmallerThanOrEqualTo(range.End); 
 
         /// <summary>
@@ -254,7 +255,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // tools for debugging
 
-        public static string DiagnosticString(this Range r) =>
+        public static string DiagnosticString(this LSP.Range r) =>
             $"({r?.Start?.Line},{r?.Start?.Character}) - ({r?.End?.Line},{r?.End?.Character})";
 
         internal static string DiagnosticString(FileContentManager file)

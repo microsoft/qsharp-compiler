@@ -8,6 +8,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -61,13 +62,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the end position (second item) of the given relative range is larger than the start position (first item). 
         /// Throws an ArgumentOutOfRangeException if the Line or Column of the given relative position are smaller than one.
         /// </summary>
-        internal static Range GetAbsoluteRange(Position offset, Tuple<QsPositionInfo, QsPositionInfo> relativeRange)
+        internal static LSP.Range GetAbsoluteRange(Position offset, Tuple<QsPositionInfo, QsPositionInfo> relativeRange)
         {
             bool LargerThan(QsPositionInfo lhs, QsPositionInfo rhs) =>
                 lhs.Line > rhs.Line || (lhs.Line == rhs.Line && lhs.Column > rhs.Column); 
             if (relativeRange == null) throw new ArgumentNullException(nameof(relativeRange));
             if (LargerThan(relativeRange.Item1, relativeRange.Item2)) throw new ArgumentException("invalid range", nameof(relativeRange)); 
-            return new Range { Start = GetAbsolutePosition(offset, relativeRange.Item1), End = GetAbsolutePosition(offset, relativeRange.Item2) };
+            return new LSP.Range { Start = GetAbsolutePosition(offset, relativeRange.Item1), End = GetAbsolutePosition(offset, relativeRange.Item2) };
         }
 
         /// <summary>
@@ -132,11 +133,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// For a given Range, returns a new Range with its starting and ending position a copy of the start and end of the given Range 
         /// (i.e. does a deep copy) or null in case the given Range is null.
         /// </summary>
-        public static Range Copy(this Range r)
+        public static LSP.Range Copy(this LSP.Range r)
         {
             return r == null 
                 ? null 
-                : new Range { Start = r.Start.Copy(), End = r.End.Copy() };
+                : new LSP.Range { Start = r.Start.Copy(), End = r.End.Copy() };
         }
 
         /// <summary>
@@ -145,7 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentException if the given Range is invalid.
         /// Throws and ArgumentOutOfRangeException if the updated line number is negative.
         /// </summary>
-        public static Range WithUpdatedLineNumber(this Range range, int lineNrChange)
+        public static LSP.Range WithUpdatedLineNumber(this LSP.Range range, int lineNrChange)
         {
             if (lineNrChange == 0) return range ?? throw new ArgumentNullException(nameof(range));
             if (!Utils.IsValidRange(range)) throw new ArgumentException($"invalid Range in {nameof(WithUpdatedLineNumber)}"); // range can be empty
@@ -191,7 +192,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a function that returns true if the ErrorType of the given Diagnostic is one of the given types.
         /// </summary>
-        internal static Func<Diagnostic, bool> ErrorType(params ErrorCode[] types)
+        public static Func<Diagnostic, bool> ErrorType(params ErrorCode[] types)
         {
             var codes = types.Select(err => err.Code());
             return m => m.IsError() && codes.Contains(m.Code);
@@ -200,7 +201,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a function that returns true if the WarningType of the given Diagnostic is one of the given types.
         /// </summary>
-        internal static Func<Diagnostic, bool> WarningType(params WarningCode[] types)
+        public static Func<Diagnostic, bool> WarningType(params WarningCode[] types)
         {
             var codes = types.Select(warn => warn.Code());
             return m => m.IsWarning() && codes.Contains(m.Code);
@@ -226,12 +227,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Extracts all elements satisfying the given condition and which start at a line that is larger or equal to lowerBound.
+        /// Diagnostics without any range information are only extracted if no lower bound is specified or the specified lower bound is smaller than zero. 
         /// Throws an ArgumentNullException if the given condition is null.
         /// </summary>
-        public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound)
+        public static IEnumerable<Diagnostic> Filter(this IEnumerable<Diagnostic> orig, Func<Diagnostic, bool> condition, int lowerBound = -1)
         {
             if (condition == null) throw new ArgumentNullException(nameof(condition));
-            return orig?.Where(m => condition(m) && lowerBound <= m.Range.Start.Line);
+            return orig?.Where(m => condition(m) && lowerBound <= (m.Range?.Start?.Line ?? -1));
         }
 
         /// <summary>
