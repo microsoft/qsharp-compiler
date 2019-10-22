@@ -317,7 +317,7 @@ type ResolvedType = private {
         let inner = ResolvedType.ResolveTypeParameters resolutions
         if resolutions.IsEmpty then t
         else t.Resolution |> function
-            | QsTypeKind.TypeParameter tp -> resolutions.TryGetValue tp |> function | true, res -> res | false, _ -> t
+            | QsTypeKind.TypeParameter tp -> resolutions.TryGetValue ((tp.Origin, tp.TypeName)) |> function | true, res -> res | false, _ -> t
             | QsTypeKind.TupleType ts -> ts |> Seq.map inner |> fun x -> x.ToImmutableArray() |> TupleType |> ResolvedType.New
             | QsTypeKind.ArrayType b -> inner b |> ArrayType |> ResolvedType.New
             | QsTypeKind.Function (it, ot) -> (inner it, inner ot) |> QsTypeKind.Function |> ResolvedType.New
@@ -343,7 +343,7 @@ type TypedExpression = {
     Expression : QsExpressionKind<TypedExpression, Identifier, ResolvedType>
     /// contains a lookup for type parameters, 
     /// whose type can either be inferred based on the expression, or who have explicitly been resolved by provided type arguments 
-    TypeParameterResolutions : ImmutableDictionary<QsTypeParameter, ResolvedType> 
+    TypeParameterResolutions : ImmutableDictionary<(QsQualifiedName * NonNullable<string>), ResolvedType> 
     /// the type of the expression after applying the type arguments
     ResolvedType : ResolvedType
     /// contains information generated and/or tracked by the compiler

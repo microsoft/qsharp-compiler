@@ -118,17 +118,16 @@ type internal ReferenceCounter() =
 
 
 /// A ScopeTransformation that substitutes type parameters according to the given dictionary
-type internal ReplaceTypeParams(typeParams: ImmutableDictionary<QsTypeParameter, ResolvedType>) =
+type internal ReplaceTypeParams(typeParams: ImmutableDictionary<_, ResolvedType>) =
     inherit ScopeTransformation()
-
-    let typeMap = typeParams |> Seq.map (function KeyValue (a, b) -> (a.Origin, a.TypeName), b) |> Map
 
     override __.Expression = { new ExpressionTransformation() with
         override __.Type = { new ExpressionTypeTransformation() with
             override __.onTypeParameter tp =
                 let key = tp.Origin, tp.TypeName
-                if typeMap.ContainsKey key then typeMap.[key].Resolution
-                else base.onTypeParameter tp
+                match typeParams.TryGetValue key with 
+                | true, t -> t.Resolution
+                | _ -> TypeKind.TypeParameter tp
             }
     }
 

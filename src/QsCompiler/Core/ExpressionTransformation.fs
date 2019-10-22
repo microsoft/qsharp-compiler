@@ -265,7 +265,7 @@ and ExpressionTypeTransformation(?enable) =
         let origin = tp.Origin
         let name = tp.TypeName
         let range = this.onRangeInformation tp.Range
-        QsTypeParameter.New (origin.Namespace, origin.Name, name, range) |> ExpressionType.TypeParameter
+        QsTypeParameter.New (origin, name, range) |> ExpressionType.TypeParameter
 
     abstract member onUnitType : unit -> ExpressionType
     default this.onUnitType () = ExpressionType.UnitType

@@ -238,11 +238,11 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
 
     /// Given a Q# type, resolves it calling the NamespaceManager associated with this symbol tracker.
     /// For each diagnostic generated during the resolution, calls the given addDiagnostics function on it. 
-    /// Returns the resolved type, with all range information stripped.
-    member this.ResolveType addDiagnostic (qsType : QsType) = 
+    /// Returns the resolved type, *including* its range information if applicable.
+    member internal this.ResolveType addDiagnostic (qsType : QsType) =
         let resolved, errs = GlobalSymbols().ResolveType (this.Parent, typeParameters, this.SourceFile) qsType 
         for err in errs do addDiagnostic err
-        resolved |> StripPositionInfo.Apply
+        resolved
 
     /// Given the fully qualified name of a user defined type, returns its declaration as Some.
     /// Adds a suitable error using the given function and returns None if no declaration can be found.
