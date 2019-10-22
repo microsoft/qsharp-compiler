@@ -250,6 +250,28 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return [(new 'A[1])[0], (new 'B[1])[0]];
     }
 
+    function CommonBaseType20 () : BigEndian[] {
+        return [(new BigEndian[1])[0], (new BigEndian[1])[0]];
+    }
+
+    function CommonBaseType21 () : (Int -> Unit)[] {
+        return [GenericFunction<Int>, GenericFunction<Int>];
+    }
+
+    function CommonBaseType22 () : (Int -> Unit)[] {
+        let fct = GenericFunction<Int>;
+        return [GenericFunction<Int>, fct];
+    }
+
+    function CommonBaseType23 () : (Int -> Unit)[] {
+        let fct = GenericFunction<Int>;
+        return [fct, fct];
+    }
+
+    function CommonBaseType24 () : (Int -> Unit)[] {
+        return [GenericFunction<Int>, GenericFunction<Double>];
+    }
+
 
     // utils for testing type matching of arguments
 

@@ -619,8 +619,9 @@ type QsExpression with
             let resolvedEx = InnerExpression ex
             VerifyIsInteger addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
             let resolvedBase = symbols.ResolveType addDiagnostic bType
+            let arrType = resolvedBase |> StripPositionInfo.Apply |> ArrayType |> ResolvedType.New
             let quantumDep = resolvedEx.InferredInformation.HasLocalQuantumDependency
-            (NewArray (resolvedBase, resolvedEx), ArrayType resolvedBase |> ResolvedType.New, quantumDep, this.Range) |> ExprWithoutTypeArgs false
+            (NewArray (resolvedBase, resolvedEx), arrType, quantumDep, this.Range) |> ExprWithoutTypeArgs false
 
         /// Resolves and verifies all given items of a value array literal, and returns the corresponding ValueArray as typed expression.
         let buildValueArray (values : ImmutableArray<_>) = 
