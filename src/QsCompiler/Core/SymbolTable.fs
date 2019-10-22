@@ -326,14 +326,14 @@ and Namespace private
         | true, partial -> partial.NamespaceShortNames
         | false, _ -> ArgumentException "given source file is not listed as a source file for this namespace" |> raise
 
-    /// If a type with the given name is defined in the specified source file, 
+    /// If a type with the given name is defined in the specified source file or reference, 
     /// checks if that type has been marked as attribute and returns its underlying type if it has. 
     /// A type is considered to be marked as attribute if the list of defined attributes contains an attribute 
     /// with name "Attribute" that is qualified by any of the given possible qualifications. 
     /// If the list of possible qualifications contains an empty string, then the "Attribute" may be unqualified.
-    /// Throws an ArgumentException if the source file is not listed as source file of the namespace.
+    /// Throws an ArgumentException if no such type exists in any of the references and the source file is not listed as source file of the namespace.
     /// Throws an InvalidOperationExeception if the corresponding type has not been resolved. 
-    member internal this.TryGetAttributeInSource source (attName, possibleQualifications : _ seq) = 
+    member internal this.TryGetAttributeDeclaredIn source (attName, possibleQualifications : _ seq) = 
         let marksAttribute (t : QsDeclarationAttribute) = t.TypeId |> function 
             | Value id -> id.Namespace.Value = BuiltIn.Attribute.Namespace.Value && id.Name.Value = BuiltIn.Attribute.Name.Value
             | Null -> false
@@ -344,7 +344,7 @@ and Namespace private
             | _ -> false
         match TypesInReferences.TryGetValue attName with 
         | true, tDecl -> if tDecl.Attributes |> Seq.exists marksAttribute then Some tDecl.Type else None
-        | false, _ -> Parts.TryGetValue source |> function 
+        | false, _ -> Parts.TryGetValue source |> function // ok only because/if we have covered that the type is not in a reference!
             | false, _ -> ArgumentException "given source file is not listed as source of the namespace" |> raise
             | true, partialNS -> partialNS.TryGetType attName |> function 
                 | true, resolution when resolution.DefinedAttributes |> Seq.exists compareAttributeName -> 
@@ -582,7 +582,7 @@ and Namespace private
                 let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t : ResolvedType) -> t.Resolution)
                 unitReturn, cDecl.Signature.TypeParameters.Length
             | false, _ ->
-                let _, cDecl = Parts.[declSource].GetCallable cName
+                let _, cDecl = Parts.[declSource].GetCallable cName // ok only because/if we have covered that the callable is not in a reference!
                 let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t : QsType) -> t.Type)
                 unitReturn, cDecl.Defined.TypeParameters.Length
 
@@ -712,18 +712,21 @@ and NamespaceManager
 
     /// Returns the possible qualifications for the built-in type or callable used in the given namespace and source.
     /// where the given source may either be the name of a source file or of a referenced assembly. 
+    /// If the given source is not listed as source file of the namespace, assumes that the source if one of the references 
+    /// and returns the namespace name of the given built in type or callable as only possible qualification. 
     /// Throws an ArgumentException if no namespace with the given name exists. 
-    let PossibleQualifications (declNS, declSource) (builtIn : BuiltIn) = 
-        match Namespaces.TryGetValue declNS with 
-        | true, ns -> (ns.ImportedNamespaces declSource).TryGetValue builtIn.Namespace |> function
-            | true, null when ns.ContainsType builtIn.Name = Null || declNS.Value = builtIn.Namespace.Value -> [""; builtIn.Namespace.Value] 
+    let PossibleQualifications (nsName, source) (builtIn : BuiltIn) = 
+        match Namespaces.TryGetValue nsName with 
+        | true, ns when ns.Sources.Contains source -> (ns.ImportedNamespaces source).TryGetValue builtIn.Namespace |> function
+            | true, null when ns.ContainsType builtIn.Name = Null || nsName.Value = builtIn.Namespace.Value -> [""; builtIn.Namespace.Value] 
             | true, null -> [builtIn.Namespace.Value] // the built-in type or callable is shadowed
             | true, alias -> [alias; builtIn.Namespace.Value]
             | false, _ -> [builtIn.Namespace.Value]
+        | true, _ -> [builtIn.Namespace.Value];
         | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
 
-    /// Given the qualified or unqualfied name of a type used within the given parent namespace and source file, 
-    /// determines if such a type exists and returns the full name as Some if it does. 
+    /// Given the qualified or unqualfied name of a type used within the given parent namespace and source file, determines if such a type exists 
+    /// and returns its full name and the source file or referenced assembly in which it is defined as Some if it does. 
     /// Returns None if no such type exist, or if the type name is unqualified and ambiguous.
     /// Generates and returns an array with suitable diagnostics.
     /// Throws an ArgumentException if the given parent namespace does not exist,
@@ -764,11 +767,11 @@ and NamespaceManager
     member private this.ResolveAttribute (parentNS, source) attribute = 
         let getAttribute ((nsName, symName), symRange) = 
             match TryResolveTypeName (parentNS, source) ((nsName, symName), symRange) with
-            | Some (udt, declSource), errs ->
+            | Some (udt, declSource), errs -> // declSource may be the name of an assembly!
                 let fullName = sprintf "%s.%s" udt.Namespace.Value udt.Name.Value
                 let validQualifications = BuiltIn.Attribute |> PossibleQualifications (udt.Namespace, declSource)
                 match Namespaces.TryGetValue udt.Namespace with 
-                | true, ns -> ns.TryGetAttributeInSource declSource (udt.Name, validQualifications) |> function 
+                | true, ns -> ns.TryGetAttributeDeclaredIn declSource (udt.Name, validQualifications) |> function 
                     | None -> None, [| symRange.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (ErrorCode.NotMarkedAsAttribute, [fullName]) |] 
                     | Some argType -> Some (udt, argType), errs
                 | false, _ -> QsCompilerError.Raise "namespace for defined type not found"; None, errs
@@ -1188,7 +1191,7 @@ and NamespaceManager
 
     /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader as Value, 
     /// if the qualifier can be resolved within the given parent namespace and source file, and such a callable indeed exists. 
-    /// If the source file containing the callable declaration is given (i.e. declSource is Some), 
+    /// If the callable is not defined an any of the references and the source file containing the callable declaration is specified (i.e. declSource is Some), 
     /// throws the corresponding exception if no such callable exists in that file. 
     /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
     member private this.TryGetCallableHeader (callableName : QsQualifiedName, declSource) (nsName, source) =
@@ -1213,7 +1216,7 @@ and NamespaceManager
                 | true, cDecl -> Value cDecl
                 | false, _ -> declSource |> function
                     | Some source -> 
-                        let kind, decl = ns.CallableInSource source callableName.Name
+                        let kind, decl = ns.CallableInSource source callableName.Name // ok only because/if we have covered that the callable is not in a reference!
                         BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl)
                     | None -> 
                         ns.CallablesDefinedInAllSources().TryGetValue callableName.Name |> function
@@ -1240,7 +1243,7 @@ and NamespaceManager
 
     /// Given a qualified type name, returns the corresponding TypeDeclarationHeader as Value, 
     /// if the qualifier can be resolved within the given parent namespace and source file, and such a type indeed exists. 
-    /// If the source file containing the type declaration is given (i.e. declSource is Some), 
+    /// If the type is not defined an any of the references and the source file containing the type declaration is specified (i.e. declSource is Some), 
     /// throws the corresponding exception if no such type exists in that file. 
     /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
     member private this.TryGetTypeHeader (typeName : QsQualifiedName, declSource) (nsName, source) =
@@ -1264,7 +1267,7 @@ and NamespaceManager
                 | true, tDecl -> Value tDecl
                 | false, _ -> declSource |> function
                     | Some source ->
-                        let decl = ns.TypeInSource source typeName.Name
+                        let decl = ns.TypeInSource source typeName.Name // ok only because/if we have covered that the type is not in a reference!
                         BuildHeader {typeName with Namespace = ns.Name} (source, decl)
                     | None -> 
                         ns.TypesDefinedInAllSources().TryGetValue typeName.Name |> function
