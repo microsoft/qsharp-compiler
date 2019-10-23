@@ -63,14 +63,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 Request currentRequest = requests.Pop();
 
                 // If there is a call to an unknown callable, throw exception
-                if (!globals.ContainsKey(currentRequest.originalName))
+                if (!globals.TryGetValue(currentRequest.originalName, out QsCallable originalGlobal))
                     throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName.Namespace.Value + "." + currentRequest.originalName.Name.Value}");
 
                 var currentResponse = new Response
                 {
                     originalName = currentRequest.originalName,
                     typeResolutions = currentRequest.typeResolutions,
-                    concreteCallable = globals[currentRequest.originalName].WithFullName(name => currentRequest.concreteName)
+                    concreteCallable = originalGlobal.WithFullName(name => currentRequest.concreteName)
                 };
 
                 GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
