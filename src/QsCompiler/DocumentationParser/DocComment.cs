@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// associated with a source code element.
         /// </summary>
         /// <param name="docComments">The doc comments from the source code</param>
-        public DocComment(IEnumerable<string> docComments)
+        public DocComment(IEnumerable<string> docComments, bool deprecated, string deprecation)
         {
             string GetHeadingText(HeadingBlock heading)
             {
@@ -253,6 +253,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             this.SeeAlso = new List<string>();
             this.References = "";
 
+            var deprecationProcessed = false;
             var text = String.Join("\n", docComments);
 
             // Only parse if there are comments to parse
@@ -278,6 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                             this.ShortSummary = DeprecatedWarning + ToMarkdown(section.GetRange(0, 1));
                             summarySection.AddRange(DeprecatedSection);
                             summarySection.AddRange(section);
+                            deprecationProcessed = true;
                             break;
                         case "Description":
                             this.Description = ToMarkdown(section);
@@ -317,8 +319,36 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     }
                 }
 
+                if (deprecated && !deprecationProcessed)
+                {
+                    var deprecationText = DeprecatedWarning + "\r" + deprecation;
+                    this.Summary += "\r" + deprecationText;
+                    this.ShortSummary = deprecationText;
+                    summarySection.AddRange(DeprecatedSection);
+                    if (!string.IsNullOrEmpty(deprecation))
+                    {
+                        summarySection.AddRange(Markdown.Parse(deprecation));
+                    }
+                }
+
                 this.Documentation = ToMarkdown(summarySection.Concat(descriptionSection));
             }
+            else
+            {
+                this.Summary = DeprecatedWarning + deprecation;
+                this.ShortSummary = DeprecatedWarning + deprecation;
+                this.Documentation = DeprecatedWarning + deprecation;
+            }
+        }
+
+        /// <summary>
+        /// Constructs a DocComment instance from the documentation comments
+        /// associated with a source code element.
+        /// </summary>
+        /// <param name="docComments">The doc comments from the source code</param>
+        public DocComment(IEnumerable<string> docComments) : this(docComments, false, "")
+        {
+
         }
     }
 }

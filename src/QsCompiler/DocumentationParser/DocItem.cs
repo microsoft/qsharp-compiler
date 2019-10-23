@@ -1,8 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using YamlDotNet.RepresentationModel;
 
 
@@ -18,6 +22,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         protected readonly string uid;
         protected readonly string itemType;
         protected readonly DocComment comments;
+        protected readonly bool deprecated;
+        protected readonly string deprecation;
 
         /// <summary>
         /// The item's kind, as a string (Utilities.OperationKind, .FunctionKind, or .UdtKind)
@@ -39,13 +45,25 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="itemName">The name of the item itself</param>
         /// <param name="kind">The item's kind: operation, function, or UDT</param>
         /// <param name="documentation">The source documentation for the item</param>
-        internal DocItem(string nsName, string itemName, string kind, ImmutableArray<string> documentation)
+        internal DocItem(string nsName, string itemName, string kind, ImmutableArray<string> documentation,
+            IEnumerable<QsDeclarationAttribute> attributes)
         {
             namespaceName = nsName;
             name = itemName;
             uid = (namespaceName + "." + name).ToLowerInvariant();
             itemType = kind;
-            comments = new DocComment(documentation);
+            var depAttrs = attributes.Where(Microsoft.Quantum.QsCompiler.BuiltIn.MarksDeprecation).ToList();
+            deprecated = false;
+            deprecation = "";
+            if (depAttrs.Count() > 0)
+            {
+                deprecated = true;
+                if (depAttrs.First().Argument.Expression is QsExpressionKind<TypedExpression, Identifier, ResolvedType>.StringLiteral str)
+                {
+                    deprecation = str.Item1.Value;
+                }
+            }
+            comments = new DocComment(documentation, deprecated, deprecation);
         }
 
         /// <summary>

@@ -352,5 +352,20 @@ output:
             var s = stream.ToString();
             Assert.Equal(expected, s);
         }
+
+        [Fact]
+        public void ParseDeprecated()
+        {
+            string[] comments = { "# Summary",
+                                  "This is some text",
+                                };
+            string dep = "Don't use this";
+            string warning = "> [!WARNING]\n> Deprecated\n";
+            var dc = new DocComment(comments, true, dep);
+            Assert.Equal(comments[1] + "\r" + warning + "\r" + dep, dc.Summary);
+            Assert.Equal(warning + "\r" + dep, dc.ShortSummary);
+            // The Documentatin string is run through the Markdown generator and so has \r instead of \n
+            Assert.Equal(comments[1] + "\r\r" + warning.Replace('\n', '\r') + "\r" + dep, dc.Documentation);
+        }
     }
 }
