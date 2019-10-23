@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             if (name == null)
             {
                 // Create new name
-                name = Guid.NewGuid().ToString() + "_" + globalCallable.Item.Name.Value;
+                name = Guid.NewGuid().ToString("N") + "_" + globalCallable.Item.Name.Value;
 
                 // TODO: Check for identifier name collisions (not likely)
                 // - check in global namespace
