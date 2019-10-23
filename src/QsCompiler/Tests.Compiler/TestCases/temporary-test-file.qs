@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.Testing {
         }
     }
 
-    operation Main (q : Qubit) : Unit is Adj+Ctl {
+    operation NotMain (q : Qubit) : Unit is Adj+Ctl {
         body (...) {
             X(q);
 			OtherThing(q, 12);
@@ -86,7 +86,7 @@ namespace Microsoft.Quantum.Testing {
 		}
 	}
 
-	operation NotMain() : Unit {
+	operation Main() : Unit {
 		body (...) {
 			let temp = Foo<_, Double>(1, _);
 			let temp2 = Foo<Int, Double>(1, _);

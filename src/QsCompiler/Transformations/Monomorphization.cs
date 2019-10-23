@@ -4,29 +4,32 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Dynamic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.Optimizations;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
-    using Concretion = ImmutableDictionary<QsTypeParameter, ResolvedType>;
-    using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*Concretion*/ ImmutableDictionary<QsTypeParameter, ResolvedType>, Identifier>;
+    //using Concretion = ImmutableDictionary<QsTypeParameter, ResolvedType>;
+    //using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*Concretion*/ ImmutableDictionary<QsTypeParameter, ResolvedType>, Identifier>;
+    using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using Concretion = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
 
     internal struct Request
     {
         public QsQualifiedName originalName;
-        public Concretion typeResolutions;
+        public ImmutableConcretion typeResolutions;
         public QsQualifiedName concreteName;
     }
 
     internal struct Response
     {
         public QsQualifiedName originalName;
-        public Concretion typeResolutions;
+        public ImmutableConcretion typeResolutions;
         public QsCallable concreteCallable;
     }
 
@@ -48,7 +51,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 .Select(call => new Request
                 {
                     originalName = call.Key,
-                    typeResolutions = Concretion.Empty,
+                    typeResolutions = ImmutableConcretion.Empty,
                     concreteName = call.Key
                 });
 
@@ -71,9 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 };
 
                 GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
-                {
-                    return GetConcreteIdentifier(currentResponse, requests, responses, globalCallable, types);
-                };
+                    GetConcreteIdentifier(currentResponse, requests, responses, globalCallable, types);
 
                 // Rewrite implementation
                 currentResponse = ReplaceTypeParamImplementationsSyntax.Apply(currentResponse);
@@ -93,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         /// <summary>
         /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
         /// </summary>
-        /// <param name="namespaceCallables">Maps namespaces to an enumerable of the global callables that will be in that namespace.</param>
+        /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
         public ResolveGenericsSyntax(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new NoScopeTransformations())
         {
             NamespaceCallables = namespaceCallables;
@@ -116,17 +117,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             Stack<Request> requests,
             List<Response> responses,
             Identifier.GlobalCallable globalCallable,
-            Concretion types)
+            ImmutableConcretion types)
         {
             // If this is not a generic, do not change the name
             if (types == null || types.IsEmpty)
             {
-                return Identifier.NewGlobalCallable(new QsQualifiedName(globalCallable.Item.Namespace, globalCallable.Item.Name));
+                return globalCallable;
             }
 
             string name = null;
 
-            ImmutableHashSet<KeyValuePair<QsTypeParameter, ResolvedType>> typesHashSet = types.ToImmutableHashSet();
+            ImmutableHashSet<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>> typesHashSet = types.ToImmutableHashSet();
 
             // Check for recursive call
             if (currentResponse.originalName.IsEqual(globalCallable.Item) &&
@@ -184,15 +185,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     #region RewriteImplementations
 
     internal class ReplaceTypeParamImplementationsSyntax :
-        SyntaxTreeTransformation<MinorTransformations.ReplaceTypeParams>
+        SyntaxTreeTransformation<ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>>
     {
         public static Response Apply(Response current)
         {
             // Nothing to change if the current callable is already concrete
-            if (current.typeResolutions == Concretion.Empty) return current;
+            if (current.typeResolutions == ImmutableConcretion.Empty) return current;
 
-            var filter = new ReplaceTypeParamImplementationsSyntax(
-                new MinorTransformations.ReplaceTypeParams(current.typeResolutions.ToImmutableDictionary(param => param.Key, param => param.Value)));
+            var filter = new ReplaceTypeParamImplementationsSyntax(current.typeResolutions
+                /*new MinorTransformations.ReplaceTypeParams(current.typeResolutions.ToImmutableDictionary(param => param.Key, param => param.Value))*/);
 
             // Create a new response with the transformed callable
             return new Response
@@ -203,7 +204,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             };
         }
 
-        public ReplaceTypeParamImplementationsSyntax(MinorTransformations.ReplaceTypeParams scope) : base(scope) { }
+        public ReplaceTypeParamImplementationsSyntax(ImmutableConcretion typeParams) : base(
+            new ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>(
+                new ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>(
+                    null,
+                    ex => new ReplaceTypeParamImplementationsExpressionType(typeParams, ex as ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>)
+                    ))) { }
 
         public override ResolvedSignature onSignature(ResolvedSignature s)
         {
@@ -218,6 +224,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         }
     }
 
+    internal class ReplaceTypeParamImplementationsExpressionType :
+            ExpressionTypeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>
+    {
+        ImmutableConcretion TypeParams;
+
+        public ReplaceTypeParamImplementationsExpressionType(ImmutableConcretion typeParams, ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType> expr) : base(expr)
+        {
+            TypeParams = typeParams;
+        }
+
+        public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
+        {
+            if (TypeParams.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
+            {
+                return typeParam.Resolution;
+            }
+            return QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTypeParameter(tp);
+        }
+    }
+
     #endregion
 
     #region RewriteCalls
@@ -228,7 +254,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         public static Response Apply(Response current, GetConcreteIdentifierFunc getConcreteIdentifier)
         {
             var filter = new ReplaceTypeParamCallsSyntax(new ScopeTransformation<ReplaceTypeParamCallsExpression>(
-                new ReplaceTypeParamCallsExpression(new Dictionary<QsTypeParameter, ResolvedType>(), getConcreteIdentifier)));
+                new ReplaceTypeParamCallsExpression(new Concretion(), getConcreteIdentifier)));
 
             // Create a new response with the transformed callable
             return new Response
@@ -246,9 +272,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     internal class ReplaceTypeParamCallsExpression :
         ExpressionTransformation<ReplaceTypeParamCallsExpressionKind, ReplaceTypeParamCallsExpressionType>
     {
-        private readonly Dictionary<QsTypeParameter, ResolvedType> CurrentParamTypes;
+        private readonly Concretion CurrentParamTypes;
 
-        public ReplaceTypeParamCallsExpression(Dictionary<QsTypeParameter, ResolvedType> currentParamTypes, GetConcreteIdentifierFunc getConcreteIdentifier) :
+        public ReplaceTypeParamCallsExpression(Concretion currentParamTypes, GetConcreteIdentifierFunc getConcreteIdentifier) :
             base(ex => new ReplaceTypeParamCallsExpressionKind(ex as ReplaceTypeParamCallsExpression, currentParamTypes, getConcreteIdentifier),
                 ex => new ReplaceTypeParamCallsExpressionType(ex as ReplaceTypeParamCallsExpression, currentParamTypes))
         {
@@ -261,12 +287,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var typeParamResolutions = this.onTypeParamResolutions(ex.TypeParameterResolutions);
             var exType               = this.Type.Transform(ex.ResolvedType);
             var inferredInfo         = this.onExpressionInformation(ex.InferredInformation);
-            // Change the order so that Kind is transformed last
+            // Change the order so that Kind is transformed last.
+            // This matters because the onTypeParamResolutions method builds up type param mappings in
+            // the CurrentParamTypes dictionary that are then used, and removed from the
+            // dictionary, in the next global callable identifier found under the Kind transformations.
             var kind                 = this.Kind.Transform(ex.Expression);
             return new TypedExpression(kind, typeParamResolutions, exType, inferredInfo, range);
         }
 
-        public override Concretion onTypeParamResolutions(Concretion typeParams)
+        public override ImmutableConcretion onTypeParamResolutions(ImmutableConcretion typeParams)
         {
             // Merge the type params into the current dictionary
             foreach (var kvp in typeParams)
@@ -274,17 +303,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 CurrentParamTypes.Add(kvp.Key, kvp.Value);
             }
 
-            return ImmutableDictionary<QsTypeParameter, ResolvedType>.Empty;
+            return ImmutableConcretion.Empty;
         }
     }
 
     internal class ReplaceTypeParamCallsExpressionKind : ExpressionKindTransformation<ReplaceTypeParamCallsExpression>
     {
         private readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
-        private Dictionary<QsTypeParameter, ResolvedType> CurrentParamTypes;
+        private Concretion CurrentParamTypes;
 
         public ReplaceTypeParamCallsExpressionKind(ReplaceTypeParamCallsExpression expr,
-            Dictionary<QsTypeParameter, ResolvedType> currentParamTypes,
+            Concretion currentParamTypes,
             GetConcreteIdentifierFunc getConcreteIdentifier) : base(expr)
         {
             GetConcreteIdentifier = getConcreteIdentifier;
@@ -295,10 +324,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         {
             if (sym is Identifier.GlobalCallable global)
             {
-                Concretion applicableParams = CurrentParamTypes
-                    .Where(kvp =>
-                        kvp.Key.Origin.Namespace.Value == global.Item.Namespace.Value &&
-                        kvp.Key.Origin.Name.Value == global.Item.Name.Value)
+                ImmutableConcretion applicableParams = CurrentParamTypes
+                    .Where(kvp => kvp.Key.Item1.IsEqual(global.Item))
                     .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                 if (applicableParams.Any())
@@ -314,37 +341,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     }
                 }
             }
+            else if (sym is Identifier.LocalVariable && !tArgs.IsNull && tArgs.Item.Any())
+            {
+                throw new ArgumentException($"Local variables cannot have type arguments.");
+            }
+
             return base.onIdentifier(sym, tArgs);
         }
     }
 
     internal class ReplaceTypeParamCallsExpressionType : ExpressionTypeTransformation<ReplaceTypeParamCallsExpression>
     {
-        private Dictionary<QsTypeParameter, ResolvedType> CurrentParamTypes;
+        private Concretion CurrentParamTypes;
 
-        public ReplaceTypeParamCallsExpressionType(ReplaceTypeParamCallsExpression expr, Dictionary<QsTypeParameter, ResolvedType> currentParamTypes) : base(expr)
+        public ReplaceTypeParamCallsExpressionType(ReplaceTypeParamCallsExpression expr, Concretion currentParamTypes) : base(expr)
         {
             CurrentParamTypes = currentParamTypes;
         }
 
-        private (ResolvedType, ResolvedType) onCallType(ResolvedType it, ResolvedType ot)
+        public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
         {
-            var filter = new MinorTransformations.ReplaceTypeParams(CurrentParamTypes.ToImmutableDictionary());
-
-            return (filter.Expression.Type.Transform(it),
-                    filter.Expression.Type.Transform(ot));
-        }
-
-        public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onFunction(ResolvedType it, ResolvedType ot)
-        {
-            (it, ot) = onCallType(it, ot);
-            return base.onFunction(it, ot);
-        }
-
-        public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onOperation(Tuple<ResolvedType, ResolvedType> _arg1, CallableInformation info)
-        {
-            var (it, ot) = onCallType(_arg1.Item1, _arg1.Item2);
-            return base.onOperation(new Tuple<ResolvedType, ResolvedType>(it, ot), info);
+            if (CurrentParamTypes.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
+            {
+                return typeParam.Resolution;
+            }
+            return QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTypeParameter(tp);
         }
     }
 

@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="TestCases\temporary-test-file.qs" />
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -103,7 +104,6 @@
     <None Include="TestCases\FunctorGeneration.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestFiles\temporary-test-file.qs" />
     <Compile Include="..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="TestUtils.fs" />
     <Compile Include="TextTests.fs" />
