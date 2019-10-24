@@ -364,7 +364,7 @@ output:
             var dc = new DocComment(comments, true, dep);
             Assert.Equal(comments[1] + "\r" + warning + "\r" + dep, dc.Summary);
             Assert.Equal(warning + "\r" + dep, dc.ShortSummary);
-            // The Documentatin string is run through the Markdown generator and so has \r instead of \n
+            // The Documentation string is run through the Markdown generator and so has \r instead of \n
             Assert.Equal(comments[1] + "\r\r" + warning.Replace('\n', '\r') + "\r" + dep, dc.Documentation);
         }
     }
