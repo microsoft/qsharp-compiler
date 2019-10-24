@@ -341,7 +341,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     }
                 }
             }
-            else if (sym is Identifier.LocalVariable && !tArgs.IsNull && tArgs.Item.Any())
+            else if (sym is Identifier.LocalVariable && tArgs.IsValue && tArgs.Item.Any())
             {
                 throw new ArgumentException($"Local variables cannot have type arguments.");
             }
