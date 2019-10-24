@@ -9,6 +9,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
 using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization;
+using Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
@@ -86,6 +87,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             {
                 // TODO: Hard-coded values are given ONLY FOR DEV
                 result = ResolveGenericsSyntax.Apply(syntaxTree, new QsQualifiedName(NonNullable<string>.New("Microsoft.Quantum.Testing"), NonNullable<string>.New("Main")));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                onException?.Invoke(ex);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Validates that the monomorphization step cleared the syntax tree of all references to, and instances of type-parameterized callables.
+        /// Throws an ArgumentNullException if the given syntaxTree is null.
+        /// </summary>
+        public static bool ValidateMonomorphization(IEnumerable<QsNamespace> syntaxTree, Action<Exception> onException = null)
+        {
+            if (syntaxTree == null) throw new ArgumentNullException(nameof(syntaxTree));
+            try
+            {
+                MonomorphizationValidationTransformation.Apply(syntaxTree);
                 return true;
             }
             catch (Exception ex)

@@ -4,10 +4,11 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
 {
-    public class MonomorphizationValidation
+    public class MonomorphizationValidationTransformation
     {
         public static void Apply(IEnumerable<QsNamespace> namespaces)
         {
@@ -26,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 
             public override ResolvedSignature onSignature(ResolvedSignature s)
             {
-                if (s.TypeParameters != ImmutableArray<QsLocalSymbol>.Empty)
+                if (s.TypeParameters.Any())
                 {
                     // TODO: throw error
                     throw new Exception("Signatures cannot contains type parameters");
@@ -45,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 
             public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
             {
-                if (typeParams != ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>.Empty)
+                if (typeParams.Any())
                 {
                     // TODO: throw error
                     throw new Exception("Type Parameter Resolutions must be empty");
@@ -63,7 +64,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             {
                 // TODO: throw error
                 throw new Exception("Type Parameter types must be resolved");
-                return base.onTypeParameter(tp);
             }
         }
     }

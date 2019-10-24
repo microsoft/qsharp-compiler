@@ -213,13 +213,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
-            // TODO: Monomorphization is set to true ONLY FOR DEV
+            // TODO: Monomorphization and MonomorphizationValidation is set to true ONLY FOR DEV
             var loadOptions = new CompilationLoader.Configuration
             {
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 1,
-                Monomorphization = true
+                Monomorphization = true,
+                MonomorphizationValidation = true
             }; 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
             if (loaded.VerifiedCompilation == null) return ReturnCode.Status(loaded);
