@@ -624,7 +624,7 @@ type DiagnosticItem =
             | ErrorCode.GeneratingDllFailed                     -> "Unable to generate dll containing the compiled binary."
             | ErrorCode.TargetExecutionFailed                   -> "Processing of the compiled binary with the target {0} failed."
             | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
-            | ErrorCode.MonomorphizationFailed                  -> "Replacing type parametrizations with the concrete instantiations failed."
+            | ErrorCode.MonomorphizationFailed                  -> "Replacing type parameterizations with the concrete instantiations failed."
             | _                                                 -> "" 
         code |> ApplyArguments             
              

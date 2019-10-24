@@ -175,7 +175,7 @@ type ResolvedCharacteristics = private {
         let uniqueProps = 
             ex |> ResolvedCharacteristics.ExtractProperties (fun a -> a._Characteristics) 
             |> Option.map (Seq.distinct >> Seq.toList)
-        // it is fine (and necessary) to directly reassemple the unions, 
+        // it is fine (and necessary) to directly reassemble the unions, 
         // since all property dependencies will already be satisfied (having been extracted from a ResolvedCharacteristics)
         let rec addProperties (current : ResolvedCharacteristics) = function
             | head :: tail -> tail |> addProperties {_Characteristics = Union (current, {_Characteristics = SimpleSet head})}
@@ -264,7 +264,7 @@ type InferredCallableInformation = {
 /// That information includes on one hand information embedded into the type system that is provided by the user, 
 /// and on the other hand information that is inferred by the compiler and is not exposed to or available to the user. 
 type CallableInformation = {
-    /// describes operation properties explicitely specified in the code via set expressions
+    /// describes operation properties explicitly specified in the code via set expressions
     Characteristics : ResolvedCharacteristics
     /// contains inferred information on Q# operation types generated during compilation
     InferredInformation : InferredCallableInformation
@@ -350,7 +350,7 @@ type TypedExpression = {
     ResolvedType : ResolvedType
     /// contains information generated and/or tracked by the compiler
     InferredInformation : InferredExpressionInformation
-    /// the range at which the expresssion occurs relative to the statement (or partial statement) root
+    /// the range at which the expression occurs relative to the statement (or partial statement) root
     /// -> is Null for invalid and auto-generated expressions
     Range : QsRangeInfo
 } 

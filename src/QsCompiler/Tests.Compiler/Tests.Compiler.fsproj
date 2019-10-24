@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="TestCases\temporary-test-file.qs" />
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
