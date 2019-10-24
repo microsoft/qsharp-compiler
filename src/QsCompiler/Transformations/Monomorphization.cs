@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         public ReplaceTypeParamImplementationsSyntax(ImmutableConcretion typeParams) : base(
             new ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>(
                 new ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>(
-                    null,
+                    ex => new ExpressionKindTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>(ex as ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>),
                     ex => new ReplaceTypeParamImplementationsExpressionType(typeParams, ex as ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>)
                     ))) { }
 
