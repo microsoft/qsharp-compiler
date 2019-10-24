@@ -96,6 +96,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// associated with a source code element.
         /// </summary>
         /// <param name="docComments">The doc comments from the source code</param>
+        /// <param name="deprecated">Flag indicating whether or not the element had a Deprecated attribute</param>
+        /// <param name="deprecation">The string argument of the Deprecated attribute, if any</param>
         public DocComment(IEnumerable<string> docComments, bool deprecated, string deprecation)
         {
             string GetHeadingText(HeadingBlock heading)
@@ -275,8 +277,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                             this.ShortSummary = ToMarkdown(section.GetRange(0,1));
                             break;
                         case "Deprecated":
-                            this.Summary += DeprecatedWarning + ToMarkdown(section);
-                            this.ShortSummary = DeprecatedWarning + ToMarkdown(section.GetRange(0, 1));
+                            this.Summary += "\r" + DeprecatedWarning + "\r" + ToMarkdown(section);
+                            this.ShortSummary = DeprecatedWarning + "\r" + ToMarkdown(section.GetRange(0, 1));
                             summarySection.AddRange(DeprecatedSection);
                             summarySection.AddRange(section);
                             deprecationProcessed = true;

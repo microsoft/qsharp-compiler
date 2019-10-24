@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using Xunit;
 
 
@@ -358,14 +359,32 @@ output:
         {
             string[] comments = { "# Summary",
                                   "This is some text",
+                                  "# Deprecated",
+                                  "Some other text"
                                 };
             string dep = "Don't use this";
             string warning = "> [!WARNING]\n> Deprecated\n";
-            var dc = new DocComment(comments, true, dep);
+
+            // Test with just the Deprecated comment section
+            var dc = new DocComment(comments);
+            Assert.Equal(comments[1] + "\r" + warning + "\r" + comments[3], dc.Summary);
+            Assert.Equal(warning + "\r" + comments[3], dc.ShortSummary);
+            // The Documentation string is run through the Markdown generator and so has \r instead of \n
+            Assert.Equal(comments[1] + "\r\r" + warning.Replace('\n', '\r') + "\r" + comments[3], dc.Documentation);
+
+            // Test with just the deprecated attribute
+            dc = new DocComment(comments.Take(2), true, dep);
             Assert.Equal(comments[1] + "\r" + warning + "\r" + dep, dc.Summary);
             Assert.Equal(warning + "\r" + dep, dc.ShortSummary);
             // The Documentation string is run through the Markdown generator and so has \r instead of \n
             Assert.Equal(comments[1] + "\r\r" + warning.Replace('\n', '\r') + "\r" + dep, dc.Documentation);
+
+            // Test with both
+            dc = new DocComment(comments, true, dep);
+            Assert.Equal(comments[1] + "\r" + warning + "\r" + comments[3], dc.Summary);
+            Assert.Equal(warning + "\r" + comments[3], dc.ShortSummary);
+            // The Documentation string is run through the Markdown generator and so has \r instead of \n
+            Assert.Equal(comments[1] + "\r\r" + warning.Replace('\n', '\r') + "\r" + comments[3], dc.Documentation);
         }
     }
 }
