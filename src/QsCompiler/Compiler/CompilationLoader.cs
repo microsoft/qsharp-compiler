@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -304,10 +306,7 @@ namespace Microsoft.Quantum.QsCompiler
                 if (serialized && this.Config.BuildOutputFolder != null)
                 { this.PathToCompiledBinary = this.GenerateBinary(ms); }
                 if (serialized && this.Config.DllOutputPath != null)
-                {
-                    this.CompilationStatus.DllGeneration = 0;
-                    //this.DllOutputPath = this.GenerateDll(ms); 
-                }
+                { this.DllOutputPath = this.GenerateDll(ms); }
             }
 
             // executing the specified generation steps 
@@ -574,38 +573,57 @@ namespace Microsoft.Quantum.QsCompiler
             var outputPath = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DllOutputPath) ? fallbackFileName : this.Config.DllOutputPath);
             outputPath = Path.ChangeExtension(outputPath, "dll");
 
+            MetadataReference CreateReference(string file, int id) =>
+                MetadataReference.CreateFromFile(file)
+                .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{id}" }); // referenced Q# dlls are recognized based on this alias 
+
+            // We need to force the inclusion of references despite that that we do not include C# code that depends on them. 
+            // This is done via generating a certain handle in all dlls built via this compilation loader. 
+            // This checks if that handle is available to merely generate a warning if we can't include the reference. 
+            bool CanBeIncluded(NonNullable<string> dll) 
+            {
+                try // no need to throw in case this fails - ignore the reference instead
+                {   
+                    using var stream = File.OpenRead(dll.Value);
+                    using var assemblyFile = new PEReader(stream);
+                    var metadataReader = assemblyFile.GetMetadataReader();
+                    return metadataReader.TypeDefinitions
+                        .Select(metadataReader.GetTypeDefinition)
+                        .Any(t => metadataReader.GetString(t.Namespace) == AssemblyConstants.METADATA_NAMESPACE);
+                }
+                catch { return false; }
+            }
+
             try
             {
-                var references = GetSourceFiles.Apply(this.CompilationOutput.Namespaces) // we choose to keep only the references that were used
-                    .Where(file => file.Value.EndsWith(".dll")) 
-                    .Select((dllFile, idx) => 
-                        MetadataReference.CreateFromFile(dllFile.Value)
-                        .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{idx}" })) // referenced Q# dlls are recognized based on this alias 
-                    // If System.Object can't be found as a reference a warning is generated. 
-                    // To avoid that warning, we package that reference as well. 
-                    .Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+                var referencePaths = GetSourceFiles.Apply(this.CompilationOutput.Namespaces) // we choose to keep only Q# references that have been used
+                    .Where(file => file.Value.EndsWith(".dll"));
+                var references = referencePaths.Select((dll, id) => (dll, CreateReference(dll.Value, id), CanBeIncluded(dll))).ToImmutableArray();
+                var csharpTree = MetadataGeneration.GenerateAssemblyMetadata(references.Where(r => r.Item3).Select(r => r.Item2));
+                foreach (var (dropped, _, _) in references.Where(r => !r.Item3))
+                {
+                    var warning = Warnings.LoadWarning(WarningCode.ReferenceCannotBeIncludedInDll, new[] { dropped.Value }, null);
+                    this.LogAndUpdate(ref this.CompilationStatus.DllGeneration, warning);
+                }
 
-                var tree = MetadataGeneration.GenerateAssemblyMetadata(references);
                 var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
                     this.Config.ProjectName ?? Path.GetFileNameWithoutExtension(outputPath),
-                    syntaxTrees: new[] { tree },
-                    references: references, // we only include Q# references, and only those that are needed and have been fully loaded
+                    syntaxTrees: new[] { csharpTree },
+                    references: references.Select(r => r.Item2).Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location)), // if System.Object can't be found a warning is generated
                     options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
                 );
+                
+                using var outputStream = File.OpenWrite(outputPath);
+                serialization.Seek(0, SeekOrigin.Begin);
+                var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
+                var result = compilation.Emit(outputStream,
+                    options: new CodeAnalysis.Emit.EmitOptions(),
+                    manifestResources: new CodeAnalysis.ResourceDescription[] { astResource }
+                );
 
-                using (var outputStream = File.OpenWrite(outputPath))
-                {
-                    serialization.Seek(0, SeekOrigin.Begin);
-                    var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
-                    var result = compilation.Emit(outputStream,
-                        options: new CodeAnalysis.Emit.EmitOptions(includePrivateMembers: true),
-                        manifestResources: new CodeAnalysis.ResourceDescription[] { astResource }
-                    );
-
-                    var errs = result.Diagnostics.Where(d => d.Severity >= CodeAnalysis.DiagnosticSeverity.Error);
-                    if (errs.Any()) throw new Exception($"error(s) on emitting dll: {Environment.NewLine}{String.Join(Environment.NewLine, errs.Select(d => d.GetMessage()))}");
-                    return outputPath;
-                }
+                var errs = result.Diagnostics.Where(d => d.Severity >= CodeAnalysis.DiagnosticSeverity.Error);
+                if (errs.Any()) throw new Exception($"error(s) on emitting dll: {Environment.NewLine}{String.Join(Environment.NewLine, errs.Select(d => d.GetMessage()))}");
+                return outputPath;
             }
             catch (Exception ex)
             {

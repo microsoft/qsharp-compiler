@@ -315,6 +315,7 @@ type WarningCode =
     | UnknownBinaryFile = 7007
     | CouldNotLoadBinaryFile = 7008
     | ReferencesSetToNull = 7009
+    | ReferenceCannotBeIncludedInDll = 7010
     | UnresolvedItemsInGeneratedQs = 7101
     | TargetExitedAbnormally = 7102
 
@@ -658,6 +659,7 @@ type DiagnosticItem =
             | WarningCode.UnknownBinaryFile                     -> "Could not find the binary file \"{0}\" to include as reference in the compilation."
             | WarningCode.CouldNotLoadBinaryFile                -> "Unable to load binary file \"{0}\"."
             | WarningCode.ReferencesSetToNull                   -> "No references given to include in the compilation."
+            | WarningCode.ReferenceCannotBeIncludedInDll        -> "The reference to \"{0}\" could not be included in the generated dll."
 
             | WarningCode.UnresolvedItemsInGeneratedQs          -> "Some item(s) could not be resolved during compilation."
             | WarningCode.TargetExitedAbnormally                -> "Processing of the compiled binary with the target {0} exited with an abnormal exit code {1}."
