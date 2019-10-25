@@ -4,7 +4,6 @@
 namespace Microsoft.Quantum.Testing
 {
     open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Canon;
 
     /// # Summary
     /// Contains a complex number. 
