@@ -73,9 +73,9 @@ let private buildSyntaxTree code =
     let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message) 
     let file = CompilationUnitManager.InitializeFileManager(fileId, code)
     compilationUnit.AddOrUpdateSourceFileAsync file |> ignore  // spawns a task that modifies the current compilation
-    let mutable syntaxTree = compilationUnit.GetSyntaxTree()   // will wait for any current tasks to finish
-    FunctorGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree) |> ignore
-    syntaxTree
+    let mutable syntaxTree = compilationUnit.Build().BuiltCompilation // will wait for any current tasks to finish
+    CodeGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree) |> ignore
+    syntaxTree.Namespaces
 
 
 //////////////////////////////// tests //////////////////////////////////
