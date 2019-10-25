@@ -1109,7 +1109,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 try { AssemblyName.GetAssemblyName(asm.LocalPath); } // will throw if the file is not a valid assembly
                 catch (FileLoadException) { } // the file is already loaded -> we can ignore that one
                 if (!AssemblyLoader.LoadReferencedAssembly(asm, out var headers))
-                { onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.UnrecognizedContentInReference, new[] { asm.LocalPath }, MessageSource(asm).Value)); }
+                { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnrecognizedContentInReference, new[] { asm.LocalPath }, MessageSource(asm).Value)); }
                 return headers;
             }
             catch (BadImageFormatException ex)

@@ -501,17 +501,9 @@ namespace Microsoft.Quantum.QsCompiler
             this.CompilationStatus.Serialization = 0;
             if (this.CompilationOutput == null) ErrorAndReturn();
 
-            // FIXME: this needs to be revised
-            var invalidReferences = this.LoadDiagnostics
-                .Filter(DiagnosticTools.WarningType(WarningCode.UnrecognizedContentInReference))
-                .Select(d => d.Source).ToImmutableHashSet();
-            var validSources = this.CompilationOutput.Namespaces == null
-                ? new NonNullable<string>[0]
-                : GetSourceFiles.Apply(this.CompilationOutput.Namespaces).Where(s => !invalidReferences.Contains(s.Value)).ToArray();
-
             using var writer = new BsonDataWriter(ms) { CloseOutput = false };
-            var valid = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, validSources));
-            var compilation = new QsCompilation(valid.ToImmutableArray(), this.CompilationOutput.EntryPoints);
+            var fromSources = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, s => s.Value.EndsWith(".qs")));
+            var compilation = new QsCompilation(fromSources.ToImmutableArray(), this.CompilationOutput.EntryPoints);
             try { Json.Serializer.Serialize(writer, compilation); }
             catch (Exception ex)
             {
@@ -574,21 +566,15 @@ namespace Microsoft.Quantum.QsCompiler
             var outputPath = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DllOutputPath) ? fallbackFileName : this.Config.DllOutputPath);
             outputPath = Path.ChangeExtension(outputPath, "dll");
 
-            // FIXME: this needs to be revised
-            var usedReferences = GetSourceFiles.Apply(this.CompilationOutput.Namespaces);
-            var invalidReferences = this.LoadDiagnostics
-                .Filter(DiagnosticTools.WarningType(WarningCode.UnrecognizedContentInReference))
-                .Select(d => d.Source).ToImmutableHashSet();
-            var validReferences = usedReferences
-                .Where(file => file.Value.EndsWith(".dll") && !invalidReferences.Contains(file.Value));
-
             try
             {
-                // If System.Object can't be found as a reference a warning is generated. 
-                // To avoid that warning, we package that reference as well. 
-                var references = validReferences.Select((dllFile, idx) => 
+                var references = GetSourceFiles.Apply(this.CompilationOutput.Namespaces) // we choose to keep only the references that were used
+                    .Where(file => file.Value.EndsWith(".dll")) 
+                    .Select((dllFile, idx) => 
                         MetadataReference.CreateFromFile(dllFile.Value)
                         .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{idx}" })) // referenced Q# dlls are recognized based on this alias 
+                    // If System.Object can't be found as a reference a warning is generated. 
+                    // To avoid that warning, we package that reference as well. 
                     .Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
 
                 var tree = MetadataGeneration.GenerateAssemblyMetadata(references);
