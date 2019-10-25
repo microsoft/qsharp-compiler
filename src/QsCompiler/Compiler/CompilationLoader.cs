@@ -299,7 +299,10 @@ namespace Microsoft.Quantum.QsCompiler
                 if (serialized && this.Config.BuildOutputFolder != null)
                 { this.PathToCompiledBinary = this.GenerateBinary(ms); }
                 if (serialized && this.Config.DllOutputPath != null)
-                { this.DllOutputPath = this.GenerateDll(ms); }
+                {
+                    this.CompilationStatus.DllGeneration = 0;
+                    //this.DllOutputPath = this.GenerateDll(ms); 
+                }
             }
 
             // executing the specified generation steps 
