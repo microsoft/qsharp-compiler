@@ -225,8 +225,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (logger.Verbosity < DiagnosticSeverity.Information) logger.Verbosity = DiagnosticSeverity.Information;
             if (options.PrintTextRepresentation) PrintFileContentInMemory(loaded.VerifiedCompilation, logger);
             if (options.PrintTokenization) PrintContentTokenization(loaded.VerifiedCompilation, logger);
-            if (options.PrintSyntaxTree) PrintSyntaxTree(loaded.GeneratedSyntaxTree, loaded.VerifiedCompilation, logger);
-            if (options.PrintCompiledCode) PrintGeneratedQs(loaded.GeneratedSyntaxTree, loaded.VerifiedCompilation, logger);
+            if (options.PrintSyntaxTree) PrintSyntaxTree(loaded.CompilationOutput?.Namespaces, loaded.VerifiedCompilation, logger);
+            if (options.PrintCompiledCode) PrintGeneratedQs(loaded.CompilationOutput?.Namespaces, loaded.VerifiedCompilation, logger);
             return ReturnCode.Status(loaded);
         }
     }

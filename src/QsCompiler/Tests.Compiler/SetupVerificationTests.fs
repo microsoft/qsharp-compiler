@@ -20,8 +20,9 @@ open Xunit.Abstractions
 type CompilerTests (compilation : CompilationUnitManager.Compilation, output:ITestOutputHelper) = 
 
     let syntaxTree = 
-        match compilation.SyntaxTree.Values |> FunctorGeneration.GenerateFunctorSpecializations with 
-        | _, tree -> tree // the functor generation is expected to fail for certain cases
+        let mutable compilation = compilation.BuiltCompilation
+        CodeGeneration.GenerateFunctorSpecializations (compilation, &compilation) |> ignore // the functor generation is expected to fail for certain cases
+        compilation.Namespaces
 
     let callables = syntaxTree |> GlobalCallableResolutions
     let types = syntaxTree |> GlobalTypeResolutions
