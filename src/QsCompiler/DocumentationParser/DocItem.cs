@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         protected readonly string itemType;
         protected readonly DocComment comments;
         protected readonly bool deprecated;
-        protected readonly string deprecation;
+        protected readonly string replacement;
 
         /// <summary>
         /// The item's kind, as a string (Utilities.OperationKind, .FunctionKind, or .UdtKind)
@@ -52,18 +52,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             name = itemName;
             uid = (namespaceName + "." + name).ToLowerInvariant();
             itemType = kind;
-            var depAttrs = attributes.Where(Microsoft.Quantum.QsCompiler.BuiltIn.MarksDeprecation).ToList();
-            deprecated = false;
-            deprecation = "";
-            if (depAttrs.Count() > 0)
-            {
-                deprecated = true;
-                if (depAttrs.First().Argument.Expression is QsExpressionKind<TypedExpression, Identifier, ResolvedType>.StringLiteral str)
-                {
-                    deprecation = str.Item1.Value;
-                }
-            }
-            comments = new DocComment(documentation, name, deprecated, deprecation);
+            var res = SymbolResolution.TryFindRedirect(attributes);
+            deprecated = res.IsValue;
+            replacement = res.ValueOr("");
+            comments = new DocComment(documentation, name, deprecated, replacement);
         }
 
         /// <summary>
