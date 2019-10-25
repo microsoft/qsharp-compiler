@@ -58,17 +58,17 @@ namespace Microsoft.Quantum.QsCompiler
         // tools for loading the compiled syntax tree from the dll resource (later setup for shipping Q# libraries)
 
         /// <summary>
-        /// Given a stream containing the binary representation of compiled Q# code, returns the corresponding syntax tree.
+        /// Given a stream containing the binary representation of compiled Q# code, returns the corresponding Q# compilation.
         /// Throws an ArgumentNullException if the given stream is null.
         /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        public static IEnumerable<QsNamespace> LoadSyntaxTree(Stream stream)
+        public static QsCompilation LoadSyntaxTree(Stream stream)
         {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             using (var reader = new BsonDataReader(stream))
             {
-                reader.ReadRootValueAsArray = true;
-                return Json.Serializer.Deserialize<IEnumerable<QsNamespace>>(reader);
+                reader.ReadRootValueAsArray = false;
+                return Json.Serializer.Deserialize<QsCompilation>(reader);
             }
         }
 
@@ -85,8 +85,8 @@ namespace Microsoft.Quantum.QsCompiler
                 );
 
         /// <summary>
-        /// Given a reader for the byte stream of a dotnet dll, loads any Q# syntax tree included as a resource.
-        /// Returns true as well as the loaded tree if the given dll includes a suitable resource, 
+        /// Given a reader for the byte stream of a dotnet dll, loads any Q# compilation included as a resource.
+        /// Returns true as well as the syntax tree of the loaded compilation if the given dll includes a suitable resource, 
         /// and returns false as well as an empty sequence otherwise. 
         /// Throws an ArgumentNullException if any of the given readers is null.
         /// May throw an exception if the given binary file has been compiled with a different compiler version.
@@ -115,7 +115,7 @@ namespace Microsoft.Quantum.QsCompiler
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(Int32)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(Int32), resourceLength).ToArray();
-            syntaxTree = LoadSyntaxTree(new MemoryStream(resourceData));
+            syntaxTree = LoadSyntaxTree(new MemoryStream(resourceData)).Namespaces;
             return true;
         }
 

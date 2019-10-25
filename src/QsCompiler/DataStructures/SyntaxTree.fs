@@ -738,6 +738,16 @@ type QsNamespace = {
 }
 
 
+/// Describes a compiled Q# library or executable.
+type QsCompilation = {
+    /// contains all compiled namespaces 
+    Namespaces : ImmutableArray<QsNamespace>
+    /// Contains the names of all entry points of the compilation.
+    /// In the case of a library the array is empty.
+    EntryPoints : ImmutableArray<QsQualifiedName>
+}
+
+
 
 
 
