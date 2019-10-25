@@ -10,7 +10,7 @@ using Markdig;
 using Markdig.Renderers.Normalize;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
-
+using Microsoft.Quantum.QsCompiler.Diagnostics;
 
 namespace Microsoft.Quantum.QsCompiler.Documentation
 {
@@ -96,9 +96,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// associated with a source code element.
         /// </summary>
         /// <param name="docComments">The doc comments from the source code</param>
+        /// <param name="name">The name of the element</param>
         /// <param name="deprecated">Flag indicating whether or not the element had a Deprecated attribute</param>
-        /// <param name="deprecation">The string argument of the Deprecated attribute, if any</param>
-        public DocComment(IEnumerable<string> docComments, bool deprecated, string deprecation)
+        /// <param name="replacement">The name of the replacement element for deprecated elements, if given</param>
+        public DocComment(IEnumerable<string> docComments, string name, bool deprecated, string replacement)
         {
             string GetHeadingText(HeadingBlock heading)
             {
@@ -255,7 +256,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             this.SeeAlso = new List<string>();
             this.References = "";
 
-            var deprecationProcessed = false;
+            var deprecationSummary = String.IsNullOrWhiteSpace(replacement) 
+                                    ? DiagnosticItem.Message(WarningCode.DeprecationWithoutRedirect, new string[] { name })
+                                    : DiagnosticItem.Message(WarningCode.DeprecationWithRedirect, new string[] { name, "@\"" + replacement + "\"" });
+            var deprecationDetails = "";
+
             var text = String.Join("\n", docComments);
 
             // Only parse if there are comments to parse
@@ -277,11 +282,19 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                             this.ShortSummary = ToMarkdown(section.GetRange(0,1));
                             break;
                         case "Deprecated":
-                            this.Summary += "\r" + DeprecatedWarning + "\r" + ToMarkdown(section);
-                            this.ShortSummary = DeprecatedWarning + "\r" + ToMarkdown(section.GetRange(0, 1));
-                            summarySection.AddRange(DeprecatedSection);
-                            summarySection.AddRange(section);
-                            deprecationProcessed = true;
+                            if (String.IsNullOrWhiteSpace(name))
+                            {
+                                deprecationSummary = ToMarkdown(section.GetRange(0, 1));
+                                if (section.Count > 1)
+                                {
+                                    deprecationDetails = ToMarkdown(section.GetRange(1, section.Count - 1));
+                                }
+                            }
+                            else
+                            {
+                                deprecationDetails = ToMarkdown(section);
+                            }
+                            deprecated = true;
                             break;
                         case "Description":
                             this.Description = ToMarkdown(section);
@@ -321,25 +334,17 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     }
                 }
 
-                if (deprecated && !deprecationProcessed)
-                {
-                    var deprecationText = DeprecatedWarning + "\r" + deprecation;
-                    this.Summary += "\r" + deprecationText;
-                    this.ShortSummary = deprecationText;
-                    summarySection.AddRange(DeprecatedSection);
-                    if (!string.IsNullOrEmpty(deprecation))
-                    {
-                        summarySection.AddRange(Markdown.Parse(deprecation));
-                    }
-                }
 
                 this.Documentation = ToMarkdown(summarySection.Concat(descriptionSection));
             }
-            else
+
+            if (deprecated)
             {
-                this.Summary = DeprecatedWarning + deprecation;
-                this.ShortSummary = DeprecatedWarning + deprecation;
-                this.Documentation = DeprecatedWarning + deprecation;
+                var shortDeprecationText = DeprecatedWarning + "\r" + deprecationSummary;
+                var longDeprecationText = shortDeprecationText + (String.IsNullOrWhiteSpace(deprecationDetails) ? "" : "\r") + deprecationDetails;
+                this.Summary += "\r" + longDeprecationText;
+                this.ShortSummary = shortDeprecationText;
+                this.Documentation = deprecationSummary;
             }
         }
 
@@ -348,7 +353,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// associated with a source code element.
         /// </summary>
         /// <param name="docComments">The doc comments from the source code</param>
-        public DocComment(IEnumerable<string> docComments) : this(docComments, false, "")
+        public DocComment(IEnumerable<string> docComments) : this(docComments, "", false, "")
         {
 
         }

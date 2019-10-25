@@ -362,29 +362,27 @@ output:
                                   "# Deprecated",
                                   "Some other text"
                                 };
-            string dep = "Don't use this";
+            string dep = "newName";
             string warning = "> [!WARNING]\n> Deprecated\n";
+            string warningText = "name has been deprecated. Please use @\"newName\" instead.";
 
             // Test with just the Deprecated comment section
             var dc = new DocComment(comments);
             Assert.Equal(comments[1] + "\r" + warning + "\r" + comments[3], dc.Summary);
             Assert.Equal(warning + "\r" + comments[3], dc.ShortSummary);
-            // The Documentation string is run through the Markdown generator and so has \r instead of \n
-            Assert.Equal(comments[1] + "\r\r" + warning.Replace('\n', '\r') + "\r" + comments[3], dc.Documentation);
+            Assert.Equal(comments[3], dc.Documentation);
 
             // Test with just the deprecated attribute
-            dc = new DocComment(comments.Take(2), true, dep);
-            Assert.Equal(comments[1] + "\r" + warning + "\r" + dep, dc.Summary);
-            Assert.Equal(warning + "\r" + dep, dc.ShortSummary);
-            // The Documentation string is run through the Markdown generator and so has \r instead of \n
-            Assert.Equal(comments[1] + "\r\r" + warning.Replace('\n', '\r') + "\r" + dep, dc.Documentation);
+            dc = new DocComment(comments.Take(2), "name", true, dep);
+            Assert.Equal(comments[1] + "\r" + warning + "\r" + warningText, dc.Summary);
+            Assert.Equal(warning + "\r" + warningText, dc.ShortSummary);
+            Assert.Equal(warningText, dc.Documentation);
 
             // Test with both
-            dc = new DocComment(comments, true, dep);
-            Assert.Equal(comments[1] + "\r" + warning + "\r" + comments[3], dc.Summary);
-            Assert.Equal(warning + "\r" + comments[3], dc.ShortSummary);
-            // The Documentation string is run through the Markdown generator and so has \r instead of \n
-            Assert.Equal(comments[1] + "\r\r" + warning.Replace('\n', '\r') + "\r" + comments[3], dc.Documentation);
+            dc = new DocComment(comments, "name", true, dep);
+            Assert.Equal(comments[1] + "\r" + warning + "\r" + warningText + "\r" + comments[3], dc.Summary);
+            Assert.Equal(warning + "\r" + warningText, dc.ShortSummary);
+            Assert.Equal(warningText, dc.Documentation);
         }
     }
 }

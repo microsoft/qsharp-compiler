@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     deprecation = str.Item1.Value;
                 }
             }
-            comments = new DocComment(documentation, deprecated, deprecation);
+            comments = new DocComment(documentation, name, deprecated, deprecation);
         }
 
         /// <summary>
