@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
+using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
@@ -501,12 +502,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the syntax tree based on the current state of the compilation.
-        /// Note that functor generation directives are *not* evaluated in the the returned tree,
-        /// and the returned tree may contain invalid parts. 
+        /// Returns the built Q# compilation reflecting the current internal state.
+        /// Note that functor generation directives are *not* evaluated in the the returned compilation,
+        /// and the returned compilation may contain invalid parts. 
         /// Throws an InvalidOperationException if a callable definition is listed in GlobalSymbols for which no compilation exists. 
         /// </summary>
-        public ImmutableArray<QsNamespace> Build()
+        public QsCompilation Build()
         {
             this.SyncRoot.EnterReadLock();
             try
@@ -539,7 +540,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 var callables = this.CompiledCallables.Values.Concat(this.GlobalSymbols.ImportedCallables().Select(this.GetImportedCallable));
                 var types = this.CompiledTypes.Values.Concat(this.GlobalSymbols.ImportedTypes().Select(this.GetImportedType));
-                return CompilationUnit.NewSyntaxTree(callables, types, this.GlobalSymbols.Documentation());
+                var tree = CompilationUnit.NewSyntaxTree(callables, types, this.GlobalSymbols.Documentation());
+                var entryPoints = tree.Callables().Where(c => c.Attributes.Any(BuiltIn.MarksEntryPoint)).Select(c => c.FullName).ToImmutableArray();
+                return new QsCompilation(tree, entryPoints);
             }
             finally { this.SyncRoot.ExitReadLock(); }
         }
