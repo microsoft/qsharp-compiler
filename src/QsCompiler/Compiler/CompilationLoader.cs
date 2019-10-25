@@ -235,8 +235,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public readonly string DllOutputPath;
 
-        public IEnumerable<QsNamespace> GeneratedSyntaxTree =>
-            this.CompilationOutput?.Namespaces;
+        /// <summary>
+        /// Contains the full Q# syntax tree after executing all configured rewrite steps, including the content of loaded references. 
+        /// </summary>
+        public IEnumerable<QsNamespace> GeneratedSyntaxTree => this.CompilationOutput?.Namespaces;
 
         /// <summary>
         /// Builds the compilation for the source files and references loaded by the given loaders,
