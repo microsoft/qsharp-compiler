@@ -235,6 +235,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public readonly string DllOutputPath;
 
+        public IEnumerable<QsNamespace> GeneratedSyntaxTree =>
+            this.CompilationOutput?.Namespaces;
+
         /// <summary>
         /// Builds the compilation for the source files and references loaded by the given loaders,
         /// executing the compilation steps specified by the given options.
