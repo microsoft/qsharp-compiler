@@ -72,27 +72,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
-            CompilationLoader.BuildTarget DefineTarget(string exeName) => (binary, onException) =>
-            {
-                var targetOpts = new TargetOptions
-                {
-                    Input = new[] { binary },
-                    OutputFolder = Path.GetFullPath(options.OutputFolder ?? "."), // GetFullPath is needed for the output folder to be relative to the current folder!
-                    Verbose = options.Verbose,
-                    NoWarn = options.NoWarn,
-                };
-                var pathToExe = Path.GetFullPath(exeName);
-                var commandLineArgs = $"{pathToExe} {Parser.Default.FormatCommandLine(targetOpts)}";
-                var success = ProcessRunner.Run("dotnet", commandLineArgs, out var output, out var error, out var exitCode, out var ex, timeout: 30000);
-
-                if (ex != null) onException?.Invoke(ex);
-                if (exitCode != 0) logger.Log(WarningCode.TargetExitedAbnormally, new[] { exeName, exitCode.ToString() }, pathToExe); 
-                var (outStr, errStr) = (output.ToString(), error.ToString());
-                if (!String.IsNullOrWhiteSpace(outStr)) logger.Log(InformationCode.BuildTargetOutput, Enumerable.Empty<string>(), pathToExe, messageParam: outStr);
-                if (!String.IsNullOrWhiteSpace(errStr)) logger.Log(InformationCode.BuildTargetError, Enumerable.Empty<string>(), pathToExe, messageParam: errStr); 
-                return success;
-            };
-
             var specifiesTargets = options.Targets != null && options.Targets.Any();
             var loadOptions = new CompilationLoader.Configuration
             {
@@ -103,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (specifiesTargets ? "." : null),
                 DllOutputPath = " ", // generating the dll in the same location as the .bson file
-                Targets = options.Targets.ToImmutableDictionary(id => id, DefineTarget)
+                RewriteSteps = options.Targets?.Select(target => (target, (IRewriteStepOptions)null)) ?? ImmutableArray<(string, IRewriteStepOptions)>.Empty
             }; 
 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);

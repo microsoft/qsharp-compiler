@@ -36,10 +36,14 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public delegate References ReferenceLoader(Func<IEnumerable<string>, References> loadFromDisk);
         /// <summary>
-        /// Processes a compiled Q# binary file given its path, 
-        /// returns true or false to indicate its success or failure, and calls the given action on any thrown exception. 
+        /// Concrete implementation of the rewrite steps options such that the configured options may be null. 
         /// </summary>
-        public delegate bool BuildTarget(string pathToBinary, Action<Exception> onException);
+        private class RewriteStepOptions : IRewriteStepOptions
+        {
+            public readonly string OutputFolder;
+            internal RewriteStepOptions(Configuration config) =>
+                this.OutputFolder = config.BuildOutputFolder;
+        }
 
 
         /// <summary>
@@ -83,10 +87,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public string DllOutputPath;
             /// <summary>
-            /// Dictionary that maps an arbitarily chosen target name to the build targets to call with the path to the compiled binary.
-            /// The specified targets (dictionary values) will only be invoked if a binary file was generated successfully.
+            /// Contains a sequence of tuples with the path to a dotnet dll containing one or more rewrite steps 
+            /// (i.e. classes implementing IRewriteStep) and a function to get the corresponding rewrite step options.
+            /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation. 
             /// </summary>
-            public ImmutableDictionary<string, BuildTarget> Targets;
+            public IEnumerable<(string, IRewriteStepOptions)> RewriteSteps;
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
@@ -94,6 +99,12 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal bool SerializeSyntaxTree =>
                 BuildOutputFolder != null || DllOutputPath != null;
+
+            /// <summary>
+            /// Returns the default options used for rewrite steps if no options are specified, i.e. the given options are null.
+            /// </summary>
+            public IRewriteStepOptions RewriteStepDefaultOptions => 
+                new RewriteStepOptions(this);
         }
 
         private class ExecutionStatus
@@ -116,7 +127,7 @@ namespace Microsoft.Quantum.QsCompiler
             private bool WasSuccessful(bool run, int code) =>
                 (run && code == 0) || (!run && code < 0);
 
-            internal int Success(Configuration options) =>
+            internal bool Success(Configuration options) =>
                 this.SourceFileLoading <= 0 &&
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
@@ -128,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
                 !this.BuildTargets.Values.Any(status => !WasSuccessful(true, status))
-                ? 0 : 1;
+                ? true : false;
         }
 
         /// <summary>
@@ -200,7 +211,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Indicates the overall success of all compilation steps. 
         /// The compilation is indicated as having been successful if all steps that were configured to execute completed successfully.
         /// </summary>
-        public Status Success => GetStatus(this.CompilationStatus.Success(this.Config));
+        public bool Success => this.CompilationStatus.Success(this.Config);
 
 
         /// <summary>
@@ -254,7 +265,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             this.Logger = logger;
             this.Config = options ?? new Configuration();
-            this.CompilationStatus = new ExecutionStatus(this.Config.Targets?.Keys ?? Enumerable.Empty<string>());
+            this.CompilationStatus = new ExecutionStatus(this.Config.RewriteSteps?.Select(step => step.Item1) ?? Enumerable.Empty<string>());
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles) ?? throw new ArgumentNullException("unable to load source files");
             var references = loadReferences?.Invoke(this.LoadAssemblies) ?? throw new ArgumentNullException("unable to load referenced binary files");
@@ -322,12 +333,14 @@ namespace Microsoft.Quantum.QsCompiler
 
             // invoking the given targets
 
-            foreach (var buildTarget in this.Config.Targets ?? ImmutableDictionary<string, BuildTarget>.Empty)
+            foreach (var (target, rewriteStepOptions) in this.Config.RewriteSteps ?? Enumerable.Empty<(string, IRewriteStepOptions)>())
             {
-                this.CompilationStatus.BuildTargets[buildTarget.Key] = 0;
+                this.CompilationStatus.BuildTargets[target] = 0;
+                //rewriteStepOptions = rewriteStepOptions ?? this.Config.RewriteStepDefaultOptions;
+
                 var succeeded = this.PathToCompiledBinary != null && buildTarget.Value != null &&
                     buildTarget.Value(this.PathToCompiledBinary, ex => this.LogAndUpdate(buildTarget.Key, ex));
-                if (!succeeded) this.LogAndUpdate(buildTarget.Key, ErrorCode.TargetExecutionFailed, new[] { buildTarget.Key });
+                if (!succeeded) this.LogAndUpdate(target, ErrorCode.TargetExecutionFailed, new[] { buildTarget.Key });
             } 
         }
 
