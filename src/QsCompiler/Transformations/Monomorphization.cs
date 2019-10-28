@@ -40,11 +40,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     {
         ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> NamespaceCallables;
 
-        public static IEnumerable<QsNamespace> Apply(IEnumerable<QsNamespace> namespaces, QsQualifiedName entryPointName)
+        public static QsCompilation Apply(QsCompilation compilation, QsQualifiedName entryPointName)
         {
-            if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
+            if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
 
-            var globals = namespaces.GlobalCallableResolutions();
+            var globals = compilation.Namespaces.GlobalCallableResolutions();
 
             var entryPoints = globals
                 .Where(call => call.Key.IsEqual(entryPointName)) // TODO: get list of entry points
@@ -88,7 +88,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var filter = new ResolveGenericsSyntax(responses
                 .GroupBy(res => res.concreteCallable.FullName.Namespace)
                 .ToImmutableDictionary(group => group.Key, group => group.Select(res => res.concreteCallable)));
-            return namespaces.Select(ns => filter.Transform(ns));
+            return new QsCompilation(compilation.Namespaces.Select(ns => filter.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
         }
 
         /// <summary>
