@@ -3,7 +3,9 @@
 
 namespace Microsoft.Quantum.QsCompiler.Optimizations
 
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
 open Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming
@@ -20,12 +22,13 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 type PreEvalution =
 
     /// Attempts to pre-evaluate the given sequence of namespaces as much as possible
-    static member All (arg : QsNamespace seq) =
+    static member All (arg : QsCompilation) =
 
         // TODO: these should be configurable
         let removeFunctions = false
         let maxSize = 40
 
+        // TODO: this should actually only evaluate everything for each entry point
         let rec evaluate (tree : _ list) = 
             let mutable tree = tree
             tree <- List.map (StripAllKnownSymbols().Transform) tree
@@ -45,4 +48,5 @@ type PreEvalution =
             if optimizers |> List.exists (fun opt -> opt.checkChanged()) then evaluate tree 
             else tree
 
-        arg |> Seq.map StripPositionInfo.Apply |> List.ofSeq |> evaluate
+        let namespaces = arg.Namespaces |> Seq.map StripPositionInfo.Apply |> List.ofSeq |> evaluate
+        QsCompilation.New (namespaces.ToImmutableArray(), arg.EntryPoints)

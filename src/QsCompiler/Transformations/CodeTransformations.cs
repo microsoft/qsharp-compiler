@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Immutable;
+using System.Linq;
 using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Optimizations;
@@ -47,26 +49,37 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         }
 
         /// <summary>
-        /// Eliminates all conjugations from the given scope by replacing them with the corresponding implementations (i.e. inlining them). 
+        /// Eliminates all conjugations from the given compilation by replacing them with the corresponding implementations (i.e. inlining them). 
         /// The generation of the adjoint for the outer block is subject to the same limitation as any adjoint auto-generation. 
         /// In particular, it is only guaranteed to be valid if operation calls only occur within expression statements, and 
         /// throws an InvalidOperationException if the outer block contains while-loops. 
-        /// Throws an ArgumentNullException if the given scope is null.
+        /// Any thrown exception is logged using the given onException action and are silently ignored if onException is not specified or null. 
+        /// Returns true if the transformation succeeded without throwing an exception, and false otherwise. 
+        /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null. 
         /// </summary>
-        public static QsScope InlineConjugations(this QsScope scope) =>
-            new InlineConjugationStatements().Transform(scope);
+        public static bool InlineConjugations(this QsCompilation compilation, out QsCompilation inlined, Action<Exception> onException = null)
+        {
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
+            var inline = new InlineConjugations(onException); 
+            var namespaces = compilation.Namespaces.Select(inline.Transform).ToImmutableArray();
+            inlined = new QsCompilation(namespaces, compilation.EntryPoints);
+            return inline.Success;
+        }
 
         /// <summary>
-        /// 
+        /// Pre-evaluates as much of the classical computations as possible in the given compilation. 
+        /// Any thrown exception is logged using the given onException action and are silently ignored if onException is not specified or null. 
+        /// Returns true if the transformation succeeded without throwing an exception, and false otherwise. 
+        /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null. 
         /// </summary>
-        public static bool PreEvaluateAll(IEnumerable<QsNamespace> syntaxTree, 
-            out IEnumerable<QsNamespace> evaluated, Action<Exception> onException = null)
+        public static bool PreEvaluateAll(this QsCompilation compilation, out QsCompilation evaluated, Action<Exception> onException = null)
         {
-            try { evaluated = PreEvalution.All(syntaxTree); }
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
+            try { evaluated = PreEvalution.All(compilation); }
             catch (Exception ex)
             {
                 onException?.Invoke(ex);
-                evaluated = syntaxTree;
+                evaluated = compilation;
                 return false;
             }
             return true;
