@@ -1,11 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+namespace Microsoft.Quantum.Core {
+	@ Attribute()
+    newtype Attribute = Unit;
+
+    @ Attribute()
+    newtype EntryPoint = Unit;
+}
+
 namespace Microsoft.Quantum.Testing.Monomorphization {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Extensions.Math;
-    
+
 	operation MyBasisChange<'Q>(q : Qubit, bar : 'Q) : Int {
         body (...) {
 			mutable temp = new 'Q[3];
@@ -86,6 +94,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
 		}
 	}
 
+	@ EntryPoint()
 	operation Main() : Unit {
 		body (...) {
 			let temp = Foo<_, Double>(1, _);

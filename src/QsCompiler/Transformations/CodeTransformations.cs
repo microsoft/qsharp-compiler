@@ -4,8 +4,6 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Collections.Generic;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Optimizations;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
@@ -87,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Eliminates all type parameterized callables from the scope by replacing their definitions
+        /// Eliminates all type-parameterized callables from the scope by replacing their definitions
         /// and references to concrete versions of the callable.
         /// Any thrown exception is logged using the given onException action and are silently ignored if onException is not specified or null.
         /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
@@ -98,8 +96,7 @@ namespace Microsoft.Quantum.QsCompiler
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             try
             {
-                // TODO: Hard-coded values are given ONLY FOR DEV
-                result = ResolveGenericsSyntax.Apply(compilation, new QsQualifiedName(NonNullable<string>.New("Microsoft.Quantum.Testing.Monomorphization"), NonNullable<string>.New("Main")));
+                result = ResolveGenericsSyntax.Apply(compilation);
             }
             catch (Exception ex)
             {

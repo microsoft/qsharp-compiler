@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Dynamic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -40,19 +39,29 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     {
         ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> NamespaceCallables;
 
-        public static QsCompilation Apply(QsCompilation compilation, QsQualifiedName entryPointName)
+        public static QsCompilation Apply(QsCompilation compilation)
         {
             if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
 
             var globals = compilation.Namespaces.GlobalCallableResolutions();
 
-            var entryPoints = globals
-                .Where(call => call.Key.IsEqual(entryPointName)) // TODO: get list of entry points
+            //var entryPoints = compilation.EntryPoints.Join(globals,
+            //    ep => ep,
+            //    global => global.Key,
+            //    (ep, global) => new Request
+            //    {
+            //        originalName = global.Key,
+            //        typeResolutions = ImmutableConcretion.Empty,
+            //        concreteName = global.Key
+            //    },
+            //    new CompareQsQualifiedName());
+
+            var entryPoints = compilation.EntryPoints
                 .Select(call => new Request
                 {
-                    originalName = call.Key,
+                    originalName = call,
                     typeResolutions = ImmutableConcretion.Empty,
-                    concreteName = call.Key
+                    concreteName = call
                 });
 
             var requests = new Stack<Request>(entryPoints);

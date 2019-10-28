@@ -2,7 +2,6 @@
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
