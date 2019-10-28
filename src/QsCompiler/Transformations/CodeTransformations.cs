@@ -86,7 +86,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             try
             {
                 // TODO: Hard-coded values are given ONLY FOR DEV
-                result = ResolveGenericsSyntax.Apply(syntaxTree, new QsQualifiedName(NonNullable<string>.New("Microsoft.Quantum.Testing"), NonNullable<string>.New("Main")));
+                result = ResolveGenericsSyntax.Apply(syntaxTree, new QsQualifiedName(NonNullable<string>.New("Microsoft.Quantum.Testing.Monomorphization"), NonNullable<string>.New("Main")));
                 return true;
             }
             catch (Exception ex)
