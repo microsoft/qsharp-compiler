@@ -9,12 +9,11 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations;
 
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    public static class FunctorGeneration
+    public static class CodeGeneration
     {
         /// <summary>
         /// Given the argument tuple of a specialization, returns the argument tuple for its controlled version.
@@ -164,20 +163,20 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given a syntax tree (sequence of Q# namespaces), evaluates all functor generator directives and
-        /// builds a new syntax tree where the corresponding elements in the tree are replaced by the generated implementations.
+        /// Given a Q# compilation, evaluates all functor generator directives and
+        /// builds a new compilation where the corresponding elements in the syntax tree are replaced by the generated implementations.
         /// If the evaluation fails, the corresponding callable is left unchanged in the new tree. 
-        /// Returns the built tree as out parameter, and a boolean indicating whether the evaluation of all directives was successful.
-        /// Throws an ArgumentNullException if the given sequence of namespaces, or any of the contained namespaces is null. 
-        /// Throws an ArgumentException if more than one specialization of the same kind exists for a callable.
+        /// This is the case e.g. if more than one specialization of the same kind exists for a callable which causes an ArgumentException to be thrown. 
+        /// Any thrown exception is logged using the given onException action and are silently ignored if onException is not specified or null. 
+        /// Returns a boolean indicating if the evaluation of all directives was successful.
+        /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null. 
         /// </summary>
-        public static bool GenerateFunctorSpecializations(IEnumerable<QsNamespace> syntaxTree, out IEnumerable<QsNamespace> built) 
+        public static bool GenerateFunctorSpecializations(QsCompilation compilation, out QsCompilation built, Action<Exception> onException = null) 
         {
-            if (syntaxTree == null) throw new ArgumentNullException(nameof(syntaxTree));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             var success = true;
-            built = syntaxTree.Select(ns =>
+            var namespaces = compilation.Namespaces.Where(ns => ns != null).Select(ns =>
             {
-                if (ns == null) throw new ArgumentNullException(nameof(syntaxTree));
                 var elements = ns.Elements.Select(element =>
                 {
                     if (element is QsNamespaceElement.QsCallable callableDecl)
@@ -188,15 +187,21 @@ namespace Microsoft.Quantum.QsCompiler
                             callable = callable.BuildControlled();
                             callable = callable.BuildAdjoint();
                             callable = callable.BuildControlledAdjoint();
+                            return QsNamespaceElement.NewQsCallable(callable);
                         }
-                        catch { success = false; }
-                        return QsNamespaceElement.NewQsCallable(callable);
+                        catch (Exception ex)
+                        { 
+                            success = false;
+                            onException?.Invoke(ex);
+                            return QsNamespaceElement.NewQsCallable(callableDecl.Item);
+                        }
                     }
                     else return element;
 
                 });
                 return new QsNamespace(ns.Name, elements.ToImmutableArray(), ns.Documentation);
-            }).ToImmutableArray();
+            });
+            built = new QsCompilation(namespaces.ToImmutableArray(), compilation.EntryPoints);
             return success;
         }
     }

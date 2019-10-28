@@ -743,6 +743,16 @@ type QsNamespace = {
     member this.WithElements (getElements : Func<_,_>) = {this with Elements = getElements.Invoke(this.Elements)}
 
 
+/// Describes a compiled Q# library or executable.
+type QsCompilation = {
+    /// contains all compiled namespaces 
+    Namespaces : ImmutableArray<QsNamespace>
+    /// Contains the names of all entry points of the compilation.
+    /// In the case of a library the array is empty.
+    EntryPoints : ImmutableArray<QsQualifiedName>
+}
+
+
 
 
 

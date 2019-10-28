@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -14,11 +13,8 @@ using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
-using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 
@@ -70,7 +66,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool AttemptFullPreEvaluation;
             /// <summary>
-            /// Replaces all usages of type parameterized callables with the concrete callable instantiation.
+            /// Replaces all usages of type-parameterized callables with the concrete callable instantiation.
             /// Removes parameterized types from the syntax tree.
             /// </summary>
             public bool Monomorphization;
@@ -250,9 +246,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public readonly CompilationUnitManager.Compilation VerifiedCompilation;
         /// <summary>
-        /// Contains the syntax tree after executing all configured rewrite steps.
+        /// Contains the built compilation including the syntax tree after executing all configured rewrite steps.
         /// </summary>
-        public readonly IEnumerable<QsNamespace> GeneratedSyntaxTree;
+        public readonly QsCompilation CompilationOutput;
         /// <summary>
         /// Contains the absolute path where the binary representation of the generated syntax tree has been written to disk.
         /// </summary>
@@ -287,7 +283,7 @@ namespace Microsoft.Quantum.QsCompiler
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);
             this.VerifiedCompilation = compilationManager.Build();
-            this.GeneratedSyntaxTree = this.VerifiedCompilation?.SyntaxTree.Values;
+            this.CompilationOutput = this.VerifiedCompilation?.BuiltCompilation;
 
             foreach (var diag in this.VerifiedCompilation.SourceFiles?.SelectMany(this.VerifiedCompilation.Diagnostics) ?? Enumerable.Empty<Diagnostic>())
             { this.LogAndUpdate(ref this.CompilationStatus.Validation, diag); }
@@ -298,7 +294,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.CompilationStatus.Monomorphization = 0;
                 void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.Monomorphization, ex); 
-                bool succeeded = this.GeneratedSyntaxTree != null && CodeTransformations.Monomorphisize(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree, onException);
+                bool succeeded = this.CompilationOutput != null && this.CompilationOutput.Monomorphisize(out this.CompilationOutput, onException);
                 if (!succeeded) this.LogAndUpdate(ref this.CompilationStatus.Monomorphization, ErrorCode.MonomorphizationFailed, Enumerable.Empty<string>());
             }
 
@@ -313,23 +309,24 @@ namespace Microsoft.Quantum.QsCompiler
             if (this.Config.GenerateFunctorSupport)
             {
                 this.CompilationStatus.FunctorSupport = 0;
-                var functorSpecGenerated = this.GeneratedSyntaxTree != null && FunctorGeneration.GenerateFunctorSpecializations(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree);
-                if (!functorSpecGenerated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
+                void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ex);
+                var generated = this.CompilationOutput != null && CodeGeneration.GenerateFunctorSpecializations(this.CompilationOutput, out this.CompilationOutput, onException);
+                if (!generated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
             }
 
             if (!this.Config.SkipSyntaxTreeTrimming)
             {
                 this.CompilationStatus.TreeTrimming = 0;
-                var rewrite = new InlineConjugations(onException: ex => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex));
-                this.GeneratedSyntaxTree = this.GeneratedSyntaxTree?.Select(ns => rewrite.Transform(ns))?.ToImmutableArray();
-                if (this.GeneratedSyntaxTree == null || !rewrite.Success) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
+                void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex);
+                var trimmed = this.CompilationOutput != null && this.CompilationOutput.InlineConjugations(out this.CompilationOutput, onException);
+                if (!trimmed) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
             }
 
             if (this.Config.AttemptFullPreEvaluation)
             {
                 this.CompilationStatus.PreEvaluation = 0;
                 void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ex);
-                var evaluated = this.GeneratedSyntaxTree != null && CodeTransformations.PreEvaluateAll(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree, onException);
+                var evaluated = this.CompilationOutput != null && this.CompilationOutput.PreEvaluateAll(out this.CompilationOutput, onException);
                 if (!evaluated) this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ErrorCode.PreEvaluationFailed, Enumerable.Empty<string>()); 
             }
 
@@ -526,7 +523,7 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Writes a binary representation of the generated syntax tree to the given memory stream. 
+        /// Writes a binary representation of the built Q# compilation output to the given memory stream. 
         /// Logs suitable diagnostics in the process and modifies the compilation status accordingly.
         /// Does *not* close the given memory stream, and
         /// returns true if the serialization has been successfully generated. 
@@ -535,29 +532,32 @@ namespace Microsoft.Quantum.QsCompiler
         private bool SerializeSyntaxTree(MemoryStream ms)
         {
             if (ms == null) throw new ArgumentNullException(nameof(ms));
+            bool ErrorAndReturn ()
+            { 
+                this.LogAndUpdate(ref this.CompilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
+                return false;
+            }
             this.CompilationStatus.Serialization = 0;
+            if (this.CompilationOutput == null) ErrorAndReturn();
 
             // FIXME: this needs to be revised
             var invalidReferences = this.LoadDiagnostics
                 .Filter(DiagnosticTools.WarningType(WarningCode.UnrecognizedContentInReference))
                 .Select(d => d.Source).ToImmutableHashSet();
-            var validSources = this.GeneratedSyntaxTree == null
+            var validSources = this.CompilationOutput.Namespaces == null
                 ? new NonNullable<string>[0]
-                : GetSourceFiles.Apply(this.GeneratedSyntaxTree).Where(s => !invalidReferences.Contains(s.Value)).ToArray();
+                : GetSourceFiles.Apply(this.CompilationOutput.Namespaces).Where(s => !invalidReferences.Contains(s.Value)).ToArray();
 
-            var serialized = this.GeneratedSyntaxTree != null;
-            using (var writer = new BsonDataWriter(ms) { CloseOutput = false })
+            using var writer = new BsonDataWriter(ms) { CloseOutput = false };
+            var valid = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, validSources));
+            var compilation = new QsCompilation(valid.ToImmutableArray(), this.CompilationOutput.EntryPoints);
+            try { Json.Serializer.Serialize(writer, compilation); }
+            catch (Exception ex)
             {
-                var validTree = this.GeneratedSyntaxTree?.Select(ns => FilterBySourceFile.Apply(ns, validSources));
-                try { Json.Serializer.Serialize(writer, validTree ?? Enumerable.Empty<QsNamespace>()); }
-                catch (Exception ex)
-                {
-                    this.LogAndUpdate(ref this.CompilationStatus.Serialization, ex);
-                    serialized = false;
-                }
+                this.LogAndUpdate(ref this.CompilationStatus.Serialization, ex);
+                ErrorAndReturn();
             }
-            if (!serialized) this.LogAndUpdate(ref this.CompilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
-            return serialized;
+            return true;
         }
 
         /// <summary>
@@ -614,7 +614,7 @@ namespace Microsoft.Quantum.QsCompiler
             outputPath = Path.ChangeExtension(outputPath, "dll");
 
             // FIXME: this needs to be revised
-            var usedReferences = GetSourceFiles.Apply(this.GeneratedSyntaxTree);
+            var usedReferences = GetSourceFiles.Apply(this.CompilationOutput.Namespaces);
             var invalidReferences = this.LoadDiagnostics
                 .Filter(DiagnosticTools.WarningType(WarningCode.UnrecognizedContentInReference))
                 .Select(d => d.Source).ToImmutableHashSet();
@@ -661,20 +661,20 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given the path to a Q# binary file, reads the content of that file and returns the corresponding syntax tree. 
+        /// Given the path to a Q# binary file, reads the content of that file and returns the corresponding syntax tree as out parameter. 
         /// Throws the corresponding exception if the given path does not correspond to a suitable binary file.
         /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        public static IEnumerable<QsNamespace> ReadBinary(string file) =>
-            ReadBinary(new MemoryStream(File.ReadAllBytes(Path.GetFullPath(file))));
+        public static void ReadBinary(string file, out IEnumerable<QsNamespace> syntaxTree) =>
+            ReadBinary(new MemoryStream(File.ReadAllBytes(Path.GetFullPath(file))), out syntaxTree);
 
         /// <summary>
-        /// Given a stream with the content of a Q# binary file, returns the corresponding syntax tree.
+        /// Given a stream with the content of a Q# binary file, returns the corresponding syntax tree as out parameter.
         /// Throws an ArgumentNullException if the given stream is null.
         /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        public static IEnumerable<QsNamespace> ReadBinary(Stream stream) =>
-            AssemblyLoader.LoadSyntaxTree(stream);
+        public static void ReadBinary(Stream stream, out IEnumerable<QsNamespace> syntaxTree)
+        { syntaxTree = AssemblyLoader.LoadSyntaxTree(stream).Namespaces; }
 
         /// <summary>
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder. 

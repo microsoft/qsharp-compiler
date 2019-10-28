@@ -243,3 +243,9 @@ type QsNamespace with
         Documentation = documentation
     }
 
+type QsCompilation with 
+    static member New (namespaces, entryPoints) = {
+        Namespaces = namespaces
+        EntryPoints = entryPoints
+    }
+

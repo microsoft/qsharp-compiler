@@ -663,7 +663,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// before constructing the syntax tree by calling FlushAndExecute.
         /// </summary>
         public IEnumerable<QsNamespace> GetSyntaxTree() =>
-            this.FlushAndExecute(() => this.CompilationUnit.Build().AsEnumerable());
+            this.FlushAndExecute(() => this.CompilationUnit.Build().Namespaces.AsEnumerable());
 
         /// <summary>
         /// Returns a Compilation object containing all information about the current state of the compilation. 
@@ -698,10 +698,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<ImmutableArray<CodeFragment>>> Tokenization;
             /// <summary>
-            /// Contains a dictionary that maps the ID of a file included in the compilation 
-            /// to the syntax tree built based on its content. 
+            /// Contains a dictionary that maps the name of a namespace to the compiled Q# namespace.
             /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, QsNamespace> SyntaxTree;
+            /// <summary>
+            /// Contains the built Q# compilation.
+            /// </summary>
+            public readonly QsCompilation BuiltCompilation; 
 
             /// <summary>
             /// Contains a dictionary that maps the name of each namespace defined in the compilation to a look-up 
@@ -799,6 +802,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 try
                 {
+                    this.BuiltCompilation = manager.CompilationUnit.Build();
                     this.SourceFiles = manager.FileContentManagers.Keys.ToImmutableHashSet();
                     this.References = manager.CompilationUnit.Externals.Declarations.Keys.ToImmutableHashSet();
 
@@ -808,7 +812,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.Tokenization = this.SourceFiles
                         .Select(file => (file, manager.FileContentManagers[file].GetTokenizedLines().Select(line => line.Select(frag => frag.Copy()).ToImmutableArray()).ToImmutableArray()))
                         .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.SyntaxTree = manager.CompilationUnit.Build().ToImmutableDictionary(ns => ns.Name);
+                    this.SyntaxTree = this.BuiltCompilation.Namespaces.ToImmutableDictionary(ns => ns.Name);
 
                     this.OpenDirectivesForEachFile = this.SyntaxTree.Keys.ToImmutableDictionary(
                         nsName => nsName, 
