@@ -269,7 +269,9 @@ type ErrorCode =
     | MissingProjectReferenceDll = 7012
     | InvalidProjectOutputPath = 7013
     | SourceFilesMissing = 7014
-    | UnexpectedCompilerException = 7015
+    | CouldNotLoadCompilerPlugin = 7015
+    | CouldNotInstantiateRewriteStep = 7016
+    | UnexpectedCompilerException = 7017
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
@@ -606,11 +608,13 @@ type DiagnosticItem =
             | ErrorCode.UnknownSourceFile                       -> "Could not find the source file \"{0}\" to compile."
             | ErrorCode.UnknownProjectReference                 -> "Could not find the project file for the referenced project \"{0}\"."
             | ErrorCode.CouldNotLoadSourceFile                  -> "Unable to load source file \"{0}\"."
-            | ErrorCode.FileIsNotAnAssembly                     -> "The given file \"{0}\" is not an valid assembly."
+            | ErrorCode.FileIsNotAnAssembly                     -> "The given file \"{0}\" is not an valid .NET Core assembly."
             | ErrorCode.UnrecognizedContentInReference          -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
             | ErrorCode.MissingProjectReferenceDll              -> "Missing binary file for project reference \"{0}\". Build the referenced project for its content to be detected correctly."
             | ErrorCode.InvalidProjectOutputPath                -> "Invalid project output path for project \"{0}\"."
             | ErrorCode.SourceFilesMissing                      -> "No source files have been specified."
+            | ErrorCode.CouldNotLoadCompilerPlugin              -> "Unable to load the file \"{0}\" to integrate the specified rewrite steps into the compilation process."
+            | ErrorCode.CouldNotInstantiateRewriteStep          -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor. "
             | ErrorCode.UnexpectedCompilerException             -> "The compiler threw an exception."
 
             | ErrorCode.FunctorGenerationFailed                 -> "Auto-generation of functor specialization(s) failed."

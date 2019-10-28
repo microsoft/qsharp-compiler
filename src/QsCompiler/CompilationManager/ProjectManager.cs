@@ -1023,11 +1023,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Sets the corresponding out parameter to a sequence with all duplicate file names,
         /// and to a sequence of names for which no such file exists respectively. 
         /// Filters all file names that are null or only consist of white spaces. 
+        /// Generates suitable diagnostics for duplicate and not found files, and for invalid paths.
         /// Throws an ArgumentNullException if the given sequence of files is null. 
         /// </summary>
         public static IEnumerable<Uri> FilterFiles(IEnumerable<string> files,
+            WarningCode duplicateFileWarning, Func<string, string, Diagnostic> FileNotFoundDiagnostic,
             out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
-            out IEnumerable<(string, Exception)> invalidPaths)
+            out IEnumerable<(string, Exception)> invalidPaths,
+            Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
             if (files == null) { throw new ArgumentNullException(nameof(files)); }
             var exceptions = new List<(string, Exception)>();
@@ -1046,10 +1049,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(WithFullPath)
                 .Where(file => file != null).ToList();
             invalidPaths = exceptions.ToImmutableArray();
-
             duplicates = uris.GroupBy(x => x).Where(x => x.Count() > 1).Select(x => x.Key).ToImmutableArray();
             var distinctSources = new HashSet<Uri>(uris);
             notFound = distinctSources.Where(f => !File.Exists(f.LocalPath)).ToImmutableArray();
+
+            foreach (var file in duplicates) onDiagnostic?.Invoke(Warnings.LoadWarning(duplicateFileWarning, new[] { file.LocalPath }, MessageSource(file).Value));
+            foreach (var file in notFound) onDiagnostic?.Invoke(FileNotFoundDiagnostic(file.LocalPath, MessageSource(file).Value));
+            foreach (var (file, ex) in invalidPaths)
+            {
+                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
+                onException?.Invoke(ex);
+            }
             return distinctSources.Where(f => File.Exists(f.LocalPath)).ToImmutableArray();
         }
 
@@ -1076,17 +1086,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
             }
 
-            var found = FilterFiles(sourceFiles, 
-                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
-                out IEnumerable<(string, Exception)> invalidPaths);
-            foreach (var file in duplicates) onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.DuplicateSourceFile, new[] { file.LocalPath }, MessageSource(file).Value));
-            foreach (var file in notFound) onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownSourceFile, new[] { file.LocalPath }, MessageSource(file).Value)); 
-            foreach (var (file, ex) in invalidPaths)
-            {
-                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
-                onException?.Invoke(ex);
-            }
-
+            static Diagnostic NotFoundDiagnostic(string notFound, string source) => Errors.LoadError(ErrorCode.UnknownSourceFile, new[] { notFound }, source);
+            var found = FilterFiles(sourceFiles, WarningCode.DuplicateSourceFile, NotFoundDiagnostic,
+                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths);
             return found
                 .Select(file => (file, GetFileContent(file)))
                 .Where(source => source.Item2 != null)
@@ -1145,16 +1147,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             References.Headers LoadReferencedDll(Uri asm) =>
                 ProjectManager.LoadReferencedDll(asm, onException: onException); // any exception here is really a failure of GetOutputPath and will be treated as an unexpected exception
 
-            var existingProjectFiles = FilterFiles(refProjectFiles,
-                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
-                out IEnumerable<(string, Exception)> invalidPaths);
-            foreach (var file in duplicates) onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.DuplicateProjectReference, new[] { file.LocalPath }, MessageSource(file).Value));
-            foreach (var file in notFound) onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownProjectReference, new[] { file.LocalPath }, MessageSource(file).Value));
-            foreach (var (file, ex) in invalidPaths)
-            {
-                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
-                onException?.Invoke(ex);
-            }
+            static Diagnostic NotFoundDiagnostic(string notFound, string source) => Errors.LoadError(ErrorCode.UnknownProjectReference, new[] { notFound }, source);
+            var existingProjectFiles = FilterFiles(refProjectFiles, WarningCode.DuplicateProjectReference, NotFoundDiagnostic,
+                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths);
 
             Uri TryGetOutputPath(Uri projFile)
             {
@@ -1195,16 +1190,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ProjectManager.LoadReferencedDll(asm, onDiagnostic, onException);
 
             var relevant = references.Where(file => file.IndexOf("mscorlib.dll", StringComparison.InvariantCultureIgnoreCase) < 0);
-            var assembliesToLoad = FilterFiles(relevant,
+            static Diagnostic NotFoundDiagnostic(string notFound, string source) => Warnings.LoadWarning(WarningCode.UnknownBinaryFile, new[] { notFound }, source);
+            var assembliesToLoad = FilterFiles(relevant, WarningCode.DuplicateBinaryFile, NotFoundDiagnostic,
                 out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
                 out IEnumerable<(string, Exception)> invalidPaths);
-            foreach (var file in duplicates) onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.DuplicateBinaryFile, new[] { file.LocalPath }, MessageSource(file).Value));
-            foreach (var file in notFound) onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.UnknownBinaryFile, new[] { file.LocalPath }, MessageSource(file).Value));
-            foreach (var (file, ex) in invalidPaths)
-            {
-                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
-                onException?.Invoke(ex);
-            }
 
             return assembliesToLoad
                 .Select(file => (file, LoadReferencedDll(file)))
