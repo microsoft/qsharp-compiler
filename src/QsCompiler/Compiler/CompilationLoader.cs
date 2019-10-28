@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
@@ -333,14 +334,32 @@ namespace Microsoft.Quantum.QsCompiler
 
             // invoking the given targets
 
+
+
             foreach (var (target, rewriteStepOptions) in this.Config.RewriteSteps ?? Enumerable.Empty<(string, IRewriteStepOptions)>())
             {
                 this.CompilationStatus.BuildTargets[target] = 0;
-                //rewriteStepOptions = rewriteStepOptions ?? this.Config.RewriteStepDefaultOptions;
+                // try ...
+                var assembly = Assembly.LoadFrom(target); // fixme: what if it doesn't exist etc
+                var rewriteSteps = assembly.GetTypes().Where(t => t.IsAssignableFrom(typeof(IRewriteStep))).Select(step =>
+                {
+                    try { return Activator.CreateInstance(step) as IRewriteStep; }
+                    catch { return null; } // FIXME: fail if no parameterless constructor is available
+                })
+                .Where(step => step != null).ToList(); // fixme: messages for null
+                rewriteSteps.Sort((fst, snd) => snd.Priority - fst.Priority); // fixme: check ordering
 
-                var succeeded = this.PathToCompiledBinary != null && buildTarget.Value != null &&
-                    buildTarget.Value(this.PathToCompiledBinary, ex => this.LogAndUpdate(buildTarget.Key, ex));
-                if (!succeeded) this.LogAndUpdate(target, ErrorCode.TargetExecutionFailed, new[] { buildTarget.Key });
+                foreach (var rewriteStep in rewriteSteps)
+                { 
+                    rewriteStep.Options = rewriteStepOptions ?? rewriteStep.Options ?? this.Config.RewriteStepDefaultOptions;
+                    var executeTransformation = (!rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(this.CompilationOutput)) && rewriteStep.ImplementsTransformation; // FIXME: error handling
+                    var executed = executeTransformation && rewriteStep.Transformation(this.CompilationOutput, out this.CompilationOutput); // FIME
+                    var succeeded = executed && (!rewriteStep.ImplementsPostconditionVerification || rewriteStep.PostconditionVerification(this.CompilationOutput)); // FIXME
+                }
+
+                //var succeeded = this.PathToCompiledBinary != null && buildTarget.Value != null &&
+                //    buildTarget.Value(this.PathToCompiledBinary, ex => this.LogAndUpdate(buildTarget.Key, ex));
+                //if (!succeeded) this.LogAndUpdate(target, ErrorCode.TargetExecutionFailed, new[] { buildTarget.Key });
             } 
         }
 
