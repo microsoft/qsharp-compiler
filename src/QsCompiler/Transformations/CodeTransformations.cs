@@ -112,14 +112,16 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Validates that the monomorphization step cleared the syntax tree of all references to, and instances of type-parameterized callables.
-        /// Throws an ArgumentNullException if the given syntaxTree is null.
+        /// Any thrown exception is logged using the given onException action and are silently ignored if onException is not specified or null.
+        /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
+        /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>
-        public static bool ValidateMonomorphization(IEnumerable<QsNamespace> syntaxTree, Action<Exception> onException = null)
+        public static bool ValidateMonomorphization(this QsCompilation compilation, Action<Exception> onException = null)
         {
-            if (syntaxTree == null) throw new ArgumentNullException(nameof(syntaxTree));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             try
             {
-                MonomorphizationValidationTransformation.Apply(syntaxTree);
+                MonomorphizationValidationTransformation.Apply(compilation);
                 return true;
             }
             catch (Exception ex)

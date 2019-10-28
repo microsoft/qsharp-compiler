@@ -13,14 +13,14 @@ open Xunit.Abstractions
 open Microsoft.Quantum.QsCompiler
 open System
 
-type MonomorphizationTests (output:ITestOutputHelper) =
+//type MonomorphizationTests (output:ITestOutputHelper) =
     //inherit CompilerTests(CompilerTests.Compile "TestCases" ["temporary-test-file.qs"], output)
 
-    let builtTree =
-        let configuration = new CompilationLoader.Configuration (Monomorphization = true, MonomorphizationValidation = true)
-        let loaded = new CompilationLoader(["test.qs"], [], Nullable(configuration), null)
-        if loaded.Monomorphization = CompilationLoader.Status.Failed then null
-        else loaded.GeneratedSyntaxTree
+    //let builtTree =
+    //    let configuration = new CompilationLoader.Configuration (Monomorphization = true, MonomorphizationValidation = true)
+    //    let loaded = new CompilationLoader(["test.qs"], [], Nullable(configuration), null)
+    //    if loaded.Monomorphization = CompilationLoader.Status.Failed then QsCompilation
+    //    else loaded.CompilationOutput
 
     //member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
     //    let ns = "Microsoft.Quantum.Testing.Monomorphization" |> NonNullable<_>.New

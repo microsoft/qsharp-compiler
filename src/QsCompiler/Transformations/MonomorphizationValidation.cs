@@ -10,11 +10,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 {
     public class MonomorphizationValidationTransformation
     {
-        public static void Apply(IEnumerable<QsNamespace> namespaces)
+        public static void Apply(QsCompilation compilation)
         {
             var filter = new MonomorphizationValidationSyntax();
 
-            foreach (var ns in namespaces)
+            foreach (var ns in compilation.Namespaces)
             {
                 filter.Transform(ns);
             }

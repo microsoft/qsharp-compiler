@@ -302,7 +302,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.CompilationStatus.MonomorphizationValidation = 0;
                 void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.MonomorphizationValidation, ex);
-                bool succeeded = this.GeneratedSyntaxTree != null && CodeTransformations.ValidateMonomorphization(this.GeneratedSyntaxTree, onException);
+                bool succeeded = this.CompilationOutput != null && this.CompilationOutput.ValidateMonomorphization(onException);
                 if (!succeeded) this.LogAndUpdate(ref this.CompilationStatus.MonomorphizationValidation, ErrorCode.MonomorphizationValidationFailed, Enumerable.Empty<string>());
             }
 
