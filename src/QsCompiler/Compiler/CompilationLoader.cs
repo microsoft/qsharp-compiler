@@ -283,7 +283,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.CompilationStatus.Monomorphization = 0;
                 void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.Monomorphization, ex); 
-                var succeeded = this.GeneratedSyntaxTree != null && CodeTransformations.Monomorphisize(this.GeneratedSyntaxTree, out this.GeneratedSyntaxTree, onException);
+                var succeeded = this.CompilationOutput != null && this.CompilationOutput.Monomorphisize(out this.CompilationOutput, onException);
                 if (!succeeded) this.LogAndUpdate(ref this.CompilationStatus.Monomorphization, ErrorCode.MonomorphizationFailed, Enumerable.Empty<string>());
             }
 
@@ -299,7 +299,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.CompilationStatus.TreeTrimming = 0;
                 void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex);
-                var trimmed = this.CompilationOutput != null && CodeTransformations.InlineConjugations(this.CompilationOutput, out this.CompilationOutput, onException);
+                var trimmed = this.CompilationOutput != null && this.CompilationOutput.InlineConjugations(out this.CompilationOutput, onException);
                 if (!trimmed) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
             }
 
@@ -307,7 +307,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.CompilationStatus.PreEvaluation = 0;
                 void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ex);
-                var evaluated = this.CompilationOutput != null && CodeTransformations.PreEvaluateAll(this.CompilationOutput, out this.CompilationOutput, onException);
+                var evaluated = this.CompilationOutput != null && this.CompilationOutput.PreEvaluateAll(out this.CompilationOutput, onException);
                 if (!evaluated) this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ErrorCode.PreEvaluationFailed, Enumerable.Empty<string>()); 
             }
 
