@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal DocCallable(string ns, QsCallable callableObj) 
             : base(ns, callableObj.FullName.Name.Value, 
                   callableObj.Kind.IsFunction ? Utils.FunctionKind : Utils.OperationKind, 
-                  callableObj.Documentation)
+                  callableObj.Documentation, callableObj.Attributes)
         {
             syntax = Utils.CallableToSyntax(callableObj);
             inputContent = Utils.CallableToArguments(callableObj);
