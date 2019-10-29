@@ -269,9 +269,10 @@ type ErrorCode =
     | MissingProjectReferenceDll = 7012
     | InvalidProjectOutputPath = 7013
     | SourceFilesMissing = 7014
-    | CouldNotLoadCompilerPlugin = 7015
-    | CouldNotInstantiateRewriteStep = 7016
-    | UnexpectedCompilerException = 7017
+    | UnknownCompilerPlugin = 7015
+    | CouldNotLoadCompilerPlugin = 7016
+    | CouldNotInstantiateRewriteStep = 7017
+    | UnexpectedCompilerException = 7018
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
@@ -613,7 +614,8 @@ type DiagnosticItem =
             | ErrorCode.MissingProjectReferenceDll              -> "Missing binary file for project reference \"{0}\". Build the referenced project for its content to be detected correctly."
             | ErrorCode.InvalidProjectOutputPath                -> "Invalid project output path for project \"{0}\"."
             | ErrorCode.SourceFilesMissing                      -> "No source files have been specified."
-            | ErrorCode.CouldNotLoadCompilerPlugin              -> "Unable to load the file \"{0}\" to integrate the specified rewrite steps into the compilation process."
+            | ErrorCode.UnknownCompilerPlugin                   -> "Could not find the .NET Core library \"{0}\" specifying transformations to perform as part of the compilation process."
+            | ErrorCode.CouldNotLoadCompilerPlugin              -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. The file needs to be a suitable .NET Core library."
             | ErrorCode.CouldNotInstantiateRewriteStep          -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor. "
             | ErrorCode.UnexpectedCompilerException             -> "The compiler threw an exception."
 

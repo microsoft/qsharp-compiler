@@ -267,24 +267,46 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public IEnumerable<QsNamespace> GeneratedSyntaxTree => this.CompilationOutput?.Namespaces;
 
-        private ImmutableArray<IRewriteStep> LoadRewriteSteps(Configuration config)
+
+
+        private static ImmutableArray<IRewriteStep> LoadRewriteSteps(Configuration config,
+            Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
+            // onDiagnostics = this.LogAndUpdateLoadDiagnostics(ref this.CompilationStatus.LoadedRewriteSteps, diagnostic);
+            // onException = this.LogAndUpdate(ref this.CompilationStatus.LoadedRewriteSteps, ex);
+
             if (config.RewriteSteps == null) return ImmutableArray<IRewriteStep>.Empty;
-            var rewriteSteps = ImmutableArray.CreateBuilder<IRewriteStep>();
-            foreach (var (target, rewriteStepOptions) in config.RewriteSteps)
+            Uri WithFullPath(string file)
             {
-                // FIXME: FULL NAME FOR TARGET ETC
+                try { return String.IsNullOrWhiteSpace(file) ? null : new Uri(Path.GetFullPath(file)); }
+                catch (Exception ex)
+                {
+                    onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
+                    onException?.Invoke(ex);
+                    return null;
+                }
+            }
+
+            var specifiedPluginDlls = config.RewriteSteps.Select(step => (WithFullPath(step.Item1), step.Item2)).Where(step => step.Item1 != null).ToList();
+            var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.Item1.LocalPath));
+            foreach (var file in notFoundDlls.Select(step => step.Item1).Distinct())
+            { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath)); }
+
+            var rewriteSteps = ImmutableArray.CreateBuilder<IRewriteStep>();
+            foreach (var (target, rewriteStepOptions) in foundDlls)
+            {
                 var relevantTypes = new List<Type>();
-                try { relevantTypes.AddRange(Assembly.LoadFrom(target).GetTypes().Where(t => t.IsAssignableFrom(typeof(IRewriteStep)))); }
+                Diagnostic LoadError(ErrorCode code, params string[] args) => Errors.LoadError(code, args, ProjectManager.MessageSource(target));
+                try { relevantTypes.AddRange(Assembly.LoadFrom(target.LocalPath).GetTypes().Where(t => t.IsAssignableFrom(typeof(IRewriteStep)))); }
                 catch (BadImageFormatException ex)
                 {
-                    var diagnostic = Errors.LoadError(ErrorCode.FileIsNotAnAssembly, new[] { target }, null); // FIXME: FULL NAME FOR TARGET? FIXME SOURCE
-                    this.LogAndUpdateLoadDiagnostics(ref this.CompilationStatus.LoadedRewriteSteps, diagnostic);
-                    this.LogAndUpdate(ref this.CompilationStatus.LoadedRewriteSteps, ex);
+                    onDiagnostic?.Invoke(LoadError(ErrorCode.FileIsNotAnAssembly, target.LocalPath));
+                    onException?.Invoke(ex);
                 }
                 catch (Exception ex)
                 {
-                    // todo: CouldNotLoadCompilerPlugin error (file name as arg)
+                    onDiagnostic?.Invoke(LoadError(ErrorCode.CouldNotLoadCompilerPlugin, target.LocalPath));
+                    onException?.Invoke(ex);
                 }
                 var loadedSteps = new List<IRewriteStep>();
                 foreach (var type in relevantTypes)
@@ -292,6 +314,8 @@ namespace Microsoft.Quantum.QsCompiler
                     try { loadedSteps.Add((IRewriteStep)Activator.CreateInstance(type)); }
                     catch (Exception ex)
                     {
+                        onDiagnostic?.Invoke(LoadError(ErrorCode.CouldNotInstantiateRewriteStep, type.ToString(), target.LocalPath));
+                        onException?.Invoke(ex);
                         // todo: CouldNotInstantiateRewriteStep error (args are the type name and the file name)
                     }
                 }
@@ -303,6 +327,8 @@ namespace Microsoft.Quantum.QsCompiler
             }
             return rewriteSteps.ToImmutableArray();
         }
+
+
 
         /// <summary>
         /// Builds the compilation for the source files and references loaded by the given loaders,
