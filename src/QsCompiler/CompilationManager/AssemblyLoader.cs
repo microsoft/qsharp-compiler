@@ -13,6 +13,7 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
 
 
@@ -57,15 +58,17 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Given a stream containing the binary representation of compiled Q# code, returns the corresponding Q# compilation.
-        /// Throws an ArgumentNullException if the given stream is null.
-        /// May throw an exception if the given binary file has been compiled with a different compiler version.
+        /// Returns true if the compilation could be deserialized without throwing an exception, and false otherwise. 
+        /// Throws an ArgumentNullException if the given stream is null, but ignores exceptions thrown during deserialization.
         /// </summary>
-        public static QsCompilation LoadSyntaxTree(Stream stream)
+        public static bool LoadSyntaxTree(Stream stream, out QsCompilation compilation)
         {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             using var reader = new BsonDataReader(stream);
-            reader.ReadRootValueAsArray = false;
-            return Json.Serializer.Deserialize<QsCompilation>(reader);
+            (compilation, reader.ReadRootValueAsArray) = (null, false);
+            try { compilation = Json.Serializer.Deserialize<QsCompilation>(reader); }
+            catch { return false; }
+            return compilation != null && !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
         }
 
         /// <summary>
@@ -110,8 +113,7 @@ namespace Microsoft.Quantum.QsCompiler
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(Int32)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(Int32), resourceLength).ToArray();
-            compilation = LoadSyntaxTree(new MemoryStream(resourceData));
-            return true;
+            return LoadSyntaxTree(new MemoryStream(resourceData), out compilation);
         }
 
 
