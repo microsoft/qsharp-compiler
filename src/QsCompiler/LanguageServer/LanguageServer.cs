@@ -429,7 +429,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             if (this.WaitForInit != null) return ProtocolError.AwaitingInitialization;
-            var param = Utils.TryJTokenAs<CodeActionParams>(arg);
+            var param = Utils.TryJTokenAs<Workarounds.CodeActionParams>(arg).ToCodeActionParams(); 
             try
             {
                 return QsCompilerError.RaiseOnFailure(() =>
