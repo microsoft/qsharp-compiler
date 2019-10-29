@@ -238,7 +238,7 @@ namespace Microsoft.Quantum.QsCompiler
         private readonly ImmutableArray<IRewriteStep> LoadedRewriteSteps;
 
         // FIXME: WE SHOUDL AT LEAST HAVE TO OPTION TO QUERY THE OUTPUT FOLDER FOR REWRITE STEPS
-        // FIXME: UNIQUENESS OF NAMES/IDS ...
+        // FIXME: dlls where they were loaded from?
 
         /// <summary>
         /// Contains all diagnostics generated upon source file and reference loading.
@@ -268,68 +268,6 @@ namespace Microsoft.Quantum.QsCompiler
         public IEnumerable<QsNamespace> GeneratedSyntaxTree => this.CompilationOutput?.Namespaces;
 
 
-
-        private static ImmutableArray<IRewriteStep> LoadRewriteSteps(Configuration config,
-            Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
-        {
-            // onDiagnostics = this.LogAndUpdateLoadDiagnostics(ref this.CompilationStatus.LoadedRewriteSteps, diagnostic);
-            // onException = this.LogAndUpdate(ref this.CompilationStatus.LoadedRewriteSteps, ex);
-
-            if (config.RewriteSteps == null) return ImmutableArray<IRewriteStep>.Empty;
-            Uri WithFullPath(string file)
-            {
-                try { return String.IsNullOrWhiteSpace(file) ? null : new Uri(Path.GetFullPath(file)); }
-                catch (Exception ex)
-                {
-                    onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
-                    onException?.Invoke(ex);
-                    return null;
-                }
-            }
-
-            var specifiedPluginDlls = config.RewriteSteps.Select(step => (WithFullPath(step.Item1), step.Item2)).Where(step => step.Item1 != null).ToList();
-            var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.Item1.LocalPath));
-            foreach (var file in notFoundDlls.Select(step => step.Item1).Distinct())
-            { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath)); }
-
-            var rewriteSteps = ImmutableArray.CreateBuilder<IRewriteStep>();
-            foreach (var (target, rewriteStepOptions) in foundDlls)
-            {
-                var relevantTypes = new List<Type>();
-                Diagnostic LoadError(ErrorCode code, params string[] args) => Errors.LoadError(code, args, ProjectManager.MessageSource(target));
-                try { relevantTypes.AddRange(Assembly.LoadFrom(target.LocalPath).GetTypes().Where(t => t.IsAssignableFrom(typeof(IRewriteStep)))); }
-                catch (BadImageFormatException ex)
-                {
-                    onDiagnostic?.Invoke(LoadError(ErrorCode.FileIsNotAnAssembly, target.LocalPath));
-                    onException?.Invoke(ex);
-                }
-                catch (Exception ex)
-                {
-                    onDiagnostic?.Invoke(LoadError(ErrorCode.CouldNotLoadCompilerPlugin, target.LocalPath));
-                    onException?.Invoke(ex);
-                }
-                var loadedSteps = new List<IRewriteStep>();
-                foreach (var type in relevantTypes)
-                {
-                    try { loadedSteps.Add((IRewriteStep)Activator.CreateInstance(type)); }
-                    catch (Exception ex)
-                    {
-                        onDiagnostic?.Invoke(LoadError(ErrorCode.CouldNotInstantiateRewriteStep, type.ToString(), target.LocalPath));
-                        onException?.Invoke(ex);
-                        // todo: CouldNotInstantiateRewriteStep error (args are the type name and the file name)
-                    }
-                }
-                foreach (var loaded in loadedSteps)
-                { loaded.Options = rewriteStepOptions ?? loaded.Options ?? config.RewriteStepDefaultOptions; }
-
-                loadedSteps.Sort((fst, snd) => snd.Priority - fst.Priority); // fixme: check ordering
-                rewriteSteps.AddRange(loadedSteps); // FIXME unique name ...
-            }
-            return rewriteSteps.ToImmutableArray();
-        }
-
-
-
         /// <summary>
         /// Builds the compilation for the source files and references loaded by the given loaders,
         /// executing the compilation steps specified by the given options.
@@ -339,6 +277,9 @@ namespace Microsoft.Quantum.QsCompiler
         public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger logger = null)
         {
             // loading the content to compiler 
+
+            // onDiagnostics = this.LogAndUpdateLoadDiagnostics(ref this.CompilationStatus.LoadedRewriteSteps, diagnostic);
+            // onException = this.LogAndUpdate(ref this.CompilationStatus.LoadedRewriteSteps, ex);
 
             this.Logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
@@ -415,16 +356,6 @@ namespace Microsoft.Quantum.QsCompiler
             foreach (var (target, rewriteStepOptions) in this.Config.RewriteSteps ?? Enumerable.Empty<(string, IRewriteStepOptions)>())
             {
                 this.CompilationStatus.BuildTargets[target] = 0;
-                // try ...
-                var assembly = Assembly.LoadFrom(target); // fixme: what if it doesn't exist etc
-                var rewriteSteps = assembly.GetTypes().Where(t => t.IsAssignableFrom(typeof(IRewriteStep))).Select(step =>
-                {
-                    try { return Activator.CreateInstance(step) as IRewriteStep; }
-                    catch { return null; } // FIXME: fail if no parameterless constructor is available
-                })
-                .Where(step => step != null).ToList(); // fixme: messages for null
-                rewriteSteps.Sort((fst, snd) => snd.Priority - fst.Priority); // fixme: check ordering
-
                 foreach (var rewriteStep in rewriteSteps)
                 { 
                     rewriteStep.Options = rewriteStepOptions ?? rewriteStep.Options ?? this.Config.RewriteStepDefaultOptions;
