@@ -343,17 +343,16 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentSignatureHelpName)]
-        public object OnSignatureHelp(JToken arg)
+        public Task<object> OnSignatureHelp(JToken arg)
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (WaitForInit != null) return Task.Run<object>(() => ProtocolError.AwaitingInitialization);
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             var supportedFormats = this.ClientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
             var format = ChooseFormat(supportedFormats);
-            var task = new Task<SignatureHelp>(() =>
+            var task = new Task<object>(() =>
             {
-                // We need to give the file manager some time to actually process the change first, otherwise we will return null. 
-                // Unfortunatly, the VS Client seems to block and wait for a response from this request, 
-                // such that the editor becomes unresponsive if we take too long. 
+                // We need to give the file manager some time to actually process the change first, 
+                // otherwise we will return null. 
                 Thread.Sleep(100);
                 try
                 {
@@ -382,13 +381,14 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
-        public object OnTextDocumentCompletion(JToken arg)
+        public Task<object> OnTextDocumentCompletion(JToken arg)
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (WaitForInit != null) return Task.Run<object>(() => ProtocolError.AwaitingInitialization);
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
-            var task = new Task<CompletionList>(() =>
+            var task = new Task<object>(() =>
             {
-                // Wait for the file manager to finish processing any changes that happened right before this completion request.
+                // Wait for the file manager to finish processing any changes 
+                // that happened right before this completion request.
                 Thread.Sleep(50);
                 try
                 {
