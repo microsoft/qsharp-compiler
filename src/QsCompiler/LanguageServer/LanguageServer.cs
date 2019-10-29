@@ -171,7 +171,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     this.ClientVersion = null;
             }
             bool supportsCompletion = !ClientNameIs("VisualStudio") || ClientVersionIsAtLeast(new Version(16, 3));
-            bool useTriggerCharWorkaround = ClientNameIs("VisualStudio") && ClientVersionIsAtLeast(new Version(16, 3));
+            bool useTriggerCharWorkaround = ClientNameIs("VisualStudio") && !ClientVersionIsAtLeast(new Version(16, 4));
 
             var rootUri = param.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out Uri uri) ? uri : null);
             this.WorkspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
@@ -202,7 +202,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 capabilities.CompletionProvider.ResolveProvider = true;
                 capabilities.CompletionProvider.TriggerCharacters =
-                    useTriggerCharWorkaround ? new[] { ".", " ", "(" } : new[] { "." };
+                    useTriggerCharWorkaround ? new[] { " ", ".", "(" } : new[] { ".", "(" };
             }
 
             this.WaitForInit = null;
