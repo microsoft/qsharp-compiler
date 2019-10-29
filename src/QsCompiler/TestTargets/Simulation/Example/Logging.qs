@@ -6,6 +6,10 @@ namespace Microsoft.Quantum.Testing
     open Microsoft.Quantum.Intrinsic;
 
     /// # Summary
+    /// Contains a complex number. 
+    newtype Complex = (Re : Double, Im : Double); 
+
+    /// # Summary
     /// Logs the given message of the given severity. 
     function Log (severity : Int, msg : String) : Unit {
         let intro = 

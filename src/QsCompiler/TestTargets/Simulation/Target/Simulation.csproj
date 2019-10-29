@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.6.0" />
-    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1910.2301-alpha" />
+    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1910.2504-alpha" />
     <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.2" />
   </ItemGroup>
 

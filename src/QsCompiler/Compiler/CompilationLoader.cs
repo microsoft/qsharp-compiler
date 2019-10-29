@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -234,6 +236,11 @@ namespace Microsoft.Quantum.QsCompiler
         /// Contains the absolute path where the generated dll containing the compiled binary has been written to disk.
         /// </summary>
         public readonly string DllOutputPath;
+
+        /// <summary>
+        /// Contains the full Q# syntax tree after executing all configured rewrite steps, including the content of loaded references. 
+        /// </summary>
+        public IEnumerable<QsNamespace> GeneratedSyntaxTree => this.CompilationOutput?.Namespaces;
 
         /// <summary>
         /// Builds the compilation for the source files and references loaded by the given loaders,
@@ -501,17 +508,9 @@ namespace Microsoft.Quantum.QsCompiler
             this.CompilationStatus.Serialization = 0;
             if (this.CompilationOutput == null) ErrorAndReturn();
 
-            // FIXME: this needs to be revised
-            var invalidReferences = this.LoadDiagnostics
-                .Filter(DiagnosticTools.WarningType(WarningCode.UnrecognizedContentInReference))
-                .Select(d => d.Source).ToImmutableHashSet();
-            var validSources = this.CompilationOutput.Namespaces == null
-                ? new NonNullable<string>[0]
-                : GetSourceFiles.Apply(this.CompilationOutput.Namespaces).Where(s => !invalidReferences.Contains(s.Value)).ToArray();
-
             using var writer = new BsonDataWriter(ms) { CloseOutput = false };
-            var valid = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, validSources));
-            var compilation = new QsCompilation(valid.ToImmutableArray(), this.CompilationOutput.EntryPoints);
+            var fromSources = this.CompilationOutput.Namespaces.Select(ns => FilterBySourceFile.Apply(ns, s => s.Value.EndsWith(".qs")));
+            var compilation = new QsCompilation(fromSources.ToImmutableArray(), this.CompilationOutput.EntryPoints);
             try { Json.Serializer.Serialize(writer, compilation); }
             catch (Exception ex)
             {
@@ -574,44 +573,57 @@ namespace Microsoft.Quantum.QsCompiler
             var outputPath = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DllOutputPath) ? fallbackFileName : this.Config.DllOutputPath);
             outputPath = Path.ChangeExtension(outputPath, "dll");
 
-            // FIXME: this needs to be revised
-            var usedReferences = GetSourceFiles.Apply(this.CompilationOutput.Namespaces);
-            var invalidReferences = this.LoadDiagnostics
-                .Filter(DiagnosticTools.WarningType(WarningCode.UnrecognizedContentInReference))
-                .Select(d => d.Source).ToImmutableHashSet();
-            var validReferences = usedReferences
-                .Where(file => file.Value.EndsWith(".dll") && !invalidReferences.Contains(file.Value));
+            MetadataReference CreateReference(string file, int id) =>
+                MetadataReference.CreateFromFile(file)
+                .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{id}" }); // referenced Q# dlls are recognized based on this alias 
+
+            // We need to force the inclusion of references despite that that we do not include C# code that depends on them. 
+            // This is done via generating a certain handle in all dlls built via this compilation loader. 
+            // This checks if that handle is available to merely generate a warning if we can't include the reference. 
+            bool CanBeIncluded(NonNullable<string> dll) 
+            {
+                try // no need to throw in case this fails - ignore the reference instead
+                {   
+                    using var stream = File.OpenRead(dll.Value);
+                    using var assemblyFile = new PEReader(stream);
+                    var metadataReader = assemblyFile.GetMetadataReader();
+                    return metadataReader.TypeDefinitions
+                        .Select(metadataReader.GetTypeDefinition)
+                        .Any(t => metadataReader.GetString(t.Namespace) == AssemblyConstants.METADATA_NAMESPACE);
+                }
+                catch { return false; }
+            }
 
             try
             {
-                // If System.Object can't be found as a reference a warning is generated. 
-                // To avoid that warning, we package that reference as well. 
-                var references = validReferences.Select((dllFile, idx) => 
-                        MetadataReference.CreateFromFile(dllFile.Value)
-                        .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{idx}" })) // referenced Q# dlls are recognized based on this alias 
-                    .Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+                var referencePaths = GetSourceFiles.Apply(this.CompilationOutput.Namespaces) // we choose to keep only Q# references that have been used
+                    .Where(file => file.Value.EndsWith(".dll"));
+                var references = referencePaths.Select((dll, id) => (dll, CreateReference(dll.Value, id), CanBeIncluded(dll))).ToImmutableArray();
+                var csharpTree = MetadataGeneration.GenerateAssemblyMetadata(references.Where(r => r.Item3).Select(r => r.Item2));
+                foreach (var (dropped, _, _) in references.Where(r => !r.Item3))
+                {
+                    var warning = Warnings.LoadWarning(WarningCode.ReferenceCannotBeIncludedInDll, new[] { dropped.Value }, null);
+                    this.LogAndUpdate(ref this.CompilationStatus.DllGeneration, warning);
+                }
 
-                var tree = MetadataGeneration.GenerateAssemblyMetadata(references);
                 var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
                     this.Config.ProjectName ?? Path.GetFileNameWithoutExtension(outputPath),
-                    syntaxTrees: new[] { tree },
-                    references: references, // we only include Q# references, and only those that are needed and have been fully loaded
+                    syntaxTrees: new[] { csharpTree },
+                    references: references.Select(r => r.Item2).Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location)), // if System.Object can't be found a warning is generated
                     options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
                 );
+                
+                using var outputStream = File.OpenWrite(outputPath);
+                serialization.Seek(0, SeekOrigin.Begin);
+                var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
+                var result = compilation.Emit(outputStream,
+                    options: new CodeAnalysis.Emit.EmitOptions(),
+                    manifestResources: new CodeAnalysis.ResourceDescription[] { astResource }
+                );
 
-                using (var outputStream = File.OpenWrite(outputPath))
-                {
-                    serialization.Seek(0, SeekOrigin.Begin);
-                    var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
-                    var result = compilation.Emit(outputStream,
-                        options: new CodeAnalysis.Emit.EmitOptions(includePrivateMembers: true),
-                        manifestResources: new CodeAnalysis.ResourceDescription[] { astResource }
-                    );
-
-                    var errs = result.Diagnostics.Where(d => d.Severity >= CodeAnalysis.DiagnosticSeverity.Error);
-                    if (errs.Any()) throw new Exception($"error(s) on emitting dll: {Environment.NewLine}{String.Join(Environment.NewLine, errs.Select(d => d.GetMessage()))}");
-                    return outputPath;
-                }
+                var errs = result.Diagnostics.Where(d => d.Severity >= CodeAnalysis.DiagnosticSeverity.Error);
+                if (errs.Any()) throw new Exception($"error(s) on emitting dll: {Environment.NewLine}{String.Join(Environment.NewLine, errs.Select(d => d.GetMessage()))}");
+                return outputPath;
             }
             catch (Exception ex)
             {
@@ -622,20 +634,18 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given the path to a Q# binary file, reads the content of that file and returns the corresponding syntax tree as out parameter. 
+        /// Given the path to a Q# binary file, reads the content of that file and returns the corresponding compilation as out parameter. 
         /// Throws the corresponding exception if the given path does not correspond to a suitable binary file.
-        /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        public static void ReadBinary(string file, out IEnumerable<QsNamespace> syntaxTree) =>
+        public static bool ReadBinary(string file, out QsCompilation syntaxTree) =>
             ReadBinary(new MemoryStream(File.ReadAllBytes(Path.GetFullPath(file))), out syntaxTree);
 
         /// <summary>
-        /// Given a stream with the content of a Q# binary file, returns the corresponding syntax tree as out parameter.
+        /// Given a stream with the content of a Q# binary file, returns the corresponding compilation as out parameter.
         /// Throws an ArgumentNullException if the given stream is null.
-        /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        public static void ReadBinary(Stream stream, out IEnumerable<QsNamespace> syntaxTree)
-        { syntaxTree = AssemblyLoader.LoadSyntaxTree(stream).Namespaces; }
+        public static bool ReadBinary(Stream stream, out QsCompilation syntaxTree) =>
+            AssemblyLoader.LoadSyntaxTree(stream, out syntaxTree); 
 
         /// <summary>
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder. 

@@ -43,19 +43,19 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Return code indicating that generating a dll containing the compiled binary failed.
         /// </summary>
-        public const int DLL_GENERATION_ERRORS = -6;
+        public const int DLL_GENERATION_ERRORS = -7;
         /// <summary>
         /// Return code indicating that generating formatted Q# code based on the built compilation failed.
         /// </summary>
-        public const int CODE_GENERATION_ERRORS = -7;
+        public const int CODE_GENERATION_ERRORS = -8;
         /// <summary>
         /// Return code indicating that generating documentation for the built compilation failed.
         /// </summary>
-        public const int DOC_GENERATION_ERRORS = -8;
+        public const int DOC_GENERATION_ERRORS = -9;
         /// <summary>
         /// Return code indicating that invoking the specified target(s) with the path to the file containing the built compilation failed.
         /// </summary>
-        public const int TARGET_EXECUTION_ERRORS = -9;
+        public const int TARGET_EXECUTION_ERRORS = -10;
         /// <summary>
         /// Return code indicating that an unexpected exception was thrown when executing the invoked command to the Q# command line compiler.
         /// </summary>
