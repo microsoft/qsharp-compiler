@@ -392,7 +392,7 @@ export class LanguageServer {
                     return this.spawnProcess(actualPort);
                 })
                 .then((childProcess) => {
-                    console.log(`[qsharp-lsp] started QsLanguageServer.exe as PID ${childProcess.pid}.`);
+                    console.log(`[qsharp-lsp] started Q# Language Server as PID ${childProcess.pid}.`);
                 })
                 .catch(err => {
                     // Could not find a port...

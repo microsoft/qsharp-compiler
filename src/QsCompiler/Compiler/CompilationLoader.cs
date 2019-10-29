@@ -745,20 +745,18 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given the path to a Q# binary file, reads the content of that file and returns the corresponding syntax tree as out parameter. 
+        /// Given the path to a Q# binary file, reads the content of that file and returns the corresponding compilation as out parameter. 
         /// Throws the corresponding exception if the given path does not correspond to a suitable binary file.
-        /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        public static void ReadBinary(string file, out IEnumerable<QsNamespace> syntaxTree) =>
+        public static bool ReadBinary(string file, out QsCompilation syntaxTree) =>
             ReadBinary(new MemoryStream(File.ReadAllBytes(Path.GetFullPath(file))), out syntaxTree);
 
         /// <summary>
-        /// Given a stream with the content of a Q# binary file, returns the corresponding syntax tree as out parameter.
+        /// Given a stream with the content of a Q# binary file, returns the corresponding compilation as out parameter.
         /// Throws an ArgumentNullException if the given stream is null.
-        /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        public static void ReadBinary(Stream stream, out IEnumerable<QsNamespace> syntaxTree)
-        { syntaxTree = AssemblyLoader.LoadSyntaxTree(stream).Namespaces; }
+        public static bool ReadBinary(Stream stream, out QsCompilation syntaxTree) =>
+            AssemblyLoader.LoadSyntaxTree(stream, out syntaxTree); 
 
         /// <summary>
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder. 

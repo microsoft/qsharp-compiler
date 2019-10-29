@@ -125,6 +125,9 @@ module Json =
         let settings = new JsonSerializerSettings() 
         settings.Converters <- Converters false
         settings.ContractResolver <- new DictionaryAsArrayResolver()
+        settings.NullValueHandling <- NullValueHandling.Include
+        settings.MissingMemberHandling <- MissingMemberHandling.Ignore
+        settings.CheckAdditionalContent <- false
         JsonSerializer.CreateDefault(settings)
 
     let PermissiveSerializer = 
