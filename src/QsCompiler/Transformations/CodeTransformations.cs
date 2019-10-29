@@ -119,13 +119,13 @@ namespace Microsoft.Quantum.QsCompiler
             try
             {
                 MonomorphizationValidationTransformation.Apply(compilation);
-                return true;
             }
             catch (Exception ex)
             {
                 onException?.Invoke(ex);
                 return false;
             }
+            return true;
         }
     }
 }

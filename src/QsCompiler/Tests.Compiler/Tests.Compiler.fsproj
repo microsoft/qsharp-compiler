@@ -21,6 +21,9 @@
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\LinkingTests\Generics.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LinkingTests\ValidEntryPoints.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -28,6 +31,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LinkingTests\EntryPointSpecializations.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\Monomorphization.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">
@@ -103,9 +109,6 @@
     <None Include="TestCases\FunctorGeneration.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\temporary-test-file.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <Compile Include="..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="TestUtils.fs" />
     <Compile Include="TextTests.fs" />
@@ -124,7 +127,6 @@
     <Compile Include="CommandLineTests.fs" />
     <Compile Include="SymbolManagementTests.fs" />
     <Compile Include="OptimizationTests.fs" />
-    <Compile Include="MonomorphizationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

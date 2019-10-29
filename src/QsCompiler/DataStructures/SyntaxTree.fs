@@ -67,8 +67,6 @@ type QsQualifiedName = {
     /// the declared name of the namespace element
     Name : NonNullable<string>
 }
-    with
-    member this.IsEqual (other: QsQualifiedName) : bool = this.Namespace.Value = other.Namespace.Value && this.Name.Value = other.Name.Value
 
 
 type SymbolTuple = 
