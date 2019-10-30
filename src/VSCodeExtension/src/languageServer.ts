@@ -210,7 +210,10 @@ export class LanguageServer {
 
         let version = response.stdout.trim();
         let info = getPackageInfo(this.context);
-        if (info && info.assemblyVersion && info.assemblyVersion !== version) {
+        if (info === undefined || info === null) {
+            throw new Error("Package info was undefined.");
+        }
+        if (info.assemblyVersion !== version) {
             console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.assemblyVersion}. Clearing cached version.`);
             await this.clearCache();
             return false;
