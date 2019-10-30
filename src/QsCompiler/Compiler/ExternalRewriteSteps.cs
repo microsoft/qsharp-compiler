@@ -15,7 +15,7 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    internal static class ExternalRewriteSteps
+    internal static class RewriteSteps
     {
         /// <summary>
         /// Concrete implementation of the rewrite steps options such that the configured options may be null. 

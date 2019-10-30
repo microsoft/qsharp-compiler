@@ -282,7 +282,6 @@ type ErrorCode =
     | SerializationFailed = 7106
     | GeneratingBinaryFailed = 7107
     | GeneratingDllFailed = 7108
-    | TargetExecutionFailed = 7109
     | PreEvaluationFailed = 7110
 
 
@@ -320,7 +319,7 @@ type WarningCode =
     | ReferencesSetToNull = 7009
     | ReferenceCannotBeIncludedInDll = 7010
     | UnresolvedItemsInGeneratedQs = 7101
-    | TargetExitedAbnormally = 7102
+    | PreconditionVerificationFailed = 7201
 
 
 type InformationCode = 
@@ -331,8 +330,6 @@ type InformationCode =
     | GeneratedCsCode = 7101
     | GeneratedQsCode = 7102
     | GeneratedCodeOutputFolder = 7103
-    | BuildTargetOutput = 7104
-    | BuildTargetError = 7105
 
     | FileContentInMemory = 7201
     | BuiltTokenization = 7202
@@ -627,7 +624,6 @@ type DiagnosticItem =
             | ErrorCode.SerializationFailed                     -> "Unable to serialize the built compilation."
             | ErrorCode.GeneratingBinaryFailed                  -> "Unable to generate binary format for the compilation."
             | ErrorCode.GeneratingDllFailed                     -> "Unable to generate dll containing the compiled binary."
-            | ErrorCode.TargetExecutionFailed                   -> "Processing of the compiled binary with the target {0} failed."
             | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
             | _                                                 -> "" 
         code |> ApplyArguments             
@@ -666,9 +662,8 @@ type DiagnosticItem =
             | WarningCode.CouldNotLoadBinaryFile                -> "Unable to load binary file \"{0}\"."
             | WarningCode.ReferencesSetToNull                   -> "No references given to include in the compilation."
             | WarningCode.ReferenceCannotBeIncludedInDll        -> "The reference to \"{0}\" could not be included in the generated dll."
-
             | WarningCode.UnresolvedItemsInGeneratedQs          -> "Some item(s) could not be resolved during compilation."
-            | WarningCode.TargetExitedAbnormally                -> "Processing of the compiled binary with the target {0} exited with an abnormal exit code {1}."
+            | WarningCode.PreconditionVerificationFailed        -> "The precondition for the compilation step {0} loaded from {1} was not met. The tranformation will be skipped."
             | _                                                 -> ""
         code |> ApplyArguments
 
@@ -681,8 +676,6 @@ type DiagnosticItem =
             | InformationCode.GeneratedCsCode                   -> "C# code generated for simulation"
             | InformationCode.GeneratedQsCode                   -> "Formatted Q# code"
             | InformationCode.GeneratedCodeOutputFolder         -> "Code has been generated in output folder"
-            | InformationCode.BuildTargetOutput                 -> "Build target output:"
-            | InformationCode.BuildTargetError                  -> "Build target errors:"
 
             | InformationCode.FileContentInMemory               -> "Q# code to compile"
             | InformationCode.BuiltTokenization                 -> "Built tokenization"

@@ -95,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Returns the default options used for rewrite steps if no options are specified, i.e. the given options are null.
             /// </summary>
             public IRewriteStepOptions RewriteStepDefaultOptions =>
-                new ExternalRewriteSteps.RewriteStepOptions(this);
+                new RewriteSteps.RewriteStepOptions(this);
         }
 
         private class ExecutionStatus
@@ -195,17 +195,19 @@ namespace Microsoft.Quantum.QsCompiler
         /// This step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status DllGeneration => GetStatus(this.CompilationStatus.DllGeneration);
+
         /// <summary>
         /// Indicates whether the rewrite step with the given name specified in an external dll executed successfully. 
-        /// Returns a status NotRun if no step with the given name was found in any of the specified extenal dlls. 
-        /// Execution is considered successful if the precondition and transformation (if any) succeeded returned true. 
+        /// The status is returned for the first step with the given name loaded from the given source - if a source has been specified.
+        /// The source, if specified, is the path to the dll in which the step is specified.
+        /// Returns a status NotRun if no such step was found or executed. 
+        /// Execution is considered successful if the precondition and transformation (if any) returned true. 
         /// </summary>
         public Status LoadedRewriteStep(string name, string source = null)
         {
-            // FIXME: WE NEED A BETTER SOLUTION FOR THIS + doc comment...
             var uri = String.IsNullOrWhiteSpace(source) ? null : new Uri(Path.GetFullPath(source));
-            var index = this.LoadedRewriteSteps.TakeWhile(step => step.Name != name || (source != null && step.Origin != uri)).Count();
-            return index < 0 || index >= this.LoadedRewriteSteps.Length ? Status.NotRun : GetStatus(this.CompilationStatus.LoadedRewriteSteps[index]);
+            var index = this.ExternalRewriteSteps.TakeWhile(step => step.Name != name || (source != null && step.Origin != uri)).Count();
+            return index < 0 || index >= this.ExternalRewriteSteps.Length ? Status.NotRun : GetStatus(this.CompilationStatus.LoadedRewriteSteps[index]);
         }
         /// <summary>
         /// Indicates the overall status of all rewrite step from external dlls.
@@ -232,10 +234,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private readonly ExecutionStatus CompilationStatus;
         /// <summary>
-        /// Contains all loaded rewrite steps found in the specified dlls, 
+        /// Contains all loaded rewrite steps found in the specified plugin dlls, 
         /// where the options have already been initialized to suitable values. 
         /// </summary>
-        private readonly ImmutableArray<ExternalRewriteSteps.LoadedStep> LoadedRewriteSteps;
+        private readonly ImmutableArray<RewriteSteps.LoadedStep> ExternalRewriteSteps;
 
         /// <summary>
         /// Contains all diagnostics generated upon source file and reference loading.
@@ -262,7 +264,15 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Contains the full Q# syntax tree after executing all configured rewrite steps, including the content of loaded references. 
         /// </summary>
-        public IEnumerable<QsNamespace> GeneratedSyntaxTree => this.CompilationOutput?.Namespaces;
+        public IEnumerable<QsNamespace> GeneratedSyntaxTree => 
+            this.CompilationOutput?.Namespaces;
+
+        /// <summary>
+        /// Contains the Uri and names of all rewrite steps loaded from the specified dlls 
+        /// in the order in which they are executed. 
+        /// </summary>
+        public ImmutableArray<(Uri, string)> LoadedRewriteSteps =>
+            this.ExternalRewriteSteps.Select(step => (step.Origin, step.Name)).ToImmutableArray();
 
 
         /// <summary>
@@ -280,10 +290,10 @@ namespace Microsoft.Quantum.QsCompiler
             this.Config = options ?? new Configuration();
 
             var rewriteStepLoading = 0;
-            this.LoadedRewriteSteps = ExternalRewriteSteps.Load(this.Config,
+            this.ExternalRewriteSteps = RewriteSteps.Load(this.Config,
                 d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d),
                 ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
-            this.CompilationStatus = new ExecutionStatus(this.LoadedRewriteSteps);
+            this.CompilationStatus = new ExecutionStatus(this.ExternalRewriteSteps);
             this.CompilationStatus.PluginLoading = rewriteStepLoading;
 
             var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles) ?? throw new ArgumentNullException("unable to load source files");
@@ -352,11 +362,13 @@ namespace Microsoft.Quantum.QsCompiler
 
             // invoking rewrite steps in external dlls
 
-            foreach (var (rewriteStep, index) in this.LoadedRewriteSteps.Select((step, i) => (step, i)))
+            foreach (var (rewriteStep, index) in this.ExternalRewriteSteps.Select((step, i) => (step, i)))
             {
-                // FIXME: MAKE THIS WORK
                 this.CompilationStatus.LoadedRewriteSteps[index] = 0;
-                var executeTransformation = (!rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(this.CompilationOutput)) && rewriteStep.ImplementsTransformation; // FIXME: error handling
+                var preconditionPassed = !rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(this.CompilationOutput);
+                if (!preconditionPassed) this.LogAndUpdate() // todo PreconditionVerificationFailed warning, with stepname, uri.localpath as args
+
+                var executeTransformation = preconditionPassed && rewriteStep.ImplementsTransformation; // FIXME: error handling
                 var executed = executeTransformation && rewriteStep.Transformation(this.CompilationOutput, out this.CompilationOutput); // FIME
                 var succeeded = executed && (!rewriteStep.ImplementsPostconditionVerification || rewriteStep.PostconditionVerification(this.CompilationOutput)); // FIXME
 
