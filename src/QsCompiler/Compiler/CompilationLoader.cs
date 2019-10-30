@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
@@ -36,15 +35,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// returns the loaded references for the compilation. 
         /// </summary>
         public delegate References ReferenceLoader(Func<IEnumerable<string>, References> loadFromDisk);
-        /// <summary>
-        /// Concrete implementation of the rewrite steps options such that the configured options may be null. 
-        /// </summary>
-        private class RewriteStepOptions : IRewriteStepOptions
-        {
-            public readonly string OutputFolder;
-            internal RewriteStepOptions(Configuration config) =>
-                this.OutputFolder = config.BuildOutputFolder;
-        }
 
 
         /// <summary>
@@ -105,13 +95,14 @@ namespace Microsoft.Quantum.QsCompiler
             /// Returns the default options used for rewrite steps if no options are specified, i.e. the given options are null.
             /// </summary>
             public IRewriteStepOptions RewriteStepDefaultOptions => 
-                new RewriteStepOptions(this);
+                new ExternalRewriteSteps.RewriteStepOptions(this);
         }
 
         private class ExecutionStatus
         {
             internal int SourceFileLoading = -1;
             internal int ReferenceLoading = -1;
+            internal int PluginLoading = -1;
             internal int Validation = -1;
             internal int FunctorSupport = -1;
             internal int PreEvaluation = -1;
@@ -120,13 +111,10 @@ namespace Microsoft.Quantum.QsCompiler
             internal int Serialization = -1;
             internal int BinaryFormat = -1;
             internal int DllGeneration = -1;
-            /// <summary>
-            /// Maps the name of a rewrite step to its status. 
-            /// </summary>
-            internal Dictionary<string, int> LoadedRewriteSteps; // FIXME: UNIQUENESS OF NAMES...
+            internal int[] LoadedRewriteSteps; 
 
-            internal ExecutionStatus(IEnumerable<string> steps) =>
-                this.LoadedRewriteSteps = steps.ToDictionary(id => id, _ => -1);
+            internal ExecutionStatus(IEnumerable<IRewriteStep> externalRewriteSteps) =>
+                this.LoadedRewriteSteps = externalRewriteSteps.Select( _ => -1).ToArray();
 
             private bool WasSuccessful(bool run, int code) =>
                 (run && code == 0) || (!run && code < 0);
@@ -135,6 +123,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.SourceFileLoading <= 0 &&
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
+                WasSuccessful(true, this.PluginLoading) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
@@ -142,7 +131,7 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
-                !this.LoadedRewriteSteps.Values.Any(status => !WasSuccessful(true, status))
+                !this.LoadedRewriteSteps.Any(status => !WasSuccessful(true, status))
                 ? true : false;
         }
 
@@ -165,6 +154,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// The loading may not be executed if all references were preloaded using methods outside this class. 
         /// </summary>
         public Status ReferenceLoading => GetStatus(this.CompilationStatus.ReferenceLoading);
+        /// <summary>
+        /// Indicates whether all external dlls specifying e.g. rewrite steps 
+        /// to perform as part of the compilation have been loaded successfully.
+        /// The status indicates a successful execution if no such external dlls have been specified. 
+        /// </summary>
+        public Status PluginLoading => GetStatus(this.CompilationStatus.PluginLoading);
         /// <summary>
         /// Indicates whether the compilation unit passed the compiler validation 
         /// that is executed before invoking further rewrite and/or generation steps.   
@@ -211,7 +206,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Indicates the overall status of all rewrite step from external dlls.
         /// The status is indicated as success if none of these steps failed. 
         /// </summary>
-        public Status AllLoadedRewriteSteps => this.CompilationStatus.LoadedRewriteSteps.Values.Any(s => GetStatus(s) == Status.Failed) ? Status.Failed : Status.Succeeded;
+        public Status AllLoadedRewriteSteps => this.CompilationStatus.LoadedRewriteSteps.Any(s => GetStatus(s) == Status.Failed) ? Status.Failed : Status.Succeeded;
         /// <summary>
         /// Indicates the overall success of all compilation steps. 
         /// The compilation is indicated as having been successful if all steps that were configured to execute completed successfully.
@@ -235,10 +230,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Contains all loaded rewrite steps found in the specified dlls, 
         /// where the options have already been initialized to suitable values. 
         /// </summary>
-        private readonly ImmutableArray<IRewriteStep> LoadedRewriteSteps;
-
-        // FIXME: WE SHOUDL AT LEAST HAVE TO OPTION TO QUERY THE OUTPUT FOLDER FOR REWRITE STEPS
-        // FIXME: dlls where they were loaded from?
+        private readonly ImmutableArray<ExternalRewriteSteps.LoadedStep> LoadedRewriteSteps;
 
         /// <summary>
         /// Contains all diagnostics generated upon source file and reference loading.
@@ -278,15 +270,17 @@ namespace Microsoft.Quantum.QsCompiler
         {
             // loading the content to compiler 
 
-            // onDiagnostics = this.LogAndUpdateLoadDiagnostics(ref this.CompilationStatus.LoadedRewriteSteps, diagnostic);
-            // onException = this.LogAndUpdate(ref this.CompilationStatus.LoadedRewriteSteps, ex);
-
             this.Logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             this.Config = options ?? new Configuration();
-            this.LoadedRewriteSteps = this.LoadRewriteSteps(this.Config); // FIXME: WE NEED THE COMPILATION STATUS INIT HERE...!
-            this.CompilationStatus = // FIXME: INITIALIZE THIS BY NAME OF THE TRANSFORMATION INSTEAD
-                new ExecutionStatus(this.Config.RewriteSteps?.Select(step => step.Item1) ?? Enumerable.Empty<string>());
+
+            var rewriteStepLoading = 0;
+            this.LoadedRewriteSteps = ExternalRewriteSteps.Load(this.Config,
+                d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d),
+                ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
+            this.CompilationStatus = new ExecutionStatus(this.LoadedRewriteSteps);
+            this.CompilationStatus.PluginLoading = rewriteStepLoading;
+
             var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles) ?? throw new ArgumentNullException("unable to load source files");
             var references = loadReferences?.Invoke(this.LoadAssemblies) ?? throw new ArgumentNullException("unable to load referenced binary files");
 
@@ -353,21 +347,18 @@ namespace Microsoft.Quantum.QsCompiler
 
             // invoking rewrite steps in external dlls
 
-            foreach (var (target, rewriteStepOptions) in this.Config.RewriteSteps ?? Enumerable.Empty<(string, IRewriteStepOptions)>())
+            foreach (var (rewriteStep, index) in this.LoadedRewriteSteps.Select((step, i) => (step, i)))
             {
-                this.CompilationStatus.BuildTargets[target] = 0;
-                foreach (var rewriteStep in rewriteSteps)
-                { 
-                    rewriteStep.Options = rewriteStepOptions ?? rewriteStep.Options ?? this.Config.RewriteStepDefaultOptions;
-                    var executeTransformation = (!rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(this.CompilationOutput)) && rewriteStep.ImplementsTransformation; // FIXME: error handling
-                    var executed = executeTransformation && rewriteStep.Transformation(this.CompilationOutput, out this.CompilationOutput); // FIME
-                    var succeeded = executed && (!rewriteStep.ImplementsPostconditionVerification || rewriteStep.PostconditionVerification(this.CompilationOutput)); // FIXME
-                }
+                this.CompilationStatus.LoadedRewriteSteps[index] = 0;
+                var executeTransformation = (!rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(this.CompilationOutput)) && rewriteStep.ImplementsTransformation; // FIXME: error handling
+                var executed = executeTransformation && rewriteStep.Transformation(this.CompilationOutput, out this.CompilationOutput); // FIME
+                var succeeded = executed && (!rewriteStep.ImplementsPostconditionVerification || rewriteStep.PostconditionVerification(this.CompilationOutput)); // FIXME
 
                 //var succeeded = this.PathToCompiledBinary != null && buildTarget.Value != null &&
                 //    buildTarget.Value(this.PathToCompiledBinary, ex => this.LogAndUpdate(buildTarget.Key, ex));
                 //if (!succeeded) this.LogAndUpdate(target, ErrorCode.TargetExecutionFailed, new[] { buildTarget.Key });
-            } 
+            }
+
         }
 
         /// <summary>
