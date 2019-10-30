@@ -283,6 +283,8 @@ type ErrorCode =
     | GeneratingBinaryFailed = 7107
     | GeneratingDllFailed = 7108
     | PreEvaluationFailed = 7110
+    | RewriteStepExecutionFailed = 7111
+    | PostconditionVerificationFailed = 7112
 
 
 type WarningCode = 
@@ -625,6 +627,8 @@ type DiagnosticItem =
             | ErrorCode.GeneratingBinaryFailed                  -> "Unable to generate binary format for the compilation."
             | ErrorCode.GeneratingDllFailed                     -> "Unable to generate dll containing the compiled binary."
             | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
+            | ErrorCode.RewriteStepExecutionFailed              -> "Executing the transformation for the compilation step \"{0}\" loaded from \"{1}\" failed."
+            | ErrorCode.PostconditionVerificationFailed         -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
             | _                                                 -> "" 
         code |> ApplyArguments             
              
@@ -663,7 +667,7 @@ type DiagnosticItem =
             | WarningCode.ReferencesSetToNull                   -> "No references given to include in the compilation."
             | WarningCode.ReferenceCannotBeIncludedInDll        -> "The reference to \"{0}\" could not be included in the generated dll."
             | WarningCode.UnresolvedItemsInGeneratedQs          -> "Some item(s) could not be resolved during compilation."
-            | WarningCode.PreconditionVerificationFailed        -> "The precondition for the compilation step {0} loaded from {1} was not met. The tranformation will be skipped."
+            | WarningCode.PreconditionVerificationFailed        -> "The precondition for the compilation step \"{0}\" loaded from \"{1}\" was not met. The transformation will be skipped."
             | _                                                 -> ""
         code |> ApplyArguments
 

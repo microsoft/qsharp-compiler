@@ -131,8 +131,7 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
-                !this.LoadedRewriteSteps.Any(status => !WasSuccessful(true, status))
-                ? true : false;
+                !this.LoadedRewriteSteps.Any(status => !WasSuccessful(true, status));
         }
 
         /// <summary>
@@ -364,17 +363,20 @@ namespace Microsoft.Quantum.QsCompiler
 
             foreach (var (rewriteStep, index) in this.ExternalRewriteSteps.Select((step, i) => (step, i)))
             {
-                this.CompilationStatus.LoadedRewriteSteps[index] = 0;
+                // FIXME; NEED TO CATCH EXCEPTIONS
+                var (status, messageSource) = (0, ProjectManager.MessageSource(rewriteStep.Origin));
+                Diagnostic Warning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, messageSource);
+
                 var preconditionPassed = !rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(this.CompilationOutput);
-                if (!preconditionPassed) this.LogAndUpdate() // todo PreconditionVerificationFailed warning, with stepname, uri.localpath as args
+                if (!preconditionPassed) this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, new[] { rewriteStep.Name, messageSource }));
+                var executeTransformation = preconditionPassed && rewriteStep.ImplementsTransformation; 
+                var transformationPassed = !executeTransformation || rewriteStep.Transformation(this.CompilationOutput, out this.CompilationOutput);
+                if (!transformationPassed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
+                var executePostconditionVerification = transformationPassed && rewriteStep.ImplementsPostconditionVerification; // FIXME: ONLY RUN IN DEBUG MODE
+                var postconditionPassed = !executePostconditionVerification || rewriteStep.PostconditionVerification(this.CompilationOutput);
+                if (!postconditionPassed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
 
-                var executeTransformation = preconditionPassed && rewriteStep.ImplementsTransformation; // FIXME: error handling
-                var executed = executeTransformation && rewriteStep.Transformation(this.CompilationOutput, out this.CompilationOutput); // FIME
-                var succeeded = executed && (!rewriteStep.ImplementsPostconditionVerification || rewriteStep.PostconditionVerification(this.CompilationOutput)); // FIXME
-
-                //var succeeded = this.PathToCompiledBinary != null && buildTarget.Value != null &&
-                //    buildTarget.Value(this.PathToCompiledBinary, ex => this.LogAndUpdate(buildTarget.Key, ex));
-                //if (!succeeded) this.LogAndUpdate(target, ErrorCode.TargetExecutionFailed, new[] { buildTarget.Key });
+                this.CompilationStatus.LoadedRewriteSteps[index] = status;
             }
 
         }
@@ -454,28 +456,6 @@ namespace Microsoft.Quantum.QsCompiler
         {
             this.LogAndUpdate(ref this.CompilationStatus.Validation, ErrorCode.UnexpectedCompilerException, Enumerable.Empty<string>());
             this.LogAndUpdate(ref this.CompilationStatus.Validation, ex);
-        }
-
-        /// <summary>
-        /// Logs the given exception and updates the status of the specified target accordingly. 
-        /// Throws an ArgumentException if no build target with the given id exists. 
-        /// </summary>
-        private void LogAndUpdate(string targetId, Exception ex)
-        {
-            if (!this.CompilationStatus.BuildTargets.TryGetValue(targetId, out var current)) throw new ArgumentException("unknown target");
-            this.LogAndUpdate(ref current, ex);
-            this.CompilationStatus.BuildTargets[targetId] = current;
-        }
-
-        /// <summary>
-        /// Logs an error with the given error code and message parameters, and updates the status of the specified target accordingly. 
-        /// Throws an ArgumentException if no build target with the given id exists. 
-        /// </summary>
-        private void LogAndUpdate(string targetId, ErrorCode code, IEnumerable<string> args)
-        {
-            if (!this.CompilationStatus.BuildTargets.TryGetValue(targetId, out var current)) throw new ArgumentException("unknown target");
-            this.LogAndUpdate(ref current, code, args);
-            this.CompilationStatus.BuildTargets[targetId] = current;
         }
 
         /// <summary>

@@ -65,7 +65,13 @@ namespace Microsoft.Quantum.QsCompiler
 
 
         /// <summary>
-        /// ...
+        /// Loads all dlls listed as containing rewrite steps to include in the compilation process in the given configuration.
+        /// Generates suitable diagnostics if a listed file can't be found or loaded. 
+        /// Finds all types implementing the IRewriteStep interface and loads the corresponding rewrite steps
+        /// according to the specified priority, where a steps with a higher priority will be listed first in the returned array. 
+        /// If the function onDiagnostic is specified and not null, calls it on all generated diagnostics, 
+        /// and calls onException on all caught exceptions if it is specified and not null. 
+        /// Returns an empty array if the rewrite steps in the given configurations are set to null. 
         /// </summary>
         internal static ImmutableArray<LoadedStep> Load(CompilationLoader.Configuration config,
             Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
