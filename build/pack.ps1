@@ -99,11 +99,14 @@ function Pack-SelfContained() {
 
         try {
             $ArchivePath = Join-Path $ArchiveDir "$BaseName-$DotNetRuntimeID-$Env:ASSEMBLY_VERSION.zip";
-            dotnet publish  `
-                $Project `
+            dotnet publish (Join-Path $PSScriptRoot $Project) `
+                -c $Env:BUILD_CONFIGURATION `
+                -v $Env:BUILD_VERBOSITY `
                 --self-contained `
                 --runtime $DotNetRuntimeID `
-                --output $TargetDir;
+                --output $TargetDir `
+                /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+                /property:Version=$Env:ASSEMBLY_VERSION
             Write-Host "##[info]Writing self-contained deployment to $ArchivePath..."
             Compress-Archive `
                 -Force `
