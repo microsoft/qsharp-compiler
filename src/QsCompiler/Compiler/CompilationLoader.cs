@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// <summary>
             /// Returns the default options used for rewrite steps if no options are specified, i.e. the given options are null.
             /// </summary>
-            public IRewriteStepOptions RewriteStepDefaultOptions => 
+            public IRewriteStepOptions RewriteStepDefaultOptions =>
                 new ExternalRewriteSteps.RewriteStepOptions(this);
         }
 
@@ -111,10 +111,10 @@ namespace Microsoft.Quantum.QsCompiler
             internal int Serialization = -1;
             internal int BinaryFormat = -1;
             internal int DllGeneration = -1;
-            internal int[] LoadedRewriteSteps; 
+            internal int[] LoadedRewriteSteps;
 
             internal ExecutionStatus(IEnumerable<IRewriteStep> externalRewriteSteps) =>
-                this.LoadedRewriteSteps = externalRewriteSteps.Select( _ => -1).ToArray();
+                this.LoadedRewriteSteps = externalRewriteSteps.Select(_ => -1).ToArray();
 
             private bool WasSuccessful(bool run, int code) =>
                 (run && code == 0) || (!run && code < 0);
@@ -200,8 +200,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// Returns a status NotRun if no step with the given name was found in any of the specified extenal dlls. 
         /// Execution is considered successful if the precondition and transformation (if any) succeeded returned true. 
         /// </summary>
-        // FIXME UNIQUENESS OF THE NAME ...
-        public Status LoadedRewriteStep(string name) => this.CompilationStatus.LoadedRewriteSteps.TryGetValue(name, out var status) ? GetStatus(status) : Status.NotRun;
+        public Status LoadedRewriteStep(string name, string source = null)
+        {
+            // FIXME: WE NEED A BETTER SOLUTION FOR THIS + doc comment...
+            var uri = String.IsNullOrWhiteSpace(source) ? null : new Uri(Path.GetFullPath(source));
+            var index = this.LoadedRewriteSteps.TakeWhile(step => step.Name != name || (source != null && step.Origin != uri)).Count();
+            return index < 0 || index >= this.LoadedRewriteSteps.Length ? Status.NotRun : GetStatus(this.CompilationStatus.LoadedRewriteSteps[index]);
+        }
         /// <summary>
         /// Indicates the overall status of all rewrite step from external dlls.
         /// The status is indicated as success if none of these steps failed. 
@@ -349,6 +354,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             foreach (var (rewriteStep, index) in this.LoadedRewriteSteps.Select((step, i) => (step, i)))
             {
+                // FIXME: MAKE THIS WORK
                 this.CompilationStatus.LoadedRewriteSteps[index] = 0;
                 var executeTransformation = (!rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(this.CompilationOutput)) && rewriteStep.ImplementsTransformation; // FIXME: error handling
                 var executed = executeTransformation && rewriteStep.Transformation(this.CompilationOutput, out this.CompilationOutput); // FIME
