@@ -169,12 +169,10 @@ export class LanguageServer {
         let lsPath : string | undefined | null = undefined;
         // Before anything else, look at the user's configuration to see
         // if they set a path manually for the language server.
-        let packageInfo = getPackageInfo(this.context);
         let versionCheck = false;
-        if (packageInfo !== undefined) {
-            let config = vscode.workspace.getConfiguration(packageInfo.name);
-            lsPath = config.get("quantumDevKit.languageServerPath");
-        }
+        let config = vscode.workspace.getConfiguration();
+        console.log(config);
+        lsPath = config.get("quantumDevKit.languageServerPath");
 
         // If lsPath is still undefined or null, then we didn't have a manual
         // path set up above.
