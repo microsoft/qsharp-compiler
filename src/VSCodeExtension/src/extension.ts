@@ -41,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Get any .NET Core SDK version number to report in telemetry.
     var dotNetSdk : DotnetInfo | undefined;
     try {
-        dotNetSdk = await findDotNetSdk();
+        dotNetSdk = await findDotNetSdk(false);
     } catch {
         dotNetSdk = undefined;
     }

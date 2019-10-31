@@ -34,7 +34,7 @@ function promptToInstallDotNetCoreSDK(msg : string) {
  * Returns the path to the .NET Core SDK, or prompts the user to install
  * if the SDK is not found.
  */
-export function findDotNetSdk() : Promise<DotnetInfo> {
+export function findDotNetSdk(promptIfMissing : boolean = true) : Promise<DotnetInfo> {
     return new Promise((resolve, reject) => {
 
         if (dotnet === undefined) {
@@ -50,7 +50,9 @@ export function findDotNetSdk() : Promise<DotnetInfo> {
                     }
                 );
             } catch (ex) {
-                promptToInstallDotNetCoreSDK("The .NET Core SDK was not found on your PATH.");
+                if (promptIfMissing) {
+                    promptToInstallDotNetCoreSDK("The .NET Core SDK was not found on your PATH.");
+                }
                 reject(ex);
             }
         } else {
