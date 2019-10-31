@@ -159,6 +159,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         {
             var doneWithInit = this.WaitForInit?.WaitOne(20000) ?? false;
             if (!doneWithInit) return new InitializeError { Retry = true };
+
+            arg?.SelectToken("capabilities.textDocument.codeAction")?.Replace(null); // setting this to null for now, since we are not using it and the deserialization causes issues
             var param = Utils.TryJTokenAs<InitializeParams>(arg);
             this.ClientCapabilities = param.Capabilities;
 
@@ -188,7 +190,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.TextDocumentSync.Change = TextDocumentSyncKind.Incremental;
             capabilities.TextDocumentSync.OpenClose = true;
             capabilities.TextDocumentSync.Save = new SaveOptions { IncludeText = true };
-            capabilities.CodeActionProvider = this.ClientCapabilities.Workspace.ApplyEdit;
+            capabilities.CodeActionProvider = this.ClientCapabilities?.Workspace?.ApplyEdit ?? true;
             capabilities.DefinitionProvider = true;
             capabilities.ReferencesProvider = true;
             capabilities.DocumentSymbolProvider = true;
@@ -429,7 +431,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             if (this.WaitForInit != null) return ProtocolError.AwaitingInitialization;
-            var param = Utils.TryJTokenAs<Workarounds.CodeActionParams>(arg).ToCodeActionParams(); 
+            var param = Utils.TryJTokenAs<Workarounds.CodeActionParams>(arg).ToCodeActionParams();
             try
             {
                 return QsCompilerError.RaiseOnFailure(() =>
