@@ -83,6 +83,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation. 
             /// </summary>
             public IEnumerable<(string, IRewriteStepOptions)> RewriteSteps;
+            /// <summary>
+            /// If set to true, the post-condition for loaded rewrite steps is checked if the corresponding verification is implemented.
+            /// Otherwise post-condition verifications are skipped. 
+            /// </summary>
+            public bool EnableAdditionalChecks;
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
@@ -372,7 +377,7 @@ namespace Microsoft.Quantum.QsCompiler
                 var executeTransformation = preconditionPassed && rewriteStep.ImplementsTransformation; 
                 var transformationPassed = !executeTransformation || rewriteStep.Transformation(this.CompilationOutput, out this.CompilationOutput);
                 if (!transformationPassed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
-                var executePostconditionVerification = transformationPassed && rewriteStep.ImplementsPostconditionVerification; // FIXME: ONLY RUN IN DEBUG MODE
+                var executePostconditionVerification = this.Config.EnableAdditionalChecks && transformationPassed && rewriteStep.ImplementsPostconditionVerification; 
                 var postconditionPassed = !executePostconditionVerification || rewriteStep.PostconditionVerification(this.CompilationOutput);
                 if (!postconditionPassed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
 

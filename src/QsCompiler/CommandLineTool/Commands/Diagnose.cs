@@ -60,6 +60,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option("trim", Required = false, Default = 1,
             HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
             public int TrimLevel { get; set; }
+
+            [Option("load", Required = false, SetName = CODE_MODE,
+            HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
+            public IEnumerable<string> Plugins { get; set; }
         }
 
         /// <summary>
@@ -217,7 +221,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
-                AttemptFullPreEvaluation = options.TrimLevel > 1
+                AttemptFullPreEvaluation = options.TrimLevel > 1,
+                RewriteSteps = options.Plugins?.Select(step => (step, (IRewriteStepOptions)null)) ?? ImmutableArray<(string, IRewriteStepOptions)>.Empty,
+                EnableAdditionalChecks = true
             }; 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
             if (loaded.VerifiedCompilation == null) return ReturnCode.Status(loaded);

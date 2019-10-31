@@ -53,9 +53,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public const int DOC_GENERATION_ERRORS = -9;
         /// <summary>
-        /// Return code indicating that invoking the specified target(s) with the path to the file containing the built compilation failed.
+        /// Return code indicating that invoking the specified compiler plugin(s) failed.
         /// </summary>
-        public const int TARGET_EXECUTION_ERRORS = -10;
+        public const int PLUGIN_EXECUTION_ERRORS = -10;
         /// <summary>
         /// Return code indicating that an unexpected exception was thrown when executing the invoked command to the Q# command line compiler.
         /// </summary>
@@ -70,9 +70,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             loaded.Documentation == CompilationLoader.Status.Failed ? ReturnCode.DOC_GENERATION_ERRORS :
             loaded.BinaryFormat == CompilationLoader.Status.Failed ? ReturnCode.BINARY_GENERATION_ERRORS :
             loaded.DllGeneration == CompilationLoader.Status.Failed ? ReturnCode.DLL_GENERATION_ERRORS :
-            loaded.AllTargets == CompilationLoader.Status.Failed ? ReturnCode.TARGET_EXECUTION_ERRORS :
-            loaded.Success != CompilationLoader.Status.Succeeded ? ReturnCode.UNEXPECTED_ERROR :
-            ReturnCode.SUCCESS;
+            loaded.AllLoadedRewriteSteps == CompilationLoader.Status.Failed ? ReturnCode.PLUGIN_EXECUTION_ERRORS :
+            loaded.Success ? ReturnCode.SUCCESS : ReturnCode.UNEXPECTED_ERROR;
     }
 
 
