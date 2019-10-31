@@ -170,6 +170,7 @@ export class LanguageServer {
         // Before anything else, look at the user's configuration to see
         // if they set a path manually for the language server.
         let packageInfo = getPackageInfo(this.context);
+        let versionCheck = false;
         if (packageInfo !== undefined) {
             let config = vscode.workspace.getConfiguration(packageInfo.name);
             lsPath = config.get("quantumDevKit.languageServerPath");
@@ -185,6 +186,7 @@ export class LanguageServer {
                 throw new Error(`Unsupported platform: ${os.platform()}`);
             }
             lsPath = path.join(this.context.globalStoragePath, CommonPaths.storageRelativePath, exeName);
+            versionCheck = true;
         }
 
         // Since lsPath has been set unconditionally, we can now proceed to
@@ -213,7 +215,7 @@ export class LanguageServer {
         if (info === undefined || info === null) {
             throw new Error("Package info was undefined.");
         }
-        if (info.assemblyVersion !== version) {
+        if (versionCheck && info.assemblyVersion !== version) {
             console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.assemblyVersion}. Clearing cached version.`);
             await this.clearCache();
             return false;
