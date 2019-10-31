@@ -282,6 +282,7 @@ type ErrorCode =
     | SerializationFailed = 7106
     | GeneratingBinaryFailed = 7107
     | GeneratingDllFailed = 7108
+    | PluginExecutionFailed = 7109
     | PreEvaluationFailed = 7110
     | RewriteStepExecutionFailed = 7111
     | PostconditionVerificationFailed = 7112
@@ -626,6 +627,7 @@ type DiagnosticItem =
             | ErrorCode.SerializationFailed                     -> "Unable to serialize the built compilation."
             | ErrorCode.GeneratingBinaryFailed                  -> "Unable to generate binary format for the compilation."
             | ErrorCode.GeneratingDllFailed                     -> "Unable to generate dll containing the compiled binary."
+            | ErrorCode.PluginExecutionFailed                   -> "The compilation step \"{0}\" loaded from \"{1}\" threw an exception."
             | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
             | ErrorCode.RewriteStepExecutionFailed              -> "Executing the transformation for the compilation step \"{0}\" loaded from \"{1}\" failed."
             | ErrorCode.PostconditionVerificationFailed         -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
