@@ -169,12 +169,9 @@ export class LanguageServer {
         let lsPath : string | undefined | null = undefined;
         // Before anything else, look at the user's configuration to see
         // if they set a path manually for the language server.
-        let packageInfo = getPackageInfo(this.context);
         let versionCheck = false;
-        if (packageInfo !== undefined) {
-            let config = vscode.workspace.getConfiguration(packageInfo.name);
-            lsPath = config.get("quantumDevKit.languageServerPath");
-        }
+        let config = vscode.workspace.getConfiguration();
+        lsPath = config.get("quantumDevKit.languageServerPath");
 
         // If lsPath is still undefined or null, then we didn't have a manual
         // path set up above.
@@ -192,6 +189,7 @@ export class LanguageServer {
         // Since lsPath has been set unconditionally, we can now proceed to
         // check if it's valid or not.
         if (!await isPathExecutable(lsPath)) {
+            console.log(`[qsharp-lsp] "${lsPath}" is not executable. Proceed to download Q# language server.`)
             // Language server didn't exist or wasn't executable.
             return false;
         }
@@ -228,6 +226,12 @@ export class LanguageServer {
         return true;
     }
 
+    private async setAsExecutable(path : string) : Promise<void> {
+        let results = await promisify(cp.exec)(`chmod +x "${path}"`);
+        console.log(`[qsharp-lsp] Results from setting ${path} as executable:\n${results.stdout}\nstderr:\n${results.stderr}`);
+        return;
+    }
+
     private decompressServerBlob(blobPath : string) : Thenable<void> {
         console.log(`[qsharp-lsp] Decompressing ${blobPath}.`);
         return vscode.window.withProgress(
@@ -251,7 +255,20 @@ export class LanguageServer {
                     });
                     unzipper.on('extract', log => {
                         console.log(log);
-                        resolve();
+                        // If we're on Windows, we're done. On Unix-like
+                        // systems, though, we need to mark the server as
+                        // executable first.
+                        if (os.platform() === "win32") {
+                            resolve();
+                        } else {
+                            let relativeExecutablePath = CommonPaths.executableNames[os.platform()];
+                            this.setAsExecutable(
+                                path.join(
+                                    targetPath,
+                                    relativeExecutablePath!
+                                )
+                            ).then(resolve);
+                        }
                     });
                     unzipper.extract({
                         path: targetPath
