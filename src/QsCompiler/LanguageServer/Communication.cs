@@ -17,6 +17,35 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal const string FileDiagnostics = "qsLanguageServer/fileDiagnostics";
     }
 
+    public class ProtocolError
+    {
+        public static class Codes
+        {
+            // specified by the LSP
+
+            public const int AwaitingInitialization = -32002;
+
+            // behavior unspecified by LSP
+            // -> according to JsonRpc 2.0, the error code range -32768 to -32000 is reserverd
+            // -> using the range -32900 to -32999 for anything not specified by the LSP should be fine
+        }
+
+        public readonly int Code;
+        public readonly string Message;
+
+        public ProtocolError(int code, string message = null)
+        {
+            this.Code = code;
+            this.Message = message;
+        }
+
+        public static ProtocolError AwaitingInitialization =>
+            new ProtocolError(Codes.AwaitingInitialization);
+    }
+
+    // If the workaround for ignoring CodeActionKind is no longer needed, 
+    // please also remove the modification in the server's Initialize method 
+    // that sets capabilities.textDocument.codeAction to null. 
     public static class Workarounds
     {
         /// <summary>
@@ -63,31 +92,5 @@ namespace Microsoft.Quantum.QsLanguageServer
                     Only = null
                 };
         }
-    }
-
-    public class ProtocolError
-    {
-        public static class Codes
-        {
-            // specified by the LSP
-
-            public const int AwaitingInitialization = -32002;
-
-            // behavior unspecified by LSP
-            // -> according to JsonRpc 2.0, the error code range -32768 to -32000 is reserverd
-            // -> using the range -32900 to -32999 for anything not specified by the LSP should be fine
-        }
-
-        public readonly int Code;
-        public readonly string Message;
-
-        public ProtocolError(int code, string message = null)
-        {
-            this.Code = code;
-            this.Message = message;
-        }
-
-        public static ProtocolError AwaitingInitialization =>
-            new ProtocolError(Codes.AwaitingInitialization);
     }
 }
