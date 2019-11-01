@@ -19,7 +19,7 @@
   <PropertyGroup>
     <ExecutionTestsDir>ExecutionTests\</ExecutionTestsDir>
     <GenFilesDir>generated\</GenFilesDir>
-    <SimulationTarget>"..\Target\bin\$(Configuration)\netcoreapp3.0\Simulation.dll"</SimulationTarget>
+    <SimulationTarget>"..\Target\bin\$(Configuration)\netstandard2.1\Simulation.dll"</SimulationTarget>
     <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp3.0\qsc.dll"</QscExe>
   </PropertyGroup>
 
