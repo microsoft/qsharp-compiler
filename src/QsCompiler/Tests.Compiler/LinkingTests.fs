@@ -21,20 +21,7 @@ open System.Collections.Immutable
 type LinkingTests (output:ITestOutputHelper) =
     inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"], output)
 
-    let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
-
-    let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
-    let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
-
-    do  let core = Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath
-        let file = getManager (new Uri(core)) (File.ReadAllText core)
-        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-
-    do  let generics = Path.Combine ("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath
-        let file = getManager (new Uri(generics)) (File.ReadAllText generics)
-        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-
-    let typeMap =
+    static let typeMap =
         [|
             "Unit", QsTypeKind.UnitType;
             "Int", QsTypeKind.Int;
@@ -42,6 +29,48 @@ type LinkingTests (output:ITestOutputHelper) =
             "String", QsTypeKind.String;
             "Qubit", QsTypeKind.Qubit;
         |] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
+
+    let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
+
+    let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+    let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
+
+    do  let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
+        Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
+        Path.Combine ("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
+
+    static member private SignatureCheck targetSignatures compilation =
+
+        let callableElems =
+            compilation.Namespaces
+            |> Seq.collect (fun ns -> ns.Elements)
+            |> Seq.choose (function | QsCallable c -> Some c | _ -> None)
+            |> Seq.map (fun call -> (call.FullName, call.Signature.ArgumentType, call.Signature.ReturnType))
+
+        let doesCallMatchSig call signature =
+            let (call_fullName : QsQualifiedName), call_argType, call_rtrnType = call
+            let (sig_fullName : QsQualifiedName), sig_argType, sig_rtrnType = signature
+
+            call_fullName.Namespace.Value = sig_fullName.Namespace.Value &&
+            call_fullName.Name.Value.EndsWith sig_fullName.Name.Value &&
+            call_argType = sig_argType &&
+            call_rtrnType = sig_rtrnType
+
+        let rec makeArgsString (args : ResolvedType) =
+            match args.Resolution with
+            | QsTypeKind.UnitType -> "()"
+            | QsTypeKind.TupleType ary -> ary |> Seq.map makeArgsString |> String.concat ", " |> (fun s -> "(" + s + ")")
+            | _ -> args.Resolution.ToString()
+
+        for signature in targetSignatures do
+            let sig_fullName, sig_argType, sig_rtrnType = signature
+            callableElems
+            |> Seq.exists (fun call -> doesCallMatchSig call signature)
+            |> (fun x -> Assert.True (x, sprintf "Expected but did not find: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
+
+    static member private GetEntryPoints fileName =
+        let validEntryPoints = Path.Combine ("TestCases", "LinkingTests", fileName) |> File.ReadAllText
+        validEntryPoints.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.EntryPoints" |> NonNullable<_>.New
@@ -62,7 +91,7 @@ type LinkingTests (output:ITestOutputHelper) =
         for callable in built.Callables.Values |> Seq.filter inFile do
             tests.Verify (callable.FullName, diag)
 
-    member private this.CompileAndTestMonomorphization input targetSignatures =
+    member private this.CompileAndTestMonomorphization input =
 
         let fileId = getTempFile()
         let file = getManager fileId input
@@ -72,62 +101,32 @@ type LinkingTests (output:ITestOutputHelper) =
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
         compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
-        
+
         Assert.NotNull compilationDataStructures.BuiltCompilation
-        let mutable monomorphicCompilation = compilationDataStructures.BuiltCompilation;
-        compilationDataStructures.BuiltCompilation.Monomorphisize &monomorphicCompilation |> Assert.True;
+        let mutable monomorphicCompilation = compilationDataStructures.BuiltCompilation
+        compilationDataStructures.BuiltCompilation.Monomorphisize &monomorphicCompilation |> Assert.True
 
         Assert.NotNull monomorphicCompilation
-        monomorphicCompilation.ValidateMonomorphization () |> Assert.True;
-
-        let callableElems =
-            monomorphicCompilation.Namespaces
-            |> Seq.collect (fun ns -> ns.Elements)
-            |> Seq.choose (function | QsCallable c -> Some c | _ -> None)
-            |> Seq.map (fun call -> (call.FullName, call.Signature.ArgumentType, call.Signature.ReturnType))
-        
-        let doesCallMatchSig call signature =
-            let (call_fullName : QsQualifiedName), call_argType, call_rtrnType = call;
-            let (sig_fullName : QsQualifiedName), sig_argType, sig_rtrnType = signature;
-
-            call_fullName.Namespace.Value = sig_fullName.Namespace.Value &&
-            call_fullName.Name.Value.EndsWith sig_fullName.Name.Value &&
-            call_argType = sig_argType &&
-            call_rtrnType = sig_rtrnType
-
-        let rec makeArgsString (args : ResolvedType) =
-            match args.Resolution with
-            | QsTypeKind.UnitType -> "()"
-            | QsTypeKind.TupleType ary -> ary |> Seq.map makeArgsString |> String.concat ", " |> (fun s -> "(" + s + ")")
-            | _ -> args.Resolution.ToString()
-                
-
-        for signature in targetSignatures do
-            let sig_fullName, sig_argType, sig_rtrnType = signature;
-            callableElems
-            |> Seq.exists (fun call -> doesCallMatchSig call signature)
-            |> (fun x -> Assert.True (x, sprintf "Expected but did not find: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
+        monomorphicCompilation.ValidateMonomorphization () |> Assert.True
+        monomorphicCompilation
 
 
     [<Fact>]
     member this.``Monomorphization`` () =
 
-        let validEntryPoints = Path.Combine ("TestCases", "LinkingTests", "Monomorphization.qs") |> File.ReadAllText
-        let entryPoints = validEntryPoints.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
-
         let makeSig input =
             let ns, name, args, rtrn = input
             { Namespace = NonNullable<string>.New ns; Name = NonNullable<string>.New name },
             (if Array.isEmpty args then
-                typeMap.["Unit"] 
+                typeMap.["Unit"]
             else
                 args |> Seq.map (fun typ -> typeMap.[typ]) |> ImmutableArray.ToImmutableArray |> QsTypeKind.TupleType |> ResolvedType.New),
             typeMap.[rtrn]
 
-        let genericsNs = "Microsoft.Quantum.Testing.Generics";
+        let genericsNs = "Microsoft.Quantum.Testing.Generics"
         let targetSignatures =
             [|
-                [|
+                [| (*Test Case 1*)
                     genericsNs, "BasicGeneric", [|"Double"; "Int"|], "Unit";
                     genericsNs, "BasicGeneric", [|"String"; "String"|], "Unit";
                     genericsNs, "BasicGeneric", [|"Unit"; "Unit"|], "Unit";
@@ -137,21 +136,22 @@ type LinkingTests (output:ITestOutputHelper) =
                     genericsNs, "ReturnGeneric", [|"Double"; "String"; "Int"|], "Int";
                     genericsNs, "ReturnGeneric", [|"String"; "Int"; "String"|], "String";
                 |];
-                [|
+                [| (*Test Case 2*)
                     genericsNs, "ArrayGeneric", [|"Qubit"; "String"|], "Int";
                     genericsNs, "ArrayGeneric", [|"Qubit"; "Int"|], "Int";
                     genericsNs, "GenericCallsGeneric", [|"Qubit"; "Int"|], "Unit";
                 |]
             |] |> Seq.map (fun case -> Seq.map (fun _sig -> makeSig _sig) case)
 
-        for testCase in Seq.zip entryPoints targetSignatures do this.CompileAndTestMonomorphization (fst testCase) (snd testCase)
+        for testCase in LinkingTests.GetEntryPoints "Monomorphization.qs" |> Seq.zip targetSignatures do
+            this.CompileAndTestMonomorphization (snd testCase) |>
+            LinkingTests.SignatureCheck (fst testCase)
 
 
     [<Fact>]
     member this.``Fail on multiple entry points`` () =
 
-        let validEntryPoints = Path.Combine ("TestCases", "LinkingTests", "ValidEntryPoints.qs") |> File.ReadAllText
-        let entryPoints = validEntryPoints.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
+        let entryPoints = LinkingTests.GetEntryPoints "ValidEntryPoints.qs"
         Assert.True (entryPoints.Length > 1)
 
         let fileId = getTempFile()
@@ -164,13 +164,11 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     member this.``Entry point specialization verification`` () =
 
-        let entryPointsWithSpecs = Path.Combine ("TestCases", "LinkingTests", "EntryPointSpecializations.qs") |> File.ReadAllText
-        for entryPoint in entryPointsWithSpecs.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries) do
+        for entryPoint in LinkingTests.GetEntryPoints "EntryPointSpecializations.qs" do
             this.CompileAndVerify entryPoint [Error ErrorCode.InvalidEntryPointSpecialization]
 
-        let validEntryPoints = Path.Combine ("TestCases", "LinkingTests", "ValidEntryPoints.qs") |> File.ReadAllText
-        let entryPoints = validEntryPoints.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
-        for entryPoint in entryPoints do this.CompileAndVerify entryPoint []
+        for entryPoint in LinkingTests.GetEntryPoints "ValidEntryPoints.qs" do
+            this.CompileAndVerify entryPoint []
 
 
     [<Fact>]
