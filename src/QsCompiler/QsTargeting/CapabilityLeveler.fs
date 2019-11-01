@@ -136,7 +136,7 @@ let private isQubitArray ex =
     match ex.ResolvedType.Resolution with | ArrayType t when isQubitType t -> true | _ -> false
         
 type private CapabilityInfoHolder(spec, manager : CapabilityLevelManager) =
-    let mutable localLevel = CapabilityLevel.Unset
+    let mutable localLevel = CapabilityLevel.Minimal
 
     member this.LocalLevel with get() = localLevel and set(n) = if n > localLevel then localLevel <- n
 
