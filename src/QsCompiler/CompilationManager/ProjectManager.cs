@@ -1022,14 +1022,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and returns a sequence containing the absolute path for all files that do.
         /// Sets the corresponding out parameter to a sequence with all duplicate file names,
         /// and to a sequence of names for which no such file exists respectively. 
-        /// Filters all file names that are null or only consist of white spaces. 
-        /// Generates suitable diagnostics for duplicate and not found files, and for invalid paths.
+        /// Filters all file names that are null or only consist of whitespace. 
+        /// Generates suitable diagnostics for duplicate and not found files, and for invalid paths. 
+        /// Logs the generated diagnostics using onDiagnostics if the action has been specified and is not null.
+        /// Catches exceptions related to path errors and logs them using onException if the action has been specified and is not null.
         /// Throws an ArgumentNullException if the given sequence of files is null. 
         /// </summary>
         public static IEnumerable<Uri> FilterFiles(IEnumerable<string> files,
             WarningCode duplicateFileWarning, Func<string, string, Diagnostic> FileNotFoundDiagnostic,
-            out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
-            out IEnumerable<(string, Exception)> invalidPaths,
+            out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths,
             Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
             if (files == null) { throw new ArgumentNullException(nameof(files)); }
@@ -1088,7 +1089,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             static Diagnostic NotFoundDiagnostic(string notFound, string source) => Errors.LoadError(ErrorCode.UnknownSourceFile, new[] { notFound }, source);
             var found = FilterFiles(sourceFiles, WarningCode.DuplicateSourceFile, NotFoundDiagnostic,
-                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths);
+                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths, 
+                onDiagnostic, onException);
             return found
                 .Select(file => (file, GetFileContent(file)))
                 .Where(source => source.Item2 != null)
@@ -1158,7 +1160,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             static Diagnostic NotFoundDiagnostic(string notFound, string source) => Errors.LoadError(ErrorCode.UnknownProjectReference, new[] { notFound }, source);
             var existingProjectFiles = FilterFiles(refProjectFiles, WarningCode.DuplicateProjectReference, NotFoundDiagnostic,
-                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths);
+                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths, 
+                onDiagnostic, onException);
 
             Uri TryGetOutputPath(Uri projFile)
             {
@@ -1201,8 +1204,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var relevant = references.Where(file => file.IndexOf("mscorlib.dll", StringComparison.InvariantCultureIgnoreCase) < 0);
             static Diagnostic NotFoundDiagnostic(string notFound, string source) => Warnings.LoadWarning(WarningCode.UnknownBinaryFile, new[] { notFound }, source);
             var assembliesToLoad = FilterFiles(relevant, WarningCode.DuplicateBinaryFile, NotFoundDiagnostic,
-                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
-                out IEnumerable<(string, Exception)> invalidPaths);
+                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths, 
+                onDiagnostic, onException);
 
             return assembliesToLoad
                 .Select(file => (file, LoadReferencedDll(file)))
