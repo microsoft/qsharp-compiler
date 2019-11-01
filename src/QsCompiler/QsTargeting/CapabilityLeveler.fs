@@ -31,12 +31,16 @@ type private CapabilityLevelManager() =
             let exprTransformer = new ExpressionToQs()
             let transformer = new ExpressionTypeToQs(exprTransformer)
             transformer.Apply(rt)
-        let typeArgs = types.ValueOr (new ImmutableArray<ResolvedType>())
-                       |> Seq.map (fun t -> (t, ResolvedTypeToString t))
-        typeArgs |> Seq.iter (fun (t, s) -> keyTypes.[s] <- t)
-        let typeArgString = typeArgs
-                            |> Seq.map snd
+        let getArgString (args : ImmutableArray<ResolvedType>) =
+            if args.IsDefaultOrEmpty
+            then ""
+            else
+                let typeArgs = args |> Seq.map (fun t -> (t, ResolvedTypeToString t))
+                typeArgs |> Seq.iter (fun (t, s) -> keyTypes.[s] <- t)
+                typeArgs |> Seq.map snd
                             |> String.concat (sep.ToString())
+        let typeArgString = types |> QsNullable<_>.Map getArgString
+                                  |> fun n -> n.ValueOr ""
         { QualifiedName = name; Kind = kind; TypeArgString = typeArgString }
 
     let SpecToKey (spec : QsSpecialization) =
@@ -264,6 +268,7 @@ type private StatementLeveler(holder : CapabilityInfoHolder) =
     let exprXformer = new ExpressionLeveler(holder)
 
     override this.ScopeTransformation x = scopeXformer.Transform x
+
     override this.ExpressionTransformation x = 
         exprXformer.IsSimpleResultTest <- true
         exprXformer.Transform x
@@ -305,7 +310,9 @@ type private StatementLeveler(holder : CapabilityInfoHolder) =
 and private ScopeLeveler(holder : CapabilityInfoHolder) =
     inherit ScopeTransformation()
 
-    override this.StatementKind = upcast new StatementLeveler(holder)
+    let kindXformer = new StatementLeveler(holder)
+
+    override this.StatementKind = upcast kindXformer
 
     member this.Holder with get() = holder
 
@@ -340,10 +347,12 @@ type TreeLeveler() =
 
     let mutable currentOperationLevel = None : CapabilityLevel option
 
-    override this.Scope with get() = upcast scopeXform.Value
+    override this.Scope with get() = scopeXform |> Option.map (fun x -> x :> ScopeTransformation)
+                                                |> Option.defaultWith (fun () -> new ScopeTransformation())
 
     override this.beforeCallable(c) =
         currentOperationLevel <- c.Attributes |> checkForLevelAttributes
+        System.Console.WriteLine("About to process callable " + c.FullName.Name.Value)
         base.beforeCallable(c)
 
     override this.onSpecializationImplementation(s) =
