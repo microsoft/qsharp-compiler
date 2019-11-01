@@ -144,10 +144,9 @@ type private CapabilityInfoHolder(spec, manager : CapabilityLevelManager) =
 
     member this.Manager = manager
 
-type private ExpressionKindLeveler(holder : CapabilityInfoHolder) =
+type private ExpressionKindLeveler(exprXformer : ExpressionLeveler, holder : CapabilityInfoHolder) =
     inherit ExpressionKindTransformation()
 
-    let exprXformer = new ExpressionLeveler(holder)
     let mutable inCall = false
     let mutable adjoint = false
     let mutable controlled = false
@@ -251,20 +250,19 @@ type private ExpressionKindLeveler(holder : CapabilityInfoHolder) =
         | _ -> ()
         base.Transform(kind)
 
-and private ExpressionLeveler(holder : CapabilityInfoHolder) =
+and private ExpressionLeveler(holder : CapabilityInfoHolder) as this =
     inherit ExpressionTransformation()
 
-    let kindXformer = new ExpressionKindLeveler(holder)
+    let kindXformer = new ExpressionKindLeveler(this, holder)
 
     override this.Kind = upcast kindXformer
 
     member this.IsSimpleResultTest with get() = kindXformer.IsSimpleResultTest 
                                     and set(v) = kindXformer.IsSimpleResultTest <- v
 
-type private StatementLeveler(holder : CapabilityInfoHolder) =
+type private StatementLeveler(scopeXformer : ScopeLeveler, holder : CapabilityInfoHolder) =
     inherit StatementKindTransformation()
 
-    let scopeXformer = new ScopeLeveler(holder)
     let exprXformer = new ExpressionLeveler(holder)
 
     override this.ScopeTransformation x = scopeXformer.Transform x
@@ -307,10 +305,10 @@ type private StatementLeveler(holder : CapabilityInfoHolder) =
             then holder.LocalLevel <- CapabilityLevel.Advanced
         base.onVariableDeclaration(s)
 
-and private ScopeLeveler(holder : CapabilityInfoHolder) =
+and private ScopeLeveler(holder : CapabilityInfoHolder) as this =
     inherit ScopeTransformation()
 
-    let kindXformer = new StatementLeveler(holder)
+    let kindXformer = new StatementLeveler(this, holder)
 
     override this.StatementKind = upcast kindXformer
 
@@ -352,8 +350,8 @@ type TreeLeveler() =
 
     override this.beforeCallable(c) =
         currentOperationLevel <- c.Attributes |> checkForLevelAttributes
-        System.Console.WriteLine("About to process callable " + c.FullName.Name.Value)
-        base.beforeCallable(c)
+        let result = base.beforeCallable(c)
+        result
 
     override this.onSpecializationImplementation(s) =
         let holder = new CapabilityInfoHolder(s, manager)

@@ -18,9 +18,6 @@ open Xunit
 
 // Utilities for testing operation capability level setting and the corresponding infrastructure
 
-let out = File.CreateText("C:\\Users\\ageller\\Source\\Repos\\debug.log")
-System.Console.SetOut(out)
-
 let private buildSyntaxTree path code =
     let fileId = new Uri(path) 
     let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message) 
@@ -56,7 +53,10 @@ let private getOperationLevel tree opName =
 [<Fact>]
 let ``capability leveling tests`` () =
     let leveler = new TreeLeveler()
+
     let syntaxTree = buildSyntaxTreeFromFile "CapabilityLevels" |> Seq.map leveler.Transform
 
-    Assert.Equal(CapabilityLevel.Minimal, getOperationLevel syntaxTree "M")
+    let mLevel = getOperationLevel syntaxTree "M"
+    Assert.Equal(CapabilityLevel.Minimal, mLevel)
+
     ()
