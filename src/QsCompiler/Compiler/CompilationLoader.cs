@@ -290,7 +290,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             // executing the specified rewrite steps 
 
-            if (this.Config.Monomorphization)
+            if (this.CompilationOutput != null && this.CompilationOutput.EntryPoints.Any())
             {
                 this.CompilationStatus.Monomorphization = 0;
                 void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.Monomorphization, ex); 

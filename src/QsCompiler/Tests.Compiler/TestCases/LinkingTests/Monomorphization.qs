@@ -20,3 +20,14 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
         Test2Main();
     }
 }
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.Monomorphization {
+    open Microsoft.Quantum.Testing.Generics;
+
+    @ EntryPoint()
+    operation Test3() : Unit {
+        Test3Main();
+    }
+}

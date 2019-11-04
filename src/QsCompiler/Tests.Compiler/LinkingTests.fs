@@ -28,6 +28,7 @@ type LinkingTests (output:ITestOutputHelper) =
             "Double", QsTypeKind.Double;
             "String", QsTypeKind.String;
             "Qubit", QsTypeKind.Qubit;
+            "Qubit[]", ResolvedType.New QsTypeKind.Qubit |> QsTypeKind.ArrayType;
         |] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
@@ -60,11 +61,19 @@ type LinkingTests (output:ITestOutputHelper) =
             | QsTypeKind.UnitType -> "()"
             | _ -> args |> (ExpressionToQs () |> ExpressionTypeToQs).Apply
 
+        (*Tests that all target signatures are present*)
         for targetSig in targetSignatures do
             let sig_fullName, sig_argType, sig_rtrnType = targetSig
             callableSigs
             |> Seq.exists (fun callSig -> doesCallMatchSig callSig targetSig)
             |> (fun x -> Assert.True (x, sprintf "Expected but did not find: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
+
+        (*Tests that *only* targeted signatures are present*)
+        for callSig in callableSigs do
+            let sig_fullName, sig_argType, sig_rtrnType = callSig
+            targetSignatures
+            |> Seq.exists (fun targetSig -> doesCallMatchSig callSig targetSig)
+            |> (fun x -> Assert.True (x, sprintf "Found unexpected callable: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
 
     static member private GetEntryPoints fileName =
         let validEntryPoints = Path.Combine ("TestCases", "LinkingTests", fileName) |> File.ReadAllText
@@ -124,9 +133,13 @@ type LinkingTests (output:ITestOutputHelper) =
             (fullName, argType, returnType)
 
         let genericsNs = "Microsoft.Quantum.Testing.Generics"
+        let monomorphizationNs = "Microsoft.Quantum.Testing.Monomorphization"
         let targetSignatures =
             [|
                 [| (*Test Case 1*)
+                    monomorphizationNs, "Test1", [||], "Unit";
+                    genericsNs, "Test1Main", [||], "Unit";
+
                     genericsNs, "BasicGeneric", [|"Double"; "Int"|], "Unit";
                     genericsNs, "BasicGeneric", [|"String"; "String"|], "Unit";
                     genericsNs, "BasicGeneric", [|"Unit"; "Unit"|], "Unit";
@@ -137,9 +150,33 @@ type LinkingTests (output:ITestOutputHelper) =
                     genericsNs, "ReturnGeneric", [|"String"; "Int"; "String"|], "String";
                 |];
                 [| (*Test Case 2*)
+                    monomorphizationNs, "Test2", [||], "Unit";
+                    genericsNs, "Test2Main", [||], "Unit";
+
                     genericsNs, "ArrayGeneric", [|"Qubit"; "String"|], "Int";
                     genericsNs, "ArrayGeneric", [|"Qubit"; "Int"|], "Int";
                     genericsNs, "GenericCallsGeneric", [|"Qubit"; "Int"|], "Unit";
+                |];
+                [| (*Test Case 3*)
+                    monomorphizationNs, "Test3", [||], "Unit";
+                    genericsNs, "Test3Main", [||], "Unit";
+
+                    genericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Qubit[]"|], "Unit";
+                    genericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Double"|], "Unit";
+                    genericsNs, "GenericCallsSpecializations", [|"String"; "Int"; "Unit"|], "Unit";
+
+                    genericsNs, "BasicGeneric", [|"Qubit[]"; "Qubit[]"|], "Unit";
+                    genericsNs, "BasicGeneric", [|"String"; "Qubit[]"|], "Unit";
+                    genericsNs, "BasicGeneric", [|"Double"; "String"|], "Unit";
+                    genericsNs, "BasicGeneric", [|"Qubit[]"; "Double"|], "Unit";
+                    genericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit";
+                    genericsNs, "BasicGeneric", [|"Qubit[]"; "Unit"|], "Unit";
+                    genericsNs, "BasicGeneric", [|"Int"; "Unit"|], "Unit";
+                    genericsNs, "BasicGeneric", [|"String"; "Int"|], "Unit";
+                    
+                    genericsNs, "ArrayGeneric", [|"Qubit"; "Qubit[]"|], "Int";
+                    genericsNs, "ArrayGeneric", [|"Qubit"; "Double"|], "Int";
+                    genericsNs, "ArrayGeneric", [|"Qubit"; "Unit"|], "Int";
                 |]
             |] |> Seq.map (fun case -> Seq.map (fun _sig -> makeSig _sig) case)
 

@@ -165,10 +165,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     // Create new name
                     name = "_" + Guid.NewGuid().ToString("N") + "_" + globalCallable.Item.Name.Value;
                     concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name));
-                    
-                    // TODO: Check for identifier name collisions (not likely)
-                    // - check in global namespace
-                    // - check in concretion dict for current generic
                 }
 
                 requests.Push(new Request()
@@ -177,6 +173,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     typeResolutions = types,
                     concreteName = concreteName
                 });
+            }
+            else // If the identifier was found, update with the name
+            {
+                concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name));
             }
 
             return Identifier.NewGlobalCallable(concreteName);

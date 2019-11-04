@@ -53,11 +53,11 @@ namespace Microsoft.Quantum.Testing.Generics {
     }
 
     operation Test2Main () : Unit {
-            using (q = Qubit()) {
-                GenericCallsGeneric(q, 12);
-                let temp = ArrayGeneric(q, ArrayGeneric(q, "twelve"));
-                let temp2 = ArrayGeneric(q, 12);
-            }
+        using (q = Qubit()) {
+            GenericCallsGeneric(q, 12);
+            let temp = ArrayGeneric(q, ArrayGeneric(q, "twelve"));
+            let temp2 = ArrayGeneric(q, 12);
+        }
     }
 
     operation ArrayGeneric<'Q>(q : Qubit, bar : 'Q) : Int {
@@ -73,4 +73,32 @@ namespace Microsoft.Quantum.Testing.Generics {
         let temp = bar;
         let thing = ArrayGeneric(q, bar);
     }
+
+	operation Test3Main () : Unit {
+		GenericCallsSpecializations("First", 12, ());
+		Adjoint GenericCallsSpecializations(12.0, "Second", 4.0);
+		using (q = Qubit[4]) {
+			Controlled GenericCallsSpecializations(q[0..1], (12.0, "Third", q[2..3]));
+		}
+	}
+
+	operation GenericCallsSpecializations<'A,'B,'C>(a : 'A, b : 'B, c : 'C) : Unit is Adj+Ctl {
+		body (...) {
+			BasicGeneric(a, b);
+		}
+
+		adjoint (...) {
+			using (q = Qubit()) {
+				let temp = ArrayGeneric(q, c);
+			}
+		}
+
+		controlled (ctrl, ...) {
+			BasicGeneric(b, c);
+		}
+
+		controlled adjoint (ctrl, ...) {
+			BasicGeneric(ctrl, c);
+		}
+	}
 }
