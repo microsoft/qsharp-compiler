@@ -16,6 +16,7 @@ open System.Collections.Immutable
 open System.IO
 open Xunit
 open Xunit.Abstractions
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 type LinkingTests (output:ITestOutputHelper) =
     inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"], output)
@@ -40,7 +41,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
     static member private SignatureCheck targetSignatures compilation =
 
-        let callableElems =
+        let callableSigs =
             compilation.Namespaces
             |> SyntaxExtensions.Callables
             |> Seq.map (fun call -> (call.FullName, call.Signature.ArgumentType, call.Signature.ReturnType))
@@ -54,16 +55,15 @@ type LinkingTests (output:ITestOutputHelper) =
             call_argType = sig_argType &&
             call_rtrnType = sig_rtrnType
 
-        let rec makeArgsString (args : ResolvedType) =
+        let makeArgsString (args : ResolvedType) =
             match args.Resolution with
             | QsTypeKind.UnitType -> "()"
-            | QsTypeKind.TupleType ary -> ary |> Seq.map makeArgsString |> String.concat ", " |> (fun s -> "(" + s + ")")
-            | _ -> args.Resolution.ToString()
+            | _ -> args |> (ExpressionToQs () |> ExpressionTypeToQs).Apply
 
-        for signature in targetSignatures do
-            let sig_fullName, sig_argType, sig_rtrnType = signature
-            callableElems
-            |> Seq.exists (fun call -> doesCallMatchSig call signature)
+        for targetSig in targetSignatures do
+            let sig_fullName, sig_argType, sig_rtrnType = targetSig
+            callableSigs
+            |> Seq.exists (fun callSig -> doesCallMatchSig callSig targetSig)
             |> (fun x -> Assert.True (x, sprintf "Expected but did not find: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
 
     static member private GetEntryPoints fileName =
@@ -114,12 +114,14 @@ type LinkingTests (output:ITestOutputHelper) =
 
         let makeSig input =
             let ns, name, args, rtrn = input
-            { Namespace = NonNullable<string>.New ns; Name = NonNullable<string>.New name },
-            (if Array.isEmpty args then
-                typeMap.["Unit"]
-            else
-                args |> Seq.map (fun typ -> typeMap.[typ]) |> ImmutableArray.ToImmutableArray |> QsTypeKind.TupleType |> ResolvedType.New),
-            typeMap.[rtrn]
+            let fullName = { Namespace = NonNullable<string>.New ns; Name = NonNullable<string>.New name }
+            let argType =
+                if Array.isEmpty args then
+                    typeMap.["Unit"]
+                else
+                    args |> Seq.map (fun typ -> typeMap.[typ]) |> ImmutableArray.ToImmutableArray |> QsTypeKind.TupleType |> ResolvedType.New
+            let returnType = typeMap.[rtrn]
+            (fullName, argType, returnType)
 
         let genericsNs = "Microsoft.Quantum.Testing.Generics"
         let targetSignatures =
