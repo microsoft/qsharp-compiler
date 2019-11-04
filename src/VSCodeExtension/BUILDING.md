@@ -4,7 +4,7 @@
 
 - npm and vsce
 - PowerShell Core (6.0 or later)
-- .NET Core SDK 3.0 or later (optional, only needed if using local version of language server)
+- .NET Core SDK 3.0 or later
 
 ### Obtaining npm and vsce ###
 
