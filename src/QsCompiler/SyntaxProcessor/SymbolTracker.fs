@@ -217,7 +217,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
                 | QsCallableKind.Function -> buildCallable (fst >> QsTypeKind.Function) decl.QualifiedName decl.Signature decl.Attributes
             | Null, (possibleResolutions : NonNullable<string> seq) -> 
                 let ambiguousCallableErr = (ErrorCode.AmbiguousCallable, [String.Join(", ", possibleResolutions |> Seq.map (fun nsName -> nsName.Value))])
-                let errCode = if possibleResolutions.Count() > 1 then ambiguousCallableErr else (ErrorCode.UnknownIdentifier, [])
+                let errCode = if possibleResolutions.Count() > 1 then ambiguousCallableErr else (ErrorCode.UnknownIdentifier, [match qsSym.Symbol with | Symbol s -> s.Value | _ -> ""])
                 qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error errCode |> addDiagnostic;
                 invalid
         

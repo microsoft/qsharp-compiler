@@ -512,7 +512,7 @@ type DiagnosticItem =
             | ErrorCode.ExpectingRangeOrInt                     -> "Range expressions must be of the form \"start .. step .. end\" or \"start .. end\", where start, step and end have to be of type Int."
             | ErrorCode.ExpectingIterableExpr                   -> "The type {0} does not support iteration. Expecting an expression of array type or of type Range."
             | ErrorCode.ExpectingCallableExpr                   -> "The type of the expression must be a function or operation type. The given expression is of type {0}." 
-            | ErrorCode.UnknownIdentifier                       -> "No identifier with that name exists."
+            | ErrorCode.UnknownIdentifier                       -> "No identifier with the name '{0}' exists."
                                                             
             | ErrorCode.CallableRedefinition                    -> "Invalid callable declaration. A function or operation with that name already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor      -> "Invalid callable declaration. A type constructor with that name already exists."
@@ -539,7 +539,7 @@ type DiagnosticItem =
             | ErrorCode.ExpectingUnqualifiedSymbol              -> "Expecting an unqualified symbol name."
             | ErrorCode.ExpectingItemName                       -> "Expecting an item name, i.e. an unqualified symbol."
             | ErrorCode.ExpectingIdentifier                     -> "Expecting either a qualified or an unqualified symbol."
-            | ErrorCode.UnknownNamespace                        -> "No namespace with that name exists."
+            | ErrorCode.UnknownNamespace                        -> "No namespace with the name '{0}' exists."
             | ErrorCode.UnknownTypeInNamespace                  -> "No type with that name exists in that namespace."
             | ErrorCode.TypeParameterRedeclaration              -> "A type parameter with that name already exists."
             | ErrorCode.UnknownTypeParameterName                -> "No type parameter with that name exists."
