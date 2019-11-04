@@ -52,7 +52,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// The generation of the adjoint for the outer block is subject to the same limitation as any adjoint auto-generation.
         /// In particular, it is only guaranteed to be valid if operation calls only occur within expression statements, and
         /// throws an InvalidOperationException if the outer block contains while-loops.
-        /// Any thrown exception is logged using the given onException action and are silently ignored if onException is not specified or null.
+        /// Any thrown exception is logged using the given onException action and silently ignored if onException is not specified or null.
         /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
         /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>
@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Pre-evaluates as much of the classical computations as possible in the given compilation.
-        /// Any thrown exception is logged using the given onException action and are silently ignored if onException is not specified or null.
+        /// Any thrown exception is logged using the given onException action and silently ignored if onException is not specified or null.
         /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
         /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>
@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Eliminates all type-parameterized callables from the scope by replacing their definitions
         /// and references to concrete versions of the callable.
-        /// Any thrown exception is logged using the given onException action and are silently ignored if onException is not specified or null.
+        /// Any thrown exception is logged using the given onException action and silently ignored if onException is not specified or null.
         /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
         /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>
@@ -109,7 +109,7 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Validates that the monomorphization step cleared the syntax tree of all references to, and instances of type-parameterized callables.
-        /// Any thrown exception is logged using the given onException action and are silently ignored if onException is not specified or null.
+        /// Any thrown exception is logged using the given onException action and silently ignored if onException is not specified or null.
         /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
         /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
         /// </summary>

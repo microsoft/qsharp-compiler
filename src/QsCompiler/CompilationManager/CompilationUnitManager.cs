@@ -1,6 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
+using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.VisualStudio.LanguageServer.Protocol;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,12 +14,6 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
-using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
-using Microsoft.Quantum.QsCompiler.SyntaxTokens;
-using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -764,6 +764,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         .Concat(SemanticDiagnostics[file]) :
                     Enumerable.Empty<Diagnostic>();
 
+            /// <summary>
+            /// Returns all diagnostics generated during compilation.
+            /// </summary>
             public IEnumerable<Diagnostic> Diagnostics() =>
                 ScopeDiagnostics.Values
                     .Concat(SyntaxDiagnostics.Values)

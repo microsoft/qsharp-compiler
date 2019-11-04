@@ -4,95 +4,73 @@
 /// This namespace contains test cases for generic operations
 namespace Microsoft.Quantum.Testing.Generics {
 
-	operation Test1Main() : Unit {
-		body (...) {
-			let temp = BasicGeneric<_, Double>(1, _);
-			let temp2 = BasicGeneric<Int, Double>(1, _);
+    operation Test1Main() : Unit {
+        let temp = BasicGeneric<_, Double>(1, _);
+        let temp2 = BasicGeneric<Int, Double>(1, _);
 
-			(BasicGeneric("Yes", _))(1.0);
+        (BasicGeneric("Yes", _))(1.0);
 
-			(BasicGeneric(BasicGeneric("Yes","No"), _))(BasicGeneric(1.0, 2));
+        (BasicGeneric(BasicGeneric("Yes","No"), _))(BasicGeneric(1.0, 2));
 
-			(BasicGeneric<_,_>((BasicGeneric<_,String>("Yes",_))("No"), _))((BasicGeneric<Double, _>(_, 2))(1.0));
+        (BasicGeneric<_,_>((BasicGeneric<_,String>("Yes",_))("No"), _))((BasicGeneric<Double, _>(_, 2))(1.0));
 
-			BasicGeneric((),());
-			BasicGeneric("","");
-			BasicGeneric(1.0,2);
+        BasicGeneric((),());
+        BasicGeneric("","");
+        BasicGeneric(1.0,2);
 
-			let temp3 = NoArgsGeneric<Double>();
-			let bar = (ReturnGeneric<String, _, _>("Yes", (ReturnGeneric<Double, _, _>(12.0, "No", _))(4), _))("Maybe");
-		}
-	}
-
-	// Tests that unused generics are removed
-	operation NotUsed<'A, 'B>(a: 'A, b: 'B) : Int {
-		body (...) {
-			using (q = Qubit()) {
-				let temp = a;
-				let temp2 = b;
-			}
-			return 12;
-		}
-	}
-
-	operation BasicGeneric<'A, 'B>(a: 'A, b: 'B) : Unit {
-		body (...) {
-			let temp = a;
-			using (q = Qubit()) {
-				let temp2 = b;
-			}
-		}
-	}
-
-	operation NoArgsGeneric<'A>() : 'A {
-		body (...) {
-			let temp = new 'A[1];
-			return temp[0];
-		}
-	}
-
-	operation ReturnGeneric<'A,'B,'C>(a: 'A, b: 'B, c: 'C) : 'C {
-		body (...) {
-			let temp = c;
-			using (q = Qubit()) {
-				let temp2 = b;
-				let temp3 = a;
-			}
-			return temp;
-		}
-	}
-
-	operation Test2Main () : Unit is Adj+Ctl {
-        body (...) {
-			using (q = Qubit()) {
-				GenericCallsGeneric(q, 12);
-				let temp = ArrayGeneric(q, ArrayGeneric(q, "twelve"));
-				let temp2 = ArrayGeneric(q, 12);
-			}
-        }
-        
-        adjoint (...) {
-		}
-
-		controlled (control, ...) {
-		}
+        let temp3 = NoArgsGeneric<Double>();
+        let bar = (ReturnGeneric<String, _, _>("Yes", (ReturnGeneric<Double, _, _>(12.0, "No", _))(4), _))("Maybe");
     }
 
-	operation ArrayGeneric<'Q>(q : Qubit, bar : 'Q) : Int {
-        body (...) {
-			mutable temp = new 'Q[3];
-			set temp w/= 0 <- bar;
-			set temp w/= 1 <- bar;
-			set temp w/= 2 <- bar;
-			let temp2 = bar;
-			return 3;
+    // Tests that unused generics are removed
+    operation NotUsed<'A, 'B>(a: 'A, b: 'B) : Int {
+        using (q = Qubit()) {
+            let temp = a;
+            let temp2 = b;
+        }
+        return 12;
+    }
+
+    operation BasicGeneric<'A, 'B>(a: 'A, b: 'B) : Unit {
+        let temp = a;
+        using (q = Qubit()) {
+            let temp2 = b;
         }
     }
-    
-	operation GenericCallsGeneric<'T>(q : Qubit, bar : 'T) : Unit {
-        body (...) {
-			let temp = bar;
-			let thing = ArrayGeneric(q, bar);
+
+    operation NoArgsGeneric<'A>() : 'A {
+        let temp = new 'A[1];
+        return temp[0];
+    }
+
+    operation ReturnGeneric<'A,'B,'C>(a: 'A, b: 'B, c: 'C) : 'C {
+        let temp = c;
+        using (q = Qubit()) {
+            let temp2 = b;
+            let temp3 = a;
         }
+        return temp;
+    }
+
+    operation Test2Main () : Unit {
+            using (q = Qubit()) {
+                GenericCallsGeneric(q, 12);
+                let temp = ArrayGeneric(q, ArrayGeneric(q, "twelve"));
+                let temp2 = ArrayGeneric(q, 12);
+            }
+    }
+
+    operation ArrayGeneric<'Q>(q : Qubit, bar : 'Q) : Int {
+        mutable temp = new 'Q[3];
+        set temp w/= 0 <- bar;
+        set temp w/= 1 <- bar;
+        set temp w/= 2 <- bar;
+        let temp2 = bar;
+        return 3;
+    }
+
+    operation GenericCallsGeneric<'T>(q : Qubit, bar : 'T) : Unit {
+        let temp = bar;
+        let thing = ArrayGeneric(q, bar);
     }
 }
