@@ -30,7 +30,7 @@ After doing so, `vsce` can be used from the command line.
 Before doing any local development, you will need to run `bootstrap.ps1` to set version numbers and other metadata for the Quantum Development Kit.
 Please see [the root README](../../README.md) for more information.
 
-As of version 0.10 of the Quantum Development Kit, the Visual Studio Code extension no longer includes the Q# language server, but downloads the a copy of language server at runtime.
+As of version 0.10 of the Quantum Development Kit, the Visual Studio Code extension no longer includes the Q# language server, but downloads a copy of the server at runtime.
 This process is controlled by metadata stored in `package.json`, which is in turn generated from `package.json.v.template` when running `bootstrap.ps1` in the root of the repository.
 For instance, when developing against 0.10.1910.3002, `bootstrap.ps1` will create a `blobs` section in `package.json` similar to the following:
 
