@@ -3,8 +3,8 @@
 
 // Tests for capability leveling
 
-namespace Microsoft.Quantum.Core { // or whatever namespace you expect it in - Core seems like the right choice
-    
+namespace Microsoft.Quantum.Core
+{ 
     @Attribute()
     newtype Level = Int;
 
@@ -12,7 +12,8 @@ namespace Microsoft.Quantum.Core { // or whatever namespace you expect it in - C
     newtype Attribute = Unit;
 }
 
-namespace Microsoft.Quantum.Testing {
+namespace Microsoft.Quantum.Testing 
+{
 	// This should be level 1 since it's intrinsic.
 	operation M (q : Qubit) : Result
 	{

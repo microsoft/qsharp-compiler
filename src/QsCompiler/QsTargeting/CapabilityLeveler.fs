@@ -330,6 +330,13 @@ type TreeLeveler() =
             match a.Argument.Expression with
             | IntLiteral n -> let level = enum<CapabilityLevel> (int n)
                               Some level
+            | ValueTuple args -> if args.Length = 1
+                                 then
+                                    match args.[0].Expression with
+                                    | IntLiteral n -> let level = enum<CapabilityLevel> (int n)
+                                                      Some level
+                                    | _ -> None
+                                 else None
             | _ -> None
         let levels = attrs |> Seq.filter isLevelAttribute |> List.ofSeq
         match levels with
