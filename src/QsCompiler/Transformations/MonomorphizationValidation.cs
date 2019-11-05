@@ -28,7 +28,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             {
                 if (s.TypeParameters.Any())
                 {
-                    // TODO: throw error
                     throw new Exception("Signatures cannot contains type parameters");
                 }
 
@@ -40,14 +39,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             ExpressionTransformation<Core.ExpressionKindTransformation, MonomorphizationValidationExpressionType>
         {
             public MonomorphizationValidationExpression() :
-                base(null, expr => new MonomorphizationValidationExpressionType(expr as MonomorphizationValidationExpression))
+                base(expr => new ExpressionKindTransformation<MonomorphizationValidationExpression>(expr as MonomorphizationValidationExpression),
+                     expr => new MonomorphizationValidationExpressionType(expr as MonomorphizationValidationExpression))
             { }
 
             public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
             {
                 if (typeParams.Any())
                 {
-                    // TODO: throw error
                     throw new Exception("Type Parameter Resolutions must be empty");
                 }
 
@@ -61,7 +60,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 
             public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
             {
-                // TODO: throw error
                 throw new Exception("Type Parameter types must be resolved");
             }
         }
