@@ -66,10 +66,14 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool AttemptFullPreEvaluation;
             /// <summary>
-            /// Replaces all usages of type parameterized callables wiht the concrete callable instantiation.
+            /// Replaces all usages of type-parameterized callables with the concrete callable instantiation.
             /// Removes parameterized types from the syntax tree.
             /// </summary>
-            public bool Monomorphization; 
+            public bool Monomorphization;
+            /// Tests the syntax tree for any references to type-parameterized callables. Throws an error if
+            /// any such references are found.
+            /// </summary>
+            public bool MonomorphizationValidation;
             /// <summary>
             /// If the output folder is not null, 
             /// documentation is generated in the specified folder based on doc comments in the source code. 
@@ -108,6 +112,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal int PreEvaluation = -1;
             internal int TreeTrimming = -1;
             internal int Monomorphization = -1;
+            internal int MonomorphizationValidation = -1;
             internal int Documentation = -1;
             internal int Serialization = -1;
             internal int BinaryFormat = -1;
@@ -128,6 +133,7 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(options.Monomorphization, this.Monomorphization) &&
+                WasSuccessful(options.MonomorphizationValidation, this.MonomorphizationValidation) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
@@ -171,10 +177,15 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public Status PreEvaluation => GetStatus(this.CompilationStatus.PreEvaluation);
         /// <summary>
-        /// Indicates whether all the type parameterizated callables were resolved to concrete callables.
+        /// Indicates whether all the type-parameterized callables were resolved to concrete callables.
         /// This rewrite step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status Monomorphization => GetStatus(this.CompilationStatus.Monomorphization);
+        /// <summary>
+        /// Indicates whether the validation for removing type-parameterized callables was run.
+        /// This validation step is only executed if the corresponding configuration is specified. 
+        /// </summary>
+        public Status MonomorphizationValidation => GetStatus(this.CompilationStatus.MonomorphizationValidation);
         /// <summary>
         /// Indicates whether documentation for the compilation was generated successfully. 
         /// This step is only executed if the corresponding configuration is specified. 
@@ -279,12 +290,20 @@ namespace Microsoft.Quantum.QsCompiler
 
             // executing the specified rewrite steps 
 
-            if (this.Config.Monomorphization)
+            if (this.CompilationOutput != null && this.CompilationOutput.EntryPoints.Any())
             {
                 this.CompilationStatus.Monomorphization = 0;
                 void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.Monomorphization, ex); 
-                var succeeded = this.CompilationOutput != null && this.CompilationOutput.Monomorphisize(out this.CompilationOutput, onException);
+                bool succeeded = this.CompilationOutput != null && this.CompilationOutput.Monomorphisize(out this.CompilationOutput, onException);
                 if (!succeeded) this.LogAndUpdate(ref this.CompilationStatus.Monomorphization, ErrorCode.MonomorphizationFailed, Enumerable.Empty<string>());
+            }
+
+            if (this.Config.MonomorphizationValidation)
+            {
+                this.CompilationStatus.MonomorphizationValidation = 0;
+                void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.MonomorphizationValidation, ex);
+                bool succeeded = this.CompilationOutput != null && this.CompilationOutput.ValidateMonomorphization(onException);
+                if (!succeeded) this.LogAndUpdate(ref this.CompilationStatus.MonomorphizationValidation, ErrorCode.MonomorphizationValidationFailed, Enumerable.Empty<string>());
             }
 
             if (this.Config.GenerateFunctorSupport)

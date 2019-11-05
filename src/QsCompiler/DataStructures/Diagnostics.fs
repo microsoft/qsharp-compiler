@@ -282,6 +282,7 @@ type ErrorCode =
     | TargetExecutionFailed = 7109
     | PreEvaluationFailed = 7110
     | MonomorphizationFailed = 7111
+    | MonomorphizationValidationFailed = 7112
 
 
 type WarningCode = 
@@ -625,7 +626,8 @@ type DiagnosticItem =
             | ErrorCode.TargetExecutionFailed                   -> "Processing of the compiled binary with the target {0} failed."
             | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
             | ErrorCode.MonomorphizationFailed                  -> "Replacing type parameterizations with the concrete instantiations failed."
-            | _                                                 -> "" 
+            | ErrorCode.MonomorphizationValidationFailed        -> "Validation of the replacement of type parameterizations with the concrete instantiations failed."
+            | _                                                 -> ""
         code |> ApplyArguments             
              
     static member Message (code : WarningCode, args : IEnumerable<string>) = 

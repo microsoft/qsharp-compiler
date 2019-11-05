@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Dynamic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -40,19 +39,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     {
         ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> NamespaceCallables;
 
-        public static QsCompilation Apply(QsCompilation compilation, QsQualifiedName entryPointName)
+        public static QsCompilation Apply(QsCompilation compilation)
         {
             if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
 
             var globals = compilation.Namespaces.GlobalCallableResolutions();
 
-            var entryPoints = globals
-                .Where(call => call.Key.IsEqual(entryPointName)) // TODO: get list of entry points
+            var entryPoints = compilation.EntryPoints
                 .Select(call => new Request
                 {
-                    originalName = call.Key,
+                    originalName = call,
                     typeResolutions = ImmutableConcretion.Empty,
-                    concreteName = call.Key
+                    concreteName = call
                 });
 
             var requests = new Stack<Request>(entryPoints);
@@ -119,18 +117,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             Identifier.GlobalCallable globalCallable,
             ImmutableConcretion types)
         {
-            // If this is not a generic, do not change the name
-            if (types == null || types.IsEmpty)
+            QsQualifiedName concreteName = globalCallable.Item;
+
+            var typesHashSet = ImmutableHashSet<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>>.Empty;
+            if (types != null && !types.IsEmpty)
             {
-                return globalCallable;
+                typesHashSet = types.ToImmutableHashSet();
             }
 
             string name = null;
 
-            ImmutableHashSet<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>> typesHashSet = types.ToImmutableHashSet();
-
             // Check for recursive call
-            if (currentResponse.originalName.IsEqual(globalCallable.Item) &&
+            if (currentResponse.originalName.Equals(globalCallable.Item) &&
                 typesHashSet.SetEquals(currentResponse.typeResolutions))
             {
                 name = currentResponse.concreteCallable.FullName.Name.Value;
@@ -141,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 name = requests
                     .Where(req =>
-                        req.originalName.IsEqual(globalCallable.Item) &&
+                        req.originalName.Equals(globalCallable.Item) &&
                         typesHashSet.SetEquals(req.typeResolutions))
                     .Select(req => req.concreteName.Name.Value)
                     .FirstOrDefault();
@@ -152,7 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 name = responses
                     .Where(res =>
-                        res.originalName.IsEqual(globalCallable.Item) &&
+                        res.originalName.Equals(globalCallable.Item) &&
                         typesHashSet.SetEquals(res.typeResolutions))
                     .Select(res => res.concreteCallable.FullName.Name.Value)
                     .FirstOrDefault();
@@ -161,22 +159,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             // If identifier can't be found, make a new request
             if (name == null)
             {
-                // Create new name
-                name = Guid.NewGuid().ToString("N") + "_" + globalCallable.Item.Name.Value;
-
-                // TODO: Check for identifier name collisions (not likely)
-                // - check in global namespace
-                // - check in concretion dict for current generic
+                // If this is not a generic, do not change the name
+                if (!typesHashSet.IsEmpty)
+                {
+                    // Create new name
+                    name = "_" + Guid.NewGuid().ToString("N") + "_" + globalCallable.Item.Name.Value;
+                    concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name));
+                }
 
                 requests.Push(new Request()
                 {
                     originalName = globalCallable.Item,
                     typeResolutions = types,
-                    concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name))
+                    concreteName = concreteName
                 });
             }
+            else // If the identifier was found, update with the name
+            {
+                concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name));
+            }
 
-            return Identifier.NewGlobalCallable(new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name)));
+            return Identifier.NewGlobalCallable(concreteName);
         }
     }
 
@@ -192,8 +195,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             // Nothing to change if the current callable is already concrete
             if (current.typeResolutions == ImmutableConcretion.Empty) return current;
 
-            var filter = new ReplaceTypeParamImplementationsSyntax(current.typeResolutions
-                /*new MinorTransformations.ReplaceTypeParams(current.typeResolutions.ToImmutableDictionary(param => param.Key, param => param.Value))*/);
+            var filter = new ReplaceTypeParamImplementationsSyntax(current.typeResolutions);
 
             // Create a new response with the transformed callable
             return new Response
@@ -325,20 +327,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             if (sym is Identifier.GlobalCallable global)
             {
                 ImmutableConcretion applicableParams = CurrentParamTypes
-                    .Where(kvp => kvp.Key.Item1.IsEqual(global.Item))
+                    .Where(kvp => kvp.Key.Item1.Equals(global.Item))
                     .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-                if (applicableParams.Any())
-                {
-                    // Create a new identifier
-                    sym = GetConcreteIdentifier(global, applicableParams);
-                    tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
+                // Create a new identifier
+                sym = GetConcreteIdentifier(global, applicableParams);
+                tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
 
-                    // Remove Type Params used from the CurrentParamTypes
-                    foreach (var key in applicableParams.Keys)
-                    {
-                        CurrentParamTypes.Remove(key);
-                    }
+                // Remove Type Params used from the CurrentParamTypes
+                foreach (var key in applicableParams.Keys)
+                {
+                    CurrentParamTypes.Remove(key);
                 }
             }
             else if (sym is Identifier.LocalVariable && tArgs.IsValue && tArgs.Item.Any())
