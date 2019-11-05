@@ -23,28 +23,8 @@ namespace Microsoft.Quantum.QsCompiler
         internal class LoadedStep : IRewriteStep
         {
             internal readonly Uri Origin;
-            private string _GetOutputFolder;
-            private readonly Action<string> _SetOutputFolder;
-
-            private readonly Func<QsCompilation, (bool, QsCompilation)> _Transformation;
-            private readonly Func<QsCompilation, bool> _PreconditionVerification;
-            private readonly Func<QsCompilation, bool> _PostconditionVerification;
-
-            internal LoadedStep(IRewriteStep step, Uri origin)
-            {
-                this.Origin = origin ?? throw new ArgumentNullException(nameof(origin));
-                this.Priority = step?.Priority ?? throw new ArgumentNullException(nameof(step));
-                this.Name = step.Name;
-                this._GetOutputFolder = step.OutputFolder;
-                this._SetOutputFolder = value => step.OutputFolder = value;
-
-                this.ImplementsPreconditionVerification = step.ImplementsPreconditionVerification;
-                this.ImplementsPostconditionVerification = step.ImplementsPostconditionVerification;
-                this.ImplementsTransformation = step.ImplementsTransformation;
-                this._PreconditionVerification = step.PreconditionVerification;
-                this._PostconditionVerification = step.PostconditionVerification;
-                this._Transformation = compilation => step.Transformation(compilation, out var transformed) ? (true, transformed) : (false, compilation);
-            }
+            private object _internalObject;
+            private Type _internalType;
 
             /// <summary>
             /// Attempts to construct a rewrite step via reflection.
@@ -55,49 +35,59 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal LoadedStep(object step, Uri origin)
             {
-                var type = step?.GetType() ?? throw new ArgumentNullException(nameof(step));
+                _internalObject = step;
+                _internalType = step?.GetType() ?? throw new ArgumentNullException(nameof(step));
+
                 this.Origin = origin ?? throw new ArgumentNullException(nameof(origin));
-                this.Priority = (int)type.GetProperty(nameof(IRewriteStep.Priority)).GetValue(step);
-                this.Name = (string)type.GetProperty(nameof(IRewriteStep.Name)).GetValue(step);
-                this._GetOutputFolder = (string)type.GetProperty(nameof(IRewriteStep.OutputFolder)).GetValue(step);
-                this._SetOutputFolder = value => type.GetProperty(nameof(IRewriteStep.OutputFolder)).SetValue(step, value);
-
-                this.ImplementsPreconditionVerification = (bool)type.GetProperty(nameof(IRewriteStep.ImplementsPreconditionVerification)).GetValue(step);
-                this.ImplementsPostconditionVerification = (bool)type.GetProperty(nameof(IRewriteStep.ImplementsPostconditionVerification)).GetValue(step);
-                this.ImplementsTransformation = (bool)type.GetProperty(nameof(IRewriteStep.ImplementsTransformation)).GetValue(step);
-                this._PreconditionVerification = compilation => (bool)type.GetMethod(nameof(IRewriteStep.PreconditionVerification)).Invoke(step, new[] { compilation }); 
-                this._PostconditionVerification = compilation => (bool)type.GetMethod(nameof(IRewriteStep.PostconditionVerification)).Invoke(step, new[] { compilation });
-                this._Transformation = compilation =>
-                {
-                    var args = new object[] { compilation, null };
-                    var success = (bool)type.GetMethod(nameof(IRewriteStep.Transformation)).Invoke(step, args);
-                    return success ? (true, (QsCompilation)args[1]) : (false, compilation);
-                };
             }
 
-            public string Name { get; }
-            public int Priority { get; }
-            public string OutputFolder 
+            public string Name
             {
-                get => this._GetOutputFolder;
-                set => this._SetOutputFolder(value);
+                get => (string)_internalType.GetProperty(nameof(IRewriteStep.Name)).GetValue(_internalObject);
             }
 
-            public bool ImplementsTransformation { get; }
-            public bool ImplementsPreconditionVerification { get; }
-            public bool ImplementsPostconditionVerification { get; }
+            public int Priority
+            {
+                get => (int)_internalType.GetProperty(nameof(IRewriteStep.Priority)).GetValue(_internalObject);
+            }
 
-            public bool PreconditionVerification(QsCompilation compilation) =>
-                this._PreconditionVerification(compilation);
+            public string OutputFolder
+            {
+                get => (string)_internalType.GetProperty(nameof(IRewriteStep.OutputFolder)).GetValue(_internalObject);
+                set => _internalType.GetProperty(nameof(IRewriteStep.OutputFolder)).SetValue(_internalObject, value);
+            }
 
-            public bool PostconditionVerification(QsCompilation compilation) =>
-                this._PostconditionVerification(compilation);
+            public bool ImplementsTransformation
+            {
+                get => (bool)_internalType.GetProperty(nameof(IRewriteStep.ImplementsTransformation)).GetValue(_internalObject);
+            }
+
+            public bool ImplementsPreconditionVerification
+            {
+                get => (bool)_internalType.GetProperty(nameof(IRewriteStep.ImplementsPreconditionVerification)).GetValue(_internalObject);
+            }
+
+            public bool ImplementsPostconditionVerification
+            {
+                get => (bool)_internalType.GetProperty(nameof(IRewriteStep.ImplementsPostconditionVerification)).GetValue(_internalObject);
+            }
 
             public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
             {
-                var (status, res) = this._Transformation(compilation);
-                transformed = res;
-                return status;
+                var args = new object[] { compilation, null };
+                bool success = (bool)_internalType.GetMethod(nameof(IRewriteStep.Transformation)).Invoke(_internalObject, args);
+                transformed = success ? (QsCompilation)args[1] : compilation;
+                return success;
+            }
+
+            public bool PreconditionVerification(QsCompilation compilation)
+            {
+                return (bool)_internalType.GetMethod(nameof(IRewriteStep.PreconditionVerification)).Invoke(_internalObject, new[] { compilation });
+            }
+
+            public bool PostconditionVerification(QsCompilation compilation)
+            {
+                return (bool)_internalType.GetMethod(nameof(IRewriteStep.PostconditionVerification)).Invoke(_internalObject, new[] { compilation });
             }
         }
 
@@ -117,7 +107,10 @@ namespace Microsoft.Quantum.QsCompiler
             if (config.RewriteSteps == null) return ImmutableArray<LoadedStep>.Empty;
             Uri WithFullPath(string file)
             {
-                try { return String.IsNullOrWhiteSpace(file) ? null : new Uri(Path.GetFullPath(file)); }
+                try
+                {
+                    return String.IsNullOrWhiteSpace(file) ? null : new Uri(Path.GetFullPath(file));
+                }
                 catch (Exception ex)
                 {
                     onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
@@ -129,7 +122,9 @@ namespace Microsoft.Quantum.QsCompiler
             var specifiedPluginDlls = config.RewriteSteps.Select(step => (WithFullPath(step.Item1), step.Item2)).Where(step => step.Item1 != null).ToList();
             var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.Item1.LocalPath));
             foreach (var file in notFoundDlls.Select(step => step.Item1).Distinct())
-            { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath)); }
+            {
+                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath));
+            }
 
             var rewriteSteps = ImmutableArray.CreateBuilder<LoadedStep>();
             foreach (var (target, outputFolder) in foundDlls)
@@ -139,10 +134,11 @@ namespace Microsoft.Quantum.QsCompiler
                 Diagnostic LoadWarning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, ProjectManager.MessageSource(target));
                 try
                 {
-                    var asmType = Assembly.LoadFrom(target.LocalPath).GetTypes();
-                    var exactInterfaceMatch = asmType.Where(t => typeof(IRewriteStep).IsAssignableFrom(t)); // inherited interface is defined in this exact dll
-                    var compatibleInterface = asmType.Where(t => t.GetInterfaces().Any(t => t.FullName == typeof(IRewriteStep).FullName)); // inherited interface may be defined in older compiler version
-                    relevantTypes.AddRange(exactInterfaceMatch.Concat(compatibleInterface)); 
+                    var interfaceMatch = Assembly.LoadFrom(target.LocalPath).GetTypes()
+                        .Where(
+                            t => typeof(IRewriteStep).IsAssignableFrom(t) && // inherited interface is defined in this exact dll
+                            t.GetInterfaces().Any(t => t.FullName == typeof(IRewriteStep).FullName)); // inherited interface may be defined in older compiler version
+                    relevantTypes.AddRange(interfaceMatch);
                 }
                 catch (BadImageFormatException ex)
                 {
@@ -173,7 +169,9 @@ namespace Microsoft.Quantum.QsCompiler
                             loadedSteps.Add(loadedStep);
                         }
                         catch // we don't log the exception, since it is perfectly possible that we should have ignored this type in the first place
-                        { onDiagnostic?.Invoke(LoadWarning(WarningCode.FailedToLoadRewriteStepViaReflection, target.LocalPath)); }
+                        {
+                            onDiagnostic?.Invoke(LoadWarning(WarningCode.FailedToLoadRewriteStepViaReflection, target.LocalPath));
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -182,7 +180,9 @@ namespace Microsoft.Quantum.QsCompiler
                     }
                 }
                 foreach (var loaded in loadedSteps)
-                { loaded.OutputFolder = outputFolder ?? loaded.OutputFolder ?? config.BuildOutputFolder; }
+                {
+                    loaded.OutputFolder = outputFolder ?? loaded.OutputFolder ?? config.BuildOutputFolder;
+                }
 
                 loadedSteps.Sort((fst, snd) => snd.Priority - fst.Priority);
                 rewriteSteps.AddRange(loadedSteps);
