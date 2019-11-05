@@ -203,7 +203,7 @@ module SymbolResolution =
                 | QsSymbolKind.InvalidSymbol -> invalidTp :: tps, errs
                 | QsSymbolKind.Symbol sym -> 
                     if not (tps |> List.exists (fst >> (=)(ValidName sym))) then (ValidName sym, range) :: tps, errs
-                    else invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.TypeParameterRedeclaration, [])) :: errs
+                    else invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.TypeParameterRedeclaration, [sym.Value])) :: errs
                 | _ -> invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTypeParameterDeclaration, [])) :: errs
             ) ([], []) |> (fun (tps, errs) -> tps |> List.rev, errs |> List.rev |> List.toArray)
         let resolveArg (sym, range) t = sym |> function
@@ -234,7 +234,7 @@ module SymbolResolution =
             | QsSymbolKind.MissingSymbol 
             | QsSymbolKind.InvalidSymbol -> Anonymous t, [||]
             | QsSymbolKind.Symbol sym when itemDeclarations.Exists (fun item -> item.VariableName.Value = sym.Value) -> 
-                Anonymous t, [| range |> QsCompilerDiagnostic.Error (ErrorCode.NamedItemAlreadyExists, []) |]
+                Anonymous t, [| range |> QsCompilerDiagnostic.Error (ErrorCode.NamedItemAlreadyExists, [sym.Value]) |]
             | QsSymbolKind.Symbol sym -> 
                 let info = {IsMutable = false; HasLocalQuantumDependency = false}
                 itemDeclarations.Add { VariableName = sym; Type = t; InferredInformation = info; Position = Null; Range = range }

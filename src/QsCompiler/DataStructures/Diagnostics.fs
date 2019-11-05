@@ -178,7 +178,7 @@ type ErrorCode =
     | TypeConstructorOverlapWithCallable = 6004
     | UnknownType = 6005
     | AmbiguousType = 6006 
-    | UndefinedCallable = 6007
+    //| UndefinedCallable = 6007
     | AmbiguousCallable = 6008
     | TypeSpecializationMismatch = 6009
     | SpecializationForUnknownCallable = 6010
@@ -221,7 +221,7 @@ type ErrorCode =
     | GlobalTypeAlreadyExists = 6215
     | GlobalCallableAlreadyExists = 6216
     | LocalVariableAlreadyExists = 6217
-    | TypeParameterAlreadyExists = 6218
+    //| TypeParameterAlreadyExists = 6218
     | NamedItemAlreadyExists = 6219
     | IdentifierCannotHaveTypeArguments = 6220
     | WrongNumberOfTypeArguments = 6221
@@ -405,7 +405,7 @@ type DiagnosticItem =
             | ErrorCode.UnknownFunctorGenerator                 -> "Unknown functor generator. Possible generators are  \"auto\", \"distribute\", \"invert\", \"self\", or a user-defined implementation."
             | ErrorCode.InvalidAssignmentToExpression           -> "Cannot have an expression on the left hand side of the assignment."
             | ErrorCode.ExpectingComma                          -> "Expecting comma."
-            | ErrorCode.ExpectingAssignment                     -> "Expecting assigment (\"=\")."
+            | ErrorCode.ExpectingAssignment                     -> "Expecting assignment (\"=\")."
             | ErrorCode.ExpectingIteratorItemAssignment         -> "Expecting iteration keyword \"in\"."
             | ErrorCode.UnknownSetName                          -> "Invalid set name. Possible names are \"Ctl\", and \"Adj\"."
             | ErrorCode.InvalidOperationCharacteristics         -> "Syntax error in operation characteristics annotation."
@@ -484,11 +484,11 @@ type DiagnosticItem =
             | ErrorCode.DistributedAdjointGenerator             -> "Invalid generator for adjoint specialization. Valid generators are \"invert\", \"self\" and \"auto\"."
             | ErrorCode.InvalidBodyGenerator                    -> "Invalid generator for body specialization. A body specialization must be user defined (\"body (...)\"), or specified as intrinsic (\"body intrinsic\")."
             | ErrorCode.BodyGenArgMismatch                      -> "The argument to a user-defined body specialization must be of the form \"(...)\"."
-            | ErrorCode.AdjointGenArgMismatch                   -> "The argument to a user-defined adjoint specialization must must be of the form \"(...)\"."
+            | ErrorCode.AdjointGenArgMismatch                   -> "The argument to a user-defined adjoint specialization must be of the form \"(...)\"."
             | ErrorCode.SelfControlledGenerator                 -> "Invalid generator for controlled specialization. Valid generators are \"distributed\" and \"auto\"."
             | ErrorCode.InvertControlledGenerator               -> "Invalid generator for controlled specialization. Valid generators are \"distributed\" and \"auto\"."
-            | ErrorCode.ControlledGenArgMismatch                -> "The argument to a user-defined controlled specialization must must be of the form \"(ctlQsName, ...)\"."
-            | ErrorCode.ControlledAdjointGenArgMismatch         -> "The argument to a user-defined controlled-adjoint specialization must must be of the form \"(ctlQsName, ...)\"."
+            | ErrorCode.ControlledGenArgMismatch                -> "The argument to a user-defined controlled specialization must be of the form \"(ctlQsName, ...)\"."
+            | ErrorCode.ControlledAdjointGenArgMismatch         -> "The argument to a user-defined controlled-adjoint specialization must be of the form \"(ctlQsName, ...)\"."
             | ErrorCode.MisplacedDeclarationAttribute           -> "An attribute must be followed by a callable declaration, a type declaration, or by another attribute."
 
             | ErrorCode.MissingExprInArray                      -> "Underscores cannot be used to denote missing array elements."
@@ -512,18 +512,18 @@ type DiagnosticItem =
             | ErrorCode.ExpectingRangeOrInt                     -> "Range expressions must be of the form \"start .. step .. end\" or \"start .. end\", where start, step and end have to be of type Int."
             | ErrorCode.ExpectingIterableExpr                   -> "The type {0} does not support iteration. Expecting an expression of array type or of type Range."
             | ErrorCode.ExpectingCallableExpr                   -> "The type of the expression must be a function or operation type. The given expression is of type {0}." 
-            | ErrorCode.UnknownIdentifier                       -> "No identifier with the name '{0}' exists."
+            | ErrorCode.UnknownIdentifier                       -> "No identifier with the name \"{0}\" exists."
                                                             
-            | ErrorCode.CallableRedefinition                    -> "Invalid callable declaration. A function or operation with that name already exists."
-            | ErrorCode.CallableOverlapWithTypeConstructor      -> "Invalid callable declaration. A type constructor with that name already exists."
-            | ErrorCode.TypeRedefinition                        -> "Invalid type declaration. A type with that name already exists."
-            | ErrorCode.TypeConstructorOverlapWithCallable      -> "Invalid type declaration. A function or operation that conflicts with the type constructor already exists."
-            | ErrorCode.UnknownType                             -> "No type with that name exists in any of the open namespaces."
-            | ErrorCode.AmbiguousType                           -> "Multiple open namespaces contain a type with that name. Use a fully qualified name instead. Open namespaces containing a type with that name are {0}."
-            | ErrorCode.UndefinedCallable                       -> "No callable with that name exists in any of the open namespaces."
-            | ErrorCode.AmbiguousCallable                       -> "Multiple open namespaces contain a callable with that name. Use a fully qualified name instead. Open namespaces containing a callable with that name are {0}." 
+            | ErrorCode.CallableRedefinition                    -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
+            | ErrorCode.CallableOverlapWithTypeConstructor      -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
+            | ErrorCode.TypeRedefinition                        -> "Invalid type declaration. A type with the name \"{0}\" already exists."
+            | ErrorCode.TypeConstructorOverlapWithCallable      -> "Invalid type declaration. A function or operation with the name \"{0}\" already exists."
+            | ErrorCode.UnknownType                             -> "No type with the name \"{0}\" exists in any of the open namespaces."
+            | ErrorCode.AmbiguousType                           -> "Multiple open namespaces contain a type with the name \"{0}\". Use a fully qualified name instead. Open namespaces containing a type with that name are {1}."
+(*unused*)  //| ErrorCode.UndefinedCallable                       -> "No callable with the name \"{0}\" exists in any of the open namespaces."
+            | ErrorCode.AmbiguousCallable                       -> "Multiple open namespaces contain a callable with the name \"{0}\". Use a fully qualified name instead. Open namespaces containing a callable with that name are {1}." 
             | ErrorCode.TypeSpecializationMismatch              -> "Invalid specialization declaration. The type specializations do not match the expected number of type parameters. Expecting {0} type argument(s)."
-            | ErrorCode.SpecializationForUnknownCallable        -> "No callable with that name exists in the current namespace. Specializations need to be delared in the same namespace as the callable they extend."
+            | ErrorCode.SpecializationForUnknownCallable        -> "No callable with the name \"{0}\" exists in the current namespace. Specializations need to be declared in the same namespace as the callable they extend."
             | ErrorCode.RedefinitionOfBody                      -> "A body specialization for the given parameters already exists."
             | ErrorCode.RedefinitionOfAdjoint                   -> "An adjoint specialization for the given parameters already exists."
             | ErrorCode.RedefinitionOfControlled                -> "A controlled specialization for the given parameters already exists."
@@ -539,10 +539,10 @@ type DiagnosticItem =
             | ErrorCode.ExpectingUnqualifiedSymbol              -> "Expecting an unqualified symbol name."
             | ErrorCode.ExpectingItemName                       -> "Expecting an item name, i.e. an unqualified symbol."
             | ErrorCode.ExpectingIdentifier                     -> "Expecting either a qualified or an unqualified symbol."
-            | ErrorCode.UnknownNamespace                        -> "No namespace with the name '{0}' exists."
-            | ErrorCode.UnknownTypeInNamespace                  -> "No type with that name exists in that namespace."
-            | ErrorCode.TypeParameterRedeclaration              -> "A type parameter with that name already exists."
-            | ErrorCode.UnknownTypeParameterName                -> "No type parameter with that name exists."
+            | ErrorCode.UnknownNamespace                        -> "No namespace with the name \"{0}\" exists."
+            | ErrorCode.UnknownTypeInNamespace                  -> "No type with the name \"{0}\" exists in the namespace \"{1}\"."
+            | ErrorCode.TypeParameterRedeclaration              -> "A type parameter with the name \"{0}\" already exists."
+            | ErrorCode.UnknownTypeParameterName                -> "No type parameter with the name \"{0}\" exists."
             | ErrorCode.UnknownItemName                         -> "The type {0} does not define an item with name \"{1}\"."
             | ErrorCode.NotMarkedAsAttribute                    -> "The type {0} is not marked as an attribute. Add \"@Attribute()\" above its declaration to indicate that it may be used as attribute."
                                                 
@@ -560,11 +560,11 @@ type DiagnosticItem =
             | ErrorCode.AmbiguousTypeParameterResolution        -> "The type parameter resolution for the call is ambiguous. Please provide explicit type arguments, e.g. Op<Int, Double>(arg)."
             | ErrorCode.ConstrainsTypeParameter                 -> "The given expression constrains the type parameter(s) {0}."
             | ErrorCode.DirectRecursionWithinTemplate           -> "Direct recursive calls within templates require explicit type arguments. Please provide type arguments, e.g. Op<Int, Double>(arg)."
-            | ErrorCode.GlobalTypeAlreadyExists                 -> "A type with that name already exists."
-            | ErrorCode.GlobalCallableAlreadyExists             -> "A callable with that name already exists."
-            | ErrorCode.LocalVariableAlreadyExists              -> "A variable with that name already exists."
-            | ErrorCode.TypeParameterAlreadyExists              -> "A type parameter with that name already exists."
-            | ErrorCode.NamedItemAlreadyExists                  -> "An item with that name already exists."
+            | ErrorCode.GlobalTypeAlreadyExists                 -> "A type with the name \"{0}\" already exists."
+            | ErrorCode.GlobalCallableAlreadyExists             -> "A callable with the name \"{0}\" already exists."
+            | ErrorCode.LocalVariableAlreadyExists              -> "A variable with the name \"{0}\" already exists."
+(*unused*)  //| ErrorCode.TypeParameterAlreadyExists              -> "A type parameter with the name \"{0}\" already exists."
+            | ErrorCode.NamedItemAlreadyExists                  -> "An item with the name \"{0}\" already exists."
             | ErrorCode.IdentifierCannotHaveTypeArguments       -> "The given identifier cannot have type arguments."
             | ErrorCode.WrongNumberOfTypeArguments              -> "The number of type arguments does not match the number of type parameters for this identifier. Expecting {0} type argument(s)."
             | ErrorCode.InvalidUseOfTypeParameterizedObject     -> "The type of the given expression cannot be determined. Provide explicit type arguments (\"identifier<commaSeparatedTypeArguments>\")."
@@ -575,7 +575,7 @@ type DiagnosticItem =
             | ErrorCode.ArgumentOfUserDefinedTypeInAttribute    -> "Items of user defined type cannot be used as attribute arguments."
             | ErrorCode.TypeParameterizedArgumentInAttribute    -> "The type of attribute arguments must be known at compile time."
             | ErrorCode.AttributeArgumentTypeMismatch           -> "The type of the given argument does not match the expected type."
-            | ErrorCode.InvalidEntryPointPlacement              -> "Invalid entry point. Entry point attributes may only occur on suitable callables without type-parametrizations."
+            | ErrorCode.InvalidEntryPointPlacement              -> "Invalid entry point. Entry point attributes may only occur on suitable callables without type-parameterizations."
             | ErrorCode.QubitTypeInEntryPointSignature          -> "Invalid entry point. Values of type Qubit may not be used as arguments or return values to entry points."
             | ErrorCode.CallableTypeInEntryPointSignature       -> "Invalid entry point. Values of operation or function type may not be used as arguments or return values to entry points."
             | ErrorCode.UserDefinedTypeInEntryPointSignature    -> "Invalid entry point. Values of user defined type may not be used as arguments or return values to entry points."
@@ -639,7 +639,7 @@ type DiagnosticItem =
             | WarningCode.DeprecatedORoperator                  -> "Deprecated syntax. Use \"or\" to denote the logical OR operator."
             | WarningCode.DeprecatedRUSloopInFunction           -> "The use of repeat-until-success-loops within functions may not be supported in the future. Please use a while-loop instead."
 
-            | WarningCode.DiscardingItemInAssignment            -> "The expression on the right hand side is discarded on assignment and can be ommitted."
+            | WarningCode.DiscardingItemInAssignment            -> "The expression on the right hand side is discarded on assignment and can be omitted."
             | WarningCode.ConditionalEvaluationOfOperationCall  -> "This expression may be short-circuited, and operation calls may not be executed."
             | WarningCode.DeprecationWithRedirect               -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect            -> "{0} has been deprecated."

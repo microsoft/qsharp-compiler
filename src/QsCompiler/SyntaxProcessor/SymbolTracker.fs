@@ -150,9 +150,9 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// Throws an InvalidOperationException if no scope is currently open.
     member this.TryAddVariableDeclartion (decl : LocalVariableDeclaration<NonNullable<string>>) =
         if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
-        if (globalTypeWithName (None, decl.VariableName)) |> fst <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalTypeAlreadyExists, []) |]
-        elif (globalCallableWithName (None, decl.VariableName)) |> fst <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalCallableAlreadyExists, []) |]
-        elif (localVariableWithName decl.VariableName) <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.LocalVariableAlreadyExists, []) |]
+        if (globalTypeWithName (None, decl.VariableName)) |> fst <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalTypeAlreadyExists, [decl.VariableName.Value]) |]
+        elif (globalCallableWithName (None, decl.VariableName)) |> fst <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalCallableAlreadyExists, [decl.VariableName.Value]) |]
+        elif (localVariableWithName decl.VariableName) <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.LocalVariableAlreadyExists, [decl.VariableName.Value]) |]
         else pushedScopes.Head.LocalVariables.Add(decl.VariableName, decl); true, [||]
 
     /// If the variable name in the given variable declaration is valid, 
@@ -210,14 +210,16 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.New 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
 
-        let resolveGlobal = function
+        let resolveGlobal (sym : NonNullable<string>) input =
+            match input with
             | Value (decl : CallableDeclarationHeader), _ -> decl.Kind |> function 
                 | QsCallableKind.Operation -> buildCallable QsTypeKind.Operation decl.QualifiedName decl.Signature decl.Attributes
                 | QsCallableKind.TypeConstructor
                 | QsCallableKind.Function -> buildCallable (fst >> QsTypeKind.Function) decl.QualifiedName decl.Signature decl.Attributes
-            | Null, (possibleResolutions : NonNullable<string> seq) -> 
-                let ambiguousCallableErr = (ErrorCode.AmbiguousCallable, [String.Join(", ", possibleResolutions |> Seq.map (fun nsName -> nsName.Value))])
-                let errCode = if possibleResolutions.Count() > 1 then ambiguousCallableErr else (ErrorCode.UnknownIdentifier, [match qsSym.Symbol with | Symbol s -> s.Value | _ -> ""])
+            | Null, (possibleResolutions : NonNullable<string> seq) ->
+                let resolutionStrings = String.Join(", ", possibleResolutions |> Seq.map (fun nsName -> nsName.Value))
+                let ambiguousCallableErr = (ErrorCode.AmbiguousCallable, [sym.Value; resolutionStrings])
+                let errCode = if possibleResolutions.Count() > 1 then ambiguousCallableErr else (ErrorCode.UnknownIdentifier, [sym.Value])
                 qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error errCode |> addDiagnostic;
                 invalid
         
@@ -227,12 +229,12 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
                 let decl = dict.[sym]
                 let properties = (defaultLoc, LocalVariable sym, decl.Type |> StripPositionInfo.Apply, decl.InferredInformation.HasLocalQuantumDependency)
                 properties |> LocalVariableDeclaration.New decl.InferredInformation.IsMutable, ImmutableArray<_>.Empty
-            | Null -> globalCallableWithName (None, sym) |> resolveGlobal 
+            | Null -> globalCallableWithName (None, sym) |> resolveGlobal sym
 
         match qsSym.Symbol with 
         | InvalidSymbol -> invalid
         | Symbol sym -> resolveNative sym
-        | QualifiedSymbol (ns, sym) -> globalCallableWithName (Some ns, sym) |> resolveGlobal
+        | QualifiedSymbol (ns, sym) -> globalCallableWithName (Some ns, sym) |> resolveGlobal sym
         | _ -> qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error (ErrorCode.ExpectingIdentifier, []) |> addDiagnostic; 
                invalid
 
