@@ -323,6 +323,7 @@ type WarningCode =
     | ReferenceCannotBeIncludedInDll = 7010
     | UnresolvedItemsInGeneratedQs = 7101
     | PreconditionVerificationFailed = 7201
+    | RewriteStepLoadedViaReflection = 7202
 
 
 type InformationCode = 
@@ -670,6 +671,7 @@ type DiagnosticItem =
             | WarningCode.ReferenceCannotBeIncludedInDll        -> "The reference to \"{0}\" could not be included in the generated dll."
             | WarningCode.UnresolvedItemsInGeneratedQs          -> "Some item(s) could not be resolved during compilation."
             | WarningCode.PreconditionVerificationFailed        -> "The precondition for the compilation step \"{0}\" loaded from \"{1}\" was not met. The transformation will be skipped."
+            | WarningCode.RewriteStepLoadedViaReflection        -> "The compilation step \"{0}\" defined in \"{1}\" is not fully compatible with this compiler version and may fail on execution. The step may have been compiled against an older compiler version."
             | _                                                 -> ""
         code |> ApplyArguments
 
