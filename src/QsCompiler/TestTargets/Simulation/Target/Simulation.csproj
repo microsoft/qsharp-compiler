@@ -4,6 +4,7 @@
   <PropertyGroup>
     <AssemblyName>Simulation</AssemblyName>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,9 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.6.0" />
-    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1910.3103-alpha" />
-    <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.2" />
+    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1911.307" />
   </ItemGroup>
 
 </Project>
