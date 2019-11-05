@@ -15,8 +15,8 @@ export interface IPackageInfo {
     aiKey: string;
     requiredDotNetCoreSDK: string;
     enableTelemetry: string;
-    nugetVersion?: string;
-    assemblyVersion?: string;
+    nugetVersion: string;
+    assemblyVersion: string;
     blobs?: {
         [key: string]: {
             url: string,
@@ -36,6 +36,7 @@ export function getPackageInfo(context: vscode.ExtensionContext): IPackageInfo |
             requiredDotNetCoreSDK: extensionPackage.requiredDotNetCoreSDK,
             enableTelemetry: extensionPackage.enableTelemetry,
             nugetVersion: extensionPackage.nugetVersion,
+            assemblyVersion: extensionPackage.assemblyVersion,
             blobs: extensionPackage.blobs
         };
     }

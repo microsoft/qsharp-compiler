@@ -138,7 +138,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
-  <Target Name="IncludeLanguageServer" AfterTargets="BuildLanguageServer" BeforeTargets="CreateVsixContainer">
+  <Target Name="IncludeLanguageServer" BeforeTargets="ZipItems">
     <ItemGroup>
       <VSIXSourceItem Include="$(LanguageServerPath)**\*">
         <Link>LanguageServer\%(RecursiveDir)%(Filename)%(Extension)</Link>
