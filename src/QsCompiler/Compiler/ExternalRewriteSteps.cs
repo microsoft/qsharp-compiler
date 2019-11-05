@@ -23,8 +23,8 @@ namespace Microsoft.Quantum.QsCompiler
         internal class LoadedStep : IRewriteStep
         {
             internal readonly Uri Origin;
-            private object _internalObject;
-            private Type _internalType;
+            private readonly object _internalObject;
+            private readonly Type _internalType;
 
             /// <summary>
             /// Attempts to construct a rewrite step via reflection.
@@ -134,10 +134,9 @@ namespace Microsoft.Quantum.QsCompiler
                 Diagnostic LoadWarning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, ProjectManager.MessageSource(target));
                 try
                 {
-                    var interfaceMatch = Assembly.LoadFrom(target.LocalPath).GetTypes()
-                        .Where(
-                            t => typeof(IRewriteStep).IsAssignableFrom(t) && // inherited interface is defined in this exact dll
-                            t.GetInterfaces().Any(t => t.FullName == typeof(IRewriteStep).FullName)); // inherited interface may be defined in older compiler version
+                    var interfaceMatch = Assembly.LoadFrom(target.LocalPath).GetTypes().Where(
+                        t => typeof(IRewriteStep).IsAssignableFrom(t) || // inherited interface is defined in this exact dll
+                        t.GetInterfaces().Any(t => t.FullName == typeof(IRewriteStep).FullName)); // inherited interface may be defined in older compiler version
                     relevantTypes.AddRange(interfaceMatch);
                 }
                 catch (BadImageFormatException ex)
