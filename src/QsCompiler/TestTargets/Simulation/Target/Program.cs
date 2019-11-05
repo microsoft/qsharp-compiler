@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.IO;
+using System.Linq;
 using Microsoft.Quantum.QsCompiler.CsharpGeneration;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
@@ -27,7 +29,9 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             var success = true;
-            var allSources = GetSourceFiles.Apply(compilation.Namespaces); // also generate the code for referenced libraries
+            var allSources = GetSourceFiles.Apply(compilation.Namespaces) // also generate the code for referenced libraries...
+                // ... except when they are one of the packages that currently still already contains the C# code (temporary workaround):
+                .Where(s => !Path.GetFileName(s.Value).StartsWith("Microsoft.Quantum")); 
             foreach (var source in allSources)
             {
                 var content = SimulationCode.generate(source, compilation.Namespaces);
