@@ -47,8 +47,8 @@ namespace Microsoft.Quantum.Testing
 		}
 	}
 
-	// This should be level 5 because it has classical computation.
-	operation Level5 (d : Double) : Double
+	// This should be level 3 because it has classical computation.
+	operation Level3 (d : Double) : Double
 	{
 		return 1.0/d;
 	}

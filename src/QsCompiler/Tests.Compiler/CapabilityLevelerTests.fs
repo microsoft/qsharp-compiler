@@ -71,7 +71,7 @@ let ``capability leveling tests`` () =
     let level4Level = getOperationLevel syntaxTree "Level4"
     Assert.Equal(CapabilityLevel.Advanced, level4Level)
 
-    let level5Level = getOperationLevel syntaxTree "Level5"
+    let level5Level = getOperationLevel syntaxTree "Level3"
     Assert.Equal(CapabilityLevel.Medium, level5Level)
 
     ()
