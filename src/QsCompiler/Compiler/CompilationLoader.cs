@@ -196,8 +196,7 @@ namespace Microsoft.Quantum.QsCompiler
         public Status DllGeneration => GetStatus(this.CompilationStatus.DllGeneration);
 
         /// <summary>
-        /// Indicates whether the rewrite step with the given name specified in an external dll executed successfully. 
-        /// The status is returned for the first step with the given name loaded from the given source - if a source has been specified.
+        /// Indicates whether all rewrite steps with the given name and loaded from the given source executed successfully. 
         /// The source, if specified, is the path to the dll in which the step is specified.
         /// Returns a status NotRun if no such step was found or executed. 
         /// Execution is considered successful if the precondition and transformation (if any) returned true. 
@@ -205,8 +204,9 @@ namespace Microsoft.Quantum.QsCompiler
         public Status LoadedRewriteStep(string name, string source = null)
         {
             var uri = String.IsNullOrWhiteSpace(source) ? null : new Uri(Path.GetFullPath(source));
-            var index = this.ExternalRewriteSteps.TakeWhile(step => step.Name != name || (source != null && step.Origin != uri)).Count();
-            return index < 0 || index >= this.ExternalRewriteSteps.Length ? Status.NotRun : GetStatus(this.CompilationStatus.LoadedRewriteSteps[index]);
+            bool MatchesQuery(int index) => this.ExternalRewriteSteps[index].Name == name && (source == null || this.ExternalRewriteSteps[index].Origin == uri);
+            var statuses = this.CompilationStatus.LoadedRewriteSteps.Select(i => GetStatus(i)).Where((s, i) => MatchesQuery(i)).ToArray();
+            return statuses.All(s => s == Status.Succeeded) ? Status.Succeeded : statuses.Any(s => s == Status.Failed) ? Status.Failed : Status.NotRun;
         }
         /// <summary>
         /// Indicates the overall status of all rewrite step from external dlls.
@@ -234,7 +234,7 @@ namespace Microsoft.Quantum.QsCompiler
         private readonly ExecutionStatus CompilationStatus;
         /// <summary>
         /// Contains all loaded rewrite steps found in the specified plugin dlls, 
-        /// where the options have already been initialized to suitable values. 
+        /// where configurable properties such as the output folder have already been initialized to suitable values. 
         /// </summary>
         private readonly ImmutableArray<RewriteSteps.LoadedStep> ExternalRewriteSteps;
 
