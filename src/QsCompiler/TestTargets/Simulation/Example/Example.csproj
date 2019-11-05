@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="EnsureRecompileOnChange">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
@@ -34,6 +34,13 @@
     </None>
   </ItemGroup>
 
+  <Target Name="EnsureRecompileOnChange">
+    <ItemGroup>
+      <UpToDateCheckInput Include="@(None)" />
+      <UpToDateCheckInput Include="@(Content)" />
+    </ItemGroup>
+  </Target>
+  
   <Target Name="QsharpClean" BeforeTargets="Clean">
     <ItemGroup>
       <RemoveFiles Include="$(GenFilesDir)**" />
