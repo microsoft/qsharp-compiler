@@ -150,7 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.OutputPath = outputUri;
 
                 this.GeneralDiagnostics = this.OutputPath == null
-                    ? ImmutableArray.Create(Errors.LoadError(ErrorCode.InvalidProjectOutputPath, new[] { this.ProjectFile.LocalPath }, MessageSource(this.ProjectFile).Value))
+                    ? ImmutableArray.Create(Errors.LoadError(ErrorCode.InvalidProjectOutputPath, new[] { this.ProjectFile.LocalPath }, MessageSource(this.ProjectFile)))
                     : ImmutableArray<Diagnostic>.Empty;
 
                 this.SpecifiedSourceFiles = projectInfo.SourceFiles
@@ -233,7 +233,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
                 if (projectOutputPaths.TryGetValue(projFile, out Uri referencedProj)) return referencedProj;
-                diagnostics.Add(Warnings.LoadWarning(WarningCode.ReferenceToUnknownProject, new[] { projFile.LocalPath }, MessageSource(projFile).Value));
+                diagnostics.Add(Warnings.LoadWarning(WarningCode.ReferenceToUnknownProject, new[] { projFile.LocalPath }, MessageSource(projFile)));
                 return null;
             };
 
@@ -259,7 +259,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 this.LoadedProjectReferences = new References(loadedHeaders, null);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
-                    (code,args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile).Value)));
+                    (code,args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
                 this.ProjectReferenceDiagnostics = diagnostics.ToImmutableArray();
                 return this.Manager.UpdateReferencesAsync(importedDeclarations, suppressVerification: skipVerification);
             }
@@ -291,10 +291,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     $"loaded references upon loading {projectReference.LocalPath}: {String.Join(", ", loaded.Declarations.Select(r => r.Value))}");
                 this.LoadedProjectReferences = this.LoadedProjectReferences.Remove(projRefId, null).CombineWith(loaded, null);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
-                    (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile).Value)));
+                    (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
 
                 this.ProjectReferenceDiagnostics = this.ProjectReferenceDiagnostics.RemoveAll(d =>
-                        (d.Source == MessageSource(projectReference).Value && d.Code != WarningCode.DuplicateProjectReference.Code())
+                        (d.Source == MessageSource(projectReference) && d.Code != WarningCode.DuplicateProjectReference.Code())
                         || DiagnosticTools.ErrorType(ErrorCode.ConflictInReferences)(d))
                     .Concat(diagnostics).ToImmutableArray();
                 this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
@@ -318,7 +318,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 this.LoadedReferences = new References(loadedHeaders, null);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
-                    (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile).Value)));                    
+                    (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));                    
                 this.ReferenceDiagnostics = diagnostics.ToImmutableArray();
                 return this.Manager.UpdateReferencesAsync(importedDeclarations, suppressVerification: skipVerification);
             }
@@ -345,10 +345,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     $"loaded references upon loading {reference.LocalPath}: {String.Join(", ", loaded.Declarations.Select(r => r.Value))}");
                 this.LoadedReferences = this.LoadedReferences.Remove(refId, null).CombineWith(loaded, null);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
-                    (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile).Value)));
+                    (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
 
                 this.ReferenceDiagnostics = this.ReferenceDiagnostics.RemoveAll(d => 
-                        (d.Source == MessageSource(reference).Value && d.Code != WarningCode.DuplicateBinaryFile.Code())
+                        (d.Source == MessageSource(reference) && d.Code != WarningCode.DuplicateBinaryFile.Code())
                         || DiagnosticTools.ErrorType(ErrorCode.ConflictInReferences)(d))
                     .Concat(diagnostics).ToImmutableArray();
                 this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
@@ -482,7 +482,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                     this.LoadedSourceFiles = this.LoadedSourceFiles.Remove(sourceFile).Concat(loaded.Keys).ToImmutableHashSet();
                     this.SourceFileDiagnostics = this.SourceFileDiagnostics
-                        .RemoveAll(d => d.Source == MessageSource(sourceFile).Value && d.Code != WarningCode.DuplicateSourceFile.Code())
+                        .RemoveAll(d => d.Source == MessageSource(sourceFile) && d.Code != WarningCode.DuplicateSourceFile.Code())
                         .Concat(diagnostics).ToImmutableArray();
                     this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
 
@@ -1013,21 +1013,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // static routines related to loading the content needed for compilation
 
-        private static NonNullable<string> MessageSource(Uri uri) =>
-            CompilationUnitManager.TryGetFileId(uri, out NonNullable<string> source) ? source 
-            : uri != null ? NonNullable<string>.New(uri.AbsolutePath) : throw new ArgumentNullException(nameof(uri));
+        public static string MessageSource(Uri uri) =>
+            CompilationUnitManager.TryGetFileId(uri, out NonNullable<string> source) ? source.Value 
+            : uri != null ? uri.AbsolutePath : throw new ArgumentNullException(nameof(uri));
 
         /// <summary>
         /// For the given sequence of file names verifies that a file with the corresponding full path exists, 
         /// and returns a sequence containing the absolute path for all files that do.
         /// Sets the corresponding out parameter to a sequence with all duplicate file names,
         /// and to a sequence of names for which no such file exists respectively. 
-        /// Filters all file names that are null or only consist of white spaces. 
+        /// Filters all file names that are null or only consist of whitespace. 
+        /// Generates suitable diagnostics for duplicate and not found files, and for invalid paths. 
+        /// Logs the generated diagnostics using onDiagnostics if the action has been specified and is not null.
+        /// Catches exceptions related to path errors and logs them using onException if the action has been specified and is not null.
         /// Throws an ArgumentNullException if the given sequence of files is null. 
         /// </summary>
         public static IEnumerable<Uri> FilterFiles(IEnumerable<string> files,
-            out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
-            out IEnumerable<(string, Exception)> invalidPaths)
+            WarningCode duplicateFileWarning, Func<string, string, Diagnostic> FileNotFoundDiagnostic,
+            out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths,
+            Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
             if (files == null) { throw new ArgumentNullException(nameof(files)); }
             var exceptions = new List<(string, Exception)>();
@@ -1046,10 +1050,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(WithFullPath)
                 .Where(file => file != null).ToList();
             invalidPaths = exceptions.ToImmutableArray();
-
             duplicates = uris.GroupBy(x => x).Where(x => x.Count() > 1).Select(x => x.Key).ToImmutableArray();
             var distinctSources = new HashSet<Uri>(uris);
             notFound = distinctSources.Where(f => !File.Exists(f.LocalPath)).ToImmutableArray();
+
+            foreach (var file in duplicates) onDiagnostic?.Invoke(Warnings.LoadWarning(duplicateFileWarning, new[] { file.LocalPath }, MessageSource(file)));
+            foreach (var file in notFound) onDiagnostic?.Invoke(FileNotFoundDiagnostic(file.LocalPath, MessageSource(file)));
+            foreach (var (file, ex) in invalidPaths)
+            {
+                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
+                onException?.Invoke(ex);
+            }
             return distinctSources.Where(f => File.Exists(f.LocalPath)).ToImmutableArray();
         }
 
@@ -1070,23 +1081,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 try { return File.ReadAllText(file.LocalPath); }
                 catch (Exception ex)
                 {
-                    onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.CouldNotLoadSourceFile, new[] { file.LocalPath }, MessageSource(file).Value)); 
+                    onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.CouldNotLoadSourceFile, new[] { file.LocalPath }, MessageSource(file))); 
                     onException?.Invoke(ex);
                     return null;
                 }
             }
 
-            var found = FilterFiles(sourceFiles, 
-                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
-                out IEnumerable<(string, Exception)> invalidPaths);
-            foreach (var file in duplicates) onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.DuplicateSourceFile, new[] { file.LocalPath }, MessageSource(file).Value));
-            foreach (var file in notFound) onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownSourceFile, new[] { file.LocalPath }, MessageSource(file).Value)); 
-            foreach (var (file, ex) in invalidPaths)
-            {
-                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
-                onException?.Invoke(ex);
-            }
-
+            static Diagnostic NotFoundDiagnostic(string notFound, string source) => Errors.LoadError(ErrorCode.UnknownSourceFile, new[] { notFound }, source);
+            var found = FilterFiles(sourceFiles, WarningCode.DuplicateSourceFile, NotFoundDiagnostic,
+                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths, 
+                onDiagnostic, onException);
             return found
                 .Select(file => (file, GetFileContent(file)))
                 .Where(source => source.Item2 != null)
@@ -1109,22 +1113,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 try { AssemblyName.GetAssemblyName(asm.LocalPath); } // will throw if the file is not a valid assembly
                 catch (FileLoadException) { } // the file is already loaded -> we can ignore that one
                 if (!AssemblyLoader.LoadReferencedAssembly(asm, out var headers))
-                { onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.UnrecognizedContentInReference, new[] { asm.LocalPath }, MessageSource(asm).Value)); }
+                { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnrecognizedContentInReference, new[] { asm.LocalPath }, MessageSource(asm))); }
                 return headers;
             }
             catch (BadImageFormatException ex)
             {
-                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.FileIsNotAnAssembly, new[] { asm.LocalPath }, MessageSource(asm).Value));
+                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.FileIsNotAnAssembly, new[] { asm.LocalPath }, MessageSource(asm)));
                 onException?.Invoke(ex);
                 return null;
             }
             catch (Exception ex)
             {
-                onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.CouldNotLoadBinaryFile, new[] { asm.LocalPath }, MessageSource(asm).Value));
+                onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.CouldNotLoadBinaryFile, new[] { asm.LocalPath }, MessageSource(asm)));
                 onException?.Invoke(ex);
                 return null;
             }
         }
+
+        /// <summary>
+        /// Returns the file id used for the file with the given uri. 
+        /// Raises a QsCompilerError if the id could not be determined. 
+        /// </summary>
+        private static NonNullable<string> GetFileId(Uri uri) => 
+            NonNullable<string>.New(QsCompilerError.RaiseOnFailure<string>(() => 
+                CompilationUnitManager.TryGetFileId(uri, out var id) ? id.Value : throw new InvalidOperationException(), 
+                "could not determine id for valid uri"));
 
         /// <summary>
         /// Uses FilterFiles to filter the given project files, and generates the corresponding errors and warnings.
@@ -1145,16 +1158,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             References.Headers LoadReferencedDll(Uri asm) =>
                 ProjectManager.LoadReferencedDll(asm, onException: onException); // any exception here is really a failure of GetOutputPath and will be treated as an unexpected exception
 
-            var existingProjectFiles = FilterFiles(refProjectFiles,
-                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
-                out IEnumerable<(string, Exception)> invalidPaths);
-            foreach (var file in duplicates) onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.DuplicateProjectReference, new[] { file.LocalPath }, MessageSource(file).Value));
-            foreach (var file in notFound) onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownProjectReference, new[] { file.LocalPath }, MessageSource(file).Value));
-            foreach (var (file, ex) in invalidPaths)
-            {
-                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
-                onException?.Invoke(ex);
-            }
+            static Diagnostic NotFoundDiagnostic(string notFound, string source) => Errors.LoadError(ErrorCode.UnknownProjectReference, new[] { notFound }, source);
+            var existingProjectFiles = FilterFiles(refProjectFiles, WarningCode.DuplicateProjectReference, NotFoundDiagnostic,
+                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths, 
+                onDiagnostic, onException);
 
             Uri TryGetOutputPath(Uri projFile)
             {
@@ -1171,12 +1178,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .ToImmutableDictionary(p => p.Item2, p => p.Item1); // FIXME: take care of different projects having the same output path...
             var (existingProjectDlls, missingDlls) = projectDlls.Keys.Partition(f => File.Exists(f.LocalPath));
             foreach (var projFile in missingDlls.Select(dll => projectDlls[dll]))
-            { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.MissingProjectReferenceDll, new[] { projFile.LocalPath }, MessageSource(projFile).Value)); }
+            { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.MissingProjectReferenceDll, new[] { projFile.LocalPath }, MessageSource(projFile))); }
 
             return existingProjectDlls
                 .Select(file => (file, LoadReferencedDll(file)))
                 .Where(asm => asm.Item2 != null)
-                .ToImmutableDictionary(asm => MessageSource(projectDlls[asm.Item1]), asm => asm.Item2);
+                .ToImmutableDictionary(asm => GetFileId(projectDlls[asm.Item1]), asm => asm.Item2);
         }
 
         /// <summary>
@@ -1195,21 +1202,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ProjectManager.LoadReferencedDll(asm, onDiagnostic, onException);
 
             var relevant = references.Where(file => file.IndexOf("mscorlib.dll", StringComparison.InvariantCultureIgnoreCase) < 0);
-            var assembliesToLoad = FilterFiles(relevant,
-                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates,
-                out IEnumerable<(string, Exception)> invalidPaths);
-            foreach (var file in duplicates) onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.DuplicateBinaryFile, new[] { file.LocalPath }, MessageSource(file).Value));
-            foreach (var file in notFound) onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.UnknownBinaryFile, new[] { file.LocalPath }, MessageSource(file).Value));
-            foreach (var (file, ex) in invalidPaths)
-            {
-                onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
-                onException?.Invoke(ex);
-            }
+            static Diagnostic NotFoundDiagnostic(string notFound, string source) => Warnings.LoadWarning(WarningCode.UnknownBinaryFile, new[] { notFound }, source);
+            var assembliesToLoad = FilterFiles(relevant, WarningCode.DuplicateBinaryFile, NotFoundDiagnostic,
+                out IEnumerable<Uri> notFound, out IEnumerable<Uri> duplicates, out IEnumerable<(string, Exception)> invalidPaths, 
+                onDiagnostic, onException);
 
             return assembliesToLoad
                 .Select(file => (file, LoadReferencedDll(file)))
                 .Where(asm => asm.Item2 != null)
-                .ToImmutableDictionary(asm => MessageSource(asm.Item1), asm => asm.Item2);
+                .ToImmutableDictionary(asm => GetFileId(asm.Item1), asm => asm.Item2);
         }
     }
 }

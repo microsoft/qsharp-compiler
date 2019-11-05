@@ -4,7 +4,6 @@
 namespace Microsoft.Quantum.Testing
 {
     open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Canon;
 
     /// # Summary
     /// Logs the given message of the given severity. 

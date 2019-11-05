@@ -269,7 +269,10 @@ type ErrorCode =
     | MissingProjectReferenceDll = 7012
     | InvalidProjectOutputPath = 7013
     | SourceFilesMissing = 7014
-    | UnexpectedCompilerException = 7015
+    | UnknownCompilerPlugin = 7015
+    | CouldNotLoadCompilerPlugin = 7016
+    | CouldNotInstantiateRewriteStep = 7017
+    | UnexpectedCompilerException = 7018
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
@@ -279,10 +282,12 @@ type ErrorCode =
     | SerializationFailed = 7106
     | GeneratingBinaryFailed = 7107
     | GeneratingDllFailed = 7108
-    | TargetExecutionFailed = 7109
+    | PluginExecutionFailed = 7109
     | PreEvaluationFailed = 7110
-    | MonomorphizationFailed = 7111
-    | MonomorphizationValidationFailed = 7112
+    | RewriteStepExecutionFailed = 7111
+    | PostconditionVerificationFailed = 7112
+    | MonomorphizationFailed = 7113
+    | MonomorphizationValidationFailed = 7114
 
 
 type WarningCode = 
@@ -317,9 +322,11 @@ type WarningCode =
     | UnknownBinaryFile = 7007
     | CouldNotLoadBinaryFile = 7008
     | ReferencesSetToNull = 7009
-    | UnrecognizedContentInReference = 7010
+    | ReferenceCannotBeIncludedInDll = 7010
     | UnresolvedItemsInGeneratedQs = 7101
-    | TargetExitedAbnormally = 7102
+    | PreconditionVerificationFailed = 7201
+    | RewriteStepLoadedViaReflection = 7202
+    | FailedToLoadRewriteStepViaReflection = 7203
 
 
 type InformationCode = 
@@ -330,8 +337,6 @@ type InformationCode =
     | GeneratedCsCode = 7101
     | GeneratedQsCode = 7102
     | GeneratedCodeOutputFolder = 7103
-    | BuildTargetOutput = 7104
-    | BuildTargetError = 7105
 
     | FileContentInMemory = 7201
     | BuiltTokenization = 7202
@@ -608,11 +613,14 @@ type DiagnosticItem =
             | ErrorCode.UnknownSourceFile                       -> "Could not find the source file \"{0}\" to compile."
             | ErrorCode.UnknownProjectReference                 -> "Could not find the project file for the referenced project \"{0}\"."
             | ErrorCode.CouldNotLoadSourceFile                  -> "Unable to load source file \"{0}\"."
-            | ErrorCode.FileIsNotAnAssembly                     -> "The given file \"{0}\" is not an valid assembly."
+            | ErrorCode.FileIsNotAnAssembly                     -> "The given file \"{0}\" is not an valid .NET Core assembly."
             | ErrorCode.UnrecognizedContentInReference          -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
             | ErrorCode.MissingProjectReferenceDll              -> "Missing binary file for project reference \"{0}\". Build the referenced project for its content to be detected correctly."
             | ErrorCode.InvalidProjectOutputPath                -> "Invalid project output path for project \"{0}\"."
             | ErrorCode.SourceFilesMissing                      -> "No source files have been specified."
+            | ErrorCode.UnknownCompilerPlugin                   -> "Could not find the .NET Core library \"{0}\" specifying transformations to perform as part of the compilation process."
+            | ErrorCode.CouldNotLoadCompilerPlugin              -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. The file needs to be a suitable .NET Core library."
+            | ErrorCode.CouldNotInstantiateRewriteStep          -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor. "
             | ErrorCode.UnexpectedCompilerException             -> "The compiler threw an exception."
 
             | ErrorCode.FunctorGenerationFailed                 -> "Auto-generation of functor specialization(s) failed."
@@ -623,8 +631,10 @@ type DiagnosticItem =
             | ErrorCode.SerializationFailed                     -> "Unable to serialize the built compilation."
             | ErrorCode.GeneratingBinaryFailed                  -> "Unable to generate binary format for the compilation."
             | ErrorCode.GeneratingDllFailed                     -> "Unable to generate dll containing the compiled binary."
-            | ErrorCode.TargetExecutionFailed                   -> "Processing of the compiled binary with the target {0} failed."
+            | ErrorCode.PluginExecutionFailed                   -> "The compilation step \"{0}\" loaded from \"{1}\" threw an exception."
             | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
+            | ErrorCode.RewriteStepExecutionFailed              -> "Executing the transformation for the compilation step \"{0}\" loaded from \"{1}\" failed."
+            | ErrorCode.PostconditionVerificationFailed         -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
             | ErrorCode.MonomorphizationFailed                  -> "Replacing type parameterizations with the concrete instantiations failed."
             | ErrorCode.MonomorphizationValidationFailed        -> "Validation of the replacement of type parameterizations with the concrete instantiations failed."
             | _                                                 -> ""
@@ -663,10 +673,11 @@ type DiagnosticItem =
             | WarningCode.UnknownBinaryFile                     -> "Could not find the binary file \"{0}\" to include as reference in the compilation."
             | WarningCode.CouldNotLoadBinaryFile                -> "Unable to load binary file \"{0}\"."
             | WarningCode.ReferencesSetToNull                   -> "No references given to include in the compilation."
-            | WarningCode.UnrecognizedContentInReference        -> "Unrecognized content in reference \"{0}\". The binary file may have been compiled with an incompatible compiler version."
-
+            | WarningCode.ReferenceCannotBeIncludedInDll        -> "The reference to \"{0}\" could not be included in the generated dll."
             | WarningCode.UnresolvedItemsInGeneratedQs          -> "Some item(s) could not be resolved during compilation."
-            | WarningCode.TargetExitedAbnormally                -> "Processing of the compiled binary with the target {0} exited with an abnormal exit code {1}."
+            | WarningCode.PreconditionVerificationFailed        -> "The precondition for the compilation step \"{0}\" loaded from \"{1}\" was not met. The transformation will be skipped."
+            | WarningCode.RewriteStepLoadedViaReflection        -> "The compilation step \"{0}\" defined in \"{1}\" is not fully compatible with this compiler version and may fail on execution. The step may have been compiled against an older compiler version."
+            | WarningCode.FailedToLoadRewriteStepViaReflection  -> "A possible rewrite step has been detected in \"{0}\". The step could not be loaded and will be ignored."
             | _                                                 -> ""
         code |> ApplyArguments
 
@@ -679,8 +690,6 @@ type DiagnosticItem =
             | InformationCode.GeneratedCsCode                   -> "C# code generated for simulation"
             | InformationCode.GeneratedQsCode                   -> "Formatted Q# code"
             | InformationCode.GeneratedCodeOutputFolder         -> "Code has been generated in output folder"
-            | InformationCode.BuildTargetOutput                 -> "Build target output:"
-            | InformationCode.BuildTargetError                  -> "Build target errors:"
 
             | InformationCode.FileContentInMemory               -> "Q# code to compile"
             | InformationCode.BuiltTokenization                 -> "Built tokenization"
