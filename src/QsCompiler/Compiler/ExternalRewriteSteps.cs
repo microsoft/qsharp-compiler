@@ -18,21 +18,14 @@ namespace Microsoft.Quantum.QsCompiler
     internal static class RewriteSteps
     {
         /// <summary>
-        /// Concrete implementation of the rewrite steps options such that the configured options may be null. 
-        /// </summary>
-        internal class RewriteStepOptions : IRewriteStepOptions
-        {
-            public readonly string OutputFolder;
-            internal RewriteStepOptions(CompilationLoader.Configuration config) =>
-                this.OutputFolder = config.BuildOutputFolder;
-        }
-
-        /// <summary>
         /// Concrete implementation of a rewrite steps with an additional property specifying the dll it was loaded from. 
         /// </summary>
         internal class LoadedStep : IRewriteStep
         {
             internal readonly Uri Origin;
+            private string _GetOutputFolder;
+            private readonly Action<string> _SetOutputFolder;
+
             private readonly Func<QsCompilation, (bool, QsCompilation)> _Transformation;
             private readonly Func<QsCompilation, bool> _PreconditionVerification;
             private readonly Func<QsCompilation, bool> _PostconditionVerification;
@@ -42,7 +35,9 @@ namespace Microsoft.Quantum.QsCompiler
                 this.Origin = origin ?? throw new ArgumentNullException(nameof(origin));
                 this.Priority = step?.Priority ?? throw new ArgumentNullException(nameof(step));
                 this.Name = step.Name;
-                this.Options = step.Options;
+                this._GetOutputFolder = step.OutputFolder;
+                this._SetOutputFolder = value => step.OutputFolder = value;
+
                 this.ImplementsPreconditionVerification = step.ImplementsPreconditionVerification;
                 this.ImplementsPostconditionVerification = step.ImplementsPostconditionVerification;
                 this.ImplementsTransformation = step.ImplementsTransformation;
@@ -52,7 +47,10 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             /// <summary>
-            /// Attempts to construct a rewrite step via reflection. 
+            /// Attempts to construct a rewrite step via reflection.
+            /// Note that the loading via reflection has the consequence that methods may fail on execution. 
+            /// This is e.g. the case if they invoke methods from package references if the corresponding dll 
+            /// has not been copied to output folder of the dll from which the rewrite step is loaded. 
             /// Throws the corresponding exception if that construction fails. 
             /// </summary>
             internal LoadedStep(object step, Uri origin)
@@ -61,12 +59,12 @@ namespace Microsoft.Quantum.QsCompiler
                 this.Origin = origin ?? throw new ArgumentNullException(nameof(origin));
                 this.Priority = (int)type.GetProperty(nameof(IRewriteStep.Priority)).GetValue(step);
                 this.Name = (string)type.GetProperty(nameof(IRewriteStep.Name)).GetValue(step);
-                this.Options = (IRewriteStepOptions)type.GetProperty(nameof(IRewriteStep.Options)).GetValue(step); // todo: handle custom setters?
+                this._GetOutputFolder = (string)type.GetProperty(nameof(IRewriteStep.OutputFolder)).GetValue(step);
+                this._SetOutputFolder = value => type.GetProperty(nameof(IRewriteStep.OutputFolder)).SetValue(step, value);
+
                 this.ImplementsPreconditionVerification = (bool)type.GetProperty(nameof(IRewriteStep.ImplementsPreconditionVerification)).GetValue(step);
                 this.ImplementsPostconditionVerification = (bool)type.GetProperty(nameof(IRewriteStep.ImplementsPostconditionVerification)).GetValue(step);
                 this.ImplementsTransformation = (bool)type.GetProperty(nameof(IRewriteStep.ImplementsTransformation)).GetValue(step);
-
-                // note that the loading via reflection will have the consequence that the methods may fail on execution
                 this._PreconditionVerification = compilation => (bool)type.GetMethod(nameof(IRewriteStep.PreconditionVerification)).Invoke(step, new[] { compilation }); 
                 this._PostconditionVerification = compilation => (bool)type.GetMethod(nameof(IRewriteStep.PostconditionVerification)).Invoke(step, new[] { compilation });
                 this._Transformation = compilation =>
@@ -79,7 +77,11 @@ namespace Microsoft.Quantum.QsCompiler
 
             public string Name { get; }
             public int Priority { get; }
-            public IRewriteStepOptions Options { get; set; }
+            public string OutputFolder 
+            {
+                get => this._GetOutputFolder;
+                set => this._SetOutputFolder(value);
+            }
 
             public bool ImplementsTransformation { get; }
             public bool ImplementsPreconditionVerification { get; }
@@ -130,7 +132,7 @@ namespace Microsoft.Quantum.QsCompiler
             { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath)); }
 
             var rewriteSteps = ImmutableArray.CreateBuilder<LoadedStep>();
-            foreach (var (target, rewriteStepOptions) in foundDlls)
+            foreach (var (target, outputFolder) in foundDlls)
             {
                 var relevantTypes = new List<Type>();
                 Diagnostic LoadError(ErrorCode code, params string[] args) => Errors.LoadError(code, args, ProjectManager.MessageSource(target));
@@ -180,7 +182,7 @@ namespace Microsoft.Quantum.QsCompiler
                     }
                 }
                 foreach (var loaded in loadedSteps)
-                { loaded.Options = rewriteStepOptions ?? loaded.Options ?? config.RewriteStepDefaultOptions; }
+                { loaded.OutputFolder = outputFolder ?? loaded.OutputFolder ?? config.BuildOutputFolder; }
 
                 loadedSteps.Sort((fst, snd) => snd.Priority - fst.Priority);
                 rewriteSteps.AddRange(loadedSteps);

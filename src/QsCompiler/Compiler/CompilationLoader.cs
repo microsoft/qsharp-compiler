@@ -80,10 +80,10 @@ namespace Microsoft.Quantum.QsCompiler
             public string DllOutputPath;
             /// <summary>
             /// Contains a sequence of tuples with the path to a dotnet dll containing one or more rewrite steps 
-            /// (i.e. classes implementing IRewriteStep) and the corresponding rewrite step options.
+            /// (i.e. classes implementing IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation. 
             /// </summary>
-            public IEnumerable<(string, IRewriteStepOptions)> RewriteSteps;
+            public IEnumerable<(string, string)> RewriteSteps;
             /// <summary>
             /// If set to true, the post-condition for loaded rewrite steps is checked if the corresponding verification is implemented.
             /// Otherwise post-condition verifications are skipped. 
@@ -96,12 +96,6 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal bool SerializeSyntaxTree =>
                 BuildOutputFolder != null || DllOutputPath != null;
-
-            /// <summary>
-            /// Returns the default options used for rewrite steps if no options are specified, i.e. the given options are null.
-            /// </summary>
-            public IRewriteStepOptions RewriteStepDefaultOptions =>
-                new RewriteSteps.RewriteStepOptions(this);
         }
 
         private class ExecutionStatus

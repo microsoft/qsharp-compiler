@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
     {
         public string Name => "CsharpGeneration";
         public int Priority => 0;
-        public IRewriteStepOptions Options { get; set; }
+        public string OutputFolder { get; set; }
 
         public bool ImplementsTransformation => true;
         public bool ImplementsPreconditionVerification => false;
@@ -27,12 +27,11 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             var success = true;
-            var outputFolder = this.Options?.OutputFolder ?? this.Name;
             var allSources = GetSourceFiles.Apply(compilation.Namespaces); // also generate the code for referenced libraries
             foreach (var source in allSources)
             {
                 var content = SimulationCode.generate(source, compilation.Namespaces);
-                try { CompilationLoader.GeneratedFile(source, outputFolder, ".g.cs", content); }
+                try { CompilationLoader.GeneratedFile(source, this.OutputFolder ?? this.Name, ".g.cs", content); }
                 catch { success = false; }
             }
             transformed = compilation;

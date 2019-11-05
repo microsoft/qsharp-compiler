@@ -222,7 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 1,
-                RewriteSteps = options.Plugins?.Select(step => (step, (IRewriteStepOptions)null)) ?? ImmutableArray<(string, IRewriteStepOptions)>.Empty,
+                RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = true
             }; 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
