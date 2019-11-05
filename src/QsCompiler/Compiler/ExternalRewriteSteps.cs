@@ -134,7 +134,8 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var relevantTypes = new List<Type>();
                 Diagnostic LoadError(ErrorCode code, params string[] args) => Errors.LoadError(code, args, ProjectManager.MessageSource(target));
-                try 
+                Diagnostic LoadWarning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, ProjectManager.MessageSource(target));
+                try
                 {
                     var asmType = Assembly.LoadFrom(target.LocalPath).GetTypes();
                     var exactInterfaceMatch = asmType.Where(t => typeof(IRewriteStep).IsAssignableFrom(t)); // inherited interface is defined in this exact dll
@@ -157,14 +158,20 @@ namespace Microsoft.Quantum.QsCompiler
                     try 
                     {
                         var instance = Activator.CreateInstance(type);
-                        if (instance is IRewriteStep step) loadedSteps.Add(new LoadedStep(step, target));
-                        else  
+                        if (instance is IRewriteStep step)
+                        {
+                            loadedSteps.Add(new LoadedStep(step, target));
+                            continue;
+                        }
+
+                        try // we also try to load rewrite steps that have been compiled against a different compiler version
                         {
                             var loadedStep = new LoadedStep(instance, target);
-                            var msgArgs = new[] { loadedStep.Name, target.LocalPath };
-                            onDiagnostic?.Invoke(Warnings.LoadWarning(WarningCode.RewriteStepLoadedViaReflection, msgArgs, ProjectManager.MessageSource(target)));
+                            onDiagnostic?.Invoke(LoadWarning(WarningCode.RewriteStepLoadedViaReflection, loadedStep.Name, target.LocalPath));
                             loadedSteps.Add(loadedStep);
                         }
+                        catch // we don't log the exception, since it is perfectly possible that we should have ignored this type in the first place
+                        { onDiagnostic?.Invoke(LoadWarning(WarningCode.FailedToLoadRewriteStepViaReflection, target.LocalPath)); }
                     }
                     catch (Exception ex)
                     {
