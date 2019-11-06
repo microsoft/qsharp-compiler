@@ -169,11 +169,9 @@ export class LanguageServer {
         let lsPath : string | undefined | null = undefined;
         // Before anything else, look at the user's configuration to see
         // if they set a path manually for the language server.
-        let packageInfo = getPackageInfo(this.context);
-        if (packageInfo !== undefined) {
-            let config = vscode.workspace.getConfiguration(packageInfo.name);
-            lsPath = config.get("quantumDevKit.languageServerPath");
-        }
+        let versionCheck = false;
+        let config = vscode.workspace.getConfiguration();
+        lsPath = config.get("quantumDevKit.languageServerPath");
 
         // If lsPath is still undefined or null, then we didn't have a manual
         // path set up above.
@@ -185,11 +183,13 @@ export class LanguageServer {
                 throw new Error(`Unsupported platform: ${os.platform()}`);
             }
             lsPath = path.join(this.context.globalStoragePath, CommonPaths.storageRelativePath, exeName);
+            versionCheck = true;
         }
 
         // Since lsPath has been set unconditionally, we can now proceed to
         // check if it's valid or not.
         if (!await isPathExecutable(lsPath)) {
+            console.log(`[qsharp-lsp] "${lsPath}" is not executable. Proceed to download Q# language server.`)
             // Language server didn't exist or wasn't executable.
             return false;
         }
@@ -210,7 +210,10 @@ export class LanguageServer {
 
         let version = response.stdout.trim();
         let info = getPackageInfo(this.context);
-        if (info && info.assemblyVersion && info.assemblyVersion !== version) {
+        if (info === undefined || info === null) {
+            throw new Error("Package info was undefined.");
+        }
+        if (versionCheck && info.assemblyVersion !== version) {
             console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.assemblyVersion}. Clearing cached version.`);
             await this.clearCache();
             return false;
@@ -221,6 +224,12 @@ export class LanguageServer {
             version: version
         };
         return true;
+    }
+
+    private async setAsExecutable(path : string) : Promise<void> {
+        let results = await promisify(cp.exec)(`chmod +x "${path}"`);
+        console.log(`[qsharp-lsp] Results from setting ${path} as executable:\n${results.stdout}\nstderr:\n${results.stderr}`);
+        return;
     }
 
     private decompressServerBlob(blobPath : string) : Thenable<void> {
@@ -246,7 +255,20 @@ export class LanguageServer {
                     });
                     unzipper.on('extract', log => {
                         console.log(log);
-                        resolve();
+                        // If we're on Windows, we're done. On Unix-like
+                        // systems, though, we need to mark the server as
+                        // executable first.
+                        if (os.platform() === "win32") {
+                            resolve();
+                        } else {
+                            let relativeExecutablePath = CommonPaths.executableNames[os.platform()];
+                            this.setAsExecutable(
+                                path.join(
+                                    targetPath,
+                                    relativeExecutablePath!
+                                )
+                            ).then(resolve);
+                        }
                     });
                     unzipper.extract({
                         path: targetPath
@@ -392,7 +414,7 @@ export class LanguageServer {
                     return this.spawnProcess(actualPort);
                 })
                 .then((childProcess) => {
-                    console.log(`[qsharp-lsp] started QsLanguageServer.exe as PID ${childProcess.pid}.`);
+                    console.log(`[qsharp-lsp] started Q# Language Server as PID ${childProcess.pid}.`);
                 })
                 .catch(err => {
                     // Could not find a port...

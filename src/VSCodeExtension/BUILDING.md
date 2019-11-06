@@ -55,7 +55,7 @@ For instance, breaking at the second line below will let you observe the PID use
 
 ```typescript
 .then((childProcess) => {
-    console.log(`[qsharp-lsp] started QsLanguageServer.exe as PID ${childProcess.pid}.`);
+    console.log(`[qsharp-lsp] started Q# Language Server as PID ${childProcess.pid}.`);
 })
 ```
 

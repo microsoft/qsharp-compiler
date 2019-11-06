@@ -7,14 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Standard" Version="0.9.1908.2906" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.10.1911.307" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\CommandLineTool\CommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\CoreLibrary\CoreLibrary.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

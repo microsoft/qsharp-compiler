@@ -83,50 +83,6 @@ namespace Microsoft.Quantum.QsCompiler
             }
             return true;
         }
-
-        /// <summary>
-        /// Eliminates all type-parameterized callables from the scope by replacing their definitions
-        /// and references to concrete versions of the callable.
-        /// Any thrown exception is logged using the given onException action and silently ignored if onException is not specified or null.
-        /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
-        /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
-        /// </summary>
-        public static bool Monomorphisize(this QsCompilation compilation, out QsCompilation result, Action<Exception> onException = null)
-        {
-            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
-            try
-            {
-                result = ResolveGenericsSyntax.Apply(compilation);
-            }
-            catch (Exception ex)
-            {
-                onException?.Invoke(ex);
-                result = compilation;
-                return false;
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Validates that the monomorphization step cleared the syntax tree of all references to, and instances of type-parameterized callables.
-        /// Any thrown exception is logged using the given onException action and silently ignored if onException is not specified or null.
-        /// Returns true if the transformation succeeded without throwing an exception, and false otherwise.
-        /// Throws an ArgumentNullException (that is not logged or ignored) if the given compilation is null.
-        /// </summary>
-        public static bool ValidateMonomorphization(this QsCompilation compilation, Action<Exception> onException = null)
-        {
-            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
-            try
-            {
-                MonomorphizationValidationTransformation.Apply(compilation);
-            }
-            catch (Exception ex)
-            {
-                onException?.Invoke(ex);
-                return false;
-            }
-            return true;
-        }
     }
 }
 

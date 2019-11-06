@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Standard" Version="0.9.1908.2906" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\..\CommandLineTool\CommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
@@ -23,7 +19,7 @@
   <PropertyGroup>
     <ExecutionTestsDir>ExecutionTests\</ExecutionTestsDir>
     <GenFilesDir>generated\</GenFilesDir>
-    <SimulationTarget>"..\Target\bin\$(Configuration)\netcoreapp3.0\Simulation.dll"</SimulationTarget>
+    <SimulationTarget>"..\Target\bin\$(Configuration)\netstandard2.1\Simulation.dll"</SimulationTarget>
     <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp3.0\qsc.dll"</QscExe>
   </PropertyGroup>
 
@@ -54,7 +50,7 @@
       <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) -t "$(SimulationTarget)"</QscCommand>
+      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) --load "$(SimulationTarget)"</QscCommand>
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
     <Delete Files="$(GenFilesDir)$(MSBuildProjectName).bson" />

@@ -159,6 +159,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         {
             var doneWithInit = this.WaitForInit?.WaitOne(20000) ?? false;
             if (!doneWithInit) return new InitializeError { Retry = true };
+
+            arg?.SelectToken("capabilities.textDocument.codeAction")?.Replace(null); // setting this to null for now, since we are not using it and the deserialization causes issues
             var param = Utils.TryJTokenAs<InitializeParams>(arg);
             this.ClientCapabilities = param.Capabilities;
 
@@ -171,7 +173,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     this.ClientVersion = null;
             }
             bool supportsCompletion = !ClientNameIs("VisualStudio") || ClientVersionIsAtLeast(new Version(16, 3));
-            bool useTriggerCharWorkaround = ClientNameIs("VisualStudio") && ClientVersionIsAtLeast(new Version(16, 3));
+            bool useTriggerCharWorkaround = ClientNameIs("VisualStudio") && !ClientVersionIsAtLeast(new Version(16, 4));
 
             var rootUri = param.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out Uri uri) ? uri : null);
             this.WorkspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
@@ -188,7 +190,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.TextDocumentSync.Change = TextDocumentSyncKind.Incremental;
             capabilities.TextDocumentSync.OpenClose = true;
             capabilities.TextDocumentSync.Save = new SaveOptions { IncludeText = true };
-            capabilities.CodeActionProvider = this.ClientCapabilities.Workspace.ApplyEdit;
+            capabilities.CodeActionProvider = this.ClientCapabilities?.Workspace?.ApplyEdit ?? true;
             capabilities.DefinitionProvider = true;
             capabilities.ReferencesProvider = true;
             capabilities.DocumentSymbolProvider = true;
@@ -202,7 +204,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 capabilities.CompletionProvider.ResolveProvider = true;
                 capabilities.CompletionProvider.TriggerCharacters =
-                    useTriggerCharWorkaround ? new[] { ".", " ", "(" } : new[] { "." };
+                    useTriggerCharWorkaround ? new[] { " ", ".", "(" } : new[] { ".", "(" };
             }
 
             this.WaitForInit = null;
@@ -343,17 +345,16 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentSignatureHelpName)]
-        public object OnSignatureHelp(JToken arg)
+        public Task<object> OnSignatureHelp(JToken arg)
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (WaitForInit != null) return Task.Run<object>(() => ProtocolError.AwaitingInitialization);
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             var supportedFormats = this.ClientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
             var format = ChooseFormat(supportedFormats);
-            var task = new Task<SignatureHelp>(() =>
+            var task = new Task<object>(() =>
             {
-                // We need to give the file manager some time to actually process the change first, otherwise we will return null. 
-                // Unfortunatly, the VS Client seems to block and wait for a response from this request, 
-                // such that the editor becomes unresponsive if we take too long. 
+                // We need to give the file manager some time to actually process the change first, 
+                // otherwise we will return null. 
                 Thread.Sleep(100);
                 try
                 {
@@ -382,13 +383,14 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
-        public object OnTextDocumentCompletion(JToken arg)
+        public Task<object> OnTextDocumentCompletion(JToken arg)
         {
-            if (WaitForInit != null) return ProtocolError.AwaitingInitialization;
+            if (WaitForInit != null) return Task.Run<object>(() => ProtocolError.AwaitingInitialization);
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
-            var task = new Task<CompletionList>(() =>
+            var task = new Task<object>(() =>
             {
-                // Wait for the file manager to finish processing any changes that happened right before this completion request.
+                // Wait for the file manager to finish processing any changes 
+                // that happened right before this completion request.
                 Thread.Sleep(50);
                 try
                 {
@@ -429,7 +431,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             if (this.WaitForInit != null) return ProtocolError.AwaitingInitialization;
-            var param = Utils.TryJTokenAs<CodeActionParams>(arg);
+            var param = Utils.TryJTokenAs<Workarounds.CodeActionParams>(arg).ToCodeActionParams();
             try
             {
                 return QsCompilerError.RaiseOnFailure(() =>

@@ -41,8 +41,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     ?? ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)>.Empty;
             }
 
-            // TODO: keep indirect references? 
-            // -> would need to make sure it's fine to pull in the same reference multiple times though...
             internal Headers(NonNullable<string> source, IEnumerable<QsNamespace> syntaxTree) : this (
                 source.Value, 
                 syntaxTree.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
