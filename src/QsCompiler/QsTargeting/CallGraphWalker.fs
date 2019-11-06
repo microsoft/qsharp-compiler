@@ -120,18 +120,6 @@ type CallGraph() =
         then CapabilityLevel.Unset
         else deps |> Seq.map getLevel |> Seq.max
 
-let private isResult ex =
-    match ex.ResolvedType.Resolution with | Result -> true | _ -> false
-        
-let private isQubitType (t : ResolvedType) =
-    match t.Resolution with | Qubit -> true | _ -> false
-        
-let private isQubit ex =
-    ex.ResolvedType |> isQubitType
-        
-let private isQubitArray ex =
-    match ex.ResolvedType.Resolution with | ArrayType t when isQubitType t -> true | _ -> false
-        
 type private ExpressionKindGraphBuilder(exprXformer : ExpressionGraphBuilder, graph : CallGraph, 
         spec : QsSpecialization) =
     inherit ExpressionKindWalker()
@@ -214,8 +202,6 @@ and private ScopeGraphBuilder(graph : CallGraph, spec : QsSpecialization) as thi
 
     override this.StatementKind = upcast kindXformer
 
-    member this.Holder with get() = graph
-
 /// This syntax tree transformer fills in the CapabilityLevel fields in specializations,
 /// based on information gathered by the associated scope and other transformations.
 type TreeGraphBuilder() =
@@ -223,11 +209,7 @@ type TreeGraphBuilder() =
 
     let graph = new CallGraph()
 
-    let mutable spec = None : QsSpecialization option
-
     let mutable scopeXform = None : ScopeGraphBuilder option
-
-    let mutable currentOperationLevel = None : CapabilityLevel option
 
     override this.Scope with get() = scopeXform |> Option.map (fun x -> x :> ScopeWalker)
                                                 |> Option.defaultWith (fun () -> new ScopeWalker())
@@ -237,3 +219,4 @@ type TreeGraphBuilder() =
         scopeXform <- Some xform
         base.onSpecializationImplementation(s)
 
+    member this.CallGraph with get() = graph
