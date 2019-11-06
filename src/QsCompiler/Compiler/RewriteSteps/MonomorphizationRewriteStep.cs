@@ -34,7 +34,7 @@ namespace Compiler.RewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = ResolveGenericsSyntax.Apply(compilation);
+            transformed = MonomorphizationTransformation.Apply(compilation);
             return true;
         }
 

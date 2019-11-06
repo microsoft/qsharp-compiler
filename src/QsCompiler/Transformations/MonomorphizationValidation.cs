@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             }
         }
 
-        internal class MonomorphizationValidationSyntax : SyntaxTreeTransformation<ScopeTransformation<MonomorphizationValidationExpression>>
+        private class MonomorphizationValidationSyntax : SyntaxTreeTransformation<ScopeTransformation<MonomorphizationValidationExpression>>
         {
             public MonomorphizationValidationSyntax(ScopeTransformation<MonomorphizationValidationExpression> scope = null) :
                 base(scope ?? new ScopeTransformation<MonomorphizationValidationExpression>(new MonomorphizationValidationExpression())) { }
@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             }
         }
 
-        internal class MonomorphizationValidationExpression :
+        private class MonomorphizationValidationExpression :
             ExpressionTransformation<Core.ExpressionKindTransformation, MonomorphizationValidationExpressionType>
         {
             public MonomorphizationValidationExpression() :
@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             }
         }
 
-        internal class MonomorphizationValidationExpressionType : ExpressionTypeTransformation<MonomorphizationValidationExpression>
+        private class MonomorphizationValidationExpressionType : ExpressionTypeTransformation<MonomorphizationValidationExpression>
         {
             public MonomorphizationValidationExpressionType(MonomorphizationValidationExpression expr) : base(expr) { }
 

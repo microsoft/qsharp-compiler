@@ -112,7 +112,7 @@ type LinkingTests (output:ITestOutputHelper) =
         compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
 
         Assert.NotNull compilationDataStructures.BuiltCompilation
-        let monomorphicCompilation = ResolveGenericsSyntax.Apply compilationDataStructures.BuiltCompilation
+        let monomorphicCompilation = MonomorphizationTransformation.Apply compilationDataStructures.BuiltCompilation
 
         Assert.NotNull monomorphicCompilation
         MonomorphizationValidationTransformation.Apply monomorphicCompilation
