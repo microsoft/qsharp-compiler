@@ -5,41 +5,40 @@ module Microsoft.Quantum.QsCompiler.Targeting.Leveler
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+// Some useful utility routines
 let private isResult ex =
     match ex.ResolvedType.Resolution with | Result -> true | _ -> false
         
 let private isQubitType (t : ResolvedType) =
     match t.Resolution with | Qubit -> true | _ -> false
         
-let private isQubit ex =
-    ex.ResolvedType |> isQubitType
-        
 let private isQubitArray ex =
     match ex.ResolvedType.Resolution with | ArrayType t when isQubitType t -> true | _ -> false
         
-type private CapabilityInfoHolder(spec) =
+/// Tiny wrapper around a mutable capability level.
+/// The reason for using this class, rather than a simple ref, is the logic in the setter;
+/// that allows us to always just set the value, rather than have the test logic throughout the code.
+type private CapabilityInfoHolder() =
     let mutable localLevel = CapabilityLevel.Minimal
 
     member this.LocalLevel with get() = localLevel and set(n) = if n > localLevel then localLevel <- n
 
-    member this.Specialization with get() = spec
-
+/// Walker for setting capability levels based on expression details.
 type private ExpressionKindLeveler(exprXformer : ExpressionLeveler, holder : CapabilityInfoHolder) =
-    inherit ExpressionKindTransformation()
+    inherit ExpressionKindWalker()
 
     let mutable isSimpleResultTest = true
 
     member this.IsSimpleResultTest with get() = isSimpleResultTest and set(value) = isSimpleResultTest <- value
 
-    override this.ExpressionTransformation x = exprXformer.Transform x
-    override this.TypeTransformation x = x
+    override this.ExpressionWalker x = exprXformer.Walk x
+    override this.TypeWalker x = ()
 
-    override this.Transform(kind) =
+    override this.Walk(kind) =
         match kind with 
         | UnwrapApplication _
         | ValueTuple _
@@ -84,10 +83,11 @@ type private ExpressionKindLeveler(exprXformer : ExpressionLeveler, holder : Cap
             if not (isQubitArray arr)
             then holder.LocalLevel <- CapabilityLevel.Medium
         | _ -> ()
-        base.Transform(kind)
+        base.Walk(kind)
 
+/// Walker for setting capability levels based on expressions.
 and private ExpressionLeveler(holder : CapabilityInfoHolder) as this =
-    inherit ExpressionTransformation()
+    inherit ExpressionWalker()
 
     let kindXformer = new ExpressionKindLeveler(this, holder)
 
@@ -96,30 +96,29 @@ and private ExpressionLeveler(holder : CapabilityInfoHolder) as this =
     member this.IsSimpleResultTest with get() = kindXformer.IsSimpleResultTest 
                                     and set(v) = kindXformer.IsSimpleResultTest <- v
 
+/// Walker for setting capability levels based on statements.
 type private StatementLeveler(scopeXformer : ScopeLeveler, holder : CapabilityInfoHolder) =
-    inherit StatementKindTransformation()
+    inherit StatementKindWalker()
 
     let exprXformer = new ExpressionLeveler(holder)
 
-    override this.ScopeTransformation x = scopeXformer.Transform x
+    override this.ScopeWalker x = scopeXformer.Walk x
 
-    override this.ExpressionTransformation x = 
+    override this.ExpressionWalker x = 
         exprXformer.IsSimpleResultTest <- true
-        exprXformer.Transform x
-    override this.TypeTransformation x = x
-    override this.LocationTransformation x = x
+        exprXformer.Walk x
+    override this.TypeWalker x = ()
+    override this.LocationWalker x = ()
 
     override this.onConditionalStatement(stm) =
         let processCase (condition, block : QsPositionedBlock) =
-            let expr = this.ExpressionTransformation condition
+            this.ExpressionWalker condition
             if not exprXformer.IsSimpleResultTest 
             then holder.LocalLevel <- CapabilityLevel.Medium
             else holder.LocalLevel <- CapabilityLevel.Basic
-            let body = this.ScopeTransformation block.Body
-            expr, QsPositionedBlock.New block.Comments block.Location body
-        let cases = stm.ConditionalBlocks |> Seq.map processCase
-        let defaultCase = stm.Default |> QsNullable<_>.Map (fun b -> this.onPositionedBlock (None, b) |> snd)
-        QsConditionalStatement.New (cases, defaultCase) |> QsConditionalStatement
+            this.ScopeWalker block.Body
+        stm.ConditionalBlocks |> Seq.iter processCase
+        stm.Default |> QsNullable<_>.Iter (fun b -> this.onPositionedBlock (None, b))
 
     override this.onRepeatStatement(s) =
         holder.LocalLevel <- CapabilityLevel.Advanced
@@ -141,8 +140,9 @@ type private StatementLeveler(scopeXformer : ScopeLeveler, holder : CapabilityIn
             then holder.LocalLevel <- CapabilityLevel.Advanced
         base.onVariableDeclaration(s)
 
+/// Walker for setting capability levels based on scopes.
 and private ScopeLeveler(holder : CapabilityInfoHolder) as this =
-    inherit ScopeTransformation()
+    inherit ScopeWalker()
 
     let kindXformer = new StatementLeveler(this, holder)
 
@@ -151,7 +151,7 @@ and private ScopeLeveler(holder : CapabilityInfoHolder) as this =
     member this.Holder with get() = holder
 
 /// This syntax tree transformer fills in the CapabilityLevel fields in specializations,
-/// based on information gathered by the associated scope and other transformations.
+/// based on information gathered by the associated scope and other walkers.
 type TreeLeveler() =
     inherit SyntaxTreeTransformation()
 
@@ -180,14 +180,9 @@ type TreeLeveler() =
         | [] -> None
         | _ -> None
 
-    let mutable spec = None : QsSpecialization option
-
-    let mutable scopeXform = None : ScopeLeveler option
-
     let mutable currentOperationLevel = None : CapabilityLevel option
 
-    override this.Scope with get() = scopeXform |> Option.map (fun x -> x :> ScopeTransformation)
-                                                |> Option.defaultWith (fun () -> new ScopeTransformation())
+    override this.Scope with get() = new ScopeTransformation()
 
     override this.beforeCallable(c) =
         currentOperationLevel <- c.Attributes |> checkForLevelAttributes
@@ -195,21 +190,22 @@ type TreeLeveler() =
         result
 
     override this.onSpecializationImplementation(s) =
-        let holder = new CapabilityInfoHolder(s)
-        let xform = new ScopeLeveler(holder)
-        scopeXform <- Some xform
-        let result = base.onSpecializationImplementation(s)
-        let level = s.Attributes |> checkForLevelAttributes 
-                                 |> Option.orElse currentOperationLevel
-                                 |> Option.defaultValue holder.LocalLevel
-        { result with RequiredCapability = level }
-
+        let codeLevel = match s.Implementation with
+                        | Intrinsic -> CapabilityLevel.Minimal
+                        | External -> CapabilityLevel.Unset
+                        | Generated _ -> CapabilityLevel.Unset
     // TODO: For generated specializations, we need to find the appropriate "body" declaration
     // and copy the required capability from that to the generated specialization.
+                        | Provided (_, scope) ->
+                            let holder = new CapabilityInfoHolder()
+                            let xform = new ScopeLeveler(holder)
+                            xform.Walk(scope)
+                            holder.LocalLevel
+        let level = s.Attributes |> checkForLevelAttributes 
+                                 |> Option.orElse currentOperationLevel
+                                 |> Option.defaultValue codeLevel
+        if level <> s.RequiredCapability then { s with RequiredCapability = level } else s
 
-    override this.onIntrinsicImplementation() =
-        scopeXform |> Option.iter (fun x -> x.Holder.LocalLevel <- CapabilityLevel.Minimal)
-        base.onIntrinsicImplementation()
 
     override this.Transform(ns : QsNamespace) =
         let xformed = base.Transform ns
