@@ -359,13 +359,20 @@ and ExpressionTransformation(?enableKindTransformations) =
     abstract member onExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
     default this.onExpressionInformation info = info
 
+    abstract member onTypeParamResolutions : ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType> -> ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType>
+    default this.onTypeParamResolutions typeParams =
+        let asTypeParameter (key) = QsTypeParameter.New (fst key, snd key, Null)
+        let filteredTypeParams = 
+            typeParams 
+            |> Seq.map (fun kv -> this.Type.onTypeParameter (kv.Key |> asTypeParameter), kv.Value)
+            |> Seq.choose (function | TypeParameter tp, value -> Some ((tp.Origin, tp.TypeName), this.Type.Transform value) | _ -> None)
+        filteredTypeParams.ToImmutableDictionary (fst,snd)
+
     abstract member Transform : TypedExpression -> TypedExpression
     default this.Transform (ex : TypedExpression) =
         let range                = this.onRangeInformation ex.Range
-        let typeParamResolutions = ex.TypeParameterResolutions
+        let typeParamResolutions = this.onTypeParamResolutions ex.TypeParameterResolutions
         let kind                 = this.Kind.Transform ex.Expression
         let exType               = this.Type.Transform ex.ResolvedType
         let inferredInfo         = this.onExpressionInformation ex.InferredInformation
         TypedExpression.New (kind, typeParamResolutions, exType, inferredInfo, range)
-
-

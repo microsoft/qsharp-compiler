@@ -633,7 +633,7 @@ type DiagnosticItem =
             | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
             | ErrorCode.RewriteStepExecutionFailed              -> "Executing the transformation for the compilation step \"{0}\" loaded from \"{1}\" failed."
             | ErrorCode.PostconditionVerificationFailed         -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
-            | _                                                 -> "" 
+            | _                                                 -> ""
         code |> ApplyArguments             
              
     static member Message (code : WarningCode, args : IEnumerable<string>) = 
