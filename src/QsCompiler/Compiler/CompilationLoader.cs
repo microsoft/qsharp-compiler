@@ -9,7 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
-using Compiler.RewriteSteps;
+using Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -65,10 +65,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool AttemptFullPreEvaluation;
             /// <summary>
-            /// Replaces all usages of type-parameterized callables with the concrete callable instantiation.
-            /// Removes parameterized types from the syntax tree.
+            /// Unless this is set to true, all usages of type-parameterized callables are replaced with 
+            /// the concrete callable instantiation if an entry point is specified for the compilation.
+            /// Removes all type-parameterizations in the syntax tree.
             /// </summary>
-            public bool Monomorphization;
+            public bool SkipMonomorphization;
             /// <summary>
             /// If the output folder is not null, 
             /// documentation is generated in the specified folder based on doc comments in the source code. 
@@ -126,7 +127,7 @@ namespace Microsoft.Quantum.QsCompiler
             private bool WasSuccessful(bool run, int code) =>
                 (run && code == 0) || (!run && code < 0);
 
-            internal bool Success(Configuration options) =>
+            internal bool Success(Configuration options, bool isExe) =>
                 this.SourceFileLoading <= 0 &&
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
@@ -134,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
-                WasSuccessful(options.Monomorphization, this.Monomorphization) &&
+                WasSuccessful(isExe && !options.SkipMonomorphization, this.Monomorphization) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
@@ -230,7 +231,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Indicates the overall success of all compilation steps. 
         /// The compilation is indicated as having been successful if all steps that were configured to execute completed successfully.
         /// </summary>
-        public bool Success => this.CompilationStatus.Success(this.Config);
+        public bool Success => this.CompilationStatus.Success(this.Config, this.CompilationOutput?.EntryPoints.Length != 0);
 
 
         /// <summary>
@@ -320,25 +321,19 @@ namespace Microsoft.Quantum.QsCompiler
             compilationManager.AddOrUpdateSourceFilesAsync(files);
             this.VerifiedCompilation = compilationManager.Build();
             this.CompilationOutput = this.VerifiedCompilation?.BuiltCompilation;
+            compilationManager.Dispose();
 
-            if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri uri))
-            {
-                uri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs"));
-            }
-
-            foreach (var diag in this.VerifiedCompilation.SourceFiles?.SelectMany(this.VerifiedCompilation.Diagnostics) ?? Enumerable.Empty<Diagnostic>())
-            {
-                this.LogAndUpdate(ref this.CompilationStatus.Validation, diag);
-            }
+            foreach (var diag in this.VerifiedCompilation?.Diagnostics() ?? Enumerable.Empty<Diagnostic>())
+            { this.LogAndUpdate(ref this.CompilationStatus.Validation, diag); }
 
             // executing the specified rewrite steps 
 
-            if (this.CompilationOutput != null && this.CompilationOutput.EntryPoints.Any())
+            if (!this.Config.SkipMonomorphization && this.CompilationOutput?.EntryPoints.Length != 0)
             {
-                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(
-                    new RewriteSteps.LoadedStep(new MonomorphizationRewriteStep(), uri),
-                    this.CompilationOutput,
-                    out this.CompilationOutput);
+                if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
+                { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
+                var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), thisDllUri);
+                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput); 
             }
 
             if (this.Config.GenerateFunctorSupport)
@@ -389,12 +384,12 @@ namespace Microsoft.Quantum.QsCompiler
 
             // invoking rewrite steps in external dlls
 
-            if (this.CompilationOutput != null)
+            for (int i = 0; i < this.ExternalRewriteSteps.Length; i++)
             {
-                for (int i = 0; i < this.ExternalRewriteSteps.Length; i++)
-                {
-                    this.CompilationStatus.LoadedRewriteSteps[i] = this.ExecuteRewriteStep(this.ExternalRewriteSteps[i], this.CompilationOutput, out this.CompilationOutput);
-                }
+                if (this.CompilationOutput == null) continue;
+                var executed = this.ExecuteRewriteStep(this.ExternalRewriteSteps[i], this.CompilationOutput, out var transformed);
+                if (this.GetStatus(executed) == Status.Succeeded) this.CompilationOutput = transformed;
+                this.CompilationStatus.LoadedRewriteSteps[i] = executed;
             }
         }
 
@@ -408,29 +403,28 @@ namespace Microsoft.Quantum.QsCompiler
             if (rewriteStep == null) throw new ArgumentNullException(nameof(rewriteStep));
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
 
+            var status = 0;
             var messageSource = ProjectManager.MessageSource(rewriteStep.Origin);
             Diagnostic Warning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, messageSource);
-            int status = 0;
-            transformed = compilation;
             try
             {
-                bool preconditionPassed = !rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(compilation);
+                transformed = compilation;
+                var preconditionPassed = !rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(compilation);
                 if (!preconditionPassed) this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, new[] { rewriteStep.Name, messageSource }));
 
-                bool executeTransformation = preconditionPassed && rewriteStep.ImplementsTransformation;
-                bool transformationPassed = !executeTransformation || rewriteStep.Transformation(compilation, out compilation);
+                var executeTransformation = preconditionPassed && rewriteStep.ImplementsTransformation;
+                var transformationPassed = !executeTransformation || rewriteStep.Transformation(compilation, out transformed);
                 if (!transformationPassed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
 
-                bool executePostconditionVerification = this.Config.EnableAdditionalChecks && transformationPassed && rewriteStep.ImplementsPostconditionVerification;
-                bool postconditionPassed = !executePostconditionVerification || rewriteStep.PostconditionVerification(compilation);
+                var executePostconditionVerification = this.Config.EnableAdditionalChecks && transformationPassed && rewriteStep.ImplementsPostconditionVerification;
+                var postconditionPassed = !executePostconditionVerification || rewriteStep.PostconditionVerification(transformed);
                 if (!postconditionPassed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
-
-                if (this.GetStatus(status) == Status.Succeeded) transformed = compilation;
             }
             catch (Exception ex)
             {
                 this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
                 this.LogAndUpdate(ref status, ex);
+                transformed = null;
             }
             return status;
         }

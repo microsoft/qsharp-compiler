@@ -3,6 +3,10 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
+open System
+open System.Collections.Generic
+open System.Collections.Immutable
+open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -10,15 +14,12 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open System
-open System.Collections.Generic
-open System.Collections.Immutable
-open System.IO
-open Xunit
-open Xunit.Abstractions
-open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
+open Xunit
+open Xunit.Abstractions
+
 
 type LinkingTests (output:ITestOutputHelper) =
     inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"], output)
@@ -31,7 +32,8 @@ type LinkingTests (output:ITestOutputHelper) =
             "String", QsTypeKind.String;
             "Qubit", QsTypeKind.Qubit;
             "Qubit[]", ResolvedType.New QsTypeKind.Qubit |> QsTypeKind.ArrayType;
-        |] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
+        |] 
+        |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
 
