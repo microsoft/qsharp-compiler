@@ -4,6 +4,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization;
 using Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Compiler.RewriteSteps
@@ -22,14 +23,14 @@ namespace Compiler.RewriteSteps
 
         public bool ImplementsPostconditionVerification { get; }
 
-        public MonomorphizationRewriteStep(bool doPostConditionValidation = false)
+        public MonomorphizationRewriteStep()
         {
             Name = "Monomorphization";
             Priority = 10; // Not used for hard-coded transformations like this
             OutputFolder = null;
             ImplementsTransformation = true;
-            ImplementsPreconditionVerification = false;
-            ImplementsPostconditionVerification = doPostConditionValidation;
+            ImplementsPreconditionVerification = true;
+            ImplementsPostconditionVerification = true;
         }
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
@@ -40,13 +41,20 @@ namespace Compiler.RewriteSteps
 
         public bool PreconditionVerification(QsCompilation compilation)
         {
-            throw new NotImplementedException();
+            return compilation != null && compilation.EntryPoints.Any();
         }
 
         public bool PostconditionVerification(QsCompilation compilation)
         {
-            MonomorphizationValidationTransformation.Apply(compilation);
-            return true;
+            try
+            {
+                MonomorphizationValidationTransformation.Apply(compilation);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

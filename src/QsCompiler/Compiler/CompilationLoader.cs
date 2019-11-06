@@ -323,7 +323,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri uri))
             {
-                uri = new Uri(""); // TODO: not sure what to set the Uri to as default
+                uri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs"));
             }
 
             foreach (var diag in this.VerifiedCompilation.SourceFiles?.SelectMany(this.VerifiedCompilation.Diagnostics) ?? Enumerable.Empty<Diagnostic>())
@@ -336,7 +336,7 @@ namespace Microsoft.Quantum.QsCompiler
             if (this.CompilationOutput != null && this.CompilationOutput.EntryPoints.Any())
             {
                 this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(
-                    new RewriteSteps.LoadedStep(new MonomorphizationRewriteStep(true), uri), // DEV ONLY: post condition validation is enabled
+                    new RewriteSteps.LoadedStep(new MonomorphizationRewriteStep(), uri),
                     this.CompilationOutput,
                     out this.CompilationOutput);
             }
@@ -418,12 +418,14 @@ namespace Microsoft.Quantum.QsCompiler
                 if (!preconditionPassed) this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, new[] { rewriteStep.Name, messageSource }));
 
                 bool executeTransformation = preconditionPassed && rewriteStep.ImplementsTransformation;
-                bool transformationPassed = !executeTransformation || rewriteStep.Transformation(compilation, out transformed);
+                bool transformationPassed = !executeTransformation || rewriteStep.Transformation(compilation, out compilation);
                 if (!transformationPassed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
 
                 bool executePostconditionVerification = this.Config.EnableAdditionalChecks && transformationPassed && rewriteStep.ImplementsPostconditionVerification;
-                bool postconditionPassed = !executePostconditionVerification || rewriteStep.PostconditionVerification(transformed);
+                bool postconditionPassed = !executePostconditionVerification || rewriteStep.PostconditionVerification(compilation);
                 if (!postconditionPassed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
+
+                if (this.GetStatus(status) == Status.Succeeded) transformed = compilation;
             }
             catch (Exception ex)
             {
