@@ -12,8 +12,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
-    //using Concretion = ImmutableDictionary<QsTypeParameter, ResolvedType>;
-    //using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*Concretion*/ ImmutableDictionary<QsTypeParameter, ResolvedType>, Identifier>;
     using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
     using Concretion = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
     using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;

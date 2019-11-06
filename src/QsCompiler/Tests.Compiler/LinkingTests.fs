@@ -17,6 +17,8 @@ open System.IO
 open Xunit
 open Xunit.Abstractions
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
+open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
+open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
 
 type LinkingTests (output:ITestOutputHelper) =
     inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"], output)
@@ -110,11 +112,10 @@ type LinkingTests (output:ITestOutputHelper) =
         compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
 
         Assert.NotNull compilationDataStructures.BuiltCompilation
-        let mutable monomorphicCompilation = compilationDataStructures.BuiltCompilation
-        compilationDataStructures.BuiltCompilation.Monomorphisize &monomorphicCompilation |> Assert.True
+        let monomorphicCompilation = ResolveGenericsSyntax.Apply compilationDataStructures.BuiltCompilation
 
         Assert.NotNull monomorphicCompilation
-        monomorphicCompilation.ValidateMonomorphization () |> Assert.True
+        MonomorphizationValidationTransformation.Apply monomorphicCompilation
         monomorphicCompilation
 
 

@@ -286,8 +286,6 @@ type ErrorCode =
     | PreEvaluationFailed = 7110
     | RewriteStepExecutionFailed = 7111
     | PostconditionVerificationFailed = 7112
-    | MonomorphizationFailed = 7113
-    | MonomorphizationValidationFailed = 7114
 
 
 type WarningCode = 
@@ -635,8 +633,6 @@ type DiagnosticItem =
             | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
             | ErrorCode.RewriteStepExecutionFailed              -> "Executing the transformation for the compilation step \"{0}\" loaded from \"{1}\" failed."
             | ErrorCode.PostconditionVerificationFailed         -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
-            | ErrorCode.MonomorphizationFailed                  -> "Replacing type parameterizations with the concrete instantiations failed."
-            | ErrorCode.MonomorphizationValidationFailed        -> "Validation of the replacement of type parameterizations with the concrete instantiations failed."
             | _                                                 -> ""
         code |> ApplyArguments             
              
