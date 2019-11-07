@@ -29,7 +29,7 @@ type ErrorCode =
     | InvalidWhileLoopIntro = 3011
     | InvalidRepeatIntro = 3012       
     | InvalidUntilClause = 3013           
-    | InvalidRUSfixup = 3014 
+    //| InvalidRUSfixup = 3014 
     | InvalidWithinBlockIntro = 3015
     | InvalidApplyBlockIntro = 3016
     | InvalidUsingBlockIntro = 3017              
@@ -46,7 +46,7 @@ type ErrorCode =
     | InvalidOpenDirective = 3028
     | InvalidExpressionStatement = 3029 
     | InvalidConstructorExpression = 3030
-    | MissingArgumentForFunctorGenerator = 3031
+    //| MissingArgumentForFunctorGenerator = 3031
     | InvalidKeywordWithinExpression = 3032
     | InvalidUseOfReservedKeyword = 3033
     | ExcessContinuation = 3034
@@ -98,8 +98,8 @@ type ErrorCode =
     | MissingArgumentDeclaration = 3226
     | InvalidTypeParameterDeclaration = 3227
     | MissingTypeParameterDeclaration = 3228
-    | InvalidTypeArgument = 3229
-    | MissingTypeArgument = 3230
+    //| InvalidTypeArgument = 3229
+    //| MissingTypeArgument = 3230
     | InvalidIdentifierExprInUpdate = 3231
     | MissingIdentifierExprInUpdate = 3232
     | InvalidUdtItemDeclaration = 3233
@@ -167,7 +167,7 @@ type ErrorCode =
     | ExpectingUserDefinedType = 5016
     | InvalidAdjointApplication = 5017
     | InvalidControlledApplication = 5018
-    | ExpectingRangeOrInt = 5019
+    //| ExpectingRangeOrInt = 5019
     | ExpectingIterableExpr = 5020
     | ExpectingCallableExpr = 5021
     | UnknownIdentifier = 5022
@@ -273,7 +273,7 @@ type ErrorCode =
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
-    | CsGenerationFailed = 7103
+    //| CsGenerationFailed = 7103
     | QsGenerationFailed = 7104
     | DocGenerationFailed = 7105
     | SerializationFailed = 7106
@@ -371,7 +371,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidWhileLoopIntro                   -> "Syntax error in while-statement."
             | ErrorCode.InvalidRepeatIntro                      -> "Syntax error in repeat header."                   
             | ErrorCode.InvalidUntilClause                      -> "Syntax error in until-clause."                     
-            | ErrorCode.InvalidRUSfixup                         -> "Syntax error in fixup header."
+(*unused*)  //| ErrorCode.InvalidRUSfixup                         -> "Syntax error in fixup header."
             | ErrorCode.InvalidWithinBlockIntro                 -> "Syntax error in within-block header."
             | ErrorCode.InvalidApplyBlockIntro                  -> "Syntax error in apply-block header."
             | ErrorCode.InvalidUsingBlockIntro                  -> "Syntax error in using-block header."               
@@ -388,7 +388,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidOpenDirective                    -> "Syntax error in open-directive."                                           
             | ErrorCode.InvalidExpressionStatement              -> "Syntax error in expression-statement." 
             | ErrorCode.InvalidConstructorExpression            -> "Syntax error in constructor expression."
-            | ErrorCode.MissingArgumentForFunctorGenerator      -> "User-defined implementations of specializations require an argument."
+(*unused*)  //| ErrorCode.MissingArgumentForFunctorGenerator      -> "User-defined implementations of specializations require an argument."
             | ErrorCode.InvalidKeywordWithinExpression          -> "Invalid use of a reserved keyword within an expression."
             | ErrorCode.InvalidUseOfReservedKeyword             -> "The symbol is reserved for internal use only."
             | ErrorCode.ExcessContinuation                      -> "Unexpected code fragment."
@@ -440,8 +440,8 @@ type DiagnosticItem =
             | ErrorCode.MissingArgumentDeclaration              -> "Expecting a symbol declaration followed by a type (\"symbolName : SymbolType\")."
             | ErrorCode.InvalidTypeParameterDeclaration         -> "Invalid type parameter declaration. Expecting a type parameter name of the form \"'TName\"."
             | ErrorCode.MissingTypeParameterDeclaration         -> "Expecting a type parameter name of the form \"'TName\"."
-            | ErrorCode.InvalidTypeArgument                     -> "Invalid type argument."
-            | ErrorCode.MissingTypeArgument                     -> "Expecting a type argument."
+(*unused*)  //| ErrorCode.InvalidTypeArgument                     -> "Invalid type argument."
+(*unused*)  //| ErrorCode.MissingTypeArgument                     -> "Expecting a type argument."
             | ErrorCode.InvalidIdentifierExprInUpdate           -> "Invalid or immutable expression. Expecting a mutable identifier (i.e. an unqualified symbol) or a tuple thereof."
             | ErrorCode.MissingIdentifierExprInUpdate           -> "Missing identifier. Expecting a mutable identifier or a tuple thereof."
             | ErrorCode.InvalidUdtItemDeclaration               -> "Invalid item declaration. Expecting either a named item (\"itemName : ItemType\"), or an anonymous item as indicated by denoting the type only."
@@ -509,7 +509,7 @@ type DiagnosticItem =
             | ErrorCode.ExpectingUserDefinedType                -> "The type of the expression needs to be a user defined type. The given expression is of type {0}."
             | ErrorCode.InvalidAdjointApplication               -> "No suitable adjoint specialization exists."
             | ErrorCode.InvalidControlledApplication            -> "No suitable controlled specialization exists."
-            | ErrorCode.ExpectingRangeOrInt                     -> "Range expressions must be of the form \"start .. step .. end\" or \"start .. end\", where start, step and end have to be of type Int."
+(*unused*)  //| ErrorCode.ExpectingRangeOrInt                     -> "Range expressions must be of the form \"start .. step .. end\" or \"start .. end\", where start, step and end have to be of type Int."
             | ErrorCode.ExpectingIterableExpr                   -> "The type {0} does not support iteration. Expecting an expression of array type or of type Range."
             | ErrorCode.ExpectingCallableExpr                   -> "The type of the expression must be a function or operation type. The given expression is of type {0}." 
             | ErrorCode.UnknownIdentifier                       -> "No identifier with the name \"{0}\" exists."
@@ -540,7 +540,7 @@ type DiagnosticItem =
             | ErrorCode.ExpectingItemName                       -> "Expecting an item name, i.e. an unqualified symbol."
             | ErrorCode.ExpectingIdentifier                     -> "Expecting either a qualified or an unqualified symbol."
             | ErrorCode.UnknownNamespace                        -> "No namespace with the name \"{0}\" exists."
-            | ErrorCode.UnknownTypeInNamespace                  -> "No type with the name \"{0}\" exists in the namespace \"{1}\"."
+            | ErrorCode.UnknownTypeInNamespace                  -> "No type with the name \"{0}\" exists in the namespace {1}."
             | ErrorCode.TypeParameterRedeclaration              -> "A type parameter with the name \"{0}\" already exists."
             | ErrorCode.UnknownTypeParameterName                -> "No type parameter with the name \"{0}\" exists."
             | ErrorCode.UnknownItemName                         -> "The type {0} does not define an item with name \"{1}\"."
@@ -615,7 +615,7 @@ type DiagnosticItem =
 
             | ErrorCode.FunctorGenerationFailed                 -> "Auto-generation of functor specialization(s) failed."
             | ErrorCode.TreeTrimmingFailed                      -> "The generated syntax tree could not be trimmed."
-            | ErrorCode.CsGenerationFailed                      -> "Unable to generate C# code to run within the simulation framework."
+(*unused*)  //| ErrorCode.CsGenerationFailed                      -> "Unable to generate C# code to run within the simulation framework."
             | ErrorCode.QsGenerationFailed                      -> "Unable to generate formatted Q# code based on the built syntax tree."
             | ErrorCode.DocGenerationFailed                     -> "Unable to generate documentation for the compiled code."
             | ErrorCode.SerializationFailed                     -> "Unable to serialize the built compilation."
