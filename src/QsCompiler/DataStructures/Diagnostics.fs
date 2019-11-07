@@ -28,8 +28,7 @@ type ErrorCode =
     | InvalidForLoopIntro = 3010         
     | InvalidWhileLoopIntro = 3011
     | InvalidRepeatIntro = 3012       
-    | InvalidUntilClause = 3013           
-    //| InvalidRUSfixup = 3014 
+    | InvalidUntilClause = 3013
     | InvalidWithinBlockIntro = 3015
     | InvalidApplyBlockIntro = 3016
     | InvalidUsingBlockIntro = 3017              
@@ -46,7 +45,6 @@ type ErrorCode =
     | InvalidOpenDirective = 3028
     | InvalidExpressionStatement = 3029 
     | InvalidConstructorExpression = 3030
-    //| MissingArgumentForFunctorGenerator = 3031
     | InvalidKeywordWithinExpression = 3032
     | InvalidUseOfReservedKeyword = 3033
     | ExcessContinuation = 3034
@@ -98,8 +96,6 @@ type ErrorCode =
     | MissingArgumentDeclaration = 3226
     | InvalidTypeParameterDeclaration = 3227
     | MissingTypeParameterDeclaration = 3228
-    //| InvalidTypeArgument = 3229
-    //| MissingTypeArgument = 3230
     | InvalidIdentifierExprInUpdate = 3231
     | MissingIdentifierExprInUpdate = 3232
     | InvalidUdtItemDeclaration = 3233
@@ -167,7 +163,6 @@ type ErrorCode =
     | ExpectingUserDefinedType = 5016
     | InvalidAdjointApplication = 5017
     | InvalidControlledApplication = 5018
-    //| ExpectingRangeOrInt = 5019
     | ExpectingIterableExpr = 5020
     | ExpectingCallableExpr = 5021
     | UnknownIdentifier = 5022
@@ -177,8 +172,7 @@ type ErrorCode =
     | TypeRedefinition = 6003
     | TypeConstructorOverlapWithCallable = 6004
     | UnknownType = 6005
-    | AmbiguousType = 6006 
-    //| UndefinedCallable = 6007
+    | AmbiguousType = 6006
     | AmbiguousCallable = 6008
     | TypeSpecializationMismatch = 6009
     | SpecializationForUnknownCallable = 6010
@@ -221,7 +215,6 @@ type ErrorCode =
     | GlobalTypeAlreadyExists = 6215
     | GlobalCallableAlreadyExists = 6216
     | LocalVariableAlreadyExists = 6217
-    //| TypeParameterAlreadyExists = 6218
     | NamedItemAlreadyExists = 6219
     | IdentifierCannotHaveTypeArguments = 6220
     | WrongNumberOfTypeArguments = 6221
@@ -276,7 +269,6 @@ type ErrorCode =
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
-    //| CsGenerationFailed = 7103
     | QsGenerationFailed = 7104
     | DocGenerationFailed = 7105
     | SerializationFailed = 7106
@@ -375,8 +367,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidForLoopIntro                     -> "Syntax error in for-statement." 
             | ErrorCode.InvalidWhileLoopIntro                   -> "Syntax error in while-statement."
             | ErrorCode.InvalidRepeatIntro                      -> "Syntax error in repeat header."                   
-            | ErrorCode.InvalidUntilClause                      -> "Syntax error in until-clause."                     
-(*unused*)  //| ErrorCode.InvalidRUSfixup                         -> "Syntax error in fixup header."
+            | ErrorCode.InvalidUntilClause                      -> "Syntax error in until-clause."
             | ErrorCode.InvalidWithinBlockIntro                 -> "Syntax error in within-block header."
             | ErrorCode.InvalidApplyBlockIntro                  -> "Syntax error in apply-block header."
             | ErrorCode.InvalidUsingBlockIntro                  -> "Syntax error in using-block header."               
@@ -393,7 +384,6 @@ type DiagnosticItem =
             | ErrorCode.InvalidOpenDirective                    -> "Syntax error in open-directive."                                           
             | ErrorCode.InvalidExpressionStatement              -> "Syntax error in expression-statement." 
             | ErrorCode.InvalidConstructorExpression            -> "Syntax error in constructor expression."
-(*unused*)  //| ErrorCode.MissingArgumentForFunctorGenerator      -> "User-defined implementations of specializations require an argument."
             | ErrorCode.InvalidKeywordWithinExpression          -> "Invalid use of a reserved keyword within an expression."
             | ErrorCode.InvalidUseOfReservedKeyword             -> "The symbol is reserved for internal use only."
             | ErrorCode.ExcessContinuation                      -> "Unexpected code fragment."
@@ -445,8 +435,6 @@ type DiagnosticItem =
             | ErrorCode.MissingArgumentDeclaration              -> "Expecting a symbol declaration followed by a type (\"symbolName : SymbolType\")."
             | ErrorCode.InvalidTypeParameterDeclaration         -> "Invalid type parameter declaration. Expecting a type parameter name of the form \"'TName\"."
             | ErrorCode.MissingTypeParameterDeclaration         -> "Expecting a type parameter name of the form \"'TName\"."
-(*unused*)  //| ErrorCode.InvalidTypeArgument                     -> "Invalid type argument."
-(*unused*)  //| ErrorCode.MissingTypeArgument                     -> "Expecting a type argument."
             | ErrorCode.InvalidIdentifierExprInUpdate           -> "Invalid or immutable expression. Expecting a mutable identifier (i.e. an unqualified symbol) or a tuple thereof."
             | ErrorCode.MissingIdentifierExprInUpdate           -> "Missing identifier. Expecting a mutable identifier or a tuple thereof."
             | ErrorCode.InvalidUdtItemDeclaration               -> "Invalid item declaration. Expecting either a named item (\"itemName : ItemType\"), or an anonymous item as indicated by denoting the type only."
@@ -514,7 +502,6 @@ type DiagnosticItem =
             | ErrorCode.ExpectingUserDefinedType                -> "The type of the expression needs to be a user defined type. The given expression is of type {0}."
             | ErrorCode.InvalidAdjointApplication               -> "No suitable adjoint specialization exists."
             | ErrorCode.InvalidControlledApplication            -> "No suitable controlled specialization exists."
-(*unused*)  //| ErrorCode.ExpectingRangeOrInt                     -> "Range expressions must be of the form \"start .. step .. end\" or \"start .. end\", where start, step and end have to be of type Int."
             | ErrorCode.ExpectingIterableExpr                   -> "The type {0} does not support iteration. Expecting an expression of array type or of type Range."
             | ErrorCode.ExpectingCallableExpr                   -> "The type of the expression must be a function or operation type. The given expression is of type {0}." 
             | ErrorCode.UnknownIdentifier                       -> "No identifier with the name \"{0}\" exists."
@@ -525,7 +512,6 @@ type DiagnosticItem =
             | ErrorCode.TypeConstructorOverlapWithCallable      -> "Invalid type declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.UnknownType                             -> "No type with the name \"{0}\" exists in any of the open namespaces."
             | ErrorCode.AmbiguousType                           -> "Multiple open namespaces contain a type with the name \"{0}\". Use a fully qualified name instead. Open namespaces containing a type with that name are {1}."
-(*unused*)  //| ErrorCode.UndefinedCallable                       -> "No callable with the name \"{0}\" exists in any of the open namespaces."
             | ErrorCode.AmbiguousCallable                       -> "Multiple open namespaces contain a callable with the name \"{0}\". Use a fully qualified name instead. Open namespaces containing a callable with that name are {1}." 
             | ErrorCode.TypeSpecializationMismatch              -> "Invalid specialization declaration. The type specializations do not match the expected number of type parameters. Expecting {0} type argument(s)."
             | ErrorCode.SpecializationForUnknownCallable        -> "No callable with the name \"{0}\" exists in the current namespace. Specializations need to be declared in the same namespace as the callable they extend."
@@ -568,7 +554,6 @@ type DiagnosticItem =
             | ErrorCode.GlobalTypeAlreadyExists                 -> "A type with the name \"{0}\" already exists."
             | ErrorCode.GlobalCallableAlreadyExists             -> "A callable with the name \"{0}\" already exists."
             | ErrorCode.LocalVariableAlreadyExists              -> "A variable with the name \"{0}\" already exists."
-(*unused*)  //| ErrorCode.TypeParameterAlreadyExists              -> "A type parameter with the name \"{0}\" already exists."
             | ErrorCode.NamedItemAlreadyExists                  -> "An item with the name \"{0}\" already exists."
             | ErrorCode.IdentifierCannotHaveTypeArguments       -> "The given identifier cannot have type arguments."
             | ErrorCode.WrongNumberOfTypeArguments              -> "The number of type arguments does not match the number of type parameters for this identifier. Expecting {0} type argument(s)."
@@ -623,7 +608,6 @@ type DiagnosticItem =
 
             | ErrorCode.FunctorGenerationFailed                 -> "Auto-generation of functor specialization(s) failed."
             | ErrorCode.TreeTrimmingFailed                      -> "The generated syntax tree could not be trimmed."
-(*unused*)  //| ErrorCode.CsGenerationFailed                      -> "Unable to generate C# code to run within the simulation framework."
             | ErrorCode.QsGenerationFailed                      -> "Unable to generate formatted Q# code based on the built syntax tree."
             | ErrorCode.DocGenerationFailed                     -> "Unable to generate documentation for the compiled code."
             | ErrorCode.SerializationFailed                     -> "Unable to serialize the built compilation."
