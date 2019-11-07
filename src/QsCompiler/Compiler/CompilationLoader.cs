@@ -6,8 +6,10 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -35,11 +37,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// returns the loaded references for the compilation. 
         /// </summary>
         public delegate References ReferenceLoader(Func<IEnumerable<string>, References> loadFromDisk);
-        /// <summary>
-        /// Processes a compiled Q# binary file given its path, 
-        /// returns true or false to indicate its success or failure, and calls the given action on any thrown exception. 
-        /// </summary>
-        public delegate bool BuildTarget(string pathToBinary, Action<Exception> onException);
 
 
         /// <summary>
@@ -68,8 +65,14 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool AttemptFullPreEvaluation;
             /// <summary>
-            /// If the output folder is not null,
-            /// documentation is generated in the specified folder based on doc comments in the source code.
+            /// Unless this is set to true, all usages of type-parameterized callables are replaced with 
+            /// the concrete callable instantiation if an entry point is specified for the compilation.
+            /// Removes all type-parameterizations in the syntax tree.
+            /// </summary>
+            public bool SkipMonomorphization;
+            /// <summary>
+            /// If the output folder is not null, 
+            /// documentation is generated in the specified folder based on doc comments in the source code. 
             /// </summary>
             public string DocumentationOutputFolder;
             /// <summary>
@@ -83,10 +86,16 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public string DllOutputPath;
             /// <summary>
-            /// Dictionary that maps an arbitarily chosen target name to the build targets to call with the path to the compiled binary.
-            /// The specified targets (dictionary values) will only be invoked if a binary file was generated successfully.
+            /// Contains a sequence of tuples with the path to a dotnet dll containing one or more rewrite steps 
+            /// (i.e. classes implementing IRewriteStep) and the corresponding output folder.
+            /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation. 
             /// </summary>
-            public ImmutableDictionary<string, BuildTarget> Targets;
+            public IEnumerable<(string, string)> RewriteSteps;
+            /// <summary>
+            /// If set to true, the post-condition for loaded rewrite steps is checked if the corresponding verification is implemented.
+            /// Otherwise post-condition verifications are skipped. 
+            /// </summary>
+            public bool EnableAdditionalChecks;
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
@@ -100,41 +109,44 @@ namespace Microsoft.Quantum.QsCompiler
         {
             internal int SourceFileLoading = -1;
             internal int ReferenceLoading = -1;
+            internal int PluginLoading = -1;
             internal int Validation = -1;
             internal int FunctorSupport = -1;
             internal int PreEvaluation = -1;
             internal int TreeTrimming = -1;
+            internal int Monomorphization = -1;
             internal int Documentation = -1;
             internal int Serialization = -1;
             internal int BinaryFormat = -1;
             internal int DllGeneration = -1;
-            internal Dictionary<string, int> BuildTargets;
+            internal int[] LoadedRewriteSteps;
 
-            internal ExecutionStatus(IEnumerable<string> targets) =>
-                this.BuildTargets = targets.ToDictionary(id => id, _ => -1);
+            internal ExecutionStatus(IEnumerable<IRewriteStep> externalRewriteSteps) =>
+                this.LoadedRewriteSteps = externalRewriteSteps.Select(_ => -1).ToArray();
 
             private bool WasSuccessful(bool run, int code) =>
                 (run && code == 0) || (!run && code < 0);
 
-            internal int Success(Configuration options) =>
+            internal bool Success(Configuration options, bool isExe) =>
                 this.SourceFileLoading <= 0 &&
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
+                WasSuccessful(true, this.PluginLoading) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
+                WasSuccessful(isExe && !options.SkipMonomorphization, this.Monomorphization) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
-                !this.BuildTargets.Values.Any(status => !WasSuccessful(true, status))
-                ? 0 : 1;
+                !this.LoadedRewriteSteps.Any(status => !WasSuccessful(true, status));
         }
 
         /// <summary>
         /// used to indicate the status of individual compilation steps
         /// </summary>
-        public enum Status { NotRun, Succeeded, Failed }
+        public enum Status { NotRun = -1, Succeeded = 0, Failed = 1 }
         private Status GetStatus(int value) =>
             value < 0 ? Status.NotRun :
             value == 0 ? Status.Succeeded :
@@ -151,6 +163,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public Status ReferenceLoading => GetStatus(this.CompilationStatus.ReferenceLoading);
         /// <summary>
+        /// Indicates whether all external dlls specifying e.g. rewrite steps 
+        /// to perform as part of the compilation have been loaded successfully.
+        /// The status indicates a successful execution if no such external dlls have been specified. 
+        /// </summary>
+        public Status PluginLoading => GetStatus(this.CompilationStatus.PluginLoading);
+        /// <summary>
         /// Indicates whether the compilation unit passed the compiler validation 
         /// that is executed before invoking further rewrite and/or generation steps.   
         /// </summary>
@@ -165,6 +183,11 @@ namespace Microsoft.Quantum.QsCompiler
         /// This rewrite step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status PreEvaluation => GetStatus(this.CompilationStatus.PreEvaluation);
+        /// <summary>
+        /// Indicates whether all the type-parameterized callables were resolved to concrete callables.
+        /// This rewrite step is only executed if the corresponding configuration is specified. 
+        /// </summary>
+        public Status Monomorphization => GetStatus(this.CompilationStatus.Monomorphization);
         /// <summary>
         /// Indicates whether documentation for the compilation was generated successfully. 
         /// This step is only executed if the corresponding configuration is specified. 
@@ -185,22 +208,30 @@ namespace Microsoft.Quantum.QsCompiler
         /// This step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status DllGeneration => GetStatus(this.CompilationStatus.DllGeneration);
+
         /// <summary>
-        /// Indicates whether the specified build target executed successfully. 
-        /// Returns a status NotRun if no target with the given id was listed for execution in the set configuration. 
-        /// Execution is considered successful if the targets invokation did not throw an exception and returned true. 
+        /// Indicates whether all rewrite steps with the given name and loaded from the given source executed successfully. 
+        /// The source, if specified, is the path to the dll in which the step is specified.
+        /// Returns a status NotRun if no such step was found or executed. 
+        /// Execution is considered successful if the precondition and transformation (if any) returned true. 
         /// </summary>
-        public Status Target(string id) => this.CompilationStatus.BuildTargets.TryGetValue(id, out var status) ? GetStatus(status) : Status.NotRun;
+        public Status LoadedRewriteStep(string name, string source = null)
+        {
+            var uri = String.IsNullOrWhiteSpace(source) ? null : new Uri(Path.GetFullPath(source));
+            bool MatchesQuery(int index) => this.ExternalRewriteSteps[index].Name == name && (source == null || this.ExternalRewriteSteps[index].Origin == uri);
+            var statuses = this.CompilationStatus.LoadedRewriteSteps.Select(i => GetStatus(i)).Where((s, i) => MatchesQuery(i)).ToArray();
+            return statuses.All(s => s == Status.Succeeded) ? Status.Succeeded : statuses.Any(s => s == Status.Failed) ? Status.Failed : Status.NotRun;
+        }
         /// <summary>
-        /// Indicates the overall status of all specified build targets.
-        /// The status is indicated as success if none of the specified build targets failed. 
+        /// Indicates the overall status of all rewrite step from external dlls.
+        /// The status is indicated as success if none of these steps failed. 
         /// </summary>
-        public Status AllTargets => this.CompilationStatus.BuildTargets.Values.Any(s => GetStatus(s) == Status.Failed) ? Status.Failed : Status.Succeeded;
+        public Status AllLoadedRewriteSteps => this.CompilationStatus.LoadedRewriteSteps.Any(s => GetStatus(s) == Status.Failed) ? Status.Failed : Status.Succeeded;
         /// <summary>
         /// Indicates the overall success of all compilation steps. 
         /// The compilation is indicated as having been successful if all steps that were configured to execute completed successfully.
         /// </summary>
-        public Status Success => GetStatus(this.CompilationStatus.Success(this.Config));
+        public bool Success => this.CompilationStatus.Success(this.Config, this.CompilationOutput?.EntryPoints.Length != 0);
 
 
         /// <summary>
@@ -215,6 +246,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// Used to track the status of individual compilation steps.
         /// </summary>
         private readonly ExecutionStatus CompilationStatus;
+        /// <summary>
+        /// Contains all loaded rewrite steps found in the specified plugin dlls, 
+        /// where configurable properties such as the output folder have already been initialized to suitable values. 
+        /// </summary>
+        private readonly ImmutableArray<RewriteSteps.LoadedStep> ExternalRewriteSteps;
+
         /// <summary>
         /// Contains all diagnostics generated upon source file and reference loading.
         /// All other diagnostics can be accessed via the VerifiedCompilation.
@@ -240,7 +277,16 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Contains the full Q# syntax tree after executing all configured rewrite steps, including the content of loaded references. 
         /// </summary>
-        public IEnumerable<QsNamespace> GeneratedSyntaxTree => this.CompilationOutput?.Namespaces;
+        public IEnumerable<QsNamespace> GeneratedSyntaxTree => 
+            this.CompilationOutput?.Namespaces;
+
+        /// <summary>
+        /// Contains the Uri and names of all rewrite steps loaded from the specified dlls 
+        /// in the order in which they are executed. 
+        /// </summary>
+        public ImmutableArray<(Uri, string)> LoadedRewriteSteps =>
+            this.ExternalRewriteSteps.Select(step => (step.Origin, step.Name)).ToImmutableArray();
+
 
         /// <summary>
         /// Builds the compilation for the source files and references loaded by the given loaders,
@@ -253,9 +299,16 @@ namespace Microsoft.Quantum.QsCompiler
             // loading the content to compiler 
 
             this.Logger = logger;
-            this.Config = options ?? new Configuration();
-            this.CompilationStatus = new ExecutionStatus(this.Config.Targets?.Keys ?? Enumerable.Empty<string>());
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
+            this.Config = options ?? new Configuration();
+
+            var rewriteStepLoading = 0;
+            this.ExternalRewriteSteps = RewriteSteps.Load(this.Config,
+                d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d),
+                ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
+            this.CompilationStatus = new ExecutionStatus(this.ExternalRewriteSteps);
+            this.CompilationStatus.PluginLoading = rewriteStepLoading;
+
             var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles) ?? throw new ArgumentNullException("unable to load source files");
             var references = loadReferences?.Invoke(this.LoadAssemblies) ?? throw new ArgumentNullException("unable to load referenced binary files");
 
@@ -268,11 +321,20 @@ namespace Microsoft.Quantum.QsCompiler
             compilationManager.AddOrUpdateSourceFilesAsync(files);
             this.VerifiedCompilation = compilationManager.Build();
             this.CompilationOutput = this.VerifiedCompilation?.BuiltCompilation;
+            compilationManager.Dispose();
 
-            foreach (var diag in this.VerifiedCompilation.SourceFiles?.SelectMany(this.VerifiedCompilation.Diagnostics) ?? Enumerable.Empty<Diagnostic>())
+            foreach (var diag in this.VerifiedCompilation?.Diagnostics() ?? Enumerable.Empty<Diagnostic>())
             { this.LogAndUpdate(ref this.CompilationStatus.Validation, diag); }
 
             // executing the specified rewrite steps 
+
+            if (!this.Config.SkipMonomorphization && this.CompilationOutput?.EntryPoints.Length != 0)
+            {
+                if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
+                { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
+                var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), thisDllUri);
+                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput); 
+            }
 
             if (this.Config.GenerateFunctorSupport)
             {
@@ -286,7 +348,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.CompilationStatus.TreeTrimming = 0;
                 void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex);
-                var trimmed = this.CompilationOutput != null && CodeTransformations.InlineConjugations(this.CompilationOutput, out this.CompilationOutput, onException);
+                var trimmed = this.CompilationOutput != null && this.CompilationOutput.InlineConjugations(out this.CompilationOutput, onException);
                 if (!trimmed) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
             }
 
@@ -294,7 +356,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.CompilationStatus.PreEvaluation = 0;
                 void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ex);
-                var evaluated = this.CompilationOutput != null && CodeTransformations.PreEvaluateAll(this.CompilationOutput, out this.CompilationOutput, onException);
+                var evaluated = this.CompilationOutput != null && this.CompilationOutput.PreEvaluateAll(out this.CompilationOutput, onException);
                 if (!evaluated) this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ErrorCode.PreEvaluationFailed, Enumerable.Empty<string>()); 
             }
 
@@ -320,15 +382,51 @@ namespace Microsoft.Quantum.QsCompiler
                 if (!docsGenerated) this.LogAndUpdate(ref this.CompilationStatus.Documentation, ErrorCode.DocGenerationFailed, Enumerable.Empty<string>());
             }
 
-            // invoking the given targets
+            // invoking rewrite steps in external dlls
 
-            foreach (var buildTarget in this.Config.Targets ?? ImmutableDictionary<string, BuildTarget>.Empty)
+            for (int i = 0; i < this.ExternalRewriteSteps.Length; i++)
             {
-                this.CompilationStatus.BuildTargets[buildTarget.Key] = 0;
-                var succeeded = this.PathToCompiledBinary != null && buildTarget.Value != null &&
-                    buildTarget.Value(this.PathToCompiledBinary, ex => this.LogAndUpdate(buildTarget.Key, ex));
-                if (!succeeded) this.LogAndUpdate(buildTarget.Key, ErrorCode.TargetExecutionFailed, new[] { buildTarget.Key });
-            } 
+                if (this.CompilationOutput == null) continue;
+                var executed = this.ExecuteRewriteStep(this.ExternalRewriteSteps[i], this.CompilationOutput, out var transformed);
+                if (this.GetStatus(executed) == Status.Succeeded) this.CompilationOutput = transformed;
+                this.CompilationStatus.LoadedRewriteSteps[i] = executed;
+            }
+        }
+
+        /// <summary>
+        /// Executes the given rewrite step on the given compilation, returning a transformed compilation as an out parameter.
+        /// Catches and logs any thrown exception. Returns the status of the rewrite step.
+        /// Throws an ArgumentNullException if the rewrite step to execute or the given compilation is null. 
+        /// </summary>
+        private int ExecuteRewriteStep(RewriteSteps.LoadedStep rewriteStep, QsCompilation compilation, out QsCompilation transformed)
+        {
+            if (rewriteStep == null) throw new ArgumentNullException(nameof(rewriteStep));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
+
+            var status = 0;
+            var messageSource = ProjectManager.MessageSource(rewriteStep.Origin);
+            Diagnostic Warning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, messageSource);
+            try
+            {
+                transformed = compilation;
+                var preconditionPassed = !rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(compilation);
+                if (!preconditionPassed) this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, new[] { rewriteStep.Name, messageSource }));
+
+                var executeTransformation = preconditionPassed && rewriteStep.ImplementsTransformation;
+                var transformationPassed = !executeTransformation || rewriteStep.Transformation(compilation, out transformed);
+                if (!transformationPassed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
+
+                var executePostconditionVerification = this.Config.EnableAdditionalChecks && transformationPassed && rewriteStep.ImplementsPostconditionVerification;
+                var postconditionPassed = !executePostconditionVerification || rewriteStep.PostconditionVerification(transformed);
+                if (!postconditionPassed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
+            }
+            catch (Exception ex)
+            {
+                this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
+                this.LogAndUpdate(ref status, ex);
+                transformed = null;
+            }
+            return status;
         }
 
         /// <summary>
@@ -389,34 +487,23 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
+        /// Logs the given diagnostic and updates the status passed as reference accordingly. 
+        /// Adds the given diagnostic to the tracked load diagnostics. 
+        /// Throws an ArgumentNullException if the given diagnostic is null. 
+        /// </summary>
+        private void LogAndUpdateLoadDiagnostics(ref int current, Diagnostic d)
+        {
+            this.LoadDiagnostics = this.LoadDiagnostics.Add(d);
+            this.LogAndUpdate(ref current, d);
+        }
+
+        /// <summary>
         /// Logs an UnexpectedCompilerException error as well as the given exception, and updates the validation status accordingly. 
         /// </summary>
         private void OnCompilerException(Exception ex)
         {
             this.LogAndUpdate(ref this.CompilationStatus.Validation, ErrorCode.UnexpectedCompilerException, Enumerable.Empty<string>());
             this.LogAndUpdate(ref this.CompilationStatus.Validation, ex);
-        }
-
-        /// <summary>
-        /// Logs the given exception and updates the status of the specified target accordingly. 
-        /// Throws an ArgumentException if no build target with the given id exists. 
-        /// </summary>
-        private void LogAndUpdate(string targetId, Exception ex)
-        {
-            if (!this.CompilationStatus.BuildTargets.TryGetValue(targetId, out var current)) throw new ArgumentException("unknown target");
-            this.LogAndUpdate(ref current, ex);
-            this.CompilationStatus.BuildTargets[targetId] = current;
-        }
-
-        /// <summary>
-        /// Logs an error with the given error code and message parameters, and updates the status of the specified target accordingly. 
-        /// Throws an ArgumentException if no build target with the given id exists. 
-        /// </summary>
-        private void LogAndUpdate(string targetId, ErrorCode code, IEnumerable<string> args)
-        {
-            if (!this.CompilationStatus.BuildTargets.TryGetValue(targetId, out var current)) throw new ArgumentException("unknown target");
-            this.LogAndUpdate(ref current, code, args);
-            this.CompilationStatus.BuildTargets[targetId] = current;
         }
 
         /// <summary>
@@ -457,11 +544,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.CompilationStatus.SourceFileLoading = 0;
             if (sources == null) this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, ErrorCode.SourceFilesMissing, Enumerable.Empty<string>());
             void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, ex);
-            void onDiagnostic(Diagnostic d)
-            {
-                this.LoadDiagnostics = this.LoadDiagnostics.Add(d);
-                this.LogAndUpdate(ref this.CompilationStatus.SourceFileLoading, d);
-            }
+            void onDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.CompilationStatus.SourceFileLoading, d);
             var sourceFiles = ProjectManager.LoadSourceFiles(sources ?? Enumerable.Empty<string>(), onDiagnostic, onException);
             this.PrintResolvedFiles(sourceFiles.Keys);
             return sourceFiles;
@@ -478,11 +561,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.CompilationStatus.ReferenceLoading = 0;
             if (refs == null) this.Logger?.Log(WarningCode.ReferencesSetToNull, Enumerable.Empty<string>());
             void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, ex);
-            void onDiagnostic(Diagnostic d)
-            {
-                this.LoadDiagnostics = this.LoadDiagnostics.Add(d);
-                this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, d);
-            }
+            void onDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.CompilationStatus.ReferenceLoading, d);
             var headers = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), onDiagnostic, onException);
             var projId =this.Config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.Config.ProjectName), "qsproj");
             var references = new References(headers, (code, args) => onDiagnostic(Errors.LoadError(code, args, projId)));

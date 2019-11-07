@@ -165,7 +165,7 @@ let internal wrapStmt (stmt: QsStatementKind): QsStatement =
                         yield LocalVariableDeclaration.New isMutable (posInfo, name, rhs.ResolvedType, false)
                     | _ -> () }
         | _ -> Seq.empty
-    QsStatement.New QsComments.Empty Null (stmt, symbolDecl)
+    QsStatement.New QsComments.Empty Null (stmt, LocalDeclarations.New symbolDecl)
 
 
 /// Returns a new array of the given type and length.

@@ -757,12 +757,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// </summary>
             public IEnumerable<Diagnostic> Diagnostics(NonNullable<string> file) =>
                 this.SourceFiles.Contains(file) ? 
-                    ScopeDiagnostics[file].Concat(
-                    SyntaxDiagnostics[file]).Concat(
-                    ContextDiagnostics[file]).Concat(
-                    HeaderDiagnostics[file]).Concat(
-                    SemanticDiagnostics[file]) :
-                Enumerable.Empty<Diagnostic>();
+                    ScopeDiagnostics[file]
+                        .Concat(SyntaxDiagnostics[file])
+                        .Concat(ContextDiagnostics[file])
+                        .Concat(HeaderDiagnostics[file])
+                        .Concat(SemanticDiagnostics[file]) :
+                    Enumerable.Empty<Diagnostic>();
+
+            /// <summary>
+            /// Returns all diagnostics generated during compilation.
+            /// </summary>
+            public IEnumerable<Diagnostic> Diagnostics() =>
+                ScopeDiagnostics.Values
+                    .Concat(SyntaxDiagnostics.Values)
+                    .Concat(ContextDiagnostics.Values)
+                    .Concat(HeaderDiagnostics.Values)
+                    .Concat(SemanticDiagnostics.Values)
+                    .SelectMany(d => d);
 
             /// <summary>
             /// If a source file with the given name exists in the compilation, and if there is exactly one (partial) namespace with the given name, 
