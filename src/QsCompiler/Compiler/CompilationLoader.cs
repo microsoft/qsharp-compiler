@@ -328,8 +328,8 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
                 { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
-                var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), thisDllUri);
-                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput);
+                var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
+                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput); 
             }
 
             if (this.Config.GenerateFunctorSupport)

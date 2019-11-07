@@ -23,8 +23,26 @@ namespace Microsoft.Quantum.QsCompiler
         internal class LoadedStep : IRewriteStep
         {
             internal readonly Uri Origin;
-            private readonly object _internalObject;
-            private readonly Type _internalType;
+            private readonly IRewriteStep _SelfAsStep;
+            private readonly object _SelfAsObject;
+
+            private readonly MethodInfo[] _InterfaceMethods;
+            private MethodInfo InterfaceMethod(string name) =>
+                // This choice of filtering the interface methods may seem a bit particular. 
+                // However, unless you know what you are doing, please don't change it. 
+                // If you are sure you know what you are doing, please make sure the loading via reflection works for rewrite steps 
+                // implemented in both F# or C#, and whether they are compiled against the current compiler version or an older one.
+                this._InterfaceMethods?.FirstOrDefault(method => method.Name.Split("-").Last() == name);
+
+            private T GetViaReflection<T>(string name) =>
+                (T)InterfaceMethod($"get_{name}")?.Invoke(_SelfAsObject, null);
+
+            private void SetViaReflection<T>(string name, T arg) =>
+                InterfaceMethod($"set_{name}")?.Invoke(_SelfAsObject, new object[] { arg });
+
+            private T InvokeViaReflection<T>(string name, params object[] args) => 
+                (T)InterfaceMethod(name)?.Invoke(_SelfAsObject, args);
+
 
             /// <summary>
             /// Attempts to construct a rewrite step via reflection.
@@ -33,62 +51,69 @@ namespace Microsoft.Quantum.QsCompiler
             /// has not been copied to output folder of the dll from which the rewrite step is loaded. 
             /// Throws the corresponding exception if that construction fails. 
             /// </summary>
-            internal LoadedStep(object step, Uri origin)
+            internal LoadedStep(object implementation, Type interfaceType, Uri origin)
             {
-                _internalObject = step;
-                _internalType = step?.GetType() ?? throw new ArgumentNullException(nameof(step));
-
                 this.Origin = origin ?? throw new ArgumentNullException(nameof(origin));
+                this._SelfAsObject = implementation ?? throw new ArgumentNullException(nameof(implementation));
+
+                // Initializing the _InterfaceMethods even if the implementation implements IRewriteStep 
+                // would result in certain properties being loaded via reflection instead of simply being accessed via _SelfAsStep.
+                if (this._SelfAsObject is IRewriteStep step) this._SelfAsStep = step;
+                else this._InterfaceMethods = implementation.GetType().GetInterfaceMap(interfaceType).TargetMethods;
+
+                // The Name and Priority need to be fixed throughout the loading, 
+                // so whatever their value is when loaded that's what these values well be as far at the compiler is concerned.
+                this.Name = _SelfAsStep?.Name ?? this.GetViaReflection<string>(nameof(IRewriteStep.Name)); 
+                this.Priority = _SelfAsStep?.Priority ?? this.GetViaReflection<int>(nameof(IRewriteStep.Priority)); 
             }
 
-            public string Name
-            {
-                get => (string)_internalType.GetProperty(nameof(IRewriteStep.Name)).GetValue(_internalObject);
-            }
-
-            public int Priority
-            {
-                get => (int)_internalType.GetProperty(nameof(IRewriteStep.Priority)).GetValue(_internalObject);
-            }
-
+            public string Name { get; }
+            public int Priority { get; }
             public string OutputFolder
             {
-                get => (string)_internalType.GetProperty(nameof(IRewriteStep.OutputFolder)).GetValue(_internalObject);
-                set => _internalType.GetProperty(nameof(IRewriteStep.OutputFolder)).SetValue(_internalObject, value);
+                get => _SelfAsStep?.OutputFolder 
+                    ?? this.GetViaReflection<string>(nameof(IRewriteStep.OutputFolder));
+                set
+                {
+                    if (_SelfAsStep != null) _SelfAsStep.OutputFolder = value;
+                    else this.SetViaReflection(nameof(IRewriteStep.OutputFolder), value);
+                }
             }
 
             public bool ImplementsTransformation
             {
-                get => (bool)_internalType.GetProperty(nameof(IRewriteStep.ImplementsTransformation)).GetValue(_internalObject);
+                get => _SelfAsStep?.ImplementsTransformation 
+                    ?? this.GetViaReflection<bool>(nameof(IRewriteStep.ImplementsTransformation));
             }
 
             public bool ImplementsPreconditionVerification
             {
-                get => (bool)_internalType.GetProperty(nameof(IRewriteStep.ImplementsPreconditionVerification)).GetValue(_internalObject);
+                get => _SelfAsStep?.ImplementsPreconditionVerification 
+                    ?? this.GetViaReflection<bool>(nameof(IRewriteStep.ImplementsPreconditionVerification));
             }
 
             public bool ImplementsPostconditionVerification
             {
-                get => (bool)_internalType.GetProperty(nameof(IRewriteStep.ImplementsPostconditionVerification)).GetValue(_internalObject);
+                get => _SelfAsStep?.ImplementsPostconditionVerification 
+                    ?? this.GetViaReflection<bool>(nameof(IRewriteStep.ImplementsPostconditionVerification));
             }
 
             public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
             {
+                if (_SelfAsStep != null) return _SelfAsStep.Transformation(compilation, out transformed);
                 var args = new object[] { compilation, null };
-                bool success = (bool)_internalType.GetMethod(nameof(IRewriteStep.Transformation)).Invoke(_internalObject, args);
+                var success = this.InvokeViaReflection<bool>(nameof(IRewriteStep.Transformation), args);
                 transformed = success ? (QsCompilation)args[1] : compilation;
                 return success;
             }
 
-            public bool PreconditionVerification(QsCompilation compilation)
-            {
-                return (bool)_internalType.GetMethod(nameof(IRewriteStep.PreconditionVerification)).Invoke(_internalObject, new[] { compilation });
-            }
+            public bool PreconditionVerification(QsCompilation compilation) =>
+                _SelfAsStep?.PreconditionVerification(compilation)
+                ?? this.InvokeViaReflection<bool>(nameof(IRewriteStep.PreconditionVerification), compilation);
 
-            public bool PostconditionVerification(QsCompilation compilation)
-            {
-                return (bool)_internalType.GetMethod(nameof(IRewriteStep.PostconditionVerification)).Invoke(_internalObject, new[] { compilation });
-            }
+            public bool PostconditionVerification(QsCompilation compilation) =>
+                _SelfAsStep?.PostconditionVerification(compilation)
+                ?? this.InvokeViaReflection<bool>(nameof(IRewriteStep.PostconditionVerification), compilation);
         }
 
 
@@ -157,13 +182,14 @@ namespace Microsoft.Quantum.QsCompiler
                         var instance = Activator.CreateInstance(type);
                         if (instance is IRewriteStep step)
                         {
-                            loadedSteps.Add(new LoadedStep(step, target));
+                            loadedSteps.Add(new LoadedStep(step, typeof(IRewriteStep), target));
                             continue;
                         }
 
                         try // we also try to load rewrite steps that have been compiled against a different compiler version
                         {
-                            var loadedStep = new LoadedStep(instance, target);
+                            var interfaceType = type.GetInterfaces().First(t => t.FullName == typeof(IRewriteStep).FullName);
+                            var loadedStep = new LoadedStep(instance, interfaceType, target);
                             onDiagnostic?.Invoke(LoadWarning(WarningCode.RewriteStepLoadedViaReflection, loadedStep.Name, target.LocalPath));
                             loadedSteps.Add(loadedStep);
                         }
