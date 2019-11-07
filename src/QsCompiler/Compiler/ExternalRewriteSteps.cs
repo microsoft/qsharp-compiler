@@ -193,7 +193,7 @@ namespace Microsoft.Quantum.QsCompiler
                             onDiagnostic?.Invoke(LoadWarning(WarningCode.RewriteStepLoadedViaReflection, loadedStep.Name, target.LocalPath));
                             loadedSteps.Add(loadedStep);
                         }
-                        catch (Exception ex) // we don't log the exception, since it is perfectly possible that we should have ignored this type in the first place
+                        catch // we don't log the exception, since it is perfectly possible that we should have ignored this type in the first place
                         {
                             onDiagnostic?.Invoke(LoadWarning(WarningCode.FailedToLoadRewriteStepViaReflection, target.LocalPath));
                         }
