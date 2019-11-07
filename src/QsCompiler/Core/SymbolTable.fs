@@ -1183,7 +1183,7 @@ and NamespaceManager
             | true, ns when ns.Sources.Contains source -> 
                 let validAlias = String.IsNullOrWhiteSpace alias || NonNullable<string>.New (alias.Trim()) |> Namespaces.ContainsKey |> not // TODO: DISALLOW TWO ALIAS WITH THE SAME NAME?
                 if validAlias && Namespaces.ContainsKey opened then ns.TryAddOpenDirective source (opened, openedRange) (alias, aliasRange.ValueOr openedRange)
-                elif validAlias then [| openedRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [nsName.Value]) |]
+                elif validAlias then [| openedRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [opened.Value]) |]
                 else [| aliasRange.ValueOr openedRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidNamespaceAliasName, [alias]) |]
             | true, _ -> ArgumentException "given source file is not listed as source of the given namespace" |> raise
             | false, _ -> ArgumentException "no such namespace exists" |> raise        
