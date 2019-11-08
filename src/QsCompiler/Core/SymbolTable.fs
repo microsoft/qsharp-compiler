@@ -780,7 +780,7 @@ and NamespaceManager
         resolved, msgs |> Array.map (fun m -> attribute.Position, m)
 
     /// Resolves the DefinedAttributes of the given declaration using ResolveAttribute and validates any entry points, if any. 
-    /// Returns the resolved attributes as well as an array with diagnostics along with the declaration Position. 
+    /// Returns the resolved attributes as well as an array with diagnostics along with the declaration position. 
     /// Each entry in the returned array of attributes is the resolution for the corresponding entry in the array of defined attributes. 
     /// May throw an ArgumentException if no parent callable with the given name exists. 
     member private this.ResolveAttributes (parent : QsQualifiedName, source) (decl : Resolution<'T,_>) = 
@@ -791,20 +791,26 @@ and NamespaceManager
                 errs.AddRange msg
                 alreadyDefined, {att with TypeId = Null} :: resAttr
             match att.TypeId with
+
+            // known attribute
             | Value tId -> 
                 let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
                 let attributeHash = 
                     if tId.Namespace.Value = BuiltIn.Deprecated.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.Name.Value then hash (tId.Namespace.Value, tId.Name.Value) 
                     else hash (tId.Namespace.Value, tId.Name.Value, NamespaceManager.ExpressionHash att.Argument)
+
+                // the attribute is a duplication of another attribute on this declaration
                 if alreadyDefined.Contains attributeHash then 
                     (att.Offset, tId.Range |> orDefault 
                     |> QsCompilerDiagnostic.Warning (WarningCode.DuplicateAttribute, [tId.Name.Value])) 
                     |> Seq.singleton |> returnInvalid
+
+                // the attribute marks an entry point 
                 elif tId.Namespace.Value = BuiltIn.EntryPoint.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.Name.Value then
                     match box decl.Defined with
                     | :? CallableSignature as signature when not (signature.TypeParameters.Any()) -> 
-                        let validateArgAndReturnTypes (argType : QsType) = 
-                            argType.ExtractAll (fun t -> t.Type |> function // ExtractAll recurs on all subtypes (e.g. callable in- and output types as well)
+                        let validateArgAndReturnTypes (qsType : QsType) = 
+                            qsType.ExtractAll (fun t -> t.Type |> function // ExtractAll recurs on all subtypes (e.g. callable in- and output types as well)
                             | Qubit -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.QubitTypeInEntryPointSignature, [])) |> Seq.singleton 
                             | QsTypeKind.Operation _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton 
                             | QsTypeKind.Function _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton 
@@ -823,7 +829,31 @@ and NamespaceManager
                                 let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
                                 (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs)) |> Seq.singleton |> returnInvalid 
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
+                
+                // the attribute marks a unit test
+                elif tId.Namespace.Value = BuiltIn.TestOperation.Namespace.Value && tId.Name.Value = BuiltIn.TestOperation.Name.Value then
+                    let isUnitToUnit (signature : CallableSignature) = 
+                        let isUnitType = function 
+                            | Tuple _ | Missing -> false
+                            | Item (itemType : QsType) -> itemType.Type = UnitType
+                            | _ -> true // invalid type
+                        match signature.Argument.Items |> Seq.toList with 
+                        | [] -> signature.ReturnType |> isUnitType
+                        | [(_, argType)] -> argType |> isUnitType && signature.ReturnType |> isUnitType
+                        | _ -> false
+                    match box decl.Defined with 
+                    | :? CallableSignature as signature when signature |> isUnitToUnit && not (signature.TypeParameters.Any()) -> 
+                        let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument (fun ex -> ex.Expression)
+                        match (if arg = null then null else arg.ToLowerInvariant()) with 
+                        | "quantumsimulator" | "tracesimulator" | "toffolisimulator" -> // error message below needs to be adapted when this changes!
+                            attributeHash :: alreadyDefined, att :: resAttr 
+                        | _ -> (att.Offset, att.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidExecutionTargetForTest, [])) |> Seq.singleton |> returnInvalid 
+                    | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTestAttributePlacement, [])) |> Seq.singleton |> returnInvalid
+
+                // the attribute is another kind of attribute that requires no further verification at this point
                 else attributeHash :: alreadyDefined, att :: resAttr 
+
+            // unknown attribute, and an error has already been generated
             | _ -> alreadyDefined, att :: resAttr
         let resAttr = attr |> List.fold validateAttributes ([], []) |> snd
         resAttr.Reverse() |> ImmutableArray.CreateRange, errs.ToArray()
