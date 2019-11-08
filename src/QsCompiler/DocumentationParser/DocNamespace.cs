@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
 
 
@@ -220,14 +220,20 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 }
             }
 
-            // Now add our new items
+            // Now add our new items, overwriting if they already exist
             foreach (var item in items)
             {
                 var typeKey = ToSequenceKey(item.ItemType);
                 SortedDictionary<string, YamlNode> typeList;
                 if (itemTypeNodes.TryGetValue(typeKey, out typeList))
                 {
-                    typeList.Add(item.Uid, item.ToNamespaceItem());
+                    if (typeList.ContainsKey(item.Uid))
+                    {
+                        // TODO: Emit a warning log here. What is the accepted way to do that here?
+                        // $"Documentation for {item.Uid} already exists in this folder and will be overwritten. It's recommended to compile docs to a new folder."
+                    }
+
+                    typeList[item.Uid] = item.ToNamespaceItem();
                 }
             }
 
