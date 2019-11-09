@@ -229,8 +229,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     if (typeList.ContainsKey(item.Uid))
                     {
-                        // TODO: Emit a warning log here. What is the accepted way to do that here?
-                        // $"Documentation for {item.Uid} already exists in this folder and will be overwritten. It's recommended to compile docs to a new folder."
+                        // TODO: Emit a warning log / diagnostic. What is the accepted way to do that here?
+                        // $"Documentation for {item.Uid} already exists in this folder and will be overwritten.
+                        // It's recommended to compile docs to a new folder to avoid deleted files lingering."
                     }
 
                     typeList[item.Uid] = item.ToNamespaceItem();
