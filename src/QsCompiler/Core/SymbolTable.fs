@@ -542,8 +542,8 @@ and Namespace private
             CallablesDefinedInAllSourcesCache <- null
             partial.AddType location (tName, typeTuple, attributes, documentation); [||]
         | true, _ ->  this.ContainsType tName |> function
-            | Value _ -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeRedefinition, []) |]
-            | Null -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeConstructorOverlapWithCallable, []) |] 
+            | Value _ -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeRedefinition, [tName.Value]) |]
+            | Null -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeConstructorOverlapWithCallable, [tName.Value]) |] 
         | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
 
     /// If no callable (function, operation, or type constructor) with the given name exists in this namespace, 
@@ -558,8 +558,8 @@ and Namespace private
             CallablesDefinedInAllSourcesCache <- null
             partial.AddCallableDeclaration location (cName, (kind, signature), attributes, documentation); [||]
         | true, _ -> this.ContainsType cName |> function 
-            | Value _ -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableOverlapWithTypeConstructor, []) |]
-            | Null -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableRedefinition, []) |]
+            | Value _ -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableOverlapWithTypeConstructor, [cName.Value]) |]
+            | Null -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableRedefinition, [cName.Value]) |]
         | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
 
     /// If a declaration for a callable of the given name exists within this namespace,
@@ -605,7 +605,7 @@ and Namespace private
                     | QsControlled -> [| location.Range |> QsCompilerDiagnostic.Error (ErrorCode.RequiredUnitReturnForControlled, []) |]
                     | QsControlledAdjoint -> [| location.Range |> QsCompilerDiagnostic.Error (ErrorCode.RequiredUnitReturnForControlledAdjoint, []) |]
                 else AddAndClearCache(); [||]
-            | Null -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.SpecializationForUnknownCallable, []) |]
+            | Null -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.SpecializationForUnknownCallable, [cName.Value]) |]
         | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
 
     /// Adds an auto-generated specialization of the given kind to the callable with the given name and declaration in the specified source file. 
@@ -739,21 +739,21 @@ and NamespaceManager
             Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings |> Array.append errs
         let tryFind (parentNS, source) (tName, tRange) = 
             match (parentNS, source) |> PossibleResolutions (fun ns -> ns.ContainsType (tName, checkQualificationForDeprecation)) with 
-            | [] -> Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, []) |]
+            | [] -> Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, [tName.Value]) |]
             | [(nsName, (declSource, deprecated))] -> Value (nsName, declSource, deprecated), [||]
             | resolutions -> 
                 let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
-                Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [diagArg]) |]
+                Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [tName.Value; diagArg]) |]
         match nsName with 
         | None -> tryFind (parentNS, source) (symName, symRange) |> function
             | Value (ns, declSource, deprecation), errs -> buildAndReturn (ns, declSource, deprecation, errs)
             | Null, errs -> None, errs
         | Some qualifier -> (parentNS, source) |> TryResolveQualifier qualifier |> function
-            | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |] 
+            | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [qualifier.Value]) |] 
             | Some ns -> 
                 ns.ContainsType (symName, checkQualificationForDeprecation) |> function
                 | Value (declSource, deprecation) -> buildAndReturn (ns.Name, declSource, deprecation, [||]) 
-                | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, []) |]
+                | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, [symName.Value; qualifier.Value]) |]
 
     /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given attribute.
     /// Generates suitable diagnostics if a suitable attribute cannot be determined, 
@@ -874,7 +874,7 @@ and NamespaceManager
             | None, errs -> InvalidType, errs 
         let processTP (symName, symRange) = 
             if tpNames |> Seq.contains symName then TypeParameter {Origin = parent; TypeName = symName; Range = symRange}, [||]
-            else InvalidType, [| symRange.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, []) |]
+            else InvalidType, [| symRange.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, [symName.Value]) |]
         syncRoot.EnterReadLock()
         try SymbolResolution.ResolveType (processUDT, processTP) qsType
         finally syncRoot.ExitReadLock()
@@ -1213,7 +1213,7 @@ and NamespaceManager
             | true, ns when ns.Sources.Contains source -> 
                 let validAlias = String.IsNullOrWhiteSpace alias || NonNullable<string>.New (alias.Trim()) |> Namespaces.ContainsKey |> not // TODO: DISALLOW TWO ALIAS WITH THE SAME NAME?
                 if validAlias && Namespaces.ContainsKey opened then ns.TryAddOpenDirective source (opened, openedRange) (alias, aliasRange.ValueOr openedRange)
-                elif validAlias then [| openedRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, []) |]
+                elif validAlias then [| openedRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [opened.Value]) |]
                 else [| aliasRange.ValueOr openedRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidNamespaceAliasName, [alias]) |]
             | true, _ -> ArgumentException "given source file is not listed as source of the given namespace" |> raise
             | false, _ -> ArgumentException "no such namespace exists" |> raise        
