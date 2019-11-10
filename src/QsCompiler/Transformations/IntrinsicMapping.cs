@@ -1,12 +1,9 @@
-﻿using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks.Sources;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicMapping
@@ -16,36 +13,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicMapping
         public static QsCompilation Apply(QsCompilation environment, QsCompilation target)
         {
             var envNames = environment.Namespaces.ToImmutableDictionary(ns => ns.Name);
-            var targetNames = target.Namespaces.Select(ns => ns.Name);
+            var targetNames = target.Namespaces.Select(ns => ns.Name).ToImmutableHashSet();
 
-            var outer = environment.Namespaces
+            return new QsCompilation(environment.Namespaces
                 .Where(ns => !targetNames.Contains(ns.Name))
-                .Concat(target.Namespaces.Where(ns => !envNames.ContainsKey(ns.Name)));
-            var inner = target.Namespaces.Where(ns => envNames.ContainsKey(ns.Name)).Select(ns => MergeNamespaces(envNames[ns.Name], ns));
-
-            return new QsCompilation(outer.Union(inner).ToImmutableArray(), target.EntryPoints);
+                .Concat(target.Namespaces.Select(ns =>
+                    envNames.TryGetValue(ns.Name, out var envNs)
+                    ? MergeNamespaces(envNs, ns)
+                    : ns))
+                .ToImmutableArray(), target.EntryPoints);
         }
 
         private static QsNamespace MergeNamespaces(QsNamespace overriding, QsNamespace accepting)
         {
-            var overridingNames = HoistElemNames(overriding.Elements).Select(x => x.Name);
-            var acceptingElems = HoistElemNames(accepting.Elements);
+            var overridingNames = overriding.Elements.Select(x => x.FullName).ToImmutableHashSet();
 
-            return accepting.WithElements(_ => overriding.Elements
-                .Concat(acceptingElems
-                    .Where(elem => !overridingNames.Contains(elem.Name))
-                    .Select(elem => elem.Element))
+            return accepting.WithElements(_ => accepting.Elements
+                .Where(elem => !overridingNames.Contains(elem.FullName))
+                .Concat(overriding.Elements)
                 .ToImmutableArray());
-        }
-
-        private static IEnumerable<(QsQualifiedName Name, QsNamespaceElement Element)> HoistElemNames(IEnumerable<QsNamespaceElement> elements)
-        {
-            return elements
-                .Where(elem => elem is QsNamespaceElement.QsCallable)
-                .Select(elem => (Name : ((QsNamespaceElement.QsCallable)elem).Item.FullName, Element : elem))
-                .Concat(elements
-                    .Where(elem => elem is QsNamespaceElement.QsCustomType)
-                    .Select(elem => (Name : ((QsNamespaceElement.QsCustomType)elem).Item.FullName, Element : elem)));
         }
     }
 }

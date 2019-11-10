@@ -720,6 +720,10 @@ type QsNamespaceElement =
 | QsCallable of QsCallable
 /// denotes a Q# user defined type
 | QsCustomType of QsCustomType
+    member this.FullName =
+        match this with
+        | QsCallable call -> call.FullName
+        | QsCustomType typ -> typ.FullName
 
 
 /// Describes a Q# namespace.
