@@ -87,3 +87,21 @@ let ``partial evaluation`` () =
 let ``reordering`` () =
     // createTestCase "TestCases/OptimizerTests/Reordering"
     assertOptimization "TestCases/OptimizerTests/Reordering"
+
+[<Fact>]
+let ``trigger infinite loop`` () =
+    let code = """
+    namespace Microsoft.Quantum.Core {
+        function Length<'T>(array : 'T[]) : Int {
+            body intrinsic;
+        }
+    }
+
+    namespace Microsoft.Quantum.Arrays {
+        function IndexRange<'T>(array : 'T[]) : Range {
+            return 0..Length(array) - 1;
+        }
+    }
+    """
+
+    optimize code |> ignore
