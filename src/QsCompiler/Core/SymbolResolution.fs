@@ -353,6 +353,7 @@ module SymbolResolution =
                 let resIdx, idxErrs = ArgExression idx
                 (NewArray (resBaseType, resIdx), ArrayType resBaseType) |> asTypedExression ex.Range, Array.concat [typeErrs; idxErrs]
             // TODO: detect constructor calls
+            | InvalidExpr -> invalidExpr ex.Range, [||]
             | _ -> invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InvalidAttributeArgument |] 
         and aggregateInner vs = 
             let innerExs, errs = vs |> Seq.map ArgExression |> Seq.toList |> List.unzip
@@ -368,9 +369,10 @@ module SymbolResolution =
                 // we can make the following simple check since / as long as there is no variance behavior 
                 // for any of the supported attribute argument types
                 let isError (msg : QsCompilerDiagnostic) = msg.Diagnostic |> function | Error _ -> true | _ -> false
-                if resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo && not (argErrs |> Array.exists isError) then
+                let argIsInvalid = resArg.ResolvedType.Resolution = InvalidType || argErrs |> Array.exists isError
+                if resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo && not argIsInvalid then
                     let mismatchErr = attribute.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeArgumentTypeMismatch, [])
-                    Null |> buildAttribute, Array.concat [errs; argErrs; [| mismatchErr |]] 
+                    Value name |> buildAttribute, Array.concat [errs; argErrs; [| mismatchErr |]] 
                 else Value name |> buildAttribute, errs |> Array.append argErrs
         match attribute.Id.Symbol with 
         | Symbol sym -> getAttribute (None, sym) 

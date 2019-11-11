@@ -232,6 +232,8 @@ type ErrorCode =
     | UserDefinedTypeInEntryPointSignature = 6233
     | MultipleEntryPoints = 6234
     | InvalidEntryPointSpecialization = 6235
+    | InvalidTestAttributePlacement = 6236
+    | InvalidExecutionTargetForTest = 6237
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -571,6 +573,8 @@ type DiagnosticItem =
             | ErrorCode.UserDefinedTypeInEntryPointSignature    -> "Invalid entry point. Values of user defined type may not be used as arguments or return values to entry points."
             | ErrorCode.MultipleEntryPoints                     -> "Invalid entry point. An entry point {0} already exists in {1}."
             | ErrorCode.InvalidEntryPointSpecialization         -> "Entry points cannot have any other specializations besides the default body."
+            | ErrorCode.InvalidTestAttributePlacement           -> "Invalid test attribute. Test attributes may only occur on callables that have no arguments and return Unit."
+            | ErrorCode.InvalidExecutionTargetForTest           -> "Invalid execution target. Currently, valid execution targets for tests are the QuantumSimulator, the TraceSimulator, or the ToffoliSimulator."
 
             | ErrorCode.TypeMismatchInReturn                    -> "The type {0} of the given expression is not compatible with the expected return type {1}."
             | ErrorCode.TypeMismatchInValueUpdate               -> "The type {0} of the given expression is not compatible with the type {1} of the identifier."
