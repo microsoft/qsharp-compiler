@@ -6,9 +6,9 @@ using System.Collections.Immutable;
 using System.Linq;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicMapping
+namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicMappingTransformation
 {
-    public class IntrinsicMapping
+    public class IntrinsicMappingTransformation
     {
         public static QsCompilation Apply(QsCompilation environment, QsCompilation target)
         {

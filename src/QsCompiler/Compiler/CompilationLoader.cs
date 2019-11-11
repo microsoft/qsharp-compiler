@@ -71,6 +71,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool SkipMonomorphization;
             /// <summary>
+            /// If set to true, the compiler will include all environment-defined callables and types
+            /// in the resulting syntax tree.
+            /// </summary>
+            public bool DoIntrinsicMapping;
+            /// <summary>
             /// If the output folder is not null, 
             /// documentation is generated in the specified folder based on doc comments in the source code. 
             /// </summary>
@@ -120,6 +125,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status PreEvaluation = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
             internal Status Monomorphization = Status.NotRun;
+            internal Status IntrinsicMapping = Status.NotRun;
             internal Status Documentation = Status.NotRun;
             internal Status Serialization = Status.NotRun;
             internal Status BinaryFormat = Status.NotRun;
@@ -141,6 +147,7 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(isExe && !options.SkipMonomorphization, this.Monomorphization) &&
+                WasSuccessful(isExe && options.DoIntrinsicMapping, this.IntrinsicMapping) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
@@ -184,6 +191,11 @@ namespace Microsoft.Quantum.QsCompiler
         /// This rewrite step is only executed if the corresponding configuration is specified. 
         /// </summary>
         public Status Monomorphization => this.CompilationStatus.Monomorphization;
+        /// /// <summary>
+        /// Indicates whether all the environment-defined callables and types were included in the compilation.
+        /// This rewrite step is only executed if the corresponding configuration is specified. 
+        /// </summary>
+        public Status IntrinsicMapping => this.CompilationStatus.IntrinsicMapping;
         /// <summary>
         /// Indicates whether documentation for the compilation was generated successfully. 
         /// This step is only executed if the corresponding configuration is specified. 
@@ -322,14 +334,21 @@ namespace Microsoft.Quantum.QsCompiler
             foreach (var diag in this.VerifiedCompilation?.Diagnostics() ?? Enumerable.Empty<Diagnostic>())
             { this.LogAndUpdate(ref this.CompilationStatus.Validation, diag); }
 
+            if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
+            { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
+
             // executing the specified rewrite steps 
 
             if (!this.Config.SkipMonomorphization && this.CompilationOutput?.EntryPoints.Length != 0)
             {
-                if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
-                { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput); 
+                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput);
+            }
+
+            if (this.Config.DoIntrinsicMapping)
+            {
+                var rewriteStep = new RewriteSteps.LoadedStep(new IntrinsicMapping(null), typeof(IRewriteStep), thisDllUri); // ToDo: use environment compilation
+                this.CompilationStatus.IntrinsicMapping = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput);
             }
 
             if (this.Config.GenerateFunctorSupport)
