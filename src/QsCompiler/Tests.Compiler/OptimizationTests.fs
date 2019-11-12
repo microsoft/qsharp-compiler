@@ -90,18 +90,5 @@ let ``reordering`` () =
 
 [<Fact>]
 let ``trigger infinite loop`` () =
-    let code = """
-    namespace Microsoft.Quantum.Core {
-        function Length<'T>(array : 'T[]) : Int {
-            body intrinsic;
-        }
-    }
-
-    namespace Microsoft.Quantum.Arrays {
-        function IndexRange<'T>(array : 'T[]) : Range {
-            return 0..Length(array) - 1;
-        }
-    }
-    """
-
-    optimize code |> ignore
+    // createTestCase "TestCases/OptimizerTests/TypedParameters"
+    assertOptimization "TestCases/OptimizerTests/TypedParameters"
