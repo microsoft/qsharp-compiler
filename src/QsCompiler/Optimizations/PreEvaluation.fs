@@ -19,7 +19,7 @@ open Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitFinding
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
-type PreEvalution =
+type PreEvaluation =
 
     /// Attempts to pre-evaluate the given sequence of namespaces as much as possible
     static member All (arg : QsCompilation) =

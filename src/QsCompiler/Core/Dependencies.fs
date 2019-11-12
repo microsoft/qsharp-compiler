@@ -67,6 +67,12 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
+    static member TestOperation = {
+        Name = "TestOperation" |> NonNullable<string>.New
+        Namespace = BuiltIn.CoreNamespace // TODO: this should be another namespace
+        TypeParameters = ImmutableArray.Empty
+    }
+
 
     // "weak dependencies" in other namespaces (e.g. things used for code actions)
 
