@@ -25,7 +25,7 @@ let private buildCompilation code =
 /// Given a string of valid Q# code, outputs the optimized AST as a string
 let private optimize code =
     let mutable compilation = buildCompilation code
-    compilation <- PreEvalution.All compilation
+    compilation <- PreEvaluation.All compilation
     let toQs = SyntaxTreeToQs()
     compilation.Namespaces |> Seq.iter (toQs.Transform >> ignore)
     toQs.Output

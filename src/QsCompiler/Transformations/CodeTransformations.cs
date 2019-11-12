@@ -74,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler
         public static bool PreEvaluateAll(this QsCompilation compilation, out QsCompilation evaluated, Action<Exception> onException = null)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
-            try { evaluated = PreEvalution.All(compilation); }
+            try { evaluated = PreEvaluation.All(compilation); }
             catch (Exception ex)
             {
                 onException?.Invoke(ex);
