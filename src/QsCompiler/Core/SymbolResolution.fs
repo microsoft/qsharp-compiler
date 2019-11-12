@@ -305,7 +305,7 @@ module SymbolResolution =
     let internal ResolveAttribute getAttribute (attribute : AttributeAnnotation) =
         let asTypedExression range (exKind, exType) = {
             Expression = exKind
-            TypeParameterResolutions = ImmutableDictionary.Empty
+            TypeArguments = ImmutableArray.Empty
             ResolvedType = exType |> ResolvedType.New
             InferredInformation = {IsMutable = false; HasLocalQuantumDependency = false}
             Range = range}

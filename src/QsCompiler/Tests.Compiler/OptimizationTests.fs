@@ -87,3 +87,8 @@ let ``partial evaluation`` () =
 let ``reordering`` () =
     // createTestCase "TestCases/OptimizerTests/Reordering"
     assertOptimization "TestCases/OptimizerTests/Reordering"
+
+[<Fact>]
+let ``trigger infinite loop`` () =
+    // createTestCase "TestCases/OptimizerTests/TypedParameters"
+    assertOptimization "TestCases/OptimizerTests/TypedParameters"
