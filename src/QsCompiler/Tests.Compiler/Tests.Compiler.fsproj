@@ -36,6 +36,9 @@
     <None Include="TestCases\LinkingTests\Monomorphization.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\LinkingTests\IntrinsicMapping.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -121,6 +124,7 @@
     <Compile Include="AutoGenerationTests.fs" />
     <Compile Include="TransformationTests.fs" />
     <Compile Include="ExecutionTests.fs" />
+    <Compile Include="Signatures.fs" />
     <Compile Include="LinkingTests.fs" />
     <Compile Include="RegexTests.fs" />
     <Compile Include="SerializationTests.fs" />

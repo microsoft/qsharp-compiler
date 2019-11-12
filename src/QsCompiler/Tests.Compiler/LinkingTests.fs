@@ -5,7 +5,6 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
 open System.Collections.Generic
-open System.Collections.Immutable
 open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -14,9 +13,9 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicMappingTransformation
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
-open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 open Xunit.Abstractions
 
@@ -42,46 +41,10 @@ type LinkingTests (output:ITestOutputHelper) =
 
     do  let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
-        Path.Combine ("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
-    static member private SignatureCheck targetSignatures compilation =
-
-        let callableSigs =
-            compilation.Namespaces
-            |> SyntaxExtensions.Callables
-            |> Seq.map (fun call -> (call.FullName, call.Signature.ArgumentType, call.Signature.ReturnType))
-
-        let doesCallMatchSig call signature =
-            let (call_fullName : QsQualifiedName), call_argType, call_rtrnType = call
-            let (sig_fullName : QsQualifiedName), sig_argType, sig_rtrnType = signature
-
-            call_fullName.Namespace.Value = sig_fullName.Namespace.Value &&
-            call_fullName.Name.Value.EndsWith sig_fullName.Name.Value &&
-            call_argType = sig_argType &&
-            call_rtrnType = sig_rtrnType
-
-        let makeArgsString (args : ResolvedType) =
-            match args.Resolution with
-            | QsTypeKind.UnitType -> "()"
-            | _ -> args |> (ExpressionToQs () |> ExpressionTypeToQs).Apply
-
-        (*Tests that all target signatures are present*)
-        for targetSig in targetSignatures do
-            let sig_fullName, sig_argType, sig_rtrnType = targetSig
-            callableSigs
-            |> Seq.exists (fun callSig -> doesCallMatchSig callSig targetSig)
-            |> (fun x -> Assert.True (x, sprintf "Expected but did not find: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
-
-        (*Tests that *only* targeted signatures are present*)
-        for callSig in callableSigs do
-            let sig_fullName, sig_argType, sig_rtrnType = callSig
-            targetSignatures
-            |> Seq.exists (fun targetSig -> doesCallMatchSig callSig targetSig)
-            |> (fun x -> Assert.True (x, sprintf "Found unexpected callable: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
-
-    static member private GetEntryPoints fileName =
-        let validEntryPoints = Path.Combine ("TestCases", "LinkingTests", fileName) |> File.ReadAllText
-        validEntryPoints.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
+    static member private ReadAndChunkSourceFile fileName =
+        let sourceInput = Path.Combine ("TestCases", "LinkingTests", fileName) |> File.ReadAllText
+        sourceInput.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.EntryPoints" |> NonNullable<_>.New
@@ -102,96 +65,81 @@ type LinkingTests (output:ITestOutputHelper) =
         for callable in built.Callables.Values |> Seq.filter inFile do
             tests.Verify (callable.FullName, diag)
 
-    member private this.CompileAndTestMonomorphization input =
-
+    member private this.BuildContent content =
+        
         let fileId = getTempFile()
-        let file = getManager fileId input
+        let file = getManager fileId content
 
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
         let compilationDataStructures = compilationManager.Build()
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
         compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
-
         Assert.NotNull compilationDataStructures.BuiltCompilation
+
+        compilationDataStructures
+
+    member private this.CompileMonomorphization input =
+
+        let compilationDataStructures = this.BuildContent input
+
         let monomorphicCompilation = MonomorphizationTransformation.Apply compilationDataStructures.BuiltCompilation
 
         Assert.NotNull monomorphicCompilation
         MonomorphizationValidationTransformation.Apply monomorphicCompilation
+
         monomorphicCompilation
+
+    member private this.CompileIntrinsicMapping source environment =
+        
+        let envDS = this.BuildContent environment
+        let sourceDS = this.BuildContent source
+
+        IntrinsicMappingTransformation.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
 
 
     [<Fact>]
     member this.``Monomorphization`` () =
+        
+        let filePath = Path.Combine ("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath
+        let fileId = (new Uri(filePath))
+        getManager fileId (File.ReadAllText filePath)
+        |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
 
-        let makeSig input =
-            let ns, name, args, rtrn = input
-            let fullName = { Namespace = NonNullable<string>.New ns; Name = NonNullable<string>.New name }
-            let argType =
-                if Array.isEmpty args then
-                    typeMap.["Unit"]
-                else
-                    args |> Seq.map (fun typ -> typeMap.[typ]) |> ImmutableArray.ToImmutableArray |> QsTypeKind.TupleType |> ResolvedType.New
-            let returnType = typeMap.[rtrn]
-            (fullName, argType, returnType)
+        for testCase in LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs" |> Seq.zip Signatures.MonomorphizationSignatures do
+            this.CompileMonomorphization (snd testCase) |>
+            Signatures.SignatureCheck [Signatures.GenericsNs; Signatures.MonomorphizationNs] (fst testCase)
 
-        let genericsNs = "Microsoft.Quantum.Testing.Generics"
-        let monomorphizationNs = "Microsoft.Quantum.Testing.Monomorphization"
-        let targetSignatures =
-            [|
-                [| (*Test Case 1*)
-                    monomorphizationNs, "Test1", [||], "Unit";
-                    genericsNs, "Test1Main", [||], "Unit";
+        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
-                    genericsNs, "BasicGeneric", [|"Double"; "Int"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"String"; "String"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"Unit"; "Unit"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"Int"; "Double"|], "Unit";
-                    genericsNs, "NoArgsGeneric", [||], "Double";
-                    genericsNs, "ReturnGeneric", [|"Double"; "String"; "Int"|], "Int";
-                    genericsNs, "ReturnGeneric", [|"String"; "Int"; "String"|], "String";
-                |];
-                [| (*Test Case 2*)
-                    monomorphizationNs, "Test2", [||], "Unit";
-                    genericsNs, "Test2Main", [||], "Unit";
+    [<Fact>]
+    member this.``Intrinsic Mapping`` () =
 
-                    genericsNs, "ArrayGeneric", [|"Qubit"; "String"|], "Int";
-                    genericsNs, "ArrayGeneric", [|"Qubit"; "Int"|], "Int";
-                    genericsNs, "GenericCallsGeneric", [|"Qubit"; "Int"|], "Unit";
-                |];
-                [| (*Test Case 3*)
-                    monomorphizationNs, "Test3", [||], "Unit";
-                    genericsNs, "Test3Main", [||], "Unit";
+        let srcChunks = LinkingTests.ReadAndChunkSourceFile "IntrinsicMapping.qs"
+        srcChunks.Length = 2 |> Assert.True
+        let result = this.CompileIntrinsicMapping srcChunks.[0] srcChunks.[1]
+        Signatures.SignatureCheck [Signatures.IntrinsicMappingNs] Signatures.IntrinsicMappingSignatures.[0] result
 
-                    genericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Qubit[]"|], "Unit";
-                    genericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Double"|], "Unit";
-                    genericsNs, "GenericCallsSpecializations", [|"String"; "Int"; "Unit"|], "Unit";
+        (*Find the overridden operation in the appropriate namespace*)
+        let targetCallName = QsQualifiedName.New(NonNullable<_>.New Signatures.IntrinsicMappingNs, NonNullable<_>.New "Override")
+        let targetCallable =
+            result.Namespaces
+            |> Seq.find (fun ns -> ns.Name.Value = Signatures.IntrinsicMappingNs)
+            |> (fun x -> [x]) |> SyntaxExtensions.Callables
+            |> Seq.find (fun call -> call.FullName = targetCallName)
 
-                    genericsNs, "BasicGeneric", [|"Qubit[]"; "Qubit[]"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"String"; "Qubit[]"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"Double"; "String"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"Qubit[]"; "Double"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"Qubit[]"; "Unit"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"Int"; "Unit"|], "Unit";
-                    genericsNs, "BasicGeneric", [|"String"; "Int"|], "Unit";
-                    
-                    genericsNs, "ArrayGeneric", [|"Qubit"; "Qubit[]"|], "Int";
-                    genericsNs, "ArrayGeneric", [|"Qubit"; "Double"|], "Int";
-                    genericsNs, "ArrayGeneric", [|"Qubit"; "Unit"|], "Int";
-                |]
-            |] |> Seq.map (fun case -> Seq.map (fun _sig -> makeSig _sig) case)
-
-        for testCase in LinkingTests.GetEntryPoints "Monomorphization.qs" |> Seq.zip targetSignatures do
-            this.CompileAndTestMonomorphization (snd testCase) |>
-            LinkingTests.SignatureCheck (fst testCase)
+        (*Check that the operation is not intrinsic*)
+        targetCallable.Specializations.Length = 1 |> Assert.True
+        match targetCallable.Specializations.[0].Implementation with
+        | Provided _ -> true
+        | _ -> false
+        |> Assert.True
 
 
     [<Fact>]
     member this.``Fail on multiple entry points`` () =
 
-        let entryPoints = LinkingTests.GetEntryPoints "ValidEntryPoints.qs"
+        let entryPoints = LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs"
         Assert.True (entryPoints.Length > 1)
 
         let fileId = getTempFile()
@@ -204,10 +152,10 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     member this.``Entry point specialization verification`` () =
 
-        for entryPoint in LinkingTests.GetEntryPoints "EntryPointSpecializations.qs" do
+        for entryPoint in LinkingTests.ReadAndChunkSourceFile "EntryPointSpecializations.qs" do
             this.CompileAndVerify entryPoint [Error ErrorCode.InvalidEntryPointSpecialization]
 
-        for entryPoint in LinkingTests.GetEntryPoints "ValidEntryPoints.qs" do
+        for entryPoint in LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs" do
             this.CompileAndVerify entryPoint []
 
 
