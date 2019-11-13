@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     {
         public string Name { get; }
         public int Priority { get; }
-        public IDictionary<string, string> AssemblyConstants { get; } 
+        public IDictionary<string, string> AssemblyConstants { get; }
 
         public bool ImplementsTransformation { get; }
         public bool ImplementsPreconditionVerification { get; }

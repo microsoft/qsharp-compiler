@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation;
 
@@ -11,7 +12,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     {
         public string Name { get; }
         public int Priority { get; }
-        public string OutputFolder { get; set; }
+        public IDictionary<string, string> AssemblyConstants { get; }
 
         public bool ImplementsTransformation { get; }
         public bool ImplementsPreconditionVerification { get; }
@@ -23,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         {
             Name = "IntrinsicResolution";
             Priority = 10; // Not used for hard-coded transformations like this
-            OutputFolder = null;
+            AssemblyConstants = new Dictionary<string, string>();
             ImplementsTransformation = true;
             ImplementsPreconditionVerification = false;
             ImplementsPostconditionVerification = false;
