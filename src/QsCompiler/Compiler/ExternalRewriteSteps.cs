@@ -204,6 +204,8 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     var assemblyConstants = loaded.AssemblyConstants;
                     if (assemblyConstants == null) continue;
+                    foreach (var kvPair in config.AssemblyConstants ?? Enumerable.Empty<KeyValuePair<string, string>>())
+                    { assemblyConstants[kvPair.Key] = kvPair.Value; } 
 
                     var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null; 
                     assemblyConstants[AssemblyConstants.OutputPath] = outputFolder ?? defaultOutput ?? config.BuildOutputFolder;
