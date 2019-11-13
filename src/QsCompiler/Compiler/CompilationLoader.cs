@@ -650,7 +650,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             MetadataReference CreateReference(string file, int id) =>
                 MetadataReference.CreateFromFile(file)
-                .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{id}" }); // referenced Q# dlls are recognized based on this alias 
+                .WithAliases(new string[] { $"{DotnetCoreDll.ReferenceAlias}{id}" }); // referenced Q# dlls are recognized based on this alias 
 
             // We need to force the inclusion of references despite that we do not include C# code that depends on them. 
             // This is done via generating a certain handle in all dlls built via this compilation loader. 
@@ -664,7 +664,7 @@ namespace Microsoft.Quantum.QsCompiler
                     var metadataReader = assemblyFile.GetMetadataReader();
                     return metadataReader.TypeDefinitions
                         .Select(metadataReader.GetTypeDefinition)
-                        .Any(t => metadataReader.GetString(t.Namespace) == AssemblyConstants.METADATA_NAMESPACE);
+                        .Any(t => metadataReader.GetString(t.Namespace) == DotnetCoreDll.MetadataNamespace);
                 }
                 catch { return false; }
             }
@@ -690,7 +690,7 @@ namespace Microsoft.Quantum.QsCompiler
 
                 using var outputStream = File.OpenWrite(outputPath);
                 serialization.Seek(0, SeekOrigin.Begin);
-                var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
+                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.ResourceName, () => serialization, true);
                 var result = compilation.Emit(outputStream,
                     options: new CodeAnalysis.Emit.EmitOptions(),
                     manifestResources: new CodeAnalysis.ResourceDescription[] { astResource }
