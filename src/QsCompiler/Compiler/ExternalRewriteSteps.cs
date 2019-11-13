@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
@@ -69,15 +70,10 @@ namespace Microsoft.Quantum.QsCompiler
 
             public string Name { get; }
             public int Priority { get; }
-            public string OutputFolder
+            public IDictionary<string, string> AssemblyConstants 
             {
-                get => _SelfAsStep?.OutputFolder 
-                    ?? this.GetViaReflection<string>(nameof(IRewriteStep.OutputFolder));
-                set
-                {
-                    if (_SelfAsStep != null) _SelfAsStep.OutputFolder = value;
-                    else this.SetViaReflection(nameof(IRewriteStep.OutputFolder), value);
-                }
+                get => _SelfAsStep?.AssemblyConstants 
+                    ?? this.GetViaReflection<IDictionary<string, string>>(nameof(IRewriteStep.AssemblyConstants));
             }
 
             public bool ImplementsTransformation
@@ -206,7 +202,12 @@ namespace Microsoft.Quantum.QsCompiler
                 }
                 foreach (var loaded in loadedSteps)
                 {
-                    loaded.OutputFolder = outputFolder ?? loaded.OutputFolder ?? config.BuildOutputFolder;
+                    var assemblyConstants = loaded.AssemblyConstants;
+                    if (assemblyConstants == null) continue;
+
+                    var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null; 
+                    assemblyConstants[AssemblyConstants.OutputPath] = outputFolder ?? defaultOutput ?? config.BuildOutputFolder;
+                    assemblyConstants[AssemblyConstants.AssemblyName] = config.ProjectName;
                 }
 
                 loadedSteps.Sort((fst, snd) => snd.Priority - fst.Priority);
