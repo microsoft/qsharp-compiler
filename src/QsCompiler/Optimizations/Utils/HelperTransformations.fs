@@ -75,9 +75,9 @@ type internal MutationChecker() =
     }
 
 
-/// A transformation base meant to optimize a syntax tree
+/// A transformation base for optimizing syntax tree transformations.
 /// It provides a function called `checkChanged` which returns true, if
-/// the transformation lead to a change in any of the namespaces' syntax
+/// the transformation leads to a change in any of the namespaces' syntax
 /// tree, except for changes in the namespaces' documentation string.
 type OptimizingTransformation() =
     inherit SyntaxTreeTransformation()
