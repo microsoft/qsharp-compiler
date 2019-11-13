@@ -196,6 +196,8 @@ type TreeLeveler() =
                         | Generated _ -> CapabilityLevel.Unset
     // TODO: For generated specializations, we need to find the appropriate "body" declaration
     // and copy the required capability from that to the generated specialization.
+    // If the body hasn't been processed yet, then process it right away, use the result here, 
+    // and remember the result for later use so we don't compute it twice.
                         | Provided (_, scope) ->
                             let holder = new CapabilityInfoHolder()
                             let xform = new ScopeLeveler(holder)
@@ -204,40 +206,6 @@ type TreeLeveler() =
         let level = s.Attributes |> checkForLevelAttributes 
                                  |> Option.orElse currentOperationLevel
                                  |> Option.defaultValue codeLevel
-        if level <> s.RequiredCapability then { s with RequiredCapability = level } else s
-
-
-    override this.Transform(ns : QsNamespace) =
-        let xformed = base.Transform ns
-        // We have to do this after we've checked all of the callables.
-        // Even so, there are potential issues from inter-namespace calls.
-        // TODO: figure out how to be safe against inter-namespace calls, given that
-        // namespaces may be processed in any order.
-        // Note that F# doesn't like ns |> base.Transform -- it complains about this usage
-        // of "base".
-        xformed // |> this.PostProcess
-
-    /// Update required levels based on full call trees.
-    /// We have to do this after we've checked all of the callables.
-    /// Even so, there are potential issues from inter-namespace calls.
-    /// TODO: figure out how to be safe against inter-namespace calls, given that
-    /// namespaces may be processed in any order.
-    //member this.PostProcess(ns : QsNamespace) =
-    //    let processElement qse =
-    //        let processSpecialization (s : QsSpecialization) =
-    //            if s.Attributes |> checkForLevelAttributes |> Option.isNone
-    //            then
-    //                let calledLevel = manager.GetDependencyLevel(s)
-    //                if calledLevel > s.RequiredCapability
-    //                then { s with RequiredCapability = calledLevel }
-    //                else s
-    //            else s
-    //        match qse with
-    //        | QsCallable c when c.Attributes |> checkForLevelAttributes |> Option.isNone ->
-    //            let specs = c.Specializations |> Seq.map processSpecialization
-    //            QsCallable (QsCallable.New c.Kind (c.SourceFile, c.Location) 
-    //                                       (c.FullName, c.Attributes, c.ArgumentTuple, c.Signature, 
-    //                                        specs, c.Documentation, c.Comments))
-    //        | _ -> qse
-    //    let elems = ns.Elements |> Seq.map processElement
-    //    QsNamespace.New(ns.Name, elems, ns.Documentation)
+        if level <> s.Signature.Information.InferredInformation.RequiredCapabilityLevel
+        then { s with Signature = { s.Signature with Information = { s.Signature.Information with InferredInformation = { s.Signature.Information.InferredInformation with RequiredCapabilityLevel = level } } }}
+        else s

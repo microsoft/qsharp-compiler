@@ -17,6 +17,7 @@ type private SpecializationKey =
         TypeArgString : string
     }
 
+
 type CallGraph() =
     let sep = '|'
     let levels = new Dictionary<SpecializationKey, CapabilityLevel>()
@@ -66,16 +67,6 @@ type CallGraph() =
             next |> Seq.fold (fun (a : HashSet<SpecializationKey>) k -> if a.Add(k) then WalkDependencyTree k a else a) accum
         | false, _ -> accum
 
-    member this.GetSpecializationLevel(spec) =
-        let key = SpecToKey spec
-        match levels.TryGetValue(key) with
-        | true, level -> level
-        | false, _ -> CapabilityLevel.Unset
-
-    member this.SetSpecializationLevel(spec, level) =
-        let key = SpecToKey spec
-        levels.[key] <- level
-
     member this.AddDependency(callerSpec, calledSpec) =
         let callerKey = SpecToKey callerSpec
         let calledKey = SpecToKey calledSpec
@@ -108,17 +99,6 @@ type CallGraph() =
         |> Seq.filter (fun k -> k <> key)
         |> Seq.map (fun key -> (key.QualifiedName, key.Kind, key.TypeArgString |> StringToTypeArray))
 
-    member this.GetDependencyLevel(callerSpec) =
-        let getLevel k =
-            match levels.TryGetValue(k) with
-            | true, level -> level
-            | false, _ -> CapabilityLevel.Unset
-        let key = SpecToKey callerSpec
-        let deps = WalkDependencyTree key (new HashSet<SpecializationKey>(key |> Seq.singleton)) 
-                   |> Seq.filter (fun k -> k <> key)
-        if Seq.isEmpty deps 
-        then CapabilityLevel.Unset
-        else deps |> Seq.map getLevel |> Seq.max
 
 type private ExpressionKindGraphBuilder(exprXformer : ExpressionGraphBuilder, graph : CallGraph, 
         spec : QsSpecialization) =
@@ -176,12 +156,14 @@ type private ExpressionKindGraphBuilder(exprXformer : ExpressionGraphBuilder, gr
         | _ -> ()
         base.onIdentifier(sym, typeArgs)
 
+
 and private ExpressionGraphBuilder(graph : CallGraph, spec : QsSpecialization) as this =
     inherit ExpressionWalker()
 
     let kindXformer = new ExpressionKindGraphBuilder(this, graph, spec)
 
     override this.Kind = upcast kindXformer
+
 
 type private StatementGraphBuilder(scopeXformer : ScopeGraphBuilder, graph : CallGraph, 
         spec : QsSpecialization) =
@@ -195,12 +177,14 @@ type private StatementGraphBuilder(scopeXformer : ScopeGraphBuilder, graph : Cal
     override this.TypeWalker x = ()
     override this.LocationWalker x = ()
 
+
 and private ScopeGraphBuilder(graph : CallGraph, spec : QsSpecialization) as this =
     inherit ScopeWalker()
 
     let kindXformer = new StatementGraphBuilder(this, graph, spec)
 
     override this.StatementKind = upcast kindXformer
+
 
 /// This syntax tree transformer fills in the CapabilityLevel fields in specializations,
 /// based on information gathered by the associated scope and other transformations.

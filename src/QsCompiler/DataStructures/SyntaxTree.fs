@@ -241,21 +241,35 @@ type ResolvedCharacteristics = private {
         | None -> Null
 
 
+/// Different targets provide different levels of Q# support. Some targets can execute any Q# code,
+/// while others are very limited in the Q# constructs that they can process.
+type CapabilityLevel =
+| Minimal = 1
+| Basic = 2
+| Medium = 3
+| Advanced = 4
+| Full = 5
+| Unset = -1
+
+
 /// used to represent information on Q# operations and expressions thereof generated and/or tracked during compilation
 type InferredCallableInformation = {
     /// indicates whether the callable is a self-adjoint operation
     IsSelfAdjoint : bool
     /// indicates whether the callable is intrinsic, i.e. implemented by the target machine
     IsIntrinsic : bool
+    /// contains the minimum target capability level required to execute this specialization's code, not including anything it calls
+    RequiredCapabilityLevel : CapabilityLevel
 }
     with
-    static member NoInformation = {IsSelfAdjoint = false; IsIntrinsic = false}
+    static member NoInformation = {IsSelfAdjoint = false; IsIntrinsic = false; RequiredCapabilityLevel = CapabilityLevel.Unset}
 
     /// Determines the information that was inferred for all given items.
     static member Common (infos : InferredCallableInformation seq) =
         let allAreIntrinsic = infos |> Seq.map (fun info -> info.IsIntrinsic) |> Seq.contains false |> not
         let allAreSelfAdjoint = infos |> Seq.map (fun info -> info.IsSelfAdjoint) |> Seq.contains false |> not
-        {IsIntrinsic = allAreIntrinsic; IsSelfAdjoint = allAreSelfAdjoint}
+        let requiredLevel = infos |> Seq.map (fun info -> info.RequiredCapabilityLevel) |> Seq.max
+        {IsIntrinsic = allAreIntrinsic; IsSelfAdjoint = allAreSelfAdjoint; RequiredCapabilityLevel = requiredLevel}
 
 
 /// Contains information associated with a fully resolved operation type.
@@ -608,16 +622,6 @@ type SpecializationImplementation =
 | Generated of QsGeneratorDirective // Invert and Distribute will be replaced by Provided before sending to code gen
 
 
-/// Different targets provide different levels of Q# support. Some targets can execute any Q# code,
-/// while others are very limited in the Q# constructs that they can process.
-type CapabilityLevel =
-| Minimal = 1
-| Basic = 2
-| Medium = 3
-| Advanced = 4
-| Full = 5
-| Unset = -1
-
 /// For each callable various specialization exist describing how it acts 
 /// depending on the type of the argument it is called with (type specializations), 
 /// and/or which functors are applied to the call.
@@ -628,8 +632,6 @@ type QsSpecialization = {
     Parent : QsQualifiedName
     /// contains all attributes associated with the specialization
     Attributes : ImmutableArray<QsDeclarationAttribute>
-    /// contains the minimum target capability level for this specialization's code, not including anything it calls
-    RequiredCapability : CapabilityLevel
     /// identifier for the file the specialization is declared in (not necessarily the same as the one of the callable it extends)
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared specialization.
