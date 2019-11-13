@@ -1,9 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CsharpGeneration;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 
@@ -18,9 +20,12 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
     /// </summary>
     public class CsharpGeneration : IRewriteStep
     {
+        public CsharpGeneration() =>
+            this.AssemblyConstants = new Dictionary<string, string>();
+
         public string Name => "CsharpGeneration";
         public int Priority => 0;
-        public string OutputFolder { get; set; }
+        public IDictionary<string, string> AssemblyConstants { get; }
 
         public bool ImplementsTransformation => true;
         public bool ImplementsPreconditionVerification => false;
@@ -29,13 +34,14 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             var success = true;
+            var outputFolder = this.AssemblyConstants.TryGetValue("OutputPath", out var path) ? path : null; // TODO: Replace string with AssemblyConstant.OutputPath
             var allSources = GetSourceFiles.Apply(compilation.Namespaces) // also generate the code for referenced libraries...
                 // ... except when they are one of the packages that currently still already contains the C# code (temporary workaround):
                 .Where(s => !Path.GetFileName(s.Value).StartsWith("Microsoft.Quantum")); 
             foreach (var source in allSources)
             {
                 var content = SimulationCode.generate(source, compilation.Namespaces);
-                try { CompilationLoader.GeneratedFile(source, this.OutputFolder ?? this.Name, ".g.cs", content); }
+                try { CompilationLoader.GeneratedFile(source, outputFolder ?? this.Name, ".g.cs", content); }
                 catch { success = false; }
             }
             transformed = compilation;
