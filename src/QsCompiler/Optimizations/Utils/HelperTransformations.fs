@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
+namespace Microsoft.Quantum.QsCompiler.Optimizations.Tools
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Optimizations.Utils
@@ -75,8 +75,11 @@ type internal MutationChecker() =
     }
 
 
-/// Represents a transformation meant to optimize a syntax tree
-type internal OptimizingTransformation() =
+/// A transformation base meant to optimize a syntax tree
+/// It provides a function called `checkChanged` which returns true, if
+/// the transformation lead to a change in any of the namespaces' syntax
+/// tree, except for changes in the namespaces' documentation string.
+type OptimizingTransformation() =
     inherit SyntaxTreeTransformation()
 
     let mutable changed = false

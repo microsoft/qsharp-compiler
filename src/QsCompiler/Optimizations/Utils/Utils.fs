@@ -23,7 +23,7 @@ type internal InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
 
 
 /// Represents the dictionary of all callables in the program
-type internal Callables (m: ImmutableDictionary<QsQualifiedName, QsCallable>) =
+type Callables (m: ImmutableDictionary<QsQualifiedName, QsCallable>) =
 
     /// Gets the QsCallable with the given qualified name.
     /// Throws an KeyNotFoundException if no such callable exists.
