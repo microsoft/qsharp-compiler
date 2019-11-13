@@ -82,7 +82,7 @@ type Signatures private () =
     /// Names of several testing namespaces
     static member public MonomorphizationNs = "Microsoft.Quantum.Testing.Monomorphization"
     static member public GenericsNs = "Microsoft.Quantum.Testing.Generics"
-    static member public IntrinsicMappingNs = "Microsoft.Quantum.Testing.IntrinsicMapping"
+    static member public IntrinsicResolutionNs = "Microsoft.Quantum.Testing.IntrinsicResolution"
 
     /// Expected callable signatures to be found when running Monomorphization tests
     static member public MonomorphizationSignatures =
@@ -133,14 +133,14 @@ type Signatures private () =
         |> Seq.map (fun case -> Seq.map (fun _sig -> Signatures._MakeSig _sig) case)
         |> Seq.toArray
 
-    /// Expected callable signatures to be found when running Intrinsic Mapping tests
-    static member public IntrinsicMappingSignatures =
+    /// Expected callable signatures to be found when running Intrinsic Resolution tests
+    static member public IntrinsicResolutionSignatures =
         [|
             [|
-                Signatures.IntrinsicMappingNs, "IntrinsicMappingTest", [||], "Unit";
-                Signatures.IntrinsicMappingNs, "LocalIntrinsic", [||], "Unit";
-                Signatures.IntrinsicMappingNs, "Override", [||], "Unit";
-                Signatures.IntrinsicMappingNs, "EnvironmentIntrinsic", [||], "Unit";
+                Signatures.IntrinsicResolutionNs, "IntrinsicResolutionTest", [||], "Unit";
+                Signatures.IntrinsicResolutionNs, "LocalIntrinsic", [||], "Unit";
+                Signatures.IntrinsicResolutionNs, "Override", [||], "Unit";
+                Signatures.IntrinsicResolutionNs, "EnvironmentIntrinsic", [||], "Unit";
             |];
         |]
         |> Seq.map (fun case -> Seq.map (fun _sig -> Signatures._MakeSig _sig) case)

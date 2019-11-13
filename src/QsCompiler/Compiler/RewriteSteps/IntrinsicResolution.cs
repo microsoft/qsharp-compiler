@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicMappingTransformation;
+using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation;
 
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
-    internal class IntrinsicMapping : IRewriteStep
+    internal class IntrinsicResolution : IRewriteStep
     {
         public string Name { get; }
         public int Priority { get; }
@@ -17,23 +17,23 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public bool ImplementsPreconditionVerification { get; }
         public bool ImplementsPostconditionVerification { get; }
 
-        private QsCompilation Envrionment { get; }
+        private QsCompilation Environment { get; }
 
-        public IntrinsicMapping(QsCompilation environment)
+        public IntrinsicResolution(QsCompilation environment)
         {
-            Name = "IntrinsicMapping";
+            Name = "IntrinsicResolution";
             Priority = 10; // Not used for hard-coded transformations like this
             OutputFolder = null;
             ImplementsTransformation = true;
             ImplementsPreconditionVerification = false;
             ImplementsPostconditionVerification = false;
 
-            Envrionment = environment;
+            Environment = environment;
         }
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = IntrinsicMappingTransformation.Apply(this.Envrionment, compilation);
+            transformed = IntrinsicResolutionTransformation.Apply(this.Environment, compilation);
             return true;
         }
 

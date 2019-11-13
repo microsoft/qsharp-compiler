@@ -3,10 +3,10 @@
 
 
 // Source Code
-namespace Microsoft.Quantum.Testing.IntrinsicMapping {
+namespace Microsoft.Quantum.Testing.IntrinsicResolution {
 
     @EntryPoint()
-    operation IntrinsicMappingTest() : Unit {
+    operation IntrinsicResolutionTest() : Unit {
         LocalIntrinsic();
         Override();
     }
@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.Testing.IntrinsicMapping {
 // =================================
 
 // Environment Code
-namespace Microsoft.Quantum.Testing.IntrinsicMapping {
+namespace Microsoft.Quantum.Testing.IntrinsicResolution {
     
     operation Override() : Unit {
         EnvironmentIntrinsic();

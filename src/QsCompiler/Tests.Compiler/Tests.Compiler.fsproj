@@ -36,7 +36,7 @@
     <None Include="TestCases\LinkingTests\Monomorphization.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\LinkingTests\IntrinsicMapping.qs">
+    <None Include="TestCases\LinkingTests\IntrinsicResolution.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">

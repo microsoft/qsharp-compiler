@@ -13,7 +13,7 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicMappingTransformation
+open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
 open Xunit
@@ -90,12 +90,12 @@ type LinkingTests (output:ITestOutputHelper) =
 
         monomorphicCompilation
 
-    member private this.CompileIntrinsicMapping source environment =
+    member private this.CompileIntrinsicResolution source environment =
         
         let envDS = this.BuildContent environment
         let sourceDS = this.BuildContent source
 
-        IntrinsicMappingTransformation.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
+        IntrinsicResolutionTransformation.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
 
 
     [<Fact>]
@@ -113,18 +113,18 @@ type LinkingTests (output:ITestOutputHelper) =
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
     [<Fact>]
-    member this.``Intrinsic Mapping`` () =
+    member this.``Intrinsic Resolution`` () =
 
-        let srcChunks = LinkingTests.ReadAndChunkSourceFile "IntrinsicMapping.qs"
+        let srcChunks = LinkingTests.ReadAndChunkSourceFile "IntrinsicResolution.qs"
         srcChunks.Length = 2 |> Assert.True
-        let result = this.CompileIntrinsicMapping srcChunks.[0] srcChunks.[1]
-        Signatures.SignatureCheck [Signatures.IntrinsicMappingNs] Signatures.IntrinsicMappingSignatures.[0] result
+        let result = this.CompileIntrinsicResolution srcChunks.[0] srcChunks.[1]
+        Signatures.SignatureCheck [Signatures.IntrinsicResolutionNs] Signatures.IntrinsicResolutionSignatures.[0] result
 
         (*Find the overridden operation in the appropriate namespace*)
-        let targetCallName = QsQualifiedName.New(NonNullable<_>.New Signatures.IntrinsicMappingNs, NonNullable<_>.New "Override")
+        let targetCallName = QsQualifiedName.New(NonNullable<_>.New Signatures.IntrinsicResolutionNs, NonNullable<_>.New "Override")
         let targetCallable =
             result.Namespaces
-            |> Seq.find (fun ns -> ns.Name.Value = Signatures.IntrinsicMappingNs)
+            |> Seq.find (fun ns -> ns.Name.Value = Signatures.IntrinsicResolutionNs)
             |> (fun x -> [x]) |> SyntaxExtensions.Callables
             |> Seq.find (fun call -> call.FullName = targetCallName)
 
