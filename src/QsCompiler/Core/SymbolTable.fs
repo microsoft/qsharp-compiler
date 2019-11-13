@@ -844,10 +844,10 @@ and NamespaceManager
                     match box decl.Defined with 
                     | :? CallableSignature as signature when signature |> isUnitToUnit && not (signature.TypeParameters.Any()) -> 
                         let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument (fun ex -> ex.Expression)
-                        match (if arg = null then null else arg.ToLowerInvariant()) with 
-                        | "quantumsimulator" | "tracesimulator" | "toffolisimulator" -> // error message below needs to be adapted when this changes!
+                        let validExecutionTargets = BuiltIn.ValidExecutionTargets |> Seq.map (fun x -> x.ToLowerInvariant())
+                        if arg <> null && validExecutionTargets |> Seq.contains (arg.ToLowerInvariant()) then
                             attributeHash :: alreadyDefined, att :: resAttr 
-                        | _ -> (att.Offset, att.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidExecutionTargetForTest, [])) |> Seq.singleton |> returnInvalid 
+                        else (att.Offset, att.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidExecutionTargetForTest, [])) |> Seq.singleton |> returnInvalid 
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTestAttributePlacement, [])) |> Seq.singleton |> returnInvalid
 
                 // the attribute is another kind of attribute that requires no further verification at this point
