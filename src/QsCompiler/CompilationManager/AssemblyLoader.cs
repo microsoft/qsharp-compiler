@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler
             // In all Q# dlls there will be a resource with the specific name chosen by the compiler. 
             var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
             if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-                !metadataReader.Resources().TryGetValue(AssemblyConstants.AST_RESOURCE_NAME, out var resource) ||
+                !metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out var resource) ||
                 !resource.Implementation.IsNil)
             { return false; }
 

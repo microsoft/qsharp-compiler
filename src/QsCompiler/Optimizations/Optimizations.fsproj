@@ -25,7 +25,7 @@
     </Compile>
     <Compile Include="PureCircuitAPI.fs" />
     <Compile Include="PureCircuitFinding.fs" />
-    <Compile Include="PreEvalution.fs" />
+    <Compile Include="PreEvaluation.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -95,31 +95,44 @@ module SymbolResolution =
             else [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithRedirect, [usedName; redirect]) |]
         | Null -> [| |]
 
-    /// Applies the given getRedirect function to the given attributes, 
-    /// and extracts the non-interpolated string argument to the first attribute for which getRedirect returned Some. 
-    /// Returns the extracted string argument as Value, or returns Null if getRedirect returned None for all attributes. 
-    /// The extracted string argument may be null if the argument in question was not a non-interpolated string. 
-    let private DetermineRedirection (getRedirect, getInner) attributes = 
-        let redirection = getRedirect >> function
+    /// Applies the given getArgument function to the given attributes, 
+    /// and extracts and returns the non-interpolated string argument for all attributes for which getArgument returned Some. 
+    /// The returned sequence may contain null if the argument of an attribute for which getArgument returned Some was not a non-interpolated string. 
+    let private StringArgument (getArgument, getInner) attributes = 
+        let argument = getArgument >> function
             | Some redirect -> redirect |> AttributeAnnotation.NonInterpolatedStringArgument getInner |> Some
             | None -> None
-        attributes |> Seq.choose redirection |> Seq.tryHead |> QsNullable<_>.FromOption
+        attributes |> Seq.choose argument 
 
-    /// Checks whether the given attributes indicate the the corresponding declaration has been deprecated. 
+    /// Checks whether the given attributes indicate that the corresponding declaration has been deprecated. 
     /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise. 
     /// The returned string is empty or null if the declaration has been deprecated but an alternative is not specified or could not be determined. 
     /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
     let internal TryFindRedirectInUnresolved checkQualification attributes = 
         let getRedirect (att : AttributeAnnotation) = if att |> IndicatesDeprecation checkQualification then Some att.Argument else None
-        DetermineRedirection (getRedirect, fun ex -> ex.Expression) attributes
+        StringArgument (getRedirect, fun ex -> ex.Expression) attributes |> Seq.tryHead |> QsNullable<_>.FromOption
 
-    /// Checks whether the given attributes indicate the the corresponding declaration has been deprecated. 
+    /// Checks whether the given attributes indicate that the corresponding declaration has been deprecated. 
     /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise. 
     /// The returned string is empty or null if the declaration has been deprecated but an alternative is not specified or could not be determined. 
     /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
     let TryFindRedirect attributes = 
         let getRedirect (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
-        DetermineRedirection (getRedirect, fun ex -> ex.Expression) attributes
+        StringArgument (getRedirect, fun ex -> ex.Expression) attributes |> Seq.tryHead |> QsNullable<_>.FromOption
+
+    /// Checks whether the given attributes indicate that the corresponding declaration contains a unit test. 
+    /// Returns a sequence of strings defining all execution targets on which the test should be run. Invalid execution targets are set to null. 
+    /// The returned sequence is empty if the declaration does not contain a unit test. 
+    let TryFindTestTargets attributes = 
+        let getTarget (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksTestOperation then Some att.Argument else None
+        let validTargets = BuiltIn.ValidExecutionTargets.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
+        let targetName (target : string) = 
+            if target = null then null
+            else target.ToLowerInvariant() |> validTargets.TryGetValue |> function
+                | true, valid -> valid
+                | false, _ -> null
+        StringArgument (getTarget, fun ex -> ex.Expression) attributes 
+        |> Seq.map targetName |> ImmutableHashSet.CreateRange
 
 
     // routines for resolving types and signatures
@@ -203,7 +216,7 @@ module SymbolResolution =
                 | QsSymbolKind.InvalidSymbol -> invalidTp :: tps, errs
                 | QsSymbolKind.Symbol sym -> 
                     if not (tps |> List.exists (fst >> (=)(ValidName sym))) then (ValidName sym, range) :: tps, errs
-                    else invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.TypeParameterRedeclaration, [])) :: errs
+                    else invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.TypeParameterRedeclaration, [sym.Value])) :: errs
                 | _ -> invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTypeParameterDeclaration, [])) :: errs
             ) ([], []) |> (fun (tps, errs) -> tps |> List.rev, errs |> List.rev |> List.toArray)
         let resolveArg (sym, range) t = sym |> function
@@ -234,7 +247,7 @@ module SymbolResolution =
             | QsSymbolKind.MissingSymbol 
             | QsSymbolKind.InvalidSymbol -> Anonymous t, [||]
             | QsSymbolKind.Symbol sym when itemDeclarations.Exists (fun item -> item.VariableName.Value = sym.Value) -> 
-                Anonymous t, [| range |> QsCompilerDiagnostic.Error (ErrorCode.NamedItemAlreadyExists, []) |]
+                Anonymous t, [| range |> QsCompilerDiagnostic.Error (ErrorCode.NamedItemAlreadyExists, [sym.Value]) |]
             | QsSymbolKind.Symbol sym -> 
                 let info = {IsMutable = false; HasLocalQuantumDependency = false}
                 itemDeclarations.Add { VariableName = sym; Type = t; InferredInformation = info; Position = Null; Range = range }
@@ -305,7 +318,7 @@ module SymbolResolution =
     let internal ResolveAttribute getAttribute (attribute : AttributeAnnotation) =
         let asTypedExression range (exKind, exType) = {
             Expression = exKind
-            TypeParameterResolutions = ImmutableDictionary.Empty
+            TypeArguments = ImmutableArray.Empty
             ResolvedType = exType |> ResolvedType.New
             InferredInformation = {IsMutable = false; HasLocalQuantumDependency = false}
             Range = range}
@@ -353,6 +366,7 @@ module SymbolResolution =
                 let resIdx, idxErrs = ArgExression idx
                 (NewArray (resBaseType, resIdx), ArrayType resBaseType) |> asTypedExression ex.Range, Array.concat [typeErrs; idxErrs]
             // TODO: detect constructor calls
+            | InvalidExpr -> invalidExpr ex.Range, [||]
             | _ -> invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InvalidAttributeArgument |] 
         and aggregateInner vs = 
             let innerExs, errs = vs |> Seq.map ArgExression |> Seq.toList |> List.unzip
@@ -368,9 +382,10 @@ module SymbolResolution =
                 // we can make the following simple check since / as long as there is no variance behavior 
                 // for any of the supported attribute argument types
                 let isError (msg : QsCompilerDiagnostic) = msg.Diagnostic |> function | Error _ -> true | _ -> false
-                if resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo && not (argErrs |> Array.exists isError) then
+                let argIsInvalid = resArg.ResolvedType.Resolution = InvalidType || argErrs |> Array.exists isError
+                if resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo && not argIsInvalid then
                     let mismatchErr = attribute.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeArgumentTypeMismatch, [])
-                    Null |> buildAttribute, Array.concat [errs; argErrs; [| mismatchErr |]] 
+                    Value name |> buildAttribute, Array.concat [errs; argErrs; [| mismatchErr |]] 
                 else Value name |> buildAttribute, errs |> Array.append argErrs
         match attribute.Id.Symbol with 
         | Symbol sym -> getAttribute (None, sym) 
