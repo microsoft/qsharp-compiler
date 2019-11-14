@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <Compile Include="CapabilityLeveler.fs" />
-    <Compile Include="CallGraphWalker.fs" />
   </ItemGroup>
 
   <ItemGroup>
