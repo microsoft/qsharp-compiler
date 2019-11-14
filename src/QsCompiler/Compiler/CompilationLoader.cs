@@ -96,6 +96,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// Otherwise post-condition verifications are skipped. 
             /// </summary>
             public bool EnableAdditionalChecks;
+            /// <summary>
+            /// Handle to pass arbitrary constants with which to populate the corresponding dictionary for loaded rewrite steps. 
+            /// These values will take precedence over any already existing values that the default constructor sets. 
+            /// However, the compiler may overwrite the assembly constants defined for the Q# compilation unit in the dictionary of the loaded step.
+            /// The given dictionary in this configuration is left unchanged in any case. 
+            /// </summary>
+            public IReadOnlyDictionary<string, string> AssemblyConstants; 
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
