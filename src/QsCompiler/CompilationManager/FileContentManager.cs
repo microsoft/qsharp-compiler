@@ -975,7 +975,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all namespace declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        internal IEnumerable<(NonNullable<string>, LSP.Range)> GetNamespaceDeclarations()
+        public IEnumerable<(NonNullable<string>, LSP.Range)> GetNamespaceDeclarations()
         {
             var decl = this.FilterFragments(this.Header.GetNamespaceDeclarations, FileHeader.IsNamespaceDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredNamespaceName(InternalUse.UnknownNamespace), fragment.GetRange()))
@@ -986,7 +986,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all type declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        internal IEnumerable<(NonNullable<string>, LSP.Range)> GetTypeDeclarations()
+        public IEnumerable<(NonNullable<string>, LSP.Range)> GetTypeDeclarations()
         {
             var decl = this.FilterFragments(this.Header.GetTypeDeclarations, FileHeader.IsTypeDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredTypeName(null), fragment.GetRange()))
@@ -997,7 +997,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all callable declarations in the file sorted by the line number they are declared on.
         /// </summary>
-        internal IEnumerable<(NonNullable<string>, LSP.Range)> GetCallableDeclarations()
+        public IEnumerable<(NonNullable<string>, LSP.Range)> GetCallableDeclarations()
         {
             var decl = this.FilterFragments(this.Header.GetCallableDeclarations, FileHeader.IsCallableDeclaration);
             return decl.Select(fragment => (fragment.Kind.DeclaredCallableName(null), fragment.GetRange()))
