@@ -95,31 +95,44 @@ module SymbolResolution =
             else [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithRedirect, [usedName; redirect]) |]
         | Null -> [| |]
 
-    /// Applies the given getRedirect function to the given attributes, 
-    /// and extracts the non-interpolated string argument to the first attribute for which getRedirect returned Some. 
-    /// Returns the extracted string argument as Value, or returns Null if getRedirect returned None for all attributes. 
-    /// The extracted string argument may be null if the argument in question was not a non-interpolated string. 
-    let private DetermineRedirection (getRedirect, getInner) attributes = 
-        let redirection = getRedirect >> function
+    /// Applies the given getArgument function to the given attributes, 
+    /// and extracts and returns the non-interpolated string argument for all attributes for which getArgument returned Some. 
+    /// The returned sequence may contain null if the argument of an attribute for which getArgument returned Some was not a non-interpolated string. 
+    let private StringArgument (getArgument, getInner) attributes = 
+        let argument = getArgument >> function
             | Some redirect -> redirect |> AttributeAnnotation.NonInterpolatedStringArgument getInner |> Some
             | None -> None
-        attributes |> Seq.choose redirection |> Seq.tryHead |> QsNullable<_>.FromOption
+        attributes |> Seq.choose argument 
 
-    /// Checks whether the given attributes indicate the the corresponding declaration has been deprecated. 
+    /// Checks whether the given attributes indicate that the corresponding declaration has been deprecated. 
     /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise. 
     /// The returned string is empty or null if the declaration has been deprecated but an alternative is not specified or could not be determined. 
     /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
     let internal TryFindRedirectInUnresolved checkQualification attributes = 
         let getRedirect (att : AttributeAnnotation) = if att |> IndicatesDeprecation checkQualification then Some att.Argument else None
-        DetermineRedirection (getRedirect, fun ex -> ex.Expression) attributes
+        StringArgument (getRedirect, fun ex -> ex.Expression) attributes |> Seq.tryHead |> QsNullable<_>.FromOption
 
-    /// Checks whether the given attributes indicate the the corresponding declaration has been deprecated. 
+    /// Checks whether the given attributes indicate that the corresponding declaration has been deprecated. 
     /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise. 
     /// The returned string is empty or null if the declaration has been deprecated but an alternative is not specified or could not be determined. 
     /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
     let TryFindRedirect attributes = 
         let getRedirect (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
-        DetermineRedirection (getRedirect, fun ex -> ex.Expression) attributes
+        StringArgument (getRedirect, fun ex -> ex.Expression) attributes |> Seq.tryHead |> QsNullable<_>.FromOption
+
+    /// Checks whether the given attributes indicate that the corresponding declaration contains a unit test. 
+    /// Returns a sequence of strings defining all execution targets on which the test should be run. Invalid execution targets are set to null. 
+    /// The returned sequence is empty if the declaration does not contain a unit test. 
+    let TryFindTestTargets attributes = 
+        let getTarget (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksTestOperation then Some att.Argument else None
+        let validTargets = BuiltIn.ValidExecutionTargets.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
+        let targetName (target : string) = 
+            if target = null then null
+            else target.ToLowerInvariant() |> validTargets.TryGetValue |> function
+                | true, valid -> valid
+                | false, _ -> null
+        StringArgument (getTarget, fun ex -> ex.Expression) attributes 
+        |> Seq.map targetName |> ImmutableHashSet.CreateRange
 
 
     // routines for resolving types and signatures
@@ -305,7 +318,7 @@ module SymbolResolution =
     let internal ResolveAttribute getAttribute (attribute : AttributeAnnotation) =
         let asTypedExression range (exKind, exType) = {
             Expression = exKind
-            TypeParameterResolutions = ImmutableDictionary.Empty
+            TypeArguments = ImmutableArray.Empty
             ResolvedType = exType |> ResolvedType.New
             InferredInformation = {IsMutable = false; HasLocalQuantumDependency = false}
             Range = range}

@@ -96,6 +96,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// Otherwise post-condition verifications are skipped. 
             /// </summary>
             public bool EnableAdditionalChecks;
+            /// <summary>
+            /// Handle to pass arbitrary constants with which to populate the corresponding dictionary for loaded rewrite steps. 
+            /// These values will take precedence over any already existing values that the default constructor sets. 
+            /// However, the compiler may overwrite the assembly constants defined for the Q# compilation unit in the dictionary of the loaded step.
+            /// The given dictionary in this configuration is left unchanged in any case. 
+            /// </summary>
+            public IReadOnlyDictionary<string, string> AssemblyConstants; 
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
@@ -650,7 +657,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             MetadataReference CreateReference(string file, int id) =>
                 MetadataReference.CreateFromFile(file)
-                .WithAliases(new string[] { $"{AssemblyConstants.QSHARP_REFERENCE}{id}" }); // referenced Q# dlls are recognized based on this alias 
+                .WithAliases(new string[] { $"{DotnetCoreDll.ReferenceAlias}{id}" }); // referenced Q# dlls are recognized based on this alias 
 
             // We need to force the inclusion of references despite that we do not include C# code that depends on them. 
             // This is done via generating a certain handle in all dlls built via this compilation loader. 
@@ -664,7 +671,7 @@ namespace Microsoft.Quantum.QsCompiler
                     var metadataReader = assemblyFile.GetMetadataReader();
                     return metadataReader.TypeDefinitions
                         .Select(metadataReader.GetTypeDefinition)
-                        .Any(t => metadataReader.GetString(t.Namespace) == AssemblyConstants.METADATA_NAMESPACE);
+                        .Any(t => metadataReader.GetString(t.Namespace) == DotnetCoreDll.MetadataNamespace);
                 }
                 catch { return false; }
             }
@@ -690,7 +697,7 @@ namespace Microsoft.Quantum.QsCompiler
 
                 using var outputStream = File.OpenWrite(outputPath);
                 serialization.Seek(0, SeekOrigin.Begin);
-                var astResource = new CodeAnalysis.ResourceDescription(AssemblyConstants.AST_RESOURCE_NAME, () => serialization, true);
+                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.ResourceName, () => serialization, true);
                 var result = compilation.Emit(outputStream,
                     options: new CodeAnalysis.Emit.EmitOptions(),
                     manifestResources: new CodeAnalysis.ResourceDescription[] { astResource }
