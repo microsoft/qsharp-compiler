@@ -67,6 +67,12 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
+    static member LevelAttribute = {
+        Name = "Level" |> NonNullable<string>.New
+        Namespace = BuiltIn.CoreNamespace
+        TypeParameters = ImmutableArray.Empty
+    }
+
     // "weak dependencies" in other namespaces (e.g. things used for code actions)
 
     static member IndexRange = {

@@ -395,7 +395,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (header.Kind.IsTypeConstructor) 
                     {
                         var specLocation = new QsLocation(header.Position, header.SymbolRange);
-                        var defaultSpec = new QsSpecialization(QsSpecializationKind.QsBody, header.QualifiedName, header.Attributes, 
+                        var defaultSpec = new QsSpecialization(QsSpecializationKind.QsBody, header.QualifiedName, header.Attributes, CapabilityLevel.Unset, 
                             header.SourceFile, specLocation, QsNullable<ImmutableArray<ResolvedType>>.Null, header.Signature, SpecializationImplementation.Intrinsic, 
                             ImmutableArray<string>.Empty, QsComments.Empty);
                         this.CompiledCallables[fullName] = new QsCallable(header.Kind, header.QualifiedName, header.Attributes, header.SourceFile, specLocation,
@@ -419,7 +419,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                         var compiledSpec = compiledSpecs.Single();
                         var specLocation = new QsLocation(specHeader.Position, specHeader.HeaderRange);
-                        return new QsSpecialization(compiledSpec.Kind, compiledSpec.Parent, compiledSpec.Attributes,
+                        return new QsSpecialization(compiledSpec.Kind, compiledSpec.Parent, compiledSpec.Attributes, CapabilityLevel.Unset,
                             compiledSpec.SourceFile, specLocation, compiledSpec.TypeArguments, compiledSpec.Signature, compiledSpec.Implementation, 
                             compiledSpec.Documentation, compiledSpec.Comments); 
                     })
@@ -454,7 +454,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var specSignature = specHeader.Kind.IsQsControlled || specHeader.Kind.IsQsControlledAdjoint 
                     ? SyntaxGenerator.BuildControlled(header.Signature) 
                     : header.Signature;
-                return new QsSpecialization(specHeader.Kind, header.QualifiedName, specHeader.Attributes,
+                return new QsSpecialization(specHeader.Kind, header.QualifiedName, specHeader.Attributes, CapabilityLevel.Unset,
                     specHeader.SourceFile, specLocation, specHeader.TypeArguments, specSignature,
                     implementation, specHeader.Documentation, QsComments.Empty);
             })
