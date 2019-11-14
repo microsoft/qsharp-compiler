@@ -118,9 +118,6 @@
     <None Include="TestFiles\test-02.qs">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\CapabilityLevels.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <Compile Include="..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="TestUtils.fs" />
     <Compile Include="TextTests.fs" />
@@ -139,7 +136,6 @@
     <Compile Include="CommandLineTests.fs" />
     <Compile Include="SymbolManagementTests.fs" />
     <Compile Include="OptimizationTests.fs" />
-    <Compile Include="CapabilityLevelerTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -154,7 +150,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CommandLineTool\CommandLineTool.csproj" />
-    <ProjectReference Include="..\QsTargeting\Targeting.fsproj" />
     <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>

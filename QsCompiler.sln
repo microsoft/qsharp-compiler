@@ -44,8 +44,6 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Optimizations", "src\QsComp
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B4A9484D-31FC-4A27-9E26-4C8DE3E02D77}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Targeting", "src\QsCompiler\QsTargeting\Targeting.fsproj", "{C4279E56-33ED-450A-B547-6752D6926052}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -260,18 +258,6 @@ Global
 		{31085984-3DA6-43C7-B0AA-CE62DC60BB56}.Release|x64.Build.0 = Release|Any CPU
 		{31085984-3DA6-43C7-B0AA-CE62DC60BB56}.Release|x86.ActiveCfg = Release|Any CPU
 		{31085984-3DA6-43C7-B0AA-CE62DC60BB56}.Release|x86.Build.0 = Release|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Debug|x64.Build.0 = Debug|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Debug|x86.Build.0 = Debug|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Release|x64.ActiveCfg = Release|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Release|x64.Build.0 = Release|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Release|x86.ActiveCfg = Release|Any CPU
-		{C4279E56-33ED-450A-B547-6752D6926052}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
