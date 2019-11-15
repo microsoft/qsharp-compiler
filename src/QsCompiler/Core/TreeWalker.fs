@@ -9,7 +9,6 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-// This are inherited here from TreeTransformation.fs; kept here as comments for documentation.
 //type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 
 
