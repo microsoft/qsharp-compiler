@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -37,10 +38,38 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransf
         /// </summary>
         private static QsNamespace MergeNamespaces(QsNamespace overriding, QsNamespace accepting)
         {
-            var overridingNames = overriding.Elements.Select(x => x.FullName).ToImmutableHashSet();
+            var overridingNames = overriding.Elements.ToImmutableDictionary(x => x.FullName);
+
+            // Check that overriding elems and accepting elems with the same names are
+            // the same kind of elems and have the same signatures if they are callables
+            foreach (var elem in accepting.Elements)
+            {
+                if (overridingNames.TryGetValue(elem.FullName, out var overrideElem))
+                {
+                    if (elem is QsNamespaceElement.QsCallable call)
+                    {
+                        if (overrideElem is QsNamespaceElement.QsCallable overrideCall)
+                        {
+                            if (call.Item.Signature != overrideCall.Item.Signature)
+                            {
+                                throw new Exception($"Callable {overrideCall.FullName} in environment compilation does not have the same signature as callable {call.FullName} in target compilation");
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception($"Custom type {overrideElem.FullName} in environment compilation has the same name as callable {call.FullName} in target compilation");
+                        }
+                    }
+
+                    if (elem is QsNamespaceElement.QsCustomType && !(overrideElem is QsNamespaceElement.QsCustomType))
+                    {
+                        throw new Exception($"Callable {overrideElem.FullName} in environment compilation has the same name as custom type {elem.FullName} in target compilation");
+                    }
+                }
+            }
 
             return accepting.WithElements(_ => accepting.Elements
-                .Where(elem => !overridingNames.Contains(elem.FullName))
+                .Where(elem => !overridingNames.ContainsKey(elem.FullName))
                 .Concat(overriding.Elements)
                 .ToImmutableArray());
         }
