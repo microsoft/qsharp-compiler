@@ -249,13 +249,13 @@ type InferredCallableInformation = {
     IsIntrinsic : bool
 }
     with
-    static member NoInformation = {IsSelfAdjoint = false; IsIntrinsic = false}
+    static member NoInformation = {IsSelfAdjoint = false; IsIntrinsic = false;}
 
     /// Determines the information that was inferred for all given items.
     static member Common (infos : InferredCallableInformation seq) =
         let allAreIntrinsic = infos |> Seq.map (fun info -> info.IsIntrinsic) |> Seq.contains false |> not
         let allAreSelfAdjoint = infos |> Seq.map (fun info -> info.IsSelfAdjoint) |> Seq.contains false |> not
-        {IsIntrinsic = allAreIntrinsic; IsSelfAdjoint = allAreSelfAdjoint}
+        {IsIntrinsic = allAreIntrinsic; IsSelfAdjoint = allAreSelfAdjoint;}
 
 
 /// Contains information associated with a fully resolved operation type.
