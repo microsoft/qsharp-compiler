@@ -50,20 +50,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransf
                     {
                         if (overrideElem is QsNamespaceElement.QsCallable overrideCall)
                         {
-                            if (call.Item.Signature != overrideCall.Item.Signature)
+                            if (!CompareSigs(call.Item.Signature, overrideCall.Item.Signature))
                             {
-                                throw new Exception($"Callable {overrideCall.FullName} in environment compilation does not have the same signature as callable {call.FullName} in target compilation");
+                                throw new Exception($"Callable {overrideCall.FullName.FullName} in environment compilation does not have the same signature as callable {call.FullName.FullName} in target compilation");
                             }
                         }
                         else
                         {
-                            throw new Exception($"Custom type {overrideElem.FullName} in environment compilation has the same name as callable {call.FullName} in target compilation");
+                            throw new Exception($"Custom type {overrideElem.FullName.FullName} in environment compilation has the same name as callable {call.FullName.FullName} in target compilation");
                         }
                     }
 
                     if (elem is QsNamespaceElement.QsCustomType && !(overrideElem is QsNamespaceElement.QsCustomType))
                     {
-                        throw new Exception($"Callable {overrideElem.FullName} in environment compilation has the same name as custom type {elem.FullName} in target compilation");
+                        throw new Exception($"Callable {overrideElem.FullName.FullName} in environment compilation has the same name as custom type {elem.FullName.FullName} in target compilation");
                     }
                 }
             }
@@ -72,6 +72,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransf
                 .Where(elem => !overridingNames.ContainsKey(elem.FullName))
                 .Concat(overriding.Elements)
                 .ToImmutableArray());
+        }
+
+        private static bool CompareSigs(ResolvedSignature first, ResolvedSignature second)
+        {
+            return
+                first.ArgumentType.Resolution == second.ArgumentType.Resolution &&
+                first.ReturnType.Resolution == second.ReturnType.Resolution &&
+                first.TypeParameters == second.TypeParameters;
+                // ToDo: check that they implement the same specializations
         }
     }
 }
