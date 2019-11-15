@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -35,45 +37,44 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransf
         /// Returns a copy of the accepting namespace that includes all the elements from the overriding namespace.
         /// If there are elements found in both namespaces, the resulting ns takes the overriding ns's version of the elements
         /// The resulting namespace takes the overriding namespace's version of the elements found in both input namespaces.
+        /// Custom type elements are treated separately from callable elements.
         /// </summary>
         private static QsNamespace MergeNamespaces(QsNamespace overriding, QsNamespace accepting)
         {
-            var overridingNames = overriding.Elements.ToImmutableDictionary(x => x.FullName);
+            return accepting.WithElements(_ =>
+                MergeElements(overriding.Elements.Where(x => x.IsQsCallable), accepting.Elements.Where(x => x.IsQsCallable), true)
+                .Concat(MergeElements(overriding.Elements.Where(x => x.IsQsCustomType), accepting.Elements.Where(x => x.IsQsCustomType), false))
+                .ToImmutableArray());
+        }
 
-            // Check that overriding elems and accepting elems with the same names are
-            // the same kind of elems and have the same signatures if they are callables
-            foreach (var elem in accepting.Elements)
+        private static IEnumerable<QsNamespaceElement> MergeElements(IEnumerable<QsNamespaceElement> overriding, IEnumerable<QsNamespaceElement> accepting, bool checkSignature = false)
+        {
+            var overridingNames = overriding.ToImmutableDictionary(x => x.FullName);
+
+            if (checkSignature) // Check that overriding elems and accepting elems with the same names have the same signatures if they are callables
             {
-                if (overridingNames.TryGetValue(elem.FullName, out var overrideElem))
+                foreach (var elem in accepting)
                 {
-                    if (elem is QsNamespaceElement.QsCallable call)
+                    if (overridingNames.TryGetValue(elem.FullName, out var overrideElem))
                     {
-                        if (overrideElem is QsNamespaceElement.QsCallable overrideCall)
+                        if (elem is QsNamespaceElement.QsCallable elemCall && overrideElem is QsNamespaceElement.QsCallable overrideCall)
                         {
-                            if (!CompareSigs(call.Item.Signature, overrideCall.Item.Signature))
+                            if (!CompareSigs(elemCall.Item.Signature, overrideCall.Item.Signature))
                             {
-                                throw new Exception($"Callable {overrideCall.FullName.FullName} in environment compilation does not have the same signature as callable {call.FullName.FullName} in target compilation");
+                                throw new Exception($"Callable {overrideCall.FullName.FullName} in environment compilation does not have the same signature as callable {elemCall.FullName.FullName} in target compilation");
                             }
                         }
-                        else
-                        {
-                            throw new Exception($"Custom type {overrideElem.FullName.FullName} in environment compilation has the same name as callable {call.FullName.FullName} in target compilation");
-                        }
-                    }
 
-                    if (elem is QsNamespaceElement.QsCustomType && !(overrideElem is QsNamespaceElement.QsCustomType))
-                    {
-                        throw new Exception($"Callable {overrideElem.FullName.FullName} in environment compilation has the same name as custom type {elem.FullName.FullName} in target compilation");
                     }
                 }
             }
 
-            return accepting.WithElements(_ => accepting.Elements
+            return accepting
                 .Where(elem => !overridingNames.ContainsKey(elem.FullName))
-                .Concat(overriding.Elements)
-                .ToImmutableArray());
+                .Concat(overriding);
         }
 
+        // ToDo: There should be a standardized way of checking if two signatures are the same
         private static bool CompareSigs(ResolvedSignature first, ResolvedSignature second)
         {
             return
