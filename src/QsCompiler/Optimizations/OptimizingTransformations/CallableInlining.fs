@@ -48,11 +48,11 @@ let rec private tryGetQualNameAndFunctors method =
 /// Assumes the input is zero or more functors applied to a global callable identifier,
 /// applied to an expression representing the argument to the callable.
 /// Returns None if the input is not a valid expression of this form.
-let private trySplitCall (callables: Callables) = function
+let private trySplitCall (callables: ImmutableDictionary<QsQualifiedName, QsCallable>) = function
     | x when TypedExpression.IsPartialApplication x -> None
     | CallLikeExpression (method, arg) ->
         tryGetQualNameAndFunctors method |> Option.map (fun (qualName, functors) ->
-            functors, callables.get qualName, arg)
+            functors, callables.[qualName], arg)
     | _ -> None
 
 
@@ -102,7 +102,7 @@ let private tryGetInliningInfo callables expr =
 /// then findAllCalls f will include both g and h (and possibly other callables).
 /// Mutates the given HashSet by adding all the found callables to the set.
 /// Is used to prevent inlining recursive functions into themselves forever.
-let rec private findAllCalls (callables: Callables) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
+let rec private findAllCalls (callables: ImmutableDictionary<QsQualifiedName, QsCallable>) (scope: QsScope) (found: HashSet<QsQualifiedName>): unit =
     scope |> findAllSubStatements |> Seq.iter (function
         | QsExpressionStatement ex ->
             match tryGetInliningInfo callables ex with
@@ -115,7 +115,7 @@ let rec private findAllCalls (callables: Callables) (scope: QsScope) (found: Has
 
 /// Returns whether the given callable could eventually inline the given callable.
 /// Is used to prevent inlining recursive functions into themselves forever.
-let private cannotReachCallable (callables: Callables) (scope: QsScope) (cannotReach: QsQualifiedName) =
+let private cannotReachCallable (callables: ImmutableDictionary<QsQualifiedName, QsCallable>) (scope: QsScope) (cannotReach: QsQualifiedName) =
     let mySet = HashSet()
     findAllCalls callables scope mySet
     not (mySet.Contains cannotReach)

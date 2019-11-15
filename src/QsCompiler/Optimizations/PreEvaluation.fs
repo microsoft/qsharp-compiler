@@ -6,7 +6,6 @@ namespace Microsoft.Quantum.QsCompiler.Optimizations
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
-open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.Optimizations.Tools
 open Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming
 open Microsoft.Quantum.QsCompiler.Optimizations.VariableRemoving
@@ -29,7 +28,7 @@ type PreEvaluation =
     /// function that takes as input such a dictionary of callables.
     ///
     /// Disclaimer: This is an experimental feature.
-    static member Script (script : Callables -> OptimizingTransformation list) (arg : QsCompilation) =
+    static member Script (script : ImmutableDictionary<QsQualifiedName, QsCallable> -> OptimizingTransformation list) (arg : QsCompilation) =
 
         // TODO: this should actually only evaluate everything for each entry point
         let rec evaluate (tree : _ list) = 
@@ -37,7 +36,7 @@ type PreEvaluation =
             tree <- List.map (StripAllKnownSymbols().Transform) tree
             tree <- List.map (VariableRenamer().Transform) tree
 
-            let callables = GlobalCallableResolutions tree |> Callables // needs to be constructed in every iteration
+            let callables = GlobalCallableResolutions tree // needs to be constructed in every iteration
             let optimizers = script callables
             for opt in optimizers do tree <- List.map opt.Transform tree
             if optimizers |> List.exists (fun opt -> opt.checkChanged()) then evaluate tree 
