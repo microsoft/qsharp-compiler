@@ -134,11 +134,10 @@ type LinkingTests (output:ITestOutputHelper) =
     member this.``Intrinsic Resolution Returns UDT`` () =
         this.RunIntrinsicResolutionTest 2
 
-    (* ToDo: Address error testing for transformation
+    
     [<Fact>]
     member this.``Intrinsic Resolution Type Mismatch Error`` () =
-        this.RunIntrinsicResolutionTest 3
-    *)
+        Assert.Throws<Exception> (fun _ -> this.RunIntrinsicResolutionTest 3) |> ignore
 
 
     [<Fact>]
@@ -151,11 +150,9 @@ type LinkingTests (output:ITestOutputHelper) =
         this.RunIntrinsicResolutionTest 5
 
 
-    (* ToDo: Address error testing for transformation
     [<Fact>]
     member this.``Intrinsic Resolution Spec Mismatch Error`` () =
-        this.RunIntrinsicResolutionTest 6
-    *)
+        Assert.Throws<Exception> (fun _ -> this.RunIntrinsicResolutionTest 6) |> ignore
 
 
     [<Fact>]
