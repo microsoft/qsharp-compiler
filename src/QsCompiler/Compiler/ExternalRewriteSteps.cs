@@ -209,7 +209,7 @@ namespace Microsoft.Quantum.QsCompiler
 
                     var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null; 
                     assemblyConstants[AssemblyConstants.OutputPath] = outputFolder ?? defaultOutput ?? config.BuildOutputFolder;
-                    assemblyConstants[AssemblyConstants.AssemblyName] = config.ProjectName;
+                    assemblyConstants[AssemblyConstants.AssemblyName] = config.ProjectNameWithoutExtension;
                 }
 
                 loadedSteps.Sort((fst, snd) => snd.Priority - fst.Priority);

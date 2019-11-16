@@ -110,6 +110,24 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal bool SerializeSyntaxTree =>
                 BuildOutputFolder != null || DllOutputPath != null;
+
+            /// <summary>
+            /// If the ProjectName does not have an ending "proj", appends a .qsproj ending to the project name. 
+            /// Returns null if the project name is null. 
+            /// </summary>
+            internal string ProjectNameWithExtension =>
+                this.ProjectName == null ? null :
+                this.ProjectName.EndsWith("proj") ? this.ProjectName : 
+                $"{this.ProjectName}.qsproj";
+
+            /// <summary>
+            /// If the ProjectName does have an extension ending with "proj", returns the project name without that extension. 
+            /// Returns null if the project name is null. 
+            /// </summary>
+            internal string ProjectNameWithoutExtension =>
+                this.ProjectName == null ? null :
+                Path.GetExtension(this.ProjectName).EndsWith("proj") ? Path.GetFileNameWithoutExtension(this.ProjectName) :
+                this.ProjectName;
         }
 
         /// <summary>
@@ -566,7 +584,7 @@ namespace Microsoft.Quantum.QsCompiler
             void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, ex);
             void onDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.CompilationStatus.ReferenceLoading, d);
             var headers = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), onDiagnostic, onException);
-            var projId = this.Config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.Config.ProjectName), "qsproj");
+            var projId = this.Config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.Config.ProjectNameWithExtension), "qsproj");
             var references = new References(headers, (code, args) => onDiagnostic(Errors.LoadError(code, args, projId)));
             this.PrintResolvedAssemblies(references.Declarations.Keys);
             return references;
@@ -617,7 +635,7 @@ namespace Microsoft.Quantum.QsCompiler
             if (serialization == null) throw new ArgumentNullException(nameof(serialization));
             this.CompilationStatus.BinaryFormat = 0;
 
-            var projId = NonNullable<string>.New(Path.GetFullPath(this.Config.ProjectName ?? Path.GetRandomFileName()));
+            var projId = NonNullable<string>.New(Path.GetFullPath(this.Config.ProjectNameWithExtension ?? Path.GetRandomFileName()));
             var outFolder = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.BuildOutputFolder) ? "." : this.Config.BuildOutputFolder);
             var target = GeneratedFile(projId, outFolder, ".bson", "");
 
@@ -651,7 +669,7 @@ namespace Microsoft.Quantum.QsCompiler
             if (serialization == null) throw new ArgumentNullException(nameof(serialization));
             this.CompilationStatus.DllGeneration = 0;
 
-            var fallbackFileName = (this.PathToCompiledBinary ?? this.Config.ProjectName) ?? Path.GetRandomFileName();
+            var fallbackFileName = (this.PathToCompiledBinary ?? this.Config.ProjectNameWithExtension) ?? Path.GetRandomFileName();
             var outputPath = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DllOutputPath) ? fallbackFileName : this.Config.DllOutputPath);
             outputPath = Path.ChangeExtension(outputPath, "dll");
 
@@ -689,7 +707,7 @@ namespace Microsoft.Quantum.QsCompiler
                 }
 
                 var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
-                    this.Config.ProjectName ?? Path.GetFileNameWithoutExtension(outputPath),
+                    this.Config.ProjectNameWithoutExtension ?? Path.GetFileNameWithoutExtension(outputPath),
                     syntaxTrees: new[] { csharpTree },
                     references: references.Select(r => r.Item2).Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location)), // if System.Object can't be found a warning is generated
                     options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
