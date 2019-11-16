@@ -189,7 +189,8 @@ type ExpressionKindTransformation(?enable) =
             | ExpressionType.Operation _                                                     -> this.onOperationCall (method, arg)
             | _                                                                              -> this.onFunctionCall (method, arg)
 
-    member this.Transform kind = 
+    abstract member Transform : ExpressionKind -> ExpressionKind
+    default this.Transform kind = 
         if not enable then kind else 
         match kind with 
         | Identifier (sym, tArgs)                          -> this.onIdentifier                 (sym, tArgs)

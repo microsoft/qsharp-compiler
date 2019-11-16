@@ -27,7 +27,7 @@ type private Counter () =
     member val ifsCount = 0 with get, set            
 
 type private StatementKindCounter(stm, counter : Counter) = 
-    inherit StatementKindTransformation<StatementCounter>(stm)
+    inherit StatementKindWalker<StatementCounter>(stm)
 
     override this.onConditionalStatement (node:QsConditionalStatement) =
         counter.ifsCount <- counter.ifsCount + 1
@@ -38,30 +38,29 @@ type private StatementKindCounter(stm, counter : Counter) =
         base.onForStatement node
 
 and private StatementCounter(counter) = 
-    inherit ScopeTransformation<StatementKindCounter, ExpressionCounter>
+    inherit ScopeWalker<StatementKindCounter, ExpressionCounter>
             (Func<_,_>(fun s -> new StatementKindCounter(s :?> StatementCounter, counter)), new ExpressionCounter(counter))
                 
 and private ExpressionKindCounter(ex, counter : Counter) = 
-    inherit ExpressionKindTransformation<ExpressionCounter>(ex)
+    inherit ExpressionKindWalker<ExpressionCounter>(ex)
 
     override this.beforeCallLike (op,args) =
         counter.callsCount <- counter.callsCount + 1
-        (op,args)
+        base.beforeCallLike (op, args)
 
 and private ExpressionCounter(counter) = 
-    inherit ExpressionTransformation<ExpressionKindCounter>
+    inherit ExpressionWalker<ExpressionKindCounter>
             (new Func<_,_>(fun e -> new ExpressionKindCounter(e :?> ExpressionCounter, counter)))
 
 
 type private SyntaxCounter(counter) = 
-    inherit SyntaxTreeTransformation<StatementCounter>(new StatementCounter(counter))
+    inherit SyntaxTreeWalker<StatementCounter>(new StatementCounter(counter))
 
     override this.beforeCallable (node:QsCallable) =
         match node.Kind with
         | Operation ->       counter.opsCount <- counter.opsCount + 1
         | Function  ->       counter.funCount <- counter.funCount + 1
         | TypeConstructor -> ()
-        node
     
     override this.onType (udt:QsCustomType) =
         counter.udtCount <- counter.udtCount + 1
@@ -84,7 +83,7 @@ let private buildSyntaxTree code =
 let ``basic walk`` () = 
     let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
     let counter = new Counter()
-    tree |> Seq.map (SyntaxCounter(counter)).Transform |> Seq.toList |> ignore
+    tree |> Seq.iter (SyntaxCounter(counter)).Walk
         
     Assert.Equal (4, counter.udtCount)
     Assert.Equal (1, counter.funCount)

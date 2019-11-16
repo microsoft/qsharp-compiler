@@ -5,7 +5,7 @@ module Microsoft.Quantum.QsCompiler.Optimizations.VariableRemoving
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
-open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
+open Microsoft.Quantum.QsCompiler.Optimizations.Tools
 open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
