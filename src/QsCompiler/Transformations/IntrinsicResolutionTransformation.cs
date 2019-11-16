@@ -48,24 +48,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransf
 
         private static IEnumerable<QsNamespaceElement> MergeElements(IEnumerable<QsNamespaceElement> overriding, IEnumerable<QsNamespaceElement> accepting, bool checkSignature = false)
         {
-            var overridingNames = overriding.ToImmutableDictionary(x => x.FullName);
+            var overridingNames = overriding.ToImmutableDictionary(x => x.GetFullName());
 
             if (checkSignature) // Check that overriding elems and accepting elems with the same names have the same signatures if they are callables
             {
                 foreach (var elem in accepting)
                 {
-                    if (overridingNames.TryGetValue(elem.FullName, out var overrideElem) &&
+                    if (overridingNames.TryGetValue(elem.GetFullName(), out var overrideElem) &&
                         elem is QsNamespaceElement.QsCallable elemCall &&
                         overrideElem is QsNamespaceElement.QsCallable overrideCall &&
                         !CompareSigs(elemCall.Item.Signature, overrideCall.Item.Signature))
                     {
-                        throw new Exception($"Callable {overrideCall.FullName.FullName} in environment compilation does not have the same signature as callable {elemCall.FullName.FullName} in target compilation");
+                        throw new Exception($"Callable {overrideCall.GetFullName()} in environment compilation does not have the same signature as callable {elemCall.GetFullName()} in target compilation");
                     }
                 }
             }
 
             return accepting
-                .Where(elem => !overridingNames.ContainsKey(elem.FullName))
+                .Where(elem => !overridingNames.ContainsKey(elem.GetFullName()))
                 .Concat(overriding);
         }
 

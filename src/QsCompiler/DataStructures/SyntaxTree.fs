@@ -67,7 +67,7 @@ type QsQualifiedName = {
     /// the declared name of the namespace element
     Name : NonNullable<string>
 }
-    with member this.FullName = this.Namespace.Value + "." + this.Name.Value
+    with override this.ToString () = this.Namespace.Value + "." + this.Name.Value
 
 
 type SymbolTuple =
@@ -728,7 +728,7 @@ type QsNamespaceElement =
 | QsCallable of QsCallable
 /// denotes a Q# user defined type
 | QsCustomType of QsCustomType
-    member this.FullName =
+    member this.GetFullName () =
         match this with
         | QsCallable call -> call.FullName
         | QsCustomType typ -> typ.FullName
