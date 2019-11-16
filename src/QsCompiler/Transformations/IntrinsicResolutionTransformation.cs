@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -55,16 +54,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransf
             {
                 foreach (var elem in accepting)
                 {
-                    if (overridingNames.TryGetValue(elem.FullName, out var overrideElem))
+                    if (overridingNames.TryGetValue(elem.FullName, out var overrideElem) &&
+                        elem is QsNamespaceElement.QsCallable elemCall &&
+                        overrideElem is QsNamespaceElement.QsCallable overrideCall &&
+                        !CompareSigs(elemCall.Item.Signature, overrideCall.Item.Signature))
                     {
-                        if (elem is QsNamespaceElement.QsCallable elemCall && overrideElem is QsNamespaceElement.QsCallable overrideCall)
-                        {
-                            if (!CompareSigs(elemCall.Item.Signature, overrideCall.Item.Signature))
-                            {
-                                throw new Exception($"Callable {overrideCall.FullName.FullName} in environment compilation does not have the same signature as callable {elemCall.FullName.FullName} in target compilation");
-                            }
-                        }
-
+                        throw new Exception($"Callable {overrideCall.FullName.FullName} in environment compilation does not have the same signature as callable {elemCall.FullName.FullName} in target compilation");
                     }
                 }
             }
@@ -74,14 +69,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransf
                 .Concat(overriding);
         }
 
-        // ToDo: There should be a standardized way of checking if two signatures are the same
         private static bool CompareSigs(ResolvedSignature first, ResolvedSignature second)
         {
             return
-                first.ArgumentType.Resolution == second.ArgumentType.Resolution &&
-                first.ReturnType.Resolution == second.ReturnType.Resolution &&
-                first.TypeParameters == second.TypeParameters;
-                // ToDo: check that they implement the same specializations
+                StripPositionInfo.Apply(first.ArgumentType).Equals(StripPositionInfo.Apply(second.ArgumentType)) &&
+                StripPositionInfo.Apply(first.ReturnType).Equals(StripPositionInfo.Apply(second.ReturnType)) &&
+                !first.TypeParameters.Select((val, i) => val.Equals(second.TypeParameters[i])).Any(x => !x) && // ToDo: this should be a more robust check
+                first.Information.Characteristics.GetProperties().SetEquals(second.Information.Characteristics.GetProperties());
         }
     }
 }
