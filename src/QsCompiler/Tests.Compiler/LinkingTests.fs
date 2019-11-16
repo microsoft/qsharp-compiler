@@ -11,7 +11,6 @@ open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
@@ -22,17 +21,6 @@ open Xunit.Abstractions
 
 type LinkingTests (output:ITestOutputHelper) =
     inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"], output)
-
-    static let typeMap =
-        [|
-            "Unit", QsTypeKind.UnitType;
-            "Int", QsTypeKind.Int;
-            "Double", QsTypeKind.Double;
-            "String", QsTypeKind.String;
-            "Qubit", QsTypeKind.Qubit;
-            "Qubit[]", ResolvedType.New QsTypeKind.Qubit |> QsTypeKind.ArrayType;
-        |] 
-        |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
 
@@ -97,6 +85,31 @@ type LinkingTests (output:ITestOutputHelper) =
 
         IntrinsicResolutionTransformation.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
 
+    member private this.RunIntrinsicResolutionTest testNumber =
+        
+        let srcChunks = LinkingTests.ReadAndChunkSourceFile "IntrinsicResolution.qs"
+        srcChunks.Length >= 2*testNumber |> Assert.True
+        let chunckNumber = 2 * (testNumber - 1)
+        let result = this.CompileIntrinsicResolution srcChunks.[chunckNumber] srcChunks.[chunckNumber+1]
+        Signatures.SignatureCheck [Signatures.IntrinsicResolutionNs] Signatures.IntrinsicResolutionSignatures.[testNumber-1] result
+
+        (*Find the overridden operation in the appropriate namespace*)
+        let targetCallName = QsQualifiedName.New(NonNullable<_>.New Signatures.IntrinsicResolutionNs, NonNullable<_>.New "Override")
+        let targetCallable =
+            result.Namespaces
+            |> Seq.find (fun ns -> ns.Name.Value = Signatures.IntrinsicResolutionNs)
+            |> (fun x -> [x]) |> SyntaxExtensions.Callables
+            |> Seq.find (fun call -> call.FullName = targetCallName)
+
+        (*Check that the operation is not intrinsic*)
+        targetCallable.Specializations.Length > 0 |> Assert.True
+        targetCallable.Specializations
+        |> Seq.map (fun spec ->
+            match spec.Implementation with
+            | Provided _ -> true
+            | _ -> false
+            |> Assert.True)
+        |> ignore
 
     [<Fact>]
     member this.``Monomorphization`` () =
@@ -114,26 +127,35 @@ type LinkingTests (output:ITestOutputHelper) =
 
     [<Fact>]
     member this.``Intrinsic Resolution`` () =
+        this.RunIntrinsicResolutionTest 1
 
-        let srcChunks = LinkingTests.ReadAndChunkSourceFile "IntrinsicResolution.qs"
-        srcChunks.Length = 2 |> Assert.True
-        let result = this.CompileIntrinsicResolution srcChunks.[0] srcChunks.[1]
-        Signatures.SignatureCheck [Signatures.IntrinsicResolutionNs] Signatures.IntrinsicResolutionSignatures.[0] result
 
-        (*Find the overridden operation in the appropriate namespace*)
-        let targetCallName = QsQualifiedName.New(NonNullable<_>.New Signatures.IntrinsicResolutionNs, NonNullable<_>.New "Override")
-        let targetCallable =
-            result.Namespaces
-            |> Seq.find (fun ns -> ns.Name.Value = Signatures.IntrinsicResolutionNs)
-            |> (fun x -> [x]) |> SyntaxExtensions.Callables
-            |> Seq.find (fun call -> call.FullName = targetCallName)
+    [<Fact>]
+    member this.``Intrinsic Resolution Returns UDT`` () =
+        this.RunIntrinsicResolutionTest 2
 
-        (*Check that the operation is not intrinsic*)
-        targetCallable.Specializations.Length = 1 |> Assert.True
-        match targetCallable.Specializations.[0].Implementation with
-        | Provided _ -> true
-        | _ -> false
-        |> Assert.True
+    (* ToDo: Address error testing for transformation
+    [<Fact>]
+    member this.``Intrinsic Resolution Type Mismatch Error`` () =
+        this.RunIntrinsicResolutionTest 3
+    *)
+
+
+    [<Fact>]
+    member this.``Intrinsic Resolution Param UDT`` () =
+        this.RunIntrinsicResolutionTest 4
+
+
+    [<Fact>]
+    member this.``Intrinsic Resolution With Adj`` () =
+        this.RunIntrinsicResolutionTest 5
+
+
+    (* ToDo: Address error testing for transformation
+    [<Fact>]
+    member this.``Intrinsic Resolution Spec Mismatch Error`` () =
+        this.RunIntrinsicResolutionTest 6
+    *)
 
 
     [<Fact>]

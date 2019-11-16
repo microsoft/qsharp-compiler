@@ -1,147 +1,184 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.Testing
+module Microsoft.Quantum.QsCompiler.Testing.Signatures
 
+open System.Collections.Generic
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open System.Collections.Immutable
 open Xunit
-
-[<AbstractClass; Sealed>]
-type Signatures private () =
     
-    static member private _TypeMap =
-        [|
-            "Unit", QsTypeKind.UnitType;
-            "Int", QsTypeKind.Int;
-            "Double", QsTypeKind.Double;
-            "String", QsTypeKind.String;
-            "Qubit", QsTypeKind.Qubit;
-            "Qubit[]", ResolvedType.New QsTypeKind.Qubit |> QsTypeKind.ArrayType;
-        |] 
-        |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
+let private _BaseTypes =
+    [|
+        "Unit", UnitType;
+        "Int", Int;
+        "Double", Double;
+        "String", String;
+        "Qubit", Qubit;
+        "Qubit[]", ResolvedType.New Qubit |> ArrayType;
+    |]
     
-    static member private _MakeSig input =
-        let ns, name, args, rtrn = input
-        let fullName = { Namespace = NonNullable<string>.New ns; Name = NonNullable<string>.New name }
-        let argType =
-            if Array.isEmpty args then
-                Signatures._TypeMap.["Unit"]
-            else
-                args |> Seq.map (fun typ -> Signatures._TypeMap.[typ]) |> ImmutableArray.ToImmutableArray |> QsTypeKind.TupleType |> ResolvedType.New
-        let returnType = Signatures._TypeMap.[rtrn]
-        (fullName, argType, returnType)
+let private _MakeTypeMap udts =
+    Array.concat
+        [
+            _BaseTypes
+            udts
+        ]
+    |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
 
-    /// For all given namespaces in checkedNamespaces, checks that there are exactly
-    /// the callables specified with targetSignatures in the given compilation.
-    static member public SignatureCheck checkedNamespaces targetSignatures compilation =
+let private _DefaultTypes = _MakeTypeMap [||]
 
-        let getNs targetNs =
-            match Seq.tryFind (fun (ns : QsNamespace) -> ns.Name.Value = targetNs) compilation.Namespaces with
-            | Some ns -> ns
-            | None -> sprintf "Expected but did not find namespace: %s" targetNs |> failwith
+let private _MakeSig input (typeMap : IDictionary<string,ResolvedType> ) =
+    let ns, name, args, rtrn = input
+    let fullName = { Namespace = NonNullable<string>.New ns; Name = NonNullable<string>.New name }
+    let argType =
+        if Array.isEmpty args then
+            typeMap.["Unit"]
+        else
+            args |> Seq.map (fun typ -> typeMap.[typ]) |> ImmutableArray.ToImmutableArray |> QsTypeKind.TupleType |> ResolvedType.New
+    let returnType = typeMap.[rtrn]
+    (fullName, argType, returnType)
 
-        let callableSigs =
-            checkedNamespaces
-            |> Seq.map (fun checkedNs -> getNs checkedNs)
-            |> SyntaxExtensions.Callables
-            |> Seq.map (fun call -> (call.FullName, call.Signature.ArgumentType, call.Signature.ReturnType))
+let private _MakeSignatures sigs =
+    sigs
+    |> Seq.map (fun (types, case) -> Seq.map (fun _sig -> _MakeSig _sig types) case)
+    |> Seq.toArray
 
-        let doesCallMatchSig call signature =
-            let (call_fullName : QsQualifiedName), call_argType, call_rtrnType = call
-            let (sig_fullName : QsQualifiedName), sig_argType, sig_rtrnType = signature
+/// For all given namespaces in checkedNamespaces, checks that there are exactly
+/// the callables specified with targetSignatures in the given compilation.
+let public SignatureCheck checkedNamespaces targetSignatures compilation =
 
-            call_fullName.Namespace.Value = sig_fullName.Namespace.Value &&
-            call_fullName.Name.Value.EndsWith sig_fullName.Name.Value &&
-            call_argType = sig_argType &&
-            call_rtrnType = sig_rtrnType
+    let getNs targetNs =
+        match Seq.tryFind (fun (ns : QsNamespace) -> ns.Name.Value = targetNs) compilation.Namespaces with
+        | Some ns -> ns
+        | None -> sprintf "Expected but did not find namespace: %s" targetNs |> failwith
 
-        let makeArgsString (args : ResolvedType) =
-            match args.Resolution with
-            | QsTypeKind.UnitType -> "()"
-            | _ -> args |> (ExpressionToQs () |> ExpressionTypeToQs).Apply
+    let callableSigs =
+        checkedNamespaces
+        |> Seq.map (fun checkedNs -> getNs checkedNs)
+        |> SyntaxExtensions.Callables
+        |> Seq.map (fun call -> (call.FullName, StripPositionInfo.Apply call.Signature.ArgumentType, StripPositionInfo.Apply call.Signature.ReturnType))
 
-        (*Tests that all target signatures are present*)
-        for targetSig in targetSignatures do
-            let sig_fullName, sig_argType, sig_rtrnType = targetSig
-            callableSigs
-            |> Seq.exists (fun callSig -> doesCallMatchSig callSig targetSig)
-            |> (fun x -> Assert.True (x, sprintf "Expected but did not find: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
+    let doesCallMatchSig call signature =
+        let (call_fullName : QsQualifiedName), call_argType, call_rtrnType = call
+        let (sig_fullName : QsQualifiedName), sig_argType, sig_rtrnType = signature
 
-        (*Tests that *only* targeted signatures are present*)
-        for callSig in callableSigs do
-            let sig_fullName, sig_argType, sig_rtrnType = callSig
-            targetSignatures
-            |> Seq.exists (fun targetSig -> doesCallMatchSig callSig targetSig)
-            |> (fun x -> Assert.True (x, sprintf "Found unexpected callable: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
+        call_fullName.Namespace.Value = sig_fullName.Namespace.Value &&
+        call_fullName.Name.Value.EndsWith sig_fullName.Name.Value &&
+        call_argType = sig_argType &&
+        call_rtrnType = sig_rtrnType
 
-    /// Names of several testing namespaces
-    static member public MonomorphizationNs = "Microsoft.Quantum.Testing.Monomorphization"
-    static member public GenericsNs = "Microsoft.Quantum.Testing.Generics"
-    static member public IntrinsicResolutionNs = "Microsoft.Quantum.Testing.IntrinsicResolution"
+    let makeArgsString (args : ResolvedType) =
+        match args.Resolution with
+        | QsTypeKind.UnitType -> "()"
+        | _ -> args |> (ExpressionToQs () |> ExpressionTypeToQs).Apply
 
-    /// Expected callable signatures to be found when running Monomorphization tests
-    static member public MonomorphizationSignatures =
-        [|
-            [| (*Test Case 1*)
-                Signatures.MonomorphizationNs, "Test1", [||], "Unit";
-                Signatures.GenericsNs, "Test1Main", [||], "Unit";
+    (*Tests that all target signatures are present*)
+    for targetSig in targetSignatures do
+        let sig_fullName, sig_argType, sig_rtrnType = targetSig
+        callableSigs
+        |> Seq.exists (fun callSig -> doesCallMatchSig callSig targetSig)
+        |> (fun x -> Assert.True (x, sprintf "Expected but did not find: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
 
-                Signatures.GenericsNs, "BasicGeneric", [|"Double"; "Int"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"String"; "String"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"Unit"; "Unit"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"Int"; "Double"|], "Unit";
-                Signatures.GenericsNs, "NoArgsGeneric", [||], "Double";
-                Signatures.GenericsNs, "ReturnGeneric", [|"Double"; "String"; "Int"|], "Int";
-                Signatures.GenericsNs, "ReturnGeneric", [|"String"; "Int"; "String"|], "String";
-            |];
-            [| (*Test Case 2*)
-                Signatures.MonomorphizationNs, "Test2", [||], "Unit";
-                Signatures.GenericsNs, "Test2Main", [||], "Unit";
+    (*Tests that *only* targeted signatures are present*)
+    for callSig in callableSigs do
+        let sig_fullName, sig_argType, sig_rtrnType = callSig
+        targetSignatures
+        |> Seq.exists (fun targetSig -> doesCallMatchSig callSig targetSig)
+        |> (fun x -> Assert.True (x, sprintf "Found unexpected callable: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
 
-                Signatures.GenericsNs, "ArrayGeneric", [|"Qubit"; "String"|], "Int";
-                Signatures.GenericsNs, "ArrayGeneric", [|"Qubit"; "Int"|], "Int";
-                Signatures.GenericsNs, "GenericCallsGeneric", [|"Qubit"; "Int"|], "Unit";
-            |];
-            [| (*Test Case 3*)
-                Signatures.MonomorphizationNs, "Test3", [||], "Unit";
-                Signatures.GenericsNs, "Test3Main", [||], "Unit";
+/// Names of several testing namespaces
+let public MonomorphizationNs = "Microsoft.Quantum.Testing.Monomorphization"
+let public GenericsNs = "Microsoft.Quantum.Testing.Generics"
+let public IntrinsicResolutionNs = "Microsoft.Quantum.Testing.IntrinsicResolution"
 
-                Signatures.GenericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Qubit[]"|], "Unit";
-                Signatures.GenericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Double"|], "Unit";
-                Signatures.GenericsNs, "GenericCallsSpecializations", [|"String"; "Int"; "Unit"|], "Unit";
+/// Expected callable signatures to be found when running Monomorphization tests
+let public MonomorphizationSignatures =
+    [|
+        (_DefaultTypes, [| (*Test Case 1*)
+            MonomorphizationNs, "Test1", [||], "Unit";
+            GenericsNs, "Test1Main", [||], "Unit";
 
-                Signatures.GenericsNs, "BasicGeneric", [|"Qubit[]"; "Qubit[]"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"String"; "Qubit[]"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"Double"; "String"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"Qubit[]"; "Double"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"Qubit[]"; "Unit"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"Int"; "Unit"|], "Unit";
-                Signatures.GenericsNs, "BasicGeneric", [|"String"; "Int"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"Double"; "Int"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"String"; "String"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"Unit"; "Unit"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"Int"; "Double"|], "Unit";
+            GenericsNs, "NoArgsGeneric", [||], "Double";
+            GenericsNs, "ReturnGeneric", [|"Double"; "String"; "Int"|], "Int";
+            GenericsNs, "ReturnGeneric", [|"String"; "Int"; "String"|], "String";
+        |]);
+        (_DefaultTypes, [| (*Test Case 2*)
+            MonomorphizationNs, "Test2", [||], "Unit";
+            GenericsNs, "Test2Main", [||], "Unit";
 
-                Signatures.GenericsNs, "ArrayGeneric", [|"Qubit"; "Qubit[]"|], "Int";
-                Signatures.GenericsNs, "ArrayGeneric", [|"Qubit"; "Double"|], "Int";
-                Signatures.GenericsNs, "ArrayGeneric", [|"Qubit"; "Unit"|], "Int";
-            |]
-        |]
-        |> Seq.map (fun case -> Seq.map (fun _sig -> Signatures._MakeSig _sig) case)
-        |> Seq.toArray
+            GenericsNs, "ArrayGeneric", [|"Qubit"; "String"|], "Int";
+            GenericsNs, "ArrayGeneric", [|"Qubit"; "Int"|], "Int";
+            GenericsNs, "GenericCallsGeneric", [|"Qubit"; "Int"|], "Unit";
+        |]);
+        (_DefaultTypes, [| (*Test Case 3*)
+            MonomorphizationNs, "Test3", [||], "Unit";
+            GenericsNs, "Test3Main", [||], "Unit";
 
-    /// Expected callable signatures to be found when running Intrinsic Resolution tests
-    static member public IntrinsicResolutionSignatures =
-        [|
-            [|
-                Signatures.IntrinsicResolutionNs, "IntrinsicResolutionTest", [||], "Unit";
-                Signatures.IntrinsicResolutionNs, "LocalIntrinsic", [||], "Unit";
-                Signatures.IntrinsicResolutionNs, "Override", [||], "Unit";
-                Signatures.IntrinsicResolutionNs, "EnvironmentIntrinsic", [||], "Unit";
-            |];
-        |]
-        |> Seq.map (fun case -> Seq.map (fun _sig -> Signatures._MakeSig _sig) case)
-        |> Seq.toArray
+            GenericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Qubit[]"|], "Unit";
+            GenericsNs, "GenericCallsSpecializations", [|"Double"; "String"; "Double"|], "Unit";
+            GenericsNs, "GenericCallsSpecializations", [|"String"; "Int"; "Unit"|], "Unit";
+
+            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Qubit[]"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"String"; "Qubit[]"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"Double"; "String"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Double"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"String"; "Double"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"Qubit[]"; "Unit"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"Int"; "Unit"|], "Unit";
+            GenericsNs, "BasicGeneric", [|"String"; "Int"|], "Unit";
+
+            GenericsNs, "ArrayGeneric", [|"Qubit"; "Qubit[]"|], "Int";
+            GenericsNs, "ArrayGeneric", [|"Qubit"; "Double"|], "Int";
+            GenericsNs, "ArrayGeneric", [|"Qubit"; "Unit"|], "Int";
+        |])
+    |]
+    |> _MakeSignatures
+
+let private _IntrinsicResolutionTypes = _MakeTypeMap [|
+        "TestType", {Namespace = NonNullable<_>.New "Microsoft.Quantum.Testing.IntrinsicResolution"; Name = NonNullable<_>.New "TestType"; Range = Null} |> UserDefinedType
+    |]
+
+/// Expected callable signatures to be found when running Intrinsic Resolution tests
+let public IntrinsicResolutionSignatures =
+    [|
+        (_DefaultTypes, [|
+                IntrinsicResolutionNs, "IntrinsicResolutionTest1", [||], "Unit";
+                IntrinsicResolutionNs, "LocalIntrinsic", [||], "Unit";
+                IntrinsicResolutionNs, "Override", [||], "Unit";
+                IntrinsicResolutionNs, "EnvironmentIntrinsic", [||], "Unit";
+        |]);
+        (_IntrinsicResolutionTypes, [|
+                IntrinsicResolutionNs, "IntrinsicResolutionTest2", [||], "Unit";
+                IntrinsicResolutionNs, "Override", [||], "TestType";
+                IntrinsicResolutionNs, "TestType", [||], "TestType";
+        |]);
+        (_IntrinsicResolutionTypes, [|
+                IntrinsicResolutionNs, "IntrinsicResolutionTest3", [||], "Unit";
+                IntrinsicResolutionNs, "Override", [||], "TestType";
+                IntrinsicResolutionNs, "TestType", [||], "TestType";
+        |]);
+        (_IntrinsicResolutionTypes, [|
+                IntrinsicResolutionNs, "IntrinsicResolutionTest4", [||], "Unit";
+                IntrinsicResolutionNs, "Override", [|"TestType"|], "Unit";
+                IntrinsicResolutionNs, "TestType", [||], "TestType";
+        |]);
+        (_DefaultTypes, [|
+                IntrinsicResolutionNs, "IntrinsicResolutionTest5", [||], "Unit";
+                IntrinsicResolutionNs, "Override", [||], "Unit";
+        |]);
+        (_DefaultTypes, [|
+                IntrinsicResolutionNs, "IntrinsicResolutionTest6", [||], "Unit";
+                IntrinsicResolutionNs, "Override", [||], "Unit";
+        |]);
+    |]
+    |> _MakeSignatures
