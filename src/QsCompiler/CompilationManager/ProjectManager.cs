@@ -1104,7 +1104,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Catches any thrown exception and calls onException on it if it is specified and not null.
         /// Throws an ArgumentNullException if the given uri is null. 
         /// </summary>
-        private static References.Headers LoadReferencedDll(Uri asm,
+        private static References.Headers LoadReferencedDll(Uri asm, bool ignoreDllResources,
             Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
             if (asm == null) throw new ArgumentNullException(nameof(asm));
@@ -1112,7 +1112,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 try { AssemblyName.GetAssemblyName(asm.LocalPath); } // will throw if the file is not a valid assembly
                 catch (FileLoadException) { } // the file is already loaded -> we can ignore that one
-                if (!AssemblyLoader.LoadReferencedAssembly(asm, out var headers))
+                if (!AssemblyLoader.LoadReferencedAssembly(asm, out var headers, ignoreDllResources))
                 { onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnrecognizedContentInReference, new[] { asm.LocalPath }, MessageSource(asm))); }
                 return headers;
             }
@@ -1156,7 +1156,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (refProjectFiles == null) throw new ArgumentNullException(nameof(refProjectFiles));
             if (GetOutputPath == null) throw new ArgumentNullException(nameof(GetOutputPath));
             References.Headers LoadReferencedDll(Uri asm) =>
-                ProjectManager.LoadReferencedDll(asm, onException: onException); // any exception here is really a failure of GetOutputPath and will be treated as an unexpected exception
+                ProjectManager.LoadReferencedDll(asm, false, onException: onException); // any exception here is really a failure of GetOutputPath and will be treated as an unexpected exception
 
             static Diagnostic NotFoundDiagnostic(string notFound, string source) => Errors.LoadError(ErrorCode.UnknownProjectReference, new[] { notFound }, source);
             var existingProjectFiles = FilterFiles(refProjectFiles, WarningCode.DuplicateProjectReference, NotFoundDiagnostic,
@@ -1195,11 +1195,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given sequence of referenced binaries is null.
         /// </summary>
         public static ImmutableDictionary<NonNullable<string>, References.Headers> LoadReferencedAssemblies(IEnumerable<string> references,
-            Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
+            Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null, bool ignoreDllResources = false)
         {
             if (references == null) throw new ArgumentNullException(nameof(references));
             References.Headers LoadReferencedDll(Uri asm) =>
-                ProjectManager.LoadReferencedDll(asm, onDiagnostic, onException);
+                ProjectManager.LoadReferencedDll(asm, ignoreDllResources, onDiagnostic, onException);
 
             var relevant = references.Where(file => file.IndexOf("mscorlib.dll", StringComparison.InvariantCultureIgnoreCase) < 0);
             static Diagnostic NotFoundDiagnostic(string notFound, string source) => Warnings.LoadWarning(WarningCode.UnknownBinaryFile, new[] { notFound }, source);

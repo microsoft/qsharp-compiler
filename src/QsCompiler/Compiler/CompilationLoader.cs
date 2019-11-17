@@ -86,6 +86,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public string DllOutputPath;
             /// <summary>
+            /// If set to true, then referenced dlls will be loaded purely based on attributes in the contained C# code. 
+            /// Any Q# resources will be ignored. 
+            /// </summary>
+            public bool LoadReferencesBasedOnGeneratedCsharp;
+            /// <summary>
             /// Contains a sequence of tuples with the path to a dotnet dll containing one or more rewrite steps 
             /// (i.e. classes implementing IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation. 
@@ -330,8 +335,10 @@ namespace Microsoft.Quantum.QsCompiler
             this.CompilationStatus = new ExecutionStatus(this.ExternalRewriteSteps);
             this.CompilationStatus.PluginLoading = rewriteStepLoading;
 
-            var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles) ?? throw new ArgumentNullException("unable to load source files");
-            var references = loadReferences?.Invoke(this.LoadAssemblies) ?? throw new ArgumentNullException("unable to load referenced binary files");
+            var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles) 
+                ?? throw new ArgumentNullException("unable to load source files");
+            var references = loadReferences?.Invoke(refs => this.LoadAssemblies(refs, this.Config.LoadReferencesBasedOnGeneratedCsharp)) 
+                ?? throw new ArgumentNullException("unable to load referenced binary files");
 
             // building the compilation
 
@@ -577,13 +584,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// Logs suitable diagnostics in the process and modifies the compilation status accordingly. 
         /// Prints all loaded files using PrintResolvedAssemblies.
         /// </summary>
-        private References LoadAssemblies(IEnumerable<string> refs)
+        private References LoadAssemblies(IEnumerable<string> refs, bool ignoreDllResources)
         {
             this.CompilationStatus.ReferenceLoading = 0;
             if (refs == null) this.Logger?.Log(WarningCode.ReferencesSetToNull, Enumerable.Empty<string>());
             void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.ReferenceLoading, ex);
             void onDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.CompilationStatus.ReferenceLoading, d);
-            var headers = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), onDiagnostic, onException);
+            var headers = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), onDiagnostic, onException, ignoreDllResources);
             var projId = this.Config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.Config.ProjectNameWithExtension), "qsproj");
             var references = new References(headers, (code, args) => onDiagnostic(Errors.LoadError(code, args, projId)));
             this.PrintResolvedAssemblies(references.Declarations.Keys);
