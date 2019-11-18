@@ -23,6 +23,8 @@
     <Compile Include="Dependencies.fs" />
     <Compile Include="SyntaxGenerator.fs" />
     <Compile Include="DeclarationHeaders.fs" />
+    <Compile Include="InternalDataStructures.fs" />
+    <Compile Include="Hashing.fs" />
     <Compile Include="SymbolResolution.fs" />
     <Compile Include="SymbolTable.fs" />
   </ItemGroup>
