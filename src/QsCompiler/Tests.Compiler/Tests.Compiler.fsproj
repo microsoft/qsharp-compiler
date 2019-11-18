@@ -115,18 +115,6 @@
     <None Include="TestCases\FunctorGeneration.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestFiles\test-00.qs">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Include="TestFiles\test-01.qs">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Include="TestFiles\test-02.qs">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Include="TestCases\CapabilityLevels.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <Compile Include="..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="TestUtils.fs" />
     <Compile Include="TextTests.fs" />
@@ -145,7 +133,6 @@
     <Compile Include="CommandLineTests.fs" />
     <Compile Include="SymbolManagementTests.fs" />
     <Compile Include="OptimizationTests.fs" />
-    <Compile Include="CapabilityLevelerTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

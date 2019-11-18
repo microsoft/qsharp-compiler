@@ -1,14 +1,13 @@
 ﻿module Microsoft.Quantum.QsCompiler.Targeting.CallGraphWalker
 
-open Microsoft.Quantum.QsCompiler
+open System.Collections.Generic
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
-open System.Collections.Immutable
-open System.Collections.Generic
+
 
 type private SpecializationKey =
     {
@@ -20,7 +19,6 @@ type private SpecializationKey =
 
 type CallGraph() =
     let sep = '|'
-    let levels = new Dictionary<SpecializationKey, CapabilityLevel>()
     let dependencies = new Dictionary<SpecializationKey, HashSet<SpecializationKey>>()
     let keyTypes = new Dictionary<string, ResolvedType>()
 
@@ -186,8 +184,6 @@ and private ScopeGraphBuilder(graph : CallGraph, spec : QsSpecialization) as thi
     override this.StatementKind = upcast kindXformer
 
 
-/// This syntax tree transformer fills in the CapabilityLevel fields in specializations,
-/// based on information gathered by the associated scope and other transformations.
 type TreeGraphBuilder() =
     inherit SyntaxTreeWalker()
 
