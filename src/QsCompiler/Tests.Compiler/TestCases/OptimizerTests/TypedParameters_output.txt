@@ -1,0 +1,13 @@
+namespace Microsoft.Quantum.Arrays {
+    
+    function IndexRange<'T> (array : 'T[]) : Range {
+        
+        return 0 .. Length(array) - 1;
+    }
+    
+    
+    function Length<'T> (array : 'T[]) : Int {
+        body intrinsic;
+    }
+    
+}

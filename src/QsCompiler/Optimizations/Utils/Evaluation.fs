@@ -51,7 +51,7 @@ let private setVars callables entry: Imp<Unit> = imperative {
 
 
 /// Evaluates functions by stepping through their code
-type internal FunctionEvaluator(callables: Callables) =
+type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
 
     /// Casts a BoolLiteral to the corresponding bool
     let castToBool x: bool =
@@ -143,7 +143,7 @@ type internal FunctionEvaluator(callables: Callables) =
     /// Returns None if we were unable to evaluate the function.
     /// Throws an ArgumentException if the input is not a function, or if the function is invalid.
     member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>) (stmtsLeft: int): TypedExpression option =
-        let callable = callables.get name
+        let callable = callables.[name]
         if callable.Kind = Operation then
             ArgumentException "Input is not a function" |> raise
         if callable.Specializations.Length <> 1 then
@@ -163,7 +163,7 @@ type internal FunctionEvaluator(callables: Callables) =
 
 
 /// The ExpressionTransformation used to evaluate constant expressions
-and internal ExpressionEvaluator(callables: Callables, constants: Map<string, TypedExpression>, stmtsLeft: int) =
+and internal ExpressionEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionTransformation()
 
     override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, stmtsLeft) with
@@ -172,7 +172,7 @@ and internal ExpressionEvaluator(callables: Callables, constants: Map<string, Ty
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, constants: Map<string, TypedExpression>, stmtsLeft: int) =
+and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionKindTransformation()
 
     member private this.simplify e1 = this.ExpressionTransformation e1
@@ -249,13 +249,13 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         let ex = this.simplify ex
         match ex.Expression with
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, types)}, arg)
-            when (callables.get qualName).Kind = TypeConstructor ->
+            when (callables.[qualName]).Kind = TypeConstructor ->
                 // TODO - must be adapted if we want to support user-defined type constructors
                 QsCompilerError.Verify (
-                    (callables.get qualName).Specializations.Length = 1,
+                    (callables.[qualName]).Specializations.Length = 1,
                     "Type constructors should have exactly one specialization")
                 QsCompilerError.Verify (
-                    (callables.get qualName).Specializations.[0].Implementation = Intrinsic,
+                    (callables.[qualName]).Specializations.[0].Implementation = Intrinsic,
                     "Type constructors should be implicit")
                 arg.Expression
         | _ -> UnwrapApplication ex

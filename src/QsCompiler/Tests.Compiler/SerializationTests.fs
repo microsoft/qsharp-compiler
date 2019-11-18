@@ -246,7 +246,8 @@ module SerializationTests =
     let ``attribute reader`` () =
         let dllUri = new Uri(Assembly.GetExecutingAssembly().Location)
         let gotId, dllId = CompilationUnitManager.TryGetFileId dllUri
-        let loadedFromResource, attrs = AssemblyLoader.LoadReferencedAssembly dllUri
+        let mutable attrs = null
+        let loadedFromResource = AssemblyLoader.LoadReferencedAssembly (dllUri, &attrs, false)
         Assert.True(gotId && not loadedFromResource, "loading should indicate failure when headers are loaded based on attributes rather than resources");
 
         let callables = attrs.Callables |> Seq.map (fun c -> c.ToJson()) |> Seq.toList

@@ -355,9 +355,10 @@ type InferredExpressionInformation = {
 type TypedExpression = {
     /// the content (kind) of the expression
     Expression : QsExpressionKind<TypedExpression, Identifier, ResolvedType>
-    /// contains a lookup for type parameters,
-    /// whose type can either be inferred based on the expression, or who have explicitly been resolved by provided type arguments
-    TypeParameterResolutions : ImmutableDictionary<(QsQualifiedName * NonNullable<string>), ResolvedType>
+    /// contains all type arguments implicitly or explicitly determined by the expression, 
+    /// i.e. the origin, name and concrete type of all type parameters whose type can either be inferred based on the expression, 
+    /// or who have explicitly been resolved by provided type arguments
+    TypeArguments : ImmutableArray<QsQualifiedName * NonNullable<string> * ResolvedType>
     /// the type of the expression after applying the type arguments
     ResolvedType : ResolvedType
     /// contains information generated and/or tracked by the compiler
@@ -368,6 +369,12 @@ type TypedExpression = {
 }
     with
     interface ITuple
+
+    /// Contains a dictionary mapping the origin and name of all type parameters whose type can either be inferred based on the expression,
+    /// or who have explicitly been resolved by provided type arguments to their concrete type within this expression
+    member this.TypeParameterResolutions = 
+        this.TypeArguments.ToImmutableDictionary((fun (origin, name, _) -> origin, name), (fun (_,_,t) -> t))
+
 
 
 /// Fully resolved Q# initializer expression.

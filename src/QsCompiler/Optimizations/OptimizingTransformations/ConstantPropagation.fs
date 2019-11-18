@@ -6,7 +6,7 @@ module Microsoft.Quantum.QsCompiler.Optimizations.ConstantPropagation
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Optimizations.Evaluation
-open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
+open Microsoft.Quantum.QsCompiler.Optimizations.Tools
 open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -24,7 +24,7 @@ let rec private shouldPropagate callables (expr : TypedExpression) =
         | Identifier _ | ArrayItem _ | UnwrapApplication _ | NamedItem _
         | ValueTuple _ | ValueArray _ | RangeLiteral _ | NewArray _ -> true
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
-            when (callables.get qualName).Kind = TypeConstructor -> true
+            when (callables.[qualName]).Kind = TypeConstructor -> true
         | a when TypedExpression.IsPartialApplication a -> true
         | _ -> false
         && Seq.forall id sub)
