@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public Monomorphization()
         {
             Name = "Monomorphization";
-            Priority = 10; // Not used for hard-coded transformations like this
+            Priority = 10; // Not used for built-in transformations like this
             AssemblyConstants = new Dictionary<string, string>();
             ImplementsTransformation = true;
             ImplementsPreconditionVerification = true;

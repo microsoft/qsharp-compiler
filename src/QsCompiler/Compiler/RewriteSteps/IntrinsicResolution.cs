@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public IntrinsicResolution(QsCompilation environment)
         {
             Name = "IntrinsicResolution";
-            Priority = 10; // Not used for hard-coded transformations like this
+            Priority = 10; // Not used for built-in transformations like this
             AssemblyConstants = new Dictionary<string, string>();
             ImplementsTransformation = true;
             ImplementsPreconditionVerification = false;
