@@ -4,17 +4,12 @@
 module Microsoft.Quantum.QsCompiler.Testing.CapabilityLevelerTests
 
 open System
-open System.Collections.Immutable
 open System.IO
-open System.Linq
-open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Targeting.Leveler
-open Microsoft.Quantum.QsCompiler.Transformations
-open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
+
 
 // Utilities for testing operation capability level setting and the corresponding infrastructure
 
@@ -41,7 +36,7 @@ let private getOperationLevel tree opName =
         ns.Elements |> Seq.tryPick (matchOperation opName)
     let getOperationBodyLevel (c : QsCallable) =
         c.Specializations |> Seq.tryFind (fun s -> s.Kind = QsSpecializationKind.QsBody)
-                          |> Option.map (fun s -> s.RequiredCapability)
+                          |> Option.map (fun s -> s.Signature.Information.InferredInformation.RequiredCapabilityLevel)
                           |> Option.defaultValue CapabilityLevel.Unset
     tree |> Seq.tryPick (findOperation opName)
          |> Option.defaultWith (fun () -> failwithf "Operation %A not found" opName)

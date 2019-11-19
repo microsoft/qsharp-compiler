@@ -497,7 +497,7 @@ module SymbolResolution =
             let isIntrinsic = function | QsSpecializationGeneratorKind.Intrinsic -> true | _ -> false
             let intrinsic = specKinds.Values |> Seq.map (fun g -> g.Generator) |> Seq.exists isIntrinsic
             let selfGenerator = specKinds.Values |> Seq.exists (fun gen -> gen.Generator = FunctorGenerationDirective SelfInverse)
-            {IsSelfAdjoint = selfGenerator; IsIntrinsic = intrinsic}
+            {IsSelfAdjoint = selfGenerator; IsIntrinsic = intrinsic; RequiredCapabilityLevel = CapabilityLevel.Unset}
 
         let ctlAdjRange = annotRange (adjRange <> Null && ctlRange <> Null)
         let errs = Array.concat [

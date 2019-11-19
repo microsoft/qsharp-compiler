@@ -66,9 +66,10 @@ type LocalDeclarations with
 
 type InferredCallableInformation with 
     /// the default values are intrinsic: false, selfAdj: false
-    static member New (?intrinsic, ?selfAdj) = {
+    static member New (?intrinsic, ?selfAdj, ?reqCapability) = {
         IsIntrinsic = defaultArg intrinsic false
         IsSelfAdjoint = defaultArg selfAdj false
+        RequiredCapabilityLevel = defaultArg reqCapability CapabilityLevel.Unset
     }
 
 type CallableInformation with 
