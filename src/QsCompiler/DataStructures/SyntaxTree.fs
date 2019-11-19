@@ -241,21 +241,35 @@ type ResolvedCharacteristics = private {
         | None -> Null
 
 
+/// Different targets provide different levels of Q# support. Some targets can execute any Q# code,
+/// while others are very limited in the Q# constructs that they can process.
+type CapabilityLevel =
+| Minimal = 1
+| Basic = 2
+| Medium = 3
+| Advanced = 4
+| Full = 5
+| Unset = -1
+
+
 /// used to represent information on Q# operations and expressions thereof generated and/or tracked during compilation
 type InferredCallableInformation = {
     /// indicates whether the callable is a self-adjoint operation
     IsSelfAdjoint : bool
     /// indicates whether the callable is intrinsic, i.e. implemented by the target machine
     IsIntrinsic : bool
+    /// contains the minimum target capability level required to execute this specialization's code, not including anything it calls
+    RequiredCapabilityLevel : CapabilityLevel
 }
     with
-    static member NoInformation = {IsSelfAdjoint = false; IsIntrinsic = false}
+    static member NoInformation = {IsSelfAdjoint = false; IsIntrinsic = false; RequiredCapabilityLevel = CapabilityLevel.Unset}
 
     /// Determines the information that was inferred for all given items.
     static member Common (infos : InferredCallableInformation seq) =
         let allAreIntrinsic = infos |> Seq.map (fun info -> info.IsIntrinsic) |> Seq.contains false |> not
         let allAreSelfAdjoint = infos |> Seq.map (fun info -> info.IsSelfAdjoint) |> Seq.contains false |> not
-        {IsIntrinsic = allAreIntrinsic; IsSelfAdjoint = allAreSelfAdjoint}
+        let requiredLevel = infos |> Seq.map (fun info -> info.RequiredCapabilityLevel) |> Seq.max
+        {IsIntrinsic = allAreIntrinsic; IsSelfAdjoint = allAreSelfAdjoint; RequiredCapabilityLevel = requiredLevel}
 
 
 /// Contains information associated with a fully resolved operation type.
