@@ -9,6 +9,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SymbolManagement.DataStructures;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;

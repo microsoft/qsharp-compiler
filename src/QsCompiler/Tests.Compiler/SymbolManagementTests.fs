@@ -4,8 +4,8 @@
 module Microsoft.Quantum.QsCompiler.Testing.SymbolManagementTests
 
 open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler;
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
@@ -28,7 +28,7 @@ let toUdt (qualName : string * string) =
 let toTuple (types : _ seq) =
     TupleType ((types |> Seq.map ResolvedType.New).ToImmutableArray())
 
-let thash (rt) = NamespaceManager.TypeHash (ResolvedType.New(rt))
+let thash (rt) = Hashing.TypeHash (ResolvedType.New(rt))
 
 [<Fact>]
 let ``type hash tests`` () =

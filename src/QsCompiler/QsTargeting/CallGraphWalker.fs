@@ -1,56 +1,46 @@
 ﻿module Microsoft.Quantum.QsCompiler.Targeting.CallGraphWalker
 
+open System
 open System.Collections.Generic
 open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
-open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 
 type private SpecializationKey =
     {
         QualifiedName : QsQualifiedName
         Kind : QsSpecializationKind
-        TypeArgString : string
+        TypeArgHash : QsNullable<int list>
     }
 
 
 type CallGraph() =
-    let sep = '|'
+
     let dependencies = new Dictionary<SpecializationKey, HashSet<SpecializationKey>>()
-    let keyTypes = new Dictionary<string, ResolvedType>()
+    let typeHashes = new Dictionary<int, ResolvedType>()
 
-    let SpecInfoToKey name kind (types : QsNullable<ImmutableArray<ResolvedType>>) =
-        let ResolvedTypeToString rt =
-            let exprTransformer = new ExpressionToQs()
-            let transformer = new ExpressionTypeToQs(exprTransformer)
-            transformer.Apply(rt)
-        let getArgString (args : ImmutableArray<ResolvedType>) =
-            if args.IsDefaultOrEmpty
-            then ""
-            else
-                let typeArgs = args |> Seq.map (fun t -> (t, ResolvedTypeToString t))
-                typeArgs |> Seq.iter (fun (t, s) -> keyTypes.[s] <- t)
-                typeArgs |> Seq.map snd
-                            |> String.concat (sep.ToString())
-        let typeArgString = types |> QsNullable<_>.Map getArgString
-                                  |> fun n -> n.ValueOr ""
-        { QualifiedName = name; Kind = kind; TypeArgString = typeArgString }
+    let SpecInfoToKey kind parent typeArgs = 
+        let getTypeArgHash (tArgs : ImmutableArray<ResolvedType>) = 
+            let pushHash t = 
+                let tHash = Hashing.TypeHash t
+                typeHashes.[tHash] <- t
+                tHash
+            tArgs |> Seq.map pushHash |> Seq.toList
+        let typeArgHash = typeArgs |> QsNullable<_>.Map getTypeArgHash
+        { Kind = kind; QualifiedName = parent; TypeArgHash = typeArgHash }
 
-    let SpecToKey (spec : QsSpecialization) =
-        SpecInfoToKey spec.Parent spec.Kind spec.TypeArguments
+    let SpecToKey (spec : QsSpecialization) = 
+        SpecInfoToKey spec.Kind spec.Parent spec.TypeArguments
 
-    let StringToTypeArray (ts : string) =
-        let lookupString s = 
-            match keyTypes.TryGetValue(s) with
+    let HashToTypeArgs (tArgHash : QsNullable<int list>) =
+        let getResolvedType = typeHashes.TryGetValue >> function 
             | true, t -> t
-            | false, _ -> ResolvedType.New(InvalidType)
-        let typeSequence = ts.Split(sep) |> Seq.map lookupString 
-        if typeSequence |> Seq.isEmpty
-        then Null
-        else Value (typeSequence |> ImmutableArray.ToImmutableArray)
+            | false, _ -> new ArgumentException "no type with the given hash has been listed" |> raise
+        tArgHash |> QsNullable<_>.Map (fun hashes -> hashes |> List.map getResolvedType)
 
     let RecordDependency callerKey calledKey =
         match dependencies.TryGetValue(callerKey) with
@@ -64,11 +54,6 @@ type CallGraph() =
         | true, next -> 
             next |> Seq.fold (fun (a : HashSet<SpecializationKey>) k -> if a.Add(k) then WalkDependencyTree k a else a) accum
         | false, _ -> accum
-
-    member this.AddDependency(callerSpec, calledSpec) =
-        let callerKey = SpecToKey callerSpec
-        let calledKey = SpecToKey calledSpec
-        RecordDependency callerKey calledKey
 
     member this.AddDependency(callerSpec, calledName, calledKind, calledTypeArgs) =
         let callerKey = SpecToKey callerSpec
@@ -84,18 +69,18 @@ type CallGraph() =
         let key = SpecToKey callerSpec
         dependencies.Remove(key) |> ignore
 
-    member this.GetDependencies(callerSpec) =
+    member this.GetDependencies callerSpec =
         let key = SpecToKey callerSpec
         match dependencies.TryGetValue(key) with
         | true, deps -> 
-            deps |> Seq.map (fun key -> (key.QualifiedName, key.Kind, key.TypeArgString |> StringToTypeArray))
+            deps |> Seq.map (fun key -> (key.QualifiedName, key.Kind, key.TypeArgHash |> HashToTypeArgs))
         | false, _ -> Seq.empty
 
-    member this.GetDependencyTree(callerSpec) =
+    member this.GetDependencyTree callerSpec =
         let key = SpecToKey callerSpec
         WalkDependencyTree key (new HashSet<SpecializationKey>(key |> Seq.singleton))
         |> Seq.filter (fun k -> k <> key)
-        |> Seq.map (fun key -> (key.QualifiedName, key.Kind, key.TypeArgString |> StringToTypeArray))
+        |> Seq.map (fun key -> (key.QualifiedName, key.Kind, key.TypeArgHash |> HashToTypeArgs))
 
 
 type private ExpressionKindGraphBuilder(exprXformer : ExpressionGraphBuilder, graph : CallGraph, 
@@ -124,16 +109,17 @@ type private ExpressionKindGraphBuilder(exprXformer : ExpressionGraphBuilder, gr
         this.HandleCall method arg
 
     override this.onAdjointApplication(ex) =
-        adjoint <- true
+        adjoint <- not adjoint
         base.onAdjointApplication(ex)
 
     override this.onControlledApplication(ex) =
         controlled <- true
         base.onControlledApplication(ex)
 
-    override this.onIdentifier(sym, typeArgs) =
+    override this.onIdentifier(sym, explicitTypeArgs) =
         match sym with
         | GlobalCallable(name) ->
+            let typeArgs = explicitTypeArgs // FIXME: THIS IS NOT ACCURATE
             if inCall
             then
                 let kind = match adjoint, controlled with
@@ -141,18 +127,17 @@ type private ExpressionKindGraphBuilder(exprXformer : ExpressionGraphBuilder, gr
                            | false, true  -> QsControlled
                            | true,  false -> QsAdjoint
                            | true,  true  -> QsControlledAdjoint
-                graph.AddDependency(spec, name, kind, typeArgs)
+                graph.AddDependency(spec, kind, name, typeArgs)
             else
                 // The callable is being used in a non-call context, such as being
                 /// assigned to a variable or passed as an argument to another callable,
                 // which means it could get a functor applied at some later time.
                 // We're conservative and add all 4 possible kinds.
-                graph.AddDependency(spec, name, QsBody, typeArgs)
-                graph.AddDependency(spec, name, QsControlled, typeArgs)
-                graph.AddDependency(spec, name, QsAdjoint, typeArgs)
-                graph.AddDependency(spec, name, QsControlledAdjoint, typeArgs)
+                graph.AddDependency(spec, QsBody, name, typeArgs)
+                graph.AddDependency(spec, QsControlled, name, typeArgs)
+                graph.AddDependency(spec, QsAdjoint, name, typeArgs)
+                graph.AddDependency(spec, QsControlledAdjoint, name, typeArgs)
         | _ -> ()
-        base.onIdentifier(sym, typeArgs)
 
 
 and private ExpressionGraphBuilder(graph : CallGraph, spec : QsSpecialization) as this =
