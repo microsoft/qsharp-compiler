@@ -244,12 +244,12 @@ type ResolvedCharacteristics = private {
 /// Different targets provide different levels of Q# support. Some targets can execute any Q# code,
 /// while others are very limited in the Q# constructs that they can process.
 type CapabilityLevel =
+| Unset = 0 // keep at zero such that this is the default value!
 | Minimal = 1
 | Basic = 2
 | Medium = 3
 | Advanced = 4
 | Full = 5
-| Unset = -1
 
 
 /// used to represent information on Q# operations and expressions thereof generated and/or tracked during compilation

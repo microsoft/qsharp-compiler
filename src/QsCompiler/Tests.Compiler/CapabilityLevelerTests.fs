@@ -46,7 +46,7 @@ let private getOperationLevel tree opName =
 //////////////////////////////// tests //////////////////////////////////
 
 [<Fact>]
-let ``capability leveling tests`` () =
+let ``basic capability leveling`` () =
     let leveler = new TreeLeveler()
 
     let syntaxTree = buildSyntaxTreeFromFile "CapabilityLevels" |> Seq.map leveler.Transform
