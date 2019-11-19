@@ -1,11 +1,13 @@
-﻿module Microsoft.Quantum.QsCompiler.Targeting.CallGraphWalker
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.Targeting.CallGraphWalker
 
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
@@ -18,6 +20,8 @@ type private SpecializationKey =
     }
 
 
+/// Class used to track call graph of a compilation. 
+/// This class is *not* threadsafe. 
 type CallGraph() =
 
     let dependencies = new Dictionary<SpecializationKey, HashSet<SpecializationKey>>()
@@ -49,12 +53,6 @@ type CallGraph() =
                       newDeps.Add(calledKey) |> ignore
                       dependencies.[callerKey] <- newDeps
 
-    let rec WalkDependencyTree root (accum : HashSet<SpecializationKey>) =
-        match dependencies.TryGetValue(root) with
-        | true, next -> 
-            next |> Seq.fold (fun (a : HashSet<SpecializationKey>) k -> if a.Add(k) then WalkDependencyTree k a else a) accum
-        | false, _ -> accum
-
     member this.AddDependency(callerSpec, calledName, calledKind, calledTypeArgs) =
         let callerKey = SpecToKey callerSpec
         let calledKey = SpecInfoToKey calledName calledKind calledTypeArgs
@@ -65,21 +63,38 @@ type CallGraph() =
         let calledKey = SpecInfoToKey calledName calledKind calledTypeArgs
         RecordDependency callerKey calledKey
 
-    member this.FlushDependencies(callerSpec) =
+    /// Returns all specializations that are used directly within the given caller, 
+    /// whether they are called, partially applied, or assigned. 
+    /// The returned specializations are identified by the full name of the callable, 
+    /// the specialization kind, as well as the resolved type arguments. 
+    /// The returned type arguments are the exact type arguments of the expression, 
+    /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle. 
+    member this.GetDirectDependencies callerSpec =
         let key = SpecToKey callerSpec
-        dependencies.Remove(key) |> ignore
+        match dependencies.TryGetValue key with
+        | true, deps -> deps 
+                        |> Seq.map (fun key -> (key.QualifiedName, key.Kind, key.TypeArgHash |> HashToTypeArgs))
+                        |> ImmutableArray.CreateRange
+        | false, _ -> ImmutableArray.Empty
 
-    member this.GetDependencies callerSpec =
-        let key = SpecToKey callerSpec
-        match dependencies.TryGetValue(key) with
-        | true, deps -> 
-            deps |> Seq.map (fun key -> (key.QualifiedName, key.Kind, key.TypeArgHash |> HashToTypeArgs))
-        | false, _ -> Seq.empty
-
-    member this.GetDependencyTree callerSpec =
+    /// Returns all specializations directly or indirectly used within the given caller, 
+    /// whether they are called, partially applied, or assigned. 
+    /// The returned specializations are identified by the full name of the callable, 
+    /// the specialization kind, as well as the resolved type arguments. 
+    /// The returned type arguments are the exact type arguments of the expression, 
+    /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle. 
+    member this.GetAllDependencies callerSpec =
+        let rec WalkDependencyTree root (accum : HashSet<SpecializationKey>) =
+            match dependencies.TryGetValue(root) with
+            | true, next -> 
+                next 
+                |> Seq.fold (fun (a : HashSet<SpecializationKey>) k -> 
+                    if a.Add(k) then WalkDependencyTree k a else a) 
+                    accum
+            | false, _ -> accum
         let key = SpecToKey callerSpec
         WalkDependencyTree key (new HashSet<SpecializationKey>(key |> Seq.singleton))
-        |> Seq.filter (fun k -> k <> key)
+        |> Seq.filter (fun k -> k <> key) // NOPE! 
         |> Seq.map (fun key -> (key.QualifiedName, key.Kind, key.TypeArgHash |> HashToTypeArgs))
 
 
