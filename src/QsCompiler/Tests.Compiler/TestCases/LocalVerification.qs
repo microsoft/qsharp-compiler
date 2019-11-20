@@ -4,6 +4,7 @@
 /// This namespace contains test cases for expression and statement verification
 namespace Microsoft.Quantum.Testing.LocalVerification {
 
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Testing.General;
     open Microsoft.Quantum.Testing.TypeChecking;
 

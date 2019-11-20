@@ -258,7 +258,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
 
             var deprecationSummary = String.IsNullOrWhiteSpace(replacement) 
                                     ? DiagnosticItem.Message(WarningCode.DeprecationWithoutRedirect, new string[] { name })
-                                    : DiagnosticItem.Message(WarningCode.DeprecationWithRedirect, new string[] { name, "@\"" + replacement + "\"" });
+                                    : DiagnosticItem.Message(WarningCode.DeprecationWithRedirect, new string[] { name, "@\"" + replacement.ToLowerInvariant() + "\"" });
             var deprecationDetails = "";
 
             var text = String.Join("\n", docComments);
