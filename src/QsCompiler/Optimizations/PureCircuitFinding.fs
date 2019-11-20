@@ -3,7 +3,7 @@
 
 module Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitFinding
 
-open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
+open Microsoft.Quantum.QsCompiler.Optimizations.Tools
 open Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitAPI
 open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions

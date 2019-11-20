@@ -47,7 +47,7 @@ type Circuit = {
 /// Currently just stores the variable names corresponding to each qubit reference.
 /// In the future, this will include a map from all symbols to their Q# representation.
 type private CircuitContext = {
-    callables: Callables
+    callables: ImmutableDictionary<QsQualifiedName, QsCallable>
     distinctNames: Set<NonNullable<string>>
     qubits: TypedExpression list
     unknownValues: TypedExpression list
@@ -79,7 +79,7 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
     | TypeKind.TupleType ts -> ts |> Seq.exists (fun t -> mightContainQubit t.Resolution)
     | TypeKind.UserDefinedType u ->
         let qualName = { Namespace = u.Namespace; Name = u.Name }
-        mightContainQubit (cc.callables.get qualName).Signature.ArgumentType.Resolution
+        mightContainQubit (cc.callables.[qualName]).Signature.ArgumentType.Resolution
     | _ -> false
 
     match expr.Expression with
@@ -119,7 +119,7 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
             | _ -> return! None
         | Identifier (GlobalCallable name, _) ->
             let! cc, argVal = toExpression (cc, arg)
-            let info = (cc.callables.get name).Signature.Information
+            let info = (cc.callables.[name]).Signature.Information
             return cc, { gate = name; info = info; adjoint = false; controls = []; arg = argVal }
         | _ ->
             return! None

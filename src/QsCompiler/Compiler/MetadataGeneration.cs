@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler
         internal static CodeAnalysis.SyntaxTree GenerateAssemblyMetadata(IEnumerable<MetadataReference> references)
         {
             var aliases = references
-                .Select(reference => reference.Properties.Aliases.FirstOrDefault(alias => alias.StartsWith(AssemblyConstants.QSHARP_REFERENCE))) // FIXME: improve...
+                .Select(reference => reference.Properties.Aliases.FirstOrDefault(alias => alias.StartsWith(DotnetCoreDll.ReferenceAlias))) // FIXME: improve...
                 .Where(alias => alias != null);
             var typeName =
                 QualifiedName(
@@ -47,8 +47,8 @@ namespace Microsoft.Quantum.QsCompiler
                 aliases.Select(alias =>
                     TypeOfExpression(
                         QualifiedName(
-                            AliasQualifiedName(IdentifierName(alias), IdentifierName(AssemblyConstants.METADATA_NAMESPACE)),
-                            IdentifierName(AssemblyConstants.METADATA_TYPE)
+                            AliasQualifiedName(IdentifierName(alias), IdentifierName(DotnetCoreDll.MetadataNamespace)),
+                            IdentifierName(DotnetCoreDll.MetadataType)
                         )
                     )
                 );
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler
                     )
                     .WithVariables(
                         SingletonSeparatedList(
-                            VariableDeclarator(Identifier(AssemblyConstants.DEPENDENCIES_FIELD))
+                            VariableDeclarator(Identifier(DotnetCoreDll.Dependencies))
                             .WithInitializer(
                                 EqualsValueClause(dependenciesInitializer)
                             )
@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.QsCompiler
                     )
                 );
             var classDef =
-                ClassDeclaration(AssemblyConstants.METADATA_TYPE)
+                ClassDeclaration(DotnetCoreDll.MetadataType)
                     .WithModifiers(
                         TokenList(Token(SyntaxKind.PublicKeyword), Token(SyntaxKind.StaticKeyword))
                     )
@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.QsCompiler
                         SingletonList<MemberDeclarationSyntax>(metadataField)
                     );
             var namespaceDef =
-                NamespaceDeclaration(IdentifierName(AssemblyConstants.METADATA_NAMESPACE))
+                NamespaceDeclaration(IdentifierName(DotnetCoreDll.MetadataNamespace))
                     .WithMembers(
                         SingletonList<MemberDeclarationSyntax>(classDef)
                     );

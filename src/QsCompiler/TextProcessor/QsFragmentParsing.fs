@@ -69,7 +69,7 @@ let private expectedNamespaceName continuation =
     let path = multiSegmentSymbol ErrorCode.InvalidPathSegment |>> asSymbol
     expected path ErrorCode.InvalidQualifiedSymbol ErrorCode.MissingQualifiedSymbol invalidSymbol continuation
 
-/// Parses the the condition e.g. for if, elif and unitl clauses.
+/// Parses the condition e.g. for if, elif and until clauses.
 /// Uses optTupleBrackets to raise the corresponding missing bracket errors if the condition is not within tuple brackets.
 /// Uses expectedExpr to raise suitable errors for a missing or invalid expression. 
 let private expectedCondition continuation = 
@@ -98,7 +98,7 @@ let private symbolBinding connector connectorErr expectedRhs = // used for mutab
 /// Uses optTupleBrackets to raise the corresponding missing bracket errors if the entire assignment is not within tuple brackets.
 let private allocationScope = 
     let combineRangeAndBuild (r1, (kind, r2)) = 
-        QsPositionInfo.WithCombinedRange (r1 |> QsPositionInfo.Range, r2) kind InvalidInitializer |> QsInitializer.New // *needs* to be invalid if the compined range is Null!
+        QsPositionInfo.WithCombinedRange (r1 |> QsPositionInfo.Range, r2) kind InvalidInitializer |> QsInitializer.New // *needs* to be invalid if the combined range is Null!
     let qRegisterAlloc = 
         qsQubit.parse .>>. (arrayBrackets (expectedExpr eof) 
         |>> fun (ex, r) -> QubitRegisterAllocation ex, QsPositionInfo.Range r)
@@ -158,14 +158,10 @@ let private signature =
 /// Errors for the cases where the parsed symbol does not match the one expected for the specialization need to be raised on type or context checking. 
 /// Uses buildTuple to generate Invalid- or MissingSymbolTupleDeclaration errors for a user defined implementation requiring an argument. 
 /// Raises an UnknownFunctorGenerator error if the end of the input stream or the next fragment header is only preceded by
-/// a single symbol-like expression that is not inside tuple brackets and does not corrspond to a predefined generator.  
+/// a single symbol-like expression that is not inside tuple brackets and does not correspond to a predefined generator.  
 let private functorGenDirective = // parsing all possible directives for all functors, and complain on type or context checking
     let EndOfFragment = qsFragmentHeader >>% () <|> eof
-    let functorGenArgs = 
-        //let invalidArguments = 
-        //    let noArguments = buildError (followedByCode EndOfFragment) ErrorCode.MissingArgumentForFunctorGenerator
-        //    let invalidUnitArgument = buildError (tupleBrackets emptySpace |>> snd) ErrorCode.UnitArgumentForFunctorGenerator 
-        //    (invalidUnitArgument <|> noArguments) >>% invalidSymbol 
+    let functorGenArgs =
         let noArgOrUnitArg = ((followedByCode EndOfFragment) <|> (tupleBrackets emptySpace |>> snd)) |>> fun r -> buildSymbolTuple(ImmutableArray.Empty, r)
         let tupledArgs = buildTuple (omittedSymbols <|> localIdentifier) buildSymbolTuple ErrorCode.InvalidSymbolTupleDeclaration ErrorCode.MissingSymbolTupleDeclaration invalidSymbol
         (noArgOrUnitArg <|> tupledArgs) .>> followedBy EndOfFragment // *always* require outer brackets, like for calls

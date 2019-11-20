@@ -79,12 +79,10 @@ type TypedExpressionConverter() =
                                     * ResolvedType 
                                     * InferredExpressionInformation 
                                     * QsRangeInfo >(reader) 
-        let typeParamResolutions = paramRes.ToImmutableDictionary ((fun (origin, name, _) -> origin, name), (fun (_,_,t) -> t))
-        {Expression = ex; TypeParameterResolutions = typeParamResolutions; ResolvedType = t; InferredInformation = info; Range = range}
+        {Expression = ex; TypeArguments = paramRes.ToImmutableArray(); ResolvedType = t; InferredInformation = info; Range = range}
 
     override this.WriteJson(writer : JsonWriter, value : TypedExpression, serializer : JsonSerializer) =
-        let typeParamResolutions = value.TypeParameterResolutions |> Seq.map (fun kv -> fst kv.Key, snd kv.Key, kv.Value)
-        serializer.Serialize(writer, (value.Expression, typeParamResolutions, value.ResolvedType, value.InferredInformation, value.Range))
+        serializer.Serialize(writer, (value.Expression, value.TypeArguments, value.ResolvedType, value.InferredInformation, value.Range))
 
 
 type QsNamespaceConverter() =
