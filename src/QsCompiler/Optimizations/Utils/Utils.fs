@@ -22,16 +22,8 @@ type internal TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParamet
 type internal InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
 
 
-/// Represents the dictionary of all callables in the program
-type internal Callables (m: ImmutableDictionary<QsQualifiedName, QsCallable>) =
-
-    /// Gets the QsCallable with the given qualified name.
-    /// Throws an KeyNotFoundException if no such callable exists.
-    member __.get qualName = m.[qualName]
-
-
 /// Returns whether a given expression is a literal (and thus a constant)
-let rec internal isLiteral (callables: Callables) (expr: TypedExpression): bool =
+let rec internal isLiteral (callables: ImmutableDictionary<QsQualifiedName, QsCallable>) (expr: TypedExpression): bool =
     let folder ex sub = 
         match ex.Expression with
         | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ | StringLiteral _
@@ -39,7 +31,7 @@ let rec internal isLiteral (callables: Callables) (expr: TypedExpression): bool 
         | ValueTuple _ | ValueArray _ | RangeLiteral _ | NewArray _ -> true
         | Identifier _ when ex.ResolvedType.Resolution = Qubit -> true
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
-            when (callables.get qualName).Kind = TypeConstructor -> true
+            when (callables.[qualName]).Kind = TypeConstructor -> true
         | a when TypedExpression.IsPartialApplication a -> true
         | _ -> false
         && Seq.forall id sub
@@ -165,7 +157,7 @@ let internal wrapStmt (stmt: QsStatementKind): QsStatement =
                         yield LocalVariableDeclaration.New isMutable (posInfo, name, rhs.ResolvedType, false)
                     | _ -> () }
         | _ -> Seq.empty
-    QsStatement.New QsComments.Empty Null (stmt, symbolDecl)
+    QsStatement.New QsComments.Empty Null (stmt, LocalDeclarations.New symbolDecl)
 
 
 /// Returns a new array of the given type and length.

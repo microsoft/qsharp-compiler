@@ -4,6 +4,7 @@
 /// This namespace contains test cases for expression and statement verification
 namespace Microsoft.Quantum.Testing.LocalVerification {
 
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Testing.General;
     open Microsoft.Quantum.Testing.TypeChecking;
 
@@ -873,4 +874,131 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     function UsingRenamedType5 () : (RenamedType[], Int) {
         return Default<(RenamedType[], Int)>();
     }
+
+
+    // unit tests
+
+    @ TestOperation("QuantumSimulator")
+    function ValidTestAttribute1 () : Unit {}
+
+    @ TestOperation("TraceSimulator")
+    function ValidTestAttribute2 () : Unit {}
+
+    @ TestOperation("ToffoliSimulator")
+    function ValidTestAttribute3 () : Unit {}
+
+    @ TestOperation("QuantumSimulator")
+    operation ValidTestAttribute4 () : Unit {}
+
+    @ TestOperation("TraceSimulator")
+    operation ValidTestAttribute5 () : Unit {}
+
+    @ TestOperation("ToffoliSimulator")
+    operation ValidTestAttribute6 () : Unit {}
+
+    @ TestOperation("QuantumSimulator")
+    operation ValidTestAttribute7 () : Unit 
+    is Adj + Ctl{}
+
+    @ TestOperation("TraceSimulator")
+    operation ValidTestAttribute8 () : Unit 
+    is Adj {}
+
+    @ TestOperation("ToffoliSimulator")
+    operation ValidTestAttribute9 () : Unit 
+    is Ctl {}
+
+    @ TestOperation("QuantumSimulator")
+    function ValidTestAttribute10 () : ((Unit)) {}
+
+    @ TestOperation("TraceSimulator")
+    function ValidTestAttribute11 (arg : Unit) : Unit { }
+
+    @ TestOperation("ToffoliSimulator")
+    operation ValidTestAttribute12 (arg : (Unit)) : Unit { }
+
+    @ TestOperation("QuantumSimulator")
+    @ TestOperation("ToffoliSimulator")
+    @ TestOperation("TraceSimulator")
+    function ValidTestAttribute13 () : Unit { }
+
+    @ TestOperation("QuantumSimulator")
+    @ TestOperation("ToffoliSimulator")
+    @ TestOperation("TraceSimulator")
+    operation ValidTestAttribute14 () : Unit { }
+
+    @ TestOperation("QuantumSimulator")
+    @ TestOperation("QuantumSimulator")
+    operation ValidTestAttribute15 () : Unit { }
+
+    @ TestOperation("QuantumSimulator")
+    operation ValidTestAttribute16 () : { }
+
+
+    @ TestOperation("QuantumSimulator")
+    newtype InvalidTestAttribute1 = Unit;
+
+    function InvalidTestAttribute2 () : Unit {
+        @ TestOperation("ToffoliSimulator")
+        body (...) {}
+    }
+
+    operation InvalidTestAttribute3 () : Unit {
+        @ TestOperation("TraceSimulator")
+        body (...) {}
+    }
+
+    operation InvalidTestAttribute4 () : Unit {
+        body (...) { }
+        @ TestOperation("TraceSimulator")
+        adjoint (...) { }
+    }
+
+    @ TestOperation("TraceSimulator")
+    function InvalidTestAttribute5<'T> () : Unit { }
+
+    @ TestOperation("QuantumSimulator")
+    operation InvalidTestAttribute6<'T> () : Unit { }
+
+    @ TestOperation("TraceSimulator")
+    operation InvalidTestAttribute7 () : Int { 
+        return 1;
+    }
+
+    @ TestOperation("ToffoliSimulator")
+    function InvalidTestAttribute8 () : String { 
+        return "";
+    }
+
+    @ TestOperation("QuantumSimulator")
+    function InvalidTestAttribute9 (a : Unit, b : Unit) : Unit { }
+
+    @ TestOperation("TraceSimulator")
+    operation InvalidTestAttribute10 (a : Bool) : Unit { }
+
+    @ TestOperation("ToffoliSimulator")
+    operation InvalidTestAttribute11 ((a : Double)) : Unit { }
+
+    @ TestOperation("")
+    operation InvalidTestAttribute12 () : Unit { }
+
+    @ TestOperation("  ")
+    function InvalidTestAttribute13 () : Unit { }
+
+    @ TestOperation("Target")
+    function InvalidTestAttribute14 () : Unit { }
+
+    @ TestOperation("Target")
+    @ TestOperation("ToffoliSimulator")
+    @ TestOperation("ToffoliSimulator")
+    operation InvalidTestAttribute15 () : Unit { }
+
+    @ TestOperation("QuantumSimulator")
+    operation InvalidTestAttribute16 () : NonExistent { }
+
+    @ TestOperation ()
+    operation InvalidTestAttribute17 () : Unit { }
+
+    @ TestOperation 
+    operation InvalidTestAttribute18 () : Unit { }
 }

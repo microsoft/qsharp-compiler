@@ -18,3 +18,9 @@ namespace Microsoft.Quantum.Core {
         return (new 'T[1])[0];
     }
 }
+
+namespace Microsoft.Quantum.Diagnostics {
+
+    @ Attribute()
+    newtype TestOperation = String;
+}
