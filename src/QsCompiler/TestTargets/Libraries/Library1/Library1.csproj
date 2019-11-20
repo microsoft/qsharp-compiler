@@ -18,6 +18,8 @@
 
   <PropertyGroup>
     <QscExe>dotnet</QscExe>
+    <QsLib  Condition=" '$(OS)' == 'Unix' ">"../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QsLib>
+    <QsLib  Condition=" '$(OS)' == 'Windows_NT' ">"..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp3.0\qsc.dll"</QsLib>
   </PropertyGroup>
 
   <Target Name="EnsureRecompileOnChange">
@@ -34,7 +36,7 @@
       <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll" build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
+      <QscCommand>$(QscExe) $(QsLib) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
   </Target>
