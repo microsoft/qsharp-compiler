@@ -126,31 +126,37 @@ type LinkingTests (output:ITestOutputHelper) =
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
     [<Fact>]
-    member this.``Intrinsic Resolution`` () =
+    [<Trait("Category","Intrinsic Resolution")>]
+    member this.``Intrinsic Resolution Basic Implementation`` () =
         this.RunIntrinsicResolutionTest 1
 
 
     [<Fact>]
+    [<Trait("Category","Intrinsic Resolution")>]
     member this.``Intrinsic Resolution Returns UDT`` () =
         this.RunIntrinsicResolutionTest 2
 
     
     [<Fact>]
+    [<Trait("Category","Intrinsic Resolution")>]
     member this.``Intrinsic Resolution Type Mismatch Error`` () =
         Assert.Throws<Exception> (fun _ -> this.RunIntrinsicResolutionTest 3) |> ignore
 
 
     [<Fact>]
+    [<Trait("Category","Intrinsic Resolution")>]
     member this.``Intrinsic Resolution Param UDT`` () =
         this.RunIntrinsicResolutionTest 4
 
 
     [<Fact>]
+    [<Trait("Category","Intrinsic Resolution")>]
     member this.``Intrinsic Resolution With Adj`` () =
         this.RunIntrinsicResolutionTest 5
 
 
     [<Fact>]
+    [<Trait("Category","Intrinsic Resolution")>]
     member this.``Intrinsic Resolution Spec Mismatch Error`` () =
         Assert.Throws<Exception> (fun _ -> this.RunIntrinsicResolutionTest 6) |> ignore
 
