@@ -18,8 +18,7 @@
 
   <PropertyGroup>
     <QscExe>dotnet</QscExe>
-    <QsLib  Condition=" '$(OS)' == 'Unix' ">"../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QsLib>
-    <QsLib  Condition=" '$(OS)' == 'Windows_NT' ">"..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp3.0\qsc.dll"</QsLib>
+    <QsLib>"../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QsLib>
   </PropertyGroup>
 
   <Target Name="EnsureRecompileOnChange">

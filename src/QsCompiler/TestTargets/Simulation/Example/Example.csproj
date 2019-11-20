@@ -21,8 +21,7 @@
     <GenFilesDir>generated\</GenFilesDir>
     <SimulationTarget>"..\Target\bin\$(Configuration)\netstandard2.1\Simulation.dll"</SimulationTarget>
     <QscExe>dotnet</QscExe>
-    <QsLib  Condition=" '$(OS)' == 'Unix' ">"../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QsLib>
-    <QsLib  Condition=" '$(OS)' == 'Windows_NT' ">"..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp3.0\qsc.dll"</QsLib>
+    <QsLib>"../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QsLib>
   </PropertyGroup>
 
   <ItemGroup>
