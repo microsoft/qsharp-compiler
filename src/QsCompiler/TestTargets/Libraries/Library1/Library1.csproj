@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp3.0\qsc.dll"</QscExe>
+    <QscExe>dotnet</QscExe>
   </PropertyGroup>
 
   <Target Name="EnsureRecompileOnChange">
@@ -34,7 +34,7 @@
       <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
+      <QscCommand>$(QscExe) "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll" build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
   </Target>
