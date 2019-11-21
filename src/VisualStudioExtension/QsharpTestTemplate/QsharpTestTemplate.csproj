@@ -61,7 +61,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="AssemblyInfo.cs" />
-    <None Include="TestSuiteRunner.cs" />
     <Content Include="TestProjectTemplate.xml">
       <SubType>Designer</SubType>
     </Content>

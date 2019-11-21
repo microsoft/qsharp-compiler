@@ -6,7 +6,7 @@
     <Icon>mobius_strip_icon.png</Icon>
     <ProjectType>CSharp</ProjectType>
     <SortOrder>1000</SortOrder>
-    <TemplateID>Microsoft.Test.xUnit.QSharp</TemplateID>
+    <TemplateID>Microsoft.Test.QSharp</TemplateID>
     <CreateNewFolder>true</CreateNewFolder>
     <CreateInPlace>true</CreateInPlace>
     <DefaultName>QSharpTestProject</DefaultName>
@@ -14,7 +14,6 @@
   </TemplateData>
   <TemplateContent>
     <Project File="TestProjectTemplate.xml" TargetFileName="$projectname$.csproj"  ReplaceParameters="true">
-      <ProjectItem ReplaceParameters="true" OpenInEditor="true">TestSuiteRunner.cs</ProjectItem>
       <ProjectItem ReplaceParameters="true" OpenInEditor="true">Tests.qs</ProjectItem>
     </Project>
   </TemplateContent>
