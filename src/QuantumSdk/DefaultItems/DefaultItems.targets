@@ -7,12 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)..\Content\Driver.cs" Condition="'$(OutputType)' == 'Exe'" >
-      <Visible>false</Visible>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
+    <!-- TODO: Core & Intrinsics package -->
     <PackageReference Include="Microsoft.Quantum.Standard" Version="$(QdkVersion)" IsImplicitlyDefined="true" />
   </ItemGroup>
 

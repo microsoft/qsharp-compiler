@@ -7,13 +7,15 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- C# language version (Driver, if applicable) -->
+    <!-- C# language version for the Driver (if applicable)-->
     <LangVersion>latest</LangVersion>
-    <!-- TODO: inject version of the SDK package itself. -->
-    <QsharpLangVersion>0.9</QsharpLangVersion>
+    <!-- Q# language version -->
+    <!-- TODO: inject major + minor of the SDK package itself. -->
+    <QsharpLangVersion>0.10</QsharpLangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(PlatformTarget)' == ''">
+    <!-- cpu platform target -->
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
@@ -22,13 +24,13 @@
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
-    <TargetFramework Condition=" '$(OutputType)' == 'Library' ">netstandard2.0</TargetFramework>
-    <TargetFramework Condition=" '$(OutputType)' == 'Exe' ">netcoreapp2.1</TargetFramework>
+    <TargetFramework Condition=" '$(OutputType)' == 'Library' ">netstandard2.1</TargetFramework>
+    <TargetFramework Condition=" '$(OutputType)' == 'Exe' ">netcoreapp3.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(QdkVersion)' == ''">
     <!-- TODO: inject version of the SDK package itself. -->
-    <QdkVersion>0.9.1908.2906</QdkVersion>
+    <QdkVersion>0.10.1911.1607</QdkVersion>
   </PropertyGroup>
 
 </Project>
