@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     file.Flush();
                     this.PublishDiagnostics(file.Diagnostics());
                 }
-                var task =  this.EnableVerification ? this.SpawnGlobalTypeCheckingAsync(runSynchronously: true) : Task.CompletedTask;
+                var task = this.EnableVerification ? this.SpawnGlobalTypeCheckingAsync(runSynchronously: true) : Task.CompletedTask;
                 QsCompilerError.Verify(task.IsCompleted, "global type checking hasn't completed"); 
                 return execute?.Invoke();
             }
@@ -223,17 +223,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Adds the given source file to this compilation unit, adapting the diagnostics for all remaining files as needed.
         /// If a file with that Uri is already listed as source file,
-        /// replaces the current FileContentManager for that file with a new one and initialized its content to the given one. 
+        /// replaces the current FileContentManager for that file with the given one.
+        /// If the content to update is specified and not null, replaces the tracked content in the file manager with the given one. 
         /// Throws an ArgumentNullException if any of the compulsory arguments is null or the set uri is.
         /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri. 
         /// </summary>
         public Task AddOrUpdateSourceFileAsync(FileContentManager file, string updatedContent = null)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
-            this.CompilationUnit.RegisterDependentLock(file.SyncRoot);
-            this.SubscribeToFileManagerEvents(file);
             return this.Processing.QueueForExecutionAsync(() =>
             {
+                this.CompilationUnit.RegisterDependentLock(file.SyncRoot);
+                this.SubscribeToFileManagerEvents(file);
                 this.FileContentManagers.AddOrUpdate(file.FileName, file, (k, v) => file);
                 if (updatedContent != null) file.ReplaceFileContent(updatedContent);
                 this.ChangedFiles.Add(file.FileName);
@@ -434,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var cancellationToken = runSynchronously ? new CancellationToken() : this.WaitForTypeCheck.Token;
 
             // work with a separate compilation unit instance such that processing of all further edits can go on in parallel
-            var sourceFiles = this.FileContentManagers.Values;
+            var sourceFiles = this.FileContentManagers.Values.OrderBy(m => m.FileName);
             this.ChangedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
             var compilation = new CompilationUnit(this.CompilationUnit.Externals, sourceFiles.Select(file => file.SyncRoot));
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
@@ -662,7 +663,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// before constructing the syntax tree by calling FlushAndExecute.
         /// </summary>
         public IEnumerable<QsNamespace> GetSyntaxTree() =>
-            this.FlushAndExecute(() => this.CompilationUnit.Build().AsEnumerable());
+            this.FlushAndExecute(() => this.CompilationUnit.Build().Namespaces.AsEnumerable());
 
         /// <summary>
         /// Returns a Compilation object containing all information about the current state of the compilation. 
@@ -697,10 +698,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, ImmutableArray<ImmutableArray<CodeFragment>>> Tokenization;
             /// <summary>
-            /// Contains a dictionary that maps the ID of a file included in the compilation 
-            /// to the syntax tree built based on its content. 
+            /// Contains a dictionary that maps the name of a namespace to the compiled Q# namespace.
             /// </summary>
             public readonly ImmutableDictionary<NonNullable<string>, QsNamespace> SyntaxTree;
+            /// <summary>
+            /// Contains the built Q# compilation.
+            /// </summary>
+            public readonly QsCompilation BuiltCompilation; 
 
             /// <summary>
             /// Contains a dictionary that maps the name of each namespace defined in the compilation to a look-up 
@@ -753,12 +757,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// </summary>
             public IEnumerable<Diagnostic> Diagnostics(NonNullable<string> file) =>
                 this.SourceFiles.Contains(file) ? 
-                    ScopeDiagnostics[file].Concat(
-                    SyntaxDiagnostics[file]).Concat(
-                    ContextDiagnostics[file]).Concat(
-                    HeaderDiagnostics[file]).Concat(
-                    SemanticDiagnostics[file]) :
-                Enumerable.Empty<Diagnostic>();
+                    ScopeDiagnostics[file]
+                        .Concat(SyntaxDiagnostics[file])
+                        .Concat(ContextDiagnostics[file])
+                        .Concat(HeaderDiagnostics[file])
+                        .Concat(SemanticDiagnostics[file]) :
+                    Enumerable.Empty<Diagnostic>();
+
+            /// <summary>
+            /// Returns all diagnostics generated during compilation.
+            /// </summary>
+            public IEnumerable<Diagnostic> Diagnostics() =>
+                ScopeDiagnostics.Values
+                    .Concat(SyntaxDiagnostics.Values)
+                    .Concat(ContextDiagnostics.Values)
+                    .Concat(HeaderDiagnostics.Values)
+                    .Concat(SemanticDiagnostics.Values)
+                    .SelectMany(d => d);
 
             /// <summary>
             /// If a source file with the given name exists in the compilation, and if there is exactly one (partial) namespace with the given name, 
@@ -798,6 +813,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 try
                 {
+                    this.BuiltCompilation = manager.CompilationUnit.Build();
                     this.SourceFiles = manager.FileContentManagers.Keys.ToImmutableHashSet();
                     this.References = manager.CompilationUnit.Externals.Declarations.Keys.ToImmutableHashSet();
 
@@ -807,7 +823,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.Tokenization = this.SourceFiles
                         .Select(file => (file, manager.FileContentManagers[file].GetTokenizedLines().Select(line => line.Select(frag => frag.Copy()).ToImmutableArray()).ToImmutableArray()))
                         .ToImmutableDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-                    this.SyntaxTree = manager.CompilationUnit.Build().ToImmutableDictionary(ns => ns.Name);
+                    this.SyntaxTree = this.BuiltCompilation.Namespaces.ToImmutableDictionary(ns => ns.Name);
 
                     this.OpenDirectivesForEachFile = this.SyntaxTree.Keys.ToImmutableDictionary(
                         nsName => nsName, 

@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Common\AssemblyCommon.props" />
+
+  <PropertyGroup>
+    <AssemblyName>qsc</AssemblyName>
+    <AssemblyTitle>Microsoft Q# compiler command line tool.</AssemblyTitle>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Microsoft</Authors>
+    <Description>Microsoft's Q# command line compiler.</Description>
+    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
+    <PackageReleaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</PackageReleaseNotes>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Microsoft/qsharp-compiler</PackageProjectUrl>
+    <PackageIconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</PackageIconUrl>
+    <PackageTags>Quantum Q# Qsharp</PackageTags>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>qsc</ToolCommandName>
+    <PackageId>Microsoft.Quantum.Compiler.CommandLine</PackageId>
+    <ContentTargetFolders>\</ContentTargetFolders>
+    <ApplicationIcon />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Compiler\Compiler.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\..\NOTICE.txt" Link="NOTICE.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

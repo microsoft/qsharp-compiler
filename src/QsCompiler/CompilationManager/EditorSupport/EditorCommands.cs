@@ -12,6 +12,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -107,7 +108,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user. 
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </summary>
-        public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, Range range, CodeActionContext context)
+        public static ILookup<string, WorkspaceEdit> CodeActions(this FileContentManager file, CompilationUnit compilation, LSP.Range range, CodeActionContext context)
         {
             if (range?.Start == null || range.End == null || file == null || !Utils.IsValidRange(range, file)) return null;
             var suggestionsForUnknownIds = file.SuggestionsForUnknownIdentifiers(compilation, range.Start.Line, context?.Diagnostics);
@@ -135,7 +136,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static DocumentHighlight[] DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Position position)
         {
-            DocumentHighlight AsHighlight(Range range) =>
+            DocumentHighlight AsHighlight(LSP.Range range) =>
                 new DocumentHighlight { Range = range, Kind = DocumentHighlightKind.Read };
 
             if (file == null) return null;
@@ -168,7 +169,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Hover GetHover(string info) => info == null ? null : new Hover
             {
                 Contents = new MarkupContent { Kind = format, Value = info },
-                Range = new Range { Start = position, End = position }
+                Range = new LSP.Range { Start = position, End = position }
             };
 
             var markdown = format == MarkupKind.Markdown;

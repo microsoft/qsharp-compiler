@@ -13,7 +13,6 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
 
 
@@ -35,42 +34,40 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws a FileNotFoundException if no file with the given name exists. 
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </summary>
-        public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers)
+        public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false)
         {
             if (asm == null) throw new ArgumentNullException(nameof(asm));
             if (!CompilationUnitManager.TryGetFileId(asm, out var id) || !File.Exists(asm.LocalPath))
-            { throw new FileNotFoundException($"the uti '{asm}' given to the assembly loader is invalid or the file does not exist"); }
+            { throw new FileNotFoundException($"the uri '{asm}' given to the assembly loader is invalid or the file does not exist"); }
 
-            using (var stream = File.OpenRead(asm.LocalPath))
-            using (var assemblyFile = new PEReader(stream))
+            using var stream = File.OpenRead(asm.LocalPath);
+            using var assemblyFile = new PEReader(stream);
+            if (ignoreDllResources || !FromResource(assemblyFile, out var syntaxTree)) 
             {
-                var loadedFromResource = FromResource(assemblyFile, out var syntaxTree);
-                var attributes = loadedFromResource ? Enumerable.Empty<(string, string)>() : LoadHeaderAttributes(assemblyFile);
-                headers = loadedFromResource
-                    ? new References.Headers(id, syntaxTree)
-                    : new References.Headers(id, attributes);
-                return loadedFromResource || !attributes.Any();
+                var attributes = LoadHeaderAttributes(assemblyFile);
+                headers = new References.Headers(id, attributes);
+                return ignoreDllResources || !attributes.Any(); // just means we have no references
             }
+            headers = new References.Headers(id, syntaxTree?.Namespaces ?? ImmutableArray<QsNamespace>.Empty);
+            return true;
         }
 
 
         // tools for loading the compiled syntax tree from the dll resource (later setup for shipping Q# libraries)
 
         /// <summary>
-        /// Given a stream containing the binary representation of compiled Q# code, returns the corresponding syntax tree.
-        /// Throws an ArgumentNullException if the given stream is null.
-        /// May throw an exception if the given binary file has been compiled with a different compiler version.
+        /// Given a stream containing the binary representation of compiled Q# code, returns the corresponding Q# compilation.
+        /// Returns true if the compilation could be deserialized without throwing an exception, and false otherwise. 
+        /// Throws an ArgumentNullException if the given stream is null, but ignores exceptions thrown during deserialization.
         /// </summary>
-        public static IEnumerable<QsNamespace> LoadSyntaxTree(Stream stream)
+        public static bool LoadSyntaxTree(Stream stream, out QsCompilation compilation)
         {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
-            using (var reader = new BsonDataReader(stream))
-            {
-                reader.ReadRootValueAsArray = true;
-                var settings = new JsonSerializerSettings { Converters = JsonConverters.All(false), ContractResolver = new DictionaryAsArrayResolver() };
-                var serializer = JsonSerializer.CreateDefault(settings);
-                return serializer.Deserialize<IEnumerable<QsNamespace>>(reader);
-            }
+            using var reader = new BsonDataReader(stream);
+            (compilation, reader.ReadRootValueAsArray) = (null, false);
+            try { compilation = Json.Serializer.Deserialize<QsCompilation>(reader); }
+            catch { return false; }
+            return compilation != null && !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
         }
 
         /// <summary>
@@ -86,24 +83,23 @@ namespace Microsoft.Quantum.QsCompiler
                 );
 
         /// <summary>
-        /// Given a reader for the byte stream of a dotnet dll, loads any Q# syntax tree included as a resource.
-        /// Returns true as well as the loaded tree if the given dll includes a suitable resource, 
-        /// and returns false as well as an empty sequence otherwise. 
+        /// Given a reader for the byte stream of a dotnet dll, loads any Q# compilation included as a resource.
+        /// Returns true as well as the loaded compilation if the given dll includes a suitable resource, and returns false otherwise. 
         /// Throws an ArgumentNullException if any of the given readers is null.
         /// May throw an exception if the given binary file has been compiled with a different compiler version.
         /// </summary>
-        private static bool FromResource(PEReader assemblyFile, out IEnumerable<QsNamespace> syntaxTree)
+        private static bool FromResource(PEReader assemblyFile, out QsCompilation compilation)
         {
             if (assemblyFile == null) throw new ArgumentNullException(nameof(assemblyFile));
             var metadataReader = assemblyFile.GetMetadataReader();
-            syntaxTree = ImmutableArray<QsNamespace>.Empty;
+            compilation = null;
 
             // The offset of resources is relative to the resources directory. 
             // It is possible that there is no offset given because a valid dll allows for extenal resources. 
             // In all Q# dlls there will be a resource with the specific name chosen by the compiler. 
             var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
             if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-                !metadataReader.Resources().TryGetValue(AssemblyConstants.AST_RESOURCE_NAME, out var resource) ||
+                !metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out var resource) ||
                 !resource.Implementation.IsNil)
             { return false; }
 
@@ -116,8 +112,7 @@ namespace Microsoft.Quantum.QsCompiler
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(Int32)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(Int32), resourceLength).ToArray();
-            syntaxTree = LoadSyntaxTree(new MemoryStream(resourceData));
-            return true;
+            return LoadSyntaxTree(new MemoryStream(resourceData), out compilation);
         }
 
 

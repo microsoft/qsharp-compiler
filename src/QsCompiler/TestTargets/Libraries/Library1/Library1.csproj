@@ -1,24 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="EnsureRecompileOnChange">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
-    <QsharpLangVersion>0.9</QsharpLangVersion>
+    <QsharpLangVersion>0.10</QsharpLangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Standard" Version="0.9.1908.2906" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.10.1911.307" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\CommandLineTool\QsCommandLineTool.csproj">
+    <ProjectReference Include="..\..\..\CommandLineTool\CommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\CoreLibrary\CoreLibrary.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
-    <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
+    <QscExe>dotnet</QscExe>
+    <QsLib>"../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QsLib>
   </PropertyGroup>
 
   <Target Name="EnsureRecompileOnChange">
@@ -35,7 +35,7 @@
       <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
+      <QscCommand>$(QscExe) $(QsLib) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
   </Target>

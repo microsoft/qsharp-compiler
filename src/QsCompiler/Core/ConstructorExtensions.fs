@@ -25,8 +25,8 @@ type UserDefinedType with
     }
 
 type QsTypeParameter with 
-    static member New (nsName, cName, tName, range) = {
-        Origin = QsQualifiedName.New(nsName, cName)
+    static member New (origin, tName, range) = {
+        Origin = origin
         TypeName = tName
         Range = range
     }
@@ -81,9 +81,9 @@ type TypedExpression with
     /// Builds and returns a TypedExpression with the given properties.
     /// The UnresolvedType of the given expression is set to the given expression type, and
     /// the ResolvedType is set to the type constructed by resolving it using ResolveTypeParameters and the given look-up.
-    static member New (expr, typeParamResolutions, exType, exInfo, range) = {
+    static member New (expr, typeParamResolutions : ImmutableDictionary<_,_>, exType, exInfo, range) = {
         Expression = expr
-        TypeParameterResolutions = typeParamResolutions
+        TypeArguments = typeParamResolutions |> Seq.map (fun kv -> fst kv.Key, snd kv.Key, kv.Value) |> ImmutableArray.CreateRange
         ResolvedType = ResolvedType.ResolveTypeParameters typeParamResolutions exType
         InferredInformation = exInfo
         Range = range
@@ -163,7 +163,7 @@ type QsQubitScope with
 type QsStatement with 
     static member New comments location (kind, symbolDecl) = {
         Statement = kind
-        SymbolDeclarations = LocalDeclarations.New symbolDecl
+        SymbolDeclarations = symbolDecl
         Location = location
         Comments = comments
     }
@@ -241,5 +241,11 @@ type QsNamespace with
         Name = name
         Elements = elements.ToImmutableArray()
         Documentation = documentation
+    }
+
+type QsCompilation with 
+    static member New (namespaces, entryPoints) = {
+        Namespaces = namespaces
+        EntryPoints = entryPoints
     }
 

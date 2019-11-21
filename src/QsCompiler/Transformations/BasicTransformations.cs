@@ -32,7 +32,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         /// Returns a hash set containing all source files in the given namespace(s).
         /// Throws an ArgumentNullException if any of the given namespaces is null. 
         /// </summary>
-        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) => Apply(namespaces);
+        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) => 
+            Apply((IEnumerable<QsNamespace>)namespaces);
 
         private readonly HashSet<NonNullable<string>> SourceFiles;
         private GetSourceFiles() :
@@ -61,34 +62,39 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     public class FilterBySourceFile :
         SyntaxTreeTransformation<NoScopeTransformations>
     {
-        public static QsNamespace Apply(QsNamespace ns, params NonNullable<string>[] fileId)
+        public static QsNamespace Apply(QsNamespace ns, Func<NonNullable<string>, bool> predicate)
         {
             if (ns == null) throw new ArgumentNullException(nameof(ns));
-            var filter = new FilterBySourceFile(fileId);
+            var filter = new FilterBySourceFile(predicate);
             return filter.Transform(ns); 
         }
 
-        private readonly List<(int, QsNamespaceElement)> Elements;
-        private readonly Func<NonNullable<string>, bool> IsInSource;
-
-        public FilterBySourceFile(params NonNullable<string>[] fileIds) :
-            base(new NoScopeTransformations())
+        public static QsNamespace Apply(QsNamespace ns, params NonNullable<string>[] fileIds)
         {
             var sourcesToKeep = fileIds.Select(f => f.Value).ToImmutableHashSet();
-            this.IsInSource = s => sourcesToKeep.Contains(s.Value);
+            return FilterBySourceFile.Apply(ns, s => sourcesToKeep.Contains(s.Value));
+        }
+
+        private readonly List<(int, QsNamespaceElement)> Elements;
+        private readonly Func<NonNullable<string>, bool> Predicate;
+
+        public FilterBySourceFile(Func<NonNullable<string>, bool> predicate) :
+            base(new NoScopeTransformations())
+        {
+            this.Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
             this.Elements = new List<(int, QsNamespaceElement)>();
         }
 
         private QsCallable AddCallableIfInSource(QsCallable c)
         {
-            if (IsInSource(c.SourceFile))
+            if (Predicate(c.SourceFile))
             { Elements.Add((c.Location.Offset.Item1, QsNamespaceElement.NewQsCallable(c))); }
             return c;
         }
 
         private QsCustomType AddTypeIfInSource(QsCustomType t)
         {
-            if (IsInSource(t.SourceFile))
+            if (Predicate(t.SourceFile))
             { Elements.Add((t.Location.Offset.Item1, QsNamespaceElement.NewQsCustomType(t))); }
             return t;
         }

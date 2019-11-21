@@ -3,27 +3,20 @@
 
   <PropertyGroup>
     <AssemblyName>Simulation</AssemblyName>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
-    <OutputType>Exe</OutputType>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="Example\**" />
-    <EmbeddedResource Remove="Example\**" />
-    <None Remove="Example\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="Driver.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\..\CommandLineTool\TargetOptions.cs" Link="TargetOptions.cs" />
+    <Compile Include="..\..\..\Compiler\PluginInterface.cs" Link="PluginInterface.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.5.0" />
-    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.8.1907.1701" />
+    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1911.307" />
   </ItemGroup>
 
 </Project>

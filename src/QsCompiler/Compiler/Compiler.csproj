@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Common\AssemblyCommon.props" />
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Microsoft.Quantum.QsCompiler</AssemblyName>
+    <AssemblyTitle>Microsoft Q# compiler library.</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CompilationManager\CompilationManager.csproj" />
+    <ProjectReference Include="..\Optimizations\Optimizations.fsproj" />
+    <ProjectReference Include="..\DocumentationParser\DocumentationParser.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.2" />
+  </ItemGroup>
+</Project>

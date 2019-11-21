@@ -7,6 +7,7 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -101,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// stripping (only) end of line comments (and not removing excess brackets).
         /// Note: the End position of the given range is *not* part of the returned string.
         /// </summary>
-        private static string GetCodeSnippet(this FileContentManager file, Range range)
+        private static string GetCodeSnippet(this FileContentManager file, LSP.Range range)
         {
             if (!Utils.IsValidRange(range, file))
                 throw new ArgumentException($"cannot extract code snippet for the given range \n range: {range.DiagnosticString()}");
@@ -262,7 +263,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     processed = processed.Copy(); // because we don't want to modify the ending of the previous code fragment ...
                     var nextEnding = file.FragmentEnd(ref processed); 
-                    var extractedPiece = file.GetCodeSnippet(new Range { Start = processed, End = nextEnding });
+                    var extractedPiece = file.GetCodeSnippet(new LSP.Range { Start = processed, End = nextEnding });
 
                     // constructing the CodeFragment - 
                     // NOTE: its Range.End is the position of the delimiting char (if such a char exists), i.e. the position right after Code ends
@@ -275,7 +276,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         if (code.Length == 0 || !CodeFragment.DelimitingChars.Contains(code.Last())) code = $"{code}{CodeFragment.MissingDelimiter}";
 
                         var endChar = nextEnding.Character - (extractedPiece.Length - code.Length) - 1;
-                        var codeRange = new Range { Start = processed, End = new Position(nextEnding.Line, endChar) };
+                        var codeRange = new LSP.Range { Start = processed, End = new Position(nextEnding.Line, endChar) };
                         yield return new CodeFragment(file.IndentationAt(codeRange.Start), codeRange, code.Substring(0, code.Length - 1), code.Last());
                     }
                     processed = nextEnding;
@@ -292,7 +293,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if file is null.
         /// Throws an ArgumentOutOfRangeException if the range [start, start + count) is not a valid range within the current file content.
         /// </summary>
-        internal static Range GetSyntaxCheckDelimiters(this FileContentManager file, int start, int count)
+        internal static LSP.Range GetSyntaxCheckDelimiters(this FileContentManager file, int start, int count)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
             if (start < 0 || start >= file.NrLines()) throw new ArgumentOutOfRangeException(nameof(start));
@@ -306,7 +307,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var syntaxCheckEnd = firstAfterModified.IsSmallerThan(lastInFile)
                 ? file.FragmentEnd(ref firstAfterModified) 
                 : file.End();
-            return new Range { Start = syntaxCheckStart, End = lastInFile.IsSmallerThanOrEqualTo(syntaxCheckEnd) ? file.End() : syntaxCheckEnd};
+            return new LSP.Range { Start = syntaxCheckStart, End = lastInFile.IsSmallerThanOrEqualTo(syntaxCheckEnd) ? file.End() : syntaxCheckEnd};
         }
 
         /// <summary>

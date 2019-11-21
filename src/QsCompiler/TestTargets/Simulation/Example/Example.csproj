@@ -1,17 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="EnsureRecompileOnChange">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
-    <QsharpLangVersion>0.9</QsharpLangVersion>
+    <QsharpLangVersion>0.10</QsharpLangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Standard" Version="0.9.1908.2906" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\CommandLineTool\QsCommandLineTool.csproj">
+    <ProjectReference Include="..\..\..\CommandLineTool\CommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\Target\Simulation.csproj">
@@ -23,8 +19,9 @@
   <PropertyGroup>
     <ExecutionTestsDir>ExecutionTests\</ExecutionTestsDir>
     <GenFilesDir>generated\</GenFilesDir>
-    <SimulationTarget>"..\Target\bin\$(Configuration)\netcoreapp2.1\Simulation.dll"</SimulationTarget>
-    <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp2.1\qsc.dll"</QscExe>
+    <SimulationTarget>"..\Target\bin\$(Configuration)\netstandard2.1\Simulation.dll"</SimulationTarget>
+    <QscExe>dotnet</QscExe>
+    <QsLib>"../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QsLib>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,6 +35,13 @@
     </None>
   </ItemGroup>
 
+  <Target Name="EnsureRecompileOnChange">
+    <ItemGroup>
+      <UpToDateCheckInput Include="@(None)" />
+      <UpToDateCheckInput Include="@(Content)" />
+    </ItemGroup>
+  </Target>
+  
   <Target Name="QsharpClean" BeforeTargets="Clean">
     <ItemGroup>
       <RemoveFiles Include="$(GenFilesDir)**" />
@@ -54,8 +58,9 @@
       <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) -t "$(SimulationTarget)"</QscCommand>
+      <QscCommand>$(QscExe) $(QsLib) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) --load "$(SimulationTarget)"</QscCommand>
     </PropertyGroup>
+    <Message Importance="low" Text="executing command '$(QscCommand)'" />
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
     <Delete Files="$(GenFilesDir)$(MSBuildProjectName).bson" />
     <ItemGroup>

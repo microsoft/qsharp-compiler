@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\Common\AssemblyCommon.props" />
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Microsoft.Quantum.QsCore</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\DelaySign.fs">
+      <Link>DelaySign.fs</Link>
+    </Compile>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="ConstructorExtensions.fs" />    
+    <Compile Include="ExpressionTransformation.fs" />
+    <Compile Include="StatementTransformation.fs" />
+    <Compile Include="TreeTransformation.fs" />
+    <Compile Include="ExpressionWalker.fs" />
+    <Compile Include="StatementWalker.fs" />
+    <Compile Include="TreeWalker.fs" />
+    <Compile Include="Dependencies.fs" />
+    <Compile Include="SyntaxGenerator.fs" />
+    <Compile Include="DeclarationHeaders.fs" />
+    <Compile Include="SymbolResolution.fs" />
+    <Compile Include="SymbolTable.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DataStructures\DataStructures.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
+    <PackageReference Update="System.ValueTuple" Version="4.4.0" />
+  </ItemGroup>
+
+</Project>

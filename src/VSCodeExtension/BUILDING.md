@@ -24,7 +24,6 @@ Building the VS Code extension requires the following steps:
 
 - Setting up the build pre-requisites (see below for details).
 - Installing all Node.js dependencies required by the extension.
-- Compiling the language server and copying its assemblies into `bin/`.
 - Compiling the TypeScript for the extension itself.
   This step is automatically invoked when debugging the extension from within VS Code.
 
@@ -32,13 +31,11 @@ To set up the build pre-requisites, we require to run `bootstrap.ps1` from the r
 This in particular creates `package.json` from `package.json.v.template`, which specifies all of the dependencies that must be installed in order for the TypeScript comprising the VS Code extension to successfully compile and run.
 All following steps need to be executed from within the root directory of the extension (this directory).
 
-Once `package.json` exists, run 
+Once `package.json` exists, run
 ```
 npm i
 ```
-from within this directory to install the Node.js dependencies. 
-
-The next step is accomplished by running the `Build-Dependencies.ps1` script; this script is invoked automatically when using the `vsce` tool in the next step, but you **must** run it manually to use the VS Code extension from within the debugger. `Build-Dependencies.ps1` will skip the compilation of the language server if the corresponding dll is found, independent on whether or not the language server has been modified. A recompilation of the server dll can be forced by passing the argument `-f` to `Build-Dependencies.ps1`.
+from within this directory to install the Node.js dependencies.
 
 Finally, to produce a VSIX that can be used to locally install, rather than debug, the extension, run:
 
@@ -58,7 +55,7 @@ For instance, breaking at the second line below will let you observe the PID use
 
 ```typescript
 .then((childProcess) => {
-    console.log(`[qsharp-lsp] started QsLanguageServer.exe as PID ${childProcess.pid}.`);
+    console.log(`[qsharp-lsp] started Q# Language Server as PID ${childProcess.pid}.`);
 })
 ```
 

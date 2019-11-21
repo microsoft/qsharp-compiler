@@ -1226,8 +1226,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             QsSpecialization GetSpecialization(SpecializationDeclarationHeader spec, ResolvedSignature signature, 
                 SpecializationImplementation implementation, QsComments comments = null) =>
-                new QsSpecialization(spec.Kind, spec.Parent, spec.Attributes, spec.SourceFile, null,
-                    spec.TypeArguments, SyntaxGenerator.WithoutRangeInfo(signature), implementation, spec.Documentation, comments ?? QsComments.Empty);
+                new QsSpecialization(spec.Kind, spec.Parent, spec.Attributes, spec.SourceFile, null, 
+                spec.TypeArguments, SyntaxGenerator.WithoutRangeInfo(signature), implementation, spec.Documentation, comments ?? QsComments.Empty);
 
             QsSpecialization BuildSpecialization(QsSpecializationKind kind, ResolvedSignature signature, QsSpecializationGeneratorKind<QsSymbol> gen, FragmentTree.TreeNode root,
                 Func<QsSymbol, Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsCompilerDiagnostic[]>> buildArg, QsComments comments = null)

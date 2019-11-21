@@ -3,7 +3,6 @@
 
 namespace Microsoft.Quantum.Testing.Simulation
 {
-    open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Testing;
 

@@ -189,7 +189,8 @@ type ExpressionKindTransformation(?enable) =
             | ExpressionType.Operation _                                                     -> this.onOperationCall (method, arg)
             | _                                                                              -> this.onFunctionCall (method, arg)
 
-    member this.Transform kind = 
+    abstract member Transform : ExpressionKind -> ExpressionKind
+    default this.Transform kind = 
         if not enable then kind else 
         match kind with 
         | Identifier (sym, tArgs)                          -> this.onIdentifier                 (sym, tArgs)
@@ -265,7 +266,7 @@ and ExpressionTypeTransformation(?enable) =
         let origin = tp.Origin
         let name = tp.TypeName
         let range = this.onRangeInformation tp.Range
-        QsTypeParameter.New (origin.Namespace, origin.Name, name, range) |> ExpressionType.TypeParameter
+        QsTypeParameter.New (origin, name, range) |> ExpressionType.TypeParameter
 
     abstract member onUnitType : unit -> ExpressionType
     default this.onUnitType () = ExpressionType.UnitType
@@ -359,13 +360,20 @@ and ExpressionTransformation(?enableKindTransformations) =
     abstract member onExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
     default this.onExpressionInformation info = info
 
+    abstract member onTypeParamResolutions : ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType> -> ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType>
+    default this.onTypeParamResolutions typeParams =
+        let asTypeParameter (key) = QsTypeParameter.New (fst key, snd key, Null)
+        let filteredTypeParams = 
+            typeParams 
+            |> Seq.map (fun kv -> this.Type.onTypeParameter (kv.Key |> asTypeParameter), kv.Value)
+            |> Seq.choose (function | TypeParameter tp, value -> Some ((tp.Origin, tp.TypeName), this.Type.Transform value) | _ -> None)
+        filteredTypeParams.ToImmutableDictionary (fst,snd)
+
     abstract member Transform : TypedExpression -> TypedExpression
     default this.Transform (ex : TypedExpression) =
         let range                = this.onRangeInformation ex.Range
-        let typeParamResolutions = ex.TypeParameterResolutions
+        let typeParamResolutions = this.onTypeParamResolutions ex.TypeParameterResolutions
         let kind                 = this.Kind.Transform ex.Expression
         let exType               = this.Type.Transform ex.ResolvedType
         let inferredInfo         = this.onExpressionInformation ex.InferredInformation
         TypedExpression.New (kind, typeParamResolutions, exType, inferredInfo, range)
-
-

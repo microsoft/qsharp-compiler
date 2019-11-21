@@ -1,1 +1,0 @@
-This is a .net framework project, which is not supported.

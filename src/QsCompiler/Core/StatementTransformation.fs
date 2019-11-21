@@ -60,7 +60,8 @@ type StatementKindTransformation(?enable) =
         let lhs = this.ExpressionTransformation stm.Lhs
         QsValueUpdate.New (lhs, rhs) |> QsValueUpdate
 
-    member private this.onPositionedBlock (intro : TypedExpression option, block : QsPositionedBlock) = 
+    abstract member onPositionedBlock : TypedExpression option * QsPositionedBlock -> TypedExpression option * QsPositionedBlock
+    default this.onPositionedBlock (intro : TypedExpression option, block : QsPositionedBlock) = 
         let location = this.LocationTransformation block.Location
         let comments = block.Comments
         let expr = intro |> Option.map this.ExpressionTransformation
@@ -101,7 +102,8 @@ type StatementKindTransformation(?enable) =
         let inner = this.onPositionedBlock (None, stm.InnerTransformation) |> snd
         QsConjugation.New (outer, inner) |> QsConjugation
 
-    member private this.onQubitScope (stm : QsQubitScope) = 
+    abstract member onQubitScope : QsQubitScope -> QsStatementKind
+    default this.onQubitScope (stm : QsQubitScope) = 
         let kind = stm.Kind
         let rhs = this.onQubitInitializer stm.Binding.Rhs
         let lhs = this.onSymbolTuple stm.Binding.Lhs
@@ -120,7 +122,8 @@ type StatementKindTransformation(?enable) =
         | Allocate -> this.onAllocateQubits stm
         | Borrow   -> this.onBorrowQubits stm
 
-    member this.Transform kind = 
+    abstract member Transform : QsStatementKind -> QsStatementKind
+    default this.Transform kind = 
         let beforeBinding (stm : QsBinding<TypedExpression>) = { stm with Lhs = this.beforeVariableDeclaration stm.Lhs }
         let beforeForStatement (stm : QsForStatement) = {stm with LoopItem = (this.beforeVariableDeclaration (fst stm.LoopItem), snd stm.LoopItem)} 
         let beforeQubitScope (stm : QsQubitScope) = {stm with Binding = {stm.Binding with Lhs = this.beforeVariableDeclaration stm.Binding.Lhs}}
@@ -159,16 +162,26 @@ and ScopeTransformation(?enableStatementKindTransformations) =
     abstract member onLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.onLocation loc = loc
 
+    abstract member onLocalDeclarations : LocalDeclarations -> LocalDeclarations
+    default this.onLocalDeclarations decl = 
+        let onLocalVariableDeclaration (local : LocalVariableDeclaration<NonNullable<string>>) = 
+            let loc = local.Position, local.Range
+            let info = this.Expression.onExpressionInformation local.InferredInformation
+            let varType = this.Expression.Type.Transform local.Type 
+            LocalVariableDeclaration.New info.IsMutable (loc, local.VariableName, varType, info.HasLocalQuantumDependency)
+        let variableDeclarations = decl.Variables |> Seq.map onLocalVariableDeclaration |> ImmutableArray.CreateRange
+        LocalDeclarations.New variableDeclarations
+
     abstract member onStatement : QsStatement -> QsStatement
     default this.onStatement stm = 
         let location = this.onLocation stm.Location
         let comments = stm.Comments
         let kind = this.StatementKind.Transform stm.Statement
-        let varDecl = stm.SymbolDeclarations.Variables
+        let varDecl = this.onLocalDeclarations stm.SymbolDeclarations
         QsStatement.New comments location (kind, varDecl)
 
     abstract member Transform : QsScope -> QsScope 
     default this.Transform scope = 
-        let parentSymbols = scope.KnownSymbols
+        let parentSymbols = this.onLocalDeclarations scope.KnownSymbols
         let statements = scope.Statements |> Seq.map this.onStatement
         QsScope.New (statements, parentSymbols)

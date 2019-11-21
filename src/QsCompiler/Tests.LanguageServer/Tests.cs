@@ -79,7 +79,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsNotNull(initReply.Capabilities.CompletionProvider);
             Assert.IsTrue(initReply.Capabilities.CompletionProvider.ResolveProvider);
             Assert.IsNotNull(initReply.Capabilities.CompletionProvider.TriggerCharacters);
-            Assert.IsTrue(initReply.Capabilities.CompletionProvider.TriggerCharacters.SequenceEqual(new[] { "." }));
+            Assert.IsTrue(initReply.Capabilities.CompletionProvider.TriggerCharacters.SequenceEqual(new[] { ".", "(" }));
             Assert.IsNotNull(initReply.Capabilities.SignatureHelpProvider?.TriggerCharacters);
             Assert.IsTrue(initReply.Capabilities.SignatureHelpProvider.TriggerCharacters.Any());
             Assert.IsNotNull(initReply.Capabilities.ExecuteCommandProvider?.Commands);
@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(initReply.Capabilities.DocumentHighlightProvider);
             Assert.IsTrue(initReply.Capabilities.DocumentSymbolProvider);
             Assert.IsFalse(initReply.Capabilities.WorkspaceSymbolProvider);
-            Assert.IsTrue(initReply.Capabilities.RenameProvider);
+            Assert.IsTrue(initReply.Capabilities.RenameProvider.Value is bool supported && supported);
             Assert.IsTrue(initReply.Capabilities.HoverProvider);
             Assert.IsFalse(initReply.Capabilities.DocumentFormattingProvider);
             Assert.IsFalse(initReply.Capabilities.DocumentRangeFormattingProvider);
