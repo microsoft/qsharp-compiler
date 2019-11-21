@@ -29,8 +29,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(QdkVersion)' == ''">
-    <!-- TODO: inject version of the SDK package itself. -->
-    <QdkVersion>0.10.1911.1607</QdkVersion>
+    <QdkVersion>$version$</QdkVersion>
   </PropertyGroup>
 
 </Project>

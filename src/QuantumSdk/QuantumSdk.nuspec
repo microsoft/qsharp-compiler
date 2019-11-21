@@ -8,11 +8,11 @@
     <owners>QuantumEngineering, Microsoft</owners>
     <license type="expression">MIT</license>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>The Q# compiler.</description>
+    <description></description>
     <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
     <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
     <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
-    <copyright>$copyright$</copyright>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
     <tags>Quantum Q# Qsharp </tags>
     <packageTypes>
       <packageType name="Sdk" />
@@ -21,7 +21,6 @@
   <files>
     <file src="Sdk\**\*" target="Sdk"/>
     <file src="DefaultItems\**\*" target="DefaultItems"/>
-    <file src="Content\**\*" target="Content"/>
     <file src="ProjectSystem\**\*" target="ProjectSystem"/>
   </files>
 </package>
