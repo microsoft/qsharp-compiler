@@ -10,9 +10,6 @@ param(
 
     [string]
     $VsixVersion = $Env:VSIX_VERSION
-
-    [string]
-    $SdkVersion = $Env:SDK_VERSION
 );
 
 if ("$AssemblyVersion".Trim().Length -eq 0) {
@@ -37,11 +34,6 @@ if ("$VsixVersion".Trim().Length -eq 0) {
     $VsixVersion = "$AssemblyVersion";
 }
 
-if ("$SdkVersion".Trim().Length -eq 0) {
-    $SdkVersion = "$NuGetVersion";
-}
-
-
 $Telemetry = "$($Env:ASSEMBLY_CONSTANTS)".Contains("TELEMETRY").ToString().ToLower();
 Write-Output("Enable telemetry: $Telemetry");
 
@@ -57,7 +49,6 @@ Get-ChildItem -Recurse *.v.template `
                     Replace("#NUGET_VERSION#", $NuGetVersion).
                     Replace("#VSIX_VERSION#", $VsixVersion).
                     Replace("#SEMVER_VERSION#", $SemverVersion).
-                    Replace("#SDK_VERSION#", $SdkVersion).
                     Replace("#ENABLE_TELEMETRY#", $Telemetry)
             } `
             | Set-Content $Target -NoNewline

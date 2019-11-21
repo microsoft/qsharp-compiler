@@ -29,7 +29,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(QdkVersion)' == ''">
-    <QdkVersion>$version$</QdkVersion>
+    <QdkVersion>#NUGET_VERSION#</QdkVersion>
   </PropertyGroup>
 
 </Project>

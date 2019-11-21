@@ -19,8 +19,8 @@
     </packageTypes>
   </metadata>
   <files>
-    <file src="Sdk\**\*" target="Sdk"/>
-    <file src="DefaultItems\**\*" target="DefaultItems"/>
-    <file src="ProjectSystem\**\*" target="ProjectSystem"/>
+    <file src="Sdk\**\*" target="Sdk" exclude="**\*.v.template"/>
+    <file src="DefaultItems\**\*" target="DefaultItems" exclude="**\*.v.template"/>
+    <file src="ProjectSystem\**\*" target="ProjectSystem" exclude="**\*.v.template"/>
   </files>
 </package>
