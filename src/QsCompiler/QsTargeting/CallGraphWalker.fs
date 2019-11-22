@@ -20,16 +20,16 @@ type private SpecializationKey =
     }
 
 
-/// Class used to track call graph of a compilation. 
-/// This class is *not* threadsafe. 
+/// Class used to track call graph of a compilation.
+/// This class is *not* threadsafe.
 type CallGraph() =
 
     let dependencies = new Dictionary<SpecializationKey, HashSet<SpecializationKey>>()
     let typeHashes = new Dictionary<int, ResolvedType>()
 
-    let SpecInfoToKey kind parent typeArgs = 
-        let getTypeArgHash (tArgs : ImmutableArray<ResolvedType>) = 
-            let pushHash t = 
+    let SpecInfoToKey kind parent typeArgs =
+        let getTypeArgHash (tArgs : ImmutableArray<ResolvedType>) =
+            let pushHash t =
                 let tHash = Hashing.TypeHash t
                 typeHashes.[tHash] <- t
                 tHash
@@ -37,11 +37,11 @@ type CallGraph() =
         let typeArgHash = typeArgs |> QsNullable<_>.Map getTypeArgHash
         { Kind = kind; CallableName = parent; TypeArgHash = typeArgHash }
 
-    let SpecToKey (spec : QsSpecialization) = 
+    let SpecToKey (spec : QsSpecialization) =
         SpecInfoToKey spec.Kind spec.Parent spec.TypeArguments
 
     let HashToTypeArgs (tArgHash : QsNullable<int list>) =
-        let getResolvedType = typeHashes.TryGetValue >> function 
+        let getResolvedType = typeHashes.TryGetValue >> function
             | true, t -> t
             | false, _ -> new ArgumentException "no type with the given hash has been listed" |> raise
         tArgHash |> QsNullable<_>.Map (fun hashes -> hashes |> List.map getResolvedType)
@@ -63,33 +63,33 @@ type CallGraph() =
         let calledKey = SpecInfoToKey calledKind calledName calledTypeArgs
         RecordDependency callerKey calledKey
 
-    /// Returns all specializations that are used directly within the given caller, 
-    /// whether they are called, partially applied, or assigned. 
-    /// The returned specializations are identified by the full name of the callable, 
-    /// the specialization kind, as well as the resolved type arguments. 
-    /// The returned type arguments are the exact type arguments of the expression, 
-    /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle. 
+    /// Returns all specializations that are used directly within the given caller,
+    /// whether they are called, partially applied, or assigned.
+    /// The returned specializations are identified by the full name of the callable,
+    /// the specialization kind, as well as the resolved type arguments.
+    /// The returned type arguments are the exact type arguments of the expression,
+    /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
     member this.GetDirectDependencies callerSpec =
         let key = SpecToKey callerSpec
         match dependencies.TryGetValue key with
-        | true, deps -> deps 
+        | true, deps -> deps
                         |> Seq.map (fun key -> (key.CallableName, key.Kind, key.TypeArgHash |> HashToTypeArgs))
                         |> ImmutableArray.CreateRange
         | false, _ -> ImmutableArray.Empty
 
-    /// Returns all specializations directly or indirectly used within the given caller, 
-    /// whether they are called, partially applied, or assigned. 
-    /// The returned specializations are identified by the full name of the callable, 
-    /// the specialization kind, as well as the resolved type arguments. 
-    /// The returned type arguments are the exact type arguments of the expression, 
-    /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle. 
+    /// Returns all specializations directly or indirectly used within the given caller,
+    /// whether they are called, partially applied, or assigned.
+    /// The returned specializations are identified by the full name of the callable,
+    /// the specialization kind, as well as the resolved type arguments.
+    /// The returned type arguments are the exact type arguments of the expression,
+    /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
     member this.GetAllDependencies callerSpec =
         let rec WalkDependencyTree root (accum : HashSet<SpecializationKey>) =
             match dependencies.TryGetValue(root) with
-            | true, next -> 
-                next 
-                |> Seq.fold (fun (a : HashSet<SpecializationKey>) k -> 
-                    if a.Add(k) then WalkDependencyTree k a else a) 
+            | true, next ->
+                next
+                |> Seq.fold (fun (a : HashSet<SpecializationKey>) k ->
+                    if a.Add(k) then WalkDependencyTree k a else a)
                     accum
             | false, _ -> accum
         let key = SpecToKey callerSpec
@@ -98,7 +98,7 @@ type CallGraph() =
         |> ImmutableArray.CreateRange
 
 
-type private ExpressionKindGraphBuilder(exprXformer : ExpressionGraphBuilder, graph : CallGraph, 
+type private ExpressionKindGraphBuilder(exprXformer : ExpressionGraphBuilder, graph : CallGraph,
         spec : QsSpecialization) =
     inherit ExpressionKindWalker()
 
@@ -163,7 +163,7 @@ and private ExpressionGraphBuilder(graph : CallGraph, spec : QsSpecialization) a
     override this.Kind = upcast kindXformer
 
 
-type private StatementGraphBuilder(scopeXformer : ScopeGraphBuilder, graph : CallGraph, 
+type private StatementGraphBuilder(scopeXformer : ScopeGraphBuilder, graph : CallGraph,
         spec : QsSpecialization) =
     inherit StatementKindWalker()
 
