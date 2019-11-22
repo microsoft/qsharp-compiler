@@ -1,11 +1,11 @@
 {
     "$schema": "http://json.schemastore.org/template",
-    "classifications": ["Test"],  
-    "name": "Unit Test Project",
+    "classifications": ["Test", "xUnit"],  
+    "name": "xUnit Test Project",
     "description": "A project for creating unit tests in Q#",
-    "groupIdentity": "Microsoft.Test",
-    "identity": "Microsoft.Test.QSharp.0.10",
-    "shortName": "test",
+    "groupIdentity": "Microsoft.Test.xUnit",
+    "identity": "Microsoft.Test.xUnit.QSharp.0.10",
+    "shortName": "xunit",
     "tags": {
       "language": "Q#",
       "type": "project"

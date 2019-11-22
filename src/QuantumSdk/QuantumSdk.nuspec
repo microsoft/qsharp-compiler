@@ -8,7 +8,7 @@
     <owners>QuantumEngineering, Microsoft</owners>
     <license type="expression">MIT</license>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description></description>
+    <description>The Microsoft Quantum Sdk for development in Q#.</description>
     <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
     <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
     <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
