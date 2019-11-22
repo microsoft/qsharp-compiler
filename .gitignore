@@ -335,3 +335,6 @@ src/ProjectTemplates/Quantum.App1/Quantum.App1.csproj
 src/ProjectTemplates/Quantum.Library1/Quantum.Library1.csproj
 src/ProjectTemplates/Quantum.Test1/Quantum.Test1.csproj
 src/QuantumSdk/DefaultItems/DefaultItems.props
+src/ProjectTemplates/Quantum.App1/.template.config/template.json
+src/ProjectTemplates/Quantum.Library1/.template.config/template.json
+src/ProjectTemplates/Quantum.Test1/.template.config/template.json
