@@ -1,10 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\Common\AssemblyCommon.props" />
+
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Microsoft.Quantum.QsTargeting</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Common\DelaySign.fs">
+      <Link>DelaySign.fs</Link>
+    </Compile>
     <Compile Include="CallGraphWalker.fs" />
   </ItemGroup>
 

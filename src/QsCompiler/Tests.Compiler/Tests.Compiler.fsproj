@@ -151,7 +151,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CommandLineTool\CommandLineTool.csproj" />
-    <ProjectReference Include="..\QsTargeting\Targeting.fsproj" />
+    <ProjectReference Include="..\Targeting\Targeting.fsproj" />
     <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
