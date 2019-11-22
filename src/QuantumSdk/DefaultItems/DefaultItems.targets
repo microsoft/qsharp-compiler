@@ -1,4 +1,5 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
   <PropertyGroup>
     <!-- Work around issues in MSBuild versions prior to 16.0. -->
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
@@ -9,7 +10,8 @@
   <ItemGroup>
     <!-- TODO: Core & Intrinsics package -->
     <PackageReference Include="Microsoft.Quantum.Standard" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
-    <!-- TODO: reference to simulators depending on the execution target -->
+    <!-- for backwards compatibility we still generate C# independent on whether the project is targeted for execution on the simulation framework or not -->
+    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
   </ItemGroup>
 
 </Project>
