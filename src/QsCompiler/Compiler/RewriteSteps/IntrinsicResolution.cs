@@ -2,15 +2,13 @@
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization;
-using Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation;
+using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation;
 
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
-    internal class Monomorphization : IRewriteStep
+    internal class IntrinsicResolution : IRewriteStep
     {
         public string Name { get; }
         public int Priority { get; }
@@ -20,30 +18,34 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public bool ImplementsPreconditionVerification { get; }
         public bool ImplementsPostconditionVerification { get; }
 
-        public Monomorphization()
+        private QsCompilation Environment { get; }
+
+        public IntrinsicResolution(QsCompilation environment)
         {
-            Name = "Monomorphization";
+            Name = "IntrinsicResolution";
             Priority = 10; // Not used for built-in transformations like this
             AssemblyConstants = new Dictionary<string, string>();
             ImplementsTransformation = true;
-            ImplementsPreconditionVerification = true;
-            ImplementsPostconditionVerification = true;
+            ImplementsPreconditionVerification = false;
+            ImplementsPostconditionVerification = false;
+
+            Environment = environment;
         }
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = MonomorphizationTransformation.Apply(compilation);
+            transformed = IntrinsicResolutionTransformation.Apply(this.Environment, compilation);
             return true;
         }
 
-        public bool PreconditionVerification(QsCompilation compilation) =>
-            compilation != null && compilation.EntryPoints.Any();
+        public bool PreconditionVerification(QsCompilation compilation)
+        {
+            throw new System.NotImplementedException();
+        }
 
         public bool PostconditionVerification(QsCompilation compilation)
         {
-            try { MonomorphizationValidationTransformation.Apply(compilation); }
-            catch { return false; }
-            return true;
+            throw new System.NotImplementedException();
         }
     }
 }

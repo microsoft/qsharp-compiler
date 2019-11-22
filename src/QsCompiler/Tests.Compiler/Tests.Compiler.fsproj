@@ -18,6 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="TestUtils\TestUtils.fs" />
+    <Compile Include="TestUtils\SetupVerificationTests.fs" />
+    <Compile Include="TestUtils\Signatures.fs" />
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -34,6 +37,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LinkingTests\Monomorphization.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\IntrinsicResolution.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">
@@ -116,11 +122,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <Compile Include="..\Common\DelaySign.fs" Link="DelaySign.fs" />
-    <Compile Include="TestUtils.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
     <Compile Include="CompletionParsingTests.fs" />
-    <Compile Include="SetupVerificationTests.fs" />
     <Compile Include="GlobalVerificationTests.fs" />
     <Compile Include="LocalVerificationTests.fs" />
     <Compile Include="TypeCheckingTests.fs" />

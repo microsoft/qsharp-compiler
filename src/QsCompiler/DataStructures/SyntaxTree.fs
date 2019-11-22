@@ -67,6 +67,7 @@ type QsQualifiedName = {
     /// the declared name of the namespace element
     Name : NonNullable<string>
 }
+    with override this.ToString () = this.Namespace.Value + "." + this.Name.Value
 
 
 type SymbolTuple =
@@ -227,7 +228,7 @@ type ResolvedCharacteristics = private {
     /// Determines which properties are supported by a callable with the given characteristics and returns them.
     /// Throws an InvalidOperationException if the properties cannot be determined
     /// either because the characteristics expression contains unresolved parameters or is invalid.
-    member internal this.GetProperties() =
+    member this.GetProperties() =
         ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this |> function
         | Some props -> props.ToImmutableHashSet()
         | None -> InvalidOperationException "properties cannot be determined" |> raise
@@ -727,6 +728,10 @@ type QsNamespaceElement =
 | QsCallable of QsCallable
 /// denotes a Q# user defined type
 | QsCustomType of QsCustomType
+    member this.GetFullName () =
+        match this with
+        | QsCallable call -> call.FullName
+        | QsCustomType typ -> typ.FullName
 
 
 /// Describes a Q# namespace.

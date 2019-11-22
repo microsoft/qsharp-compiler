@@ -362,9 +362,9 @@ output:
                                   "# Deprecated",
                                   "Some other text"
                                 };
-            string dep = "newName";
+            string dep = "NewName";
             string warning = "> [!WARNING]\n> Deprecated\n";
-            string warningText = "name has been deprecated. Please use @\"newName\" instead.";
+            string warningText = "name has been deprecated. Please use @\"newname\" instead.";
 
             // Test with just the Deprecated comment section
             var dc = new DocComment(comments);

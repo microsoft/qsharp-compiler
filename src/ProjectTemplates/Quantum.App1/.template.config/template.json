@@ -4,7 +4,7 @@
     "name": "Console Application",
     "description": "A project for creating a console application to execute Q# operations",
     "groupIdentity": "Microsoft.Common.Console",
-    "identity": "Microsoft.Common.Console.QSharp.0.6",
+    "identity": "Microsoft.Common.Console.QSharp.0.10",
     "shortName": "console",
     "tags": {
       "language": "Q#",
