@@ -4,7 +4,7 @@
     "name": "Class library",
     "description": "A project for creating a Q# library.",
     "groupIdentity": "Microsoft.Common.Library",
-    "identity": "Microsoft.Common.Library.QSharp.0.10",
+    "identity": "Microsoft.Common.Library.QSharp.#MAJOR_VERSION#.#MINOR_VERSION#",
     "shortName": "classlib",
     "tags": {
       "language": "Q#",

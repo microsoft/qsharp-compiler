@@ -21,9 +21,12 @@ if ("$AssemblyVersion".Trim().Length -eq 0) {
     $AssemblyVersion = "0.0.$Year$Month.$Hour$Minute";
 }
 
+$pieces = "$AssemblyVersion".split(".");
+$MajorVersion = "$($pieces[0])";
+$MinorVersion = "$($pieces[1])";
+
 if ("$SemverVersion".Trim().Length -eq 0) {
-    $pieces = "$AssemblyVersion".split(".");
-    $SemverVersion = "$($pieces[0]).$($pieces[1]).$($pieces[2])$($pieces[3])";
+    $SemverVersion = "$MajorVersion.$MinorVersion.$($pieces[2])$($pieces[3])";
 }
 
 if ("$NuGetVersion".Trim().Length -eq 0) {
@@ -45,6 +48,8 @@ Get-ChildItem -Recurse *.v.template `
         Get-Content $Source `
             | ForEach-Object {
                 $_.
+                    Replace("#MAJOR_VERSION#", $MajorVersion).
+                    Replace("#MINOR_VERSION#", $MinorVersion).
                     Replace("#ASSEMBLY_VERSION#", $AssemblyVersion).
                     Replace("#NUGET_VERSION#", $NuGetVersion).
                     Replace("#VSIX_VERSION#", $VsixVersion).

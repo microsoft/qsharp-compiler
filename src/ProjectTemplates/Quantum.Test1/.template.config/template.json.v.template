@@ -4,7 +4,7 @@
     "name": "xUnit Test Project",
     "description": "A project for creating unit tests in Q#",
     "groupIdentity": "Microsoft.Test.xUnit",
-    "identity": "Microsoft.Test.xUnit.QSharp.0.10",
+    "identity": "Microsoft.Test.xUnit.QSharp.#MAJOR_VERSION#.#MINOR_VERSION#",
     "shortName": "xunit",
     "tags": {
       "language": "Q#",

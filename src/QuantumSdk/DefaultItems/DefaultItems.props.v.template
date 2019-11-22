@@ -10,8 +10,7 @@
     <!-- C# language version for the Driver (if applicable)-->
     <LangVersion>latest</LangVersion>
     <!-- Q# language version -->
-    <!-- TODO: inject major + minor of the SDK package itself. -->
-    <QsharpLangVersion>0.10</QsharpLangVersion>
+    <QsharpLangVersion>#MAJOR_VERSION#.#MINOR_VERSION#</QsharpLangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(PlatformTarget)' == ''">
