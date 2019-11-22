@@ -22,14 +22,12 @@
     <OutputType>Library</OutputType>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(TargetFramework)' == '' ">
-    <TargetFramework Condition=" '$(OutputType)' == 'Library' ">netstandard2.1</TargetFramework>
-    <TargetFramework Condition=" '$(OutputType)' == 'Exe' ">netcoreapp3.0</TargetFramework>
-  </PropertyGroup>
-
   <PropertyGroup Condition=" '$(QdkVersion)' == ''">
     <QdkVersion>#NUGET_VERSION#</QdkVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(ExecutionTarget)' == ''">
+    <ExecutionTarget>Any</ExecutionTarget>
+  </PropertyGroup>
 </Project>
  

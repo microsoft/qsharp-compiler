@@ -10,9 +10,17 @@
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
   <Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.targets"/>
 
-  <Target Name="InvalidOutputTypeTarget" BeforeTargets="CoreCompile">
-    <Error Condition = "'$(ResolvedQsharpOutputType)' == ''" Text="Invalid OutputType '$(OutputType)' for quantum project. Only 'Exe' and 'Library' are supported for quantum compilation." />
+
+  <Target Name="VerifyOutputType" BeforeTargets="CoreCompile">
+    <Error Condition = "'$(OutputType)' == ''" Text="Missing OutputType. $(ValidOutputTypes)" />
+    <Error Condition = "'$(ResolvedQsharpOutputType)' == '' And '$(OutputType)' != ''" Text="Invalid OutputType '$(OutputType)'. $(ValidOutputTypes)" />
   </Target>
+
+  <Target Name="VerifyExecutionTarget" BeforeTargets="CoreCompile">
+    <Error Condition = "'$(ExecutionTarget)' == ''" Text="Missing ExecutionTarget. $(ValidExecutionTargets)" />
+    <Error Condition = "'$(ResolvedQsharpExecutionTarget)' == '' And '$(ExecutionTarget)' != ''" Text="Invalid ExecutionTarget '$(ExecutionTarget)'. $(ValidExecutionTargets)" />
+  </Target>
+
 
   <Target Name="RecompileOnChange">
     <ItemGroup>

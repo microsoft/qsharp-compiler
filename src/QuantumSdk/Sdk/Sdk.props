@@ -24,6 +24,31 @@
     <Otherwise>
       <PropertyGroup>
         <ResolvedQsharpOutputType></ResolvedQsharpOutputType>
+        <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+
+  <Choose>
+    <When Condition="'$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'TraceSimulator'">
+      <PropertyGroup>
+        <ResolvedQsharpExecutionTarget>SimulatorBackend</ResolvedQsharpExecutionTarget>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(ExecutionTarget)' == 'QuantumProcessor'"> <!-- TODO: replace that -->
+      <PropertyGroup>
+        <ResolvedQsharpExecutionTarget>QuantumProcessorBackend</ResolvedQsharpExecutionTarget>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(ExecutionTarget)' == 'Any'">
+      <PropertyGroup>
+        <ResolvedQsharpExecutionTarget>SimulatorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
+      </PropertyGroup>
+    </When>  
+    <Otherwise>
+      <PropertyGroup>
+        <ResolvedQsharpExecutionTarget></ResolvedQsharpExecutionTarget>
+        <ValidExecutionTargets>Possible values are 'QuantumSimulator', 'ToffoliSimulator', 'TraceSimulator', or 'QuantumProcessor'.</ValidExecutionTargets>
       </PropertyGroup>
     </Otherwise>
   </Choose>
