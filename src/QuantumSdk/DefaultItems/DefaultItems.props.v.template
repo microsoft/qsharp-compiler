@@ -1,33 +1,35 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Work around issues in MSBuild versions prior to 16.0. -->
   <PropertyGroup>
-    <!-- Work around issues in MSBuild versions prior to 16.0. -->
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>
   </PropertyGroup>
 
+  <!-- general build properties -->
   <PropertyGroup>
-    <!-- C# language version for the Driver (if applicable)-->
-    <LangVersion>latest</LangVersion>
+    <!-- Q# sdk version -->
+    <QuantumSdkVersion>#NUGET_VERSION#</QuantumSdkVersion>
     <!-- Q# language version -->
     <QsharpLangVersion>#MAJOR_VERSION#.#MINOR_VERSION#</QsharpLangVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(PlatformTarget)' == ''">
+    <!-- C# language version for the Driver (if applicable)-->
+    <LangVersion>latest</LangVersion>
     <!-- cpu platform target -->
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(OutputType)' == ''">
-    <OutputType>Library</OutputType>
+  <!-- verified configurable properties -->
+  <PropertyGroup>
+    <OutputType Condition=" '$(OutputType)' == '' ">Library</OutputType>
+    <ExecutionTarget Condition=" '$(ExecutionTarget)' == '' ">Any</ExecutionTarget>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(QdkVersion)' == ''">
-    <QdkVersion>#NUGET_VERSION#</QdkVersion>
+  <!-- unverified configurable properties -->
+  <PropertyGroup>
+    <QsharpDocsGeneration Condition=" '$(QsharpDocsGeneration)' == '' ">False</QsharpDocsGeneration>
+    <QscExe Condition="'$(QscExe)' == ''">dotnet "$(MSBuildThisFileDirectory)../tools/qsc/qsc.dll"</QscExe> 
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(ExecutionTarget)' == ''">
-    <ExecutionTarget>Any</ExecutionTarget>
-  </PropertyGroup>
 </Project>
  

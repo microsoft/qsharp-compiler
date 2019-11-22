@@ -9,6 +9,7 @@
   <ItemGroup>
     <!-- TODO: Core & Intrinsics package -->
     <PackageReference Include="Microsoft.Quantum.Standard" Version="$(QdkVersion)" IsImplicitlyDefined="true" />
+    <!-- TODO: reference to simulators depending on the execution target -->
   </ItemGroup>
 
 </Project>
