@@ -14,4 +14,10 @@
     <Error Condition = "'$(ResolvedQsharpOutputType)' == ''" Text="Invalid OutputType '$(OutputType)' for quantum project. Only 'Exe' and 'Library' are supported for quantum compilation." />
   </Target>
 
+  <Target Name="RecompileOnChange">
+    <ItemGroup>
+      <UpToDateCheckInput Include="@(QsharpCompile)" />
+    </ItemGroup>
+  </Target>
+
 </Project>

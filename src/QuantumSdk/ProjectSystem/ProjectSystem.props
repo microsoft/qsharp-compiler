@@ -5,11 +5,9 @@
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>
   </PropertyGroup>
-  
+
   <PropertyGroup>
     <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
-    <!-- TODO: we can solve this better by adding all Q# source files to UpToDateCheckInput --> 
-    <DisableFastUpToDateCheck>True</DisableFastUpToDateCheck>
   </PropertyGroup>
 
 </Project>

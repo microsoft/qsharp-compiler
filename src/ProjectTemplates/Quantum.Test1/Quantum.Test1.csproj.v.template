@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.Quantum.Sdk/#NUGET_VERSION#">
+<Project Sdk="Microsoft.Quantum.Sdk/#NUGET_VERSION#" InitialTargets="RecompileOnChange">
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
