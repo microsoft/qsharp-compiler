@@ -21,19 +21,19 @@
 
 
   <!-- Target used to verify that the specified OutputType is valid. -->
-  <Target Name="VerifyOutputType" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="CoreCompile">
+  <Target Name="VerifyOutputType" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="QsharpCompile">
     <Error Condition = "'$(OutputType)' == ''" Text="Missing OutputType. $(ValidOutputTypes)" />
     <Error Condition = "'$(ResolvedQsharpOutputType)' == '' And '$(OutputType)' != ''" Text="Invalid OutputType '$(OutputType)'. $(ValidOutputTypes)" />
   </Target>
 
   <!-- Target used to verify that the specified ExecutionTarget is valid. -->
-  <Target Name="VerifyExecutionTarget" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="CoreCompile">
+  <Target Name="VerifyExecutionTarget" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="QsharpCompile">
     <Error Condition = "'$(ExecutionTarget)' == ''" Text="Missing ExecutionTarget. $(ValidExecutionTargets)" />
     <Error Condition = "'$(ResolvedQsharpExecutionTarget)' == '' And '$(ExecutionTarget)' != ''" Text="Invalid ExecutionTarget '$(ExecutionTarget)'. $(ValidExecutionTargets)" />
   </Target>
 
 
-  <!-- Removes all files the set qsc output path for generated files. -->
+  <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
   <Target Name="QsharpClean" BeforeTargets="Clean">
     <ItemGroup>
       <FilesToRemove Include="$(GeneratedFilesOutputPath)**" />
@@ -42,8 +42,8 @@
     <Delete Files="@(FilesToRemove)" />
   </Target>  
 
-  <!-- ... -->
-  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveQscOutputPaths;ResolveAssemblyReferences;QsharpClean" BeforeTargets="CoreCompile">
+  <!-- Invokes the Q# command line compiler to build the project. -->
+  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences;QsharpClean" BeforeTargets="CoreCompile">
     <ItemGroup>
       <QsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
     </ItemGroup>
@@ -51,15 +51,14 @@
       <!-- FIXME: REWRITE STEP LOADING -->
       <QscCommand>$(QscExe) build $(QscDocsGenerationFlag) --format MsBuild --proj "$(PathCompatibleAssemblyName)" -i "@(QsharpCompile,'" "')" -r "@(QsharpReferences,'" "')" -o $(CsharpSrcOutputPath) --load "$(SimulationTarget)"</QscCommand>
     </PropertyGroup>
-    <MakeDir Directories="$(CsharpSrcOutputPath)" /> <!-- FIXME: ONLY FOR CSHARP GENERATION -->
+    <MakeDir Condition="$(CsharpGeneration)" Directories="$(CsharpSrcOutputPath)" /> 
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
     <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: qsim ::;$(SimulationTarget);;:: references ::;@(QsharpReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
-
-    <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
+    <Exec Command="$(QscCommand)" IgnoreExitCode="false" />    
     <Delete Files="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" />
     <ItemGroup>
       <EmbeddedResource Include="$(CsharpSrcOutputPath)\$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
-      <Compile Include="$(GenFilesDir)**\*.g.cs" Exclude="@(Compile)" />
+      <Compile Condition="$(CsharpGeneration)" Include="$(GenFilesDir)**\*.g.cs" Exclude="@(Compile)" />
     </ItemGroup>
   </Target>   
 

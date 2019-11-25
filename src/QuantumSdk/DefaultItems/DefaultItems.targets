@@ -25,7 +25,7 @@
 
 
   <!-- Q# packages and libraries included conditional on resolved Q# properties. -->
-  <Target Name="QsharpPropertyDependentImports" DependsOnTargets="QsharpPropertyResolution">
+  <Target Name="QsharpPropertyDependentImports" AfterTargets="QsharpPropertyResolution" DependsOnTargets="QsharpPropertyResolution">
     <ItemGroup>
       <!-- TODO: Until we have a separate intrinsics and core package we may need to import this in any case -->
       <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
@@ -55,9 +55,10 @@
     </Choose>
     <!-- resolving the ExecutionTarget to either SimulatorBackend or QuantumProcessorBackend -->
     <Choose>
-      <When Condition="'$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'TraceSimulator'">
+      <When Condition="'$(ExecutionTarget)' == 'Any' Or '$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'TraceSimulator'">
         <PropertyGroup>
           <ResolvedQsharpExecutionTarget>SimulatorBackend</ResolvedQsharpExecutionTarget>
+          <CsharpGeneration>True</CsharpGeneration>
         </PropertyGroup>
       </When>
       <When Condition="'$(ExecutionTarget)' == 'QuantumProcessor'"> <!-- TODO: replace that -->
@@ -65,11 +66,6 @@
           <ResolvedQsharpExecutionTarget>QuantumProcessorBackend</ResolvedQsharpExecutionTarget>
         </PropertyGroup>
       </When>
-      <When Condition="'$(ExecutionTarget)' == 'Any'">
-        <PropertyGroup>
-          <ResolvedQsharpExecutionTarget>SimulatorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
-        </PropertyGroup>
-      </When>  
       <Otherwise>
         <PropertyGroup>
           <ResolvedQsharpExecutionTarget></ResolvedQsharpExecutionTarget>
@@ -80,7 +76,7 @@
   </Target>     
 
   <!-- Sets all unspecified properties configuring the paths for output generated during Q# compilation. -->
-  <Target Name="ResolveQscOutputPaths">
+  <Target Name="ResolveQscOutputPaths" AfterTargets="QsharpPropertyResolution">
     <PropertyGroup>
       <!-- path compatible assembly name -->
       <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
