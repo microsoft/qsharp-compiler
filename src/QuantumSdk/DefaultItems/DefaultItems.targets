@@ -1,17 +1,98 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+  <!-- Work around issues in MSBuild versions prior to 16.0. -->
   <PropertyGroup>
-    <!-- Work around issues in MSBuild versions prior to 16.0. -->
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>
   </PropertyGroup>
 
+
+  <!-- Unless otherwise specified, all Q# files in the project folder are included in the compilation. -->
+  <ItemGroup>
+    <!-- TODO: check excluding Q# files from compilation -->
+    <!-- TODO: check if including files explicitly from a user project works fine -->
+    <QsharpCompile Include="**\*.qs" Exclude="obj\**" />
+  </ItemGroup>
+
+  <!-- Q# packages and libraries included for all execution targets -->
   <ItemGroup>
     <!-- TODO: Core & Intrinsics package -->
     <PackageReference Include="Microsoft.Quantum.Standard" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
     <!-- for backwards compatibility we still generate C# independent on whether the project is targeted for execution on the simulation framework or not -->
     <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
   </ItemGroup>
+
+
+  <!-- Q# packages and libraries included conditional on resolved Q# properties. -->
+  <Target Name="QsharpPropertyDependentImports" DependsOnTargets="QsharpPropertyResolution">
+    <ItemGroup>
+      <!-- TODO: Until we have a separate intrinsics and core package we may need to import this in any case -->
+      <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
+    </ItemGroup>
+  </Target>     
+
+  <!-- Resolution of verified configurable properties. -->
+  <Target Name="QsharpPropertyResolution" BeforeTargets="QsharpPropertyDependentImports">
+    <!-- resolving the OutputType to either QsharpExe or QsharpLibrary -->
+    <Choose>
+      <When Condition="'$(OutputType)' == 'Library'">
+        <PropertyGroup>
+          <ResolvedQsharpOutputType>QsharpLibrary</ResolvedQsharpOutputType>
+        </PropertyGroup>
+      </When>
+      <When Condition="'$(OutputType)' == 'Exe'">
+        <PropertyGroup>
+          <ResolvedQsharpOutputType>QsharpExe</ResolvedQsharpOutputType>
+        </PropertyGroup>
+      </When>
+      <Otherwise>
+        <PropertyGroup>
+          <ResolvedQsharpOutputType></ResolvedQsharpOutputType>
+          <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
+        </PropertyGroup>
+      </Otherwise>
+    </Choose>
+    <!-- resolving the ExecutionTarget to either SimulatorBackend or QuantumProcessorBackend -->
+    <Choose>
+      <When Condition="'$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'TraceSimulator'">
+        <PropertyGroup>
+          <ResolvedQsharpExecutionTarget>SimulatorBackend</ResolvedQsharpExecutionTarget>
+        </PropertyGroup>
+      </When>
+      <When Condition="'$(ExecutionTarget)' == 'QuantumProcessor'"> <!-- TODO: replace that -->
+        <PropertyGroup>
+          <ResolvedQsharpExecutionTarget>QuantumProcessorBackend</ResolvedQsharpExecutionTarget>
+        </PropertyGroup>
+      </When>
+      <When Condition="'$(ExecutionTarget)' == 'Any'">
+        <PropertyGroup>
+          <ResolvedQsharpExecutionTarget>SimulatorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
+        </PropertyGroup>
+      </When>  
+      <Otherwise>
+        <PropertyGroup>
+          <ResolvedQsharpExecutionTarget></ResolvedQsharpExecutionTarget>
+          <ValidExecutionTargets>Possible values are 'QuantumSimulator', 'ToffoliSimulator', 'TraceSimulator', or 'QuantumProcessor'.</ValidExecutionTargets>
+        </PropertyGroup>
+      </Otherwise>
+    </Choose>
+  </Target>     
+
+  <!-- Sets all unspecified properties configuring the paths for output generated during Q# compilation. -->
+  <Target Name="ResolveQscOutputPaths">
+    <PropertyGroup>
+      <!-- path compatible assembly name -->
+      <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
+      <!-- output path for files generated during compilation -->
+      <GeneratedFilesOutputPath Condition="'$(GeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)qsharp</GeneratedFilesOutputPath>
+      <GeneratedFilesOutputPath Condition="!HasTrailingSlash('$(GeneratedFilesOutputPath)')">$(GeneratedFilesOutputPath)\</GeneratedFilesOutputPath>    
+      <!-- output path for generating documentation -->
+      <QsharpDocsOutputPath Condition="'$(QsharpDocsOutputPath)' == ''">$(GeneratedFilesOutputPath)docs\</QsharpDocsOutputPath>
+      <QscDocsGenerationFlag Condition="$(QsharpDocsGeneration)">--doc $(QsharpDocsOutputPath)</QscDocsGenerationFlag>
+      <!-- output path for generated C# files -->
+      <CsharpSrcOutputPath Condition="'$(CsharpSrcOutputPath)' == ''">$(GeneratedFilesOutputPath)src\</CsharpSrcOutputPath>
+    </PropertyGroup>
+  </Target>
 
 </Project>

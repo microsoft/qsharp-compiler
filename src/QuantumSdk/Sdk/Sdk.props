@@ -1,7 +1,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+  <!-- Work around issues in MSBuild versions prior to 16.0. -->
   <PropertyGroup>
-    <!-- Work around issues in MSBuild versions prior to 16.0. -->
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>
@@ -10,48 +10,5 @@
   <Import Project="$(MSBuildThisFileDirectory)..\DefaultItems\DefaultItems.props"/>
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
   <Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.props"/>
-
-  <Choose>
-    <When Condition="'$(OutputType)' == 'Library'">
-      <PropertyGroup>
-        <ResolvedQsharpOutputType>QsharpLibrary</ResolvedQsharpOutputType>
-      </PropertyGroup>
-    </When>
-    <When Condition="'$(OutputType)' == 'Exe'">
-      <PropertyGroup>
-        <ResolvedQsharpOutputType>QsharpExe</ResolvedQsharpOutputType>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup>
-        <ResolvedQsharpOutputType></ResolvedQsharpOutputType>
-        <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-
-  <Choose>
-    <When Condition="'$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'TraceSimulator'">
-      <PropertyGroup>
-        <ResolvedQsharpExecutionTarget>SimulatorBackend</ResolvedQsharpExecutionTarget>
-      </PropertyGroup>
-    </When>
-    <When Condition="'$(ExecutionTarget)' == 'QuantumProcessor'"> <!-- TODO: replace that -->
-      <PropertyGroup>
-        <ResolvedQsharpExecutionTarget>QuantumProcessorBackend</ResolvedQsharpExecutionTarget>
-      </PropertyGroup>
-    </When>
-    <When Condition="'$(ExecutionTarget)' == 'Any'">
-      <PropertyGroup>
-        <ResolvedQsharpExecutionTarget>SimulatorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
-      </PropertyGroup>
-    </When>  
-    <Otherwise>
-      <PropertyGroup>
-        <ResolvedQsharpExecutionTarget></ResolvedQsharpExecutionTarget>
-        <ValidExecutionTargets>Possible values are 'QuantumSimulator', 'ToffoliSimulator', 'TraceSimulator', or 'QuantumProcessor'.</ValidExecutionTargets>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
 
 </Project>

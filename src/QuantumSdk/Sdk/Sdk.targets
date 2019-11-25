@@ -1,7 +1,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+  <!-- Work around issues in MSBuild versions prior to 16.0. -->
   <PropertyGroup>
-    <!-- Work around issues in MSBuild versions prior to 16.0. -->
     <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>
@@ -12,27 +12,56 @@
   <Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.targets"/>
 
 
-  <Target Name="VerifyOutputType" BeforeTargets="CoreCompile">
-    <Error Condition = "'$(OutputType)' == ''" Text="Missing OutputType. $(ValidOutputTypes)" />
-    <Error Condition = "'$(ResolvedQsharpOutputType)' == '' And '$(OutputType)' != ''" Text="Invalid OutputType '$(OutputType)'. $(ValidOutputTypes)" />
-  </Target>
-
-  <Target Name="VerifyExecutionTarget" BeforeTargets="CoreCompile">
-    <Error Condition = "'$(ExecutionTarget)' == ''" Text="Missing ExecutionTarget. $(ValidExecutionTargets)" />
-    <Error Condition = "'$(ResolvedQsharpExecutionTarget)' == '' And '$(ExecutionTarget)' != ''" Text="Invalid ExecutionTarget '$(ExecutionTarget)'. $(ValidExecutionTargets)" />
-  </Target>
-
-
-  <ItemGroup>
-    <!-- TODO: Until we have a separate intrinsics and core package we may need to import this in any case -->
-    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
-  </ItemGroup>
-
-
+  <!-- Target used to enforce that the compilation is rebuilt when Q# source files are changed. -->
   <Target Name="RecompileOnChange">
     <ItemGroup>
       <UpToDateCheckInput Include="@(QsharpCompile)" />
     </ItemGroup>
   </Target>
 
+
+  <!-- Target used to verify that the specified OutputType is valid. -->
+  <Target Name="VerifyOutputType" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="CoreCompile">
+    <Error Condition = "'$(OutputType)' == ''" Text="Missing OutputType. $(ValidOutputTypes)" />
+    <Error Condition = "'$(ResolvedQsharpOutputType)' == '' And '$(OutputType)' != ''" Text="Invalid OutputType '$(OutputType)'. $(ValidOutputTypes)" />
+  </Target>
+
+  <!-- Target used to verify that the specified ExecutionTarget is valid. -->
+  <Target Name="VerifyExecutionTarget" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="CoreCompile">
+    <Error Condition = "'$(ExecutionTarget)' == ''" Text="Missing ExecutionTarget. $(ValidExecutionTargets)" />
+    <Error Condition = "'$(ResolvedQsharpExecutionTarget)' == '' And '$(ExecutionTarget)' != ''" Text="Invalid ExecutionTarget '$(ExecutionTarget)'. $(ValidExecutionTargets)" />
+  </Target>
+
+
+  <!-- Removes all files the set qsc output path for generated files. -->
+  <Target Name="QsharpClean" BeforeTargets="Clean">
+    <ItemGroup>
+      <FilesToRemove Include="$(GeneratedFilesOutputPath)**" />
+      <Compile Remove="@(FilesToRemove)" />
+    </ItemGroup>
+    <Delete Files="@(FilesToRemove)" />
+  </Target>  
+
+  <!-- ... -->
+  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveQscOutputPaths;ResolveAssemblyReferences;QsharpClean" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <QsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
+    </ItemGroup>
+    <PropertyGroup>
+      <!-- FIXME: REWRITE STEP LOADING -->
+      <QscCommand>$(QscExe) build $(QscDocsGenerationFlag) --format MsBuild --proj "$(PathCompatibleAssemblyName)" -i "@(QsharpCompile,'" "')" -r "@(QsharpReferences,'" "')" -o $(CsharpSrcOutputPath) --load "$(SimulationTarget)"</QscCommand>
+    </PropertyGroup>
+    <MakeDir Directories="$(CsharpSrcOutputPath)" /> <!-- FIXME: ONLY FOR CSHARP GENERATION -->
+    <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
+    <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: qsim ::;$(SimulationTarget);;:: references ::;@(QsharpReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
+
+    <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
+    <Delete Files="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(CsharpSrcOutputPath)\$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
+      <Compile Include="$(GenFilesDir)**\*.g.cs" Exclude="@(Compile)" />
+    </ItemGroup>
+  </Target>   
+
 </Project>
+
