@@ -45,8 +45,10 @@
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences;QsharpClean" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <ResolvedQscReferences Include="$(Pkg$([System.String]::Copy('@(QscPackageReference)').Replace('.','_')))lib\**\*.dll" /> 
-      <ResolvedQscReferences Include="$(Pkg$([System.String]::Copy('@(QscProjectReference)').Replace('.','_')))**\*.dll" /> <!-- FIXME: not sure if this works for project references -->
+      <QscPackageReferencePaths Include="@(QscPackageReference->'Pkg$([System.String]::Copy('%(Identity)').Replace('.','_'))')" /> 
+      <QscProjectReferencePaths Include="@(QscProjectReference->'Pkg$([System.String]::Copy('%(Identity)').Replace('.','_'))')" /> <!-- FIXME: that probably doesn't work for project references -->
+      <ResolvedQscReferences Include="%(QscPackageReferencePaths.Identity)lib\**\*.dll" /> 
+      <ResolvedQscReferences Include="%(QscProjectReferencePaths.Identity)**\*.dll" /> 
       <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
     </ItemGroup>
     <PropertyGroup>
