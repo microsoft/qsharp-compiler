@@ -18,13 +18,14 @@
   <!-- Packages containing rewrite steps that are executed during compilation. -->
   <ItemGroup>
     <!-- for backwards compatibility we still generate C# independent on whether the project is targeted for execution on the simulation framework or not -->
-    <QscPackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="$(QuantumSdkVersion)" /> <!-- FIXME: WE SHOULD PROBABLY EXECUTE THIS AT THE END OF THE COMPILATION PROCESS -->
+    <QscPackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1911.1607" /> <!-- TODO: check that our release build replaces the version correctly -->
+    <!-- FIXME: WE SHOULD PROBABLY EXECUTE THIS AT THE END OF THE COMPILATION PROCESS -->
   </ItemGroup>
 
   <!-- Packages and libraries included for all execution targets. -->
   <ItemGroup>
     <!-- TODO: Core & Intrinsics package -->
-    <PackageReference Include="Microsoft.Quantum.Standard" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.Quantum.Standard" Version="0.10.1911.1607" IsImplicitlyDefined="true" /> <!-- TODO: check that our release build replaces the version correctly -->
   </ItemGroup>
 
 
@@ -39,7 +40,7 @@
   <!-- Packages and libraries included conditional on resolved Q# properties. -->
   <Target Name="QsharpTargetDependentReferences" DependsOnTargets="QsharpPropertyResolution" AfterTargets="QsharpPropertyResolution" BeforeTargets="ResolveAssemblyReferences">
     <ItemGroup>
-      <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
+      <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1911.1607" IsImplicitlyDefined="true" />  <!-- TODO: check that our release build replaces the version correctly -->
     </ItemGroup>
   </Target>     
 
