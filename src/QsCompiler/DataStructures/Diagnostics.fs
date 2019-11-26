@@ -277,9 +277,10 @@ type ErrorCode =
     | GeneratingBinaryFailed = 7107
     | GeneratingDllFailed = 7108
     | PluginExecutionFailed = 7109
-    | PreEvaluationFailed = 7110
-    | RewriteStepExecutionFailed = 7111
-    | PostconditionVerificationFailed = 7112
+    | FileNotFoundDuringPluginExecution = 7110
+    | PreEvaluationFailed = 7111
+    | RewriteStepExecutionFailed = 7112
+    | PostconditionVerificationFailed = 7113
 
 
 type WarningCode = 
@@ -618,6 +619,7 @@ type DiagnosticItem =
             | ErrorCode.GeneratingBinaryFailed                  -> "Unable to generate binary format for the compilation."
             | ErrorCode.GeneratingDllFailed                     -> "Unable to generate dll containing the compiled binary."
             | ErrorCode.PluginExecutionFailed                   -> "The compilation step \"{0}\" loaded from \"{1}\" threw an exception."
+            | ErrorCode.FileNotFoundDuringPluginExecution       -> "Could not find the reference(s) to execute the compilation step \"{0}\" loaded from \"{1}\". The reference(s) may not be available, or the compilation step may have been compiled against a newer compiler version."
             | ErrorCode.PreEvaluationFailed                     -> "The generated syntax tree could not be pre-evaluated."
             | ErrorCode.RewriteStepExecutionFailed              -> "Executing the transformation for the compilation step \"{0}\" loaded from \"{1}\" failed."
             | ErrorCode.PostconditionVerificationFailed         -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
