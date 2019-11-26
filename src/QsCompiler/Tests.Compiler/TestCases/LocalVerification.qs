@@ -878,7 +878,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     // unit tests
 
-    @ Test("QuantumSimulator")
+    @Test("QuantumSimulator")
     function ValidTestAttribute1 () : Unit {}
 
     @ Test("TraceSimulator")
