@@ -18,7 +18,7 @@ if ("$AssemblyVersion".Trim().Length -eq 0) {
     $Month = $Date.Month.ToString().PadLeft(2, "0");
     $Hour   = (Get-Date).Hour.ToString().PadLeft(2, "0");
     $Minute   = (Get-Date).Minute.ToString().PadLeft(2, "0");
-    $AssemblyVersion = "0.0.$Year$Month.$Hour$Minute";
+    $AssemblyVersion = "0.9999.$Year$Month.$Hour$Minute";
 }
 
 Write-Output("Assembly version: $AssemblyVersion");

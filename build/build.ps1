@@ -91,7 +91,7 @@ function Pack-SelfContained() {
         $DotNetRuntimeID = $_.Key;
         $NodePlatformID = $_.Value;
         $TargetDir = New-TemporaryDirectory;
-        $BaseName = [System.IO.Path]::GetFileNameWithoutExtension($Project);
+        $BaseName = [System.IO.Path]::GetFileNameWithoutExtension((Join-Path $PSScriptRoot $Project));
         $ArchiveDir = Join-Path $Env:BLOBS_OUTDIR $BaseName;
         New-Item -ItemType Directory -Path $ArchiveDir -Force -ErrorAction SilentlyContinue;
 
@@ -115,7 +115,7 @@ function Pack-SelfContained() {
                 Write-Hash `
                     -Path $ArchivePath `
                     -BlobPlatform $NodePlatformID `
-                    -TargetPath $PackageData
+                    -TargetPath (Join-Path $PSScriptRoot $PackageData)
             }
         } catch {
             Write-Host "##vso[task.logissue type=error;]Failed to pack self-contained deployment: $_";
