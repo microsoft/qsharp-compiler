@@ -21,6 +21,7 @@ if ("$AssemblyVersion".Trim().Length -eq 0) {
     $AssemblyVersion = "0.0.$Year$Month.$Hour$Minute";
 }
 
+Write-Output("Assembly version: $AssemblyVersion");
 $pieces = "$AssemblyVersion".split(".");
 $MajorVersion = "$($pieces[0])";
 $MinorVersion = "$($pieces[1])";
@@ -58,6 +59,11 @@ Get-ChildItem -Recurse *.v.template `
             } `
             | Set-Content $Target -NoNewline
     }
+
+If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion" }
+If ($Env:NUGET_VERSION -eq $null) { $Env:NUGET_VERSION ="$NuGetVersion" }
+If ($Env:SEMVER_VERSION -eq $null) { $Env:SEMVER_VERSION ="$SemverVersion" }
+If ($Env:VSIX_VERSION -eq $null) { $Env:VSIX_VERSION ="$VsixVersion" }
 
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
 .\FindNuspecReferences.ps1;

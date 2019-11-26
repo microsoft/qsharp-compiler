@@ -5,6 +5,7 @@ $ErrorActionPreference = 'Stop'
 
 & "$PSScriptRoot/set-env.ps1"
 $all_ok = $True
+Write-Output("Assembly version: $Env:ASSEMBLY_VERSION");
 
 ##
 # Q# compiler projects
