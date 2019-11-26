@@ -831,7 +831,7 @@ and NamespaceManager
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
                 
                 // the attribute marks a unit test
-                elif tId.Namespace.Value = BuiltIn.TestOperation.Namespace.Value && tId.Name.Value = BuiltIn.TestOperation.Name.Value then
+                elif tId.Namespace.Value = BuiltIn.Test.Namespace.Value && tId.Name.Value = BuiltIn.Test.Name.Value then
                     let isUnitToUnit (signature : CallableSignature) = 
                         let isUnitType = function 
                             | Tuple _ | Missing -> false
