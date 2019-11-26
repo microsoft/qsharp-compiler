@@ -15,25 +15,36 @@
     <QsharpCompile Include="**\*.qs" Exclude="obj\**" />
   </ItemGroup>
 
-  <!-- Q# packages and libraries included for all execution targets -->
+  <!-- Packages containing rewrite steps that are executed during compilation. -->
+  <ItemGroup>
+    <!-- for backwards compatibility we still generate C# independent on whether the project is targeted for execution on the simulation framework or not -->
+    <QscPackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="$(QuantumSdkVersion)" /> <!-- FIXME: WE SHOULD PROBABLY EXECUTE THIS AT THE END OF THE COMPILATION PROCESS -->
+  </ItemGroup>
+
+  <!-- Packages and libraries included for all execution targets. -->
   <ItemGroup>
     <!-- TODO: Core & Intrinsics package -->
     <PackageReference Include="Microsoft.Quantum.Standard" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
-    <!-- for backwards compatibility we still generate C# independent on whether the project is targeted for execution on the simulation framework or not -->
-    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
   </ItemGroup>
 
 
-  <!-- Q# packages and libraries included conditional on resolved Q# properties. -->
-  <Target Name="QsharpPropertyDependentImports" AfterTargets="QsharpPropertyResolution" DependsOnTargets="QsharpPropertyResolution">
+  <!-- Reference resolution for packages and projects that define rewrite steps to execute during Q# compilation. -->
+  <Target Name="QscReferences" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="ResolveAssemblyReferences">
     <ItemGroup>
-      <!-- TODO: Until we have a separate intrinsics and core package we may need to import this in any case -->
+      <PackageReference Include="%(QscPackageReference.Identity)" Version="%(QscPackageReference.Version)" IsImplicitlyDefined="true" GeneratePathProperty="true" />
+      <ProjectReference Include="%(QscProjectReference.Identity)" Version="%(QscProjectReference.Version)" IsImplicitlyDefined="true" GeneratePathProperty="true" /> <!-- FIXME: not sure if this works for project references -->
+    </ItemGroup>
+  </Target>   
+
+  <!-- Packages and libraries included conditional on resolved Q# properties. -->
+  <Target Name="QsharpTargetDependentReferences" DependsOnTargets="QsharpPropertyResolution" AfterTargets="QsharpPropertyResolution" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
       <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="$(QuantumSdkVersion)" IsImplicitlyDefined="true" />
     </ItemGroup>
   </Target>     
 
   <!-- Resolution of verified configurable properties. -->
-  <Target Name="QsharpPropertyResolution" BeforeTargets="QsharpPropertyDependentImports">
+  <Target Name="QsharpPropertyResolution" BeforeTargets="QsharpTargetDependentReferences">
     <!-- resolving the OutputType to either QsharpExe or QsharpLibrary -->
     <Choose>
       <When Condition="'$(OutputType)' == 'Library'">

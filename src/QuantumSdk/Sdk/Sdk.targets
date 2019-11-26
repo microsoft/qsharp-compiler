@@ -45,11 +45,16 @@
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences;QsharpClean" BeforeTargets="CoreCompile">
     <ItemGroup>
+      <QscReferences Include="$(Pkg$([System.String]::Copy('@(QscPackageReference)').Replace('.','_')))lib\**\*.dll" /> 
+      <QscReferences Include="$(Pkg$([System.String]::Copy('@(QscProjectReference)').Replace('.','_')))**\*.dll" /> <!-- FIXME: not sure if this works for project references -->
       <QsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
     </ItemGroup>
     <PropertyGroup>
-      <!-- FIXME: REWRITE STEP LOADING -->
-      <QscCommand>$(QscExe) build $(QscDocsGenerationFlag) --format MsBuild --proj "$(PathCompatibleAssemblyName)" -i "@(QsharpCompile,'" "')" -r "@(QsharpReferences,'" "')" -o $(CsharpSrcOutputPath) --load "$(SimulationTarget)"</QscCommand>
+      <QscCommandInputFlag Condition="'@(QsharpCompile->Count())' &gt; 0">--input "@(QsharpCompile,'" "')"</QscCommandInputFlag>
+      <QscCommandOutputFlag Condition="'$(CsharpSrcOutputPath)' != ''">--output $(CsharpSrcOutputPath)</QscCommandOutputFlag>
+      <QscCommandReferencesFlag Condition="'@(QsharpReferences->Count())' &gt; 0">--references "@(QsharpReferences,'" "')"</QscCommandReferencesFlag>
+      <QscCommandLoadFlag Condition="'@(QscReferences->Count())' &gt; 0">--load "@(QscReferences,'" "')"</QscCommandLoadFlag>
+      <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(QscDocsGenerationFlag) $(QscCommandInputFlag) $(QscCommandOutputFlag) $(QscCommandReferencesFlag) $(QscCommandLoadFlag)</QscCommand>
     </PropertyGroup>
     <MakeDir Condition="$(CsharpGeneration)" Directories="$(CsharpSrcOutputPath)" /> 
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
