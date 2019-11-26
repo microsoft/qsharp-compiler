@@ -45,20 +45,20 @@
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences;QsharpClean" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <QscReferences Include="$(Pkg$([System.String]::Copy('@(QscPackageReference)').Replace('.','_')))lib\**\*.dll" /> 
-      <QscReferences Include="$(Pkg$([System.String]::Copy('@(QscProjectReference)').Replace('.','_')))**\*.dll" /> <!-- FIXME: not sure if this works for project references -->
-      <QsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
+      <ResolvedQscReferences Include="$(Pkg$([System.String]::Copy('@(QscPackageReference)').Replace('.','_')))lib\**\*.dll" /> 
+      <ResolvedQscReferences Include="$(Pkg$([System.String]::Copy('@(QscProjectReference)').Replace('.','_')))**\*.dll" /> <!-- FIXME: not sure if this works for project references -->
+      <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
     </ItemGroup>
     <PropertyGroup>
       <QscCommandInputFlag Condition="'@(QsharpCompile->Count())' &gt; 0">--input "@(QsharpCompile,'" "')"</QscCommandInputFlag>
       <QscCommandOutputFlag Condition="'$(CsharpSrcOutputPath)' != ''">--output $(CsharpSrcOutputPath)</QscCommandOutputFlag>
-      <QscCommandReferencesFlag Condition="'@(QsharpReferences->Count())' &gt; 0">--references "@(QsharpReferences,'" "')"</QscCommandReferencesFlag>
-      <QscCommandLoadFlag Condition="'@(QscReferences->Count())' &gt; 0">--load "@(QscReferences,'" "')"</QscCommandLoadFlag>
+      <QscCommandReferencesFlag Condition="'@(ResolvedQsharpReferences->Count())' &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</QscCommandReferencesFlag>
+      <QscCommandLoadFlag Condition="'@(ResolvedQscReferences->Count())' &gt; 0">--load "@(ResolvedQscReferences,'" "')"</QscCommandLoadFlag>
       <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(QscDocsGenerationFlag) $(QscCommandInputFlag) $(QscCommandOutputFlag) $(QscCommandReferencesFlag) $(QscCommandLoadFlag)</QscCommand>
     </PropertyGroup>
     <MakeDir Condition="$(CsharpGeneration)" Directories="$(CsharpSrcOutputPath)" /> 
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
-    <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: qsim ::;$(SimulationTarget);;:: references ::;@(QsharpReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
+    <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: qsim ::;$(SimulationTarget);;:: references ::;@(ResolvedQsharpReferences);:: loaded ::;@(ResolvedQscReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />    
     <Delete Files="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" />
     <ItemGroup>
