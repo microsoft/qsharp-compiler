@@ -47,44 +47,21 @@
   <!-- Resolution of verified configurable properties. -->
   <Target Name="QsharpPropertyResolution" BeforeTargets="QsharpTargetDependentReferences">
     <!-- resolving the OutputType to either QsharpExe or QsharpLibrary -->
-    <Choose>
-      <When Condition="'$(OutputType)' == 'Library'">
-        <PropertyGroup>
-          <ResolvedQsharpOutputType>QsharpLibrary</ResolvedQsharpOutputType>
-        </PropertyGroup>
-      </When>
-      <When Condition="'$(OutputType)' == 'Exe'">
-        <PropertyGroup>
-          <ResolvedQsharpOutputType>QsharpExe</ResolvedQsharpOutputType>
-        </PropertyGroup>
-      </When>
-      <Otherwise>
-        <PropertyGroup>
-          <ResolvedQsharpOutputType></ResolvedQsharpOutputType>
-          <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
-        </PropertyGroup>
-      </Otherwise>
-    </Choose>
+    <PropertyGroup>
+      <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library'">QsharpLibrary</ResolvedQsharpOutputType>
+      <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Exe'">QsharpExe</ResolvedQsharpOutputType>
+      <ResolvedQsharpOutputType Condition="'$(ResolvedQsharpOutputType)' != 'QsharpLibrary' And '$(ResolvedQsharpOutputType)' != 'QsharpExe'"></ResolvedQsharpOutputType>
+      <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
+    </PropertyGroup>
     <!-- resolving the ExecutionTarget to either SimulatorBackend or QuantumProcessorBackend -->
-    <Choose>
-      <When Condition="'$(ExecutionTarget)' == 'Any' Or '$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'TraceSimulator'">
-        <PropertyGroup>
-          <ResolvedQsharpExecutionTarget>SimulatorBackend</ResolvedQsharpExecutionTarget>
-          <CsharpGeneration>True</CsharpGeneration>
-        </PropertyGroup>
-      </When>
-      <When Condition="'$(ExecutionTarget)' == 'QuantumProcessor'"> <!-- TODO: replace that -->
-        <PropertyGroup>
-          <ResolvedQsharpExecutionTarget>QuantumProcessorBackend</ResolvedQsharpExecutionTarget>
-        </PropertyGroup>
-      </When>
-      <Otherwise>
-        <PropertyGroup>
-          <ResolvedQsharpExecutionTarget></ResolvedQsharpExecutionTarget>
-          <ValidExecutionTargets>Possible values are 'QuantumSimulator', 'ToffoliSimulator', 'TraceSimulator', or 'QuantumProcessor'.</ValidExecutionTargets>
-        </PropertyGroup>
-      </Otherwise>
-    </Choose>
+    <PropertyGroup>
+      <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'QuantumProcessor'">QuantumProcessorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
+      <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'TraceSimulator'">SimulatorBackend</ResolvedQsharpExecutionTarget>
+      <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'Any'">SimulatorBackend</ResolvedQsharpExecutionTarget>
+      <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'QuantumProcessorBackend' And '$(ResolvedQsharpExecutionTarget)' != 'SimulatorBackend'"></ResolvedQsharpExecutionTarget>
+      <ValidExecutionTargets>Possible values are 'QuantumSimulator', 'ToffoliSimulator', 'TraceSimulator', or 'QuantumProcessor'.</ValidExecutionTargets>
+      <CsharpGeneration Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'">True</CsharpGeneration>
+    </PropertyGroup>
   </Target>     
 
   <!-- Sets all unspecified properties configuring the paths for output generated during Q# compilation. -->
