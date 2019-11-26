@@ -845,7 +845,7 @@ and NamespaceManager
                     | :? CallableSignature as signature when signature |> isUnitToUnit && not (signature.TypeParameters.Any()) -> 
                         let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument (fun ex -> ex.Expression)
                         let validExecutionTargets = BuiltIn.ValidExecutionTargets |> Seq.map (fun x -> x.ToLowerInvariant())
-                        if arg <> null && validExecutionTargets |> Seq.contains (arg.ToLowerInvariant()) then
+                        if arg <> null && (validExecutionTargets |> Seq.contains (arg.ToLowerInvariant()) || SyntaxGenerator.FullyQualifiedName.IsMatch arg) then
                             attributeHash :: alreadyDefined, att :: resAttr 
                         else (att.Offset, att.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidExecutionTargetForTest, [])) |> Seq.singleton |> returnInvalid 
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTestAttributePlacement, [])) |> Seq.singleton |> returnInvalid
