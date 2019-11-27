@@ -43,7 +43,7 @@ type BuiltIn = {
 
     /// Returns true if the given attribute marks the corresponding declaration as unit test. 
     static member MarksTestOperation (att : QsDeclarationAttribute) = att.TypeId |> function 
-        | Value tId -> tId.Namespace.Value = BuiltIn.TestOperation.Namespace.Value && tId.Name.Value = BuiltIn.TestOperation.Name.Value
+        | Value tId -> tId.Namespace.Value = BuiltIn.Test.Namespace.Value && tId.Name.Value = BuiltIn.Test.Name.Value
         | Null -> false
 
 
@@ -79,8 +79,8 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
-    static member TestOperation = {
-        Name = "TestOperation" |> NonNullable<string>.New
+    static member Test = {
+        Name = "Test" |> NonNullable<string>.New
         Namespace = BuiltIn.DiagnosticsNamespace
         TypeParameters = ImmutableArray.Empty
     }

@@ -216,6 +216,10 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "ValidTestAttribute14"   []
         this.Expect "ValidTestAttribute15"   [Warning WarningCode.DuplicateAttribute]
         this.Expect "ValidTestAttribute16"   [Error ErrorCode.MissingType]
+        this.Expect "ValidTestAttribute17"   []
+        this.Expect "ValidTestAttribute18"   []
+        this.Expect "ValidTestAttribute19"   [Warning WarningCode.DuplicateAttribute]
+        this.Expect "ValidTestAttribute20"   []
                                              
         this.Expect "InvalidTestAttribute1"  [Error ErrorCode.InvalidTestAttributePlacement]
         this.Expect "InvalidTestAttribute2"  [Error ErrorCode.MisplacedDeclarationAttribute]
@@ -235,3 +239,9 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "InvalidTestAttribute16" [Error ErrorCode.InvalidTestAttributePlacement; Error ErrorCode.UnknownType]
         this.Expect "InvalidTestAttribute17" [Error ErrorCode.InvalidExecutionTargetForTest; Error ErrorCode.AttributeArgumentTypeMismatch]
         this.Expect "InvalidTestAttribute18" [Error ErrorCode.InvalidExecutionTargetForTest; Error ErrorCode.MissingAttributeArgument]
+        this.Expect "InvalidTestAttribute19" [Error ErrorCode.InvalidExecutionTargetForTest]
+        this.Expect "InvalidTestAttribute20" [Error ErrorCode.InvalidExecutionTargetForTest]
+        this.Expect "InvalidTestAttribute21" [Error ErrorCode.InvalidExecutionTargetForTest]
+        this.Expect "InvalidTestAttribute22" [Error ErrorCode.InvalidExecutionTargetForTest]
+
+

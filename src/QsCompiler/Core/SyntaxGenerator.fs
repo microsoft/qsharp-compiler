@@ -5,6 +5,7 @@ namespace Microsoft.Quantum.QsCompiler
 
 open System
 open System.Collections.Immutable
+open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -50,6 +51,11 @@ type public StripPositionInfo(setDeclLocToDefault) =
 
 
 module SyntaxGenerator = 
+
+    /// Matches only if the string consists of a fully qualified name and nothing else. 
+    let internal FullyQualifiedName = 
+        new Regex(@"^[\p{L}_][\p{L}\p{Nd}_]*(\.[\p{L}_][\p{L}\p{Nd}_]*)+$")
+
 
     // literal expresssions
 
