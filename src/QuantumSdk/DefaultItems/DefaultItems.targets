@@ -6,14 +6,7 @@
       $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
     </MSBuildAllProjects>
   </PropertyGroup>
-
-
-  <!-- Unless otherwise specified, all Q# files in the project folder are included in the compilation. -->
-  <ItemGroup>
-    <!-- TODO: check excluding Q# files from compilation -->
-    <!-- TODO: check if including files explicitly from a user project works fine -->
-    <QsharpCompile Include="**\*.qs" Exclude="obj\**" />
-  </ItemGroup>
+  
 
   <!-- Packages containing rewrite steps that are executed during compilation. -->
   <ItemGroup>
