@@ -11,8 +11,7 @@
   <!-- Packages containing rewrite steps that are executed during compilation. -->
   <ItemGroup>
     <!-- for backwards compatibility we still generate C# independent on whether the project is targeted for execution on the simulation framework or not -->
-    <QscPackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1911.1607" />
-    <!-- FIXME: WE SHOULD PROBABLY EXECUTE THIS AT THE END OF THE COMPILATION PROCESS -->
+    <QscPackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1911.1607" ExecutionTarget="Any" SdkInternalStage="AfterTargeting" /> <!-- Todo: we will want to make the order of execution properly configurable -->
   </ItemGroup>
 
   <!-- Packages and libraries included for all execution targets. -->
@@ -22,23 +21,8 @@
   </ItemGroup>
 
 
-  <!-- Reference resolution for packages and projects that define rewrite steps to execute during Q# compilation. -->
-  <Target Name="QscReferences" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="ResolveAssemblyReferences">
-    <ItemGroup>
-      <PackageReference Include="%(QscPackageReference.Identity)" Version="%(QscPackageReference.Version)" IsImplicitlyDefined="true" GeneratePathProperty="true" />
-      <ProjectReference Include="%(QscProjectReference.Identity)" Version="%(QscProjectReference.Version)" IsImplicitlyDefined="true" GeneratePathProperty="true" /> <!-- FIXME: not sure if this works for project references -->
-    </ItemGroup>
-  </Target>   
-
-  <!-- Packages and libraries included conditional on resolved Q# properties. -->
-  <Target Name="QsharpTargetDependentReferences" DependsOnTargets="QsharpPropertyResolution" AfterTargets="QsharpPropertyResolution" BeforeTargets="ResolveAssemblyReferences">
-    <ItemGroup>
-      <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1911.1607" IsImplicitlyDefined="true" />
-    </ItemGroup>
-  </Target>     
-
   <!-- Resolution of verified configurable properties. -->
-  <Target Name="QsharpPropertyResolution" BeforeTargets="QsharpTargetDependentReferences">
+  <Target Name="QsharpPropertyResolution" BeforeTargets="PropertyDependentReferences">
     <!-- resolving the OutputType to either QsharpExe or QsharpLibrary -->
     <PropertyGroup>
       <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library'">QsharpLibrary</ResolvedQsharpOutputType>
@@ -72,5 +56,37 @@
       <CsharpSrcOutputPath Condition="'$(CsharpSrcOutputPath)' == ''">$(GeneratedFilesOutputPath)src\</CsharpSrcOutputPath>
     </PropertyGroup>
   </Target>
+
+
+  <!-- Includes packages and project references depending on the defined project properties. -->
+  <Target Name="PropertyDependentReferences" DependsOnTargets="QsharpPropertyResolution" AfterTargets="QsharpPropertyResolution" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <!-- Packages included for specific execution targets. -->
+      <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1911.1607" IsImplicitlyDefined="true" />
+      <!-- Packages that define rewrite steps to execute during Q# compilation. -->
+      <PackageReference Include="%(QscPackageReference.Identity)" Version="%(QscPackageReference.Version)" IsImplicitlyDefined="true" GeneratePathProperty="true" />
+    </ItemGroup>
+  </Target>   
+
+  <!-- Recomputes the content of ResolvedQscReferences and QscPackageReferencePaths. The current content of these item groups is cleared during the process. -->
+  <Target Name="ResolveQscReferences" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences" AfterTargets="ResolveAssemblyReferences" BeforeTargets="QsharpCompile">
+    <ItemGroup>
+      <!-- clean the current content of the qsc item groups to recompute -->
+      <RelevantQscPackageReference Remove="@(RelevantQscPackageReference)"/>
+      <QscPackageReferencePaths Remove="@(QscPackageReferencePaths)"/>
+      <ResolvedQscReferences Remove="@(ResolvedQscReferences)"/>
+      <!-- project specific rewrite steps for the specified execution target -->
+      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
+      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
+      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
+      <!-- rewrite steps included in the SDK that are executed after targeting -->
+      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
+      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
+      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
+      <!-- add the included steps to the ResolvedQscReferences -->
+      <QscPackageReferencePaths Include="@(RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(Identity)').Replace('.','_'))')" /> 
+      <ResolvedQscReferences Include="%(QscPackageReferencePaths.Identity)lib\**\*.dll" /> 
+    </ItemGroup>
+  </Target>  
 
 </Project>

@@ -21,15 +21,18 @@
 
   <!-- verified configurable properties -->
   <PropertyGroup>
-    <OutputType>Library</OutputType>
-    <ExecutionTarget>Any</ExecutionTarget>
+    <DefaultOutputType>Library</DefaultOutputType>
+    <OutputType>$(DefaultOutputType)</OutputType>
+    <DefaultExecutionTarget>Any</DefaultExecutionTarget>
+    <ExecutionTarget>$(DefaultExecutionTarget)</ExecutionTarget>
   </PropertyGroup>
 
   <!-- unverified configurable properties -->
   <PropertyGroup> 
     <CsharpGeneration>True</CsharpGeneration> <!-- at some point we will want to make False the default -->
     <QsharpDocsGeneration>False</QsharpDocsGeneration>
-    <QscExe>dotnet "$(MSBuildThisFileDirectory)../tools/qsc/qsc.dll"</QscExe> 
+    <DefaultQscExe>dotnet "$(MSBuildThisFileDirectory)../tools/qsc/qsc.dll"</DefaultQscExe> 
+    <QscExe>$(DefaultQscExe)</QscExe> 
   </PropertyGroup>
 
 </Project>

@@ -37,25 +37,21 @@
   <Target Name="QsharpClean" BeforeTargets="Clean">
     <ItemGroup>
       <FilesToRemove Include="$(GeneratedFilesOutputPath)**" />
-      <Compile Remove="@(FilesToRemove)" />
+      <Compile Remove="$(FilesToRemove)**\*.g.cs" />
     </ItemGroup>
     <Delete Files="@(FilesToRemove)" />
   </Target>  
 
   <!-- Invokes the Q# command line compiler to build the project. -->
-  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences;QsharpClean" BeforeTargets="CoreCompile">
+  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <QscPackageReferencePaths Include="@(QscPackageReference->'Pkg$([System.String]::Copy('%(Identity)').Replace('.','_'))')" /> 
-      <QscProjectReferencePaths Include="@(QscProjectReference->'Pkg$([System.String]::Copy('%(Identity)').Replace('.','_'))')" /> <!-- FIXME: that probably doesn't work for project references -->
-      <ResolvedQscReferences Include="%(QscPackageReferencePaths.Identity)lib\**\*.dll" /> 
-      <ResolvedQscReferences Include="%(QscProjectReferencePaths.Identity)**\*.dll" /> 
       <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommandInputFlag Condition="'@(QsharpCompile->Count())' &gt; 0">--input "@(QsharpCompile,'" "')"</QscCommandInputFlag>
-      <QscCommandOutputFlag Condition="'$(CsharpSrcOutputPath)' != ''">--output $(CsharpSrcOutputPath)</QscCommandOutputFlag>
-      <QscCommandReferencesFlag Condition="'@(ResolvedQsharpReferences->Count())' &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</QscCommandReferencesFlag>
-      <QscCommandLoadFlag Condition="'@(ResolvedQscReferences->Count())' &gt; 0">--load "@(ResolvedQscReferences,'" "')"</QscCommandLoadFlag>
+      <QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</QscCommandInputFlag>
+      <QscCommandOutputFlag Condition="'$(CsharpSrcOutputPath)' != ''">--output $(CsharpSrcOutputPath)</QscCommandOutputFlag> <!-- FIXME: path ...  -->
+      <QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</QscCommandReferencesFlag>
+      <QscCommandLoadFlag Condition="@(ResolvedQscReferences->Count()) &gt; 0">--load "@(ResolvedQscReferences,'" "')"</QscCommandLoadFlag>
       <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(QscDocsGenerationFlag) $(QscCommandInputFlag) $(QscCommandOutputFlag) $(QscCommandReferencesFlag) $(QscCommandLoadFlag)</QscCommand>
     </PropertyGroup>
     <MakeDir Condition="$(CsharpGeneration)" Directories="$(CsharpSrcOutputPath)" /> 
