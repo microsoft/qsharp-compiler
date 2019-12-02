@@ -128,6 +128,7 @@ module SymbolResolution =
         let validTargets = BuiltIn.ValidExecutionTargets.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
         let targetName (target : string) = 
             if target = null then null
+            elif SyntaxGenerator.FullyQualifiedName.IsMatch target then target
             else target.ToLowerInvariant() |> validTargets.TryGetValue |> function
                 | true, valid -> valid
                 | false, _ -> null
