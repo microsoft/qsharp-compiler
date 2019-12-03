@@ -17,14 +17,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
     public class ClassicallyControlledTransformation
     {
-        public static void Apply(QsCompilation compilation)
+        public static QsCompilation Apply(QsCompilation compilation)
         {
             var filter = new ClassicallyControlledSyntax();
 
-            foreach (var ns in compilation.Namespaces)
-            {
-                filter.Transform(ns);
-            }
+            return new QsCompilation(compilation.Namespaces.Select(ns => filter.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
         }
 
         private class ClassicallyControlledSyntax : SyntaxTreeTransformation<ClassicallyControlledScope>
@@ -93,13 +90,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 var (_, op, originalArgs) = IsSimpleCallStatement(s.Statement);
 
-                var nullTypes = QsNullable<ImmutableArray<ResolvedType>>.Null; // ToDo: support callables that take arguments
+                var nullTypes = QsNullable<ImmutableArray<ResolvedType>>.Null;
 
                 var originalCall = CreateTypedExpression(ExpressionKind.NewValueTuple(new TypedExpression[] { op, originalArgs }.ToImmutableArray()));
 
                 var opType = (result == QsResult.One)
                     ? BuiltIn.ApplyIfOne
-                    : BuiltIn.ApplyIfOne;
+                    : BuiltIn.ApplyIfZero;
                 var applyIfOp = Identifier.NewGlobalCallable(new QsQualifiedName(opType.Namespace, opType.Name)) as Identifier.GlobalCallable;
                 var id = CreateTypedExpression(ExpressionKind.NewIdentifier(applyIfOp, nullTypes));
 
@@ -128,6 +125,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
             public override QsScope Transform(QsScope scope)
             {
+                scope = base.Transform(scope); // process sub-scopes first
+
                 var statements = ImmutableArray.CreateBuilder<QsStatement>();
                 foreach (var statement in scope.Statements)
                 {

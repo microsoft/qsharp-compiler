@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.10.1911.307" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.10.1911.2803-alpha" />
   </ItemGroup>
 
   <ItemGroup>

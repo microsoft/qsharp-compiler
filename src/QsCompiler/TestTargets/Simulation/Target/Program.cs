@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
                 .Where(s => !Path.GetFileName(s.Value).StartsWith("Microsoft.Quantum")); 
             foreach (var source in allSources)
             {
-                var content = SimulationCode.generate(source, compilation.Namespaces);
+                var content = SimulationCode.generate(source, CodegenContext.Create(compilation.Namespaces));
                 try { CompilationLoader.GeneratedFile(source, outputFolder ?? this.Name, ".g.cs", content); }
                 catch { success = false; }
             }
