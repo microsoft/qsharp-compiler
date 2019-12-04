@@ -831,7 +831,7 @@ and NamespaceManager
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
                 
                 // the attribute marks a unit test
-                elif tId.Namespace.Value = BuiltIn.TestOperation.Namespace.Value && tId.Name.Value = BuiltIn.TestOperation.Name.Value then
+                elif tId.Namespace.Value = BuiltIn.Test.Namespace.Value && tId.Name.Value = BuiltIn.Test.Name.Value then
                     let isUnitToUnit (signature : CallableSignature) = 
                         let isUnitType = function 
                             | Tuple _ | Missing -> false
@@ -845,7 +845,7 @@ and NamespaceManager
                     | :? CallableSignature as signature when signature |> isUnitToUnit && not (signature.TypeParameters.Any()) -> 
                         let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument (fun ex -> ex.Expression)
                         let validExecutionTargets = BuiltIn.ValidExecutionTargets |> Seq.map (fun x -> x.ToLowerInvariant())
-                        if arg <> null && validExecutionTargets |> Seq.contains (arg.ToLowerInvariant()) then
+                        if arg <> null && (validExecutionTargets |> Seq.contains (arg.ToLowerInvariant()) || SyntaxGenerator.FullyQualifiedName.IsMatch arg) then
                             attributeHash :: alreadyDefined, att :: resAttr 
                         else (att.Offset, att.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidExecutionTargetForTest, [])) |> Seq.singleton |> returnInvalid 
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTestAttributePlacement, [])) |> Seq.singleton |> returnInvalid
