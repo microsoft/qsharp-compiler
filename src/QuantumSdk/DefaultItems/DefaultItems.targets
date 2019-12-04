@@ -1,4 +1,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemDefinitionGroup>
+      <PackageReference GeneratePathProperty="true" />
+  </ItemDefinitionGroup>
 
   <!-- Work around issues in MSBuild versions prior to 16.0. -->
   <PropertyGroup>
@@ -69,7 +72,7 @@
   </Target>   
 
   <!-- Recomputes the content of ResolvedQscReferences and QscPackageReferencePaths. The current content of these item groups is cleared during the process. -->
-  <Target Name="ResolveQscReferences" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences" AfterTargets="ResolveAssemblyReferences" BeforeTargets="QsharpCompile">
+  <Target Name="ResolveQscReferences" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences;PropertyDependentReferences;Restore" AfterTargets="ResolveAssemblyReferences" BeforeTargets="QsharpCompile">
     <ItemGroup>
       <!-- clean the current content of the qsc item groups to recompute -->
       <RelevantQscPackageReference Remove="@(RelevantQscPackageReference)"/>
@@ -84,9 +87,10 @@
       <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
       <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
       <!-- add the included steps to the ResolvedQscReferences -->
-      <QscPackageReferencePaths Include="@(RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(Identity)').Replace('.','_'))')" /> 
-      <ResolvedQscReferences Include="%(QscPackageReferencePaths.Identity)lib\**\*.dll" /> 
+      <QscPackageReferencePaths Include="@(RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
+      <ResolvedQscReferences Include="$(%(QscPackageReferencePaths.Identity))" /> 
     </ItemGroup>
+    <WriteLinesToFile File="$(GeneratedFilesOutputPath)load.txt" Lines=":: loaded ::;@(ResolvedQscReferences);" Overwrite="true"/>
   </Target>  
 
 </Project>
