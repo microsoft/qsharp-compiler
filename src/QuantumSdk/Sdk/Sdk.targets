@@ -43,16 +43,19 @@
   </Target>  
 
   <!-- Invokes the Q# command line compiler to build the project. -->
-  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences" BeforeTargets="CoreCompile">
+  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveQscOutputPaths" BeforeTargets="CoreCompile">
     <ItemGroup>
+      <!-- TODO: FILTER QSC REFERENCES -->
       <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
     </ItemGroup>
     <PropertyGroup>
+      <QscCommandVerbosityFlag Condition="'$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic'">-v</QscCommandVerbosityFlag>
+      <QscCommandDocsFlag Condition="$(QsharpDocsGeneration)">--doc $(QsharpDocsOutputPath)</QscCommandDocsFlag>
       <QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</QscCommandInputFlag>
       <QscCommandOutputFlag Condition="'$(CsharpSrcOutputPath)' != ''">--output $(CsharpSrcOutputPath)</QscCommandOutputFlag> <!-- FIXME: path ...  -->
       <QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</QscCommandReferencesFlag>
       <QscCommandLoadFlag Condition="@(ResolvedQscReferences->Count()) &gt; 0">--load "@(ResolvedQscReferences,'" "')"</QscCommandLoadFlag>
-      <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(QscDocsGenerationFlag) $(QscCommandInputFlag) $(QscCommandOutputFlag) $(QscCommandReferencesFlag) $(QscCommandLoadFlag)</QscCommand>
+      <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(QscCommandVerbosityFlag) $(QscCommandDocsFlag) $(QscCommandInputFlag) $(QscCommandOutputFlag) $(QscCommandReferencesFlag) $(QscCommandLoadFlag)</QscCommand>
     </PropertyGroup>
     <MakeDir Condition="$(CsharpGeneration)" Directories="$(CsharpSrcOutputPath)" /> 
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />

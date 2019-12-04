@@ -1,7 +1,4 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemDefinitionGroup>
-      <PackageReference GeneratePathProperty="true" />
-  </ItemDefinitionGroup>
 
   <!-- Work around issues in MSBuild versions prior to 16.0. -->
   <PropertyGroup>
@@ -10,11 +7,18 @@
     </MSBuildAllProjects>
   </PropertyGroup>
   
+  <!-- We want access to the full path of packages as determined by msbuild to filter and reorder various package references. -->
+  <ItemDefinitionGroup>
+    <PackageReference GeneratePathProperty="true" IsQscReference ="false" />
+  </ItemDefinitionGroup>
+  
 
   <!-- Packages containing rewrite steps that are executed during compilation. -->
   <ItemGroup>
     <!-- for backwards compatibility we still generate C# independent on whether the project is targeted for execution on the simulation framework or not -->
-    <QscPackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1911.1607" ExecutionTarget="Any" SdkInternalStage="AfterTargeting" /> <!-- Todo: we will want to make the order of execution properly configurable -->
+    <PackageReference 
+      Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1911.1607" IsImplicitlyDefined="true" 
+      IsQscReference ="true" ExecutionTarget="Any" SdkInternalStage="AfterTargeting" /> <!-- Todo: we will want to make the order of execution properly configurable -->
   </ItemGroup>
 
   <!-- Packages and libraries included for all execution targets. -->
@@ -24,8 +28,17 @@
   </ItemGroup>
 
 
+  <!-- Includes packages and project references depending on the defined project properties. -->
+  <Target Name="PropertyDependentReferences" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <!-- Packages included for specific execution targets. -->
+      <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1911.1607" IsImplicitlyDefined="true" />
+    </ItemGroup>
+  </Target>   
+
+
   <!-- Resolution of verified configurable properties. -->
-  <Target Name="QsharpPropertyResolution" BeforeTargets="PropertyDependentReferences">
+  <Target Name="QsharpPropertyResolution">
     <!-- resolving the OutputType to either QsharpExe or QsharpLibrary -->
     <PropertyGroup>
       <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library'">QsharpLibrary</ResolvedQsharpOutputType>
@@ -54,29 +67,20 @@
       <GeneratedFilesOutputPath Condition="!HasTrailingSlash('$(GeneratedFilesOutputPath)')">$(GeneratedFilesOutputPath)\</GeneratedFilesOutputPath>    
       <!-- output path for generating documentation -->
       <QsharpDocsOutputPath Condition="'$(QsharpDocsOutputPath)' == ''">$(GeneratedFilesOutputPath)docs\</QsharpDocsOutputPath>
-      <QscDocsGenerationFlag Condition="$(QsharpDocsGeneration)">--doc $(QsharpDocsOutputPath)</QscDocsGenerationFlag>
       <!-- output path for generated C# files -->
       <CsharpSrcOutputPath Condition="'$(CsharpSrcOutputPath)' == ''">$(GeneratedFilesOutputPath)src\</CsharpSrcOutputPath>
     </PropertyGroup>
   </Target>
 
 
-  <!-- Includes packages and project references depending on the defined project properties. -->
-  <Target Name="PropertyDependentReferences" DependsOnTargets="QsharpPropertyResolution" AfterTargets="QsharpPropertyResolution" BeforeTargets="ResolveAssemblyReferences">
+  <!-- Recomputes the content of ResolvedQscReferences. The current content of these item groups is cleared during the process. -->
+  <Target Name="ResolveQscReferences" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences;Restore">
     <ItemGroup>
-      <!-- Packages included for specific execution targets. -->
-      <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1911.1607" IsImplicitlyDefined="true" />
-      <!-- Packages that define rewrite steps to execute during Q# compilation. -->
-      <PackageReference Include="%(QscPackageReference.Identity)" Version="%(QscPackageReference.Version)" IsImplicitlyDefined="true" GeneratePathProperty="true" />
-    </ItemGroup>
-  </Target>   
-
-  <!-- Recomputes the content of ResolvedQscReferences and QscPackageReferencePaths. The current content of these item groups is cleared during the process. -->
-  <Target Name="ResolveQscReferences" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences;PropertyDependentReferences;Restore" AfterTargets="ResolveAssemblyReferences" BeforeTargets="QsharpCompile">
-    <ItemGroup>
-      <!-- clean the current content of the qsc item groups to recompute -->
+      <!-- clean the current content of the qsc item groups to recompute, and filter all package references by which ones are qsc references -->
+      <QscPackageReference Remove="@(QscPackageReference)"/>
       <RelevantQscPackageReference Remove="@(RelevantQscPackageReference)"/>
-      <QscPackageReferencePaths Remove="@(QscPackageReferencePaths)"/>
+      <RelevantQscPackageReferencePathProperty Remove="@(RelevantQscPackageReferencePathProperty)"/>
+      <QscPackageReference Include="@(PackageReference)" Condition="'%(PackageReference.IsQscReference)' == 'true' " />
       <ResolvedQscReferences Remove="@(ResolvedQscReferences)"/>
       <!-- project specific rewrite steps for the specified execution target -->
       <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
@@ -87,10 +91,10 @@
       <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
       <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
       <!-- add the included steps to the ResolvedQscReferences -->
-      <QscPackageReferencePaths Include="@(RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
-      <ResolvedQscReferences Include="$(%(QscPackageReferencePaths.Identity))" /> 
+      <RelevantQscPackageReferencePathProperty Include="@(RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
+      <ResolvedQscReferences Include="$(%(RelevantQscPackageReferencePathProperty.Identity))/lib/**/*.dll" /> 
+      <!-- TODO: we should have a suitable setup for project references as well -->
     </ItemGroup>
-    <WriteLinesToFile File="$(GeneratedFilesOutputPath)load.txt" Lines=":: loaded ::;@(ResolvedQscReferences);" Overwrite="true"/>
   </Target>  
 
 </Project>
