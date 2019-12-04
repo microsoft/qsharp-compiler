@@ -65,6 +65,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool AttemptFullPreEvaluation;
             /// <summary>
+            /// If set to true, the compiler will remove if-statements and replace them with calls to appropriate
+            /// intrinsic operations.
+            /// </summary>
+            public bool ConvertClassicalControl;
+            /// <summary>
             /// Unless this is set to true, all usages of type-parameterized callables are replaced with 
             /// the concrete callable instantiation if an entry point is specified for the compilation.
             /// Removes all type-parameterizations in the syntax tree.
@@ -149,6 +154,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status FunctorSupport = Status.NotRun;
             internal Status PreEvaluation = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
+            internal Status ConvertClassicalControl = Status.NotRun;
             internal Status Monomorphization = Status.NotRun;
             internal Status Documentation = Status.NotRun;
             internal Status Serialization = Status.NotRun;
@@ -354,14 +360,21 @@ namespace Microsoft.Quantum.QsCompiler
             foreach (var diag in this.VerifiedCompilation?.Diagnostics() ?? Enumerable.Empty<Diagnostic>())
             { this.LogAndUpdate(ref this.CompilationStatus.Validation, diag); }
 
-            // executing the specified rewrite steps 
+            if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
+            { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
+
+            // executing the specified rewrite steps
+
+            if (this.Config.ConvertClassicalControl)
+            {
+                var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
+                this.CompilationStatus.ConvertClassicalControl = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput);
+            }
 
             if (!this.Config.SkipMonomorphization && this.CompilationOutput?.EntryPoints.Length != 0)
             {
-                if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
-                { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput); 
+                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput);
             }
 
             if (this.Config.GenerateFunctorSupport)

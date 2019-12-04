@@ -6,6 +6,7 @@ namespace Microsoft.Quantum.QsCompiler
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
 
 type BuiltIn = {
@@ -86,19 +87,54 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
-    // This is expected to have type <`T>((Result, ((`T => Unit), `T)) => Unit)
+    static member private _MakeResolvedType builtIn =
+        let typeParamT =
+            {
+                Origin = {Namespace = builtIn.Namespace; Name = builtIn.Name};
+                TypeName = builtIn.TypeParameters.[0];
+                Range = QsRangeInfo.Null
+            } |> TypeParameter |> ResolvedType.New
+
+        let args = 
+            [
+                Result |> ResolvedType.New;
+                [
+                    (
+                        (
+                            typeParamT,
+                            UnitType |> ResolvedType.New
+                        ),
+                        CallableInformation.NoInformation
+                    ) |> Operation |> ResolvedType.New;
+                    typeParamT
+                ].ToImmutableArray() |> TupleType |> ResolvedType.New
+            ].ToImmutableArray() |> TupleType |> ResolvedType.New
+
+        (
+            (
+                args,
+                ResolvedType.New UnitType
+            ),
+            CallableInformation.NoInformation
+        ) |> Operation |> ResolvedType.New
+
+    // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
     static member ApplyIfOne = {
         Name = "ApplyIfOne" |> NonNullable<string>.New
         Namespace = BuiltIn.ClassicallyControlledNamespace
         TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
     }
 
-    // This is expected to have type <`T>((Result, ((`T => Unit), `T)) => Unit)
+    static member ApplyIfOneResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfOne
+
+    // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
     static member ApplyIfZero = {
         Name = "ApplyIfZero" |> NonNullable<string>.New
         Namespace = BuiltIn.ClassicallyControlledNamespace
         TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
     }
+
+    static member ApplyIfZeroResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfZero
 
 
     // "weak dependencies" in other namespaces (e.g. things used for code actions)

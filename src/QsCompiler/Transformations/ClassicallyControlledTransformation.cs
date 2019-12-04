@@ -74,34 +74,51 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 return (false, null, null);
             }
 
-            public TypedExpression CreateTypedExpression(ExpressionKind expression) =>
-                CreateTypedExpression(expression, ResolvedType.New(ResolvedTypeKind.UnitType));
+            public TypedExpression CreateIdentifierExpression(Identifier id,
+                QsNullable<ImmutableArray<ResolvedType>> typeParams, ResolvedType resolvedType) =>
+                new TypedExpression
+                (
+                    ExpressionKind.NewIdentifier(id, typeParams),
+                    ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
+                    resolvedType,
+                    new InferredExpressionInformation(false, false),
+                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                );
 
-            public TypedExpression CreateTypedExpression(ExpressionKind expression, ResolvedType returnType)
-            {
-                var inferredInfo = new InferredExpressionInformation(isMutable: false, hasLocalQuantumDependency: true);
-                var nullRange = QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null;
-                var emptyTypes = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty;
+            public TypedExpression CreateValueTupleExpression(params TypedExpression[] expressions) =>
+                new TypedExpression
+                (
+                    ExpressionKind.NewValueTuple(expressions.ToImmutableArray()),
+                    ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
+                    ResolvedType.New(ResolvedTypeKind.NewTupleType(expressions.Select(expr => expr.ResolvedType).ToImmutableArray())),
+                    new InferredExpressionInformation(false, false),
+                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                );
 
-                return new TypedExpression(expression, emptyTypes, returnType, inferredInfo, nullRange);
-            }
+            public TypedExpression CreateApplyIfCall(TypedExpression id, TypedExpression args, BuiltIn controlOp, ResolvedType opTypeParamResolution) =>
+                new TypedExpression
+                (
+                    ExpressionKind.NewCallLikeExpression(id, args),
+                    ImmutableArray.Create(Tuple.Create(new QsQualifiedName(controlOp.Namespace, controlOp.Name), controlOp.TypeParameters.First(), opTypeParamResolution)),
+                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                    new InferredExpressionInformation(false, true),
+                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                );
 
             public QsStatement CreateApplyIfStatement(QsResult result, TypedExpression conditionExpression, QsStatement s)
             {
                 var (_, op, originalArgs) = IsSimpleCallStatement(s.Statement);
 
-                var nullTypes = QsNullable<ImmutableArray<ResolvedType>>.Null;
-
-                var originalCall = CreateTypedExpression(ExpressionKind.NewValueTuple(new TypedExpression[] { op, originalArgs }.ToImmutableArray()));
-
-                var opType = (result == QsResult.One)
-                    ? BuiltIn.ApplyIfOne
-                    : BuiltIn.ApplyIfZero;
-                var applyIfOp = Identifier.NewGlobalCallable(new QsQualifiedName(opType.Namespace, opType.Name)) as Identifier.GlobalCallable;
-                var id = CreateTypedExpression(ExpressionKind.NewIdentifier(applyIfOp, nullTypes));
-
-                var args = CreateTypedExpression(ExpressionKind.NewValueTuple(new TypedExpression[] { conditionExpression, originalCall }.ToImmutableArray()));
-                var call = CreateTypedExpression(ExpressionKind.NewCallLikeExpression(id, args));
+                var (controlOp, opType) = (result == QsResult.One)
+                    ? (BuiltIn.ApplyIfOne, BuiltIn.ApplyIfOneResolvedType)
+                    : (BuiltIn.ApplyIfZero, BuiltIn.ApplyIfZeroResolvedType);
+                var applyIfOp = Identifier.NewGlobalCallable(new QsQualifiedName(controlOp.Namespace, controlOp.Name)) as Identifier.GlobalCallable;
+                
+                var id = CreateIdentifierExpression(applyIfOp, QsNullable<ImmutableArray<ResolvedType>>.Null, opType);
+                var originalCall = CreateValueTupleExpression(op, originalArgs);
+                var args = CreateValueTupleExpression(conditionExpression, originalCall);
+                
+                var call = CreateApplyIfCall(id, args, controlOp, originalArgs.ResolvedType);
 
                 return new QsStatement(QsStatementKind.NewQsExpressionStatement(call), s.SymbolDeclarations, s.Location, s.Comments);
             }
@@ -111,15 +128,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             public (QsStatement, TypedExpression) CreateNewConditionVariable(TypedExpression value, QsStatement condStatement)
             {
                 _varCount++;
-                var name = $"__classic_ctrl{_varCount}__";
+                var name = NonNullable<string>.New($"__classic_ctrl{_varCount}__");
 
                 // The typed expression with the identifier of the variable we just created:
-                var idExpression = CreateTypedExpression(ExpressionKind.NewIdentifier(Identifier.NewLocalVariable(NonNullable<string>.New(name)), QsNullable<ImmutableArray<ResolvedType>>.Null));
+                var idExpression = CreateIdentifierExpression(Identifier.NewLocalVariable(name), QsNullable<ImmutableArray<ResolvedType>>.Null, value.ResolvedType);
 
                 // The actual binding statement:
-                var binding = new QsBinding<TypedExpression>(QsBindingKind.ImmutableBinding, SymbolTuple.NewVariableName(NonNullable<string>.New(name)), value);
-                var stmt = new QsStatement(QsStatementKind.NewQsVariableDeclaration(binding), condStatement.SymbolDeclarations, condStatement.Location, condStatement.Comments);
-
+                var binding = new QsBinding<TypedExpression>(QsBindingKind.ImmutableBinding, SymbolTuple.NewVariableName(name), value);
+                var symbDecl = new LocalDeclarations(condStatement.SymbolDeclarations.Variables.Add(new LocalVariableDeclaration<NonNullable<string>>
+                    (
+                        name,
+                        value.ResolvedType,
+                        new InferredExpressionInformation(false, false),
+                        condStatement.Location.IsValue
+                            ? QsNullable<Tuple<int, int>>.NewValue(condStatement.Location.Item.Offset)
+                            : QsNullable<Tuple<int, int>>.Null,
+                        condStatement.Location.IsValue
+                            ? condStatement.Location.Item.Range
+                            : Tuple.Create(QsPositionInfo.Zero, QsPositionInfo.Zero)
+                    )));
+                var stmt = new QsStatement(QsStatementKind.NewQsVariableDeclaration(binding), symbDecl, condStatement.Location, condStatement.Comments);
+                
                 return (stmt, idExpression);
             }
 
