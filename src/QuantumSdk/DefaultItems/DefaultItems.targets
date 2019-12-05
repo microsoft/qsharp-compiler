@@ -48,6 +48,7 @@
     </PropertyGroup>
     <!-- resolving the ExecutionTarget to either SimulatorBackend or QuantumProcessorBackend -->
     <PropertyGroup>
+      <!-- TODO: RENAME QuantumProcessorArchitecture and remove simulator distinction -->
       <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'QuantumProcessor'">QuantumProcessorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
       <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'TraceSimulator'">SimulatorBackend</ResolvedQsharpExecutionTarget>
       <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'Any'">SimulatorBackend</ResolvedQsharpExecutionTarget>
@@ -80,7 +81,7 @@
       <QscPackageReference Remove="@(QscPackageReference)"/>
       <RelevantQscPackageReference Remove="@(RelevantQscPackageReference)"/>
       <RelevantQscPackageReferencePathProperty Remove="@(RelevantQscPackageReferencePathProperty)"/>
-      <QscPackageReference Include="@(PackageReference)" Condition="'%(PackageReference.IsQscReference)' == 'true' " />
+      <QscPackageReference Include="@(PackageReference)" Condition="'%(PackageReference.IsQscReference)' == 'true'" />
       <ResolvedQscReferences Remove="@(ResolvedQscReferences)"/>
       <!-- project specific rewrite steps for the specified execution target -->
       <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
