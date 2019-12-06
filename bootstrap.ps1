@@ -51,7 +51,7 @@ Get-ChildItem -Recurse *.v.template `
                     Replace("#SEMVER_VERSION#", $SemverVersion).
                     Replace("#ENABLE_TELEMETRY#", $Telemetry)
             } `
-            | Set-Content $Target -NoNewline
+            | Set-Content $Target 
     }
 
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
