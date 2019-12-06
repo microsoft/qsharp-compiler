@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Pipes;
 using System.Net.Sockets;
 using CommandLine;
+using CommandLine.Text;
 using Microsoft.Build.Locator;
 
 
@@ -51,13 +52,22 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
 
-        public static int Main(string[] args) =>
-            Parser.Default
-                .ParseArguments<Options>(args)
-                .MapResult(
-                    (Options opts) => Server.Run(opts),
-                    (errs => (int)ReturnCode.INVALID_ARGUMENTS)
-                );
+        public static int Main(string[] args)
+        {
+            var parser = new Parser(parser => parser.HelpWriter = null); // we want our own custom format for the version info
+            var options = parser.ParseArguments<Options>(args);
+            return options.MapResult(
+                (Options opts) => Run(opts),
+                (errs =>
+                {
+                    if (errs.IsVersion()) Log(Version); 
+                    else Log(HelpText.AutoBuild(options));
+                    return errs.IsVersion() 
+                        ? (int)ReturnCode.SUCCESS 
+                        : (int)ReturnCode.INVALID_ARGUMENTS;
+                })
+            );
+        }
 
 
         private static int Run(Options options)
