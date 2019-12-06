@@ -2,147 +2,150 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
 using System.Net.Sockets;
-using McMaster.Extensions.CommandLineUtils;
+using CommandLine;
 using Microsoft.Build.Locator;
 
 
 namespace Microsoft.Quantum.QsLanguageServer
 {
-    enum ConnectionMode
-    {
-        NamedPipe,
-        Socket
-    }
-
-    [VersionOptionFromMember(MemberName="Version")]
     public class Server
     {
+        public enum ReturnCode
+        { 
+            SUCCESS = 0,
+            MISSING_ARGUMENTS = 1,
+            INVALID_ARGUMENTS = 2,
+            UNEXPECTED_ERROR = 100
+        }
+
+        private enum ConnectionMode
+        {
+            NamedPipe,
+            Socket
+        }
+
+        public class Options
+        {
+            // Note: items in one set are mutually exclusive with items from other sets
+            protected const string CONNECTION_VIA_SOCKET = "connectionViaSocket";
+            protected const string CONNECTION_VIA_PIPE = "connectionViaPipe";
+
+            [Option('l', "log", Required = false, Default = null,
+            HelpText = "Path to log messages to.")]
+            public string LogFile { get; set; }
+
+            [Option('p', "port", Required = true, SetName = CONNECTION_VIA_SOCKET,
+            HelpText = "Port to use for TCP/IP connections.")]
+            public int Port { get; set; }
+
+            [Option('w', "writer", Required = true, SetName = CONNECTION_VIA_PIPE,
+            HelpText = "Named pipe to write to.")]
+            public string WriterPipeName { get; set; }
+
+            [Option('r', "reader", Required = true, SetName = CONNECTION_VIA_PIPE,
+            HelpText = "Named pipe to read from.")]
+            public string ReaderPipeName { get; set; }
+        }
+
+
         public static int Main(string[] args) =>
-            CommandLineApplication.Execute<Server>(args);
+            Parser.Default
+                .ParseArguments<Options>(args)
+                .MapResult(
+                    (Options opts) => Server.Run(opts),
+                    (errs => (int)ReturnCode.INVALID_ARGUMENTS)
+                );
 
-        string Version => typeof(Server).Assembly.GetName().Version.ToString();
 
-        [Option(
-            "-l|--log",
-            Description="Path to log messages to."
-        )]
-        string LogFile { get; } = null;
-
-        [Option(
-            "-p|--port",
-            Description="Port to use for TCP/IP connections."
-        )]
-        int? Port { get; } = null;
-
-        [Option(
-            "-w|--writer",
-            Description="Named pipe to write to."
-        )]
-        string WriterPipeName { get; } = null;
-
-        [Option(
-            "-r|--reader",
-            Description="Named pipe to read from."
-        )]
-        string ReaderPipeName { get; } = null;
-
-        void Log(object msg)
+        private static int Run(Options options)
         {
-            // We open and close the file each time; this is not efficient,
-            // but prevents locks on the file that would otherwise be very
-            // annoying to debug.
-            if (LogFile != null)
+            if (options == null)
             {
-                using (var writer = new StreamWriter(LogFile, append: true))
-                {
-                    writer.WriteLine(msg);
-                }
+                Log("missing command line options");
+                return (int)ReturnCode.MISSING_ARGUMENTS;
+            }
+
+            // In the case where we actually instantiate a server, we need to "configure" the design time build. 
+            // This needs to be done before any MsBuild packages are loaded. 
+            MSBuildLocator.RegisterDefaults();
+
+            var connectionMode = options.ReaderPipeName == null || options.WriterPipeName == null
+                ? ConnectionMode.Socket
+                : ConnectionMode.NamedPipe;
+
+            QsLanguageServer server = null;
+            switch (connectionMode)
+            {
+                case ConnectionMode.NamedPipe:
+                    server = ConnectViaNamedPipe(options.WriterPipeName, options.ReaderPipeName, options.LogFile);
+                    break;
+
+                case ConnectionMode.Socket:
+                    server = ConnectViaSocket(port: options.Port, logFile: options.LogFile);
+                    break;
+            }
+
+            Log("Waiting for shutdown...", options.LogFile);
+            server.WaitForShutdown();
+
+            if (server.ReadyForExit)
+            {
+                Log("Exiting normally.", options.LogFile);
+                return (int)ReturnCode.SUCCESS;
+            }
+            else
+            {
+                Log("Exiting abnormally.", options.LogFile);
+                return (int)ReturnCode.UNEXPECTED_ERROR;
             }
         }
 
-        ConnectionMode Validate()
+        public static string Version =
+            typeof(Server).Assembly.GetName().Version?.ToString();
+
+        private static void Log(object msg, string logFile = null)
         {
-            if (Port != null && (WriterPipeName != null || ReaderPipeName != null))
+            if (logFile != null)
             {
-                Log("[Error] Must specify either port or pipe name, not both.");
-                Environment.Exit(-1);
+                using var writer = new StreamWriter(logFile, append: true);
+                writer.WriteLine(msg);
             }
-
-            if (Port == null && (WriterPipeName == null || ReaderPipeName == null))
-            {
-                Log("[Error] Must specify both writer and reader pipe names.");
-                Environment.Exit(-2);
-            }
-
-            return Port == null
-                ? ConnectionMode.NamedPipe
-                : ConnectionMode.Socket;
+            else Console.WriteLine(msg);
         }
 
-        public static QsLanguageServer ConnectNamedPipe(string writerName, string readerName)
+        internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string logFile = null)
         {
-
+            Log($"Connecting via named pipe.", logFile);
             var writerPipe = new NamedPipeClientStream(writerName);
             var readerPipe = new NamedPipeClientStream(readerName);
 
+            Log($"Connecting to reader pipe \"{readerName}\".", logFile);
             readerPipe.Connect();
+            Log($"Connecting to writer pipe \"{writerName}\".", logFile);
             writerPipe.Connect();
             return new QsLanguageServer(writerPipe, readerPipe);
         }
 
-        private QsLanguageServer ConnectSocket(string hostname = "localhost", int port = 8008)
+        internal static QsLanguageServer ConnectViaSocket(string hostname = "localhost", int port = 8008, string logFile = null)
         {
-
             try
             {
-                Log($"Connecting via socket.");
+                Log($"Connecting via socket.", logFile);
                 var client = new TcpClient(hostname, port);
                 var stream = client.GetStream();
 
-                Log($"Connected to {hostname} at port {port}.");
+                Log($"Connected to {hostname} at port {port}.", logFile);
                 var lsp = new QsLanguageServer(stream, stream);
                 return lsp;
             }
             catch (Exception ex)
             {
-                Log($"[ERROR] {ex.Message}");
-                Environment.Exit(-2);
+                Log($"[ERROR] {ex.Message}", logFile);
+                Environment.Exit((int)ReturnCode.UNEXPECTED_ERROR); 
                 return null;
-            }
-        }
-
-        int OnExecute()
-        {
-            MSBuildLocator.RegisterDefaults(); // needed to "configure" the design time build
-
-            QsLanguageServer server = null;
-            switch (Validate())
-            {
-                case ConnectionMode.NamedPipe:
-                    server = ConnectNamedPipe(WriterPipeName, ReaderPipeName);
-                    break;
-
-                case ConnectionMode.Socket:
-                    server = ConnectSocket(port: Port.Value);
-                    break;
-            }
-
-            Log("Waiting for shutdown...");
-            server.WaitForShutdown();
-
-            if (server.ReadyForExit)
-            {
-                Log("Exiting normally.");
-                return 0;
-            }
-            else
-            {
-                Log("Exiting abnormally.");
-                return 1;
             }
         }
     }

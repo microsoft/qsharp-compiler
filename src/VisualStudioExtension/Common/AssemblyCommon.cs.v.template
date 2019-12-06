@@ -11,3 +11,4 @@
 [assembly: AssemblyCulture("")]
 
 [assembly: AssemblyVersion("#ASSEMBLY_VERSION#")]
+[assembly: AssemblyInformationalVersion("#ASSEMBLY_VERSION#")]
