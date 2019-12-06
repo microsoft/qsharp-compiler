@@ -23,7 +23,10 @@ if ("$AssemblyVersion".Trim().Length -eq 0) {
 
 if ("$SemverVersion".Trim().Length -eq 0) {
     $pieces = "$AssemblyVersion".split(".");
-    $SemverVersion = "$($pieces[0]).$($pieces[1]).$($pieces[2])$($pieces[3])";
+    $first = "$($pieces[0]).$($pieces[1])"
+    $second = "$($pieces[2])"
+    $third = "$($pieces[3])".PadLeft(4, "0");
+    $SemverVersion = "$first.$second$third";
 }
 
 if ("$NuGetVersion".Trim().Length -eq 0) {
