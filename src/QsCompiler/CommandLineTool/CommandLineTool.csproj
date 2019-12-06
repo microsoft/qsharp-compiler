@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\Common\AssemblyCommon.props" />
+  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <AssemblyName>qsc</AssemblyName>
@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
+    <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>
 
   <ItemGroup>
