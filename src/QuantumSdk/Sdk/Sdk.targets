@@ -34,7 +34,7 @@
 
 
   <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
-  <Target Name="QsharpClean" BeforeTargets="Clean">
+  <Target Name="QsharpClean" DependsOnTargets="ResolveQscOutputPaths" BeforeTargets="Clean">
     <ItemGroup>
       <FilesToRemove Include="$(GeneratedFilesOutputPath)**" />
       <Compile Remove="$(FilesToRemove)**\*.g.cs" />

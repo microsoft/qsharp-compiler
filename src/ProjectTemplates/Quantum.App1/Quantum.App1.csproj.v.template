@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <QsharpCompile Include="Program.qs" />
-  </ItemGroup>  
+    <QsharpCompile Include="**\*.qs" Exclude="obj\**" />
+  </ItemGroup>
 
 </Project>

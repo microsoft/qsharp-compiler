@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <QsharpCompile Include="Tests.qs" />
-  </ItemGroup>  
+    <QsharpCompile Include="**\*.qs" Exclude="obj\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Quantum.Xunit" Version="#NUGET_VERSION#" />
