@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $all_ok = $True
 
 if ($Env:ENABLE_TESTS -eq "false") {
-    Write-Host "##vso[task.logissue type=warnings;]Tests skipped due to ENABLE_TESTS variable."
+    Write-Host "##vso[task.logissue type=warning;]Tests skipped due to ENABLE_TESTS variable."
     return
 }
 

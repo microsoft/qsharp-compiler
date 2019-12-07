@@ -206,7 +206,7 @@ if ($Env:ENABLE_VSIX -ne "false") {
     Build-VSCode
     Build-VS
 } else {
-    Write-Host "##vso[task.logissue type=warnings;]VSIX building skipped due to ENABLE_VSIX variable."
+    Write-Host "##vso[task.logissue type=warning;]VSIX building skipped due to ENABLE_VSIX variable."
     return
 }
 

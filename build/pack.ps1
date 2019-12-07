@@ -100,7 +100,7 @@ if ($Env:ENABLE_VSIX -ne "false") {
     Pack-VSCode '../src/VSCodeExtension'
     Pack-VS '../src/VisualStudioExtension/QsharpVSIX'
 } else {
-    Write-Host "##vso[task.logissue type=warnings;]VSIX packing skipped due to ENABLE_VSIX variable."
+    Write-Host "##vso[task.logissue type=warning;]VSIX packing skipped due to ENABLE_VSIX variable."
     return
 }
 
