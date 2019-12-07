@@ -4,7 +4,6 @@
 $ErrorActionPreference = 'Stop'
 
 & "$PSScriptRoot/set-env.ps1"
-$all_ok = $True
 
 Write-Host "##[info]PowerShell version: $($PSVersionTable.PSVersion)"
 
@@ -17,7 +16,7 @@ function Pack-One() {
         [string]$include_references=""
     );
 
-    Write-Host "##[info]Packing $project..."
+    Write-Host "##[command]Packing '$project'..."
     nuget pack (Join-Path $PSScriptRoot $project) `
         -OutputDirectory $Env:NUGET_OUTDIR `
         -Properties Configuration=$Env:BUILD_CONFIGURATION `
@@ -31,57 +30,81 @@ function Pack-One() {
     }
 }
 
-Pack-One '../src/QsCompiler/Compiler/Compiler.csproj' '-IncludeReferencedProjects'
-Pack-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj' '-IncludeReferencedProjects'
-Pack-One '../src/ProjectTemplates/Microsoft.Quantum.ProjectTemplates.nuspec'
-
 ##
 # VS Code Extension
 ##
-Write-Host "##[info]Packing VS Code extension..."
-Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
-if (Get-Command vsce -ErrorAction SilentlyContinue) {
-    Try {
-        vsce package
+function Pack-VSCode() {
+    param(
+        [string]$project
+    );
 
-        if ($LastExitCode -ne 0) {
-            throw;
+    Write-Host "##[command]Packing VS Code extension '$project'..."
+    Push-Location (Join-Path $PSScriptRoot $project)
+    if (Get-Command vsce -ErrorAction SilentlyContinue) {
+        Try {
+            vsce package
+
+            if ($LastExitCode -ne 0) {
+                throw;
+            }
+        } Catch {
+            Write-Host "##vso[task.logissue type=error;]Failed to pack VS Code extension."
+            $all_ok = $False
         }
-    } Catch {
-        Write-Host "##vso[task.logissue type=error;]Failed to pack VS Code extension."
-        $all_ok = $False
+    } else {
+        Write-Host "##vso[task.logissue type=warning;]vsce not installed. Will skip creation of VS Code extension package"
     }
-} else {
-    Write-Host "##vso[task.logissue type=warning;]vsce not installed. Will skip creation of VS Code extension package"
+    Pop-Location
 }
-Pop-Location
 
 ##
 # VisualStudioExtension
 ##
-Write-Host "##[info]Packing VisualStudio extension..."
-Push-Location (Join-Path $PSScriptRoot '..\src\VisualStudioExtension\QsharpVSIX')
-if (Get-Command msbuild -ErrorAction SilentlyContinue) {
-    Try {
-        msbuild QsharpVSIX.csproj `
-            /t:CreateVsixContainer `
-            /property:Configuration=$Env:BUILD_CONFIGURATION `
-            /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+function Pack-VS() {
+    param(
+        [string]$project
+    );
 
-        if  ($LastExitCode -ne 0) {
-            throw
+    Write-Host "##[command]Packing VisualStudio extension '$project'..."
+    Push-Location (Join-Path $PSScriptRoot $project)
+    if (Get-Command msbuild -ErrorAction SilentlyContinue) {
+        Try {
+            msbuild QsharpVSIX.csproj `
+                /t:CreateVsixContainer `
+                /property:Configuration=$Env:BUILD_CONFIGURATION `
+                /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+
+            if  ($LastExitCode -ne 0) {
+                throw
+            }
+        } Catch {
+            Write-Host "##vso[task.logissue type=error;]Failed to pack VS extension."
+            $all_ok = $False
         }
-    } Catch {
-        Write-Host "##vso[task.logissue type=error;]Failed to pack VS extension."
-        $all_ok = $False
+    } else {    
+        Write-Host "msbuild not installed. Will skip creation of VisualStudio extension package"
     }
-} else {    
-    Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip creation of VisualStudio extension package"
+    Pop-Location
 }
-Pop-Location
 
-if (-not $all_ok) 
-{
+################################
+# Start main execution:
+
+$all_ok = $True
+
+Pack-One '../src/QsCompiler/Compiler/Compiler.csproj' '-IncludeReferencedProjects'
+Pack-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj' '-IncludeReferencedProjects'
+Pack-One '../src/ProjectTemplates/Microsoft.Quantum.ProjectTemplates.nuspec'
+
+if ($Env:ENABLE_VSIX -ne "false") {
+    Pack-VSCode '../src/VSCodeExtension'
+    Pack-VS '../src/VisualStudioExtension/QsharpVSIX'
+} else {
+    Write-Host "##vso[task.logissue type=warnings;]VSIX packing skipped due to ENABLE_VSIX variable."
+    return
+}}
+
+if (-not $all_ok) {
     throw "Packing failed. Check the logs."
     exit 1
 } else {

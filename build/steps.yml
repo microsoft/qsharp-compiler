@@ -10,7 +10,7 @@ steps:
 - pwsh: ./test.ps1
   displayName: "Test all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
-  condition: and(succeeded(), ne(variables['Skip.Tests'], 'true'))
+  condition: and(succeeded(), ne(variables['Enable.Tests'], 'false'))
 
 
 - pwsh: ./pack.ps1
@@ -24,12 +24,14 @@ steps:
 ##
 - task: VSBuild@1
   displayName: 'Pack VisualStudio extension'
+  condition: and(succeeded(), ne(variables['Enable.VSIX'], 'false'))
   inputs:
     solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
     msbuildArgs: >
       /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)
+
 
 
 - template: wrap-up.yml

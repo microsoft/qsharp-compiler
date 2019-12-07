@@ -6,6 +6,11 @@ $ErrorActionPreference = 'Stop'
 & "$PSScriptRoot/set-env.ps1"
 $all_ok = $True
 
+if ($Env:ENABLE_TESTS -eq "false") {
+    Write-Host "##vso[task.logissue type=warnings;]Tests skipped due to ENABLE_TESTS variable."
+    return
+}
+
 function Test-One {
     Param(
         [string]$project
