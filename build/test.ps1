@@ -16,6 +16,8 @@ function Test-One {
         [string]$project
     );
 
+    Write-Host "##[command]Testing $project..."
+
     dotnet test (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
@@ -29,7 +31,6 @@ function Test-One {
     }
 }
 
-Write-Host "##[info]Testing Q# compiler..."
 Test-One '../QsCompiler.sln'
 
 

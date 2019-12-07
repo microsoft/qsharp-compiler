@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 
 & "$PSScriptRoot/set-env.ps1"
 
-Write-Host "##[info]PowerShell version: $($PSVersionTable.PSVersion)"
+Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
 
 ##
 # Q# compiler
@@ -102,7 +102,7 @@ if ($Env:ENABLE_VSIX -ne "false") {
 } else {
     Write-Host "##vso[task.logissue type=warnings;]VSIX packing skipped due to ENABLE_VSIX variable."
     return
-}}
+}
 
 if (-not $all_ok) {
     throw "Packing failed. Check the logs."
