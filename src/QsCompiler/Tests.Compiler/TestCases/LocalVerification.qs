@@ -881,7 +881,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @Test("QuantumSimulator")
     function ValidTestAttribute1 () : Unit {}
 
-    @ Test("TraceSimulator")
+    @ Test("ResourcesEstimator")
     function ValidTestAttribute2 () : Unit {}
 
     @ Test("ToffoliSimulator")
@@ -890,7 +890,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @ Test("QuantumSimulator")
     operation ValidTestAttribute4 () : Unit {}
 
-    @ Test("TraceSimulator")
+    @ Test("ResourcesEstimator")
     operation ValidTestAttribute5 () : Unit {}
 
     @ Test("ToffoliSimulator")
@@ -900,7 +900,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation ValidTestAttribute7 () : Unit 
     is Adj + Ctl{}
 
-    @ Test("TraceSimulator")
+    @ Test("ResourcesEstimator")
     operation ValidTestAttribute8 () : Unit 
     is Adj {}
 
@@ -911,7 +911,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @ Test("QuantumSimulator")
     function ValidTestAttribute10 () : ((Unit)) {}
 
-    @ Test("TraceSimulator")
+    @ Test("ResourcesEstimator")
     function ValidTestAttribute11 (arg : Unit) : Unit { }
 
     @ Test("ToffoliSimulator")
@@ -919,12 +919,12 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     @ Test("QuantumSimulator")
     @ Test("ToffoliSimulator")
-    @ Test("TraceSimulator")
+    @ Test("ResourcesEstimator")
     function ValidTestAttribute13 () : Unit { }
 
     @ Test("QuantumSimulator")
     @ Test("ToffoliSimulator")
-    @ Test("TraceSimulator")
+    @ Test("ResourcesEstimator")
     operation ValidTestAttribute14 () : Unit { }
 
     @ Test("QuantumSimulator")
@@ -959,23 +959,23 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation InvalidTestAttribute3 () : Unit {
-        @ Test("TraceSimulator")
+        @ Test("ResourcesEstimator")
         body (...) {}
     }
 
     operation InvalidTestAttribute4 () : Unit {
         body (...) { }
-        @ Test("TraceSimulator")
+        @ Test("ResourcesEstimator")
         adjoint (...) { }
     }
 
-    @ Test("TraceSimulator")
+    @ Test("ResourcesEstimator")
     function InvalidTestAttribute5<'T> () : Unit { }
 
     @ Test("QuantumSimulator")
     operation InvalidTestAttribute6<'T> () : Unit { }
 
-    @ Test("TraceSimulator")
+    @ Test("ResourcesEstimator")
     operation InvalidTestAttribute7 () : Int { 
         return 1;
     }
@@ -988,7 +988,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @ Test("QuantumSimulator")
     function InvalidTestAttribute9 (a : Unit, b : Unit) : Unit { }
 
-    @ Test("TraceSimulator")
+    @ Test("ResourcesEstimator")
     operation InvalidTestAttribute10 (a : Bool) : Unit { }
 
     @ Test("ToffoliSimulator")

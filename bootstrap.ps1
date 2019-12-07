@@ -27,7 +27,9 @@ $MajorVersion = "$($pieces[0])";
 $MinorVersion = "$($pieces[1])";
 
 if ("$SemverVersion".Trim().Length -eq 0) {
-    $SemverVersion = "$MajorVersion.$MinorVersion.$($pieces[2])$($pieces[3])";
+    $patch = "$($pieces[2])"
+    $rev = "$($pieces[3])".PadLeft(4, "0");
+    $SemverVersion = "$MajorVersion.$MinorVersion.$patch$rev";
 }
 
 if ("$NuGetVersion".Trim().Length -eq 0) {
