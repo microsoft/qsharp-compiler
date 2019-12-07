@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 code == ReturnCode.MSBUILD_UNINITIALIZED ? "Failed to initialize MsBuild." :
                 code == ReturnCode.CONNECTION_ERROR ? "Failed to connect." :
                 code == ReturnCode.UNEXPECTED_ERROR ? "Exiting abnormally." : "");
-            Log(text);
+            Log(text, logFile);
             return (int)code;
         }
 
