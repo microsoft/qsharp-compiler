@@ -14,20 +14,6 @@ namespace Microsoft.Quantum.QsLanguageServer
 {
     public class Server
     {
-        public enum ReturnCode
-        { 
-            SUCCESS = 0,
-            MISSING_ARGUMENTS = 1,
-            INVALID_ARGUMENTS = 2,
-            UNEXPECTED_ERROR = 100
-        }
-
-        private enum ConnectionMode
-        {
-            NamedPipe,
-            Socket
-        }
-
         public class Options
         {
             // Note: items in one set are mutually exclusive with items from other sets
@@ -52,69 +38,82 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
 
+        public enum ReturnCode
+        {
+            SUCCESS = 0,
+            MISSING_ARGUMENTS = 1,
+            INVALID_ARGUMENTS = 2,
+            MSBUILD_UNINITIALIZED = 3,
+            CONNECTION_ERROR = 4,
+            UNEXPECTED_ERROR = 100
+        }
+
+        private static int LogAndExit(ReturnCode code, string logFile = null, string message = null)
+        {
+            var text = message ?? (
+                code == ReturnCode.SUCCESS ? "Exiting normally." :
+                code == ReturnCode.MISSING_ARGUMENTS ? "Missing command line options." :
+                code == ReturnCode.INVALID_ARGUMENTS ? "Invalid command line arguments. Use --help to see the list of options." :
+                code == ReturnCode.MSBUILD_UNINITIALIZED ? "Failed to initialize MsBuild." :
+                code == ReturnCode.CONNECTION_ERROR ? "Failed to connect." :
+                code == ReturnCode.UNEXPECTED_ERROR ? "Exiting abnormally." : "");
+            Log(text);
+            return (int)code;
+        }
+
+        public static string Version =
+            typeof(Server).Assembly.GetName().Version?.ToString();
+
         public static int Main(string[] args)
         {
             var parser = new Parser(parser => parser.HelpWriter = null); // we want our own custom format for the version info
             var options = parser.ParseArguments<Options>(args);
             return options.MapResult(
                 (Options opts) => Run(opts),
-                (errs =>
-                {
-                    if (errs.IsVersion()) Log(Version); 
-                    else Log(HelpText.AutoBuild(options));
-                    return errs.IsVersion() 
-                        ? (int)ReturnCode.SUCCESS 
-                        : (int)ReturnCode.INVALID_ARGUMENTS;
-                })
-            );
+                (errs => errs.IsVersion() 
+                    ? LogAndExit(ReturnCode.SUCCESS, message: Version) 
+                    : LogAndExit(ReturnCode.INVALID_ARGUMENTS, message: HelpText.AutoBuild(options))));
         }
-
 
         private static int Run(Options options)
         {
-            if (options == null)
-            {
-                Log("missing command line options");
-                return (int)ReturnCode.MISSING_ARGUMENTS;
-            }
+            if (options == null) return LogAndExit(ReturnCode.MISSING_ARGUMENTS);
 
             // In the case where we actually instantiate a server, we need to "configure" the design time build. 
             // This needs to be done before any MsBuild packages are loaded. 
-            MSBuildLocator.RegisterDefaults();
-
-            var connectionMode = options.ReaderPipeName == null || options.WriterPipeName == null
-                ? ConnectionMode.Socket
-                : ConnectionMode.NamedPipe;
-
-            QsLanguageServer server = null;
-            switch (connectionMode)
+            try { MSBuildLocator.RegisterDefaults(); }
+            catch (Exception ex)
             {
-                case ConnectionMode.NamedPipe:
-                    server = ConnectViaNamedPipe(options.WriterPipeName, options.ReaderPipeName, options.LogFile);
-                    break;
-
-                case ConnectionMode.Socket:
-                    server = ConnectViaSocket(port: options.Port, logFile: options.LogFile);
-                    break;
+                Log("[ERROR] MsBuildLocator could not register defaults.", options.LogFile);
+                return LogAndExit(ReturnCode.MSBUILD_UNINITIALIZED, options.LogFile, ex.ToString());
             }
 
-            Log("Waiting for shutdown...", options.LogFile);
-            server.WaitForShutdown();
+            QsLanguageServer server;
+            try
+            {
+                server = options.ReaderPipeName != null && options.WriterPipeName != null
+                    ? ConnectViaNamedPipe(options.WriterPipeName, options.ReaderPipeName, options.LogFile)
+                    : ConnectViaSocket(port: options.Port, logFile: options.LogFile);
+            }
+            catch (Exception ex)
+            {
+                Log("[ERROR] Failed to launch server.", options.LogFile);
+                return LogAndExit(ReturnCode.CONNECTION_ERROR, options.LogFile, ex.ToString());
+            }
 
-            if (server.ReadyForExit)
+            Log("Listening...", options.LogFile);
+            try { server.WaitForShutdown(); }
+            catch (Exception ex)
             {
-                Log("Exiting normally.", options.LogFile);
-                return (int)ReturnCode.SUCCESS;
+                Log("[ERROR] Unexpected error.", options.LogFile);
+                return LogAndExit(ReturnCode.UNEXPECTED_ERROR, options.LogFile, ex.ToString());
             }
-            else
-            {
-                Log("Exiting abnormally.", options.LogFile);
-                return (int)ReturnCode.UNEXPECTED_ERROR;
-            }
+
+            return server.ReadyForExit 
+                ? LogAndExit(ReturnCode.SUCCESS, options.LogFile)
+                : LogAndExit(ReturnCode.UNEXPECTED_ERROR, options.LogFile);
         }
 
-        public static string Version =
-            typeof(Server).Assembly.GetName().Version?.ToString();
 
         private static void Log(object msg, string logFile = null)
         {
@@ -128,35 +127,28 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string logFile = null)
         {
-            Log($"Connecting via named pipe.", logFile);
+            Log($"Connecting via named pipe. {Environment.NewLine}ReaderPipe: \"{readerName}\" {Environment.NewLine}WriterPipe:\"{writerName}\"", logFile);
             var writerPipe = new NamedPipeClientStream(writerName);
             var readerPipe = new NamedPipeClientStream(readerName);
 
-            Log($"Connecting to reader pipe \"{readerName}\".", logFile);
-            readerPipe.Connect();
-            Log($"Connecting to writer pipe \"{writerName}\".", logFile);
-            writerPipe.Connect();
+            readerPipe.Connect(30000);
+            if (!readerPipe.IsConnected) Log($"[ERROR] Connection attempted timed out.", logFile);
+            writerPipe.Connect(30000);
+            if (!writerPipe.IsConnected) Log($"[ERROR] Connection attempted timed out.", logFile);
             return new QsLanguageServer(writerPipe, readerPipe);
         }
 
         internal static QsLanguageServer ConnectViaSocket(string hostname = "localhost", int port = 8008, string logFile = null)
         {
-            try
-            {
-                Log($"Connecting via socket.", logFile);
-                var client = new TcpClient(hostname, port);
-                var stream = client.GetStream();
-
-                Log($"Connected to {hostname} at port {port}.", logFile);
-                var lsp = new QsLanguageServer(stream, stream);
-                return lsp;
-            }
+            Log($"Connecting via socket. {Environment.NewLine}Port number: {port}", logFile);
+            Stream stream = null;
+            try { stream = new TcpClient(hostname, port)?.GetStream(); }
             catch (Exception ex)
             {
-                Log($"[ERROR] {ex.Message}", logFile);
-                Environment.Exit((int)ReturnCode.UNEXPECTED_ERROR); 
-                return null;
+                Log("[ERROR] Failed to get network stream.", logFile);
+                Log(ex.ToString(), logFile);
             }
+            return new QsLanguageServer(stream, stream);
         }
     }
 }
