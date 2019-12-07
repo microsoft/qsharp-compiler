@@ -196,12 +196,12 @@ Build-One 'build' '../QsCompiler.sln'
 Build-One 'publish' '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj'
 
 if ($Env:ENABLE_VSIX -ne "false") {
-    # Pack-SelfContained `
-    #     -Project "../src/QsCompiler/LanguageServer/LanguageServer.csproj" `
-    #     -PackageData "../src/VSCodeExtension/package.json"
+    Pack-SelfContained `
+        -Project "../src/QsCompiler/LanguageServer/LanguageServer.csproj" `
+        -PackageData "../src/VSCodeExtension/package.json"
 
-    # Write-Host "Final package.json:"
-    # Get-Content "../src/VSCodeExtension/package.json" | Write-Host
+    Write-Host "Final package.json:"
+    Get-Content "../src/VSCodeExtension/package.json" | Write-Host
 
     Build-VSCode
     Build-VS

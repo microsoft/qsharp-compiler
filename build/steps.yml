@@ -10,7 +10,6 @@ steps:
 - pwsh: ./test.ps1
   displayName: "Test all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
-  condition: and(succeeded(), ne(variables['Enable.Tests'], 'false'))
 
 
 - pwsh: ./pack.ps1
