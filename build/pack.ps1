@@ -16,7 +16,7 @@ function Pack-One() {
         [string]$include_references=""
     );
 
-    Write-Host "##[command]##[info]Packing '$project'..."
+    Write-Host "##[info]Packing '$project'..."
     nuget pack (Join-Path $PSScriptRoot $project) `
         -OutputDirectory $Env:NUGET_OUTDIR `
         -Properties Configuration=$Env:BUILD_CONFIGURATION `
@@ -38,7 +38,7 @@ function Pack-VSCode() {
         [string]$project
     );
 
-    Write-Host "##[command]##[info]Packing VS Code extension '$project'..."
+    Write-Host "##[info]Packing VS Code extension '$project'..."
     Push-Location (Join-Path $PSScriptRoot $project)
     if (Get-Command vsce -ErrorAction SilentlyContinue) {
         Try {
@@ -65,7 +65,7 @@ function Pack-VS() {
         [string]$project
     );
 
-    Write-Host "##[command]##[info]Packing VisualStudio extension '$project'..."
+    Write-Host "##[info]Packing VisualStudio extension '$project'..."
     Push-Location (Join-Path $PSScriptRoot $project)
     if (Get-Command msbuild -ErrorAction SilentlyContinue) {
         Try {

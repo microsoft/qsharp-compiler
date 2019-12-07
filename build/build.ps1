@@ -15,7 +15,7 @@ function Build-One {
         [string]$project
     );
 
-    Write-Host "##[command]##[info]Building $project ($action)..."
+    Write-Host "##[info]Building $project ($action)..."
     dotnet $action (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
@@ -81,7 +81,7 @@ function Pack-SelfContained() {
         [string] $PackageData = $null
     );
 
-    Write-Host "##[command]##[info]Packing $Project as a self-contained deployment...";
+    Write-Host "##[info]Packing $Project as a self-contained deployment...";
     $Runtimes.GetEnumerator() | ForEach-Object {
         $DotNetRuntimeID = $_.Key;
         $NodePlatformID = $_.Value;
@@ -100,7 +100,7 @@ function Pack-SelfContained() {
                 --output $TargetDir `
                 /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
                 /property:Version=$Env:ASSEMBLY_VERSION
-            Write-Host "##[command]##[info]Writing self-contained deployment to $ArchivePath..."
+            Write-Host "##[info]Writing self-contained deployment to $ArchivePath..."
             Compress-Archive `
                 -Force `
                 -Path (Join-Path $TargetDir *) `
@@ -126,7 +126,7 @@ function Pack-SelfContained() {
 # VS Code Extension
 ##
 function Build-VSCode() {
-    Write-Host "##[command]##[info]Building VS Code extension..."
+    Write-Host "##[info]Building VS Code extension..."
     Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Try {
@@ -151,7 +151,7 @@ function Build-VSCode() {
 # VisualStudioExtension
 ##
 function Build-VS() {
-    Write-Host "##[command]##[info]Building VisualStudio extension..."
+    Write-Host "##[info]Building VisualStudio extension..."
     Push-Location (Join-Path $PSScriptRoot '..')
     if (Get-Command nuget -ErrorAction SilentlyContinue) {
         Try {

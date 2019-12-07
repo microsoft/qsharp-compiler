@@ -16,7 +16,7 @@ function Test-One {
         [string]$project
     );
 
-    Write-Host "##[command]##[info]Testing $project..."
+    Write-Host "##[info]Testing $project..."
 
     dotnet test (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
