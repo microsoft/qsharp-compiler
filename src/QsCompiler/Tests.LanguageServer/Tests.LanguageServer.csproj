@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
@@ -38,6 +39,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Common\DelaySign.cs" Link="DelaySign.cs" />
+    <Compile Include="..\..\Common\DelaySign.cs" Link="DelaySign.cs" />
   </ItemGroup>
 </Project>
