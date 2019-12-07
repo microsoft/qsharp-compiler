@@ -29,6 +29,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
     {
         private readonly long LaunchTime;
         public readonly string LogFile;
+        public readonly string LanguageServerPath;
 
         public static Guid OutputPaneGuid =
             new Guid("C6F36B68-90B4-4A12-BE58-34E3F735B0AE");
@@ -37,6 +38,9 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         {
             this.LaunchTime = DateTime.Now.Ticks;
             this.LogFile = Path.Combine(Path.GetTempPath(), $"qsp-{LaunchTime}.log");
+            this.LanguageServerPath = Path.Combine(
+                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                "LanguageServer", "Microsoft.Quantum.QsLanguageServer.exe");
             CustomMessageTarget = new CustomServerNotifications();
         }
 
@@ -88,7 +92,14 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             outWindow.CreatePane(ref OutputPaneGuid, windowTitle, 1, 1);
             outWindow.GetPane(ref OutputPaneGuid, out var customPane);
 
-            customPane.OutputString($"Server initialization failed. A log file can be found at \"{this.LogFile}\". {Environment.NewLine}{ex.ToString()}");
+            var messages = new[]
+            {
+                $"Server initialization failed.",
+                $"Path to the language server executable: \"{this.LanguageServerPath}\"",
+                $"Path to the log file: \"{this.LogFile}\"", 
+                ex.ToString()
+            };
+            customPane.OutputString(String.Join(Environment.NewLine, messages)); 
             customPane.Activate(); // brings the pane into view
         }
 
@@ -105,15 +116,11 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
                 string ServerWriterPipe = $"QsLanguageServerWriterPipe";
                 #else
 
-                var root = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                var serverPath = Path.Combine(root, "LanguageServer");
-                var exe = Path.Combine(serverPath, "Microsoft.Quantum.QsLanguageServer.exe");
                 string ServerReaderPipe = $"QsLanguageServerReaderPipe{this.LaunchTime}";
                 string ServerWriterPipe = $"QsLanguageServerWriterPipe{this.LaunchTime}";
-
                 ProcessStartInfo info = new ProcessStartInfo
                 {
-                    FileName = exe,
+                    FileName = LanguageServerPath,
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     Arguments = $"--writer={ServerWriterPipe} --reader={ServerReaderPipe} --log={this.LogFile}"
