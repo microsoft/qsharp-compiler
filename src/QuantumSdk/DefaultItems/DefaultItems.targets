@@ -75,27 +75,46 @@
 
 
   <!-- Recomputes the content of ResolvedQscReferences. The current content of these item groups is cleared during the process. -->
-  <Target Name="ResolveQscReferences" DependsOnTargets="QsharpPropertyResolution;ResolveAssemblyReferences;Restore">
+  <Target Name="ResolveQscReferences" DependsOnTargets="QsharpPropertyResolution;ResolveProjectReferences;ResolveAssemblyReferences;Restore">
+    <!-- 
+      TODO: right now, packages containing rewrite steps basically need to be self-contained. 
+      _ResolveAssemblyReferenceResolvedFiles might help (the info on IsQscReference cannot be assiciated though), 
+      or we will need to find a better setup in the compiler. 
+    --> 
+
+    <!-- clean the current content of the qsc item groups to recompute -->
     <ItemGroup>
-      <!-- clean the current content of the qsc item groups to recompute, and filter all package references by which ones are qsc references -->
       <QscPackageReference Remove="@(QscPackageReference)"/>
-      <RelevantQscPackageReference Remove="@(RelevantQscPackageReference)"/>
-      <RelevantQscPackageReferencePathProperty Remove="@(RelevantQscPackageReferencePathProperty)"/>
-      <QscPackageReference Include="@(PackageReference)" Condition="'%(PackageReference.IsQscReference)' == 'true'" />
+      <QscProjectReference Remove="@(QscProjectReference)"/>
       <ResolvedQscReferences Remove="@(ResolvedQscReferences)"/>
-      <!-- project specific rewrite steps for the specified execution target -->
-      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
-      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
-      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
-      <!-- rewrite steps included in the SDK that are executed after targeting -->
-      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
-      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
-      <RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
-      <!-- add the included steps to the ResolvedQscReferences -->
-      <RelevantQscPackageReferencePathProperty Include="@(RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
-      <ResolvedQscReferences Include="$(%(RelevantQscPackageReferencePathProperty.Identity))/lib/**/*.dll" /> 
-      <!-- TODO: we should have a suitable setup for project references as well -->
+      <_RelevantQscProjectReference Remove="@(_RelevantQscProjectReference)"/>
+      <_RelevantQscPackageReference Remove="@(_RelevantQscPackageReference)"/>
+      <_RelevantQscPackageReferencePathProperty Remove="@(_RelevantQscPackageReferencePathProperty)"/>
     </ItemGroup>
+
+    <!-- filter all project references which are qsc references; these will be executed first -->
+    <ItemGroup>
+      <QscProjectReference Include="@(_ResolvedProjectReferencePaths)" Condition="'%(_ResolvedProjectReferencePaths.IsQscReference)' == 'true'" />
+      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget',''))" /> 
+      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
+      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
+      <ResolvedQscReferences Include="@(_RelevantQscProjectReference)" /> 
+    </ItemGroup>
+
+    <!-- filter and order all package references which are qsc references; sdk defined references will be inserted in the specified order -->
+    <ItemGroup>
+      <QscPackageReference Include="@(PackageReference)" Condition="'%(PackageReference.IsQscReference)' == 'true'" />
+      <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
+      <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
+      <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
+      <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
+      <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
+      <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
+      <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
+      <ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))/lib/**/*.dll" /> 
+    </ItemGroup>
+
+    <Message Text="Resolved qsc refs: @(ResolvedQscReferences)" Importance="High"/>
   </Target>  
 
 </Project>

@@ -21,7 +21,7 @@ if ("$AssemblyVersion".Trim().Length -eq 0) {
     $AssemblyVersion = "0.9999.$Year$Month.$Hour$Minute";
 }
 
-Write-Output("Assembly version: $AssemblyVersion");
+Write-Host "Assembly version: $AssemblyVersion";
 $pieces = "$AssemblyVersion".split(".");
 $MajorVersion = "$($pieces[0])";
 $MinorVersion = "$($pieces[1])";
@@ -41,7 +41,7 @@ if ("$VsixVersion".Trim().Length -eq 0) {
 }
 
 $Telemetry = "$($Env:ASSEMBLY_CONSTANTS)".Contains("TELEMETRY").ToString().ToLower();
-Write-Output("Enable telemetry: $Telemetry");
+Write-Host "Enable telemetry: $Telemetry";
 
 Get-ChildItem -Recurse *.v.template `
     | ForEach-Object {
