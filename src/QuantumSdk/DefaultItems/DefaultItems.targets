@@ -84,37 +84,48 @@
 
     <!-- clean the current content of the qsc item groups to recompute -->
     <ItemGroup>
-      <QscPackageReference Remove="@(QscPackageReference)"/>
       <QscProjectReference Remove="@(QscProjectReference)"/>
+      <QscPackageReference Remove="@(QscPackageReference)"/>
       <ResolvedQscReferences Remove="@(ResolvedQscReferences)"/>
       <_RelevantQscProjectReference Remove="@(_RelevantQscProjectReference)"/>
       <_RelevantQscPackageReference Remove="@(_RelevantQscPackageReference)"/>
       <_RelevantQscPackageReferencePathProperty Remove="@(_RelevantQscPackageReferencePathProperty)"/>
     </ItemGroup>
 
-    <!-- filter all project references which are qsc references; these will be executed first -->
     <ItemGroup>
       <QscProjectReference Include="@(_ResolvedProjectReferencePaths)" Condition="'%(_ResolvedProjectReferencePaths.IsQscReference)' == 'true'" />
+      <QscPackageReference Include="@(PackageReference)" Condition="'%(PackageReference.IsQscReference)' == 'true'" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_QscProjectReferencesCount>@(QscProjectReference->Count())</_QscProjectReferencesCount>
+      <_QscPackageReferencesCount>@(QscPackageReference->Count())</_QscPackageReferencesCount>
+      <_QscReferencesCount>$([MSBuild]::Add($(_QscProjectReferencesCount), $(_QscPackageReferencesCount)))</_QscReferencesCount>
+    </PropertyGroup>
+
+    <!-- filter all project references which are qsc references; these will be executed first -->
+    <ItemGroup>
       <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget',''))" /> 
       <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
       <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
-      <ResolvedQscReferences Include="@(_RelevantQscProjectReference)" /> 
     </ItemGroup>
 
     <!-- filter and order all package references which are qsc references; sdk defined references will be inserted in the specified order -->
     <ItemGroup>
-      <QscPackageReference Include="@(PackageReference)" Condition="'%(PackageReference.IsQscReference)' == 'true'" />
       <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
       <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
       <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == ''" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
       <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
       <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
       <_RelevantQscPackageReference Condition="'%(QscPackageReference.SdkInternalStage)' == 'AfterTargeting'" Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
+    </ItemGroup>
+
+    <ItemGroup>
       <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
+      <ResolvedQscReferences Include="@(_RelevantQscProjectReference)" /> <!-- need to be before package refs -->
       <ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))/lib/**/*.dll" /> 
     </ItemGroup>
 
-    <Message Text="Resolved qsc refs: @(ResolvedQscReferences)" Importance="High"/>
   </Target>  
 
 </Project>

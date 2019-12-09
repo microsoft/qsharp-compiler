@@ -49,6 +49,7 @@
         Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
     </ItemGroup>
     <PropertyGroup>
+      <!-- TODO: USE @(MyItem->Distinct()) OR POSSIBLY @(MyItem->DistinctWithCase()) -->
       <QscCommandVerbosityFlag Condition="'$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic'">-v</QscCommandVerbosityFlag>
       <QscCommandDocsFlag Condition="$(QsharpDocsGeneration)">--doc $(QsharpDocsOutputPath)</QscCommandDocsFlag>
       <QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</QscCommandInputFlag>
