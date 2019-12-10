@@ -164,7 +164,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     Identifier.NewGlobalCallable(new QsQualifiedName(targetName.Namespace, targetName.Name)),
                     QsNullable<ImmutableArray<ResolvedType>>.Null, // ToDo: allow for type params to be passed in from super-scope
                     targetOpType);
-                var targetArgs = CreateValueTupleExpression(); // ToDo: add generic params to operation
+                //var targetArgs = CreateValueTupleExpression();
+                var targetArgs = new TypedExpression // ToDo: add generic params to operation
+                (
+                    ExpressionKind.UnitValue,
+                    ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
+                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                    new InferredExpressionInformation(false, false),
+                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                );
 
                 // Build the surrounding apply-if call
                 var (controlOp, controlOpType) = (result == QsResult.One)
@@ -217,19 +225,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             private QsQualifiedName GenerateControlOperation(QsScope contents, QsComments comments)
             {
                 var newName = new QsQualifiedName(
-                            _super._CurrentCallable.FullName.Namespace,
-                            NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + _super._CurrentCallable.FullName.Name.Value));
+                    _super._CurrentCallable.FullName.Namespace,
+                    NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + _super._CurrentCallable.FullName.Name.Value));
 
                 var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
                     .NewQsTuple(ImmutableArray<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>>.Empty); // ToDo: add generic params to operation
 
-                var paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray<ResolvedType>.Empty)); // ToDo: add generic params to operation
+                //var paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray<ResolvedType>.Empty));
+                var paramTypes = ResolvedType.New(ResolvedTypeKind.UnitType); // ToDo: add generic params to operation
 
                 var signature = new ResolvedSignature(
-                        ImmutableArray<QsLocalSymbol>.Empty,
-                        paramTypes,
-                        ResolvedType.New(ResolvedTypeKind.UnitType),
-                        CallableInformation.NoInformation);
+                    ImmutableArray<QsLocalSymbol>.Empty,
+                    paramTypes,
+                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                    CallableInformation.NoInformation);
 
                 var spec = new QsSpecialization(
                     QsSpecializationKind.QsBody,
@@ -280,21 +289,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             conditionExpression = idExpression;
                         }
 
-                        //statements.Add(CreateApplyIfStatement(statement, result, conditionExpression, conditionScope));
+                        statements.Add(CreateApplyIfStatement(statement, result, conditionExpression, conditionScope));
 
-                        foreach (var stmt in conditionScope.Statements)
-                        {
-                            statements.Add(CreateApplyIfStatement(result, conditionExpression, stmt));
-                        }
+                        //foreach (var stmt in conditionScope.Statements)
+                        //{
+                        //    statements.Add(CreateApplyIfStatement(result, conditionExpression, stmt));
+                        //}
 
                         if (defaultScope != null)
                         {
-                            //statements.Add(CreateApplyIfStatement(statement, result.IsOne ? QsResult.Zero : QsResult.One, conditionExpression, defaultScope));
+                            statements.Add(CreateApplyIfStatement(statement, result.IsOne ? QsResult.Zero : QsResult.One, conditionExpression, defaultScope));
 
-                            foreach (var stmt in defaultScope.Statements)
-                            {
-                                statements.Add(CreateApplyIfStatement(result.IsOne ? QsResult.Zero : QsResult.One, conditionExpression, stmt));
-                            }
+                            //foreach (var stmt in defaultScope.Statements)
+                            //{
+                            //    statements.Add(CreateApplyIfStatement(result.IsOne ? QsResult.Zero : QsResult.One, conditionExpression, stmt));
+                            //}
                         }
                     }
                     else
