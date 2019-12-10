@@ -90,8 +90,8 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (4,43)
-            HeaderRange     = {Line = 1; Column = 1}, {Line = 1; Column = 5}
+            Position        = (4,43) |> Value
+            HeaderRange     = ({Line = 1; Column = 1}, {Line = 1; Column = 5}) |> Value
             Documentation   = ImmutableArray.Empty
         } 
         |> testOne
@@ -103,8 +103,8 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (5,39)
-            HeaderRange     = {Line = 1; Column = 1}, {Line = 1; Column = 5}
+            Position        = (5,39) |> Value
+            HeaderRange     = ({Line = 1; Column = 1}, {Line = 1; Column = 5}) |> Value
             Documentation   = [ "Line one"; "Line two" ] |> ImmutableArray.CreateRange
         } 
         |> testOne
@@ -116,8 +116,8 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (5,4)
-            HeaderRange     = {Line = 1; Column = 9}, {Line = 1; Column = 13}
+            Position        = (5,4) |> Value
+            HeaderRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 13}) |> Value
             Documentation   = ImmutableArray.Empty
         }
         |> testOne
@@ -129,8 +129,8 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (6,4)
-            HeaderRange     = {Line = 1; Column = 9}, {Line = 1; Column = 15}
+            Position        = (6,4) |> Value
+            HeaderRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 15}) |> Value
             Documentation   = ImmutableArray.Empty
         }
         |> testOne
@@ -149,8 +149,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (2,4)
-            SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 13}
+            Position        = (2,4) |> Value
+            SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 13}) |> Value
             ArgumentTuple   = [varDecl "__Item1__" Int (1,1) |> QsTupleItem; varDecl "__Item2__" Int (1,1) |> QsTupleItem].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature tupleIntIntType udtPair [] 
             Documentation   = ImmutableArray.Create("type constructor for user defined type") 
@@ -162,8 +162,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (4,4)
-            SymbolRange     = {Line = 1; Column = 10}, {Line = 1; Column = 23} 
+            Position        = (4,4) |> Value
+            SymbolRange     = ({Line = 1; Column = 10}, {Line = 1; Column = 23}) |> Value
             ArgumentTuple   = [ varDecl "p" udtPair (25,26) |> QsTupleItem].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature udtPair UnitType []
             Documentation   = ImmutableArray.Empty
@@ -175,8 +175,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (5,4)
-            SymbolRange     = {Line = 1; Column = 11}, {Line = 1; Column = 25}
+            Position        = (5,4) |> Value
+            SymbolRange     = ({Line = 1; Column = 11}, {Line = 1; Column = 25}) |> Value
             ArgumentTuple   = [].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature UnitType UnitType [Adjointable; Controllable]
             Documentation   = ImmutableArray.Empty
@@ -188,8 +188,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (3,4)
-            SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 15}
+            Position        = (3,4) |> Value
+            SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 15}) |> Value
             ArgumentTuple   = [varDecl "__Item1__" Int (1,1) |> QsTupleItem; varDecl "__Item2__" Int (1,1) |> QsTupleItem].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature tupleIntIntType (udt "Unused") []
             Documentation   = ImmutableArray.Create("type constructor for user defined type")
@@ -208,8 +208,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (2,4)
-            SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 13}
+            Position        = (2,4) |> Value
+            SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 13}) |> Value
             Type            = tupleIntIntType |> ResolvedType.New
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty
@@ -220,8 +220,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (3,4)
-            SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 15}
+            Position        = (3,4) |> Value
+            SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 15}) |> Value
             Type            = tupleIntIntType |> ResolvedType.New
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty

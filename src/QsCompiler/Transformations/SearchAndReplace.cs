@@ -89,17 +89,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         public override QsCustomType onType(QsCustomType t)
         {
-            if (!this.IsRelevant(t.SourceFile)) return t;
+            if (!this.IsRelevant(t.SourceFile) || t.Location.IsNull) return t;
             if (t.FullName.Equals(this.IdentifierName))
-            { this.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(t.SourceFile, t.Location); }
+            { this.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(t.SourceFile, t.Location.Item); }
             return base.onType(t);
         }
 
-        public override QsCallable beforeCallable(QsCallable c)
+        public override QsCallable onCallableImplementation(QsCallable c)
         {
-            if (this.IsRelevant(c.SourceFile) && c.FullName.Equals(this.IdentifierName))
-            { this.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(c.SourceFile, c.Location); }
-            return c;
+            if (!this.IsRelevant(c.SourceFile) || c.Location.IsNull) return c;
+            if (c.FullName.Equals(this.IdentifierName))
+            { this.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(c.SourceFile, c.Location.Item); }
+            return base.onCallableImplementation(c);
         }
 
         public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
@@ -112,18 +113,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return att;
         }
 
-        // Todo: these transformations needs to be adapted once we support external specializations
-        public override QsCallable onFunction(QsCallable c) =>
-            this.IsRelevant(c.SourceFile) ? base.onFunction(c) : c;
-        public override QsCallable onOperation(QsCallable c) =>
-            this.IsRelevant(c.SourceFile) ? base.onOperation(c) : c;
-
         public override QsSpecialization onSpecializationImplementation(QsSpecialization spec) =>
             this.IsRelevant(spec.SourceFile) ? base.onSpecializationImplementation(spec) : spec;
 
-        public override QsLocation onLocation(QsLocation l)
+        public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> l)
         {
-            this._Scope.DeclarationOffset = l.Offset;
+            this._Scope.DeclarationOffset = l.IsValue? l.Item.Offset : null;
             return l;
         }
 

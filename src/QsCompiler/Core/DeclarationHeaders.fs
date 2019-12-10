@@ -9,6 +9,7 @@ open System.IO
 open System.Text
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Serialization
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Newtonsoft.Json
@@ -16,6 +17,10 @@ open Newtonsoft.Json
 
 /// to be removed in future releases
 module private DeclarationHeader = 
+
+    let GetLocation = function 
+        | Value pos, Value range -> QsLocation.New (pos, range) |> Value
+        | _ -> Null
 
     let FromJson<'T> json = 
         let deserialize (serializer : JsonSerializer) =             
@@ -35,21 +40,22 @@ type TypeDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
-    Position        : int * int
-    SymbolRange     : QsPositionInfo * QsPositionInfo
+    Position        : QsNullable<int * int>
+    SymbolRange     : QsRangeInfo
     Type            : ResolvedType
     TypeItems       : QsTuple<QsTypeItem>
     Documentation   : ImmutableArray<string>
 }
     with 
+    member this.Location = DeclarationHeader.GetLocation (this.Position, this.SymbolRange)
     member this.FromSource source = {this with SourceFile = source}
 
     static member New (customType : QsCustomType) = {
         QualifiedName   = customType.FullName
         Attributes      = customType.Attributes
         SourceFile      = customType.SourceFile
-        Position        = customType.Location.Offset
-        SymbolRange     = customType.Location.Range
+        Position        = customType.Location |> QsNullable<_>.Map (fun loc -> loc.Offset)
+        SymbolRange     = customType.Location |> QsNullable<_>.Map (fun loc -> loc.Range)
         Type            = customType.Type
         TypeItems       = customType.TypeItems
         Documentation   = customType.Documentation
@@ -72,13 +78,14 @@ type CallableDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
-    Position        : int * int
-    SymbolRange     : QsPositionInfo * QsPositionInfo
+    Position        : QsNullable<int * int>
+    SymbolRange     : QsRangeInfo
     ArgumentTuple   : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
     Signature       : ResolvedSignature
     Documentation   : ImmutableArray<string>
 }
     with 
+    member this.Location = DeclarationHeader.GetLocation (this.Position, this.SymbolRange)
     member this.FromSource source = {this with SourceFile = source}
 
     static member New (callable : QsCallable) = {
@@ -86,8 +93,8 @@ type CallableDeclarationHeader = {
         QualifiedName   = callable.FullName
         Attributes      = callable.Attributes
         SourceFile      = callable.SourceFile
-        Position        = callable.Location.Offset
-        SymbolRange     = callable.Location.Range
+        Position        = callable.Location |> QsNullable<_>.Map (fun loc -> loc.Offset)
+        SymbolRange     = callable.Location |> QsNullable<_>.Map (fun loc -> loc.Range)
         ArgumentTuple   = callable.ArgumentTuple
         Signature       = callable.Signature
         Documentation   = callable.Documentation
@@ -120,11 +127,12 @@ type SpecializationDeclarationHeader = {
     Parent          : QsQualifiedName    
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
-    Position        : int * int
-    HeaderRange     : QsPositionInfo*QsPositionInfo
+    Position        : QsNullable<int * int>
+    HeaderRange     : QsRangeInfo
     Documentation   : ImmutableArray<string>
 }
     with 
+    member this.Location = DeclarationHeader.GetLocation (this.Position, this.HeaderRange)
     member this.FromSource source = {this with SourceFile = source}
 
     static member New (specialization : QsSpecialization) = {
@@ -134,8 +142,8 @@ type SpecializationDeclarationHeader = {
         Parent          = specialization.Parent 
         Attributes      = specialization.Attributes
         SourceFile      = specialization.SourceFile
-        Position        = specialization.Location.Offset
-        HeaderRange     = specialization.Location.Range
+        Position        = specialization.Location |> QsNullable<_>.Map (fun loc -> loc.Offset)
+        HeaderRange     = specialization.Location |> QsNullable<_>.Map (fun loc -> loc.Range)
         Documentation   = specialization.Documentation
     }
 
