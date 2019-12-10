@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
     public class ClassicallyControlledTransformation
     {
-        private List<QsCallable> _ControlOperators;
+        private List<QsCallable> _ControlOperations;
         private QsCallable _CurrentCallable = null;
 
         public static QsCompilation Apply(QsCompilation compilation)
@@ -46,10 +46,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
             public override QsNamespace Transform(QsNamespace ns)
             {
-                // Control operators list will be populated in the transform
-                _super._ControlOperators = new List<QsCallable>();
+                // Control operations list will be populated in the transform
+                _super._ControlOperations = new List<QsCallable>();
                 return base.Transform(ns)
-                    .WithElements(elems => elems.AddRange(_super._ControlOperators.Select(op => QsNamespaceElement.NewQsCallable(op))));
+                    .WithElements(elems => elems.AddRange(_super._ControlOperations.Select(op => QsNamespaceElement.NewQsCallable(op))));
             }
         }
 
@@ -152,11 +152,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
             private QsStatement CreateApplyIfStatement(QsStatement statement, QsResult result, TypedExpression conditionExpression, QsScope contents)
             {
-                // Hoist the scope to its own operator
-                var targetName = GenerateControlOperator(contents, statement.Comments);
+                // Hoist the scope to its own operation
+                var targetName = GenerateControlOperation(contents, statement.Comments);
                 var targetOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
                     Tuple.Create(
-                        ResolvedType.New(ResolvedTypeKind.UnitType), // ToDo: add generic params to operator
+                        ResolvedType.New(ResolvedTypeKind.UnitType), // ToDo: add generic params to operation
                         ResolvedType.New(ResolvedTypeKind.UnitType)), // ToDo: something has to be done to allow for mutables in sub-scopes
                     CallableInformation.NoInformation
                     ));
@@ -164,7 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     Identifier.NewGlobalCallable(new QsQualifiedName(targetName.Namespace, targetName.Name)),
                     QsNullable<ImmutableArray<ResolvedType>>.Null, // ToDo: allow for type params to be passed in from super-scope
                     targetOpType);
-                var targetArgs = CreateValueTupleExpression(); // ToDo: add generic params to operator
+                var targetArgs = CreateValueTupleExpression(); // ToDo: add generic params to operation
 
                 // Build the surrounding apply-if call
                 var (controlOp, controlOpType) = (result == QsResult.One)
@@ -214,16 +214,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 return (stmt, idExpression);
             }
 
-            private QsQualifiedName GenerateControlOperator(QsScope contents, QsComments comments)
+            private QsQualifiedName GenerateControlOperation(QsScope contents, QsComments comments)
             {
                 var newName = new QsQualifiedName(
                             _super._CurrentCallable.FullName.Namespace,
                             NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + _super._CurrentCallable.FullName.Name.Value));
 
                 var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
-                    .NewQsTuple(ImmutableArray<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>>.Empty); // ToDo: add generic params to operator
+                    .NewQsTuple(ImmutableArray<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>>.Empty); // ToDo: add generic params to operation
 
-                var paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray<ResolvedType>.Empty)); // ToDo: add generic params to operator
+                var paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray<ResolvedType>.Empty)); // ToDo: add generic params to operation
 
                 var signature = new ResolvedSignature(
                         ImmutableArray<QsLocalSymbol>.Empty,
@@ -255,7 +255,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     ImmutableArray<string>.Empty,
                     comments);
 
-                _super._ControlOperators.Add(controlCallable);
+                _super._ControlOperations.Add(controlCallable);
 
                 return newName;
             }
