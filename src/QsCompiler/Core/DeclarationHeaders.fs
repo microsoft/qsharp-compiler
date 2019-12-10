@@ -18,6 +18,18 @@ open Newtonsoft.Json
 /// to be removed in future releases
 module DeclarationHeader = 
 
+    type private NullableLocationConverter()  =
+        inherit JsonConverter<QsNullable<QsLocation>>()
+
+        override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : QsNullable<QsLocation>, hasExistingValue : bool, serializer : JsonSerializer) =
+            try serializer.Deserialize<QsNullable<QsLocation>>(reader) 
+            with | _ -> serializer.Deserialize<QsLocation>(reader) |> Value
+    
+        override this.WriteJson(writer : JsonWriter, value : QsNullable<QsLocation>, serializer : JsonSerializer) =
+            match value with 
+            | Value loc -> serializer.Serialize(writer, loc)
+            | Null -> serializer.Serialize(writer, Null)
+
     /// used for serialization purposes; to be used internally only
     type Offset = 
         | Defined of (int * int)
@@ -40,9 +52,15 @@ module DeclarationHeader =
         | Offset.Defined offset, Range.Defined range -> QsLocation.New (offset, range) |> Value
         | _ -> Null
 
-    // FIXME: Range and Offset handling ...
-    let private Serializer = Json.Serializer
-    let private PermissiveSerializer = Json.PermissiveSerializer
+    let private Serializer = 
+        let qsNullableConverter = new NullableLocationConverter() :> JsonConverter
+        let converters = Json.Converters false |> Array.toList
+        qsNullableConverter :: converters |> List.toArray |> Json.CreateSerializer
+
+    let private PermissiveSerializer = 
+        let qsNullableConverter = new NullableLocationConverter() :> JsonConverter
+        let converters = Json.Converters true |> Array.toList
+        qsNullableConverter :: converters |> List.toArray |> Json.CreateSerializer
 
     let internal FromJson<'T> json = 
         let deserialize (serializer : JsonSerializer) =             

@@ -119,18 +119,17 @@ module Json =
             new QsNamespaceConverter()                                          :> JsonConverter
         |]
 
-    let Serializer = 
+    /// Creates a serializer using the given converters. 
+    /// Be aware that this is expensive and repeated creation of a serializer should be avoided. 
+    let CreateSerializer converters = 
         let settings = new JsonSerializerSettings() 
-        settings.Converters <- Converters false
+        settings.Converters <- converters
         settings.ContractResolver <- new DictionaryAsArrayResolver()
         settings.NullValueHandling <- NullValueHandling.Include
         settings.MissingMemberHandling <- MissingMemberHandling.Ignore
         settings.CheckAdditionalContent <- false
-        JsonSerializer.CreateDefault(settings)
+        JsonSerializer.CreateDefault settings
 
-    let PermissiveSerializer = 
-        let settings = new JsonSerializerSettings() 
-        settings.Converters <- Converters true
-        settings.ContractResolver <- new DictionaryAsArrayResolver()
-        JsonSerializer.CreateDefault(settings)
+    let Serializer = Converters false |> CreateSerializer
+    let PermissiveSerializer = Converters true |> CreateSerializer
 
