@@ -158,7 +158,7 @@ let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHead
         definitions |> Seq.iteri (fun typeIndex header ->
             let queue = Queue()
             let parent = 
-                (header.QualifiedName.Namespace, header.QualifiedName.Name, header.SymbolRange) 
+                (header.QualifiedName.Namespace, header.QualifiedName.Name, header.Location |> QsNullable<_>.Map (fun loc -> loc.Range)) 
                 |> UserDefinedType.New |> UserDefinedType |> ResolvedType.New
             for entry in getTypes ((getLocation header).Offset, header.SourceFile) parent None do queue.Enqueue entry
             let rec search () =

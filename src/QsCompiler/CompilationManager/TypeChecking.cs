@@ -1265,7 +1265,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (cancellationToken.IsCancellationRequested) return null;
                 bool InvalidCharacteristicsOrSupportedFunctors(params QsFunctor[] functors) =>
                     parentCharacteristics.AreInvalid || !functors.Any(f => !supportedFunctors.Contains(f));
-                if (!definedSpecs.Values.Any(d => d.Item2.Position.IsValue && DiagnosticTools.AsPosition(d.Item2.Position.Item) == root.Fragment.GetRange().Start)) return null; // only process specializations that are valid
+                if (!definedSpecs.Values.Any(d => d.Item2.Position is DeclarationHeader.Offset.Defined pos && DiagnosticTools.AsPosition(pos.Item) == root.Fragment.GetRange().Start)) return null; // only process specializations that are valid
 
                 if (FileHeader.IsCallableDeclaration(root.Fragment)) // no specializations have been defined -> one default body
                 {
@@ -1381,9 +1381,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     symbolTracker.BeginScope();
                     foreach (var decl in declaredVariables)
                     {
-                        QsCompilerError.Verify(info.Position.IsValue, "missing position information for built callable");
+                        var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
+                        QsCompilerError.Verify(offset != null, "missing position information for built callable");
                         var msgs = symbolTracker.TryAddVariableDeclartion(decl).Item2
-                            .Select(msg => Diagnostics.Generate(info.SourceFile.Value, msg, DiagnosticTools.AsPosition(info.Position.Item)));
+                            .Select(msg => Diagnostics.Generate(info.SourceFile.Value, msg, DiagnosticTools.AsPosition(offset)));
                         diagnostics.AddRange(msgs);
                     }
                     symbolTracker.EndScope();

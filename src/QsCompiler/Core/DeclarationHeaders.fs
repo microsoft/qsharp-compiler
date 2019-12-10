@@ -16,22 +16,44 @@ open Newtonsoft.Json
 
 
 /// to be removed in future releases
-module private DeclarationHeader = 
+module DeclarationHeader = 
 
-    let GetLocation = function 
-        | Value pos, Value range -> QsLocation.New (pos, range) |> Value
+    /// used for serialization purposes; to be used internally only
+    type Offset = 
+        | Defined of (int * int)
+        | Undefined
+
+    /// used for serialization purposes; to be used internally only
+    type Range = 
+        | Defined of (QsPositionInfo * QsPositionInfo)
+        | Undefined
+
+    let CreateOffset (location : QsNullable<QsLocation>) = location |> function 
+        | Value loc -> Offset.Defined loc.Offset
+        | Null -> Offset.Undefined
+
+    let CreateRange (location : QsNullable<QsLocation>) = location |> function 
+        | Value loc -> Range.Defined loc.Range
+        | Null -> Range.Undefined
+
+    let internal CreateLocation = function 
+        | Offset.Defined offset, Range.Defined range -> QsLocation.New (offset, range) |> Value
         | _ -> Null
 
-    let FromJson<'T> json = 
+    // FIXME: Range and Offset handling ...
+    let private Serializer = Json.Serializer
+    let private PermissiveSerializer = Json.PermissiveSerializer
+
+    let internal FromJson<'T> json = 
         let deserialize (serializer : JsonSerializer) =             
             let reader = new JsonTextReader(new StringReader(json));
             serializer.Deserialize<'T>(reader)
-        try true, Json.Serializer |> deserialize
-        with _ -> false, Json.PermissiveSerializer |> deserialize
+        try true, Serializer |> deserialize
+        with _ -> false, PermissiveSerializer |> deserialize
 
-    let ToJson obj = 
+    let internal ToJson obj = 
         let builder = new StringBuilder()
-        Json.Serializer.Serialize(new StringWriter(builder), obj)
+        Serializer.Serialize(new StringWriter(builder), obj)
         builder.ToString()
 
 
@@ -40,22 +62,22 @@ type TypeDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
-    Position        : QsNullable<int * int>
-    SymbolRange     : QsRangeInfo
+    Position        : DeclarationHeader.Offset
+    SymbolRange     : DeclarationHeader.Range
     Type            : ResolvedType
     TypeItems       : QsTuple<QsTypeItem>
     Documentation   : ImmutableArray<string>
 }
     with 
-    member this.Location = DeclarationHeader.GetLocation (this.Position, this.SymbolRange)
+    member this.Location = DeclarationHeader.CreateLocation (this.Position, this.SymbolRange)
     member this.FromSource source = {this with SourceFile = source}
 
     static member New (customType : QsCustomType) = {
         QualifiedName   = customType.FullName
         Attributes      = customType.Attributes
         SourceFile      = customType.SourceFile
-        Position        = customType.Location |> QsNullable<_>.Map (fun loc -> loc.Offset)
-        SymbolRange     = customType.Location |> QsNullable<_>.Map (fun loc -> loc.Range)
+        Position        = customType.Location |> DeclarationHeader.CreateOffset
+        SymbolRange     = customType.Location |> DeclarationHeader.CreateRange
         Type            = customType.Type
         TypeItems       = customType.TypeItems
         Documentation   = customType.Documentation
@@ -78,14 +100,14 @@ type CallableDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
-    Position        : QsNullable<int * int>
-    SymbolRange     : QsRangeInfo
+    Position        : DeclarationHeader.Offset
+    SymbolRange     : DeclarationHeader.Range
     ArgumentTuple   : QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
     Signature       : ResolvedSignature
     Documentation   : ImmutableArray<string>
 }
     with 
-    member this.Location = DeclarationHeader.GetLocation (this.Position, this.SymbolRange)
+    member this.Location = DeclarationHeader.CreateLocation (this.Position, this.SymbolRange)
     member this.FromSource source = {this with SourceFile = source}
 
     static member New (callable : QsCallable) = {
@@ -93,8 +115,8 @@ type CallableDeclarationHeader = {
         QualifiedName   = callable.FullName
         Attributes      = callable.Attributes
         SourceFile      = callable.SourceFile
-        Position        = callable.Location |> QsNullable<_>.Map (fun loc -> loc.Offset)
-        SymbolRange     = callable.Location |> QsNullable<_>.Map (fun loc -> loc.Range)
+        Position        = callable.Location |> DeclarationHeader.CreateOffset
+        SymbolRange     = callable.Location |> DeclarationHeader.CreateRange
         ArgumentTuple   = callable.ArgumentTuple
         Signature       = callable.Signature
         Documentation   = callable.Documentation
@@ -127,12 +149,12 @@ type SpecializationDeclarationHeader = {
     Parent          : QsQualifiedName    
     Attributes      : ImmutableArray<QsDeclarationAttribute>
     SourceFile      : NonNullable<string>
-    Position        : QsNullable<int * int>
-    HeaderRange     : QsRangeInfo
+    Position        : DeclarationHeader.Offset
+    HeaderRange     : DeclarationHeader.Range
     Documentation   : ImmutableArray<string>
 }
     with 
-    member this.Location = DeclarationHeader.GetLocation (this.Position, this.HeaderRange)
+    member this.Location = DeclarationHeader.CreateLocation (this.Position, this.HeaderRange)
     member this.FromSource source = {this with SourceFile = source}
 
     static member New (specialization : QsSpecialization) = {
@@ -142,8 +164,8 @@ type SpecializationDeclarationHeader = {
         Parent          = specialization.Parent 
         Attributes      = specialization.Attributes
         SourceFile      = specialization.SourceFile
-        Position        = specialization.Location |> QsNullable<_>.Map (fun loc -> loc.Offset)
-        HeaderRange     = specialization.Location |> QsNullable<_>.Map (fun loc -> loc.Range)
+        Position        = specialization.Location |> DeclarationHeader.CreateOffset
+        HeaderRange     = specialization.Location |> DeclarationHeader.CreateRange
         Documentation   = specialization.Documentation
     }
 

@@ -1076,8 +1076,8 @@ and NamespaceManager
                         Parent = parent
                         Attributes = resolution.ResolvedAttributes
                         SourceFile = source
-                        Position = Value resolution.Position
-                        HeaderRange = Value resolution.Range
+                        Position = DeclarationHeader.Offset.Defined resolution.Position
+                        HeaderRange = DeclarationHeader.Range.Defined resolution.Range
                         Documentation = resolution.Documentation
                     }))
             defined.ToImmutableArray()
@@ -1107,8 +1107,8 @@ and NamespaceManager
                         QualifiedName = {Namespace = ns.Name; Name = cName}
                         Attributes = declaration.ResolvedAttributes
                         SourceFile = source
-                        Position = Value declaration.Position
-                        SymbolRange = Value declaration.Range
+                        Position = DeclarationHeader.Offset.Defined declaration.Position
+                        SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                         Signature = signature
                         ArgumentTuple = argTuple
                         Documentation = declaration.Documentation
@@ -1138,8 +1138,8 @@ and NamespaceManager
                         QualifiedName = {Namespace = ns.Name; Name = tName}
                         Attributes = qsType.ResolvedAttributes
                         SourceFile = source
-                        Position = Value qsType.Position
-                        SymbolRange = Value qsType.Range 
+                        Position = DeclarationHeader.Offset.Defined qsType.Position
+                        SymbolRange = DeclarationHeader.Range.Defined qsType.Range 
                         Type = underlyingType
                         TypeItems = items
                         Documentation = qsType.Documentation
@@ -1233,8 +1233,8 @@ and NamespaceManager
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
                 SourceFile = source
-                Position = Value declaration.Position
-                SymbolRange = Value declaration.Range 
+                Position = DeclarationHeader.Offset.Defined declaration.Position
+                SymbolRange = DeclarationHeader.Range.Defined declaration.Range 
                 Signature = resolvedSignature
                 ArgumentTuple = argTuple
                 Documentation = declaration.Documentation
@@ -1284,8 +1284,8 @@ and NamespaceManager
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
                 SourceFile = source
-                Position = Value declaration.Position
-                SymbolRange = Value declaration.Range 
+                Position = DeclarationHeader.Offset.Defined declaration.Position
+                SymbolRange = DeclarationHeader.Range.Defined declaration.Range 
                 Type = underlyingType
                 TypeItems = items
                 Documentation = declaration.Documentation
