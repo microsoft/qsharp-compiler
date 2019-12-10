@@ -60,9 +60,72 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             public ClassicallyControlledScope(ClassicallyControlledTransformation super, NoExpressionTransformations expr = null)
                 : base (expr ?? new NoExpressionTransformations()) { _super = super; }
 
-            private (bool, QsResult, TypedExpression, QsScope, QsScope) IsConditionedOnResultLiteralStatement(QsStatementKind statement)
+            private QsStatement MakeNestedIfs(QsStatement originalStatment, QsStatementKind.QsConditionalStatement condStatmentKind)
             {
-                if (statement is QsStatementKind.QsConditionalStatement cond)
+                var cond = condStatmentKind.Item;
+
+                if (cond.ConditionalBlocks.Length == 1)
+                {
+                    return new QsStatement
+                    (
+                        condStatmentKind,
+                        originalStatment.SymbolDeclarations,
+                        originalStatment.Location,
+                        originalStatment.Comments
+                    );
+                }
+
+                var subIfKind = (QsStatementKind.QsConditionalStatement)QsStatementKind.NewQsConditionalStatement(
+                    new QsConditionalStatement(cond.ConditionalBlocks.RemoveAt(0), cond.Default));
+
+                var subIfStatment = MakeNestedIfs(originalStatment, subIfKind);
+
+                var secondCondBlock = cond.ConditionalBlocks[1].Item2;
+                var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
+                    new QsScope(ImmutableArray.Create(subIfStatment), secondCondBlock.Body.KnownSymbols),
+                    secondCondBlock.Location,
+                    secondCondBlock.Comments));
+
+                return new QsStatement
+                (
+                    QsStatementKind.NewQsConditionalStatement(new QsConditionalStatement(ImmutableArray.Create(cond.ConditionalBlocks[0]), newDefault)),
+                    originalStatment.SymbolDeclarations,
+                    originalStatment.Location,
+                    originalStatment.Comments
+                );
+            }
+
+            private QsStatement MakeNestedIfs(QsStatement originalStatment)
+            {
+                if (originalStatment.Statement is QsStatementKind.QsConditionalStatement cond)
+                {
+                    var nested = MakeNestedIfs(originalStatment, cond);
+                    var nestedKind = ((QsStatementKind.QsConditionalStatement)nested.Statement).Item;
+                    if (nestedKind.Default.IsValue)
+                    {
+                        var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
+                            this.Transform(nestedKind.Default.Item.Body),
+                            nestedKind.Default.Item.Location,
+                            nestedKind.Default.Item.Comments));
+
+                        nested = new QsStatement
+                        (
+                            QsStatementKind.NewQsConditionalStatement(new QsConditionalStatement(nestedKind.ConditionalBlocks, newDefault)),
+                            nested.SymbolDeclarations,
+                            nested.Location,
+                            nested.Comments
+                        );
+                    }
+
+                    return nested;
+                }
+
+                return originalStatment;
+            }
+
+            private (bool, QsResult, TypedExpression, QsScope, QsScope) IsConditionedOnResultLiteralStatement(QsStatement statement)
+            {
+                if (statement.Statement is QsStatementKind.QsConditionalStatement cond)
                 {
                     if (cond.Item.ConditionalBlocks.Length == 1 && (cond.Item.ConditionalBlocks[0].Item1.Expression is ExpressionKind.EQ expression))
                     {
@@ -274,9 +337,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 scope = base.Transform(scope); // process sub-scopes first
 
                 var statements = ImmutableArray.CreateBuilder<QsStatement>();
-                foreach (var statement in scope.Statements)
+                foreach (var s in scope.Statements)
                 {
-                    var (isCondition, result, conditionExpression, conditionScope, defaultScope) = IsConditionedOnResultLiteralStatement(statement.Statement);
+                    var statement = MakeNestedIfs(s);
+                    var (isCondition, result, conditionExpression, conditionScope, defaultScope) = IsConditionedOnResultLiteralStatement(statement);
 
                     if (isCondition && AreSimpleCallStatements(conditionScope.Statements) && (defaultScope == null || AreSimpleCallStatements(defaultScope.Statements)))
                     {
