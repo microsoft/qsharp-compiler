@@ -331,3 +331,4 @@ ASALocalRun/
 .mfractor/
 /src/QsCompiler/TestTargets/Simulation/Example/generated
 /src/ProjectTemplates/.vscode
+/src/Common/AssemblyCommon.cs

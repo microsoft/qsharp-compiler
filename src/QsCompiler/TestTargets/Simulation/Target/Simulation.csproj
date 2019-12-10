@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\..\Common\AssemblyCommon.props" />
+  <Import Project="..\..\..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <AssemblyName>Simulation</AssemblyName>
