@@ -6,6 +6,7 @@ namespace Microsoft.Quantum.QsCompiler.Serialization
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
+open System.IO
 open System.Linq
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -85,6 +86,24 @@ type TypedExpressionConverter() =
         serializer.Serialize(writer, (value.Expression, value.TypeArguments, value.ResolvedType, value.InferredInformation, value.Range))
 
 
+type QsNullableLocationConverter()  =
+    inherit JsonConverter<QsNullable<QsLocation>>()
+
+    override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : QsNullable<QsLocation>, hasExistingValue : bool, serializer : JsonSerializer) =
+        let loc = serializer.Deserialize<QsLocation>(reader)
+        if Object.ReferenceEquals(loc, null) || Object.ReferenceEquals(loc.Offset, null) || Object.ReferenceEquals(loc.Range, null) then 
+            try serializer.Deserialize<QsNullable<string>>(reader) |> function 
+                | Value loc -> serializer.Deserialize<QsLocation>(new JsonTextReader(new StringReader(loc))) |> Value
+                | Null -> Null
+            with | _ -> Null
+        else loc |> Value
+
+    override this.WriteJson(writer : JsonWriter, value : QsNullable<QsLocation>, serializer : JsonSerializer) =
+        match value with 
+        | Value loc -> serializer.Serialize(writer, loc)
+        | Null -> serializer.Serialize(writer, "Null")
+
+
 type QsNamespaceConverter() =
     inherit JsonConverter<QsNamespace>()
 
@@ -112,6 +131,7 @@ module Json =
     let Converters ignoreSerializationException = 
         [|
             new NonNullableConverter<string>()                                  :> JsonConverter
+            new QsNullableLocationConverter()                                   :> JsonConverter
             new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
             new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
             new TypedExpressionConverter()                                      :> JsonConverter
