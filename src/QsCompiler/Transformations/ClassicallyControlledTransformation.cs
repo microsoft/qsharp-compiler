@@ -14,6 +14,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    using ParamTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
 
     public class ClassicallyControlledTransformation
     {
@@ -195,31 +196,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
                 );
 
-            private QsStatement CreateApplyIfStatement(QsResult result, TypedExpression conditionExpression, QsStatement s)
-            {
-                var (_, op, originalArgs) = IsSimpleCallStatement(s.Statement);
-
-                var (controlOp, opType) = (result == QsResult.One)
-                    ? (BuiltIn.ApplyIfOne, BuiltIn.ApplyIfOneResolvedType)
-                    : (BuiltIn.ApplyIfZero, BuiltIn.ApplyIfZeroResolvedType);
-                var applyIfOp = Identifier.NewGlobalCallable(new QsQualifiedName(controlOp.Namespace, controlOp.Name)) as Identifier.GlobalCallable;
-
-                var id = CreateIdentifierExpression(applyIfOp, QsNullable<ImmutableArray<ResolvedType>>.Null, opType);
-                var originalCall = CreateValueTupleExpression(op, originalArgs);
-                var args = CreateValueTupleExpression(conditionExpression, originalCall);
-
-                var call = CreateApplyIfCall(id, args, controlOp, originalArgs.ResolvedType);
-
-                return new QsStatement(QsStatementKind.NewQsExpressionStatement(call), s.SymbolDeclarations, s.Location, s.Comments);
-            }
-
             private QsStatement CreateApplyIfStatement(QsStatement statement, QsResult result, TypedExpression conditionExpression, QsScope contents)
             {
                 // Hoist the scope to its own operation
-                var targetName = GenerateControlOperation(contents, statement.Comments);
+                var (targetName, targetParamType) = GenerateControlOperation(contents, statement.Comments);
                 var targetOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
                     Tuple.Create(
-                        ResolvedType.New(ResolvedTypeKind.UnitType), // ToDo: add generic params to operation
+                        targetParamType,
                         ResolvedType.New(ResolvedTypeKind.UnitType)), // ToDo: something has to be done to allow for mutables in sub-scopes
                     CallableInformation.NoInformation
                     ));
@@ -227,15 +210,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     Identifier.NewGlobalCallable(new QsQualifiedName(targetName.Namespace, targetName.Name)),
                     QsNullable<ImmutableArray<ResolvedType>>.Null, // ToDo: allow for type params to be passed in from super-scope
                     targetOpType);
-                //var targetArgs = CreateValueTupleExpression();
-                var targetArgs = new TypedExpression // ToDo: add generic params to operation
-                (
-                    ExpressionKind.UnitValue,
-                    ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
-                    ResolvedType.New(ResolvedTypeKind.UnitType),
-                    new InferredExpressionInformation(false, false),
-                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                );
+
+                TypedExpression targetArgs = null;
+                if (contents.KnownSymbols.Variables.Any())
+                {
+                    targetArgs = CreateValueTupleExpression(contents.KnownSymbols.Variables.Select(x => CreateIdentifierExpression(
+                        Identifier.NewLocalVariable(x.VariableName),
+                        QsNullable<ImmutableArray<ResolvedType>>.Null,
+                        x.Type
+                        )).ToArray());
+                }
+                else
+                {
+                    targetArgs = new TypedExpression
+                    (
+                        ExpressionKind.UnitValue,
+                        ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
+                        ResolvedType.New(ResolvedTypeKind.UnitType),
+                        new InferredExpressionInformation(false, false),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                    );
+                }
 
                 // Build the surrounding apply-if call
                 var (controlOp, controlOpType) = (result == QsResult.One)
@@ -264,7 +259,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 var name = NonNullable<string>.New($"__classic_ctrl{_varCount}__");
 
                 // The typed expression with the identifier of the variable we just created:
-                var idExpression = CreateIdentifierExpression(Identifier.NewLocalVariable(name), QsNullable<ImmutableArray<ResolvedType>>.Null, value.ResolvedType);
+                var idExpression = CreateIdentifierExpression(
+                    Identifier.NewLocalVariable(name),
+                    QsNullable<ImmutableArray<ResolvedType>>.Null,
+                    value.ResolvedType);
 
                 // The actual binding statement:
                 var binding = new QsBinding<TypedExpression>(QsBindingKind.ImmutableBinding, SymbolTuple.NewVariableName(name), value);
@@ -285,17 +283,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 return (stmt, idExpression);
             }
 
-            private QsQualifiedName GenerateControlOperation(QsScope contents, QsComments comments)
+            private (QsQualifiedName, ResolvedType) GenerateControlOperation(QsScope contents, QsComments comments)
             {
                 var newName = new QsQualifiedName(
                     _super._CurrentCallable.FullName.Namespace,
                     NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + _super._CurrentCallable.FullName.Name.Value));
 
-                var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
-                    .NewQsTuple(ImmutableArray<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>>.Empty); // ToDo: add generic params to operation
+                var knownVariables = contents.KnownSymbols.Variables;
 
-                //var paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray<ResolvedType>.Empty));
-                var paramTypes = ResolvedType.New(ResolvedTypeKind.UnitType); // ToDo: add generic params to operation
+                var parameters = ParamTuple.NewQsTuple(knownVariables
+                    .Select(var => ParamTuple.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
+                        QsLocalSymbol.NewValidName(var.VariableName),
+                        var.Type,
+                        var.InferredInformation,
+                        var.Position,
+                        var.Range)))
+                    .ToImmutableArray());
+
+                var paramTypes = ResolvedType.New(ResolvedTypeKind.UnitType);
+                if (knownVariables.Any())
+                {
+                    paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(knownVariables
+                        .Select(var => var.Type)
+                        .ToImmutableArray()));
+                }
 
                 var signature = new ResolvedSignature(
                     ImmutableArray<QsLocalSymbol>.Empty,
@@ -329,7 +340,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 _super._ControlOperations.Add(controlCallable);
 
-                return newName;
+                return (newName, paramTypes);
             }
 
             public override QsScope Transform(QsScope scope)
@@ -355,19 +366,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                         statements.Add(CreateApplyIfStatement(statement, result, conditionExpression, conditionScope));
 
-                        //foreach (var stmt in conditionScope.Statements)
-                        //{
-                        //    statements.Add(CreateApplyIfStatement(result, conditionExpression, stmt));
-                        //}
-
                         if (defaultScope != null)
                         {
                             statements.Add(CreateApplyIfStatement(statement, result.IsOne ? QsResult.Zero : QsResult.One, conditionExpression, defaultScope));
-
-                            //foreach (var stmt in defaultScope.Statements)
-                            //{
-                            //    statements.Add(CreateApplyIfStatement(result.IsOne ? QsResult.Zero : QsResult.One, conditionExpression, stmt));
-                            //}
                         }
                     }
                     else
