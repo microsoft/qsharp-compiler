@@ -18,18 +18,6 @@ open Newtonsoft.Json
 /// to be removed in future releases
 module DeclarationHeader = 
 
-    type private NullableLocationConverter()  =
-        inherit JsonConverter<QsNullable<QsLocation>>()
-
-        override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : QsNullable<QsLocation>, hasExistingValue : bool, serializer : JsonSerializer) =
-            try serializer.Deserialize<QsNullable<QsLocation>>(reader) 
-            with | _ -> serializer.Deserialize<QsLocation>(reader) |> Value
-    
-        override this.WriteJson(writer : JsonWriter, value : QsNullable<QsLocation>, serializer : JsonSerializer) =
-            match value with 
-            | Value loc -> serializer.Serialize(writer, loc)
-            | Null -> serializer.Serialize(writer, Null)
-
     /// used for serialization purposes; to be used internally only
     type Offset = 
         | Defined of (int * int)
@@ -52,15 +40,44 @@ module DeclarationHeader =
         | Offset.Defined offset, Range.Defined range -> QsLocation.New (offset, range) |> Value
         | _ -> Null
 
+
+    type private NullableOffsetConverter()  =
+        inherit JsonConverter<Offset>()
+
+        override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : Offset, hasExistingValue : bool, serializer : JsonSerializer) =
+            let offset = serializer.Deserialize<(int * int)>(reader)
+            if Object.ReferenceEquals(offset, null) then Offset.Undefined else Offset.Defined offset
+
+        override this.WriteJson(writer : JsonWriter, value : Offset, serializer : JsonSerializer) =
+            match value with 
+            | Offset.Defined offset -> serializer.Serialize(writer, offset)
+            | Offset.Undefined -> serializer.Serialize(writer, "Undefined")
+
+    type private NullableRangeConverter()  =
+        inherit JsonConverter<Range>()
+
+        override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : Range, hasExistingValue : bool, serializer : JsonSerializer) =
+            let range = serializer.Deserialize<(QsPositionInfo * QsPositionInfo)>(reader)
+            if Object.ReferenceEquals(range, null) then Range.Undefined else Range.Defined range
+
+        override this.WriteJson(writer : JsonWriter, value : Range, serializer : JsonSerializer) =
+            match value with 
+            | Range.Defined range -> serializer.Serialize(writer, range)
+            | Range.Undefined -> serializer.Serialize(writer, "Undefined")
+
+
+    let private qsNullableConverters = [|
+            new NullableOffsetConverter() :> JsonConverter
+            new NullableRangeConverter() :> JsonConverter
+        |]
+
     let private Serializer = 
-        let qsNullableConverter = new NullableLocationConverter() :> JsonConverter
-        let converters = Json.Converters false |> Array.toList
-        qsNullableConverter :: converters |> List.toArray |> Json.CreateSerializer
+        [qsNullableConverters; Json.Converters false] 
+        |> Array.concat |> Json.CreateSerializer
 
     let private PermissiveSerializer = 
-        let qsNullableConverter = new NullableLocationConverter() :> JsonConverter
-        let converters = Json.Converters true |> Array.toList
-        qsNullableConverter :: converters |> List.toArray |> Json.CreateSerializer
+        [qsNullableConverters; Json.Converters true] 
+        |> Array.concat |> Json.CreateSerializer
 
     let internal FromJson<'T> json = 
         let deserialize (serializer : JsonSerializer) =             
@@ -87,6 +104,7 @@ type TypeDeclarationHeader = {
     Documentation   : ImmutableArray<string>
 }
     with 
+    [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.SymbolRange)
     member this.FromSource source = {this with SourceFile = source}
 
@@ -94,8 +112,8 @@ type TypeDeclarationHeader = {
         QualifiedName   = customType.FullName
         Attributes      = customType.Attributes
         SourceFile      = customType.SourceFile
-        Position        = customType.Location |> DeclarationHeader.CreateOffset
-        SymbolRange     = customType.Location |> DeclarationHeader.CreateRange
+        Position        = customType.SourceLocation |> DeclarationHeader.CreateOffset
+        SymbolRange     = customType.SourceLocation |> DeclarationHeader.CreateRange
         Type            = customType.Type
         TypeItems       = customType.TypeItems
         Documentation   = customType.Documentation
@@ -125,6 +143,7 @@ type CallableDeclarationHeader = {
     Documentation   : ImmutableArray<string>
 }
     with 
+    [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.SymbolRange)
     member this.FromSource source = {this with SourceFile = source}
 
@@ -133,8 +152,8 @@ type CallableDeclarationHeader = {
         QualifiedName   = callable.FullName
         Attributes      = callable.Attributes
         SourceFile      = callable.SourceFile
-        Position        = callable.Location |> DeclarationHeader.CreateOffset
-        SymbolRange     = callable.Location |> DeclarationHeader.CreateRange
+        Position        = callable.SourceLocation |> DeclarationHeader.CreateOffset
+        SymbolRange     = callable.SourceLocation |> DeclarationHeader.CreateRange
         ArgumentTuple   = callable.ArgumentTuple
         Signature       = callable.Signature
         Documentation   = callable.Documentation
@@ -172,6 +191,7 @@ type SpecializationDeclarationHeader = {
     Documentation   : ImmutableArray<string>
 }
     with 
+    [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.HeaderRange)
     member this.FromSource source = {this with SourceFile = source}
 
@@ -182,8 +202,8 @@ type SpecializationDeclarationHeader = {
         Parent          = specialization.Parent 
         Attributes      = specialization.Attributes
         SourceFile      = specialization.SourceFile
-        Position        = specialization.Location |> DeclarationHeader.CreateOffset
-        HeaderRange     = specialization.Location |> DeclarationHeader.CreateRange
+        Position        = specialization.SourceLocation |> DeclarationHeader.CreateOffset
+        HeaderRange     = specialization.SourceLocation |> DeclarationHeader.CreateRange
         Documentation   = specialization.Documentation
     }
 

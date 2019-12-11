@@ -123,7 +123,7 @@ type SyntaxTreeTransformation() =
     abstract member onSpecializationImplementation : QsSpecialization -> QsSpecialization
     default this.onSpecializationImplementation (spec : QsSpecialization) = 
         let source = this.onSourceFile spec.SourceFile
-        let loc = this.onLocation spec.Location
+        let loc = this.onLocation spec.SourceLocation
         let attributes = spec.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
         let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> (args |> Seq.map this.Scope.Expression.Type.Transform).ToImmutableArray())
         let signature = this.onSignature spec.Signature
@@ -156,7 +156,7 @@ type SyntaxTreeTransformation() =
     abstract member onType : QsCustomType -> QsCustomType
     default this.onType t =
         let source = this.onSourceFile t.SourceFile 
-        let loc = this.onLocation t.Location
+        let loc = this.onLocation t.SourceLocation
         let attributes = t.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
         let underlyingType = this.Scope.Expression.Type.Transform t.Type
         let typeItems = this.onTypeItems t.TypeItems
@@ -167,7 +167,7 @@ type SyntaxTreeTransformation() =
     abstract member onCallableImplementation : QsCallable -> QsCallable
     default this.onCallableImplementation (c : QsCallable) = 
         let source = this.onSourceFile c.SourceFile
-        let loc = this.onLocation c.Location
+        let loc = this.onLocation c.SourceLocation
         let attributes = c.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
         let signature = this.onSignature c.Signature
         let argTuple = this.onArgumentTuple c.ArgumentTuple

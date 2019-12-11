@@ -88,14 +88,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         private QsCallable AddCallableIfInSource(QsCallable c)
         {
             if (Predicate(c.SourceFile))
-            { Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
+            { Elements.Add((c.SourceLocation.IsValue ? c.SourceLocation.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
             return c;
         }
 
         private QsCustomType AddTypeIfInSource(QsCustomType t)
         {
             if (Predicate(t.SourceFile))
-            { Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t))); }
+            { Elements.Add((t.SourceLocation.IsValue ? t.SourceLocation.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t))); }
             return t;
         }
 

@@ -115,7 +115,7 @@ type SyntaxTreeWalker() =
     abstract member onSpecializationImplementation : QsSpecialization -> unit
     default this.onSpecializationImplementation (spec : QsSpecialization) = 
         this.onSourceFile spec.SourceFile
-        this.onLocation spec.Location
+        this.onLocation spec.SourceLocation
         spec.Attributes |> Seq.iter this.onAttribute
         spec.TypeArguments |> QsNullable<_>.Iter (fun args -> (args |> Seq.iter this.Scope.Expression.Type.Walk))
         this.onSignature spec.Signature
@@ -146,7 +146,7 @@ type SyntaxTreeWalker() =
     abstract member onType : QsCustomType -> unit
     default this.onType t =
         this.onSourceFile t.SourceFile 
-        this.onLocation t.Location
+        this.onLocation t.SourceLocation
         t.Attributes |> Seq.iter this.onAttribute
         this.Scope.Expression.Type.Walk t.Type
         this.onTypeItems t.TypeItems
@@ -155,7 +155,7 @@ type SyntaxTreeWalker() =
     abstract member onCallableImplementation : QsCallable -> unit
     default this.onCallableImplementation (c : QsCallable) = 
         this.onSourceFile c.SourceFile
-        this.onLocation c.Location
+        this.onLocation c.SourceLocation
         c.Attributes |> Seq.iter this.onAttribute
         this.onSignature c.Signature
         this.onArgumentTuple c.ArgumentTuple

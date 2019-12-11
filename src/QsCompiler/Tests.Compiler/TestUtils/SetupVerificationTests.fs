@@ -33,10 +33,10 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation, output:ITe
             let attributes = c.Kind |> function 
                 | TypeConstructor -> types.[c.FullName].Attributes
                 | _ -> c.Attributes
-            if attributes.Length = 0 then (c.Location.ValueOrApply (failwith "missing position information")).Offset
+            if attributes.Length = 0 then (c.SourceLocation.ValueOrApply (fun _ -> failwith "missing position information")).Offset
             else attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
         [for file in compilation.SourceFiles do
-            let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile.Value = file.Value && kv.Value.Location <> Null)
+            let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile.Value = file.Value && kv.Value.SourceLocation <> Null)
             let locations = containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart) |> Seq.sortBy snd |> Seq.toArray
             let mutable containedDiagnostics = compilation.Diagnostics file |> Seq.sortBy (fun d -> DiagnosticTools.AsTuple d.Range.Start)
             

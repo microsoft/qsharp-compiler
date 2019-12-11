@@ -634,7 +634,7 @@ type QsSpecialization = {
     /// The position offset represents the position in the source file where the specialization is declared,
     /// and the range contains the range of the corresponding specialization header.
     /// For auto-generated specializations, the location is set to the location of the parent callable declaration. 
-    Location : QsNullable<QsLocation>
+    SourceLocation : QsNullable<QsLocation>
     /// contains the type arguments for which the implementation is specialized
     TypeArguments : QsNullable<ImmutableArray<ResolvedType>>
     /// full resolved signature of the specialization - i.e. signature including functor arguments after resolving all type specializations
@@ -649,6 +649,11 @@ type QsSpecialization = {
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithImplementation impl = {this with Implementation = impl}
+
+    [<Newtonsoft.Json.JsonIgnore>]
+    member this.Location = 
+        let msg = sprintf "no source location specified for %A specialiation of %s" this.Kind (this.Parent.ToString())
+        this.SourceLocation.ValueOrApply (fun _ -> new InvalidOperationException (msg) |> raise)
 
 
 /// describes a Q# function, operation, or type constructor
@@ -665,7 +670,7 @@ type QsCallable = {
     /// The position offset represents the position in the source file where the callable is declared,
     /// and the range contains the range occupied by its name relative to that position.
     /// The location is Null for auto-generated callable constructed e.g. when lifting code blocks or lambdas to a global scope.
-    Location : QsNullable<QsLocation>
+    SourceLocation : QsNullable<QsLocation>
     /// full resolved signature of the callable
     Signature : ResolvedSignature
     /// the argument tuple containing the names of the argument tuple items
@@ -686,6 +691,11 @@ type QsCallable = {
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithSpecializations (getSpecs : Func<_,_>) = {this with Specializations = getSpecs.Invoke(this.Specializations)}
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
+
+    [<Newtonsoft.Json.JsonIgnore>]
+    member this.Location = 
+        let msg = sprintf "no source location specified for callable %s" (this.FullName.ToString())
+        this.SourceLocation.ValueOrApply (fun _ -> new InvalidOperationException (msg) |> raise)
 
 
 /// used to represent the named and anonymous items in a user defined type
@@ -708,7 +718,7 @@ type QsCustomType = {
     /// The position offset represents the position in the source file where the type is declared,
     /// and the range contains the range occupied by the type name relative to that position.
     /// The location is Null for auto-generated types defined by the compiler.
-    Location : QsNullable<QsLocation>
+    SourceLocation : QsNullable<QsLocation>
     /// Contains the underlying Q# type.
     /// Note that a user defined type is *not* considered to be a subtype of its underlying type,
     /// but rather its own, entirely distinct type,
@@ -723,6 +733,11 @@ type QsCustomType = {
 }
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
+
+    [<Newtonsoft.Json.JsonIgnore>]
+    member this.Location = 
+        let msg = sprintf "no source location specified for type %s" (this.FullName.ToString())
+        this.SourceLocation.ValueOrApply (fun _ -> new InvalidOperationException (msg) |> raise)
 
 
 /// Describes a valid Q# namespace element.
