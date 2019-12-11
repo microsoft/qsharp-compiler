@@ -150,9 +150,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CommandLineTool\CommandLineTool.csproj" />
-    <!--ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
+    <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference-->
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>
@@ -161,10 +161,10 @@
   </ItemGroup>
 
   <Target Name="PrepareExecutionTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
-    <!--PropertyGroup>
+    <PropertyGroup>
       <ExecutionTarget>"$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.0\Example.dll"</ExecutionTarget>
     </PropertyGroup>
-    <WriteLinesToFile File="$(OutputPath)ExecutionTarget.txt" Lines="$(ExecutionTarget)" Overwrite="true" /-->
+    <WriteLinesToFile File="$(OutputPath)ExecutionTarget.txt" Lines="$(ExecutionTarget)" Overwrite="true" />
   </Target>
 
 </Project>
