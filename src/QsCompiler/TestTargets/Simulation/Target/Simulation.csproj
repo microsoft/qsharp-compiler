@@ -12,11 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\..\Compiler\PluginInterface.cs" Link="PluginInterface.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1911.307" />
+    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1912.501" />
   </ItemGroup>
 
 </Project>
