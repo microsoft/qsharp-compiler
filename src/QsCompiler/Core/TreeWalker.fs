@@ -43,7 +43,7 @@ type SyntaxTreeWalker() =
     default this.beforeGeneratedImplementation dir = ()
 
 
-    abstract member onLocation : QsLocation -> unit
+    abstract member onLocation : QsNullable<QsLocation> -> unit
     default this.onLocation l = ()
 
     abstract member onDocumentation : ImmutableArray<string> -> unit
