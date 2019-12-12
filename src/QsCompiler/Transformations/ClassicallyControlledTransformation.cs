@@ -170,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 new TypedExpression
                 (
                     ExpressionKind.NewIdentifier(id, typeParams),
-                    ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
+                    ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty, // ToDo: allow for type params to be passed in from super-scope
                     resolvedType,
                     new InferredExpressionInformation(false, false),
                     QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
@@ -214,10 +214,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 TypedExpression targetArgs = null;
                 if (contents.KnownSymbols.Variables.Any())
                 {
-                    targetArgs = CreateValueTupleExpression(contents.KnownSymbols.Variables.Select(x => CreateIdentifierExpression(
-                        Identifier.NewLocalVariable(x.VariableName),
+                    targetArgs = CreateValueTupleExpression(contents.KnownSymbols.Variables.Select(var => CreateIdentifierExpression(
+                        Identifier.NewLocalVariable(var.VariableName),
                         QsNullable<ImmutableArray<ResolvedType>>.Null,
-                        x.Type
+                        var.Type
                         )).ToArray());
                 }
                 else
@@ -309,10 +309,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
 
                 var signature = new ResolvedSignature(
-                    ImmutableArray<QsLocalSymbol>.Empty,
+                    _super._CurrentCallable.Signature.TypeParameters,
+                    //ImmutableArray<QsLocalSymbol>.Empty, // ToDo: allow for type params to be passed in from super-scope
                     paramTypes,
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     CallableInformation.NoInformation);
+
+                var filter = _super.GetRerouteTransformation(newName.Name);
 
                 var spec = new QsSpecialization(
                     QsSpecializationKind.QsBody,
@@ -322,7 +325,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     new QsLocation(Tuple.Create(0, 0), Tuple.Create(QsPositionInfo.Zero, QsPositionInfo.Zero)), //ToDo
                     QsNullable<ImmutableArray<ResolvedType>>.Null,
                     signature,
-                    SpecializationImplementation.NewProvided(parameters, contents),
+                    SpecializationImplementation.NewProvided(parameters, filter.Transform(contents)),
                     ImmutableArray<string>.Empty,
                     comments);
 
@@ -378,6 +381,36 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
 
                 return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
+            }
+        }
+
+        private ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>>
+            GetRerouteTransformation(NonNullable<string> newName) =>
+            new ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>>(
+                new ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>(
+                    expr => new ExpressionKindTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>>(expr as ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>),
+                    expr => new RerouteTypeParamOriginExpressionType(this, newName, expr)));
+
+        private class RerouteTypeParamOriginExpressionType : ExpressionTypeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>>
+        {
+            private ClassicallyControlledTransformation _super;
+            private NonNullable<string> _newName;
+
+            public RerouteTypeParamOriginExpressionType(ClassicallyControlledTransformation super, NonNullable<string> newName, ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType> expr) : base(expr) { _super = super; _newName = newName; }
+
+            public override ResolvedTypeKind onTypeParameter(QsTypeParameter tp)
+            {
+                if (_super._CurrentCallable.FullName.Equals(tp.Origin))
+                {
+                    tp = new QsTypeParameter
+                    (
+                        new QsQualifiedName(tp.Origin.Namespace, _newName),
+                        tp.TypeName,
+                        tp.Range
+                    );
+                }
+
+                return base.onTypeParameter(tp);
             }
         }
     }
