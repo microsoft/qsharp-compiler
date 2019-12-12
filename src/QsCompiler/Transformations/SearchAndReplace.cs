@@ -89,17 +89,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         public override QsCustomType onType(QsCustomType t)
         {
-            if (!this.IsRelevant(t.SourceFile) || t.SourceLocation.IsNull) return t;
+            if (!this.IsRelevant(t.SourceFile) || t.Location.IsNull) return t;
             if (t.FullName.Equals(this.IdentifierName))
-            { this.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(t.SourceFile, t.SourceLocation.Item); }
+            { this.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(t.SourceFile, t.Location.Item); }
             return base.onType(t);
         }
 
         public override QsCallable onCallableImplementation(QsCallable c)
         {
-            if (!this.IsRelevant(c.SourceFile) || c.SourceLocation.IsNull) return c;
+            if (!this.IsRelevant(c.SourceFile) || c.Location.IsNull) return c;
             if (c.FullName.Equals(this.IdentifierName))
-            { this.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(c.SourceFile, c.SourceLocation.Item); }
+            { this.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(c.SourceFile, c.Location.Item); }
             return base.onCallableImplementation(c);
         }
 
