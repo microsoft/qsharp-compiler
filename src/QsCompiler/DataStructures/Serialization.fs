@@ -12,6 +12,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.SyntaxTokens 
 open Newtonsoft.Json
+open Newtonsoft.Json.Linq
 open Newtonsoft.Json.Serialization
 
 
@@ -90,9 +91,10 @@ type QsNullableLocationConverter()  =
     inherit JsonConverter<QsNullable<QsLocation>>()
 
     override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : QsNullable<QsLocation>, hasExistingValue : bool, serializer : JsonSerializer) =
-        let loc = serializer.Deserialize<QsLocation>(reader)
+        let token = JObject.Load(reader)
+        let loc = serializer.Deserialize<QsLocation>(token.CreateReader())
         if Object.ReferenceEquals(loc, null) || Object.ReferenceEquals(loc.Offset, null) || Object.ReferenceEquals(loc.Range, null) then 
-            try serializer.Deserialize<QsNullable<string>>(reader) |> function 
+            try serializer.Deserialize<QsNullable<string>>(token.CreateReader()) |> function 
                 | Value loc -> serializer.Deserialize<QsLocation>(new JsonTextReader(new StringReader(loc))) |> Value
                 | Null -> Null
             with | _ -> Null
