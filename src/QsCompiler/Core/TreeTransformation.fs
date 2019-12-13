@@ -40,7 +40,7 @@ type SyntaxTreeTransformation() =
     default this.beforeGeneratedImplementation dir = dir
 
 
-    abstract member onLocation : QsLocation -> QsLocation
+    abstract member onLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.onLocation l = l
 
     abstract member onDocumentation : ImmutableArray<string> -> ImmutableArray<string>

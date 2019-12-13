@@ -22,8 +22,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
     {
         private readonly Tuple<QsPositionInfo, QsPositionInfo> EmptyRange = 
             new Tuple<QsPositionInfo, QsPositionInfo>(QsPositionInfo.Zero, QsPositionInfo.Zero);
-        private readonly QsLocation ZeroLocation = new QsLocation(new Tuple<int, int>(0, 0), 
-                                                new Tuple<QsPositionInfo, QsPositionInfo>(QsPositionInfo.Zero, QsPositionInfo.Zero));
+        private readonly QsNullable<QsLocation> ZeroLocation =
+            QsNullable<QsLocation>.NewValue(new QsLocation(new Tuple<int, int>(0, 0), new Tuple<QsPositionInfo, QsPositionInfo>(QsPositionInfo.Zero, QsPositionInfo.Zero)));
         private readonly NonNullable<string> CanonName = NonNullable<string>.New("Microsoft.Quantum.Canon");
 
         private QsQualifiedName MakeFullName(string name)

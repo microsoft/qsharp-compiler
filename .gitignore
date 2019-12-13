@@ -331,6 +331,7 @@ ASALocalRun/
 .mfractor/
 /src/QsCompiler/TestTargets/Simulation/Example/generated
 /src/ProjectTemplates/.vscode
+/src/Common/AssemblyCommon.cs
 src/ProjectTemplates/Quantum.App1/Quantum.App1.csproj
 src/ProjectTemplates/Quantum.Library1/Quantum.Library1.csproj
 src/ProjectTemplates/Quantum.Test1/Quantum.Test1.csproj

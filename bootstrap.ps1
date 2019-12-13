@@ -59,7 +59,7 @@ Get-ChildItem -Recurse *.v.template `
                     Replace("#SEMVER_VERSION#", $SemverVersion).
                     Replace("#ENABLE_TELEMETRY#", $Telemetry)
             } `
-            | Set-Content $Target -NoNewline
+            | Set-Content $Target 
     }
 
 If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion" }

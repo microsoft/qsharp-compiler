@@ -89,8 +89,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransf
         {
             var tempNs = StripPositionInfo.Apply(
                 new QsNamespace(NonNullable<string>.New("tempNs"),
-                ImmutableArray.Create<QsNamespaceElement>(first, second),
-                new NonNullable<string>[0].ToLookup(ns => ns, _ => ImmutableArray<string>.Empty)));
+                    ImmutableArray.Create<QsNamespaceElement>(first, second),
+                    new NonNullable<string>[0].ToLookup(ns => ns, _ => ImmutableArray<string>.Empty)));
             var firstUDT = ((QsNamespaceElement.QsCustomType)tempNs.Elements[0]).Item;
             var secondUDT = ((QsNamespaceElement.QsCustomType)tempNs.Elements[1]).Item;            
             return firstUDT.TypeItems.Equals(secondUDT.TypeItems);
