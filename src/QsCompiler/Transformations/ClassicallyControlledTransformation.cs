@@ -204,12 +204,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     Tuple.Create(
                         targetParamType,
                         ResolvedType.New(ResolvedTypeKind.UnitType)), // ToDo: something has to be done to allow for mutables in sub-scopes
-                    CallableInformation.NoInformation
-                    ));
-                var targetOpId = CreateIdentifierExpression(
-                    Identifier.NewGlobalCallable(new QsQualifiedName(targetName.Namespace, targetName.Name)),
-                    QsNullable<ImmutableArray<ResolvedType>>.Null, // ToDo: allow for type params to be passed in from super-scope
-                    targetOpType);
+                    CallableInformation.NoInformation));
+
+                var targetTypeParamTypes = GetTypeParamTypesFromCallable(_super._CurrentCallable);
+                var targetOpId = new TypedExpression
+                (
+                    // ToDo: allow for type params to be passed in from super-scope
+                    ExpressionKind.NewIdentifier(Identifier.NewGlobalCallable(targetName), targetTypeParamTypes),
+                    targetTypeParamTypes.IsNull
+                        ? ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty
+                        : targetTypeParamTypes.Item
+                            .Select(type => Tuple.Create(targetName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
+                            .ToImmutableArray(),
+                    targetOpType,
+                    new InferredExpressionInformation(false, false),
+                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                );
 
                 TypedExpression targetArgs = null;
                 if (contents.KnownSymbols.Variables.Any())
@@ -217,8 +227,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     targetArgs = CreateValueTupleExpression(contents.KnownSymbols.Variables.Select(var => CreateIdentifierExpression(
                         Identifier.NewLocalVariable(var.VariableName),
                         QsNullable<ImmutableArray<ResolvedType>>.Null,
-                        var.Type
-                        )).ToArray());
+                        var.Type))
+                        .ToArray());
                 }
                 else
                 {
@@ -283,6 +293,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 return (stmt, idExpression);
             }
 
+            private QsNullable<ImmutableArray<ResolvedType>> GetTypeParamTypesFromCallable(QsCallable callable)
+            {
+                if (callable.Signature.TypeParameters.Any(param => param.IsValidName))
+                {
+                    return QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
+                    .Where(param => param.IsValidName)
+                    .Select(param =>
+                        ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
+                            callable.FullName,
+                            ((QsLocalSymbol.ValidName)param).Item,
+                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null //ToDo: should be able to get this from specialization
+                    ))))
+                    .ToImmutableArray());
+                }
+                else
+                {
+                    return QsNullable<ImmutableArray<ResolvedType>>.Null;
+                }
+            }
+            
             private (QsQualifiedName, ResolvedType) GenerateControlOperation(QsScope contents, QsComments comments)
             {
                 var newName = new QsQualifiedName(
