@@ -33,7 +33,7 @@ function Build-One {
 Build-One 'build' '../QsCompiler.sln'
 Build-One 'publish' '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj'
 Build-One 'build' '../src/QuantumSdk/Tools/Tools.sln'
-Build-One 'publish' '../src/QuantumSdk/Tools/Tools.csproj'
+Build-One 'publish' '../src/QuantumSdk/Tools/BuildTasks/BuildTasks.csproj'
 
 ##
 # VS Code Extension

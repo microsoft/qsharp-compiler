@@ -11,6 +11,8 @@
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
   <Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.targets"/>
 
+  <UsingTask TaskName="Microsoft.Quantum.Sdk.BuildTasks.SortByPriority" AssemblyFile="$(QuantumSdkBuildTasks)"/>
+
 
   <!-- Target used to enforce that the compilation is rebuilt when Q# source files are changed. -->
   <Target Name="RecompileOnChange">
@@ -44,6 +46,7 @@
 
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveQscOutputPaths" BeforeTargets="CoreCompile">
+    <SortByPriority MyProperty="FIXME"/>
     <ItemGroup>
       <ResolvedQsharpReferences Include="@(ReferencePath)" Exclude="@(QscPackageReference)"
         Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />

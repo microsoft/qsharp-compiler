@@ -17,6 +17,8 @@
     <LangVersion>latest</LangVersion>
     <!-- cpu platform target -->
     <PlatformTarget>x64</PlatformTarget>
+    <!-- path to dll with sdk build tasks -->
+    <QuantumSdkBuildTasks>$(MSBuildThisFileDirectory)../build/tasks/Microsoft.Quantum.Sdk.BuildTasks.dll</QuantumSdkBuildTasks> 
   </PropertyGroup>
 
   <!-- verified configurable properties -->
@@ -32,8 +34,6 @@
     <QscVerbosity>Normal</QscVerbosity>
     <CsharpGeneration>True</CsharpGeneration> <!-- at some point we may want to make False the default -->
     <QsharpDocsGeneration>False</QsharpDocsGeneration>
-    <DefaultSdkToolsExe>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Quantum.Sdk.Tools.dll"</DefaultSdkToolsExe> 
-    <SdkToolsExe>$(DefaultSdkToolsExe)</SdkToolsExe> 
     <DefaultQscExe>dotnet "$(MSBuildThisFileDirectory)../tools/qsc/qsc.dll"</DefaultQscExe> 
     <QscExe>$(DefaultQscExe)</QscExe> 
   </PropertyGroup>
