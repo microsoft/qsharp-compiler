@@ -22,6 +22,7 @@
     <file src="Sdk\**\*" target="Sdk" exclude="**\*.v.template"/>
     <file src="DefaultItems\**\*" target="DefaultItems" exclude="**\*.v.template"/>
     <file src="ProjectSystem\**\*" target="ProjectSystem" exclude="**\*.v.template"/>
+    <file src="Tools\bin\$Configuration$\netcoreapp3.0\publish\**" target="tools\utils" exclude="**\*.pdb" />
     <file src="..\QsCompiler\CommandLineTool\bin\$Configuration$\netcoreapp3.0\publish\**" target="tools\qsc" exclude="**\*.pdb" />
   </files>
 </package>
