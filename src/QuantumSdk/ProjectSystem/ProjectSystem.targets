@@ -11,10 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ProjectItemsSchema.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/ProjectItemsSchema.xaml">
       <Context>Project</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\QsharpSourceFile.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/QsharpSourceFile.xaml">
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
   </ItemGroup>

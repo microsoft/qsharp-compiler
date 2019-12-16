@@ -7,9 +7,9 @@
     </MSBuildAllProjects>
   </PropertyGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)..\DefaultItems\DefaultItems.targets"/>
+  <Import Project="$(MSBuildThisFileDirectory)../DefaultItems/DefaultItems.targets"/>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
-  <Import Project="$(MSBuildThisFileDirectory)..\ProjectSystem\ProjectSystem.targets"/>
+  <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.targets"/>
 
 
   <!-- Target used to enforce that the compilation is rebuilt when Q# source files are changed. -->
@@ -37,24 +37,27 @@
   <Target Name="QsharpClean" DependsOnTargets="ResolveQscOutputPaths" BeforeTargets="Clean">
     <ItemGroup>
       <FilesToRemove Include="$(GeneratedFilesOutputPath)**" />
-      <Compile Remove="$(FilesToRemove)**\*.g.cs" />
+      <Compile Remove="$(FilesToRemove)**/*.g.cs" />
     </ItemGroup>
     <Delete Files="@(FilesToRemove)" />
   </Target>  
 
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveQscOutputPaths" BeforeTargets="CoreCompile">
+    <MakeDir Directories="$(GeneratedFilesOutputPath)" />
+    <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
     <!-- generate a suitable build configuration for the Q# command line compiler (qsc) -->
     <PropertyGroup>
       <_VerbosityFlag Condition="'$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic'">-v</_VerbosityFlag>
-      <_BuildConfigGenerationOutputFlag Condition="'$(QscBuildConfigOutputPath)' != ''">--output "$(QscBuildConfigOutputPath)"</_BuildConfigGenerationOutputFlag>
+      <_BuildConfigFile>$(QscBuildConfigOutputPath)qsc.config</_BuildConfigFile>
+      <_BuildConfigGenerationOutputFlag>--output "$(_BuildConfigFile)"</_BuildConfigGenerationOutputFlag>
       <_BuildConfigGenerationQscReferencesFlag Condition="@(ResolvedQscReferences->Count()) &gt; 0">--QscReferences "@(ResolvedQscReferencesAndPriorities,'" "')"</_BuildConfigGenerationQscReferencesFlag>
       <QscBuildConfigGeneration>$(QscBuildConfigExe) $(_VerbosityFlag) $(_BuildConfigGenerationOutputFlag) $(_BuildConfigGenerationQscReferencesFlag)</QscBuildConfigGeneration>
     </PropertyGroup>
     <Exec Command="$(QscBuildConfigGeneration)" IgnoreExitCode="false" /> 
     <!-- get the resolved Q# references and the qsc build configuration -->
-    <ReadLinesFromFile File="$(QscBuildConfigOutputPath)">
+    <ReadLinesFromFile File="$(_BuildConfigFile)">
       <Output TaskParameter="Lines" ItemName="_PrioritizedResolvedQscReferences"/>
     </ReadLinesFromFile>
     <ItemGroup>
@@ -64,9 +67,9 @@
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
       <!-- TODO: USE @(MyItem->Distinct()) OR POSSIBLY @(MyItem->DistinctWithCase()) -->
-      <_QscCommandDocsFlag Condition="$(QsharpDocsGeneration)">--doc $(QsharpDocsOutputPath)</_QscCommandDocsFlag>
+      <_QscCommandOutputFlag>--output "$(GeneratedFilesOutputPath)"</_QscCommandOutputFlag>
+      <_QscCommandDocsFlag Condition="$(QsharpDocsGeneration)">--doc "$(QsharpDocsOutputPath)"</_QscCommandDocsFlag>
       <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</_QscCommandInputFlag>
-      <_QscCommandOutputFlag Condition="'$(GeneratedFilesOutputPath)' != ''">--output $(GeneratedFilesOutputPath)</_QscCommandOutputFlag>
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
       <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(_VerbosityFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag)</QscCommand>
@@ -77,7 +80,7 @@
     <Delete Files="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" />
     <ItemGroup>
       <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
-      <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**\*.g.cs" Exclude="@(Compile)" />
+      <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" />
     </ItemGroup>
   </Target>   
 
