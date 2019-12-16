@@ -21,6 +21,5 @@ namespace Microsoft.Quantum.Sdk.Tools
         [Option('o', "output", Required = false,
         HelpText = "Name of the generated config file.")]
         public string OutputFile { get; set; }
-
     }
 }
