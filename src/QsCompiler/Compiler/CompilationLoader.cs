@@ -545,7 +545,7 @@ namespace Microsoft.Quantum.QsCompiler
             var args = sourceFiles.Any()
                 ? sourceFiles.Select(f => f?.LocalPath).ToArray()
                 : new string[] { "(none)" };
-            this.Logger?.Log(InformationCode.CompilingWithSourceFiles, Enumerable.Empty<string>(), messageParam: Diagnostics.Formatting.Indent(args).ToArray());
+            this.Logger?.Log(InformationCode.CompilingWithSourceFiles, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
         }
 
         /// <summary>
@@ -557,7 +557,7 @@ namespace Microsoft.Quantum.QsCompiler
             var args = assemblies.Any()
                 ? assemblies.Select(name => name.Value).ToArray()
                 : new string[] { "(none)" };
-            this.Logger?.Log(InformationCode.CompilingWithAssemblies, Enumerable.Empty<string>(), messageParam: Diagnostics.Formatting.Indent(args).ToArray());
+            this.Logger?.Log(InformationCode.CompilingWithAssemblies, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
         }
 
 
