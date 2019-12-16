@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 AttemptFullPreEvaluation = options.TrimLevel > 1,
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
-                DllOutputPath = " ", // generating the dll in the same location as the .bson file
+                DllOutputPath = null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false // todo: enable debug mode?
             }; 

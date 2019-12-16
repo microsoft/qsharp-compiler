@@ -62,7 +62,7 @@
     </ReadLinesFromFile>
     <ItemGroup>
       <ResolvedQsharpReferences Include="@(ReferencePath)" Exclude="@(QscPackageReference)"
-        Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|codeanalysis|csharp|yamldotnet|newtonsoft|visualstudio|serilog')) == false" />
+        Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|codeanalysis|csharp|fsharp|fparsec|yamldotnet|newtonsoft|visualstudio|serilog')) == false" />
     </ItemGroup>
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
@@ -76,7 +76,6 @@
     <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: references ::;@(ResolvedQsharpReferences);:: loaded ::;@(_PrioritizedResolvedQscReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 
     <!-- configure the dll built by the C# compiler -->
-    <Delete Files="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" />
     <ItemGroup>
       <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
       <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" />
