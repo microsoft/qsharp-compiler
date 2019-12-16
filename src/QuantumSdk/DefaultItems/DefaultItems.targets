@@ -86,6 +86,7 @@
     <ItemGroup>
       <QscProjectReference Remove="@(QscProjectReference)"/>
       <QscPackageReference Remove="@(QscPackageReference)"/>
+      <RelevantQscReferences Remove="@(RelevantQscReferences)"/>
       <ResolvedQscReferences Remove="@(ResolvedQscReferences)"/>
       <_RelevantQscProjectReference Remove="@(_RelevantQscProjectReference)"/>
       <_RelevantQscPackageReference Remove="@(_RelevantQscPackageReference)"/>
@@ -113,12 +114,14 @@
 
     <ItemGroup>
       <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
-      <ResolvedQscReferences Include="@(_RelevantQscProjectReference)" /> <!-- need to be before package refs -->
-      <ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))/lib/**/*.dll" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
+      <RelevantQscReferences Include="@(_RelevantQscProjectReference)" /> <!-- need to be before package refs -->
+      <RelevantQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))/lib/**/*.dll" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
     </ItemGroup>
 
-    <Message Text="Refs: (%(ResolvedQscReferences.Identity), %(ResolvedQscReferences.Priority))" Importance="High" />
-    <Message Text="QuantumSdkBuildTasks: $(QuantumSdkBuildTasks)" Importance="High" />
+    <Message Text="Refs: (%(RelevantQscReferences.Identity), %(RelevantQscReferences.Priority))" Importance="High" />
+    <ItemGroup>
+      <ResolvedQscReferences Include="@(RelevantQscReferences)"/>
+    </ItemGroup>
 
     <PropertyGroup>
       <_QscProjectReferencesCount>@(QscProjectReference->Count())</_QscProjectReferencesCount>
