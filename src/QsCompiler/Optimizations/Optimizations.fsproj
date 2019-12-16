@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\Common\AssemblyCommon.props" />
+  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -20,7 +20,7 @@
     <Compile Include="OptimizingTransformations\LoopUnrolling.fs" />
     <Compile Include="OptimizingTransformations\CallableInlining.fs" />
     <Compile Include="OptimizingTransformations\StatementReordering.fs" />
-    <Compile Include="..\Common\DelaySign.fs">
+    <Compile Include="..\..\Common\DelaySign.fs">
       <Link>DelaySign.fs</Link>
     </Compile>
     <Compile Include="PureCircuitAPI.fs" />

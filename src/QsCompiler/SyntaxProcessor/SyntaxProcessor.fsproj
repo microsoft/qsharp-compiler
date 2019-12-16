@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\Common\AssemblyCommon.props" />
+  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Common\DelaySign.fs">
+    <Compile Include="..\..\Common\DelaySign.fs">
       <Link>DelaySign.fs</Link>
     </Compile>
     <Compile Include="VerificationTools.fs" />

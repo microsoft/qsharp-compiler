@@ -62,7 +62,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var readerPipe = new NamedPipeServerStream(ServerWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
             var writerPipe = new NamedPipeServerStream(ServerReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
-            var server = Server.ConnectNamedPipe(ServerWriterPipe, ServerReaderPipe);
+            var server = Server.ConnectViaNamedPipe(ServerWriterPipe, ServerReaderPipe);
             await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
             await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
 

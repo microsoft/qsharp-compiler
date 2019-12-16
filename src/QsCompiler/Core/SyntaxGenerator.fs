@@ -32,16 +32,13 @@ type private StripPositionInfoFromScope() =
     override this.onLocation _ = Null
     override this.Expression = expressionTransformation :> ExpressionTransformation
 
-type public StripPositionInfo(setDeclLocToDefault) = 
+type public StripPositionInfo() = 
     inherit SyntaxTreeTransformation()
     let scopeTransformation = new StripPositionInfoFromScope()
     static let defaultInstance = new StripPositionInfo()
-    new() = StripPositionInfo(false)
     
     override this.Scope = scopeTransformation :> ScopeTransformation
-    override this.onLocation loc = 
-        if not setDeclLocToDefault then loc
-        else QsLocation.New ((0,0), QsCompilerDiagnostic.DefaultRange)
+    override this.onLocation loc = Null 
 
     static member public Default = defaultInstance
     static member public Apply t = defaultInstance.Scope.Expression.Type.Transform t

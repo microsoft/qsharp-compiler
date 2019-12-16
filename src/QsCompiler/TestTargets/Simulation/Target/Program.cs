@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CsharpGeneration;
-using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 
@@ -34,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             var success = true;
-            var outputFolder = this.AssemblyConstants.TryGetValue("OutputPath", out var path) ? path : null; // TODO: Replace string with AssemblyConstant.OutputPath
+            var outputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.OutputPath, out var path) ? path : null; 
             var allSources = GetSourceFiles.Apply(compilation.Namespaces) // also generate the code for referenced libraries...
                 // ... except when they are one of the packages that currently still already contains the C# code (temporary workaround):
                 .Where(s => !Path.GetFileName(s.Value).StartsWith("Microsoft.Quantum")); 

@@ -30,7 +30,7 @@ type BuiltIn = {
     /// Returns all valid targets for executing Q# code.
     static member ValidExecutionTargets = 
         // Note: If this is adapted, then the error message for InvalidExecutionTargetForTest needs to be adapted as well.
-        ["QuantumSimulator"; "TraceSimulator"; "ToffoliSimulator"] 
+        ["QuantumSimulator"; "ToffoliSimulator"; "ResourcesEstimator"] 
         |> ImmutableHashSet.CreateRange
 
     /// Returns true if the given attribute marks the corresponding declaration as entry point. 
