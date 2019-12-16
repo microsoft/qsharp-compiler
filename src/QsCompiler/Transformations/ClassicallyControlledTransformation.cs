@@ -170,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 new TypedExpression
                 (
                     ExpressionKind.NewIdentifier(id, typeParams),
-                    ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty, // ToDo: allow for type params to be passed in from super-scope
+                    ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
                     resolvedType,
                     new InferredExpressionInformation(false, false),
                     QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
@@ -209,7 +209,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 var targetTypeParamTypes = GetTypeParamTypesFromCallable(_super._CurrentCallable);
                 var targetOpId = new TypedExpression
                 (
-                    // ToDo: allow for type params to be passed in from super-scope
                     ExpressionKind.NewIdentifier(Identifier.NewGlobalCallable(targetName), targetTypeParamTypes),
                     targetTypeParamTypes.IsNull
                         ? ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty
@@ -303,7 +302,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
                             callable.FullName,
                             ((QsLocalSymbol.ValidName)param).Item,
-                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null //ToDo: should be able to get this from specialization
+                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
                     ))))
                     .ToImmutableArray());
                 }
@@ -340,7 +339,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 var signature = new ResolvedSignature(
                     _super._CurrentCallable.Signature.TypeParameters,
-                    //ImmutableArray<QsLocalSymbol>.Empty, // ToDo: allow for type params to be passed in from super-scope
                     paramTypes,
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     CallableInformation.NoInformation);
@@ -352,7 +350,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     newName,
                     ImmutableArray<QsDeclarationAttribute>.Empty,
                     _super._CurrentCallable.SourceFile,
-                    new QsLocation(Tuple.Create(0, 0), Tuple.Create(QsPositionInfo.Zero, QsPositionInfo.Zero)), //ToDo
+                    QsNullable<QsLocation>.Null,
                     QsNullable<ImmutableArray<ResolvedType>>.Null,
                     signature,
                     SpecializationImplementation.NewProvided(parameters, filter.Transform(contents)),
@@ -364,7 +362,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     newName,
                     ImmutableArray<QsDeclarationAttribute>.Empty,
                     _super._CurrentCallable.SourceFile,
-                    new QsLocation(Tuple.Create(0, 0), Tuple.Create(QsPositionInfo.Zero, QsPositionInfo.Zero)), //ToDo
+                    QsNullable<QsLocation>.Null,
                     signature,
                     parameters,
                     ImmutableArray.Create(spec), //ToDo: account for ctrl and adjt
