@@ -18,7 +18,7 @@
     <!-- for backwards compatibility we still generate C# independent on whether the project is targeted for execution on the simulation framework or not -->
     <PackageReference 
       Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1911.1607" IsImplicitlyDefined="true" 
-      IsQscReference ="true" ExecutionTarget="Any" Priority="0" />
+      IsQscReference ="true" ExecutionTarget="Any" Priority="-1" />
   </ItemGroup>
 
   <!-- Packages and libraries included for all execution targets. -->
@@ -73,7 +73,7 @@
   </Target>
 
 
-  <!-- Recomputes the content of ResolvedQscReferences, QscProjectReference and QscPackageReference. The current content of these item groups is cleared during the process. -->
+  <!-- Recomputes the content of ResolvedQscReferences, ResolvedQscReferencesAndPriorities, QscProjectReference and QscPackageReference. The current content of these item groups is cleared during the process. -->
   <Target Name="ResolveQscReferences" DependsOnTargets="QsharpPropertyResolution;ResolveProjectReferences;ResolveAssemblyReferences;Restore">
     <!-- 
       TODO: right now, packages containing rewrite steps basically need to be self-contained. 
@@ -105,6 +105,8 @@
       <ResolvedQscReferences Remove="@(ResolvedQscReferences)"/>
       <ResolvedQscReferences Include="%(_RelevantQscProjectReference.Identity)" Priority="%(_RelevantQscProjectReference.Priority)" />
       <ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))/lib/**/*.dll" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
+      <ResolvedQscReferencesAndPriorities Remove="@(ResolvedQscReferencesAndPriorities)"/>
+      <ResolvedQscReferencesAndPriorities Include="(%(ResolvedQscReferences.Identity), %(ResolvedQscReferences.Priority))" /> 
     </ItemGroup>
     <Message 
       Condition="@(ResolvedQscReferences->Count()) &gt; 0 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"

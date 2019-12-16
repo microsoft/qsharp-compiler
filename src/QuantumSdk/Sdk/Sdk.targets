@@ -48,9 +48,8 @@
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
     <!-- generate a suitable build configuration for the Q# command line compiler (qsc) -->
     <PropertyGroup>
-      <_BuildConfigGenerationQscReferencesFlag Condition="@(ResolvedQscReferences->Count()) &gt; 0">--QscReferences "@(ResolvedQscReferences ,'" "')"</_BuildConfigGenerationQscReferencesFlag>
-      <_BuildConfigGenerationQscReferencePrioritiesFlag Condition="@(ResolvedQscReferences->Count()) &gt; 0">--QscReferencePriorities "%(ResolvedQscReferences.Priority)"</_BuildConfigGenerationQscReferencePrioritiesFlag>
-      <QscBuildConfigGeneration>$(QscBuildConfigExe) $(_BuildConfigGenerationQscReferencesFlag) $(_BuildConfigGenerationQscReferencePrioritiesFlag)</QscBuildConfigGeneration>
+      <_BuildConfigGenerationQscReferencesFlag Condition="@(ResolvedQscReferences->Count()) &gt; 0">--QscReferences "@(ResolvedQscReferencesAndPriorities,'" "')"</_BuildConfigGenerationQscReferencesFlag>
+      <QscBuildConfigGeneration>$(QscBuildConfigExe) $(_BuildConfigGenerationQscReferencesFlag)</QscBuildConfigGeneration>
     </PropertyGroup>
     <Exec Command="$(QscBuildConfigGeneration)" IgnoreExitCode="false" /> 
     <!-- get the resolved Q# references and the qsc build configuration -->

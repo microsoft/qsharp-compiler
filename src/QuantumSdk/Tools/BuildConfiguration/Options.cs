@@ -11,12 +11,8 @@ namespace Microsoft.Quantum.Sdk.Tools
     {
 
         [Option("QscReferences", Required = false,
-        HelpText = "Path to .NET Core assemblies containing rewrite steps to be passed to the Q# compiler.")]
+        HelpText = ".NET Core assemblies containing rewrite steps to be passed to the Q# compiler. " +
+            "Each reference need to be a string of the form \"(pathToDll, priority)\".")]
         public IEnumerable<string> QscReferences { get; set; }
-
-        [Option("QscReferencePriorities", Required = false,
-        HelpText = "Priority values of the given QscReferences. Needs to have the same length as the given QscReferences.")]
-        public IEnumerable<int> QscReferencePriorities { get; set; }
-
     }
 }

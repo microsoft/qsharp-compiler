@@ -13,7 +13,6 @@ namespace Microsoft.Quantum.Sdk.Tools
         SUCCESS = 0,
         MISSING_ARGUMENTS = 1,
         INVALID_ARGUMENTS = 2,
-        ARGUMENT_MISMATCH = 3,
         UNEXPECTED_ERROR = 100
     }
 
@@ -23,28 +22,36 @@ namespace Microsoft.Quantum.Sdk.Tools
         public static ReturnCode Generate(Options options)
         {
             if (options == null) return ReturnCode.MISSING_ARGUMENTS;
+            (string, int) ParseQscReference(string qscRef)
+            {
+                var pieces = qscRef.Trim().TrimStart('(').TrimEnd(')').Split(',');
+                var path = pieces.First().Trim();
+                return (path, Int32.TryParse(pieces.Skip(1).SingleOrDefault(), out var priority) ? priority : 0);
+            }
 
             var qscReferences = options.QscReferences?.ToArray() ?? new string[0];
-            var qscRefPriorities = options.QscReferencePriorities?.ToArray() ?? new int[qscReferences.Length];
-            if (qscRefPriorities.Length != qscReferences.Length)
+            var orderedQscReferences = new string[0];
+            try
             {
-                var errMsg = $"Argument mismatch: " +
-                    $"The number of the given Qsc references does not match the number of given priorities. {Environment.NewLine}" +
-                    $"Given QscReferences: {String.Join(", ", qscReferences)} {Environment.NewLine}" +
-                    $"Given Priorities: {String.Join(", ", qscRefPriorities)}";
+                orderedQscReferences = qscReferences
+                    .Select(ParseQscReference)
+                    .OrderByDescending(qscRef => qscRef.Item2)
+                    .Select(qscRef => qscRef.Item1).ToArray();
+            }
+            catch
+            {
+                var errMsg = $"Could not parse the given Qsc references. " +
+                    $"Expecting a string of the form \"(pathToDll, priority)\" for each qsc reference.";
                 Console.WriteLine(errMsg);
-                return ReturnCode.ARGUMENT_MISMATCH;
+                return ReturnCode.INVALID_ARGUMENTS;
             }
 
-            var orderedQscReferences = qscReferences.Zip(qscRefPriorities)
-                .OrderByDescending(qscRef => qscRef.Second)
-                .Select(qscRef => qscRef.First);
-
-            Console.WriteLine($"Qsc references ordered according to their priority:");
-            foreach (var qscRef in orderedQscReferences)
-            {
-                Console.WriteLine(qscRef);
-            }
+            //if (qscReferences.Any())
+            //{ Console.WriteLine($"The given qsc references will be loaded in the following order:"); }
+            //foreach (var qscRef in orderedQscReferences)
+            //{
+            //    Console.WriteLine(qscRef);
+            //}
 
             return ReturnCode.SUCCESS;
         }
