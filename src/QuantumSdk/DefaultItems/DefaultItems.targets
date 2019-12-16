@@ -64,13 +64,12 @@
       <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
       <!-- output path for files generated during compilation -->
       <GeneratedFilesOutputPath Condition="'$(GeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)qsharp</GeneratedFilesOutputPath>
-      <GeneratedFilesOutputPath Condition="!HasTrailingSlash('$(GeneratedFilesOutputPath)')">$(GeneratedFilesOutputPath)\</GeneratedFilesOutputPath>    
-      <!-- output path for generating qsc config file -->
-      <QscBuildConfigOutputPath Condition="'$(QscBuildConfigOutputPath)' == ''">$(GeneratedFilesOutputPath)qsc.config</QscBuildConfigOutputPath>
+      <GeneratedFilesOutputPath Condition="!HasTrailingSlash('$(GeneratedFilesOutputPath)')">$(GeneratedFilesOutputPath)\</GeneratedFilesOutputPath>
       <!-- output path for generating documentation -->
       <QsharpDocsOutputPath Condition="'$(QsharpDocsOutputPath)' == ''">$(GeneratedFilesOutputPath)docs\</QsharpDocsOutputPath>
-      <!-- output path for generated C# files -->
-      <CsharpSrcOutputPath Condition="'$(CsharpSrcOutputPath)' == ''">$(GeneratedFilesOutputPath)src\</CsharpSrcOutputPath>
+      <QsharpDocsOutputPath Condition="!HasTrailingSlash('$(QsharpDocsOutputPath)')">$(QsharpDocsOutputPath)\</QsharpDocsOutputPath>
+      <!-- output path for generating qsc config file -->
+      <QscBuildConfigOutputPath Condition="'$(QscBuildConfigOutputPath)' == ''">$(GeneratedFilesOutputPath)qsc.config</QscBuildConfigOutputPath>
     </PropertyGroup>
   </Target>
 
