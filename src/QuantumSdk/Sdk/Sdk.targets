@@ -48,12 +48,14 @@
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
     <!-- generate a suitable build configuration for the Q# command line compiler (qsc) -->
     <PropertyGroup>
+      <_VerbosityFlag Condition="'$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic'">-v</_VerbosityFlag>
+      <_BuildConfigGenerationOutputFlag Condition="'$(QscBuildConfigOutputPath)' != ''">--output "$(QscBuildConfigOutputPath)"</_BuildConfigGenerationOutputFlag>
       <_BuildConfigGenerationQscReferencesFlag Condition="@(ResolvedQscReferences->Count()) &gt; 0">--QscReferences "@(ResolvedQscReferencesAndPriorities,'" "')"</_BuildConfigGenerationQscReferencesFlag>
-      <QscBuildConfigGeneration>$(QscBuildConfigExe) $(_BuildConfigGenerationQscReferencesFlag)</QscBuildConfigGeneration>
+      <QscBuildConfigGeneration>$(QscBuildConfigExe) $(_VerbosityFlag) $(_BuildConfigGenerationOutputFlag) $(_BuildConfigGenerationQscReferencesFlag)</QscBuildConfigGeneration>
     </PropertyGroup>
     <Exec Command="$(QscBuildConfigGeneration)" IgnoreExitCode="false" /> 
     <!-- get the resolved Q# references and the qsc build configuration -->
-    <ReadLinesFromFile File="@(MyTextFile)" > <!-- FIXME: FILE NAME -->
+    <ReadLinesFromFile File="$(QscBuildConfigOutputPath)">
         <Output TaskParameter="Lines" ItemName="_PrioritizedResolvedQscReferences"/>
     </ReadLinesFromFile>
     <ItemGroup>
@@ -63,13 +65,12 @@
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
       <!-- TODO: USE @(MyItem->Distinct()) OR POSSIBLY @(MyItem->DistinctWithCase()) -->
-      <_QscCommandVerbosityFlag Condition="'$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic'">-v</_QscCommandVerbosityFlag>
       <_QscCommandDocsFlag Condition="$(QsharpDocsGeneration)">--doc $(QsharpDocsOutputPath)</_QscCommandDocsFlag>
       <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</_QscCommandInputFlag>
       <_QscCommandOutputFlag Condition="'$(CsharpSrcOutputPath)' != ''">--output $(CsharpSrcOutputPath)</_QscCommandOutputFlag> <!-- FIXME: path - and quotes??  -->
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
-      <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(_QscCommandVerbosityFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag)</QscCommand>
+      <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(_VerbosityFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag)</QscCommand>
     </PropertyGroup>
     <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: qsim ::;$(SimulationTarget);;:: references ::;@(ResolvedQsharpReferences);:: loaded ::;@(_PrioritizedResolvedQscReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 

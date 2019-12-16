@@ -65,6 +65,8 @@
       <!-- output path for files generated during compilation -->
       <GeneratedFilesOutputPath Condition="'$(GeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)qsharp</GeneratedFilesOutputPath>
       <GeneratedFilesOutputPath Condition="!HasTrailingSlash('$(GeneratedFilesOutputPath)')">$(GeneratedFilesOutputPath)\</GeneratedFilesOutputPath>    
+      <!-- output path for generating qsc config file -->
+      <QscBuildConfigOutputPath Condition="'$(QscBuildConfigOutputPath)' == ''">$(GeneratedFilesOutputPath)qsc.config</QscBuildConfigOutputPath>
       <!-- output path for generating documentation -->
       <QsharpDocsOutputPath Condition="'$(QsharpDocsOutputPath)' == ''">$(GeneratedFilesOutputPath)docs\</QsharpDocsOutputPath>
       <!-- output path for generated C# files -->

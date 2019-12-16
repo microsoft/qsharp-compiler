@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.IO;
 using System.Linq;
 using CommandLine;
 
@@ -13,12 +14,22 @@ namespace Microsoft.Quantum.Sdk.Tools
         SUCCESS = 0,
         MISSING_ARGUMENTS = 1,
         INVALID_ARGUMENTS = 2,
+        IO_EXCEPTION = 3,
         UNEXPECTED_ERROR = 100
     }
 
 
     public static class BuildConfiguration
     {
+        static int Main(string[] args) =>
+            Parser.Default
+                .ParseArguments<Options>(args)
+                .MapResult(
+                    (Options opts) => (int)BuildConfiguration.Generate(opts),
+                    (errs => (int)ReturnCode.INVALID_ARGUMENTS)
+                );
+
+
         public static ReturnCode Generate(Options options)
         {
             if (options == null) return ReturnCode.MISSING_ARGUMENTS;
@@ -46,22 +57,25 @@ namespace Microsoft.Quantum.Sdk.Tools
                 return ReturnCode.INVALID_ARGUMENTS;
             }
 
-            //if (qscReferences.Any())
-            //{ Console.WriteLine($"The given qsc references will be loaded in the following order:"); }
-            //foreach (var qscRef in orderedQscReferences)
-            //{
-            //    Console.WriteLine(qscRef);
-            //}
-
-            return ReturnCode.SUCCESS;
+            return BuildConfiguration.WriteConfigFile(options.OutputFile, orderedQscReferences, options.Verbose)
+                ? ReturnCode.SUCCESS
+                : ReturnCode.IO_EXCEPTION;
         }
 
-        static int Main(string[] args) => 
-            Parser.Default
-                .ParseArguments<Options>(args)
-                .MapResult(
-                    (Options opts) => (int)BuildConfiguration.Generate(opts),
-                    (errs => (int)ReturnCode.INVALID_ARGUMENTS)
-                );
+        private static bool WriteConfigFile(string configFile, string[] qscReferences, bool verbose = false)
+        {
+            try 
+            { 
+                File.WriteAllLines(configFile ?? "qsc.config", qscReferences);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                var turnOnVerboseMsg = verbose ? "" : "Increase verbosity for detailed error logging.";
+                Console.WriteLine($"Failed to generate config file. {turnOnVerboseMsg}");
+                if (verbose) Console.WriteLine(ex);
+                return false;
+            }
+        }
     }
 }

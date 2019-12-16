@@ -8,17 +8,16 @@ $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
 
 ##
-# Q# compiler projects
+# Q# compiler and Sdk tools
 ##
 
 function Build-One {
     param(
-        [string]$action,
         [string]$project
     );
 
-    Write-Host "##[info]Building $project ($action)..."
-    dotnet $action (Join-Path $PSScriptRoot $project) `
+    Write-Host "##[info]Building $project ..."
+    dotnet build (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
         /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
@@ -30,10 +29,8 @@ function Build-One {
     }
 }
 
-Build-One 'build' '../QsCompiler.sln'
-Build-One 'publish' '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj'
-Build-One 'build' '../src/QuantumSdk/Tools/Tools.sln'
-Build-One 'publish' '../src/QuantumSdk/Tools/BuildConfiguration/BuildConfiguration.csproj'
+Build-One '../QsCompiler.sln'
+Build-One '../src/QuantumSdk/Tools/Tools.sln'
 
 ##
 # VS Code Extension
