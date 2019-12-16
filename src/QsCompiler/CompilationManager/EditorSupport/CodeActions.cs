@@ -69,6 +69,47 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
 
+        private static IEnumerable<NonNullable<string>> TypesThatDifferByCapitilization
+            (CompilationUnit compilation, string typeName)
+        {
+            return compilation.GetTypes().Keys
+                .Select(tn => tn.Name.Value)
+                .Where(tn => !tn.Equals(typeName, StringComparison.Ordinal) && tn.Equals(typeName, StringComparison.OrdinalIgnoreCase))
+                .Select(tn => NonNullable<string>.New(tn));
+        }
+
+        /// <summary>
+        /// Returns all Types that match an alternative capitilization of this type.
+        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location. 
+        /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
+        /// </summary>
+        private static IEnumerable<NonNullable<string>> CapitalizationSuggestionsForIdAtPosition
+            (this FileContentManager file, Position pos, CompilationUnit compilation, out string typeName)
+        {
+            var variables = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedVariables;
+            typeName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
+
+            if (typeName == null || compilation == null) { return ImmutableArray<NonNullable<string>>.Empty; }
+            return TypesThatDifferByCapitilization(compilation, typeName);
+        }
+
+        /// <summary>
+        /// Returns all Types in which a type with the name of the symbol at the given position in the given file belongs to.
+        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location. 
+        /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
+        /// </summary>
+        private static IEnumerable<NonNullable<string>> CapitalizationSuggestionsForTypeAtPosition
+            (this FileContentManager file, Position pos, CompilationUnit compilation, out string typeName)
+        {
+            var types = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedTypes;
+            typeName = types != null && types.Any() &&
+                types.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt
+                ? udt.Item.Symbol.AsDeclarationName(null) : null;
+
+            if (typeName == null || compilation == null) { return ImmutableArray<NonNullable<string>>.Empty; }
+            return TypesThatDifferByCapitilization(compilation, typeName);
+        }
+
         /// <summary>
         /// Returns all code fragments in the specified file that overlap with the given range. 
         /// Returns an empty sequence if any of the given arguments is null. 
@@ -159,12 +200,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions on how errors for unknown types and callable in the given diagnostics can be fixed, 
+        /// Returns a sequence of namespace suggestions for how errors for unknown types and callable in the given diagnostics can be fixed, 
         /// given the file for which those diagnostics were generated and the corresponding compilation. 
         /// The given line number is used to determine the containing namespace. 
         /// Returns an empty enumerable if any of the given arguments is null. 
         /// </summary>
-        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnknownIdentifiers
+        internal static IEnumerable<(string, WorkspaceEdit)> NamespaceSuggestionsForUnknownIdentifiers
             (this FileContentManager file, CompilationUnit compilation, int lineNr, IEnumerable<Diagnostic> diagnostics)
         {
             if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
@@ -178,6 +219,50 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .SelectMany(pos => file.NamespaceSuggestionsForTypeAtPosition(pos, compilation, out var _));
             return file.OpenDirectiveSuggestions(lineNr, suggestionsForIds.Concat(suggestionsForTypes).ToArray())
                 .Select(edit => (edit.NewText.Trim().Trim(';'), file.GetWorkspaceEdit(edit)));
+        }
+
+        /// <summary>
+        /// Returns a sequence of replacement Type suggestions for how errors for unknown types and callable in the given diagnostics can be fixed, 
+        /// given the file for which those diagnostics were generated and the corresponding compilation.
+        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// </summary>
+        internal static IEnumerable<(string, WorkspaceEdit)> CapitalizationSuggestionsForUnknownIdentifiers
+            (this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic> diagnostics)
+        {
+            if (file == null || diagnostics == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
+            var unknownCallables = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownIdentifier));
+            var unknownTypes = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UnknownType));
+            if (!unknownCallables.Any() && !unknownTypes.Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
+
+            (string, WorkspaceEdit) SuggestedIdEdit(NonNullable<string> suggestedId, LSP.Range range)
+            {
+                var edit = new TextEdit { Range = range.Copy(), NewText = $"{suggestedId.Value}" };
+                return ($"Replace with \"{suggestedId.Value}\".", file.GetWorkspaceEdit(edit));
+            }
+
+            var suggestionsForIds = unknownCallables
+                .SelectMany(d => file.CapitalizationSuggestionsForIdAtPosition(d.Range.Start, compilation, out var _).Select(id => SuggestedIdEdit(id, d.Range)));
+            var suggestionsForTypes = unknownTypes
+                .SelectMany(d => file.CapitalizationSuggestionsForTypeAtPosition(d.Range.Start, compilation, out var _).Select(id => SuggestedIdEdit(id, d.Range)));
+            return suggestionsForIds.Concat(suggestionsForTypes);
+        }
+
+        /// <summary>
+        /// Returns a sequence of suggestions on how errors for unknown types and callable in the given diagnostics can be fixed, 
+        /// given the file for which those diagnostics were generated and the corresponding compilation. 
+        /// The given line number is used to determine the containing namespace. 
+        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// </summary>
+        internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnknownIdentifiers
+            (this FileContentManager file, CompilationUnit compilation, int lineNr, IEnumerable<Diagnostic> diagnostics)
+        {
+            var suggestions = NamespaceSuggestionsForUnknownIdentifiers(file, compilation, lineNr, diagnostics);
+            if (!suggestions.Any())
+            {
+                suggestions = CapitalizationSuggestionsForUnknownIdentifiers(file, compilation, diagnostics);
+            }
+
+            return suggestions;
         }
 
         /// <summary>
