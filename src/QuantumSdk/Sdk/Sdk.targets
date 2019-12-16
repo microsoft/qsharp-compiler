@@ -44,10 +44,17 @@
 
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveQscOutputPaths" BeforeTargets="CoreCompile">
+    <!-- generate a suitable build configuration for the Q# command line compiler (qsc) -->
+    <PropertyGroup>
+      <QscBuildConfigGeneration>$(QscBuildConfigExe)</QscBuildConfigGeneration>
+    </PropertyGroup>
+    <Exec Command="$(QscBuildConfigGeneration)" IgnoreExitCode="false" /> 
+    <!-- get the resolved Q# references and the qsc build configuration -->
     <ItemGroup>
       <ResolvedQsharpReferences Include="@(ReferencePath)" Exclude="@(QscPackageReference)"
         Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
     </ItemGroup>
+    <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
       <!-- TODO: USE @(MyItem->Distinct()) OR POSSIBLY @(MyItem->DistinctWithCase()) -->
       <QscCommandVerbosityFlag Condition="'$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic'">-v</QscCommandVerbosityFlag>
@@ -61,7 +68,8 @@
     <MakeDir Condition="$(CsharpGeneration)" Directories="$(CsharpSrcOutputPath)" /> 
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
     <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: qsim ::;$(SimulationTarget);;:: references ::;@(ResolvedQsharpReferences);:: loaded ::;@(ResolvedQscReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
-    <Exec Command="$(QscCommand)" IgnoreExitCode="false" />    
+    <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 
+    <!-- configure the dll built by the C# compiler -->
     <Delete Files="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" />
     <ItemGroup>
       <EmbeddedResource Include="$(CsharpSrcOutputPath)\$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
