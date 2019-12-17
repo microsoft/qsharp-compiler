@@ -576,7 +576,7 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Logs the names and origin of the given rewrite steps as Information.
+        /// Logs the names and origins of the given rewrite steps as Information.
         /// Does nothing if the given argument is null.
         /// </summary>
         private void PrintLoadedRewriteSteps(IEnumerable<RewriteSteps.LoadedStep> rewriteSteps)

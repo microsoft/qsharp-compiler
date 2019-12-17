@@ -5,7 +5,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <AssemblyName>Microsoft.Quantum.Sdk.BuildConfiguration</AssemblyName>
-    <AssemblyTitle>Tools included in the Microsoft Quantum Sdk.</AssemblyTitle>
+    <AssemblyTitle>Build configuration tools included in the Microsoft Quantum Sdk.</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>
