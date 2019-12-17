@@ -4,8 +4,4 @@
     <TargetFramework>netstandard2.1</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <QsharpCompile Include="**/*.qs" Exclude="obj/**" />
-  </ItemGroup>
-
 </Project>

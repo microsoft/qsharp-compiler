@@ -17,14 +17,14 @@
   <ItemGroup>
     <!-- for backwards compatibility we still generate C# independent on whether the project is targeted for execution on the simulation framework or not -->
     <PackageReference 
-      Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1912.1601-beta" IsImplicitlyDefined="true" 
+      Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1912.1606-beta" IsImplicitlyDefined="true" 
       IsQscReference ="true" ExecutionTarget="Any" Priority="-1" />
   </ItemGroup>
 
   <!-- Packages and libraries included for all execution targets. -->
   <ItemGroup>
     <!-- TODO: Core & Intrinsics package -->
-    <PackageReference Include="Microsoft.Quantum.Standard" Version="0.10.1912.1601-beta" IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.Quantum.Standard" Version="0.10.1912.1606-beta" IsImplicitlyDefined="true" />
   </ItemGroup>
 
 
@@ -32,7 +32,7 @@
   <Target Name="PropertyDependentReferences" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="ResolveAssemblyReferences">
     <ItemGroup>
       <!-- Packages included for specific execution targets. -->
-      <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1912.1601-beta" IsImplicitlyDefined="true" />
+      <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1912.1606-beta" IsImplicitlyDefined="true" />
     </ItemGroup>
   </Target>   
 

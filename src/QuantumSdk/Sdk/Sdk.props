@@ -11,4 +11,10 @@
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
   <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.props"/>
 
+  <!-- This indeed needs to live in this file to ensure that it is evaluated before 
+  the modifications to the QsharpCompile ItemGroup in the project file are applied. -->
+  <ItemGroup>
+    <QsharpCompile Include="**/*.qs" Exclude="obj/**" />
+  </ItemGroup>
+
 </Project>

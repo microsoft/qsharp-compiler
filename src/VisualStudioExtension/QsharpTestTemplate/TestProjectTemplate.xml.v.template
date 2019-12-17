@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <QsharpCompile Include="**/*.qs" Exclude="obj/**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Quantum.Xunit" Version="#NUGET_VERSION#" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.4.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
@@ -19,4 +15,3 @@
   </ItemGroup>
 
 </Project>
-
