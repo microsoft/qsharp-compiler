@@ -110,8 +110,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
                 "```",
                 "",
                 "# See Also",
-                "- @\"microsoft.quantum.canon.paulievolutionset\"",
-                "- @\"microsoft.quantum.canon.evolutionset\""
+                "- Microsoft.Quantum.Canon.PauliEvolutionSet",
+                "- @\"Microsoft.Quantum.canon.evolutionset\""
             };
             string expected = @"### YamlMime:QSharpType
 uid: microsoft.quantum.canon.generatorindex
