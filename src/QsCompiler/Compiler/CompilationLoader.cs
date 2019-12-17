@@ -332,6 +332,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.ExternalRewriteSteps = RewriteSteps.Load(this.Config,
                 d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d),
                 ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
+            this.PrintLoadedRewriteSteps(this.ExternalRewriteSteps);
             this.CompilationStatus = new ExecutionStatus(this.ExternalRewriteSteps);
             this.CompilationStatus.PluginLoading = rewriteStepLoading;
 
@@ -537,7 +538,8 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Logs the names of the given source files as Information unless the given argument is null.
+        /// Logs the names of the given source files as Information.
+        /// Does nothing if the given argument is null.
         /// </summary>
         private void PrintResolvedFiles(IEnumerable<Uri> sourceFiles)
         {
@@ -549,7 +551,8 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Logs the names of the given assemblies as Information unless the given argument is null.
+        /// Logs the names of the given assemblies as Information.
+        /// Does nothing if the given argument is null.
         /// </summary>
         private void PrintResolvedAssemblies(IEnumerable<NonNullable<string>> assemblies)
         {
@@ -558,6 +561,19 @@ namespace Microsoft.Quantum.QsCompiler
                 ? assemblies.Select(name => name.Value).ToArray()
                 : new string[] { "(none)" };
             this.Logger?.Log(InformationCode.CompilingWithAssemblies, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
+        }
+
+        /// <summary>
+        /// Logs the names and origin of the given rewrite steps as Information.
+        /// Does nothing if the given argument is null.
+        /// </summary>
+        private void PrintLoadedRewriteSteps(IEnumerable<RewriteSteps.LoadedStep> rewriteSteps)
+        {
+            if (rewriteSteps == null) return;
+            var args = rewriteSteps.Any()
+                ? rewriteSteps.Select(step => $"{step.Name} ({step.Origin})").ToArray()
+                : new string[] { "(none)" };
+            this.Logger?.Log(InformationCode.LoadedRewriteSteps, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
         }
 
 

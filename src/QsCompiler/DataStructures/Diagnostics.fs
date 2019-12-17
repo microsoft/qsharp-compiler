@@ -326,6 +326,7 @@ type InformationCode =
     | CommandLineArguments = 7001
     | CompilingWithSourceFiles = 7002
     | CompilingWithAssemblies = 7003
+    | LoadedRewriteSteps = 7004
 
     | GeneratedCsCode = 7101
     | GeneratedQsCode = 7102
@@ -672,6 +673,7 @@ type DiagnosticItem =
             | InformationCode.CommandLineArguments              -> "Compiling with command line arguments"
             | InformationCode.CompilingWithSourceFiles          -> "Compiling source files"
             | InformationCode.CompilingWithAssemblies           -> "Compiling with referenced assemblies"
+            | InformationCode.LoadedRewriteSteps                -> "Loaded rewrite steps that are executing as part of the compilation process"
 
             | InformationCode.GeneratedCsCode                   -> "C# code generated for simulation"
             | InformationCode.GeneratedQsCode                   -> "Formatted Q# code"
