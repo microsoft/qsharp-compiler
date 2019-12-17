@@ -11,13 +11,11 @@
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
   <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.targets"/>
 
-
-  <!-- [Experimental] Target that can be used to enforce that the compilation is rebuilt when Q# source files are changed. -->
-  <Target Name="RecompileOnChange">
-    <ItemGroup>
-      <UpToDateCheckInput Include="@(QsharpCompile)" />
-    </ItemGroup>
-  </Target>
+  <!-- This needs to live in this file to ensure that it is evaluated after the 
+  modifications to the QsharpCompile ItemGroup in the project file are applied. -->
+  <ItemGroup>
+    <UpToDateCheckInput Include="@(QsharpCompile)" /> <!-- ensure that projects are recompiled if a Q# source file is modified -->
+  </ItemGroup>
 
 
   <!-- Target used to verify that the specified OutputType is valid. -->

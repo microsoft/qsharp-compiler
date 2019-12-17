@@ -9,7 +9,6 @@
 
   <PropertyGroup>
     <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
-    <DisableFastUpToDateCheck>True</DisableFastUpToDateCheck> <!-- Todo: it would be nice to find a better solution here (take a look at UpToDateCheckInput) -->
   </PropertyGroup>
 
 </Project>
