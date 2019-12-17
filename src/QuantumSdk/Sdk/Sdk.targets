@@ -12,7 +12,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.targets"/>
 
 
-  <!-- Target used to enforce that the compilation is rebuilt when Q# source files are changed. -->
+  <!-- [Experimental] Target that can be used to enforce that the compilation is rebuilt when Q# source files are changed. -->
   <Target Name="RecompileOnChange">
     <ItemGroup>
       <UpToDateCheckInput Include="@(QsharpCompile)" />

@@ -8,6 +8,7 @@
 
   <PropertyGroup>
     <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <DisableFastUpToDateCheck>True</DisableFastUpToDateCheck> <!-- todo: it would be nice to find a better solution here -->
   </PropertyGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.Quantum.Sdk/#NUGET_VERSION#" InitialTargets="RecompileOnChange">
+<Project Sdk="Microsoft.Quantum.Sdk/#NUGET_VERSION#">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
