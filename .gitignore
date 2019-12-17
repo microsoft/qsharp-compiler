@@ -339,3 +339,6 @@ src/QuantumSdk/DefaultItems/DefaultItems.props
 src/ProjectTemplates/Quantum.App1/.template.config/template.json
 src/ProjectTemplates/Quantum.Library1/.template.config/template.json
 src/ProjectTemplates/Quantum.Test1/.template.config/template.json
+/src/VisualStudioExtension/QsharpAppTemplate/AppProjectTemplate.xml
+/src/VisualStudioExtension/QsharpLibTemplate/LibProjectTemplate.xml
+/src/VisualStudioExtension/QsharpTestTemplate/TestProjectTemplate.xml
