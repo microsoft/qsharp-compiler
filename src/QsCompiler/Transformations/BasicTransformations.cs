@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// Calling Transform on a syntax tree returns a new tree that only contains the type and callable declarations
     /// that are defined in the source file with the identifier given upon initialization. 
     /// The transformation also ensures that the elements in each namespace are ordered according to 
-    /// the location at which they are defined in the file. 
+    /// the location at which they are defined in the file. Auto-generated declarations will be ordered alphabetically.
     /// </summary>
     public class FilterBySourceFile :
         SyntaxTreeTransformation<NoScopeTransformations>
@@ -75,27 +75,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             return FilterBySourceFile.Apply(ns, s => sourcesToKeep.Contains(s.Value));
         }
 
-        private readonly List<(int, QsNamespaceElement)> Elements;
+        private readonly List<(int?, QsNamespaceElement)> Elements;
         private readonly Func<NonNullable<string>, bool> Predicate;
 
         public FilterBySourceFile(Func<NonNullable<string>, bool> predicate) :
             base(new NoScopeTransformations())
         {
             this.Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
-            this.Elements = new List<(int, QsNamespaceElement)>();
+            this.Elements = new List<(int?, QsNamespaceElement)>();
         }
 
         private QsCallable AddCallableIfInSource(QsCallable c)
         {
             if (Predicate(c.SourceFile))
-            { Elements.Add((c.Location.Offset.Item1, QsNamespaceElement.NewQsCallable(c))); }
+            { Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
             return c;
         }
 
         private QsCustomType AddTypeIfInSource(QsCustomType t)
         {
             if (Predicate(t.SourceFile))
-            { Elements.Add((t.Location.Offset.Item1, QsNamespaceElement.NewQsCustomType(t))); }
+            { Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t))); }
             return t;
         }
 
@@ -105,9 +105,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         public override QsNamespace Transform(QsNamespace ns)
         {
+            static int SortComparison((int?, QsNamespaceElement) x, (int?, QsNamespaceElement) y)
+            {
+                if (x.Item1.HasValue && y.Item1.HasValue) return Comparer<int>.Default.Compare(x.Item1.Value, y.Item1.Value);
+                if (!x.Item1.HasValue && !y.Item1.HasValue) return Comparer<string>.Default.Compare(x.Item2.GetFullName().ToString(), y.Item2.GetFullName().ToString());
+                return x.Item1.HasValue ? -1 : 1;
+            }
             this.Elements.Clear();
             base.Transform(ns);
-            this.Elements.Sort((x, y) => x.Item1 - y.Item1);
+            this.Elements.Sort(SortComparison);
             return new QsNamespace(ns.Name, this.Elements.Select(e => e.Item2).ToImmutableArray(), ns.Documentation);
         }
     }
