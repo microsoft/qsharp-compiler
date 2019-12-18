@@ -41,7 +41,7 @@
   </Target>  
 
   <!-- Invokes the Q# command line compiler to build the project. -->
-  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveQscOutputPaths" BeforeTargets="CoreCompile">
+  <Target Name="QsharpCompile" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveQscOutputPaths" BeforeTargets="BeforeBuild">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
@@ -75,7 +75,7 @@
     <!-- configure the dll built by the C# compiler -->
     <ItemGroup>
       <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
-      <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" />
+      <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
     </ItemGroup>
   </Target>   
 
