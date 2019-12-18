@@ -343,8 +343,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     CallableInformation.NoInformation);
 
-                var filter = _super.GetRerouteTransformation(newName.Name);
-
                 var spec = new QsSpecialization(
                     QsSpecializationKind.QsBody,
                     newName,
@@ -353,7 +351,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     QsNullable<QsLocation>.Null,
                     QsNullable<ImmutableArray<ResolvedType>>.Null,
                     signature,
-                    SpecializationImplementation.NewProvided(parameters, filter.Transform(contents)),
+                    SpecializationImplementation.NewProvided(parameters, contents),
                     ImmutableArray<string>.Empty,
                     comments);
 
@@ -369,7 +367,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     ImmutableArray<string>.Empty,
                     comments);
 
-                _super._ControlOperations.Add(controlCallable);
+                var filter = _super.GetRerouteTransformation(newName.Name);
+                _super._ControlOperations.Add(filter.onCallableImplementation(controlCallable));
 
                 return (newName, paramTypes);
             }
@@ -412,23 +411,69 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             }
         }
 
-        private ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>>
-            GetRerouteTransformation(NonNullable<string> newName) =>
-            new ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>>(
-                new ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>(
-                    expr => new ExpressionKindTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>>(expr as ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>),
-                    expr => new RerouteTypeParamOriginExpressionType(this, newName, expr)));
+        private SyntaxTreeTransformation<ScopeTransformation<RerouteTypeParamOriginExpression>> GetRerouteTransformation(NonNullable<string> newName) =>
+            new SyntaxTreeTransformation<ScopeTransformation<RerouteTypeParamOriginExpression>>(
+                new ScopeTransformation<RerouteTypeParamOriginExpression>(
+                    new RerouteTypeParamOriginExpression(this, newName)));
 
-        private class RerouteTypeParamOriginExpressionType : ExpressionTypeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>>
+        private bool _IsRecursiveIdentifier = false;
+
+        private class RerouteTypeParamOriginExpression : ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>
+        {
+            private ClassicallyControlledTransformation _super;
+
+            public RerouteTypeParamOriginExpression(ClassicallyControlledTransformation super, NonNullable<string> newName) :
+                base(expr => new RerouteTypeParamOriginExpressionKind(super, expr as RerouteTypeParamOriginExpression),
+                     expr => new RerouteTypeParamOriginExpressionType(super, newName, expr as RerouteTypeParamOriginExpression)) { _super = super; }
+
+            public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
+            {
+                return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Type.Transform(kvp.Value));
+            }
+
+            public override TypedExpression Transform(TypedExpression ex)
+            {
+                // prevent _IsRecursiveIdentifier from propagating beyond the typed expression it is in reference to
+                var isRecursiveIdentifier = _super._IsRecursiveIdentifier;
+                var rtrn = base.Transform(ex);
+                _super._IsRecursiveIdentifier = isRecursiveIdentifier;
+                return rtrn;
+            }
+        }
+
+        private class RerouteTypeParamOriginExpressionKind : ExpressionKindTransformation<RerouteTypeParamOriginExpression>
+        {
+            private ClassicallyControlledTransformation _super;
+
+            public RerouteTypeParamOriginExpressionKind(ClassicallyControlledTransformation super, RerouteTypeParamOriginExpression expr) : base(expr) { _super = super; }
+
+            public override ExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+            {
+                // Process the identifier (including its type arguments)
+                var rtrn = base.onIdentifier(sym, tArgs);
+
+                // Then check if this is a recursive identifier
+                if (sym is Identifier.GlobalCallable callable && _super._CurrentCallable.FullName.Equals(callable.Item))
+                {
+                    // Setting this flag will prevent the rerouting logic from processing the resolved type of the recursive identifier expression.
+                    // This is necessary because we don't want any type parameters from the original callable from being rerouted to the new generated
+                    // operation's type parameters in the definition of the identifier.
+                    _super._IsRecursiveIdentifier = true;
+                }
+                return rtrn;
+            }
+        }
+
+        private class RerouteTypeParamOriginExpressionType : ExpressionTypeTransformation<RerouteTypeParamOriginExpression>
         {
             private ClassicallyControlledTransformation _super;
             private NonNullable<string> _newName;
 
-            public RerouteTypeParamOriginExpressionType(ClassicallyControlledTransformation super, NonNullable<string> newName, ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType> expr) : base(expr) { _super = super; _newName = newName; }
+            public RerouteTypeParamOriginExpressionType(ClassicallyControlledTransformation super, NonNullable<string> newName, RerouteTypeParamOriginExpression expr) : base(expr) { _super = super; _newName = newName; }
 
             public override ResolvedTypeKind onTypeParameter(QsTypeParameter tp)
             {
-                if (_super._CurrentCallable.FullName.Equals(tp.Origin))
+                if (!_super._IsRecursiveIdentifier && _super._CurrentCallable.FullName.Equals(tp.Origin))
                 {
                     tp = new QsTypeParameter
                     (
