@@ -31,7 +31,7 @@
   <PropertyGroup> 
     <QscVerbosity>Normal</QscVerbosity>
     <CsharpGeneration>True</CsharpGeneration> <!-- at some point we may want to make False the default -->
-    <IncludeDefaultPackages>True</IncludeDefaultPackages> 
+    <IncludeQsharpCorePackages>True</IncludeQsharpCorePackages> 
     <QsharpDocsGeneration>False</QsharpDocsGeneration>
     <DefaultQscBuildConfigExe>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Sdk.BuildConfiguration.dll"</DefaultQscBuildConfigExe> 
     <QscBuildConfigExe>$(DefaultQscBuildConfigExe)</QscBuildConfigExe> 

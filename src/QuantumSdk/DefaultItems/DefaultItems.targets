@@ -26,11 +26,12 @@
 
   <!-- resolving the ExecutionTarget to either SimulatorBackend or QuantumProcessorBackend -->
   <PropertyGroup>
-    <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'QuantumProcessor'">QuantumProcessorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
-    <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'TraceSimulator'">SimulatorBackend</ResolvedQsharpExecutionTarget>
-    <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'Any'">SimulatorBackend</ResolvedQsharpExecutionTarget>
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'QuantumProcessorBackend' And '$(ResolvedQsharpExecutionTarget)' != 'SimulatorBackend'"></ResolvedQsharpExecutionTarget>
-    <ValidExecutionTargets>Possible values are 'QuantumSimulator', 'ToffoliSimulator', 'TraceSimulator', or 'QuantumProcessor'.</ValidExecutionTargets>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And ('$(ExecutionTarget)' == 'QuantumProcessor')">QuantumProcessorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And ('$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'ResourcesEstimator')">SimulatorBackend</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'Any'">Unspecified</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'QuantumProcessorBackend' And '$(ResolvedQsharpExecutionTarget)' != 'SimulatorBackend' And '$(ResolvedQsharpExecutionTarget)' != 'Unspecified'"></ResolvedQsharpExecutionTarget>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">Possible values are 'QuantumSimulator', 'ToffoliSimulator', 'ResourcesEstimator', or 'QuantumProcessor'.</ValidExecutionTargets>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpLibrary'"> The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
     <CsharpGeneration Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'">True</CsharpGeneration>
   </PropertyGroup>
 

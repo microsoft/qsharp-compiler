@@ -24,9 +24,9 @@
   <ItemGroup>
     <!-- Packages and libraries included for all execution targets. -->
     <!-- TODO: Core & Intrinsics package -->
-    <PackageReference Condition="$(IncludeDefaultPackages)" Include="Microsoft.Quantum.Standard" Version="0.10.1912.1606-beta" IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.10.1912.1606-beta" IsImplicitlyDefined="true" />
     <!-- Packages included for specific execution targets. -->
-    <PackageReference Condition="$(IncludeDefaultPackages) And '$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1912.1606-beta" IsImplicitlyDefined="true" />
+    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1912.1606-beta" IsImplicitlyDefined="true" />
   </ItemGroup>
 
   <!-- Packages containing rewrite steps that are executed during compilation. -->
