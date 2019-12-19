@@ -46,7 +46,7 @@ type PreEvaluation =
         QsCompilation.New (namespaces.ToImmutableArray(), arg.EntryPoints)
 
     /// Default sequence of optimizing transformations
-    static member private DefaultScript removeFunctions maxSize callables : OptimizingTransformation list =
+    static member DefaultScript removeFunctions maxSize callables : OptimizingTransformation list =
         [
             VariableRemover()
             StatementRemover(removeFunctions)
