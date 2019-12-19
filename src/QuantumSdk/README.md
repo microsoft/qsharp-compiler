@@ -55,7 +55,7 @@ The NuGet version of the Sdk package.
 The following properties can be configured to customize the build: 
 
 - `QscExe`:    
-The command to invoke the Q# compiler. The default value can be accessed via the `DefaultQscExe` property. The default value invokes the Q# compiler packages as tool with the Sdk. 
+The command to invoke the Q# compiler. The value set by default invokes the Q# compiler that is packaged as tool with the Sdk. The default value can be accessed via the `DefaultQscExe` property. 
 
 - `QscVerbosity`:    
 Defines the verbosity of the Q# compiler. Recognized values are: Quiet, Minimal, Normal, Detailed, and Diagnostic.
