@@ -9,7 +9,8 @@
   
   <!-- We want access to the full path of packages as determined by msbuild to filter and reorder various package references. -->
   <ItemDefinitionGroup>
-    <PackageReference GeneratePathProperty="true" IsQscReference ="false" />
+    <PackageReference IsQscReference ="false" GeneratePathProperty="true" />
+    <ProjectReference IsQscReference ="false" />
   </ItemDefinitionGroup>
   
 
@@ -56,7 +57,7 @@
     <!-- get the assembly path for all relevant project references which are passed as qsc references -->
     <ItemGroup>
       <QscProjectReference Remove="@(QscProjectReference)"/>
-      <QscProjectReference Include="@(_ResolvedProjectReferencePaths)" Condition="%(_ResolvedProjectReferencePaths.IsQscReference)" />
+      <QscProjectReference Include="@(_ResolvedProjectReferencePaths)" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsQscReference)" />
       <_RelevantQscProjectReference Remove="@(_RelevantQscProjectReference)"/>
       <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget',''))" /> 
       <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
@@ -65,7 +66,7 @@
     <!-- get the path property name for all relevant package references which are passed as qsc references -->
     <ItemGroup>
       <QscPackageReference Remove="@(QscPackageReference)"/>
-      <QscPackageReference Include="@(PackageReference)" Condition="%(PackageReference.IsQscReference)" />
+      <QscPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsQscReference)" />
       <_RelevantQscPackageReference Remove="@(_RelevantQscPackageReference)"/>
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
