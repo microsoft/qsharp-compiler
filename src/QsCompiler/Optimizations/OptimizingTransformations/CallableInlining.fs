@@ -122,7 +122,7 @@ let private cannotReachCallable (callables: ImmutableDictionary<QsQualifiedName,
 
 
 /// The SyntaxTreeTransformation used to inline callables
-type CallableInliner(callables) =
+type internal CallableInliner(callables) =
     inherit OptimizingTransformation()
 
     // The current callable we're in the process of transforming
