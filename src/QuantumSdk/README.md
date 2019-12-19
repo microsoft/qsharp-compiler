@@ -68,3 +68,16 @@ Directory where any generated documentation will be saved.
 
 [comment]: # (TODO: document QscBuildConfigExe, QscBuildConfigOutputPath)
 
+
+# Sdk packages
+
+To understand how the content in this package works it is useful to understand how the properties, item groups, and targets defined in the Sdk are combined with those defined by a specific project. 
+The order of evaluation for all properties and item groups is roughly the following: 
+
+- Properties defined in *.props files of the Sdk
+- Properties defined or included by the specific project file
+- Properties defined in *.targets files of the Sdk
+- Item groups defined in *.props files of the Sdk
+- Item groups defined or included by the specific project file
+- Item groups defined in *.targets files of the Sdk  
+
