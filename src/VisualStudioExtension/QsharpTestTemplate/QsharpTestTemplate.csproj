@@ -54,14 +54,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Common\AssemblyCommon.cs">
+    <Compile Include="..\..\Common\AssemblyCommon.cs">
       <Link>Properties\AssemblyCommon.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="AssemblyInfo.cs" />
-    <None Include="TestSuiteRunner.cs" />
     <Content Include="TestProjectTemplate.xml">
       <SubType>Designer</SubType>
     </Content>

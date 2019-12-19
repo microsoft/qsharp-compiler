@@ -13,11 +13,15 @@ namespace Microsoft.Quantum.Core {
     @ Attribute()
     newtype Deprecated = String;
 
-    @ Attribute()
-    newtype TestOperation = String;
-
 
     function Default<'T>() : 'T {
         return (new 'T[1])[0];
     }
+}
+
+namespace Microsoft.Quantum.Diagnostics {
+
+    // needs to be available for testing
+    @ Attribute()
+    newtype Test = String;
 }

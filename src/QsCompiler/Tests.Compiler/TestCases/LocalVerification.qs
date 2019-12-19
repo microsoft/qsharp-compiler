@@ -4,6 +4,7 @@
 /// This namespace contains test cases for expression and statement verification
 namespace Microsoft.Quantum.Testing.LocalVerification {
 
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Testing.General;
     open Microsoft.Quantum.Testing.TypeChecking;
 
@@ -877,127 +878,154 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     // unit tests
 
-    @ TestOperation("QuantumSimulator")
+    @Test("QuantumSimulator")
     function ValidTestAttribute1 () : Unit {}
 
-    @ TestOperation("TraceSimulator")
+    @ Test("ResourcesEstimator")
     function ValidTestAttribute2 () : Unit {}
 
-    @ TestOperation("ToffoliSimulator")
+    @ Test("ToffoliSimulator")
     function ValidTestAttribute3 () : Unit {}
 
-    @ TestOperation("QuantumSimulator")
+    @ Test("QuantumSimulator")
     operation ValidTestAttribute4 () : Unit {}
 
-    @ TestOperation("TraceSimulator")
+    @ Test("ResourcesEstimator")
     operation ValidTestAttribute5 () : Unit {}
 
-    @ TestOperation("ToffoliSimulator")
+    @ Test("ToffoliSimulator")
     operation ValidTestAttribute6 () : Unit {}
 
-    @ TestOperation("QuantumSimulator")
+    @ Test("QuantumSimulator")
     operation ValidTestAttribute7 () : Unit 
     is Adj + Ctl{}
 
-    @ TestOperation("TraceSimulator")
+    @ Test("ResourcesEstimator")
     operation ValidTestAttribute8 () : Unit 
     is Adj {}
 
-    @ TestOperation("ToffoliSimulator")
+    @ Test("ToffoliSimulator")
     operation ValidTestAttribute9 () : Unit 
     is Ctl {}
 
-    @ TestOperation("QuantumSimulator")
+    @ Test("QuantumSimulator")
     function ValidTestAttribute10 () : ((Unit)) {}
 
-    @ TestOperation("TraceSimulator")
+    @ Test("ResourcesEstimator")
     function ValidTestAttribute11 (arg : Unit) : Unit { }
 
-    @ TestOperation("ToffoliSimulator")
+    @ Test("ToffoliSimulator")
     operation ValidTestAttribute12 (arg : (Unit)) : Unit { }
 
-    @ TestOperation("QuantumSimulator")
-    @ TestOperation("ToffoliSimulator")
-    @ TestOperation("TraceSimulator")
+    @ Test("QuantumSimulator")
+    @ Test("ToffoliSimulator")
+    @ Test("ResourcesEstimator")
     function ValidTestAttribute13 () : Unit { }
 
-    @ TestOperation("QuantumSimulator")
-    @ TestOperation("ToffoliSimulator")
-    @ TestOperation("TraceSimulator")
+    @ Test("QuantumSimulator")
+    @ Test("ToffoliSimulator")
+    @ Test("ResourcesEstimator")
     operation ValidTestAttribute14 () : Unit { }
 
-    @ TestOperation("QuantumSimulator")
-    @ TestOperation("QuantumSimulator")
+    @ Test("QuantumSimulator")
+    @ Test("QuantumSimulator")
     operation ValidTestAttribute15 () : Unit { }
 
-    @ TestOperation("QuantumSimulator")
+    @ Test("QuantumSimulator")
     operation ValidTestAttribute16 () : { }
 
+    @ Test("SomeNamespace.Target")
+    operation ValidTestAttribute17 () : Unit { }
 
-    @ TestOperation("QuantumSimulator")
+    @ Test("SomeNamespace.Target1")
+    @ Test("_Some3_Namespace_._My45.Target2")
+    function ValidTestAttribute18 () : Unit { }
+
+    @ Test("SomeNamespace.Target")
+    @ Test("SomeNamespace.Target")
+    function ValidTestAttribute19 () : Unit { }
+
+    @ Test("SomeNamespace.Target")
+    @ Test("QuantumSimulator")
+    operation ValidTestAttribute20 () : Unit { }
+
+
+    @ Test("QuantumSimulator")
     newtype InvalidTestAttribute1 = Unit;
 
     function InvalidTestAttribute2 () : Unit {
-        @ TestOperation("ToffoliSimulator")
+        @ Test("ToffoliSimulator")
         body (...) {}
     }
 
     operation InvalidTestAttribute3 () : Unit {
-        @ TestOperation("TraceSimulator")
+        @ Test("ResourcesEstimator")
         body (...) {}
     }
 
     operation InvalidTestAttribute4 () : Unit {
         body (...) { }
-        @ TestOperation("TraceSimulator")
+        @ Test("ResourcesEstimator")
         adjoint (...) { }
     }
 
-    @ TestOperation("TraceSimulator")
+    @ Test("ResourcesEstimator")
     function InvalidTestAttribute5<'T> () : Unit { }
 
-    @ TestOperation("QuantumSimulator")
+    @ Test("QuantumSimulator")
     operation InvalidTestAttribute6<'T> () : Unit { }
 
-    @ TestOperation("TraceSimulator")
+    @ Test("ResourcesEstimator")
     operation InvalidTestAttribute7 () : Int { 
         return 1;
     }
 
-    @ TestOperation("ToffoliSimulator")
+    @ Test("ToffoliSimulator")
     function InvalidTestAttribute8 () : String { 
         return "";
     }
 
-    @ TestOperation("QuantumSimulator")
+    @ Test("QuantumSimulator")
     function InvalidTestAttribute9 (a : Unit, b : Unit) : Unit { }
 
-    @ TestOperation("TraceSimulator")
+    @ Test("ResourcesEstimator")
     operation InvalidTestAttribute10 (a : Bool) : Unit { }
 
-    @ TestOperation("ToffoliSimulator")
+    @ Test("ToffoliSimulator")
     operation InvalidTestAttribute11 ((a : Double)) : Unit { }
 
-    @ TestOperation("")
+    @ Test("")
     operation InvalidTestAttribute12 () : Unit { }
 
-    @ TestOperation("  ")
+    @ Test("  ")
     function InvalidTestAttribute13 () : Unit { }
 
-    @ TestOperation("Target")
+    @ Test("Target")
     function InvalidTestAttribute14 () : Unit { }
 
-    @ TestOperation("Target")
-    @ TestOperation("ToffoliSimulator")
-    @ TestOperation("ToffoliSimulator")
+    @ Test("Target")
+    @ Test("ToffoliSimulator")
+    @ Test("ToffoliSimulator")
     operation InvalidTestAttribute15 () : Unit { }
 
-    @ TestOperation("QuantumSimulator")
+    @ Test("QuantumSimulator")
     operation InvalidTestAttribute16 () : NonExistent { }
 
-    @ TestOperation ()
+    @ Test ()
     operation InvalidTestAttribute17 () : Unit { }
 
-    @ TestOperation 
+    @ Test 
     operation InvalidTestAttribute18 () : Unit { }
+
+    @ Test("SomeNamespace.")
+    operation InvalidTestAttribute19 () : Unit { }
+
+    @ Test("NS.3Qubit")
+    operation InvalidTestAttribute20 () : Unit { }
+
+    @ Test("SomeNamespace .Target")
+    function InvalidTestAttribute21 () : Unit { }
+
+    @ Test("Some Namespace.Target")
+    function InvalidTestAttribute22 () : Unit { }
 }

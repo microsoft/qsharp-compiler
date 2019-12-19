@@ -831,7 +831,7 @@ and NamespaceManager
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
                 
                 // the attribute marks a unit test
-                elif tId.Namespace.Value = BuiltIn.TestOperation.Namespace.Value && tId.Name.Value = BuiltIn.TestOperation.Name.Value then
+                elif tId.Namespace.Value = BuiltIn.Test.Namespace.Value && tId.Name.Value = BuiltIn.Test.Name.Value then
                     let isUnitToUnit (signature : CallableSignature) = 
                         let isUnitType = function 
                             | Tuple _ | Missing -> false
@@ -845,7 +845,7 @@ and NamespaceManager
                     | :? CallableSignature as signature when signature |> isUnitToUnit && not (signature.TypeParameters.Any()) -> 
                         let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument (fun ex -> ex.Expression)
                         let validExecutionTargets = BuiltIn.ValidExecutionTargets |> Seq.map (fun x -> x.ToLowerInvariant())
-                        if arg <> null && validExecutionTargets |> Seq.contains (arg.ToLowerInvariant()) then
+                        if arg <> null && (validExecutionTargets |> Seq.contains (arg.ToLowerInvariant()) || SyntaxGenerator.FullyQualifiedName.IsMatch arg) then
                             attributeHash :: alreadyDefined, att :: resAttr 
                         else (att.Offset, att.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidExecutionTargetForTest, [])) |> Seq.singleton |> returnInvalid 
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTestAttributePlacement, [])) |> Seq.singleton |> returnInvalid
@@ -1076,8 +1076,8 @@ and NamespaceManager
                         Parent = parent
                         Attributes = resolution.ResolvedAttributes
                         SourceFile = source
-                        Position = resolution.Position
-                        HeaderRange = resolution.Range
+                        Position = DeclarationHeader.Offset.Defined resolution.Position
+                        HeaderRange = DeclarationHeader.Range.Defined resolution.Range
                         Documentation = resolution.Documentation
                     }))
             defined.ToImmutableArray()
@@ -1107,8 +1107,8 @@ and NamespaceManager
                         QualifiedName = {Namespace = ns.Name; Name = cName}
                         Attributes = declaration.ResolvedAttributes
                         SourceFile = source
-                        Position = declaration.Position
-                        SymbolRange = declaration.Range
+                        Position = DeclarationHeader.Offset.Defined declaration.Position
+                        SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                         Signature = signature
                         ArgumentTuple = argTuple
                         Documentation = declaration.Documentation
@@ -1138,8 +1138,8 @@ and NamespaceManager
                         QualifiedName = {Namespace = ns.Name; Name = tName}
                         Attributes = qsType.ResolvedAttributes
                         SourceFile = source
-                        Position = qsType.Position
-                        SymbolRange = qsType.Range 
+                        Position = DeclarationHeader.Offset.Defined qsType.Position
+                        SymbolRange = DeclarationHeader.Range.Defined qsType.Range 
                         Type = underlyingType
                         TypeItems = items
                         Documentation = qsType.Documentation
@@ -1233,8 +1233,8 @@ and NamespaceManager
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
                 SourceFile = source
-                Position = declaration.Position
-                SymbolRange = declaration.Range 
+                Position = DeclarationHeader.Offset.Defined declaration.Position
+                SymbolRange = DeclarationHeader.Range.Defined declaration.Range 
                 Signature = resolvedSignature
                 ArgumentTuple = argTuple
                 Documentation = declaration.Documentation
@@ -1284,8 +1284,8 @@ and NamespaceManager
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
                 SourceFile = source
-                Position = declaration.Position
-                SymbolRange = declaration.Range 
+                Position = DeclarationHeader.Offset.Defined declaration.Position
+                SymbolRange = DeclarationHeader.Range.Defined declaration.Range 
                 Type = underlyingType
                 TypeItems = items
                 Documentation = declaration.Documentation

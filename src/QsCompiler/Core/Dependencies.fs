@@ -20,6 +20,7 @@ type BuiltIn = {
     static member CoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
+    static member DiagnosticsNamespace = NonNullable<string>.New "Microsoft.Quantum.Diagnostics"
 
     /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
@@ -27,7 +28,7 @@ type BuiltIn = {
     /// Returns all valid targets for executing Q# code.
     static member ValidExecutionTargets = 
         // Note: If this is adapted, then the error message for InvalidExecutionTargetForTest needs to be adapted as well.
-        ["QuantumSimulator"; "TraceSimulator"; "ToffoliSimulator"] 
+        ["QuantumSimulator"; "ToffoliSimulator"; "ResourcesEstimator"] 
         |> ImmutableHashSet.CreateRange
 
     /// Returns true if the given attribute marks the corresponding declaration as entry point. 
@@ -42,7 +43,7 @@ type BuiltIn = {
 
     /// Returns true if the given attribute marks the corresponding declaration as unit test. 
     static member MarksTestOperation (att : QsDeclarationAttribute) = att.TypeId |> function 
-        | Value tId -> tId.Namespace.Value = BuiltIn.TestOperation.Namespace.Value && tId.Name.Value = BuiltIn.TestOperation.Name.Value
+        | Value tId -> tId.Namespace.Value = BuiltIn.Test.Namespace.Value && tId.Name.Value = BuiltIn.Test.Name.Value
         | Null -> false
 
 
@@ -78,9 +79,9 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
-    static member TestOperation = {
-        Name = "TestOperation" |> NonNullable<string>.New
-        Namespace = BuiltIn.CoreNamespace // TODO: this should be another namespace
+    static member Test = {
+        Name = "Test" |> NonNullable<string>.New
+        Namespace = BuiltIn.DiagnosticsNamespace
         TypeParameters = ImmutableArray.Empty
     }
 
