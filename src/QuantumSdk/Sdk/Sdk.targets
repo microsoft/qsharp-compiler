@@ -19,20 +19,20 @@
 
 
   <!-- Target used to verify that the specified OutputType is valid. -->
-  <Target Name="VerifyOutputType" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="QsharpCompile">
+  <Target Name="VerifyOutputType" BeforeTargets="QsharpCompile">
     <Error Condition = "'$(OutputType)' == ''" Text="Missing OutputType. $(ValidOutputTypes)" />
     <Error Condition = "'$(ResolvedQsharpOutputType)' == '' And '$(OutputType)' != ''" Text="Invalid OutputType '$(OutputType)'. $(ValidOutputTypes)" />
   </Target>
 
   <!-- Target used to verify that the specified ExecutionTarget is valid. -->
-  <Target Name="VerifyExecutionTarget" DependsOnTargets="QsharpPropertyResolution" BeforeTargets="QsharpCompile">
+  <Target Name="VerifyExecutionTarget" BeforeTargets="QsharpCompile">
     <Error Condition = "'$(ExecutionTarget)' == ''" Text="Missing ExecutionTarget. $(ValidExecutionTargets)" />
     <Error Condition = "'$(ResolvedQsharpExecutionTarget)' == '' And '$(ExecutionTarget)' != ''" Text="Invalid ExecutionTarget '$(ExecutionTarget)'. $(ValidExecutionTargets)" />
   </Target>
 
 
   <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
-  <Target Name="QsharpClean" DependsOnTargets="ResolveQscOutputPaths;Restore" BeforeTargets="Clean">
+  <Target Name="QsharpClean" DependsOnTargets="Restore" BeforeTargets="Clean">
     <ItemGroup>
       <FilesToRemove Include="$(GeneratedFilesOutputPath)**" />
       <Compile Remove="$(FilesToRemove)**/*.g.cs" />
@@ -41,7 +41,7 @@
   </Target>  
 
   <!-- Invokes the Q# command line compiler to build the project. -->
-  <Target Name="QsharpCompile" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveQscOutputPaths" BeforeTargets="BeforeBuild">
+  <Target Name="QsharpCompile" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences" BeforeTargets="BeforeBuild">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />

@@ -11,10 +11,30 @@
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
   <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.props"/>
 
-  <!-- This indeed needs to live in this file to ensure that it is evaluated before 
-  the modifications to the QsharpCompile ItemGroup in the project file are applied. -->
+
+  <!-- The following item groups indeed needs to live in this file to ensure 
+  that they evaluated before the modifications in the project file are applied. -->
+
+  <!-- Q# source files included by default. -->
   <ItemGroup>
     <QsharpCompile Include="**/*.qs" Exclude="obj/**" />
+  </ItemGroup>
+
+  <!-- Q# package references included by default. -->
+  <ItemGroup>
+    <!-- Packages and libraries included for all execution targets. -->
+    <!-- TODO: Core & Intrinsics package -->
+    <PackageReference Condition="$(IncludeDefaultPackages)" Include="Microsoft.Quantum.Standard" Version="0.10.1912.1606-beta" IsImplicitlyDefined="true" />
+    <!-- Packages included for specific execution targets. -->
+    <PackageReference Condition="$(IncludeDefaultPackages) And '$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1912.1606-beta" IsImplicitlyDefined="true" />
+  </ItemGroup>
+
+  <!-- Packages containing rewrite steps that are executed during compilation. -->
+  <ItemGroup>
+    <!-- for backwards compatibility we still generate C# independent on whether the project is targeted for execution on the simulation framework or not -->
+    <PackageReference Condition="$(CsharpGeneration)"
+      Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1912.1606-beta" IsImplicitlyDefined="true" 
+      IsQscReference ="true" ExecutionTarget="Any" Priority="-1" />
   </ItemGroup>
 
 </Project>
