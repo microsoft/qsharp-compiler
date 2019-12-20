@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.FSharp.Core;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -15,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using ParamTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
+    //using ParamTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
 
     internal static class Helper
     {
@@ -323,7 +325,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                     targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
                 }
-                else if (isCondValid)
+                else if (isCondValid && defaultScope == null)
                 {
                     (controlOpInfo, controlOpType) = (result == QsResult.One)
                     ? (BuiltIn.ApplyIfOne, BuiltIn.ApplyIfOneResolvedType)
@@ -335,18 +337,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                     targetArgs = ImmutableArray.Create(condArgs.ResolvedType);
                 }
-                else if (isDefaultValid)
-                {
-                    (controlOpInfo, controlOpType) = (result == QsResult.One)
-                    ? (BuiltIn.ApplyIfZero, BuiltIn.ApplyIfZeroResolvedType)
-                    : (BuiltIn.ApplyIfOne, BuiltIn.ApplyIfOneResolvedType);
-
-                    controlArgs = Helper.CreateValueTupleExpression(
-                        conditionExpression,
-                        Helper.CreateValueTupleExpression(defaultId, defaultArgs));
-
-                    targetArgs = ImmutableArray.Create(defaultArgs.ResolvedType);
-                }
+                //else if (isDefaultValid)
+                //{
+                //    (controlOpInfo, controlOpType) = (result == QsResult.One)
+                //    ? (BuiltIn.ApplyIfZero, BuiltIn.ApplyIfZeroResolvedType)
+                //    : (BuiltIn.ApplyIfOne, BuiltIn.ApplyIfOneResolvedType);
+                //
+                //    controlArgs = Helper.CreateValueTupleExpression(
+                //        conditionExpression,
+                //        Helper.CreateValueTupleExpression(defaultId, defaultArgs));
+                //
+                //    targetArgs = ImmutableArray.Create(defaultArgs.ResolvedType);
+                //}
                 else
                 {
                     return null;
@@ -663,20 +665,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
         private class RerouteTypeParamOriginTransformation
         {
             private bool _IsRecursiveIdentifier = false;
+            private ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> _Parameters;
             private QsQualifiedName _OldName;
             private QsQualifiedName _NewName;
 
-            public static QsCallable Apply(QsCallable qsCallable, QsQualifiedName oldName, QsQualifiedName newName)
+            public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             {
                 var filter = new SyntaxTreeTransformation<ScopeTransformation<RerouteTypeParamOriginExpression>>(
                     new ScopeTransformation<RerouteTypeParamOriginExpression>(
                         new RerouteTypeParamOriginExpression(
-                            new RerouteTypeParamOriginTransformation(oldName, newName))));
+                            new RerouteTypeParamOriginTransformation(parameters, oldName, newName))));
 
                 return filter.onCallableImplementation(qsCallable);
             }
 
-            private RerouteTypeParamOriginTransformation(QsQualifiedName oldName, QsQualifiedName newName) { _OldName = oldName; _NewName = newName; }
+            private RerouteTypeParamOriginTransformation(ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            {
+                _Parameters = parameters;
+                _OldName = oldName;
+                _NewName = newName;
+            }
 
             private class RerouteTypeParamOriginExpression : ExpressionTransformation<Core.ExpressionKindTransformation, RerouteTypeParamOriginExpressionType>
             {
@@ -696,6 +704,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 {
                     // prevent _IsRecursiveIdentifier from propagating beyond the typed expression it is referring to
                     var isRecursiveIdentifier = _super._IsRecursiveIdentifier;
+
+                    // Checks if expression is mutable identifier that is in parameter list
+                    if (ex.InferredInformation.IsMutable &&
+                        ex.Expression is ExpressionKind.Identifier id &&
+                        id.Item1 is Identifier.LocalVariable variable &&
+                        _super._Parameters.Any(x => x.VariableName.Equals(variable)))
+                    {
+                        // Set the mutability to false
+                        ex = new TypedExpression(
+                            ex.Expression,
+                            ex.TypeArguments,
+                            ex.ResolvedType,
+                            new InferredExpressionInformation(false, ex.InferredInformation.HasLocalQuantumDependency),
+                            ex.Range);
+                    }
+
                     var rtrn = base.Transform(ex);
                     _super._IsRecursiveIdentifier = isRecursiveIdentifier;
                     return rtrn;
@@ -753,6 +777,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             private bool _IsValidScope = true;
             private List<QsCallable> _ControlOperations;
             private QsCallable _CurrentCallable = null;
+            private ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> _CurrentHoistParams =
+                ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
+            private bool _ContainsHoistParamRef = false; // ToDo: May need to explicitly reset this value after every statement.
             //private QsStatement _CurrentConditional = null;
 
             public static QsCompilation Apply(QsCompilation compilation)
@@ -768,10 +795,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     _CurrentCallable.FullName.Namespace,
                     NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + _CurrentCallable.FullName.Name.Value));
 
-                var knownVariables = contents.KnownSymbols.Variables;
+                var knownVariables = contents.KnownSymbols.IsEmpty
+                    ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
+                    : contents.KnownSymbols.Variables;
 
-                var parameters = ParamTuple.NewQsTuple(knownVariables
-                    .Select(var => ParamTuple.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
+                var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTuple(knownVariables
+                    .Select(var => QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
                         QsLocalSymbol.NewValidName(var.VariableName),
                         var.Type,
                         var.InferredInformation,
@@ -817,7 +846,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     ImmutableArray<string>.Empty,
                     QsComments.Empty);
 
-                var reroutedCallable = RerouteTypeParamOriginTransformation.Apply(controlCallable, _CurrentCallable.FullName, newName);
+                var reroutedCallable = RerouteTypeParamOriginTransformation.Apply(controlCallable, knownVariables, _CurrentCallable.FullName, newName);
                 _ControlOperations.Add(reroutedCallable);
 
                 return (newName, paramTypes);
@@ -879,6 +908,72 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public HoistStatementKind(HoistTransformation super, HoistScope scope) : base(scope) { _super = super; }
 
+                private QsStatement HoistIfContents(QsScope contents)
+                {
+                    var (targetName, targetParamType) = _super.GenerateOperation(contents);
+                    var targetOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
+                        Tuple.Create(
+                            targetParamType,
+                            ResolvedType.New(ResolvedTypeKind.UnitType)), // ToDo: something has to be done to allow for mutables in sub-scopes
+                        CallableInformation.NoInformation));
+
+                    var targetTypeParamTypes = GetTypeParamTypesFromCallable(_super._CurrentCallable);
+                    var targetOpId = new TypedExpression
+                    (
+                        ExpressionKind.NewIdentifier(Identifier.NewGlobalCallable(targetName), targetTypeParamTypes),
+                        targetTypeParamTypes.IsNull
+                            ? ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty
+                            : targetTypeParamTypes.Item
+                                .Select(type => Tuple.Create(targetName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
+                                .ToImmutableArray(),
+                        targetOpType,
+                        new InferredExpressionInformation(false, false),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                    );
+
+                    var knownSymbols = contents.KnownSymbols.IsEmpty
+                        ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
+                        : contents.KnownSymbols.Variables;
+
+                    TypedExpression targetArgs = null;
+                    if (knownSymbols.Any())
+                    {
+                        targetArgs = Helper.CreateValueTupleExpression(knownSymbols.Select(var => Helper.CreateIdentifierExpression(
+                            Identifier.NewLocalVariable(var.VariableName),
+                            QsNullable<ImmutableArray<ResolvedType>>.Null,
+                            var.Type))
+                            .ToArray());
+                    }
+                    else
+                    {
+                        targetArgs = new TypedExpression
+                        (
+                            ExpressionKind.UnitValue,
+                            ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
+                            ResolvedType.New(ResolvedTypeKind.UnitType),
+                            new InferredExpressionInformation(false, false),
+                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                        );
+                    }
+
+                    var call = new TypedExpression
+                    (
+                        ExpressionKind.NewCallLikeExpression(targetOpId, targetArgs),
+                        ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty, // ToDo: Fill out type param resolutions caused by application of arguments
+                        ResolvedType.New(ResolvedTypeKind.UnitType),
+                        new InferredExpressionInformation(false, true),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                    );
+
+                    return new QsStatement(
+                        QsStatementKind.NewQsExpressionStatement(call),
+                        LocalDeclarations.Empty,
+                        //statement.SymbolDeclarations,
+                        QsNullable<QsLocation>.Null,
+                        QsComments.Empty);
+                    //statement.Comments);
+                }
+
                 private QsNullable<ImmutableArray<ResolvedType>> GetTypeParamTypesFromCallable(QsCallable callable)
                 {
                     if (callable.Signature.TypeParameters.Any(param => param.IsValidName))
@@ -907,26 +1002,34 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public override QsStatementKind onValueUpdate(QsValueUpdate stm)
                 {
-                    // ToDo
-
                     // If lhs contains an identifier found in the scope's known variables, return false
-                    //stm.Lhs;
+                    
+                    var lhs = this.ExpressionTransformation(stm.Lhs);
 
-                    _super._IsValidScope = false;
+                    if (_super._ContainsHoistParamRef)
+                    {
+                        _super._IsValidScope = false;
+                    }
 
-                    return base.onValueUpdate(stm);
+                    var rhs = this.ExpressionTransformation(stm.Rhs);
+                    return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
                 }
 
                 public override QsStatementKind onConditionalStatement(QsConditionalStatement stm)
                 {
                     // ToDo: Revisit this method when the F# Option type has been removed from the onPositionBlock function.
 
-                    var temp = _super._IsValidScope;
+                    var contextValidScope = _super._IsValidScope;
+                    var contextHoistParams = _super._CurrentHoistParams;
 
                     var newConditionBlocks = stm.ConditionalBlocks
                         .Select(condBlock =>
                         {
                             _super._IsValidScope = true;
+                            _super._CurrentHoistParams = condBlock.Item2.Body.KnownSymbols.IsEmpty
+                            ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
+                            : condBlock.Item2.Body.KnownSymbols.Variables;
+
                             var (expr, block) = this.onPositionedBlock(condBlock.Item1, condBlock.Item2);
                             if (_super._IsValidScope) // if sub-scope is valid, hoist content
                             {
@@ -944,6 +1047,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     if (stm.Default.IsValue)
                     {
                         _super._IsValidScope = true;
+                        _super._CurrentHoistParams = stm.Default.Item.Body.KnownSymbols.IsEmpty
+                            ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
+                            : stm.Default.Item.Body.KnownSymbols.Variables;
+
                         var (_, block) = this.onPositionedBlock(null, stm.Default.Item); // ToDo: null is probably bad here
                         if (_super._IsValidScope) // if sub-scope is valid, hoist content
                         {
@@ -957,72 +1064,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
                     }
 
-                    _super._IsValidScope = temp;
+                    _super._CurrentHoistParams = contextHoistParams;
+                    _super._IsValidScope = contextValidScope;
 
                     return QsStatementKind.NewQsConditionalStatement(
                         new QsConditionalStatement(newConditionBlocks, newDefault));
-                }
-
-                private QsStatement HoistIfContents(QsScope contents)
-                {
-                    var (targetName, targetParamType) = _super.GenerateOperation(contents);
-                    var targetOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
-                        Tuple.Create(
-                            targetParamType,
-                            ResolvedType.New(ResolvedTypeKind.UnitType)), // ToDo: something has to be done to allow for mutables in sub-scopes
-                        CallableInformation.NoInformation));
-
-                    var targetTypeParamTypes = GetTypeParamTypesFromCallable(_super._CurrentCallable);
-                    var targetOpId = new TypedExpression
-                    (
-                        ExpressionKind.NewIdentifier(Identifier.NewGlobalCallable(targetName), targetTypeParamTypes),
-                        targetTypeParamTypes.IsNull
-                            ? ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty
-                            : targetTypeParamTypes.Item
-                                .Select(type => Tuple.Create(targetName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
-                                .ToImmutableArray(),
-                        targetOpType,
-                        new InferredExpressionInformation(false, false),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                    );
-
-                    TypedExpression targetArgs = null;
-                    if (contents.KnownSymbols.Variables.Any())
-                    {
-                        targetArgs = Helper.CreateValueTupleExpression(contents.KnownSymbols.Variables.Select(var => Helper.CreateIdentifierExpression(
-                            Identifier.NewLocalVariable(var.VariableName),
-                            QsNullable<ImmutableArray<ResolvedType>>.Null,
-                            var.Type))
-                            .ToArray());
-                    }
-                    else
-                    {
-                        targetArgs = new TypedExpression
-                        (
-                            ExpressionKind.UnitValue,
-                            ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
-                            ResolvedType.New(ResolvedTypeKind.UnitType),
-                            new InferredExpressionInformation(false, false),
-                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                        );
-                    }
-
-                    var call = new TypedExpression
-                    (
-                        ExpressionKind.NewCallLikeExpression(targetOpId, targetArgs),
-                        ImmutableArray<Tuple<QsQualifiedName,NonNullable<string>,ResolvedType>>.Empty, // ToDo: Fill out type param resolutions caused by application of arguments
-                        ResolvedType.New(ResolvedTypeKind.UnitType),
-                        new InferredExpressionInformation(false, true),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                    );
-
-                    return new QsStatement(
-                        QsStatementKind.NewQsExpressionStatement(call),
-                        LocalDeclarations.Empty,
-                        //statement.SymbolDeclarations,
-                        QsNullable<QsLocation>.Null,
-                        QsComments.Empty);
-                        //statement.Comments);
                 }
 
                 //private QsStatement oldCreateApplyIfStatement(QsStatement statement, QsResult result, TypedExpression conditionExpression, QsScope contents)
@@ -1098,6 +1144,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     base(expr => new HoistExpressionKind(super, expr as HoistExpression),
                          expr => new HoistExpressionType(super, expr as HoistExpression))
                 { _super = super; }
+
+                public override TypedExpression Transform(TypedExpression ex)
+                {
+                    var contextContainsHoistParamRef = _super._ContainsHoistParamRef;
+                    _super._ContainsHoistParamRef = false;
+                    var rtrn = base.Transform(ex);
+
+                    // If the sub context contains a reference, then the super context contains a reference,
+                    // otherwise return the super context to its original value
+                    if (!_super._ContainsHoistParamRef)
+                    {
+                        _super._ContainsHoistParamRef = contextContainsHoistParamRef;
+                    }
+
+                    return rtrn;
+                }
             }
 
             private class HoistExpressionKind : ExpressionKindTransformation<HoistExpression>
@@ -1105,6 +1167,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 private HoistTransformation _super;
 
                 public HoistExpressionKind(HoistTransformation super, HoistExpression expr) : base(expr) { _super = super; }
+
+                public override ExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+                {
+                    if (sym is Identifier.LocalVariable local &&
+                        _super._CurrentHoistParams.Any(param => param.VariableName.Equals(local.Item)))
+                    {
+                        _super._ContainsHoistParamRef = true;
+                    }
+                    return base.onIdentifier(sym, tArgs);
+                }
             }
 
             private class HoistExpressionType : ExpressionTypeTransformation<HoistExpression>
