@@ -37,4 +37,16 @@
       IsQscReference ="true" ExecutionTarget="Any" Priority="-1" />
   </ItemGroup>
 
+
+  <!-- The following targets indeed need to live in this file since they are specifically defined 
+  to be executed at a certain stage in the build and thus serve as handles that a project may redefine. -->
+
+  <!-- Empty target that can be redefined to run tasks just before QsharpCompile. -->
+  <Target Name="BeforeQsharpCompile">
+  </Target>  
+
+  <!-- Empty target that can be redefined to run tasks just before CsharpCompile. -->
+  <Target Name="BeforeCsharpCompile">
+  </Target>  
+
 </Project>

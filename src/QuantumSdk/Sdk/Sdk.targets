@@ -80,16 +80,13 @@
   </Target>   
 
 
-  <!-- Empty target that can be redefined to run tasks just before QsharpCompile. -->
-  <Target Name="BeforeQsharpCompile">
-  </Target>  
-
-  <!-- Empty target that can be redefined to run tasks just before CsharpCompile. -->
-  <Target Name="BeforeCsharpCompile">
-  </Target>  
+  <!-- The following targets need to live in this file since they are specifically defined 
+  anchor the targets that a project may redefine to execute at a certain stage during the build. 
+  These targets hence must not be redefined by the project. -->
 
   <!-- Helper target to anchor the BeforeCsharpCompile target. -->
   <Target Name="_DependsOnBeforeCsharpCompile" DependsOnTargets="BeforeCsharpCompile" BeforeTargets="BeforeCompile">
+    <Message Text= "INVOKATION OF _DependsOnBeforeCsharpCompile" Importance="High" />
   </Target>  
 
 </Project>

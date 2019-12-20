@@ -111,3 +111,4 @@ The order of evaluation for properties and item groups is roughly the following:
 - Item groups defined or included by the specific project file
 - Item groups defined in *.targets files of the Sdk  
 
+Similar considerations apply for the definition of targets. MSBuild will overwrite targets if multiple targets with the same name are defined. In that case, the target is replaced in its entirety independent on whether the values for `DependsOn`, `BeforeTarget`, and `AfterTarget` match - i.e. those will be overwritten. However, a target can be "anchored" by the surrounding targets' specifications of their dependencies, see e.g. the defined `BeforeCsharpCompile` target. 
