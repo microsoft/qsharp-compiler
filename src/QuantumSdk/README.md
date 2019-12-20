@@ -5,7 +5,7 @@
 The NuGet package Microsoft.Quantum.Sdk serves a .NET Core Sdk for developing quantum applications. 
 It contains the properties and targets that define the compilation process for Q# projects, tools used as part of the build, as well as some project system support for Q# files. It in particular also provides the support for executing a compilation step defined in a package or project reference as part of the compilation process. See [this section](#extending-the-q#-compiler) for more details.
 
-The Sdk includes all *.qs files within the project directory as well as the Q# standard libraries by default. No additional reference to `Microsoft.Quantum.Standard` is needed. 
+The Sdk includes all *.qs files within the project directory as well as the Q# standard libraries by default. No additional reference to `Microsoft.Quantum.Standard` is needed. For more details see the [section on defined properties](#defined-project-properties) below.  
 
 ## Using the Sdk ##
 
@@ -53,6 +53,12 @@ The version of the Q# language specification.
 The NuGet version of the Sdk package.
 
 The following properties can be configured to customize the build: 
+
+- `CsharpGeneration`:    
+Specifies whether to generate C# code as part of the compilation process. Setting this property to false may prevent certain interoperability features or integration with other pieces of the Quantum Development Kit. 
+
+- `IncludeQsharpCorePackages`:     
+Specifies whether the packages providing the basic language support for Q# are referenced. This property is set to true by default. If set to false, the Sdk will not reference any Q# libraries. 
 
 - `QscExe`:    
 The command to invoke the Q# compiler. The value set by default invokes the Q# compiler that is packaged as tool with the Sdk. The default value can be accessed via the `DefaultQscExe` property. 
