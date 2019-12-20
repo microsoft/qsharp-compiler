@@ -31,6 +31,8 @@ Any project that uses the Quantum Sdk can easily incorporate custom compilation 
 ```
 A custom compilation step is defined by a class that implements the [IRewriteStep interface](https://github.com/microsoft/qsharp-compiler/blob/master/src/QsCompiler/Compiler/PluginInterface.cs). The output assembly of a project reference or any .NET Core library contained in a package reference marked as qsc reference is loaded during compilation and searched for classes implementing the `IRewriteStep` interface. Any such class is instantiated using the default constructor, and the implemented transformation is executed. 
 
+[comment]: # (TODO: add a section detailing the IRewriteStep interface, and link it here)
+
 The order in which these steps are executed can be configured by specifying their priority:
 ```
     <ProjectReference Include="MyCustomCompilationStep.csproj" IsQscReference="true" Priority="2"/>
@@ -42,7 +44,30 @@ Steps defined within packages or projects with higher priority are executed firs
 
 [comment]: # (TODO: describe how to limit included rewrite steps to a particular execution target)
 
-## Defined project properties
+### Injected C# code ###
+
+It is possible to inject C# code into Q# packages e.g. for integration purposes. By default the Sdk is configured to do just that, see also the section on [defined properties](#defined-project-properties). That code may be generated as part of a custom rewrite step, e.g. if the code generation requires information about the Q# compilation. 
+The Sdk defines a couple of build targets that can be redefined to run certain tasks before important build stages. These targets do nothing by default and merely serve as handles to easily integrate into the build process.
+
+The following such targets are currently available: 
+
+- `BeforeQsharpCompile`:    
+The target will execute right before the Q# compiler is invoked. All assembly references and the paths to all qsc references will be resolved at that time.   
+
+- `BeforeCsharpCompile`:    
+The target will execute right before the C# compiler is invoked. All Q# compilation steps will have completed at that time, and in particular all rewrite steps will have been executed.  
+
+For example, if a qsc reference contains a rewrite step that generates C# code during transformation, that code can be included into the built dll by adding the following target to the project file: 
+
+```
+  <Target Name="BeforeCsharpCompile">
+    <ItemGroup>
+      <Compile Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
+    </ItemGroup>
+  </Target>  
+```
+
+## Defined project properties ##
 
 The Sdk defines the following properties for each project using it: 
 
@@ -74,8 +99,7 @@ Directory where any generated documentation will be saved.
 
 [comment]: # (TODO: document QscBuildConfigExe, QscBuildConfigOutputPath)
 
-
-# Sdk Packages
+# Sdk Packages #
 
 To understand how the content in this package works it is useful to understand how the properties, item groups, and targets defined in the Sdk are combined with those defined by a specific project. 
 The order of evaluation for properties and item groups is roughly the following: 
