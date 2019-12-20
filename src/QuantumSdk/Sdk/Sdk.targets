@@ -86,7 +86,6 @@
 
   <!-- Helper target to anchor the BeforeCsharpCompile target. -->
   <Target Name="_DependsOnBeforeCsharpCompile" DependsOnTargets="BeforeCsharpCompile" BeforeTargets="BeforeCompile">
-    <Message Text= "INVOKATION OF _DependsOnBeforeCsharpCompile" Importance="High" />
   </Target>  
 
 </Project>
