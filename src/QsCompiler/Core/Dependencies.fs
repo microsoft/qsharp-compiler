@@ -136,6 +136,62 @@ type BuiltIn = {
 
     static member ApplyIfZeroResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfZero
 
+    // This is expected to have type <'T, 'U>((Result, (('T => Unit), 'T), (('U => Unit), 'U)) => Unit)
+    static member ApplyIfElseR = {
+        Name = "ApplyIfElseR" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
+    }
+
+    static member private _MakeApplyIfElseResolvedType builtIn =
+        let typeParamT =
+            {
+                Origin = {Namespace = builtIn.Namespace; Name = builtIn.Name};
+                TypeName = builtIn.TypeParameters.[0];
+                Range = QsRangeInfo.Null
+            } |> TypeParameter |> ResolvedType.New
+
+        let typeParamU =
+            {
+                Origin = {Namespace = builtIn.Namespace; Name = builtIn.Name};
+                TypeName = builtIn.TypeParameters.[1];
+                Range = QsRangeInfo.Null
+            } |> TypeParameter |> ResolvedType.New
+
+        let args = 
+            [
+                Result |> ResolvedType.New;
+                [
+                    (
+                        (
+                            typeParamT,
+                            UnitType |> ResolvedType.New
+                        ),
+                        CallableInformation.NoInformation
+                    ) |> Operation |> ResolvedType.New;
+                    typeParamT
+                ].ToImmutableArray() |> TupleType |> ResolvedType.New;
+                [
+                    (
+                        (
+                            typeParamU,
+                            UnitType |> ResolvedType.New
+                        ),
+                        CallableInformation.NoInformation
+                    ) |> Operation |> ResolvedType.New;
+                    typeParamU
+                ].ToImmutableArray() |> TupleType |> ResolvedType.New
+            ].ToImmutableArray() |> TupleType |> ResolvedType.New
+
+        (
+            (
+                args,
+                ResolvedType.New UnitType
+            ),
+            CallableInformation.NoInformation
+        ) |> Operation |> ResolvedType.New
+
+    static member ApplyIfElseRResolvedType = BuiltIn._MakeApplyIfElseResolvedType BuiltIn.ApplyIfElseR
 
     // "weak dependencies" in other namespaces (e.g. things used for code actions)
 
