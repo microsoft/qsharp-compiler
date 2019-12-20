@@ -41,7 +41,7 @@
   </Target>  
 
   <!-- Invokes the Q# command line compiler to build the project. -->
-  <Target Name="QsharpCompile" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences" BeforeTargets="BeforeBuild">
+  <Target Name="QsharpCompile" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;BeforeQsharpCompile" BeforeTargets="BeforeCsharpCompile;BeforeBuild">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
@@ -79,13 +79,18 @@
     </ItemGroup>
   </Target>   
 
+FIXME WE CAN'T HAVE THE TARGET ITSELF DEFINE HOW IT NEEDS TO BE INTEGRATED...
 
   <!-- Empty target that can be redefined to run tasks just before QsharpCompile. -->
-  <Target Name="BeforeQsharpCompile" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences" BeforeTargets="QsharpCompile">
+  <Target Name="BeforeQsharpCompile">
   </Target>  
 
   <!-- Empty target that can be redefined to run tasks just before CsharpCompile. -->
-  <Target Name="BeforeCsharpCompile" DependsOnTargets="QsharpCompile" BeforeTargets="BeforeCompile">
+  <Target Name="BeforeCsharpCompile">
+  </Target>  
+
+  <!-- Helper target to anchor the BeforeCsharpCompile target. -->
+  <Target Name="_DependsOnBeforeCsharpCompile" DependsOnTargets="BeforeCsharpCompile" BeforeTargets="BeforeCompile">
   </Target>  
 
 </Project>
