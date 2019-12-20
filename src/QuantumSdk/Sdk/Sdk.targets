@@ -79,5 +79,14 @@
     </ItemGroup>
   </Target>   
 
+
+  <!-- Empty target that can be redefined to run tasks just before QsharpCompile. -->
+  <Target Name="BeforeQsharpCompile" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences" BeforeTargets="QsharpCompile">
+  </Target>  
+
+  <!-- Empty target that can be redefined to run tasks just before CsharpCompile. -->
+  <Target Name="BeforeCsharpCompile" DependsOnTargets="QsharpCompile" BeforeTargets="BeforeCompile">
+  </Target>  
+
 </Project>
 
