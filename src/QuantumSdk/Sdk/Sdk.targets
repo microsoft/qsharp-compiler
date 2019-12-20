@@ -79,7 +79,6 @@
     </ItemGroup>
   </Target>   
 
-FIXME WE CAN'T HAVE THE TARGET ITSELF DEFINE HOW IT NEEDS TO BE INTEGRATED...
 
   <!-- Empty target that can be redefined to run tasks just before QsharpCompile. -->
   <Target Name="BeforeQsharpCompile">
