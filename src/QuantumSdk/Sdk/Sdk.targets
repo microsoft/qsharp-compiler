@@ -41,7 +41,11 @@
   </Target>  
 
   <!-- Invokes the Q# command line compiler to build the project. -->
-  <Target Name="QsharpCompile" DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;BeforeQsharpCompile" BeforeTargets="BeforeCsharpCompile;BeforeBuild">
+  <Target Name="QsharpCompile" 
+          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;BeforeQsharpCompile" 
+          BeforeTargets="BeforeCsharpCompile;BeforeBuild"
+          Inputs="@(ResolvedQscReferences);@(ReferencePath);@(QsharpCompile)"
+          Outputs="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
