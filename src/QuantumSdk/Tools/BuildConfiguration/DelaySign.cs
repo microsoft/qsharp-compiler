@@ -5,7 +5,7 @@ using System.Reflection;
 
 // Attributes for delay-signing
 #if SIGNED
-[assembly:AssemblyKeyFile("..\\..\\..\\build\\267DevDivSNKey2048.snk")]
+[assembly:AssemblyKeyFile("..\\..\\..\\..\\build\\267DevDivSNKey2048.snk")]
 [assembly:AssemblyDelaySign(true)]
 #endif
 
