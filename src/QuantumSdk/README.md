@@ -29,6 +29,8 @@ Any project that uses the Quantum Sdk can easily incorporate custom compilation 
     ...
     <PackageReference Include="MyCustom.Qsharp.Compiler.Extensions" Version="1.0.0.0" IsQscReference="true"/>
 ```
+Marking all assets as private by adding a `PrivateAssets="All"` attribute is generally a good practice if the reference is a development only dependency, which is often the case for assemblies that implement rewrite steps.
+
 A custom compilation step is defined by a class that implements the [IRewriteStep interface](https://github.com/microsoft/qsharp-compiler/blob/master/src/QsCompiler/Compiler/PluginInterface.cs). The output assembly of a project reference or any .NET Core library contained in a package reference marked as qsc reference is loaded during compilation and searched for classes implementing the `IRewriteStep` interface. Any such class is instantiated using the default constructor, and the implemented transformation is executed. 
 
 [comment]: # (TODO: add a section detailing the IRewriteStep interface, and link it here)

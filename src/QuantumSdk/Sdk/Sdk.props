@@ -32,7 +32,7 @@
   <!-- Packages containing rewrite steps that are executed during compilation. -->
   <ItemGroup>
     <PackageReference Condition="$(CsharpGeneration)" Include="Microsoft.Quantum.Runtime.Core" Version="0.10.1912.2208-alpha" IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CsharpGeneration)" PrivateAsset="true"
+    <PackageReference Condition="$(CsharpGeneration)" PrivateAssets="All"
       Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.1912.2208-alpha" IsImplicitlyDefined="true" 
       IsQscReference ="true" ExecutionTarget="Any" Priority="-1" />
   </ItemGroup>
