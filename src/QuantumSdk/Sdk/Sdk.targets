@@ -48,8 +48,8 @@
                   @(QsharpCompile);
                   @(ReferencePath);
                   @(ResolvedQscReferences);
-                  @(ResolvedQscReferencesAndPriorities)
-                  $(PathCompatibleAssemblyName)
+                  @(ResolvedQscReferencesAndPriorities);
+                  $(PathCompatibleAssemblyName);
                   $(GeneratedFilesOutputPath);
                   $(QscBuildConfigOutputPath);
                   $(QsharpDocsOutputPath);
@@ -58,7 +58,7 @@
                   $(QscBuildConfigExe);
                   $(QscExe)"
           Outputs="@(ResolvedQsharpReferences);
-                  @(Compile)
+                  @(Compile);
                   $(QscBuildConfigGeneration);
                   $(QscCommand);
                   $(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson">
