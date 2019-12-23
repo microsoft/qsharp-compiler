@@ -44,8 +44,24 @@
   <Target Name="QsharpCompile" 
           DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;BeforeQsharpCompile" 
           BeforeTargets="BeforeCsharpCompile;BeforeBuild"
-          Inputs="@(ResolvedQscReferences);@(ReferencePath);@(QsharpCompile)"
-          Outputs="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson">
+          Inputs="$(MSBuildAllProjects);
+                  @(QsharpCompile);
+                  @(ReferencePath);
+                  @(ResolvedQscReferences);
+                  @(ResolvedQscReferencesAndPriorities)
+                  $(PathCompatibleAssemblyName)
+                  $(GeneratedFilesOutputPath);
+                  $(QscBuildConfigOutputPath);
+                  $(QsharpDocsOutputPath);
+                  $(QsharpDocsGeneration);
+                  $(CsharpGeneration);
+                  $(QscBuildConfigExe);
+                  $(QscExe)"
+          Outputs="@(ResolvedQsharpReferences);
+                  @(Compile)
+                  $(QscBuildConfigGeneration);
+                  $(QscCommand);
+                  $(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
@@ -54,7 +70,7 @@
       <_VerbosityFlag Condition="'$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic'">-v</_VerbosityFlag>
       <_BuildConfigFile>$(QscBuildConfigOutputPath)qsc.config</_BuildConfigFile>
       <_BuildConfigGenerationOutputFlag>--output "$(_BuildConfigFile)"</_BuildConfigGenerationOutputFlag>
-      <_BuildConfigGenerationQscReferencesFlag Condition="@(ResolvedQscReferences->Count()) &gt; 0">--QscReferences "@(ResolvedQscReferencesAndPriorities,'" "')"</_BuildConfigGenerationQscReferencesFlag>
+      <_BuildConfigGenerationQscReferencesFlag Condition="@(ResolvedQscReferencesAndPriorities->Count()) &gt; 0">--QscReferences "@(ResolvedQscReferencesAndPriorities,'" "')"</_BuildConfigGenerationQscReferencesFlag>
       <QscBuildConfigGeneration>$(QscBuildConfigExe) $(_VerbosityFlag) $(_BuildConfigGenerationOutputFlag) $(_BuildConfigGenerationQscReferencesFlag)</QscBuildConfigGeneration>
     </PropertyGroup>
     <Exec Command="$(QscBuildConfigGeneration)" IgnoreExitCode="false" /> 
