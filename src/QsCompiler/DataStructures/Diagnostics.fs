@@ -320,8 +320,6 @@ type WarningCode =
     | PreconditionVerificationFailed = 7201
     | RewriteStepLoadedViaReflection = 7202
     | FailedToLoadRewriteStepViaReflection = 7203
-    | ReferenceLoadedFromFallbackFolder = 7204
-    | ReferenceFailedToLoadFromFallbackFolder = 7205
 
 
 type InformationCode = 
@@ -329,8 +327,6 @@ type InformationCode =
     | CompilingWithSourceFiles = 7002
     | CompilingWithAssemblies = 7003
     | LoadedRewriteSteps = 7004
-    | FilesInFallbackFolder = 7005
-    | FilesInFallbackFolderQueryFailed = 7006
 
     | GeneratedCsCode = 7101
     | GeneratedQsCode = 7102
@@ -669,8 +665,6 @@ type DiagnosticItem =
             | WarningCode.PreconditionVerificationFailed          -> "The precondition for the compilation step \"{0}\" loaded from \"{1}\" was not met. The transformation will be skipped."
             | WarningCode.RewriteStepLoadedViaReflection          -> "The compilation step \"{0}\" defined in \"{1}\" is not fully compatible with this compiler version and may fail on execution. The step may have been compiled against an older compiler version."
             | WarningCode.FailedToLoadRewriteStepViaReflection    -> "A possible rewrite step has been detected in \"{0}\". The step could not be loaded and will be ignored."
-            | WarningCode.ReferenceLoadedFromFallbackFolder       -> "The given reference \"{0}\" was loaded from fallback folder \"{1}\"."
-            | WarningCode.ReferenceFailedToLoadFromFallbackFolder -> "Loading the reference \"{0}\" from the specified fallback folder \"{1}\" failed."
             | _                                                   -> ""
         code |> ApplyArguments
 
@@ -680,8 +674,6 @@ type DiagnosticItem =
             | InformationCode.CompilingWithSourceFiles            -> "Compiling source files"
             | InformationCode.CompilingWithAssemblies             -> "Compiling with referenced assemblies"
             | InformationCode.LoadedRewriteSteps                  -> "Loaded rewrite steps that are executing as part of the compilation process"
-            | InformationCode.FilesInFallbackFolder               -> "Files contained in fallback folder \"{0}\""
-            | InformationCode.FilesInFallbackFolderQueryFailed    -> "Could not access fallback folder to determine contained files."
                                                                   
             | InformationCode.GeneratedCsCode                     -> "C# code generated for simulation"
             | InformationCode.GeneratedQsCode                     -> "Formatted Q# code"
