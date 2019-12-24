@@ -345,8 +345,21 @@ namespace Microsoft.Quantum.QsCompiler
                     catch 
                     {
                         if (!Directory.Exists(this.Config.PackageLoadFallbackFolder)) continue;
-                        try { Assembly.LoadFrom(Path.Combine(this.Config.PackageLoadFallbackFolder, Path.GetFileName(dllPath))); }
-                        catch { continue; } 
+                        var msgArgs = new[] { dllPath, this.Config.PackageLoadFallbackFolder };
+                        try 
+                        {
+                            var fallback = Path.Combine(this.Config.PackageLoadFallbackFolder, Path.GetFileName(dllPath));
+                            Assembly.LoadFrom(fallback);
+                            this.Logger?.Log(WarningCode.ReferenceLoadedFromFallbackFolder, msgArgs);
+                        }
+                        catch (Exception ex) 
+                        {
+                            this.Logger?.Log(WarningCode.ReferenceFailedToLoadFromFallbackFolder, msgArgs);
+                            try { this.Logger?.Log(InformationCode.FilesInFallbackFolder, new[] { this.Config.PackageLoadFallbackFolder }, messageParam: Formatting.Indent(Directory.GetFiles(this.Config.PackageLoadFallbackFolder)).ToArray()); }
+                            catch { this.Logger?.Log(InformationCode.FilesInFallbackFolderQueryFailed, Enumerable.Empty<string>()); }
+                            this.Logger?.Log(ex);
+                            continue; 
+                        } 
                     } 
                 }
                 return References.Empty;
