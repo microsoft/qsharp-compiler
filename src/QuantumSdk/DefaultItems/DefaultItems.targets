@@ -47,7 +47,7 @@
     <QsharpDocsOutputPath Condition="'$(QsharpDocsOutputPath)' == ''">$(GeneratedFilesOutputPath)docs/</QsharpDocsOutputPath>
     <QsharpDocsOutputPath Condition="!HasTrailingSlash('$(QsharpDocsOutputPath)')">$(QsharpDocsOutputPath)/</QsharpDocsOutputPath>
     <!-- output path for generating qsc config file -->
-    <QscBuildConfigOutputPath Condition="'$(QscBuildConfigOutputPath)' == ''">$(GeneratedFilesOutputPath)/config/</QscBuildConfigOutputPath>
+    <QscBuildConfigOutputPath Condition="'$(QscBuildConfigOutputPath)' == ''">$(GeneratedFilesOutputPath)config/</QscBuildConfigOutputPath>
     <QscBuildConfigOutputPath Condition="!HasTrailingSlash('$(QscBuildConfigOutputPath)')">$(QscBuildConfigOutputPath)/</QscBuildConfigOutputPath>
   </PropertyGroup>
 
