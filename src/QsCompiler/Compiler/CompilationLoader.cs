@@ -85,12 +85,6 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public string BuildOutputFolder;
             /// <summary>
-            /// Specifies a fallback folder from which the compiler tries to load any reference that could not be loaded.
-            /// If loading of a given reference fails, then the compiler will load attempt to load a file with the same filename from this folder. 
-            /// Any exception will be ignored silently, and a warning will be raised regardless of whether that second loading succeeds. 
-            /// </summary>
-            public string PackageLoadFallbackFolder;
-            /// <summary>
             /// Output path for the dll containing the compiled binaries. 
             /// No dll will be generated unless this path is specified and valid. 
             /// </summary>
