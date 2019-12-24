@@ -82,10 +82,11 @@ namespace Microsoft.Quantum.QsCompiler
             // Nothing to do here; we prioritize the specified fallback paths over loading from the context of the current app.
             null; 
 
-        public static Assembly LoadAssembly(string path)
+        public static Assembly LoadAssembly(string path, string[] fallbackPaths = null)
         {
             var context = new LoadContext(path);
             context.Resolving += OnResolving;
+            if (fallbackPaths != null) context.AddToPath(fallbackPaths);
             var assemblyName = new AssemblyName(Path.GetFileNameWithoutExtension(path));
             return context.LoadFromAssemblyName(assemblyName);
         }

@@ -57,6 +57,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Specifies the output format of the command line compiler.")]
         public LogFormat OutputFormat { get; set; }
 
+        [Option("package-load-fallback-folders", Required = false, SetName = CODE_MODE,
+        HelpText = "Specifies the directories the compiler will search when a rewrite step dependency could not be found.")]
+        public IEnumerable<string> PackageLoadFallbackFolders { get; set; }
+
 
         // routines related to logging 
 
