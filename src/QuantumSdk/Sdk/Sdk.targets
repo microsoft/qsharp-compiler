@@ -42,7 +42,7 @@
 
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QsharpCompile" 
-          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;BeforeQsharpCompile" 
+          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;BeforeQsharpCompile;_CopyFilesMarkedCopyLocal" 
           BeforeTargets="BeforeCsharpCompile;BeforeBuild"
           Inputs="$(MSBuildAllProjects);
                   @(QsharpCompile);
