@@ -82,6 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var logger = options.GetLogger();
             try
             {
+                CompilationLoader.LoadAssembly = LoadContext.LoadAssembly;
                 var result = compile(options, logger);
                 logger.ReportSummary(result);
                 return result;

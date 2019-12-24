@@ -57,10 +57,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option("emit-dll", Required = false, Default = false, SetName = CODE_MODE,
             HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
             public bool EmitDll { get; set; }
-
-            [Option("package-load-fallback-folder", Required = false, SetName = CODE_MODE,
-            HelpText = "Specifies a fallback folder from which the compiler tries to load any reference that could not be loaded.")]
-            public string PackageLoadFallbackFolder { get; set; }
         }
 
 
@@ -85,7 +81,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 AttemptFullPreEvaluation = options.TrimLevel > 1,
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
-                PackageLoadFallbackFolder = options.PackageLoadFallbackFolder,
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false // todo: enable debug mode?

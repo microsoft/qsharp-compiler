@@ -126,6 +126,7 @@ namespace Microsoft.Quantum.QsCompiler
             Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
             if (config.RewriteSteps == null) return ImmutableArray<LoadedStep>.Empty;
+            static Assembly LoadAssembly(string path) => CompilationLoader.LoadAssembly?.Invoke(path) ?? Assembly.LoadFrom(path);
             Uri WithFullPath(string file)
             {
                 try
@@ -155,7 +156,7 @@ namespace Microsoft.Quantum.QsCompiler
                 Diagnostic LoadWarning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, ProjectManager.MessageSource(target));
                 try
                 {
-                    var interfaceMatch = Assembly.LoadFrom(target.LocalPath).GetTypes().Where(
+                    var interfaceMatch = LoadAssembly(target.LocalPath).GetTypes().Where(
                         t => typeof(IRewriteStep).IsAssignableFrom(t) || // inherited interface is defined in this exact dll
                         t.GetInterfaces().Any(t => t.FullName == typeof(IRewriteStep).FullName)); // inherited interface may be defined in older compiler version
                     relevantTypes.AddRange(interfaceMatch);

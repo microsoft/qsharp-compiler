@@ -37,6 +37,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// returns the loaded references for the compilation. 
         /// </summary>
         public delegate References ReferenceLoader(Func<IEnumerable<string>, References> loadFromDisk);
+        /// <summary>
+        /// If LoadAssembly is not null, it will be used to load the dlls that are search for classes defining rewrite steps.
+        /// </summary>
+        public static Func<string, Assembly> LoadAssembly { get; set; }
 
 
         /// <summary>
@@ -333,37 +337,6 @@ namespace Microsoft.Quantum.QsCompiler
             this.Logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             this.Config = options ?? new Configuration();
-
-            // We need to load all referenced .NET assemblies first to ensure that 
-            // dependencies are loaded before we load any of the rewrite steps.
-            loadReferences?.Invoke(refs =>
-            {
-                // we will generate suitable errors in subsequent steps
-                foreach (var dllPath in refs)
-                {
-                    try { Assembly.LoadFrom(dllPath); }
-                    catch 
-                    {
-                        if (!Directory.Exists(this.Config.PackageLoadFallbackFolder)) continue;
-                        var msgArgs = new[] { dllPath, this.Config.PackageLoadFallbackFolder };
-                        try 
-                        {
-                            var fallback = Path.Combine(this.Config.PackageLoadFallbackFolder, Path.GetFileName(dllPath));
-                            Assembly.LoadFrom(fallback);
-                            this.Logger?.Log(WarningCode.ReferenceLoadedFromFallbackFolder, msgArgs);
-                        }
-                        catch (Exception ex) 
-                        {
-                            this.Logger?.Log(WarningCode.ReferenceFailedToLoadFromFallbackFolder, msgArgs);
-                            try { this.Logger?.Log(InformationCode.FilesInFallbackFolder, new[] { this.Config.PackageLoadFallbackFolder }, messageParam: Formatting.Indent(Directory.GetFiles(this.Config.PackageLoadFallbackFolder)).ToArray()); }
-                            catch { this.Logger?.Log(InformationCode.FilesInFallbackFolderQueryFailed, Enumerable.Empty<string>()); }
-                            this.Logger?.Log(ex);
-                            continue; 
-                        } 
-                    } 
-                }
-                return References.Empty;
-            });
 
             Status rewriteStepLoading = Status.Succeeded;
             this.ExternalRewriteSteps = RewriteSteps.Load(this.Config,
