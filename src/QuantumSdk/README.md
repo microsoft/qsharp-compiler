@@ -114,3 +114,15 @@ The order of evaluation for properties and item groups is roughly the following:
 - Item groups defined in *.targets files of the Sdk  
 
 Similar considerations apply for the definition of targets. MSBuild will overwrite targets if multiple targets with the same name are defined. In that case, the target is replaced in its entirety independent on whether the values for `DependsOn`, `BeforeTarget`, and `AfterTarget` match - i.e. those will be overwritten. However, a target can be "anchored" by the surrounding targets' specifications of their dependencies, see e.g. the defined `BeforeCsharpCompile` target. 
+
+## Load context in .NET Core
+
+To avoid issues with conflicting packages, we load each Q# compiler extension into its own context. For more information, see the Core CLR [design docs](https://github.com/dotnet/coreclr/blob/master/Documentation/design-docs/assemblyloadcontext.md). 
+
+## Known Issues ##
+
+The following issues and PRs may be of interest when using the Sdk:
+> https://github.com/dotnet/runtime/issues/949    
+> https://github.com/NuGet/Home/issues/8692    
+> https://github.com/NuGet/NuGet.Client/pull/3170    
+
