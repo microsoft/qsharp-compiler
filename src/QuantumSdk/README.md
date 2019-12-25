@@ -71,6 +71,8 @@ For example, if a qsc reference contains a rewrite step that generates C# code d
 
 ### Trouble shooting compiler extensions ###
 
+The compiler attempts to load rewrite steps even if these have been compiled against a different compiler version. While we do our best to mitigate issue due to a version mismatch, it is generally recommended to use compiler extensions that are compiled against the same compiler package version as the Sdk version of the project. 
+
 In rare cases, a rewrite step may fail to load or execute because one of the assemblies it depends on cannot be found. In these cases, specifying the property
 ```
 <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>

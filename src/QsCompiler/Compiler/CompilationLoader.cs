@@ -455,11 +455,10 @@ namespace Microsoft.Quantum.QsCompiler
             }
             catch (Exception ex)
             {
-                // TODO: use AppDomain.GetAssemblies to determine which assemblies are loaded
-                this.LogAndUpdate(ref status, ex);
                 var isLoadException = ex is FileLoadException || ex.InnerException is FileLoadException;
                 if (isLoadException) this.LogAndUpdate(ref status, ErrorCode.FileNotFoundDuringPluginExecution, new[] { rewriteStep.Name, messageSource });
                 else this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
+                this.LogAndUpdate(ref status, ex);
                 transformed = null;
             }
             return status;
