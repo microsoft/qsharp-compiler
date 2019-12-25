@@ -79,7 +79,7 @@
       <Output TaskParameter="Lines" ItemName="_PrioritizedResolvedQscReferences"/>
     </ReadLinesFromFile>
     <ItemGroup>
-      <ResolvedQsharpReferences Include="@(ReferencePath)" /> <!-- unfortunately we can't filter these by name, since a rewrite step might depend on a reference -->
+      <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.codeanalysis.|microsoft.netcore.app|csharp|fsharp|newtonsoft|fparsec|yamldotnet|markdig|roslynwrapper')) == false" />
     </ItemGroup>
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
