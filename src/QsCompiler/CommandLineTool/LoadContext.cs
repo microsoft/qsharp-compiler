@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler
             var found = new List<string>();
             foreach (var dir in this._FallbackPaths)
             {
-                try { found.AddRange(Directory.GetFiles(dir, ".dll", SearchOption.AllDirectories).Where(MatchByName)); }
+                try { found.AddRange(Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories).Where(MatchByName)); }
                 catch { continue; }
             }
             if (found.Count <= 1 || name.Version == null) return found.FirstOrDefault();
@@ -63,13 +63,8 @@ namespace Microsoft.Quantum.QsCompiler
 
         protected override Assembly Load(AssemblyName name)
         {
-            // We first try to load the assembly specified by the deps.json file of the parent assembly.
             string path = _Resolver.ResolveAssemblyToPath(name);
-            // If that fails, we look if we can find a suitable dll in the fallback folder, if one is specified.
-            path ??= this.ResolveFromFallbackPaths(name);
-            // If not, then the assembly will be loaded within the context of the current app. 
             return path == null ? null : LoadFromAssemblyPath(path);
-            // If that fails as well, then the Resolving event is invoked in a last effort before a FileNotFoundException is thrown.
         }
 
         protected override IntPtr LoadUnmanagedDll(string name)
@@ -78,14 +73,16 @@ namespace Microsoft.Quantum.QsCompiler
             return path == null ? IntPtr.Zero : LoadUnmanagedDllFromPath(path);
         }
 
-        private static Assembly OnResolving(AssemblyLoadContext context, AssemblyName name) =>
-            // Nothing to do here; we prioritize the specified fallback paths over loading from the context of the current app.
-            null; 
+        private Assembly OnResolving(AssemblyLoadContext context, AssemblyName name)
+        {
+            var path = this.ResolveFromFallbackPaths(name);
+            return path == null ? null : LoadFromAssemblyPath(path);
+        }
 
         public static Assembly LoadAssembly(string path, string[] fallbackPaths = null)
         {
             var context = new LoadContext(path);
-            context.Resolving += OnResolving;
+            context.Resolving += context.OnResolving;
             if (fallbackPaths != null) context.AddToPath(fallbackPaths);
             var assemblyName = new AssemblyName(Path.GetFileNameWithoutExtension(path));
             return context.LoadFromAssemblyName(assemblyName);
