@@ -69,6 +69,14 @@ For example, if a qsc reference contains a rewrite step that generates C# code d
   </Target>  
 ```
 
+### Trouble shooting compiler extensions ###
+
+In rare cases, a rewrite step may fail to load or execute because one of the assemblies it depends on cannot be found. In these cases, specifying the property
+```
+<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+```
+in the project file may help. 
+
 ## Defined project properties ##
 
 The Sdk defines the following properties for each project using it: 
