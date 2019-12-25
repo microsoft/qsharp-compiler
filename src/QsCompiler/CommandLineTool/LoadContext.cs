@@ -77,12 +77,15 @@ namespace Microsoft.Quantum.QsCompiler
             if (found.Count <= 1 || name.Version == null) return found.FirstOrDefault();
 
             var tempContext = new LoadContext(this.PathToParentAssembly);
+            var versions = new List<(string, Version)>();
             foreach (var file in found)
             {
                 try
                 {
                     var asm = tempContext.LoadFromAssemblyPath(file);
-                    if (name.Version.Equals(asm.GetName()?.Version))
+                    var asmVersion = asm.GetName()?.Version;
+                    versions.Add((file, asmVersion));
+                    if (name.Version.Equals(asmVersion))
                     {
                         if (tempContext.IsCollectible) tempContext.Unload();
                         return file;
@@ -91,7 +94,10 @@ namespace Microsoft.Quantum.QsCompiler
                 catch { continue; }
             }
             if (tempContext.IsCollectible) tempContext.Unload();
-            return null;
+            var matchesMajor = versions.Where(asm => name.Version.Major == asm.Item2?.Major);
+            var matchesMinor = matchesMajor.Where(asm => name.Version.Minor == asm.Item2?.Minor);
+            var matchesMajRev = matchesMinor.Where(asm => name.Version.MajorRevision == asm.Item2?.MajorRevision);
+            return matchesMajRev.Concat(matchesMinor).Concat(matchesMajor).Select(asm => asm.Item1).FirstOrDefault(); 
         }
 
         /// <summary>
