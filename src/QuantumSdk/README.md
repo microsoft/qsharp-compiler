@@ -73,6 +73,12 @@ For example, if a qsc reference contains a rewrite step that generates C# code d
 
 The compiler attempts to load rewrite steps even if these have been compiled against a different compiler version. While we do our best to mitigate issue due to a version mismatch, it is generally recommended to use compiler extensions that are compiled against the same compiler package version as the Sdk version of the project. 
 
+When a rewrite steps fails to execute, setting the `QscVerbosity` to "Detailed" or "Diagnostic" will log the encountered exception with stack trace:
+```
+  <QscVerbosity>Detailed</QscVerbosity>
+```
+By default, the compiler will search the project output directory for a suitable assembly in case a dependency cannot be found. In case of a `FileNotFoundException`, and option may be to add the corresponding reference to the project, or to copy the missing dll to the output directory. 
+
 ## Defined project properties ##
 
 The Sdk defines the following properties for each project using it: 
