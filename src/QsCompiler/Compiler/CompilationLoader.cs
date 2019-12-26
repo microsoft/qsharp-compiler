@@ -332,6 +332,19 @@ namespace Microsoft.Quantum.QsCompiler
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             this.Config = options ?? new Configuration();
 
+            // We load all referenced .NET assemblies into the current context to 
+            // for the sake of having a more resilient setup for loading rewrite steps.
+            loadReferences?.Invoke(refs =>
+            {
+                // no need to generate errors - this step is just a precaution
+                foreach (var dllPath in refs)
+                {
+                    try { Assembly.LoadFrom(dllPath); }
+                    catch { continue; }
+                }
+                return References.Empty;
+            });
+
             Status rewriteStepLoading = Status.Succeeded;
             this.ExternalRewriteSteps = RewriteSteps.Load(this.Config,
                 d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d),
