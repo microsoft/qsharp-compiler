@@ -24,7 +24,7 @@
   <ItemGroup>
     <!-- Packages and libraries included for all execution targets. -->
     <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.10.1912.2604-alpha" />
-    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.10.1912.2301-alpha" />
+    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.10.1912.2603-alpha" />
     <!-- Packages included for specific execution targets. -->
     <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1912.2604-alpha" IsImplicitlyDefined="$(CsharpGeneration)" />
   </ItemGroup>
