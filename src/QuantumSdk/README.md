@@ -126,7 +126,7 @@ To avoid issues with conflicting packages, we load each Q# compiler extension in
 ## Known Issues ##
 
 The following issues and PRs may be of interest when using the Sdk:
-> https://github.com/dotnet/runtime/issues/949    
 > https://github.com/NuGet/Home/issues/8692    
+> https://github.com/dotnet/runtime/issues/949    
 > https://github.com/NuGet/NuGet.Client/pull/3170    
 
