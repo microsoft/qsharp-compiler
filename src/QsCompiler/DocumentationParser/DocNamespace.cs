@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// </summary>
         /// <param name="ns">The namespace to be represented</param>
         /// <param name="sourceFiles">If specified, only the items in the specified source files are included.</param>
-        internal DocNamespace(QsNamespace ns, IEnumerable<string> sourceFiles = null)
+        internal DocNamespace(QsNamespace ns, IEnumerable<string>? sourceFiles = null)
         {
             var sourceFileSet = sourceFiles == null ? null : new HashSet<string>(sourceFiles);
             bool IsVisible(NonNullable<string> qualifiedName, NonNullable<string> source)
@@ -110,14 +112,31 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 return false;
             }
 
+            string? TryGetUid(YamlNode node)
+            {
+                if (node is YamlMappingNode mappingNode)
+                {
+                    mappingNode.Children.TryGetValue(Utils.UidKey, out var uidNode);
+                    return (uidNode as YamlScalarNode)?.Value;
+                }
+                else { return null; }
+            }
+
+            int CompareUids(YamlNode node1, YamlNode node2) =>
+                String.Compare(
+                    TryGetUid(node1),
+                    TryGetUid(node2)
+                );
+
             var namespaceNode = toc.Children?.SingleOrDefault(c => MatchByUid(c, this.uid)) as YamlMappingNode;
-            YamlSequenceNode itemListNode = null;
+            YamlSequenceNode? itemListNode = null;
             if (namespaceNode == null)
             {
                 namespaceNode = new YamlMappingNode();
                 namespaceNode.AddStringMapping(Utils.UidKey, this.uid);
                 namespaceNode.AddStringMapping(Utils.NameKey, this.name);
                 toc.Add(namespaceNode);
+                toc.Children.Sort((node1, node2) => CompareUids(node1, node2));
             }
             else
             {
@@ -140,6 +159,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     itemListNode.Add(Utils.BuildMappingNode(Utils.NameKey, item.Name, Utils.UidKey, item.Uid));
                 }
             }
+
+            itemListNode.Children.Sort((node1, node2) => CompareUids(node1, node2));
         }
 
         /// <summary>
@@ -174,7 +195,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 return itemTypeName + "s";
             }
 
-            string GetItemUid(YamlNode item)
+            string? GetItemUid(YamlNode item)
             {
                 if (item is YamlMappingNode map)
                 {
@@ -208,14 +229,24 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 var thisList = new SortedDictionary<string, YamlNode>();
                 itemTypeNodes[seqKey] = thisList;
 
-                YamlNode typeNode;
-                YamlSequenceNode typeRoot = null;
-                if (rootNode.Children.TryGetValue(seqKey, out typeNode))
+                if (rootNode.Children.TryGetValue(seqKey, out var typeNode))
                 {
-                    typeRoot = typeNode as YamlSequenceNode;
+                    var typeRoot = typeNode as YamlSequenceNode;
+                    // We can safely assert here, since we know that the type
+                    // node is always a mapping node. That said, it's better to
+                    // be explicit and throw an exception instead if the cast
+                    // fails.
+                    if (typeRoot == null)
+                    {
+                        throw new Exception($"Expected {itemType} to be a mapping node, was actually a {typeNode.GetType()}.");
+                    }
                     foreach (var item in typeRoot)
                     {
-                        thisList.Add(GetItemUid(item), item);
+                        var uid = GetItemUid(item);
+                        if (uid != null)
+                        {
+                            thisList.Add(uid, item);
+                        }
                     }
                 }
             }
