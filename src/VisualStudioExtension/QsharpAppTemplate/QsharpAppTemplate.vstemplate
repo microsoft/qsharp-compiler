@@ -2,7 +2,7 @@
 <VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" xmlns:sdk="http://schemas.microsoft.com/developer/vstemplate-sdkextension/2010">
   <TemplateData>
     <Name>Q# Application</Name>
-    <Description>A project for creating a Q# command-line application.</Description>
+    <Description>A project for creating and running an application that invokes quantum operations.</Description>
     <Icon>mobius_strip_icon.png</Icon>
     <ProjectType>CSharp</ProjectType>
     <SortOrder>1000</SortOrder>
@@ -15,7 +15,7 @@
   <TemplateContent>
     <Project File="AppProjectTemplate.xml" TargetFileName="$projectname$.csproj" ReplaceParameters="true">
       <ProjectItem ReplaceParameters="true" OpenInEditor="true">Driver.cs</ProjectItem>
-      <ProjectItem ReplaceParameters="true" OpenInEditor="true">Program.qs</ProjectItem>
+      <ProjectItem ReplaceParameters="true" OpenInEditor="true">Operations.qs</ProjectItem>
     </Project>
   </TemplateContent>
 </VSTemplate>

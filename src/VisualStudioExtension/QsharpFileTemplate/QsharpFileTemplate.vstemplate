@@ -2,7 +2,7 @@
 <VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" xmlns:sdk="http://schemas.microsoft.com/developer/vstemplate-sdkextension/2010">
   <TemplateData>
     <Name>Q# File</Name>
-    <Description>An empty Q# operation.</Description>
+    <Description>Q# File Template</Description>
     <Icon>mobius_strip_icon.png</Icon>
     <TemplateID>e8636bf0-e3cd-4689-b27c-6a8c954f4dc4</TemplateID>
     <ProjectType>CSharp</ProjectType>

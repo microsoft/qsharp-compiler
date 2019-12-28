@@ -2,7 +2,7 @@
 <VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" xmlns:sdk="http://schemas.microsoft.com/developer/vstemplate-sdkextension/2010">
   <TemplateData>
     <Name>Q# Library</Name>
-    <Description>A project for creating a Q# library.</Description>
+    <Description>A project for creating a library with quantum operations.</Description>
     <Icon>mobius_strip_icon.png</Icon>
     <ProjectType>CSharp</ProjectType>
     <SortOrder>1000</SortOrder>
@@ -14,7 +14,7 @@
   </TemplateData>
   <TemplateContent>
     <Project File="LibProjectTemplate.xml" TargetFileName="$projectname$.csproj" ReplaceParameters="true">
-      <ProjectItem ReplaceParameters="true" OpenInEditor="true">Library.qs</ProjectItem>
+      <ProjectItem ReplaceParameters="true" OpenInEditor="true">Operations.qs</ProjectItem>
     </Project>
   </TemplateContent>
 </VSTemplate>

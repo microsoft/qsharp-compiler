@@ -2,9 +2,9 @@
     "$schema": "http://json.schemastore.org/template",
     "classifications": ["Common", "Console"],  
     "name": "Console Application",
-    "description": "A project for creating a Q# command-line application.",
+    "description": "A project for creating a console application to execute Q# operations",
     "groupIdentity": "Microsoft.Common.Console",
-    "identity": "Microsoft.Common.Console.QSharp.#MAJOR_VERSION#.#MINOR_VERSION#",
+    "identity": "Microsoft.Common.Console.QSharp.0.10",
     "shortName": "console",
     "tags": {
       "language": "Q#",
