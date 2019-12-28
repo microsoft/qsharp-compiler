@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="EnsureRecompileOnChange">
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="RecompileOnChange">
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
@@ -17,11 +17,10 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <QscExe>dotnet</QscExe>
-    <QsLib>"../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QsLib>
+    <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QscExe>
   </PropertyGroup>
 
-  <Target Name="EnsureRecompileOnChange">
+  <Target Name="RecompileOnChange">
     <ItemGroup>
       <UpToDateCheckInput Include="@(None)" />
       <UpToDateCheckInput Include="@(Content)" />
@@ -35,7 +34,7 @@
       <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) $(QsLib) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
+      <QscCommand>$(QscExe) build -v --emit-dll --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
   </Target>
