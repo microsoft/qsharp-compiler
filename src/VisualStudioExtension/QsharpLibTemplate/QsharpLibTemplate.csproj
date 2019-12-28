@@ -61,7 +61,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="AssemblyInfo.cs" />
-    <None Include="Operations.qs" />
+    <None Include="Library.qs" />
     <Content Include="LibProjectTemplate.xml">
       <SubType>Designer</SubType>
     </Content>
