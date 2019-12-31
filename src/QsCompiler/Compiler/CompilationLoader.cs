@@ -37,6 +37,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// returns the loaded references for the compilation. 
         /// </summary>
         public delegate References ReferenceLoader(Func<IEnumerable<string>, References> loadFromDisk);
+        /// <summary>
+        /// If LoadAssembly is not null, it will be used to load the dlls that are search for classes defining rewrite steps.
+        /// </summary>
+        public static Func<string, Assembly> LoadAssembly { get; set; }
 
 
         /// <summary>
@@ -328,10 +332,24 @@ namespace Microsoft.Quantum.QsCompiler
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             this.Config = options ?? new Configuration();
 
+            // We load all referenced .NET assemblies into the current context to 
+            // for the sake of having a more resilient setup for loading rewrite steps.
+            loadReferences?.Invoke(refs =>
+            {
+                // no need to generate errors - this step is just a precaution
+                foreach (var dllPath in refs)
+                {
+                    try { Assembly.LoadFrom(dllPath); }
+                    catch { continue; }
+                }
+                return References.Empty;
+            });
+
             Status rewriteStepLoading = Status.Succeeded;
             this.ExternalRewriteSteps = RewriteSteps.Load(this.Config,
                 d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d),
                 ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
+            this.PrintLoadedRewriteSteps(this.ExternalRewriteSteps);
             this.CompilationStatus = new ExecutionStatus(this.ExternalRewriteSteps);
             this.CompilationStatus.PluginLoading = rewriteStepLoading;
 
@@ -450,8 +468,10 @@ namespace Microsoft.Quantum.QsCompiler
             }
             catch (Exception ex)
             {
-                this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
                 this.LogAndUpdate(ref status, ex);
+                var isLoadException = ex is FileLoadException || ex.InnerException is FileLoadException;
+                if (isLoadException) this.LogAndUpdate(ref status, ErrorCode.FileNotFoundDuringPluginExecution, new[] { rewriteStep.Name, messageSource });
+                else this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
                 transformed = null;
             }
             return status;
@@ -535,7 +555,8 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Logs the names of the given source files as Information unless the given argument is null.
+        /// Logs the names of the given source files as Information.
+        /// Does nothing if the given argument is null.
         /// </summary>
         private void PrintResolvedFiles(IEnumerable<Uri> sourceFiles)
         {
@@ -543,11 +564,12 @@ namespace Microsoft.Quantum.QsCompiler
             var args = sourceFiles.Any()
                 ? sourceFiles.Select(f => f?.LocalPath).ToArray()
                 : new string[] { "(none)" };
-            this.Logger?.Log(InformationCode.CompilingWithSourceFiles, Enumerable.Empty<string>(), messageParam: Diagnostics.Formatting.Indent(args).ToArray());
+            this.Logger?.Log(InformationCode.CompilingWithSourceFiles, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
         }
 
         /// <summary>
-        /// Logs the names of the given assemblies as Information unless the given argument is null.
+        /// Logs the names of the given assemblies as Information.
+        /// Does nothing if the given argument is null.
         /// </summary>
         private void PrintResolvedAssemblies(IEnumerable<NonNullable<string>> assemblies)
         {
@@ -555,7 +577,20 @@ namespace Microsoft.Quantum.QsCompiler
             var args = assemblies.Any()
                 ? assemblies.Select(name => name.Value).ToArray()
                 : new string[] { "(none)" };
-            this.Logger?.Log(InformationCode.CompilingWithAssemblies, Enumerable.Empty<string>(), messageParam: Diagnostics.Formatting.Indent(args).ToArray());
+            this.Logger?.Log(InformationCode.CompilingWithAssemblies, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
+        }
+
+        /// <summary>
+        /// Logs the names and origins of the given rewrite steps as Information.
+        /// Does nothing if the given argument is null.
+        /// </summary>
+        private void PrintLoadedRewriteSteps(IEnumerable<RewriteSteps.LoadedStep> rewriteSteps)
+        {
+            if (rewriteSteps == null) return;
+            var args = rewriteSteps.Any()
+                ? rewriteSteps.Select(step => $"{step.Name} ({step.Origin})").ToArray()
+                : new string[] { "(none)" };
+            this.Logger?.Log(InformationCode.LoadedRewriteSteps, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
         }
 
 

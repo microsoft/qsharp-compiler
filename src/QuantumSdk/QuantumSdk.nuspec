@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+  <metadata>
+    <id>Microsoft.Quantum.Sdk</id>
+    <version>$version$</version>
+    <title>Microsoft Quantum Sdk</title>
+    <authors>Microsoft</authors>
+    <owners>QuantumEngineering, Microsoft</owners>
+    <license type="expression">MIT</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>The Microsoft Quantum Sdk for developing in Q#.</description>
+    <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
+    <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
+    <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+    <tags>Quantum Q# Qsharp </tags>
+    <packageTypes>
+      <packageType name="Sdk" />
+    </packageTypes>
+  </metadata>
+  <files>
+    <file src="Sdk\**\*" target="Sdk" exclude="**\*.v.template"/>
+    <file src="DefaultItems\**\*" target="DefaultItems" exclude="**\*.v.template"/>
+    <file src="ProjectSystem\**\*" target="ProjectSystem" exclude="**\*.v.template"/>
+    <file src="Tools\BuildConfiguration\bin\$Configuration$\netcoreapp3.0\publish\**" target="tools\utils" exclude="**\*.pdb" />
+    <file src="..\QsCompiler\CommandLineTool\bin\$Configuration$\netcoreapp3.0\publish\**" target="tools\qsc" exclude="**\*.pdb" />
+  </files>
+</package>
