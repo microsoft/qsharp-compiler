@@ -93,11 +93,6 @@
     </PropertyGroup>
     <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: references ::;@(ResolvedQsharpReferences);:: loaded ::;@(_PrioritizedResolvedQscReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 
-    <!-- configure the dll built by the C# compiler -->
-    <ItemGroup>
-      <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
-      <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
-    </ItemGroup>
   </Target>   
 
 
@@ -105,8 +100,12 @@
   anchor the targets that a project may redefine to execute at a certain stage during the build. 
   These targets hence must not be redefined by the project. -->
 
-  <!-- Helper target to anchor the BeforeCsharpCompile target. -->
+  <!-- Helper target to anchor the BeforeCsharpCompile target. Configures the dll built by the C# compiler. -->
   <Target Name="_DependsOnBeforeCsharpCompile" DependsOnTargets="BeforeCsharpCompile" BeforeTargets="BeforeCompile">
+    <ItemGroup>
+      <EmbeddedResource Include="$(_EmittedBinaryPath)" LogicalName="__qsharp_data__.bson" Visible="false" />
+      <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
+    </ItemGroup>
   </Target>  
 
 </Project>
