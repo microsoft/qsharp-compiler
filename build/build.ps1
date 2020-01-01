@@ -29,9 +29,6 @@ function Build-One {
     }
 }
 
-Build-One '../QsCompiler.sln'
-Build-One '../src/QuantumSdk/Tools/Tools.sln'
-
 ##
 # VS Code Extension
 ##
@@ -42,7 +39,7 @@ function Build-VSCode() {
         Try {
             npm install
             npm run compile
-
+    
             if  ($LastExitCode -ne 0) {
                 throw
             }
@@ -66,7 +63,7 @@ function Build-VS() {
     if (Get-Command nuget -ErrorAction SilentlyContinue) {
         Try {
             nuget restore VisualStudioExtension.sln
-
+    
             if ($LastExitCode -ne 0) {
                 throw
             }
@@ -77,7 +74,7 @@ function Build-VS() {
                         /property:Configuration=$Env:BUILD_CONFIGURATION `
                         /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
                         /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
-
+    
                     if ($LastExitCode -ne 0) {
                         throw
                     }
@@ -92,7 +89,7 @@ function Build-VS() {
             Write-Host "##vso[task.logissue type=warning;]Failed to restore VS extension solution."
         }
     } else {
-        Write-Host "##vso[task.logissue type=warning;]nuget not installed. Will skip restoring and building the VisualStudio extension solution"
+         Write-Host "##vso[task.logissue type=warning;]nuget not installed. Will skip restoring and building the VisualStudio extension solution"
     }
     Pop-Location
 }
@@ -102,17 +99,10 @@ function Build-VS() {
 
 $all_ok = $True
 
-Build-One 'build' '../QsCompiler.sln'
-Build-One 'publish' '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj'
+Build-One '../QsCompiler.sln'
+Build-One '../src/QuantumSdk/Tools/Tools.sln'
 
 if ($Env:ENABLE_VSIX -ne "false") {
-    Pack-SelfContained `
-        -Project "../src/QsCompiler/LanguageServer/LanguageServer.csproj" `
-        -PackageData "../src/VSCodeExtension/package.json"
-
-    Write-Host "Final package.json:"
-    Get-Content "../src/VSCodeExtension/package.json" | Write-Host
-
     Build-VSCode
     Build-VS
 } else {
