@@ -126,6 +126,7 @@ namespace Microsoft.Quantum.QsCompiler
             Action<Diagnostic> onDiagnostic = null, Action<Exception> onException = null)
         {
             if (config.RewriteSteps == null) return ImmutableArray<LoadedStep>.Empty;
+            static Assembly LoadAssembly(string path) => CompilationLoader.LoadAssembly?.Invoke(path) ?? Assembly.LoadFrom(path);
             Uri WithFullPath(string file)
             {
                 try
@@ -155,10 +156,22 @@ namespace Microsoft.Quantum.QsCompiler
                 Diagnostic LoadWarning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, ProjectManager.MessageSource(target));
                 try
                 {
-                    var interfaceMatch = Assembly.LoadFrom(target.LocalPath).GetTypes().Where(
-                        t => typeof(IRewriteStep).IsAssignableFrom(t) || // inherited interface is defined in this exact dll
-                        t.GetInterfaces().Any(t => t.FullName == typeof(IRewriteStep).FullName)); // inherited interface may be defined in older compiler version
-                    relevantTypes.AddRange(interfaceMatch);
+                    var typesInAssembly = LoadAssembly(target.LocalPath).GetTypes();
+                    var exactInterfaceMatches = typesInAssembly.Where(t => typeof(IRewriteStep).IsAssignableFrom(t)); // inherited interface is defined in this exact dll
+                    if (exactInterfaceMatches.Any()) relevantTypes.AddRange(exactInterfaceMatches);
+                    else
+                    {
+                        // If the inherited interface is defined in older compiler version, then we can attempt to load the step anyway via reflection. 
+                        // However, in this case we have to load the corresponding assembly into the current context, which can have its own issues. 
+                        // We hence first check if this may be the case, and if so we proceed to attempt the loading via reflection. 
+                        static bool IsPossibleMatch(Type t) => t.GetInterfaces().Any(t => t.FullName == typeof(IRewriteStep).FullName);
+                        var possibleInterfaceMatches = typesInAssembly.Where(IsPossibleMatch);
+                        if (possibleInterfaceMatches.Any())
+                        {
+                            var reloadedTypes = Assembly.LoadFrom(target.LocalPath).GetTypes();
+                            relevantTypes.AddRange(reloadedTypes.Where(IsPossibleMatch));
+                        }
+                    }
                 }
                 catch (BadImageFormatException ex)
                 {

@@ -5,6 +5,7 @@ $ErrorActionPreference = 'Stop'
 
 & "$PSScriptRoot/set-env.ps1"
 $all_ok = $True
+Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
 
 if ($Env:ENABLE_TESTS -eq "false") {
     Write-Host "##vso[task.logissue type=warning;]Tests skipped due to ENABLE_TESTS variable."

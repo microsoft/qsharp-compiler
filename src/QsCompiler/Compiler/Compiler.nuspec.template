@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package >
+<package>
   <metadata>
     <id>Microsoft.Quantum.Compiler</id>
     <version>$version$</version>
