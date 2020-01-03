@@ -21,11 +21,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
     internal static class Helper
     {
         public static TypedExpression CreateIdentifierExpression(Identifier id,
-            QsNullable<ImmutableArray<ResolvedType>> typeParams, ResolvedType resolvedType) =>
+            ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>> typeArgsMapping, ResolvedType resolvedType) =>
             new TypedExpression
             (
-                ExpressionKind.NewIdentifier(id, typeParams),
-                ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
+                ExpressionKind.NewIdentifier(
+                    id,
+                    typeArgsMapping.Any()
+                    ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgsMapping
+                        .Select(argMapping => argMapping.Item3) // This should preserve the order of the type args
+                        .ToImmutableArray())
+                    : QsNullable<ImmutableArray<ResolvedType>>.Null),
+                typeArgsMapping,
                 resolvedType,
                 new InferredExpressionInformation(false, false),
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
@@ -58,11 +64,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             return new QsCompilation(compilation.Namespaces.Select(ns => filter.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
         }
 
-        private ClassicallyControlledTransformation() { } 
+        private ClassicallyControlledTransformation() { }
 
         private class ClassicallyControlledScope : ScopeTransformation<NoExpressionTransformations>
         {
-            public ClassicallyControlledScope(NoExpressionTransformations expr = null) : base (expr ?? new NoExpressionTransformations()) {}
+            public ClassicallyControlledScope(NoExpressionTransformations expr = null) : base(expr ?? new NoExpressionTransformations()) { }
 
             private (bool, QsResult, TypedExpression, QsScope, QsScope) IsConditionedOnResultLiteralStatement(QsStatement statement)
             {
@@ -97,7 +103,34 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                         if (returnType.Resolution.IsUnitType && expr.Item.Expression is ExpressionKind.CallLikeExpression call)
                         {
-                            return (true, call.Item1, call.Item2);
+                            // We are dissolving the application of arguments here, so the call's type argument
+                            // resolutions have to be moved to the 'identifier' sub expression.
+
+                            var callTypeArguments = expr.Item.TypeArguments;
+                            var idTypeArguments = call.Item1.TypeArguments;
+
+                            var combinedTypeArguments = callTypeArguments.AddRange(idTypeArguments); // ToDo: need to defend against duplicates
+
+                            var newExpr1 = expr.Item;
+                            // ToDo: shouldn't rely on expr1 being identifier
+                            if (combinedTypeArguments.Any() && call.Item1.Expression is ExpressionKind.Identifier id)
+                            {
+                                newExpr1 = new TypedExpression(
+                                    ExpressionKind.NewIdentifier(
+                                        id.Item1,
+                                        QsNullable<ImmutableArray<ResolvedType>>.NewValue(combinedTypeArguments
+                                            .Select(arg => arg.Item3)
+                                            .ToImmutableArray())),
+                                    combinedTypeArguments,
+                                    ResolvedType.New(ResolvedTypeKind.UnitType), // ToDo: This is really wrong
+                                    // Need to replace all type-param types in resolved type with their resolution
+                                    // I hope this does not involve a whole new transformation :(
+                                    //call.Item1.ResolvedType,
+                                    call.Item1.InferredInformation,
+                                    call.Item1.Range);
+                            }
+
+                            return (true, newExpr1, call.Item2);
                         }
                     }
                 }
@@ -105,13 +138,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 return (false, null, null);
             }
 
-            private TypedExpression CreateApplyIfCall(TypedExpression id, TypedExpression args, BuiltIn controlOp, IEnumerable<ResolvedType> opTypeParamResolutions) =>
+            private TypedExpression CreateApplyIfCall(TypedExpression id, TypedExpression args/*, BuiltIn controlOp, IEnumerable<ResolvedType> opTypeParamResolutions*/) =>
                 new TypedExpression
                 (
                     ExpressionKind.NewCallLikeExpression(id, args),
-                    opTypeParamResolutions
-                        .Zip(controlOp.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOp.Namespace, controlOp.Name), param, type))
-                        .ToImmutableArray(),
+                    ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
+                    //opTypeParamResolutions
+                    //    .Zip(controlOp.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOp.Namespace, controlOp.Name), param, type))
+                    //    .ToImmutableArray(),
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     new InferredExpressionInformation(false, true),
                     QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
@@ -177,10 +211,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 // Build the surrounding apply-if call
                 var controlOpId = Helper.CreateIdentifierExpression(
                     Identifier.NewGlobalCallable(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name)),
-                    QsNullable<ImmutableArray<ResolvedType>>.Null,
+                    targetArgs
+                        .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
+                        .ToImmutableArray(),
+                    //QsNullable<ImmutableArray<ResolvedType>>.NewValue(targetArgs),
+                    //QsNullable<ImmutableArray<ResolvedType>>.Null,
                     controlOpType);
 
-                return CreateApplyIfCall(controlOpId, controlArgs, controlOpInfo, targetArgs);
+                return CreateApplyIfCall(controlOpId, controlArgs/*, controlOpInfo, targetArgs*/);
             }
 
             private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement cond)
@@ -294,7 +332,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 var parentSymbols = this.onLocalDeclarations(scope.KnownSymbols);
                 var statements = new List<QsStatement>();
-                
+
                 foreach (var statement in scope.Statements)
                 {
                     if (statement.Statement is QsStatementKind.QsConditionalStatement)
@@ -318,7 +356,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         statements.Add(this.onStatement(statement));
                     }
                 }
-                
+
                 return new QsScope(statements.ToImmutableArray(), parentSymbols);
             }
         }
@@ -588,7 +626,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     {
                         targetArgs = Helper.CreateValueTupleExpression(knownSymbols.Select(var => Helper.CreateIdentifierExpression(
                             Identifier.NewLocalVariable(var.VariableName),
-                            QsNullable<ImmutableArray<ResolvedType>>.Null,
+                            ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
                             var.Type))
                             .ToArray());
                     }
