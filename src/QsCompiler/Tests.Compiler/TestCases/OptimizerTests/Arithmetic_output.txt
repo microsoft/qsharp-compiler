@@ -5,4 +5,11 @@ namespace Microsoft.Quantum.Testing.Optimization.Arithmetic {
         return 4;
     }
     
+    
+    operation Test2 (x : Int) : Int {
+        
+        let y = 2 * x;
+        return y;
+    }
+    
 }
