@@ -489,7 +489,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             private QsCallable _CurrentCallable = null;
             private ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> _CurrentHoistParams =
                 ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
-            private bool _ContainsHoistParamRef = false; // ToDo: May need to explicitly reset this value after every statement.
+            private bool _ContainsHoistParamRef = false;
 
             public static QsCompilation Apply(QsCompilation compilation)
             {
@@ -753,6 +753,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                     return QsStatementKind.NewQsConditionalStatement(
                         new QsConditionalStatement(newConditionBlocks, newDefault));
+                }
+
+                public override QsStatementKind Transform(QsStatementKind kind)
+                {
+                    _super._ContainsHoistParamRef = false; // Every statement kind starts off false
+                    return base.Transform(kind);
                 }
             }
 
