@@ -11,11 +11,6 @@
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
   <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.props"/>
 
-  <!-- We set this to true by default as fallback to mitigate issues when loading qsc references. -->
-  <PropertyGroup>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-  </PropertyGroup>
-
 
   <!-- The following item groups indeed needs to live in this file to ensure 
   that they evaluated before the modifications in the project file are applied. -->
