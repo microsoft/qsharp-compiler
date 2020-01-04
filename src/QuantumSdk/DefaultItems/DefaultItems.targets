@@ -57,13 +57,7 @@
   <!-- Recomputes the content of ResolvedQscReferences, ResolvedQscReferencesAndPriorities, QscProjectReference and QscPackageReference. The current content of these item groups is cleared during the process. -->
   <Target Name="ResolveQscReferences" 
           DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences;Restore" 
-          BeforeTargets="BeforeQsharpCompile"
-          Inputs="@(PackageReference);
-                  @(_ResolvedProjectReferencePaths)"
-          Outputs="@(QscProjectReference);
-                  @(QscPackageReference);
-                  @(ResolvedQscReferences);
-                  @(ResolvedQscReferencesAndPriorities)">
+          BeforeTargets="BeforeQsharpCompile">
     <!-- get the assembly path for all relevant project references which are passed as qsc references -->
     <ItemGroup>
       <QscProjectReference Remove="@(QscProjectReference)"/>
