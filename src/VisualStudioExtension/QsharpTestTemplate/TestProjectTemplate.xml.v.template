@@ -1,19 +1,22 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.Quantum.Sdk/#NUGET_VERSION#">
+
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <PlatformTarget>x64</PlatformTarget>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <IsPackable>false</IsPackable>
-    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
+<<<<<<< HEAD:src/ProjectTemplates/Quantum.Test1/Quantum.Test1.csproj
     <PackageReference Include="Microsoft.Quantum.Standard" Version="0.10.1912.2702-beta" />
     <PackageReference Include="Microsoft.Quantum.Development.Kit" Version="0.10.1912.2702-beta" />
     <PackageReference Include="Microsoft.Quantum.Xunit" Version="0.10.1912.2702-beta" />
+=======
+    <PackageReference Include="Microsoft.Quantum.Xunit" Version="#NUGET_VERSION#" />
+>>>>>>> origin/master:src/VisualStudioExtension/QsharpTestTemplate/TestProjectTemplate.xml.v.template
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.4.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
   </ItemGroup>
+
 </Project>
