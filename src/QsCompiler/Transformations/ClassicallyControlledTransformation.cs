@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Dynamic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -109,7 +110,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             var callTypeArguments = expr.Item.TypeArguments;
                             var idTypeArguments = call.Item1.TypeArguments;
 
-                            var combinedTypeArguments = callTypeArguments.AddRange(idTypeArguments); // ToDo: need to defend against duplicates
+                            // Merge the two lists into one list with distinct argument mappings,
+                            // giving preference to the id's type arguments.
+                            var mapping = callTypeArguments.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
+                            foreach (var arg in idTypeArguments)
+                            {
+                                mapping[(arg.Item1, arg.Item2)] = arg.Item3;
+                            }
+                            var combinedTypeArguments = mapping.Select(kvp => Tuple.Create(kvp.Key.Item1, kvp.Key.Item2, kvp.Value)).ToImmutableArray();
 
                             var newExpr1 = expr.Item;
                             // ToDo: shouldn't rely on expr1 being identifier
@@ -491,11 +499,103 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
             private bool _ContainsHoistParamRef = false;
 
+            private bool _InBody = false;
+            private bool _InAdjoint = false;
+            private bool _InControlled = false;
+            //private bool _InControlledAdjoint = false;
+
             public static QsCompilation Apply(QsCompilation compilation)
             {
                 var filter = new HoistSyntax(new HoistTransformation());
 
                 return new QsCompilation(compilation.Namespaces.Select(ns => filter.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
+            }
+
+            private QsSpecialization MakeSpecialization(QsSpecializationKind kind, QsQualifiedName parentName, ResolvedSignature signature, SpecializationImplementation impl) =>
+                new QsSpecialization(
+                    kind,
+                    parentName,
+                    ImmutableArray<QsDeclarationAttribute>.Empty,
+                    _CurrentCallable.SourceFile,
+                    QsNullable<QsLocation>.Null,
+                    QsNullable<ImmutableArray<ResolvedType>>.Null,
+                    signature,
+                    impl,
+                    ImmutableArray<string>.Empty,
+                    QsComments.Empty);
+
+            private IEnumerable<QsSpecialization> GetFunctorSpecializations(QsQualifiedName parentName, ResolvedSignature parentSignature)
+            {
+                var adj = _CurrentCallable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
+                var ctl = _CurrentCallable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
+                var ctlAdj = _CurrentCallable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
+
+                var specializations = new List<QsSpecialization>();
+
+                // ToDo: this Boolean logic could be cleaned up
+                bool addAdjoint = false;
+                bool addControlled = false;
+                //bool addControlledAdjoint = false;
+                if (_InBody)
+                {
+                    if (adj != null && adj.Implementation.IsGenerated)
+                    {
+                        addAdjoint = true;
+                    }
+
+                    if (ctl != null && ctl.Implementation.IsGenerated)
+                    {
+                        addControlled = true;
+                    }
+
+                    // ToDo: I don't think you have to add the ControlledAdjoint if you add the Controlled and Adjoint specializations
+                    //if (ctlAdj != null && ctlAdj.Implementation.IsGenerated)
+                    //{
+                    //    addControlledAdjoint = true;
+                    //}
+                }
+                else if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated gen)
+                {
+                    if (_InAdjoint && gen.Item.IsDistribute)
+                    {
+                        addControlled = true;
+                    }
+                    else if (_InControlled && gen.Item.IsInvert)
+                    {
+                        addAdjoint = true;
+                    }
+                }
+
+                if (addAdjoint)
+                {
+                    specializations.Add(MakeSpecialization(
+                        QsSpecializationKind.QsAdjoint,
+                        parentName,
+                        parentSignature,
+                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.InvalidGenerator))); // ToDo: find appropriate directive
+                }
+
+                if (addControlled)
+                {
+                    specializations.Add(MakeSpecialization(
+                        QsSpecializationKind.QsControlled,
+                        parentName,
+                        new ResolvedSignature(
+                            parentSignature.TypeParameters,
+                            ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
+                                ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
+                                parentSignature.ArgumentType))),
+                            parentSignature.ReturnType,
+                            parentSignature.Information),
+                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.InvalidGenerator))); // ToDo: find appropriate directive
+                }
+
+                //if (addControlledAdjoint)
+                //{
+                //    // add 'generated' implementation for ControlledAdjoint
+                //}
+
+                return specializations;
             }
 
             private (QsQualifiedName, ResolvedType) GenerateOperation(QsScope contents)
@@ -518,7 +618,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     .ToImmutableArray());
 
                 var paramTypes = ResolvedType.New(ResolvedTypeKind.UnitType);
-                if (knownVariables.Any())
+                if (knownVariables.Length == 1)
+                {
+                    paramTypes = knownVariables.First().Type;
+                }
+                else if (knownVariables.Length > 1)
                 {
                     paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(knownVariables
                         .Select(var => var.Type)
@@ -529,19 +633,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     _CurrentCallable.Signature.TypeParameters,
                     paramTypes,
                     ResolvedType.New(ResolvedTypeKind.UnitType),
-                    CallableInformation.NoInformation);
+                    CallableInformation.NoInformation); // ToDo: this information should have the supported functors in it
 
-                var spec = new QsSpecialization(
+                var body = MakeSpecialization(
                     QsSpecializationKind.QsBody,
                     newName,
-                    ImmutableArray<QsDeclarationAttribute>.Empty,
-                    _CurrentCallable.SourceFile,
-                    QsNullable<QsLocation>.Null,
-                    QsNullable<ImmutableArray<ResolvedType>>.Null,
                     signature,
-                    SpecializationImplementation.NewProvided(parameters, contents),
-                    ImmutableArray<string>.Empty,
-                    QsComments.Empty);
+                    SpecializationImplementation.NewProvided(parameters, contents));
 
                 var controlCallable = new QsCallable(
                     QsCallableKind.Operation,
@@ -551,7 +649,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     QsNullable<QsLocation>.Null,
                     signature,
                     parameters,
-                    ImmutableArray.Create(spec), //ToDo: account for ctrl and adjt
+                    new List<QsSpecialization>() { body }
+                        .Concat(GetFunctorSpecializations(newName, signature))
+                        .ToImmutableArray(),
                     ImmutableArray<string>.Empty,
                     QsComments.Empty);
 
@@ -578,6 +678,38 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     _super._CurrentCallable = c;
                     return base.onCallableImplementation(c);
                 }
+
+                public override QsSpecialization onBodySpecialization(QsSpecialization spec)
+                {
+                    _super._InBody = true;
+                    var rtrn = base.onBodySpecialization(spec);
+                    _super._InBody = false;
+                    return rtrn;
+                }
+
+                public override QsSpecialization onAdjointSpecialization(QsSpecialization spec)
+                {
+                    _super._InAdjoint = true;
+                    var rtrn = base.onAdjointSpecialization(spec);
+                    _super._InAdjoint = false;
+                    return rtrn;
+                }
+
+                public override QsSpecialization onControlledSpecialization(QsSpecialization spec)
+                {
+                    _super._InControlled = true;
+                    var rtrn = base.onControlledSpecialization(spec);
+                    _super._InControlled = false;
+                    return rtrn;
+                }
+
+                //public override QsSpecialization onControlledAdjointSpecialization(QsSpecialization spec)
+                //{
+                //    _super._InControlledAdjoint = true;
+                //    var rtrn = base.onControlledAdjointSpecialization(spec);
+                //    _super._InControlledAdjoint = false;
+                //    return rtrn;
+                //}
 
                 public override QsNamespace Transform(QsNamespace ns)
                 {
