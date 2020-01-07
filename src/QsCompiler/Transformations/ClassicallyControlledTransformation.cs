@@ -494,11 +494,39 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
         {
             private bool _IsValidScope = true;
             private List<QsCallable> _ControlOperations;
-            private QsCallable _CurrentCallable = null;
             private ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> _CurrentHoistParams =
                 ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
             private bool _ContainsHoistParamRef = false;
 
+            private class CallableInfo
+            {
+                public QsCallable Callable;
+                public QsSpecialization Adjoint;
+                public QsSpecialization Controlled;
+                public QsSpecialization ControlledAdjoint;
+                public QsNullable<ImmutableArray<ResolvedType>> TypeParamTypes;
+
+                public CallableInfo(QsCallable callable)
+                {
+                    Callable = callable;
+                    Adjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
+                    Controlled = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
+                    ControlledAdjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
+                    TypeParamTypes = callable.Signature.TypeParameters.Any(param => param.IsValidName)
+                    ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
+                        .Where(param => param.IsValidName)
+                        .Select(param =>
+                            ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
+                                callable.FullName,
+                                ((QsLocalSymbol.ValidName)param).Item,
+                                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                        ))))
+                        .ToImmutableArray())
+                    : QsNullable<ImmutableArray<ResolvedType>>.Null;
+                }
+            }
+
+            private CallableInfo _CurrentCallable = null;
             private bool _InBody = false;
             private bool _InAdjoint = false;
             private bool _InControlled = false;
@@ -511,26 +539,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 return new QsCompilation(compilation.Namespaces.Select(ns => filter.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
 
-            private QsSpecialization MakeSpecialization(QsSpecializationKind kind, QsQualifiedName parentName, ResolvedSignature signature, SpecializationImplementation impl) =>
-                new QsSpecialization(
-                    kind,
-                    parentName,
-                    ImmutableArray<QsDeclarationAttribute>.Empty,
-                    _CurrentCallable.SourceFile,
-                    QsNullable<QsLocation>.Null,
-                    QsNullable<ImmutableArray<ResolvedType>>.Null,
-                    signature,
-                    impl,
-                    ImmutableArray<string>.Empty,
-                    QsComments.Empty);
-
-            private IEnumerable<QsSpecialization> GetFunctorSpecializations(QsQualifiedName parentName, ResolvedSignature parentSignature)
+            private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(QsQualifiedName callableName, ResolvedType argsType, SpecializationImplementation bodyImplementation)
             {
-                var adj = _CurrentCallable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
-                var ctl = _CurrentCallable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
-                var ctlAdj = _CurrentCallable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
+                QsSpecialization MakeSpec(QsSpecializationKind kind, ResolvedSignature signature, SpecializationImplementation impl) =>
+                    new QsSpecialization(
+                        kind,
+                        callableName,
+                        ImmutableArray<QsDeclarationAttribute>.Empty,
+                        _CurrentCallable.Callable.SourceFile,
+                        QsNullable<QsLocation>.Null,
+                        QsNullable<ImmutableArray<ResolvedType>>.Null,
+                        signature,
+                        impl,
+                        ImmutableArray<string>.Empty,
+                        QsComments.Empty);
 
-                var specializations = new List<QsSpecialization>();
+                var adj = _CurrentCallable.Adjoint;
+                var ctl = _CurrentCallable.Controlled;
+                var ctlAdj = _CurrentCallable.ControlledAdjoint;
 
                 // ToDo: this Boolean logic could be cleaned up
                 bool addAdjoint = false;
@@ -566,27 +592,36 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     }
                 }
 
+                var props = new List<OpProperty>();
+                if (addAdjoint) props.Add(OpProperty.Adjointable);
+                if (addControlled) props.Add(OpProperty.Controllable);
+                var newSig = new ResolvedSignature(
+                    _CurrentCallable.Callable.Signature.TypeParameters,
+                    argsType,
+                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                    new CallableInformation(ResolvedCharacteristics.FromProperties(props), InferredCallableInformation.NoInformation));
+
+                var specializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, newSig, bodyImplementation) };
+
                 if (addAdjoint)
                 {
-                    specializations.Add(MakeSpecialization(
+                    specializations.Add(MakeSpec(
                         QsSpecializationKind.QsAdjoint,
-                        parentName,
-                        parentSignature,
+                        newSig,
                         SpecializationImplementation.NewGenerated(QsGeneratorDirective.InvalidGenerator))); // ToDo: find appropriate directive
                 }
 
                 if (addControlled)
                 {
-                    specializations.Add(MakeSpecialization(
+                    specializations.Add(MakeSpec(
                         QsSpecializationKind.QsControlled,
-                        parentName,
                         new ResolvedSignature(
-                            parentSignature.TypeParameters,
+                            newSig.TypeParameters,
                             ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
                                 ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
-                                parentSignature.ArgumentType))),
-                            parentSignature.ReturnType,
-                            parentSignature.Information),
+                                newSig.ArgumentType))),
+                            newSig.ReturnType,
+                            newSig.Information),
                         SpecializationImplementation.NewGenerated(QsGeneratorDirective.InvalidGenerator))); // ToDo: find appropriate directive
                 }
 
@@ -595,14 +630,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 //    // add 'generated' implementation for ControlledAdjoint
                 //}
 
-                return specializations;
+                return (newSig, specializations);
             }
 
             private (QsQualifiedName, ResolvedType) GenerateOperation(QsScope contents)
             {
                 var newName = new QsQualifiedName(
-                    _CurrentCallable.FullName.Namespace,
-                    NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + _CurrentCallable.FullName.Name.Value));
+                    _CurrentCallable.Callable.FullName.Namespace,
+                    NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + _CurrentCallable.Callable.FullName.Name.Value));
 
                 var knownVariables = contents.KnownSymbols.IsEmpty
                     ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
@@ -629,34 +664,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         .ToImmutableArray()));
                 }
 
-                var signature = new ResolvedSignature(
-                    _CurrentCallable.Signature.TypeParameters,
-                    paramTypes,
-                    ResolvedType.New(ResolvedTypeKind.UnitType),
-                    CallableInformation.NoInformation); // ToDo: this information should have the supported functors in it
-
-                var body = MakeSpecialization(
-                    QsSpecializationKind.QsBody,
-                    newName,
-                    signature,
-                    SpecializationImplementation.NewProvided(parameters, contents));
+                var (signature, specializations) = MakeSpecializations(newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents));
 
                 var controlCallable = new QsCallable(
                     QsCallableKind.Operation,
                     newName,
                     ImmutableArray<QsDeclarationAttribute>.Empty,
-                    _CurrentCallable.SourceFile,
+                    _CurrentCallable.Callable.SourceFile,
                     QsNullable<QsLocation>.Null,
                     signature,
                     parameters,
-                    new List<QsSpecialization>() { body }
-                        .Concat(GetFunctorSpecializations(newName, signature))
-                        .ToImmutableArray(),
+                    specializations.ToImmutableArray(),
                     ImmutableArray<string>.Empty,
                     QsComments.Empty);
 
-                var reroutedCallable = UpdateGeneratedOpTransformation.Apply(controlCallable, knownVariables, _CurrentCallable.FullName, newName);
-                _ControlOperations.Add(reroutedCallable);
+                var updatedCallable = UpdateGeneratedOpTransformation.Apply(controlCallable, knownVariables, _CurrentCallable.Callable.FullName, newName);
+                _ControlOperations.Add(updatedCallable);
 
                 return (newName, paramTypes);
             }
@@ -675,7 +698,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public override QsCallable onCallableImplementation(QsCallable c)
                 {
-                    _super._CurrentCallable = c;
+                    _super._CurrentCallable = new CallableInfo(c);
                     return base.onCallableImplementation(c);
                 }
 
@@ -735,7 +758,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             ResolvedType.New(ResolvedTypeKind.UnitType)), // ToDo: something has to be done to allow for mutables in sub-scopes
                         CallableInformation.NoInformation));
 
-                    var targetTypeArgTypes = GetTypeParamTypesFromCallable(_super._CurrentCallable);
+                    var targetTypeArgTypes = _super._CurrentCallable.TypeParamTypes;
                     var targetOpId = new TypedExpression
                     (
                         ExpressionKind.NewIdentifier(Identifier.NewGlobalCallable(targetName), targetTypeArgTypes),
@@ -791,25 +814,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         QsComments.Empty);
                 }
 
-                private QsNullable<ImmutableArray<ResolvedType>> GetTypeParamTypesFromCallable(QsCallable callable)
-                {
-                    if (callable.Signature.TypeParameters.Any(param => param.IsValidName))
-                    {
-                        return QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
-                        .Where(param => param.IsValidName)
-                        .Select(param =>
-                            ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
-                                callable.FullName,
-                                ((QsLocalSymbol.ValidName)param).Item,
-                                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                        ))))
-                        .ToImmutableArray());
-                    }
-                    else
-                    {
-                        return QsNullable<ImmutableArray<ResolvedType>>.Null;
-                    }
-                }
+                //private QsNullable<ImmutableArray<ResolvedType>> GetTypeParamTypesFromCallable(QsCallable callable)
+                //{
+                //    if (callable.Signature.TypeParameters.Any(param => param.IsValidName))
+                //    {
+                //        return QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
+                //        .Where(param => param.IsValidName)
+                //        .Select(param =>
+                //            ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
+                //                callable.FullName,
+                //                ((QsLocalSymbol.ValidName)param).Item,
+                //                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                //        ))))
+                //        .ToImmutableArray());
+                //    }
+                //    else
+                //    {
+                //        return QsNullable<ImmutableArray<ResolvedType>>.Null;
+                //    }
+                //}
 
                 public override QsStatementKind onReturnStatement(TypedExpression ex)
                 {
