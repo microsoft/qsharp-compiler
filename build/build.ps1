@@ -30,6 +30,7 @@ function Build-One {
 }
 
 Build-One '../QsCompiler.sln'
+Build-One '../src/QsLinter/QsLinter.csproj'
 Build-One '../src/QuantumSdk/Tools/Tools.sln'
 
 ##
