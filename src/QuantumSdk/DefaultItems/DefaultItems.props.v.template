@@ -31,6 +31,7 @@
   <PropertyGroup> 
     <QscVerbosity>Normal</QscVerbosity>
     <CsharpGeneration>true</CsharpGeneration> <!-- at some point we may want to make False the default -->
+    <EnableQsLinter>false</EnableQsLinter>
     <IncludeQsharpCorePackages>true</IncludeQsharpCorePackages> 
     <QsharpDocsGeneration>false</QsharpDocsGeneration>
     <DefaultQscBuildConfigExe>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Sdk.BuildConfiguration.dll"</DefaultQscBuildConfigExe> 

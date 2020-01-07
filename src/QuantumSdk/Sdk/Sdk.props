@@ -27,6 +27,11 @@
     <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.10.1912.2603-alpha" />
     <!-- Packages included for specific execution targets. -->
     <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1912.2604-alpha" IsImplicitlyDefined="$(CsharpGeneration)" />
+    <PackageReference
+      Condition="$(EnableQsLinter)"
+      Include="Microsoft.Quantum.QsLinter"
+      Version="$(QuantumSdkVersion)"
+    />
   </ItemGroup>
 
   <!-- Packages containing rewrite steps that are executed during compilation. -->
