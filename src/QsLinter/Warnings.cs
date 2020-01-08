@@ -17,7 +17,8 @@ namespace Microsoft.Quantum.Compiler.Linter
         MissingDocumentation,
         MissingInputDocumentation,
         MissingSummary,
-        MathInSummary
+        MathInSummary,
+        BrokenSeeAlsoLink
     }
 
     public struct SourceRange<T>

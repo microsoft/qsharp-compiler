@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.Compiler.Linter
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            System.Console.WriteLine("I: Beginning qlint scan.");
+            System.Console.WriteLine("I: Beginning qslint scan.");
 
             // Write assembly constants out for debugging.
             foreach (var item in AssemblyConstants)
@@ -70,6 +70,7 @@ namespace Microsoft.Quantum.Compiler.Linter
             }
 
             // After we're done, report out.
+            System.Console.WriteLine($"I: qslint complete, found {Warnings.Count} possible issues.");
             try
             {
                 WriteReport().Wait();
@@ -139,6 +140,11 @@ namespace Microsoft.Quantum.Compiler.Linter
         {
             NamespaceStack.Push(@namespace);
             return new ContextManager(() => NamespaceStack.Pop());
+        }
+
+        private bool IdentifierExists(string identifier)
+        {
+            return true; // FIXME: walk the AST to find the given identifier.
         }
 
         private void CheckNamespace(QsNamespace ns)

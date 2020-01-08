@@ -97,6 +97,24 @@ namespace Microsoft.Quantum.Compiler.Linter
                     }
                 }
             }
+
+            // TODO: Check that each type parameter has a corresponding section.
+
+            // TODO: Check that if the output isn't Unit, then there exists an
+            //       Output section.
+
+            // Check that see also blocks only reference valid callables and types.
+            foreach (var seeAlsoLink in parsedComment.SeeAlso)
+            {
+                if (!IdentifierExists(seeAlsoLink))
+                {
+                    Warn(
+                        WarningCategory.BrokenSeeAlsoLink,
+                        $"See also link from {callable.Kind} {callable.FullName.ToDottedName()} to {seeAlsoLink} is broken."
+                        // TODO: propagate location information.
+                    );
+                }
+            }
         }
 
         private void CheckNamespaceDocumentation(QsNamespace ns)
