@@ -383,13 +383,21 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
 
     // - simplifies multiplication of two constants into single constant
     // - rewrites (integers, big integers, and doubles)
+    //     x * 0 = 0
+    //     0 * x = 0
     //     x * 1 = x
     //     1 * x = x
     override this.onMultiplication (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
-        | op, (BigIntLiteral zero)
-        | (BigIntLiteral zero, op) when zero.IsZero -> op
+        | _, (BigIntLiteral zero)
+        | (BigIntLiteral zero), _ when zero.IsZero -> BigIntLiteral BigInteger.Zero
+        | _, (DoubleLiteral 0.0)
+        | (DoubleLiteral 0.0), _ -> DoubleLiteral 0.0
+        | _, (IntLiteral 0L)
+        | (IntLiteral 0L), _ -> IntLiteral 0L
+        | op, (BigIntLiteral one)
+        | (BigIntLiteral one), op when one.IsOne -> op
         | op, (DoubleLiteral 1.0)
         | (DoubleLiteral 1.0), op
         | op, (IntLiteral 1L)
