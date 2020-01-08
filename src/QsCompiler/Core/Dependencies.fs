@@ -87,13 +87,19 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
-    static member private _MakeResolvedType builtIn =
+    static member private _MakeResolvedType builtIn props =
         let typeParamT =
             {
                 Origin = {Namespace = builtIn.Namespace; Name = builtIn.Name};
                 TypeName = builtIn.TypeParameters.[0];
                 Range = QsRangeInfo.Null
             } |> TypeParameter |> ResolvedType.New
+
+        let characteristics =
+            {
+                Characteristics = ResolvedCharacteristics.FromProperties props;
+                InferredInformation = InferredCallableInformation.NoInformation
+            }
 
         let args = 
             [
@@ -104,7 +110,7 @@ type BuiltIn = {
                             typeParamT,
                             UnitType |> ResolvedType.New
                         ),
-                        CallableInformation.NoInformation
+                        characteristics
                     ) |> Operation |> ResolvedType.New;
                     typeParamT
                 ].ToImmutableArray() |> TupleType |> ResolvedType.New
@@ -115,17 +121,8 @@ type BuiltIn = {
                 args,
                 ResolvedType.New UnitType
             ),
-            CallableInformation.NoInformation
+            characteristics
         ) |> Operation |> ResolvedType.New
-
-    // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
-    static member ApplyIfOne = {
-        Name = "ApplyIfOne" |> NonNullable<string>.New
-        Namespace = BuiltIn.ClassicallyControlledNamespace
-        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
-    }
-
-    static member ApplyIfOneResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfOne
 
     // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
     static member ApplyIfZero = {
@@ -133,17 +130,65 @@ type BuiltIn = {
         Namespace = BuiltIn.ClassicallyControlledNamespace
         TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
     }
+    static member ApplyIfZeroResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfZero []
 
-    static member ApplyIfZeroResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfZero
-
-    // This is expected to have type <'T, 'U>((Result, (('T => Unit), 'T), (('U => Unit), 'U)) => Unit)
-    static member ApplyIfElseR = {
-        Name = "ApplyIfElseR" |> NonNullable<string>.New
+    // This is expected to have type <'T>((Result, (('T => Unit is Adj), 'T)) => Unit is Adj)
+    static member ApplyIfZeroA = {
+        Name = "ApplyIfZeroA" |> NonNullable<string>.New
         Namespace = BuiltIn.ClassicallyControlledNamespace
-        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
     }
+    static member ApplyIfZeroAResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfZeroA [OpProperty.Adjointable]
 
-    static member private _MakeApplyIfElseResolvedType builtIn =
+    // This is expected to have type <'T>((Result, (('T => Unit is Ctl), 'T)) => Unit is Ctl)
+    static member ApplyIfZeroC = {
+        Name = "ApplyIfZeroC" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
+    }
+    static member ApplyIfZeroCResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfZeroC [OpProperty.Controllable]
+
+    // This is expected to have type <'T>((Result, (('T => Unit is Adj + Ctl), 'T)) => Unit is Adj + Ctl)
+    static member ApplyIfZeroCA = {
+        Name = "ApplyIfZeroCA" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
+    }
+    static member ApplyIfZeroCAResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfZeroCA [OpProperty.Adjointable; OpProperty.Controllable]
+
+    // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
+    static member ApplyIfOne = {
+        Name = "ApplyIfOne" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
+    }
+    static member ApplyIfOneResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfOne []
+
+    // This is expected to have type <'T>((Result, (('T => Unit is Adj), 'T)) => Unit is Adj)
+    static member ApplyIfOneA = {
+        Name = "ApplyIfOneA" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
+    }
+    static member ApplyIfOneAResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfOneA [OpProperty.Adjointable]
+
+    // This is expected to have type <'T>((Result, (('T => Unit is Ctl), 'T)) => Unit is Ctl)
+    static member ApplyIfOneC = {
+        Name = "ApplyIfOneC" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
+    }
+    static member ApplyIfOneCResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfOneC [OpProperty.Controllable]
+
+    // This is expected to have type <'T>((Result, (('T => Unit is Adj + Ctl), 'T)) => Unit is Adj + Ctl)
+    static member ApplyIfOneCA = {
+        Name = "ApplyIfOneCA" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
+    }
+    static member ApplyIfOneCAResolvedType = BuiltIn._MakeResolvedType BuiltIn.ApplyIfOneCA [OpProperty.Adjointable; OpProperty.Controllable]
+
+    static member private _MakeApplyIfElseResolvedType builtIn props =
         let typeParamT =
             {
                 Origin = {Namespace = builtIn.Namespace; Name = builtIn.Name};
@@ -158,6 +203,12 @@ type BuiltIn = {
                 Range = QsRangeInfo.Null
             } |> TypeParameter |> ResolvedType.New
 
+        let characteristics =
+            {
+                Characteristics = ResolvedCharacteristics.FromProperties props;
+                InferredInformation = InferredCallableInformation.NoInformation
+            }
+
         let args = 
             [
                 Result |> ResolvedType.New;
@@ -167,7 +218,7 @@ type BuiltIn = {
                             typeParamT,
                             UnitType |> ResolvedType.New
                         ),
-                        CallableInformation.NoInformation
+                        characteristics
                     ) |> Operation |> ResolvedType.New;
                     typeParamT
                 ].ToImmutableArray() |> TupleType |> ResolvedType.New;
@@ -177,7 +228,7 @@ type BuiltIn = {
                             typeParamU,
                             UnitType |> ResolvedType.New
                         ),
-                        CallableInformation.NoInformation
+                        characteristics
                     ) |> Operation |> ResolvedType.New;
                     typeParamU
                 ].ToImmutableArray() |> TupleType |> ResolvedType.New
@@ -188,10 +239,40 @@ type BuiltIn = {
                 args,
                 ResolvedType.New UnitType
             ),
-            CallableInformation.NoInformation
+            characteristics
         ) |> Operation |> ResolvedType.New
 
-    static member ApplyIfElseRResolvedType = BuiltIn._MakeApplyIfElseResolvedType BuiltIn.ApplyIfElseR
+    // This is expected to have type <'T, 'U>((Result, (('T => Unit), 'T), (('U => Unit), 'U)) => Unit)
+    static member ApplyIfElseR = {
+        Name = "ApplyIfElseR" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
+    }
+    static member ApplyIfElseRResolvedType = BuiltIn._MakeApplyIfElseResolvedType BuiltIn.ApplyIfElseR []
+
+    // This is expected to have type <'T, 'U>((Result, (('T => Unit is Adj), 'T), (('U => Unit is Adj), 'U)) => Unit is Adj)
+    static member ApplyIfElseRA = {
+        Name = "ApplyIfElseRA" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
+    }
+    static member ApplyIfElseRAResolvedType = BuiltIn._MakeApplyIfElseResolvedType BuiltIn.ApplyIfElseRA [OpProperty.Adjointable]
+
+    // This is expected to have type <'T, 'U>((Result, (('T => Unit is Ctl), 'T), (('U => Unit is Ctl), 'U)) => Unit is Ctl)
+    static member ApplyIfElseRC = {
+        Name = "ApplyIfElseRC" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
+    }
+    static member ApplyIfElseRCResolvedType = BuiltIn._MakeApplyIfElseResolvedType BuiltIn.ApplyIfElseRC [OpProperty.Controllable]
+
+    // This is expected to have type <'T, 'U>((Result, (('T => Unit is Adj + Ctl), 'T), (('U => Unit is Adj + Ctl), 'U)) => Unit is Adj + Ctl)
+    static member ApplyIfElseCA = {
+        Name = "ApplyIfElseCA" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
+    }
+    static member ApplyIfElseCAResolvedType = BuiltIn._MakeApplyIfElseResolvedType BuiltIn.ApplyIfElseCA [OpProperty.Adjointable; OpProperty.Controllable]
 
     // "weak dependencies" in other namespaces (e.g. things used for code actions)
 

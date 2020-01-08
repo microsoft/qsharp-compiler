@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.FSharp.Core;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
@@ -96,51 +97,46 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
             private (bool, TypedExpression, TypedExpression) IsValidScope(QsScope scope)
             {
-                if (scope != null && scope.Statements.Length == 1)
+                // if the scope has exactly one statement in it and that statement is a call like expression statement
+                if (scope != null && scope.Statements.Length == 1 &&
+                    scope.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr &&
+                    expr.Item.ResolvedType.Resolution.IsUnitType && expr.Item.Expression is ExpressionKind.CallLikeExpression call)
                 {
-                    if (scope.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr)
+                    // We are dissolving the application of arguments here, so the call's type argument
+                    // resolutions have to be moved to the 'identifier' sub expression.
+
+                    var callTypeArguments = expr.Item.TypeArguments;
+                    var idTypeArguments = call.Item1.TypeArguments;
+
+                    // Merge the two lists into one list with distinct argument mappings,
+                    // giving preference to the id's type arguments.
+                    var mapping = callTypeArguments.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
+                    foreach (var arg in idTypeArguments)
                     {
-                        var returnType = expr.Item.ResolvedType;
-
-                        if (returnType.Resolution.IsUnitType && expr.Item.Expression is ExpressionKind.CallLikeExpression call)
-                        {
-                            // We are dissolving the application of arguments here, so the call's type argument
-                            // resolutions have to be moved to the 'identifier' sub expression.
-
-                            var callTypeArguments = expr.Item.TypeArguments;
-                            var idTypeArguments = call.Item1.TypeArguments;
-
-                            // Merge the two lists into one list with distinct argument mappings,
-                            // giving preference to the id's type arguments.
-                            var mapping = callTypeArguments.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
-                            foreach (var arg in idTypeArguments)
-                            {
-                                mapping[(arg.Item1, arg.Item2)] = arg.Item3;
-                            }
-                            var combinedTypeArguments = mapping.Select(kvp => Tuple.Create(kvp.Key.Item1, kvp.Key.Item2, kvp.Value)).ToImmutableArray();
-
-                            var newExpr1 = expr.Item;
-                            // ToDo: shouldn't rely on expr1 being identifier
-                            if (combinedTypeArguments.Any() && call.Item1.Expression is ExpressionKind.Identifier id)
-                            {
-                                newExpr1 = new TypedExpression(
-                                    ExpressionKind.NewIdentifier(
-                                        id.Item1,
-                                        QsNullable<ImmutableArray<ResolvedType>>.NewValue(combinedTypeArguments
-                                            .Select(arg => arg.Item3)
-                                            .ToImmutableArray())),
-                                    combinedTypeArguments,
-                                    ResolvedType.New(ResolvedTypeKind.UnitType), // ToDo: This is really wrong
-                                    // Need to replace all type-param types in resolved type with their resolution
-                                    // I hope this does not involve a whole new transformation :(
-                                    //call.Item1.ResolvedType,
-                                    call.Item1.InferredInformation,
-                                    call.Item1.Range);
-                            }
-
-                            return (true, newExpr1, call.Item2);
-                        }
+                        mapping[(arg.Item1, arg.Item2)] = arg.Item3;
                     }
+                    var combinedTypeArguments = mapping.Select(kvp => Tuple.Create(kvp.Key.Item1, kvp.Key.Item2, kvp.Value)).ToImmutableArray();
+
+                    var newExpr1 = call.Item1;
+                    // ToDo: shouldn't rely on expr1 being identifier
+                    if (combinedTypeArguments.Any() && newExpr1.Expression is ExpressionKind.Identifier id)
+                    {
+                        newExpr1 = new TypedExpression(
+                            ExpressionKind.NewIdentifier(
+                                id.Item1,
+                                QsNullable<ImmutableArray<ResolvedType>>.NewValue(combinedTypeArguments
+                                    .Select(arg => arg.Item3)
+                                    .ToImmutableArray())),
+                            combinedTypeArguments,
+                            ResolvedType.New(ResolvedTypeKind.UnitType), // ToDo: This is really wrong
+                            // Need to replace all type-param types in resolved type with their resolution
+                            // I hope this does not involve a whole new transformation :(
+                            //call.Item1.ResolvedType,
+                            call.Item1.InferredInformation,
+                            call.Item1.Range);
+                    }
+
+                    return (true, newExpr1, call.Item2);
                 }
 
                 return (false, null, null);
@@ -187,33 +183,83 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 ResolvedType controlOpType;
                 TypedExpression controlArgs;
                 ImmutableArray<ResolvedType> targetArgs;
-                if (isCondValid && isDefaultValid)
+                if (isCondValid)
                 {
-                    controlOpInfo = BuiltIn.ApplyIfElseR;
-                    controlOpType = BuiltIn.ApplyIfElseRResolvedType;
+                    var props = GetCharacteristicsFromGlobalId(condId);
+                    (bool adj, bool ctl) = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable));
 
-                    controlArgs = Helper.CreateValueTupleExpression(
-                        conditionExpression,
-                        Helper.CreateValueTupleExpression(condId, condArgs),
-                        Helper.CreateValueTupleExpression(defaultId, defaultArgs));
+                    if (isDefaultValid)
+                    {
+                        if (adj && ctl)
+                        {
+                            controlOpInfo = BuiltIn.ApplyIfElseCA;
+                            controlOpType = BuiltIn.ApplyIfElseCAResolvedType;
+                        }
+                        else if (adj)
+                        {
+                            controlOpInfo = BuiltIn.ApplyIfElseRA;
+                            controlOpType = BuiltIn.ApplyIfElseRAResolvedType;
+                        }
+                        else if (ctl)
+                        {
+                            controlOpInfo = BuiltIn.ApplyIfElseRC;
+                            controlOpType = BuiltIn.ApplyIfElseRCResolvedType;
+                        }
+                        else
+                        {
+                            controlOpInfo = BuiltIn.ApplyIfElseR;
+                            controlOpType = BuiltIn.ApplyIfElseRResolvedType;
+                        }
 
-                    targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
-                }
-                else if (isCondValid && defaultScope == null)
-                {
-                    (controlOpInfo, controlOpType) = (result == QsResult.One)
-                    ? (BuiltIn.ApplyIfOne, BuiltIn.ApplyIfOneResolvedType)
-                    : (BuiltIn.ApplyIfZero, BuiltIn.ApplyIfZeroResolvedType);
+                        controlArgs = Helper.CreateValueTupleExpression(
+                            conditionExpression,
+                            Helper.CreateValueTupleExpression(condId, condArgs),
+                            Helper.CreateValueTupleExpression(defaultId, defaultArgs));
 
-                    controlArgs = Helper.CreateValueTupleExpression(
-                        conditionExpression,
-                        Helper.CreateValueTupleExpression(condId, condArgs));
+                        targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
+                    }
+                    else if (defaultScope == null)
+                    {
+                        if (adj && ctl)
+                        {
+                            (controlOpInfo, controlOpType) = (result == QsResult.One)
+                            ? (BuiltIn.ApplyIfOneCA, BuiltIn.ApplyIfOneCAResolvedType)
+                            : (BuiltIn.ApplyIfZeroCA, BuiltIn.ApplyIfZeroCAResolvedType);
+                        }
+                        else if (adj)
+                        {
+                            (controlOpInfo, controlOpType) = (result == QsResult.One)
+                            ? (BuiltIn.ApplyIfOneA, BuiltIn.ApplyIfOneAResolvedType)
+                            : (BuiltIn.ApplyIfZeroA, BuiltIn.ApplyIfZeroAResolvedType);
+                        }
+                        else if (ctl)
+                        {
+                            (controlOpInfo, controlOpType) = (result == QsResult.One)
+                            ? (BuiltIn.ApplyIfOneC, BuiltIn.ApplyIfOneCResolvedType)
+                            : (BuiltIn.ApplyIfZeroC, BuiltIn.ApplyIfZeroCResolvedType);
+                        }
+                        else
+                        {
+                            (controlOpInfo, controlOpType) = (result == QsResult.One)
+                            ? (BuiltIn.ApplyIfOne, BuiltIn.ApplyIfOneResolvedType)
+                            : (BuiltIn.ApplyIfZero, BuiltIn.ApplyIfZeroResolvedType);
+                        }
 
-                    targetArgs = ImmutableArray.Create(condArgs.ResolvedType);
+                        controlArgs = Helper.CreateValueTupleExpression(
+                            conditionExpression,
+                            Helper.CreateValueTupleExpression(condId, condArgs));
+
+                        targetArgs = ImmutableArray.Create(condArgs.ResolvedType);
+                    }
+                    else
+                    {
+                        return null; // ToDo: Diagnostic message - default body exists, but is not valid
+                    }
+
                 }
                 else
                 {
-                    return null;
+                    return null; // ToDo: Diagnostic message - cond body not valid
                 }
 
                 // Build the surrounding apply-if call
@@ -227,6 +273,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     controlOpType);
 
                 return CreateApplyIfCall(controlOpId, controlArgs/*, controlOpInfo, targetArgs*/);
+            }
+
+            private ImmutableHashSet<OpProperty> GetCharacteristicsFromGlobalId(TypedExpression globalId)
+            {
+                if (globalId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
+                {
+                    return op.Item2.Characteristics.GetProperties();
+                }
+                else
+                {
+                    return ImmutableHashSet<OpProperty>.Empty;
+                }
             }
 
             private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement cond)
@@ -498,7 +556,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
             private bool _ContainsHoistParamRef = false;
 
-            private class CallableInfo
+            private class CallableDetails
             {
                 public QsCallable Callable;
                 public QsSpecialization Adjoint;
@@ -506,7 +564,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 public QsSpecialization ControlledAdjoint;
                 public QsNullable<ImmutableArray<ResolvedType>> TypeParamTypes;
 
-                public CallableInfo(QsCallable callable)
+                public CallableDetails(QsCallable callable)
                 {
                     Callable = callable;
                     Adjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
@@ -526,7 +584,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            private CallableInfo _CurrentCallable = null;
+            private CallableDetails _CurrentCallable = null;
             private bool _InBody = false;
             private bool _InAdjoint = false;
             private bool _InControlled = false;
@@ -601,6 +659,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     new CallableInformation(ResolvedCharacteristics.FromProperties(props), InferredCallableInformation.NoInformation));
 
+                var controlledSig = new ResolvedSignature(
+                    newSig.TypeParameters,
+                    ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
+                        ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
+                        newSig.ArgumentType))),
+                    newSig.ReturnType,
+                    newSig.Information);
+
                 var specializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, newSig, bodyImplementation) };
 
                 if (addAdjoint)
@@ -608,32 +674,29 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     specializations.Add(MakeSpec(
                         QsSpecializationKind.QsAdjoint,
                         newSig,
-                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.InvalidGenerator))); // ToDo: find appropriate directive
+                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Invert))); // ToDo: find appropriate directive
                 }
 
                 if (addControlled)
                 {
                     specializations.Add(MakeSpec(
                         QsSpecializationKind.QsControlled,
-                        new ResolvedSignature(
-                            newSig.TypeParameters,
-                            ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
-                                ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
-                                newSig.ArgumentType))),
-                            newSig.ReturnType,
-                            newSig.Information),
-                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.InvalidGenerator))); // ToDo: find appropriate directive
+                        controlledSig,
+                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute))); // ToDo: find appropriate directive
                 }
 
                 //if (addControlledAdjoint)
                 //{
-                //    // add 'generated' implementation for ControlledAdjoint
+                //    specializations.Add(MakeSpec(
+                //        QsSpecializationKind.QsControlledAdjoint,
+                //        controlledSig,
+                //        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute))); // ToDo: find appropriate directive
                 //}
 
                 return (newSig, specializations);
             }
 
-            private (QsQualifiedName, ResolvedType) GenerateOperation(QsScope contents)
+            private (QsQualifiedName, ResolvedType, CallableInformation) GenerateOperation(QsScope contents)
             {
                 var newName = new QsQualifiedName(
                     _CurrentCallable.Callable.FullName.Namespace,
@@ -681,7 +744,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 var updatedCallable = UpdateGeneratedOpTransformation.Apply(controlCallable, knownVariables, _CurrentCallable.Callable.FullName, newName);
                 _ControlOperations.Add(updatedCallable);
 
-                return (newName, paramTypes);
+                return (newName, paramTypes, signature.Information);
             }
 
             private HoistTransformation() { }
@@ -698,7 +761,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public override QsCallable onCallableImplementation(QsCallable c)
                 {
-                    _super._CurrentCallable = new CallableInfo(c);
+                    _super._CurrentCallable = new CallableDetails(c);
                     return base.onCallableImplementation(c);
                 }
 
@@ -751,12 +814,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 private QsStatement HoistIfContents(QsScope contents)
                 {
-                    var (targetName, targetParamType) = _super.GenerateOperation(contents);
+                    var (targetName, targetParamType, callInfo) = _super.GenerateOperation(contents);
                     var targetOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
                         Tuple.Create(
                             targetParamType,
                             ResolvedType.New(ResolvedTypeKind.UnitType)), // ToDo: something has to be done to allow for mutables in sub-scopes
-                        CallableInformation.NoInformation));
+                        callInfo));
 
                     var targetTypeArgTypes = _super._CurrentCallable.TypeParamTypes;
                     var targetOpId = new TypedExpression

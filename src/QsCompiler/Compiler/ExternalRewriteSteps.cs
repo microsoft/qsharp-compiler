@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler
                 // The Name and Priority need to be fixed throughout the loading, 
                 // so whatever their value is when loaded that's what these values well be as far at the compiler is concerned.
                 this.Name = _SelfAsStep?.Name ?? this.GetViaReflection<string>(nameof(IRewriteStep.Name)); 
-                this.Priority = _SelfAsStep?.Priority ?? this.GetViaReflection<int>(nameof(IRewriteStep.Priority)); 
+                this.Priority = _SelfAsStep?.Priority ?? this.GetViaReflection<int>(nameof(IRewriteStep.Priority));
             }
 
             public string Name { get; }
