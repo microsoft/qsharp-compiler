@@ -400,8 +400,6 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | _ -> MUL (lhs, rhs)
 
     // - simplifies multiplication of two constants into single constant
-    // - rewrites (integers, big integers, and doubles)
-    //     x / 1 = x
     override this.onDivision (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
@@ -411,12 +409,6 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | (BigIntLiteral a), (BigIntLiteral b) -> BigIntLiteral (a / b)
         | (DoubleLiteral a), (DoubleLiteral b) -> DoubleLiteral (a / b)
         | (IntLiteral a), (IntLiteral b) -> IntLiteral (a / b)
-        | op1, op2 when op1 = op2 ->
-            match lhs.ResolvedType.Resolution with
-            | BigInt -> BigIntLiteral BigInteger.One
-            | Double -> DoubleLiteral 1.0
-            | Int -> IntLiteral 1L
-            | _ -> DIV (lhs, rhs)
         | _ -> DIV (lhs, rhs)
 
     override this.onExponentiate (lhs, rhs) =
