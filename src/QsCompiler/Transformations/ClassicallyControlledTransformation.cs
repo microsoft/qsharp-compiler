@@ -4,13 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Dynamic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.FSharp.Core;
 using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
@@ -19,36 +14,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-
-    internal static class Helper
-    {
-        public static TypedExpression CreateIdentifierExpression(Identifier id,
-            ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>> typeArgsMapping, ResolvedType resolvedType) =>
-            new TypedExpression
-            (
-                ExpressionKind.NewIdentifier(
-                    id,
-                    typeArgsMapping.Any()
-                    ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgsMapping
-                        .Select(argMapping => argMapping.Item3) // This should preserve the order of the type args
-                        .ToImmutableArray())
-                    : QsNullable<ImmutableArray<ResolvedType>>.Null),
-                typeArgsMapping,
-                resolvedType,
-                new InferredExpressionInformation(false, false),
-                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-            );
-
-        public static TypedExpression CreateValueTupleExpression(params TypedExpression[] expressions) =>
-            new TypedExpression
-            (
-                ExpressionKind.NewValueTuple(expressions.ToImmutableArray()),
-                ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
-                ResolvedType.New(ResolvedTypeKind.NewTupleType(expressions.Select(expr => expr.ResolvedType).ToImmutableArray())),
-                new InferredExpressionInformation(false, false),
-                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-            );
-    }
 
     // This transformation works in two passes.
     // 1st Pass: Hoist the contents of conditional statements into separate operations, where possible.
@@ -65,6 +30,33 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
             return new QsCompilation(compilation.Namespaces.Select(ns => filter.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
         }
+
+        private static TypedExpression CreateIdentifierExpression(Identifier id,
+            ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>> typeArgsMapping, ResolvedType resolvedType) =>
+            new TypedExpression
+            (
+                ExpressionKind.NewIdentifier(
+                    id,
+                    typeArgsMapping.Any()
+                    ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgsMapping
+                        .Select(argMapping => argMapping.Item3) // This should preserve the order of the type args
+                        .ToImmutableArray())
+                    : QsNullable<ImmutableArray<ResolvedType>>.Null),
+                typeArgsMapping,
+                resolvedType,
+                new InferredExpressionInformation(false, false),
+                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+            );
+
+        private static TypedExpression CreateValueTupleExpression(params TypedExpression[] expressions) =>
+            new TypedExpression
+            (
+                ExpressionKind.NewValueTuple(expressions.ToImmutableArray()),
+                ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
+                ResolvedType.New(ResolvedTypeKind.NewTupleType(expressions.Select(expr => expr.ResolvedType).ToImmutableArray())),
+                new InferredExpressionInformation(false, false),
+                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+            );
 
         private ClassicallyControlledTransformation() { }
 
@@ -142,14 +134,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 return (false, null, null);
             }
 
-            private TypedExpression CreateApplyIfCall(TypedExpression id, TypedExpression args/*, BuiltIn controlOp, IEnumerable<ResolvedType> opTypeParamResolutions*/) =>
+            private TypedExpression CreateApplyIfCall(TypedExpression id, TypedExpression args) =>
                 new TypedExpression
                 (
                     ExpressionKind.NewCallLikeExpression(id, args),
                     ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
-                    //opTypeParamResolutions
-                    //    .Zip(controlOp.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOp.Namespace, controlOp.Name), param, type))
-                    //    .ToImmutableArray(),
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     new InferredExpressionInformation(false, true),
                     QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
@@ -185,7 +174,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 ImmutableArray<ResolvedType> targetArgs;
                 if (isCondValid)
                 {
-                    var props = GetCharacteristicsFromGlobalId(condId);
+                    // Get characteristic properties from global id
+                    var props = condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op
+                    ? op.Item2.Characteristics.GetProperties()
+                    : ImmutableHashSet<OpProperty>.Empty;
+
                     (bool adj, bool ctl) = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable));
 
                     if (isDefaultValid)
@@ -211,10 +204,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             controlOpType = BuiltIn.ApplyIfElseRResolvedType;
                         }
 
-                        controlArgs = Helper.CreateValueTupleExpression(
+                        controlArgs = CreateValueTupleExpression(
                             conditionExpression,
-                            Helper.CreateValueTupleExpression(condId, condArgs),
-                            Helper.CreateValueTupleExpression(defaultId, defaultArgs));
+                            CreateValueTupleExpression(condId, condArgs),
+                            CreateValueTupleExpression(defaultId, defaultArgs));
 
                         targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
                     }
@@ -245,9 +238,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             : (BuiltIn.ApplyIfZero, BuiltIn.ApplyIfZeroResolvedType);
                         }
 
-                        controlArgs = Helper.CreateValueTupleExpression(
+                        controlArgs = CreateValueTupleExpression(
                             conditionExpression,
-                            Helper.CreateValueTupleExpression(condId, condArgs));
+                            CreateValueTupleExpression(condId, condArgs));
 
                         targetArgs = ImmutableArray.Create(condArgs.ResolvedType);
                     }
@@ -263,28 +256,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
 
                 // Build the surrounding apply-if call
-                var controlOpId = Helper.CreateIdentifierExpression(
+                var controlOpId = CreateIdentifierExpression(
                     Identifier.NewGlobalCallable(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name)),
                     targetArgs
                         .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
                         .ToImmutableArray(),
-                    //QsNullable<ImmutableArray<ResolvedType>>.NewValue(targetArgs),
-                    //QsNullable<ImmutableArray<ResolvedType>>.Null,
                     controlOpType);
 
-                return CreateApplyIfCall(controlOpId, controlArgs/*, controlOpInfo, targetArgs*/);
-            }
-
-            private ImmutableHashSet<OpProperty> GetCharacteristicsFromGlobalId(TypedExpression globalId)
-            {
-                if (globalId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
-                {
-                    return op.Item2.Characteristics.GetProperties();
-                }
-                else
-                {
-                    return ImmutableHashSet<OpProperty>.Empty;
-                }
+                return CreateApplyIfCall(controlOpId, controlArgs);
             }
 
             private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement cond)
@@ -443,7 +422,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     new ScopeTransformation<UpdateGeneratedOpExpression>(
                         new UpdateGeneratedOpExpression(
                             new UpdateGeneratedOpTransformation(parameters, oldName, newName))));
-
+                
                 return filter.onCallableImplementation(qsCallable);
             }
 
@@ -486,7 +465,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             ex.Range);
                     }
 
-                    // prevent _IsRecursiveIdentifier from propagating beyond the typed expression it is referring to
+                    // Prevent _IsRecursiveIdentifier from propagating beyond the typed expression it is referring to
                     var isRecursiveIdentifier = _super._IsRecursiveIdentifier;
                     var rtrn = base.Transform(ex);
                     _super._IsRecursiveIdentifier = isRecursiveIdentifier;
@@ -505,6 +484,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     var rtrn = base.onIdentifier(sym, tArgs);
 
                     // Then check if this is a recursive identifier
+                    // In this context, that is a call back to the original callable from the newly generated operation
                     if (sym is Identifier.GlobalCallable callable && _super._OldName.Equals(callable.Item))
                     {
                         // Setting this flag will prevent the rerouting logic from processing the resolved type of the recursive identifier expression.
@@ -524,14 +504,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public override ResolvedTypeKind onTypeParameter(QsTypeParameter tp)
                 {
+                    // Reroute a type parameter's origin to the newly generated operation
                     if (!_super._IsRecursiveIdentifier && _super._OldName.Equals(tp.Origin))
                     {
-                        tp = new QsTypeParameter
-                        (
-                            _super._NewName,
-                            tp.TypeName,
-                            tp.Range
-                        );
+                        tp = new QsTypeParameter(_super._NewName, tp.TypeName, tp.Range);
                     }
 
                     return base.onTypeParameter(tp);
@@ -588,7 +564,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             private bool _InBody = false;
             private bool _InAdjoint = false;
             private bool _InControlled = false;
-            //private bool _InControlledAdjoint = false;
 
             public static QsCompilation Apply(QsCompilation compilation)
             {
@@ -616,38 +591,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 var ctl = _CurrentCallable.Controlled;
                 var ctlAdj = _CurrentCallable.ControlledAdjoint;
 
-                // ToDo: this Boolean logic could be cleaned up
+                // ToDo: I don't think you have to add the ControlledAdjoint if you add the Controlled and Adjoint specializations
                 bool addAdjoint = false;
                 bool addControlled = false;
                 //bool addControlledAdjoint = false;
                 if (_InBody)
                 {
-                    if (adj != null && adj.Implementation.IsGenerated)
-                    {
-                        addAdjoint = true;
-                    }
-
-                    if (ctl != null && ctl.Implementation.IsGenerated)
-                    {
-                        addControlled = true;
-                    }
-
-                    // ToDo: I don't think you have to add the ControlledAdjoint if you add the Controlled and Adjoint specializations
-                    //if (ctlAdj != null && ctlAdj.Implementation.IsGenerated)
-                    //{
-                    //    addControlledAdjoint = true;
-                    //}
+                    addAdjoint = adj != null && adj.Implementation.IsGenerated;
+                    addControlled = ctl != null && ctl.Implementation.IsGenerated;
+                    //addControlledAdjoint = ctlAdj != null && ctlAdj.Implementation.IsGenerated;
                 }
                 else if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated gen)
                 {
-                    if (_InAdjoint && gen.Item.IsDistribute)
-                    {
-                        addControlled = true;
-                    }
-                    else if (_InControlled && gen.Item.IsInvert)
-                    {
-                        addAdjoint = true;
-                    }
+                    addControlled = _InAdjoint && gen.Item.IsDistribute;
+                    addAdjoint = _InControlled && gen.Item.IsInvert;
                 }
 
                 var props = new List<OpProperty>();
@@ -674,7 +631,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     specializations.Add(MakeSpec(
                         QsSpecializationKind.QsAdjoint,
                         newSig,
-                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Invert))); // ToDo: find appropriate directive
+                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Invert)));
                 }
 
                 if (addControlled)
@@ -682,7 +639,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     specializations.Add(MakeSpec(
                         QsSpecializationKind.QsControlled,
                         controlledSig,
-                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute))); // ToDo: find appropriate directive
+                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
                 }
 
                 //if (addControlledAdjoint)
@@ -690,7 +647,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 //    specializations.Add(MakeSpec(
                 //        QsSpecializationKind.QsControlledAdjoint,
                 //        controlledSig,
-                //        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute))); // ToDo: find appropriate directive
+                //        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
                 //}
 
                 return (newSig, specializations);
@@ -789,14 +746,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     return rtrn;
                 }
 
-                //public override QsSpecialization onControlledAdjointSpecialization(QsSpecialization spec)
-                //{
-                //    _super._InControlledAdjoint = true;
-                //    var rtrn = base.onControlledAdjointSpecialization(spec);
-                //    _super._InControlledAdjoint = false;
-                //    return rtrn;
-                //}
-
                 public override QsNamespace Transform(QsNamespace ns)
                 {
                     // Control operations list will be populated in the transform
@@ -818,7 +767,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     var targetOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
                         Tuple.Create(
                             targetParamType,
-                            ResolvedType.New(ResolvedTypeKind.UnitType)), // ToDo: something has to be done to allow for mutables in sub-scopes
+                            ResolvedType.New(ResolvedTypeKind.UnitType)),
                         callInfo));
 
                     var targetTypeArgTypes = _super._CurrentCallable.TypeParamTypes;
@@ -835,6 +784,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
                     );
 
+                    // ToDo: double-check this is necessary
                     var knownSymbols = contents.KnownSymbols.IsEmpty
                         ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
                         : contents.KnownSymbols.Variables;
@@ -842,8 +792,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     TypedExpression targetArgs = null;
                     if (knownSymbols.Any())
                     {
-                        targetArgs = Helper.CreateValueTupleExpression(knownSymbols.Select(var => Helper.CreateIdentifierExpression(
+                        targetArgs = CreateValueTupleExpression(knownSymbols.Select(var => CreateIdentifierExpression(
                             Identifier.NewLocalVariable(var.VariableName),
+                            // ToDo: may need to be more careful here with the type argument mapping on the identifiers
                             ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
                             var.Type))
                             .ToArray());
@@ -863,7 +814,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     var call = new TypedExpression
                     (
                         ExpressionKind.NewCallLikeExpression(targetOpId, targetArgs),
-                        // All type params are resolved on the Identifier
+                        // All type parameters are resolved on the Identifier
                         ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty,
                         ResolvedType.New(ResolvedTypeKind.UnitType),
                         new InferredExpressionInformation(false, true),
@@ -877,26 +828,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         QsComments.Empty);
                 }
 
-                //private QsNullable<ImmutableArray<ResolvedType>> GetTypeParamTypesFromCallable(QsCallable callable)
-                //{
-                //    if (callable.Signature.TypeParameters.Any(param => param.IsValidName))
-                //    {
-                //        return QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
-                //        .Where(param => param.IsValidName)
-                //        .Select(param =>
-                //            ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
-                //                callable.FullName,
-                //                ((QsLocalSymbol.ValidName)param).Item,
-                //                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                //        ))))
-                //        .ToImmutableArray());
-                //    }
-                //    else
-                //    {
-                //        return QsNullable<ImmutableArray<ResolvedType>>.Null;
-                //    }
-                //}
-
                 public override QsStatementKind onReturnStatement(TypedExpression ex)
                 {
                     _super._IsValidScope = false;
@@ -905,7 +836,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public override QsStatementKind onValueUpdate(QsValueUpdate stm)
                 {
-                    // If lhs contains an identifier found in the scope's known variables, the scope is not valid
+                    // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
                     var lhs = this.ExpressionTransformation(stm.Lhs);
 
                     if (_super._ContainsHoistParamRef)
