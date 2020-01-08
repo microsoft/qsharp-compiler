@@ -28,9 +28,10 @@
     <!-- Packages included for specific execution targets. -->
     <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'" Include="Microsoft.Quantum.Simulators" Version="0.10.1912.2604-alpha" IsImplicitlyDefined="$(CsharpGeneration)" />
     <PackageReference
-      Condition="$(EnableQsLinter)"
+      Condition="'$(EnableQsLinter)' == 'true'"
       Include="Microsoft.Quantum.QsLinter"
       Version="$(QuantumSdkVersion)"
+      IsQscReference="true"
     />
   </ItemGroup>
 
