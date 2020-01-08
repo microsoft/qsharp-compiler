@@ -53,6 +53,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option("trim", Required = false, Default = 1,
             HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
             public int TrimLevel { get; set; }
+
+            [Option("emit-dll", Required = false, Default = false, SetName = CODE_MODE,
+            HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
+            public bool EmitDll { get; set; }
         }
 
 
@@ -77,7 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 AttemptFullPreEvaluation = options.TrimLevel > 1,
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
-                DllOutputPath = " ", // generating the dll in the same location as the .bson file
+                DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false // todo: enable debug mode?
             }; 

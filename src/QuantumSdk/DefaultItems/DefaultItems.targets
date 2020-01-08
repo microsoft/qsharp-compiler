@@ -1,0 +1,91 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Work around issues in MSBuild versions prior to 16.0. -->
+  <PropertyGroup>
+    <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
+      $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
+    </MSBuildAllProjects>
+  </PropertyGroup>
+  
+  <!-- We want access to the full path of packages as determined by msbuild to filter and reorder various package references. -->
+  <ItemDefinitionGroup>
+    <PackageReference IsQscReference ="false" GeneratePathProperty="true" />
+    <ProjectReference IsQscReference ="false" />
+  </ItemDefinitionGroup>
+  
+
+  <!-- Resolution of verified configurable properties. 
+  These properties need to live here to ensure that they are evaluated after the properties defined by the project file. -->
+
+  <!-- resolving the OutputType to either QsharpExe or QsharpLibrary -->
+  <PropertyGroup>
+    <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library'">QsharpLibrary</ResolvedQsharpOutputType>
+    <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Exe'">QsharpExe</ResolvedQsharpOutputType>
+    <ResolvedQsharpOutputType Condition="'$(ResolvedQsharpOutputType)' != 'QsharpLibrary' And '$(ResolvedQsharpOutputType)' != 'QsharpExe'"></ResolvedQsharpOutputType>
+    <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
+  </PropertyGroup>
+
+  <!-- resolving the ExecutionTarget to either SimulatorBackend or QuantumProcessorBackend -->
+  <PropertyGroup>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And ('$(ExecutionTarget)' == 'QuantumProcessor')">QuantumProcessorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And ('$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'ResourcesEstimator')">SimulatorBackend</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'Any'">Unspecified</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'QuantumProcessorBackend' And '$(ResolvedQsharpExecutionTarget)' != 'SimulatorBackend' And '$(ResolvedQsharpExecutionTarget)' != 'Unspecified'"></ResolvedQsharpExecutionTarget>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">Possible values are 'QuantumSimulator', 'ToffoliSimulator', 'ResourcesEstimator', or 'QuantumProcessor'.</ValidExecutionTargets>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpLibrary'"> The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
+    <CsharpGeneration Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'">true</CsharpGeneration>
+  </PropertyGroup>
+
+  <!-- set all unspecified properties configuring the paths for output generated during Q# compilation. -->
+  <PropertyGroup>
+    <!-- path compatible assembly name -->
+    <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
+    <!-- output path for files generated during compilation -->
+    <GeneratedFilesOutputPath Condition="'$(GeneratedFilesOutputPath)' == ''">$(BaseIntermediateOutputPath)qsharp/</GeneratedFilesOutputPath>
+    <GeneratedFilesOutputPath Condition="!HasTrailingSlash('$(GeneratedFilesOutputPath)')">$(GeneratedFilesOutputPath)/</GeneratedFilesOutputPath>
+    <!-- output path for generating documentation -->
+    <QsharpDocsOutputPath Condition="'$(QsharpDocsOutputPath)' == ''">$(GeneratedFilesOutputPath)docs/</QsharpDocsOutputPath>
+    <QsharpDocsOutputPath Condition="!HasTrailingSlash('$(QsharpDocsOutputPath)')">$(QsharpDocsOutputPath)/</QsharpDocsOutputPath>
+    <!-- output path for generating qsc config file -->
+    <QscBuildConfigOutputPath Condition="'$(QscBuildConfigOutputPath)' == ''">$(GeneratedFilesOutputPath)config/</QscBuildConfigOutputPath>
+    <QscBuildConfigOutputPath Condition="!HasTrailingSlash('$(QscBuildConfigOutputPath)')">$(QscBuildConfigOutputPath)/</QscBuildConfigOutputPath>
+  </PropertyGroup>
+
+
+  <!-- Recomputes the content of ResolvedQscReferences, ResolvedQscReferencesAndPriorities, QscProjectReference and QscPackageReference. The current content of these item groups is cleared during the process. -->
+  <Target Name="ResolveQscReferences" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences;Restore" BeforeTargets="BeforeQsharpCompile">
+    <!-- get the assembly path for all relevant project references which are passed as qsc references -->
+    <ItemGroup>
+      <QscProjectReference Remove="@(QscProjectReference)"/>
+      <QscProjectReference Include="@(_ResolvedProjectReferencePaths)" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsQscReference)" />
+      <_RelevantQscProjectReference Remove="@(_RelevantQscProjectReference)"/>
+      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget',''))" /> 
+      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
+      <_RelevantQscProjectReference Include="@(QscProjectReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
+    </ItemGroup>
+    <!-- get the path property name for all relevant package references which are passed as qsc references -->
+    <ItemGroup>
+      <QscPackageReference Remove="@(QscPackageReference)"/>
+      <QscPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsQscReference)" />
+      <_RelevantQscPackageReference Remove="@(_RelevantQscPackageReference)"/>
+      <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
+      <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
+      <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
+      <_RelevantQscPackageReferencePathProperty Remove="@(_RelevantQscPackageReferencePathProperty)"/>
+      <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
+    </ItemGroup>
+    <!-- add the assembly paths for all relevant qsc references and their priorities to ResolvedQscReferences -->
+    <ItemGroup>
+      <ResolvedQscReferences Remove="@(ResolvedQscReferences)"/>
+      <ResolvedQscReferences Include="%(_RelevantQscProjectReference.Identity)" Priority="%(_RelevantQscProjectReference.Priority)" />
+      <ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))/lib/**/*.dll" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
+      <ResolvedQscReferencesAndPriorities Remove="@(ResolvedQscReferencesAndPriorities)"/>
+      <ResolvedQscReferencesAndPriorities Include="(%(ResolvedQscReferences.Identity), %(ResolvedQscReferences.Priority))" /> 
+    </ItemGroup>
+    <Message 
+      Condition="@(ResolvedQscReferences->Count()) &gt; 0 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
+      Text="Resolved qsc reference: %(ResolvedQscReferences.Identity) (priority %(ResolvedQscReferences.Priority))" 
+      Importance="High" /> 
+  </Target>  
+
+</Project>

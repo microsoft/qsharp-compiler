@@ -1,0 +1,118 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Work around issues in MSBuild versions prior to 16.0. -->
+  <PropertyGroup>
+    <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
+      $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
+    </MSBuildAllProjects>
+  </PropertyGroup>
+
+  <!-- We want to keep this here as fallback to mitigate issues when loading qsc references. -->
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../DefaultItems/DefaultItems.targets"/>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
+  <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.targets"/>
+
+  <!-- This needs to live in this file to ensure that it is evaluated after the 
+  modifications to the QsharpCompile ItemGroup in the project file are applied. -->
+  <ItemGroup>
+    <UpToDateCheckInput Include="@(QsharpCompile)" /> <!-- ensure that projects are recompiled if a Q# source file is modified -->
+  </ItemGroup>
+
+
+  <!-- Target used to verify that the specified OutputType is valid. -->
+  <Target Name="VerifyOutputType" BeforeTargets="QsharpCompile">
+    <Error Condition = "'$(OutputType)' == ''" Text="Missing OutputType. $(ValidOutputTypes)" />
+    <Error Condition = "'$(ResolvedQsharpOutputType)' == '' And '$(OutputType)' != ''" Text="Invalid OutputType '$(OutputType)'. $(ValidOutputTypes)" />
+  </Target>
+
+  <!-- Target used to verify that the specified ExecutionTarget is valid. -->
+  <Target Name="VerifyExecutionTarget" BeforeTargets="QsharpCompile">
+    <Error Condition = "'$(ExecutionTarget)' == ''" Text="Missing ExecutionTarget. $(ValidExecutionTargets)" />
+    <Error Condition = "'$(ResolvedQsharpExecutionTarget)' == '' And '$(ExecutionTarget)' != ''" Text="Invalid ExecutionTarget '$(ExecutionTarget)'. $(ValidExecutionTargets)" />
+  </Target>
+
+
+  <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
+  <Target Name="QsharpClean" DependsOnTargets="Restore" BeforeTargets="Clean">
+    <ItemGroup>
+      <FilesToRemove Include="$(GeneratedFilesOutputPath)**" />
+      <Compile Remove="$(FilesToRemove)**/*.g.cs" />
+    </ItemGroup>
+    <Delete Files="@(FilesToRemove)" />
+  </Target>  
+
+  <!-- Invokes the Q# command line compiler to build the project. -->
+  <Target Name="QsharpCompile" 
+          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;BeforeQsharpCompile;_CopyFilesMarkedCopyLocal" 
+          BeforeTargets="BeforeCsharpCompile;BeforeBuild"
+          Inputs="$(MSBuildAllProjects);
+                  @(QsharpCompile);
+                  @(ReferencePath);
+                  @(ResolvedQscReferences);
+                  @(ResolvedQscReferencesAndPriorities);
+                  $(PathCompatibleAssemblyName);
+                  $(GeneratedFilesOutputPath);
+                  $(QscBuildConfigOutputPath);
+                  $(QsharpDocsOutputPath);
+                  $(QsharpDocsGeneration);
+                  $(CsharpGeneration);
+                  $(QscBuildConfigExe);
+                  $(QscExe)"
+          Outputs="@(ResolvedQsharpReferences);
+                  @(Compile);
+                  $(QscBuildConfigGeneration);
+                  $(QscCommand);
+                  $(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson">
+    <MakeDir Directories="$(GeneratedFilesOutputPath)" />
+    <MakeDir Directories="$(QscBuildConfigOutputPath)" />
+    <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
+    <!-- generate a suitable build configuration for the Q# command line compiler (qsc) -->
+    <PropertyGroup>
+      <_VerbosityFlag Condition="'$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic'">-v</_VerbosityFlag>
+      <_BuildConfigFile>$(QscBuildConfigOutputPath)qsc.config</_BuildConfigFile>
+      <_BuildConfigGenerationOutputFlag>--output "$(_BuildConfigFile)"</_BuildConfigGenerationOutputFlag>
+      <_BuildConfigGenerationQscReferencesFlag Condition="@(ResolvedQscReferencesAndPriorities->Count()) &gt; 0">--QscReferences "@(ResolvedQscReferencesAndPriorities,'" "')"</_BuildConfigGenerationQscReferencesFlag>
+      <QscBuildConfigGeneration>$(QscBuildConfigExe) $(_VerbosityFlag) $(_BuildConfigGenerationOutputFlag) $(_BuildConfigGenerationQscReferencesFlag)</QscBuildConfigGeneration>
+    </PropertyGroup>
+    <Exec Command="$(QscBuildConfigGeneration)" IgnoreExitCode="false" /> 
+    <!-- get the resolved Q# references and the qsc build configuration -->
+    <ReadLinesFromFile File="$(_BuildConfigFile)">
+      <Output TaskParameter="Lines" ItemName="_PrioritizedResolvedQscReferences"/>
+    </ReadLinesFromFile>
+    <ItemGroup>
+      <ResolvedQsharpReferences Include="@(ReferencePath)" /> <!-- for the sake of a more robust loading of qsc references, we pass along all references -->
+    </ItemGroup>
+    <!-- invoke the Q# command line compiler -->
+    <PropertyGroup>
+      <_QscCommandOutputFlag>--output "$(GeneratedFilesOutputPath)"</_QscCommandOutputFlag>
+      <_QscCommandDocsFlag Condition="$(QsharpDocsGeneration)">--doc "$(QsharpDocsOutputPath)"</_QscCommandDocsFlag>
+      <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</_QscCommandInputFlag>
+      <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
+      <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
+      <_QscPackageLoadFallbackFoldersFlag Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''">--package-load-fallback-folders $(MSBuildProjectDirectory)/$(OutputPath)</_QscPackageLoadFallbackFoldersFlag>
+      <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(_VerbosityFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscPackageLoadFallbackFoldersFlag)</QscCommand>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: references ::;@(ResolvedQsharpReferences);:: loaded ::;@(_PrioritizedResolvedQscReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
+    <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 
+    <!-- configure the dll built by the C# compiler -->
+    <ItemGroup>
+      <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
+      <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
+    </ItemGroup>
+  </Target>   
+
+
+  <!-- The following targets need to live in this file since they are specifically defined 
+  anchor the targets that a project may redefine to execute at a certain stage during the build. 
+  These targets hence must not be redefined by the project. -->
+
+  <!-- Helper target to anchor the BeforeCsharpCompile target. -->
+  <Target Name="_DependsOnBeforeCsharpCompile" DependsOnTargets="BeforeCsharpCompile" BeforeTargets="BeforeCompile">
+  </Target>  
+
+</Project>
+

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="EnsureRecompileOnChange">
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="RecompileOnChange">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
@@ -20,8 +20,7 @@
     <ExecutionTestsDir>ExecutionTests\</ExecutionTestsDir>
     <GenFilesDir>generated\</GenFilesDir>
     <SimulationTarget>"..\Target\bin\$(Configuration)\netstandard2.1\Simulation.dll"</SimulationTarget>
-    <QscExe>dotnet</QscExe>
-    <QsLib>"../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QsLib>
+    <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QscExe>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,7 +34,7 @@
     </None>
   </ItemGroup>
 
-  <Target Name="EnsureRecompileOnChange">
+  <Target Name="RecompileOnChange">
     <ItemGroup>
       <UpToDateCheckInput Include="@(None)" />
       <UpToDateCheckInput Include="@(Content)" />
@@ -58,7 +57,7 @@
       <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) $(QsLib) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) --load "$(SimulationTarget)"</QscCommand>
+      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) --load "$(SimulationTarget)"</QscCommand>
     </PropertyGroup>
     <Message Importance="low" Text="executing command '$(QscCommand)'" />
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
