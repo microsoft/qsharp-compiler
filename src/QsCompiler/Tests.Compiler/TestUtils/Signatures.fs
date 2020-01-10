@@ -154,33 +154,33 @@ let private _IntrinsicResolutionTypes = _MakeTypeMap [|
 let public IntrinsicResolutionSignatures =
     [|
         (_DefaultTypes, [|
-                IntrinsicResolutionNs, "IntrinsicResolutionTest1", [||], "Unit";
-                IntrinsicResolutionNs, "LocalIntrinsic", [||], "Unit";
-                IntrinsicResolutionNs, "Override", [||], "Unit";
-                IntrinsicResolutionNs, "EnvironmentIntrinsic", [||], "Unit";
+            IntrinsicResolutionNs, "IntrinsicResolutionTest1", [||], "Unit";
+            IntrinsicResolutionNs, "LocalIntrinsic", [||], "Unit";
+            IntrinsicResolutionNs, "Override", [||], "Unit";
+            IntrinsicResolutionNs, "EnvironmentIntrinsic", [||], "Unit";
         |]);
         (_IntrinsicResolutionTypes, [|
-                IntrinsicResolutionNs, "IntrinsicResolutionTest2", [||], "Unit";
-                IntrinsicResolutionNs, "Override", [||], "TestType";
-                IntrinsicResolutionNs, "TestType", [||], "TestType";
+            IntrinsicResolutionNs, "IntrinsicResolutionTest2", [||], "Unit";
+            IntrinsicResolutionNs, "Override", [||], "TestType";
+            IntrinsicResolutionNs, "TestType", [||], "TestType";
         |]);
         (_IntrinsicResolutionTypes, [|
-                IntrinsicResolutionNs, "IntrinsicResolutionTest3", [||], "Unit";
-                IntrinsicResolutionNs, "Override", [||], "TestType";
-                IntrinsicResolutionNs, "TestType", [||], "TestType";
+            IntrinsicResolutionNs, "IntrinsicResolutionTest3", [||], "Unit";
+            IntrinsicResolutionNs, "Override", [||], "TestType";
+            IntrinsicResolutionNs, "TestType", [||], "TestType";
         |]);
         (_IntrinsicResolutionTypes, [|
-                IntrinsicResolutionNs, "IntrinsicResolutionTest4", [||], "Unit";
-                IntrinsicResolutionNs, "Override", [|"TestType"|], "Unit";
-                IntrinsicResolutionNs, "TestType", [||], "TestType";
+            IntrinsicResolutionNs, "IntrinsicResolutionTest4", [||], "Unit";
+            IntrinsicResolutionNs, "Override", [|"TestType"|], "Unit";
+            IntrinsicResolutionNs, "TestType", [||], "TestType";
         |]);
         (_DefaultTypes, [|
-                IntrinsicResolutionNs, "IntrinsicResolutionTest5", [||], "Unit";
-                IntrinsicResolutionNs, "Override", [||], "Unit";
+            IntrinsicResolutionNs, "IntrinsicResolutionTest5", [||], "Unit";
+            IntrinsicResolutionNs, "Override", [||], "Unit";
         |]);
         (_DefaultTypes, [|
-                IntrinsicResolutionNs, "IntrinsicResolutionTest6", [||], "Unit";
-                IntrinsicResolutionNs, "Override", [||], "Unit";
+            IntrinsicResolutionNs, "IntrinsicResolutionTest6", [||], "Unit";
+            IntrinsicResolutionNs, "Override", [||], "Unit";
         |]);
     |]
     |> _MakeSignatures
@@ -189,13 +189,22 @@ let public IntrinsicResolutionSignatures =
 let public ClassicalControlSignatures =
     [|
         (_DefaultTypes, [|
-                ClassicalControlNs, "ClassicalControlTest1", [||], "Unit";
-                ClassicalControlNs, "Foo", [||], "Unit"; // The original operation
-                ClassicalControlNs, "Foo", [|"Result"|], "Unit"; // The generated operation
+            ClassicalControlNs, "ClassicalControlTest1", [||], "Unit";
+            ClassicalControlNs, "Foo", [||], "Unit"; // The original operation
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"; // The 1st generated operation
+            ClassicalControlNs, "_Foo", [|"Result"; "Int"|], "Unit"; // The 2nd generated operation
         |]);
         (_DefaultTypes, [|
             ClassicalControlNs, "ClassicalControlTest2", [||], "Unit";
-            ClassicalControlNs, "Foo", [||], "Unit"; // The original operation
+            ClassicalControlNs, "Foo", [||], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ClassicalControlTest3", [||], "Unit";
+            ClassicalControlNs, "Foo", [||], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"; "Int"|], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"; "Int"|], "Unit";
         |]);
     |]
     |> _MakeSignatures

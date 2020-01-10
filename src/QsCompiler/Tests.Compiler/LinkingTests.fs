@@ -191,6 +191,12 @@ type LinkingTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control If Elif`` () =
+        this.RunClassicalControlTest 3
+
+
+    [<Fact>]
     member this.``Fail on multiple entry points`` () =
 
         let entryPoints = LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs"
