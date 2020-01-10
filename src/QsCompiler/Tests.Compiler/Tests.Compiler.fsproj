@@ -41,6 +41,9 @@
     <None Include="TestCases\LinkingTests\IntrinsicResolution.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\LinkingTests\ClassicalControl.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

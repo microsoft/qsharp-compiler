@@ -18,6 +18,7 @@ let private _BaseTypes =
         "Int", Int;
         "Double", Double;
         "String", String;
+        "Result", Result;
         "Qubit", Qubit;
         "Qubit[]", ResolvedType.New Qubit |> ArrayType;
     |]
@@ -95,6 +96,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
 let public MonomorphizationNs = "Microsoft.Quantum.Testing.Monomorphization"
 let public GenericsNs = "Microsoft.Quantum.Testing.Generics"
 let public IntrinsicResolutionNs = "Microsoft.Quantum.Testing.IntrinsicResolution"
+let public ClassicalControlNs = "Microsoft.Quantum.Testing.ClassicalControl"
 
 /// Expected callable signatures to be found when running Monomorphization tests
 let public MonomorphizationSignatures =
@@ -179,6 +181,21 @@ let public IntrinsicResolutionSignatures =
         (_DefaultTypes, [|
                 IntrinsicResolutionNs, "IntrinsicResolutionTest6", [||], "Unit";
                 IntrinsicResolutionNs, "Override", [||], "Unit";
+        |]);
+    |]
+    |> _MakeSignatures
+
+/// Expected callable signatures to be found when running Classical Control tests
+let public ClassicalControlSignatures =
+    [|
+        (_DefaultTypes, [|
+                ClassicalControlNs, "ClassicalControlTest1", [||], "Unit";
+                ClassicalControlNs, "Foo", [||], "Unit"; // The original operation
+                ClassicalControlNs, "Foo", [|"Result"|], "Unit"; // The generated operation
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ClassicalControlTest2", [||], "Unit";
+            ClassicalControlNs, "Foo", [||], "Unit"; // The original operation
         |]);
     |]
     |> _MakeSignatures

@@ -12,6 +12,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation
 open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
@@ -88,7 +89,7 @@ type LinkingTests (output:ITestOutputHelper) =
     member private this.RunIntrinsicResolutionTest testNumber =
         
         let srcChunks = LinkingTests.ReadAndChunkSourceFile "IntrinsicResolution.qs"
-        srcChunks.Length >= 2*testNumber |> Assert.True
+        srcChunks.Length >= 2 * testNumber |> Assert.True
         let chunckNumber = 2 * (testNumber - 1)
         let result = this.CompileIntrinsicResolution srcChunks.[chunckNumber] srcChunks.[chunckNumber+1]
         Signatures.SignatureCheck [Signatures.IntrinsicResolutionNs] Signatures.IntrinsicResolutionSignatures.[testNumber-1] result
@@ -110,6 +111,21 @@ type LinkingTests (output:ITestOutputHelper) =
             | _ -> false
             |> Assert.True)
         |> ignore
+
+    member private this.CompileClassicalControl input =
+        let compilationDataStructures = this.BuildContent input
+        
+        let processedCompilation = ClassicallyControlledTransformation.Apply compilationDataStructures.BuiltCompilation
+        
+        Assert.NotNull processedCompilation
+        processedCompilation
+
+    member private this.RunClassicalControlTest testNumber =
+        let srcChunks = LinkingTests.ReadAndChunkSourceFile "ClassicalControl.qs"
+        srcChunks.Length >= testNumber + 1 |> Assert.True
+        let shared = srcChunks.[0]
+        let result = this.CompileClassicalControl <| shared + srcChunks.[testNumber]
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
     [<Fact>]
     member this.``Monomorphization`` () =
@@ -159,6 +175,19 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Trait("Category","Intrinsic Resolution")>]
     member this.``Intrinsic Resolution Spec Mismatch Error`` () =
         Assert.Throws<Exception> (fun _ -> this.RunIntrinsicResolutionTest 6) |> ignore
+
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Basic Implementation`` () =
+        this.RunClassicalControlTest 1
+
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Single Expression`` () =
+        // Single expressions should not be hoisted into their own operation
+        this.RunClassicalControlTest 2
 
 
     [<Fact>]
