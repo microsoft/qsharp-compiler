@@ -7,9 +7,14 @@
     </MSBuildAllProjects>
   </PropertyGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)../DefaultItems/DefaultItems.props"/>
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
   <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.props"/>
+  <Import Project="$(MSBuildThisFileDirectory)../DefaultItems/DefaultItems.props"/>
+
+  <!-- We want to keep this here as fallback to mitigate issues when loading qsc references. -->
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
 
 
   <!-- The following item groups indeed needs to live in this file to ensure 

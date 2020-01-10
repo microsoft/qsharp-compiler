@@ -7,14 +7,7 @@
     </MSBuildAllProjects>
   </PropertyGroup>
 
-  <!-- We want to keep this here as fallback to mitigate issues when loading qsc references. -->
-  <PropertyGroup>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-  </PropertyGroup>
-
   <Import Project="$(MSBuildThisFileDirectory)../DefaultItems/DefaultItems.targets"/>
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
-  <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.targets"/>
 
   <!-- This needs to live in this file to ensure that it is evaluated after the 
   modifications to the QsharpCompile ItemGroup in the project file are applied. -->
@@ -48,25 +41,7 @@
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QsharpCompile" 
           DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;BeforeQsharpCompile;_CopyFilesMarkedCopyLocal" 
-          BeforeTargets="BeforeCsharpCompile;BeforeBuild"
-          Inputs="$(MSBuildAllProjects);
-                  @(QsharpCompile);
-                  @(ReferencePath);
-                  @(ResolvedQscReferences);
-                  @(ResolvedQscReferencesAndPriorities);
-                  $(PathCompatibleAssemblyName);
-                  $(GeneratedFilesOutputPath);
-                  $(QscBuildConfigOutputPath);
-                  $(QsharpDocsOutputPath);
-                  $(QsharpDocsGeneration);
-                  $(CsharpGeneration);
-                  $(QscBuildConfigExe);
-                  $(QscExe)"
-          Outputs="@(ResolvedQsharpReferences);
-                  @(Compile);
-                  $(QscBuildConfigGeneration);
-                  $(QscCommand);
-                  $(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson">
+          BeforeTargets="BeforeCsharpCompile;BeforeBuild;CoreCompile;CheckForDuplicateItems">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
@@ -111,8 +86,12 @@
   These targets hence must not be redefined by the project. -->
 
   <!-- Helper target to anchor the BeforeCsharpCompile target. -->
-  <Target Name="_DependsOnBeforeCsharpCompile" DependsOnTargets="BeforeCsharpCompile" BeforeTargets="BeforeCompile">
+  <Target Name="_DependsOnBeforeCsharpCompile" DependsOnTargets="BeforeCsharpCompile" BeforeTargets="BeforeCompile;CoreCompile;CheckForDuplicateItems">
   </Target>  
+
+
+  <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.targets"/>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
 
 </Project>
 
