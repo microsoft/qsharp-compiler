@@ -29,9 +29,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         protected const string CODE_MODE = "codeMode";
         protected const string SNIPPET_MODE = "snippetMode";
 
-        [Option('v', "verbose", Required = false, Default = false,
-        HelpText = "Specifies whether to compile in verbose mode.")]
-        public bool Verbose { get; set; }
+        [Option('v', "verbosity", Required = false, Default = "normal",
+        HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
+        public string Verbosity { get; set; }
 
         [Option('i', "input", Required = true, SetName = CODE_MODE,
         HelpText = "Q# code or name of the Q# file to compile.")]
@@ -100,11 +100,21 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Creates a suitable logger for the given command line options, 
         /// logging the given arguments if the verbosity is high enough.
         /// </summary>
-        public ConsoleLogger GetLogger(DiagnosticSeverity minimumVerbosity = DiagnosticSeverity.Warning)
+        public ConsoleLogger GetLogger(DiagnosticSeverity defaultVerbosity = DiagnosticSeverity.Warning)
         {
+            var verbosity =
+                "detailed".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "d".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "diagnostic".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "diag".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase)
+                ? DiagnosticSeverity.Hint :
+                "quiet".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "q".Equals(this.Verbosity, StringComparison.InvariantCultureIgnoreCase)
+                ? DiagnosticSeverity.Error :
+                defaultVerbosity; 
             var logger = new ConsoleLogger(
                 LoggingFormat(this.OutputFormat),
-                this.Verbose ? DiagnosticSeverity.Hint : minimumVerbosity,
+                verbosity,
                 this.NoWarn?.ToArray(),
                 this.CodeSnippet != null ? -2 : 0);
             this.Print(logger);
