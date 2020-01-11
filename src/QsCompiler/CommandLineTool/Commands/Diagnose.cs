@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             [Option("load", Required = false, SetName = CODE_MODE,
             HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
-            public IEnumerable<string> Plugins { get; set; }
+            public string[] Plugins { get; set; }
         }
 
         /// <summary>

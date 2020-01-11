@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             [Option("load", Required = false, SetName = CODE_MODE,
             HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
-            public IEnumerable<string> Plugins { get; set; }
+            public string[] Plugins { get; set; }
 
             [Option("trim", Required = false, Default = 1,
             HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]

@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         [Option('i', "input", Required = true, SetName = CODE_MODE,
         HelpText = "Q# code or name of the Q# file to compile.")]
-        public IEnumerable<string> Input { get; set; }
+        public string[] Input { get; set; }
 
         [Option('s', "snippet", Required = true, SetName = SNIPPET_MODE,
         HelpText = "Q# snippet to compile - i.e. Q# code occuring within an operation or function declaration.")]
@@ -47,11 +47,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         [Option('r', "references", Required = false, Default = new string[0],
         HelpText = "Referenced binaries to include in the compilation.")]
-        public IEnumerable<string> References { get; set; }
+        public string[] References { get; set; }
 
         [Option('n', "noWarn", Required = false, Default = new int[0],
         HelpText = "Warnings with the given code(s) will be ignored.")]
-        public IEnumerable<int> NoWarn { get; set; }
+        public int[] NoWarn { get; set; }
 
         [Option("format", Required = false, Default = LogFormat.Default,
         HelpText = "Specifies the output format of the command line compiler.")]
@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         [Option("package-load-fallback-folders", Required = false, SetName = CODE_MODE,
         HelpText = "Specifies the directories the compiler will search when a rewrite step dependency could not be found.")]
-        public IEnumerable<string> PackageLoadFallbackFolders { get; set; }
+        public string[] PackageLoadFallbackFolders { get; set; }
 
 
         // routines related to logging 
