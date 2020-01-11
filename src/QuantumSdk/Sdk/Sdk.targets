@@ -69,7 +69,7 @@
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''">--package-load-fallback-folders $(MSBuildProjectDirectory)/$(OutputPath)</_QscPackageLoadFallbackFoldersFlag>
-      <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(_VerbosityFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscPackageLoadFallbackFoldersFlag)</QscCommand>
+      <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild -v $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscPackageLoadFallbackFoldersFlag)</QscCommand>
     </PropertyGroup>
     <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: references ::;@(ResolvedQsharpReferences);:: loaded ::;@(_PrioritizedResolvedQscReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 
