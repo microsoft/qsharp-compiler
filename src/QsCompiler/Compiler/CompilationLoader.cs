@@ -822,9 +822,14 @@ namespace Microsoft.Quantum.QsCompiler
                 var data = Encoding.UTF8.GetBytes(content); 
                 tempFile.Write(data, 0, data.Length);
             }
-            var backup = Path.GetTempFileName();
-            File.Replace(tempFileName, targetFile, backup);
-            if (File.Exists(backup)) File.Delete(backup);
+            if (!File.Exists(targetFile))
+            { File.Move(tempFileName, targetFile); }
+            else
+            {
+                var backup = Path.GetTempFileName();
+                File.Replace(tempFileName, targetFile, backup);
+                if (File.Exists(backup)) File.Delete(backup);
+            }
             return targetFile;
         }
     }
