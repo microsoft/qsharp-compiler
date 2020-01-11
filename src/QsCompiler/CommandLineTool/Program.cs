@@ -79,7 +79,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
     {
         private static int Run<T>(Func<T, ConsoleLogger, int> compile, T options) where T : Options
         {
-            options.Verbose = true;
+            options.Verbose = false;
             var logger = options.GetLogger();
             try
             {
