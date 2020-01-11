@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 
 namespace Microsoft.Quantum.Sdk.Tools
@@ -17,7 +18,8 @@ namespace Microsoft.Quantum.Sdk.Tools
         public static ReturnCode Generate(Options options)
         {
             if (options == null) return ReturnCode.MISSING_ARGUMENTS;
-            (string, int) ParseQscReference(string qscRef)
+
+            static (string, int) ParseQscReference(string qscRef)
             {
                 var pieces = qscRef.Trim().TrimStart('(').TrimEnd(')').Split(',');
                 var path = pieces.First().Trim();
@@ -55,7 +57,11 @@ namespace Microsoft.Quantum.Sdk.Tools
         {
             try
             {
-                File.WriteAllLines(configFile ?? "qsc.config", qscReferences);
+                using (var file = File.Create(configFile ?? "qsc.config", 4096, FileOptions.WriteThrough))
+                {
+                    var data = Encoding.UTF8.GetBytes(String.Join(Environment.NewLine, qscReferences));
+                    file.Write(data, 0, data.Length);
+                }
                 return true;
             }
             catch (Exception ex)
