@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             [Option("load", Required = false, SetName = CODE_MODE,
             HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
-            public string[] Plugins { get; set; }
+            public IEnumerable<string> Plugins { get; set; }
 
             [Option("trim", Required = false, Default = 1,
             HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
@@ -82,11 +82,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
-                RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
+                RewriteSteps = options.Plugins?.Select(step => (step, (string)null))?.ToImmutableArray() ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false // todo: enable debug mode?
             }; 
 
-            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
+            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References?.ToImmutableArray(), loadOptions, logger);
             return ReturnCode.Status(loaded);
         }
     }

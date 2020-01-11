@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             [Option("load", Required = false, SetName = CODE_MODE,
             HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
-            public string[] Plugins { get; set; }
+            public IEnumerable<string> Plugins { get; set; }
         }
 
         /// <summary>
@@ -222,10 +222,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 1,
-                RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
+                RewriteSteps = options.Plugins?.Select(step => (step, (string)null))?.ToImmutableArray() ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = true
             }; 
-            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
+            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References?.ToImmutableArray(), loadOptions, logger);
             if (loaded.VerifiedCompilation == null) return ReturnCode.Status(loaded);
 
             if (logger.Verbosity < DiagnosticSeverity.Information) logger.Verbosity = DiagnosticSeverity.Information;
