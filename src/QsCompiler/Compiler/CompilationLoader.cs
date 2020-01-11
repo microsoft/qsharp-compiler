@@ -816,19 +816,10 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (content == null) return targetFile;
             if (!Directory.Exists(fileDir)) Directory.CreateDirectory(fileDir);
-            var tempFileName = Path.GetTempFileName();
-            using (var tempFile = File.Create(tempFileName, 4096, FileOptions.WriteThrough))
+            using (var targetHandle = File.Create(targetFile, 4096, FileOptions.WriteThrough))
             {
-                var data = Encoding.UTF8.GetBytes(content); 
-                tempFile.Write(data, 0, data.Length);
-            }
-            if (!File.Exists(targetFile))
-            { File.Move(tempFileName, targetFile); }
-            else
-            {
-                var backup = Path.GetTempFileName();
-                File.Replace(tempFileName, targetFile, backup);
-                if (File.Exists(backup)) File.Delete(backup);
+                var data = Encoding.UTF8.GetBytes(content);
+                targetHandle.Write(data, 0, data.Length);
             }
             return targetFile;
         }
