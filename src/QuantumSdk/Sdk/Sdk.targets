@@ -79,7 +79,6 @@
       <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
     </ItemGroup>
     <Message 
-      Condition="$(CsharpGeneration) And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
       Text="Files added to Compile: @(Compile)" 
       Importance="High" /> 
   </Target>   

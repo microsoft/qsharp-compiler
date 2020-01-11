@@ -83,7 +83,6 @@
       <ResolvedQscReferencesAndPriorities Include="(%(ResolvedQscReferences.Identity), %(ResolvedQscReferences.Priority))" /> 
     </ItemGroup>
     <Message 
-      Condition="@(ResolvedQscReferences->Count()) &gt; 0 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
       Text="Resolved qsc reference: %(ResolvedQscReferences.Identity) (priority %(ResolvedQscReferences.Priority))" 
       Importance="High" /> 
   </Target>  
