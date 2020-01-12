@@ -18,6 +18,8 @@ open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
 open Xunit
 open Xunit.Abstractions
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
+open System.Text.RegularExpressions
 
 
 type LinkingTests (output:ITestOutputHelper) =
@@ -112,20 +114,23 @@ type LinkingTests (output:ITestOutputHelper) =
             |> Assert.True)
         |> ignore
 
-    member private this.CompileClassicalControl input =
-        let compilationDataStructures = this.BuildContent input
-        
-        let processedCompilation = ClassicallyControlledTransformation.Apply compilationDataStructures.BuiltCompilation
-        
-        Assert.NotNull processedCompilation
-        processedCompilation
-
-    member private this.RunClassicalControlTest testNumber =
+    member private this.CompileClassicalControlTest testNumber =
         let srcChunks = LinkingTests.ReadAndChunkSourceFile "ClassicalControl.qs"
         srcChunks.Length >= testNumber + 1 |> Assert.True
         let shared = srcChunks.[0]
-        let result = this.CompileClassicalControl <| shared + srcChunks.[testNumber]
-        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+        let compilationDataStructures = this.BuildContent <| shared + srcChunks.[testNumber]
+        let processedCompilation = ClassicallyControlledTransformation.Apply compilationDataStructures.BuiltCompilation
+        Assert.NotNull processedCompilation
+        processedCompilation
+
+    //member private this.RunClassicalControlTest testNumber =
+    //    let srcChunks = LinkingTests.ReadAndChunkSourceFile "ClassicalControl.qs"
+    //    srcChunks.Length >= testNumber + 1 |> Assert.True
+    //    let shared = srcChunks.[0]
+    //    let result = this.CompileClassicalControl <| shared + srcChunks.[testNumber]
+    //    Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+
 
     [<Fact>]
     member this.``Monomorphization`` () =
@@ -177,23 +182,101 @@ type LinkingTests (output:ITestOutputHelper) =
         Assert.Throws<Exception> (fun _ -> this.RunIntrinsicResolutionTest 6) |> ignore
 
 
+    static member private GetLinesFromCallable callable =
+        let writer = new SyntaxTreeToQs()
+
+        callable.Specializations
+        |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
+        |> fun x -> match x.Implementation with | Provided (_, body) -> Some body | _ -> None
+        |> Option.get
+        |> writer.Scope.Transform
+        |> ignore
+
+        (writer.Scope :?> ScopeToQs).Output.Split("\r\n")
+        
+
+    static member private CheckIfCallable ``namespace`` name input =
+        let call = "(" + (Regex.Escape ``namespace``) + @"\.)?" + (Regex.Escape name) 
+        let typeArgs = @"<\s*(.*[^\s])\s*>"
+        let args = @"\(\s*(.*[^\s])?\s*\)"
+        let regex = "^" + call + @"\s*(" + typeArgs + @")?\s*" + args + @";[\r\n]*$"
+
+        let regexMatch = Regex.Match(input, regex)
+        if regexMatch.Success then
+            (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
+        else
+            (false, "", "")
+
     [<Fact>]
     [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Basic Implementation`` () =
-        this.RunClassicalControlTest 1
+    member this.``Classical Control Basic Hoist`` () =
+        let testNumber = 1
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
+        let lines = result.Namespaces
+                    |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                    |> GlobalCallableResolutions
+                    |> Seq.find (fun x -> x.Key.Name.Value.EndsWith("_Foo"))
+                    |> fun x -> x.Value
+                    |> LinkingTests.GetLinesFromCallable 
+
+        lines.[0]
+        |> LinkingTests.CheckIfCallable "SubOps" "SubOp1"
+        |> (fun (x, _, _) -> Assert.True(x))
+
+        lines.[1]
+        |> LinkingTests.CheckIfCallable "SubOps" "SubOp2"
+        |> (fun (x, _, _) -> Assert.True(x))
+
+        lines.[2]
+        |> LinkingTests.CheckIfCallable "SubOps" "SubOp3"
+        |> (fun (x, _, _) -> Assert.True(x))
+
+    //[<Fact>]
+    //[<Trait("Category","Classical Control")>]
+    //member this.``Classical Control Basic Implementation`` () =
+    //    let testNumber = 1
+    //    let result = this.CompileClassicalControlTest testNumber
+    //    Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+    //
+    //    let Foo = result.Namespaces
+    //              |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+    //              |> GlobalCallableResolutions
+    //              |> Seq.find (fun x -> x.Key.Name.Value = "Foo")
+    //              |> fun x -> x.Value.Specializations
+    //              |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
+    //              |> fun x -> match x.Implementation with | Provided (_, body) -> Some body | _ -> None
+    //              |> Option.get
+    //
+    //    let writer = new SyntaxTreeToQs()
+    //
+    //    writer.Scope.Transform(Foo) |> ignore
+    //    let lines = (writer.Scope :?> ScopeToQs).Output.Split('\n');
+    //
+    //    lines.[1]
+    //    |> LinkingTests.CheckIfCallable {Namespace = BuiltIn.ApplyIfOne.Namespace; Name = BuiltIn.ApplyIfOne.Name}
+    //    |> (fun (x, _, _) -> Assert.True(x))
+    //
+    //    lines.[3]
+    //    |> LinkingTests.CheckIfCallable {Namespace = BuiltIn.ApplyIfZero.Namespace; Name = BuiltIn.ApplyIfZero.Name}
+    //    |> (fun (x, _, _) -> Assert.True(x))
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
     member this.``Classical Control Single Expression`` () =
         // Single expressions should not be hoisted into their own operation
-        this.RunClassicalControlTest 2
+        let testNumber = 2
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
     member this.``Classical Control If Elif`` () =
-        this.RunClassicalControlTest 3
+        let testNumber = 3
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
 
     [<Fact>]

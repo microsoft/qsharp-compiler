@@ -26,14 +26,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             SubOp2();
             SubOp3();
         }
-
-        let temp = 0;
-
-        if (r == Zero) {
-            SubOp2();
-            SubOp3();
-            SubOp1();
-        }
     }
 
 }
@@ -73,6 +65,36 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         if (r == One) {
             SubOp1();
             SubOp2();
+            SubOp3();
+        }
+
+        let temp = 0;
+
+        if (r == Zero) {
+            SubOp2();
+            SubOp3();
+            SubOp1();
+        }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    @EntryPoint()
+    operation ClassicalControlTest4() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit {
+        let r = One;
+
+        if (r == One) {
+            SubOp1();
+            SubOp2();
         } else {
             SubOp2();
             SubOp3();
@@ -97,7 +119,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
     @EntryPoint()
-    operation ClassicalControlTest3() : Unit {
+    operation ClassicalControlTest5() : Unit {
         Foo();
     }
 

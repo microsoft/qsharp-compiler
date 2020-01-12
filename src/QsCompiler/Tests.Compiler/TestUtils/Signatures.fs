@@ -191,8 +191,7 @@ let public ClassicalControlSignatures =
         (_DefaultTypes, [|
             ClassicalControlNs, "ClassicalControlTest1", [||], "Unit";
             ClassicalControlNs, "Foo", [||], "Unit"; // The original operation
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"; // The 1st generated operation
-            ClassicalControlNs, "_Foo", [|"Result"; "Int"|], "Unit"; // The 2nd generated operation
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"; // The generated operation
         |]);
         (_DefaultTypes, [|
             ClassicalControlNs, "ClassicalControlTest2", [||], "Unit";
