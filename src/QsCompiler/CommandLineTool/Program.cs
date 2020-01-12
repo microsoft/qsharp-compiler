@@ -82,9 +82,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var logger = options.GetLogger();
             try
             {
-                var fallbackFolders = options.PackageLoadFallbackFolders?.ToArray();
-                CompilationLoader.LoadAssembly = path => 
-                    LoadContext.LoadAssembly(path, fallbackFolders);
+                CompilationLoader.LoadAssembly = path =>
+                    LoadContext.LoadAssembly(path, options.PackageLoadFallbackFolders?.ToArray());
 
                 var result = compile(options, logger);
                 logger.ReportSummary(result);

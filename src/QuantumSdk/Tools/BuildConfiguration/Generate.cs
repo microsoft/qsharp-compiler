@@ -62,11 +62,7 @@ namespace Microsoft.Quantum.Sdk.Tools
         {
             try
             {
-                using (var file = File.Create(configFile ?? "qsc.config", 4096, FileOptions.WriteThrough))
-                {
-                    var data = Encoding.UTF8.GetBytes(String.Join(Environment.NewLine, qscReferences));
-                    file.Write(data, 0, data.Length);
-                }
+                File.WriteAllLines(configFile ?? "qsc.config", qscReferences);
                 return true;
             }
             catch (Exception ex)

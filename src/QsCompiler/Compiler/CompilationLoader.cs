@@ -9,7 +9,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
-using System.Text;
 using Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
@@ -793,7 +792,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder. 
         /// Returns the computed absolute path for a file with the specified ending. 
-        /// If the content for that file is specified, writes that content to disk in UFT8 encoding. 
+        /// If the content for that file is specified, writes that content to disk. 
         /// Throws an ArgumentException if the given file id is incompatible with and id assigned by the Q# compiler.
         /// Throws the corresponding exception any of the path operations fails or if the writing fails.  
         /// </summary>
@@ -816,11 +815,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (content == null) return targetFile;
             if (!Directory.Exists(fileDir)) Directory.CreateDirectory(fileDir);
-            using (var targetHandle = File.Create(targetFile, 4096, FileOptions.WriteThrough))
-            {
-                var data = Encoding.UTF8.GetBytes(content);
-                targetHandle.Write(data, 0, data.Length);
-            }
+            File.WriteAllText(targetFile, content);
             return targetFile;
         }
     }

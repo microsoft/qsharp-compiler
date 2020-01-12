@@ -115,7 +115,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var logger = new ConsoleLogger(
                 LoggingFormat(this.OutputFormat),
                 verbosity,
-                this.NoWarn?.ToArray(),
+                this.NoWarn,
                 this.CodeSnippet != null ? -2 : 0);
             this.Print(logger);
             return logger;
@@ -174,13 +174,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         internal CompilationLoader.SourceLoader LoadSourcesOrSnippet (ILogger logger) => loadFromDisk =>
         {
-            var sourceFiles = this.Input?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
-            if (this.CodeSnippet == null && sourceFiles.Length != 0)
-            { return loadFromDisk(sourceFiles); }
-            else if (this.CodeSnippet != null && sourceFiles.Length == 0)
+            bool inputIsEmptyOrNull = this.Input == null || !this.Input.Any();
+            if (this.CodeSnippet == null && !inputIsEmptyOrNull)
+            { return loadFromDisk(this.Input); }
+            else if (this.CodeSnippet != null && inputIsEmptyOrNull)
             { return new Dictionary<Uri, string> { { SNIPPET_FILE_URI, AsSnippet(this.CodeSnippet, this.WithinFunction) } }.ToImmutableDictionary(); }
 
-            if (sourceFiles.Length == 0) logger?.Log(ErrorCode.MissingInputFileOrSnippet, Enumerable.Empty<string>());
+            if (inputIsEmptyOrNull) logger?.Log(ErrorCode.MissingInputFileOrSnippet, Enumerable.Empty<string>());
             else logger?.Log(ErrorCode.SnippetAndInputArguments, Enumerable.Empty<string>());
             return ImmutableDictionary<Uri, string>.Empty;
         };

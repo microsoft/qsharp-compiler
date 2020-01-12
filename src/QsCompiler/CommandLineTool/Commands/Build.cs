@@ -82,11 +82,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
-                RewriteSteps = options.Plugins?.Select(step => (step, (string)null))?.ToImmutableArray() ?? ImmutableArray<(string, string)>.Empty,
+                RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false // todo: enable debug mode?
             }; 
 
-            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References?.ToImmutableArray(), loadOptions, logger);
+            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
             return ReturnCode.Status(loaded);
         }
     }

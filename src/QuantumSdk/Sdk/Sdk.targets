@@ -41,7 +41,25 @@
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QsharpCompile" 
           DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;BeforeQsharpCompile;_CopyFilesMarkedCopyLocal" 
-          BeforeTargets="BeforeCsharpCompile;BeforeBuild;CoreCompile;CheckForDuplicateItems">
+          BeforeTargets="BeforeCsharpCompile;BeforeBuild"
+          Inputs="$(MSBuildAllProjects);
+                  @(QsharpCompile);
+                  @(ReferencePath);
+                  @(ResolvedQscReferences);
+                  @(ResolvedQscReferencesAndPriorities);
+                  $(PathCompatibleAssemblyName);
+                  $(GeneratedFilesOutputPath);
+                  $(QscBuildConfigOutputPath);
+                  $(QsharpDocsOutputPath);
+                  $(QsharpDocsGeneration);
+                  $(CsharpGeneration);
+                  $(QscBuildConfigExe);
+                  $(QscExe)"
+          Outputs="@(ResolvedQsharpReferences);
+                  @(Compile);
+                  $(QscBuildConfigGeneration);
+                  $(QscCommand);
+                  $(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
@@ -80,7 +98,7 @@
     </ItemGroup>
     <Message 
       Condition="$(CsharpGeneration) And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
-      Text="Files added to Compile: @(Compile)" 
+      Text="C# files to compile: @(Compile)" 
       Importance="High" /> 
   </Target>   
 
@@ -90,7 +108,7 @@
   These targets hence must not be redefined by the project. -->
 
   <!-- Helper target to anchor the BeforeCsharpCompile target. -->
-  <Target Name="_DependsOnBeforeCsharpCompile" DependsOnTargets="BeforeCsharpCompile" BeforeTargets="BeforeCompile;CoreCompile;CheckForDuplicateItems">
+  <Target Name="_DependsOnBeforeCsharpCompile" DependsOnTargets="BeforeCsharpCompile" BeforeTargets="BeforeCompile">
   </Target>  
 
 
