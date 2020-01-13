@@ -63,6 +63,22 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public bool EmitDll { get; set; }
         }
 
+        /// <summary>
+        /// Given a string representing the command line arguments, splits them into a suitable string array. 
+        /// </summary>
+        private static string[] SplitCommandLineArguments(string commandLine)
+        {
+            var parmChars = commandLine?.ToCharArray() ?? new char[0];
+            var inQuote = false;
+            for (int index = 0; index < parmChars.Length; index++)
+            {
+                var ignoreIfQuote = inQuote && parmChars[index - 1] == '\\';
+                if (parmChars[index] == '"' && !ignoreIfQuote) inQuote = !inQuote;
+                if (inQuote && parmChars[index] == '\n') parmChars[index] = ' ';
+                if (!inQuote && Char.IsWhiteSpace(parmChars[index])) parmChars[index] = '\n';
+            }
+            return (new string(parmChars)).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        }
 
         /// <summary>
         /// Reads the content off all given response files and tries to parse their concatenated content as command line arguments. 
@@ -72,8 +88,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         private static BuildOptions FromResponseFiles(IEnumerable<string> responseFiles)
         {
             if (responseFiles == null) throw new ArgumentNullException(nameof(responseFiles));
-            var args = responseFiles.Select(File.ReadAllText).SelectMany(content => content.Trim().Split());
-            var parsed = Parser.Default.ParseArguments<BuildOptions>(args.ToArray());
+            var commandLine = String.Join(" ", responseFiles.Select(File.ReadAllText));
+            var args = SplitCommandLineArguments(commandLine);
+            var parsed = Parser.Default.ParseArguments<BuildOptions>(args);
             return parsed.MapResult(
                 (BuildOptions opts) => opts,
                 (errs => 
