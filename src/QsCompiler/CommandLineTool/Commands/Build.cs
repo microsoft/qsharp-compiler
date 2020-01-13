@@ -66,18 +66,21 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Given a string representing the command line arguments, splits them into a suitable string array. 
         /// </summary>
-        private static string[] SplitCommandLineArguments(string commandLine)
+        private static IEnumerable<string> SplitCommandLineArguments(string commandLine)
         {
             var parmChars = commandLine?.ToCharArray() ?? new char[0];
             var inQuote = false;
             for (int index = 0; index < parmChars.Length; index++)
             {
-                var ignoreIfQuote = inQuote && parmChars[index - 1] == '\\';
+                var precededByBackslash = index > 0 && parmChars[index - 1] == '\\';
+                var ignoreIfQuote = inQuote && precededByBackslash;
                 if (parmChars[index] == '"' && !ignoreIfQuote) inQuote = !inQuote;
                 if (inQuote && parmChars[index] == '\n') parmChars[index] = ' ';
-                if (!inQuote && Char.IsWhiteSpace(parmChars[index])) parmChars[index] = '\n';
+                if (!inQuote && !precededByBackslash && Char.IsWhiteSpace(parmChars[index])) parmChars[index] = '\n';
             }
-            return (new string(parmChars)).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            return (new string(parmChars))
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(arg => arg.Trim('"')); 
         }
 
         /// <summary>
