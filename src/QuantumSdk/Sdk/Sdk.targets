@@ -91,7 +91,7 @@
       <_QscPackageLoadFallbackFoldersFlag Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''">--package-load-fallback-folders $(MSBuildProjectDirectory)/$(OutputPath)</_QscPackageLoadFallbackFoldersFlag>
       <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" --format MsBuild $(_VerbosityFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscPackageLoadFallbackFoldersFlag)</_QscCommandArgs>
       <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
-      <QscCommand>$(QscExe) build --response-files $(_QscCommandArgsFile)</QscCommand>
+      <QscCommand>$(QscExe) build $(_QscCommandArgs)</QscCommand>
     </PropertyGroup>
     <WriteLinesToFile File="$(_QscCommandArgsFile)" Lines="$(_QscCommandArgs)" Overwrite="true"/> <!-- we use a response file to avoid issues when the command gets long -->
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 
