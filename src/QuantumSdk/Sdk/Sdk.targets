@@ -77,7 +77,7 @@
       <Output TaskParameter="Lines" ItemName="_PrioritizedResolvedQscReferences"/>
     </ReadLinesFromFile>
     <ItemGroup>
-      <ResolvedQsharpReferences Include="@(ReferencePath)" /> <!-- for the sake of a more robust loading of qsc references, we pass along all references -->
+      <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet')) == false" />
     </ItemGroup>
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
@@ -87,9 +87,11 @@
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''">--package-load-fallback-folders $(MSBuildProjectDirectory)/$(OutputPath)</_QscPackageLoadFallbackFoldersFlag>
-      <QscCommand>$(QscExe) build --proj "$(PathCompatibleAssemblyName)" --format MsBuild $(_VerbosityFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscPackageLoadFallbackFoldersFlag)</QscCommand>
+      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" --format MsBuild $(_VerbosityFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscPackageLoadFallbackFoldersFlag)</_QscCommandArgs>
+      <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
+      <QscCommand>$(QscExe) build --response-files @$(_QscCommandArgsFile)</QscCommand>
     </PropertyGroup>
-    <WriteLinesToFile File="$(GeneratedFilesOutputPath)qsc-command.txt" Lines=":: files ::;@(QsharpCompile);:: references ::;@(ResolvedQsharpReferences);:: loaded ::;@(_PrioritizedResolvedQscReferences);:: command ::;$(QscCommand)" Overwrite="true"/>
+    <WriteLinesToFile File="$(_QscCommandArgsFile)" Lines="$(_QscCommandArgs)" Overwrite="true"/> <!-- we use a response file to avoid issues when the command gets long -->
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 
     <!-- configure the dll built by the C# compiler -->
     <ItemGroup>

@@ -28,6 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         // Note: items in one set are mutually exclusive with items from other sets
         protected const string CODE_MODE = "codeMode";
         protected const string SNIPPET_MODE = "snippetMode";
+        protected const string RESPONSE_FILES = "responseFiles";
 
         [Option('v', "verbosity", Required = false, Default = "normal",
         HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
@@ -41,7 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Q# snippet to compile - i.e. Q# code occuring within an operation or function declaration.")]
         public string CodeSnippet { get; set; }
 
-        [Option('f', "withinFunction", Required = false, Default = false, SetName = SNIPPET_MODE,
+        [Option('f', "within-function", Required = false, Default = false, SetName = SNIPPET_MODE,
         HelpText = "Specifies whether a given Q# snipped occurs within a function")]
         public bool WithinFunction { get; set; }
 
@@ -49,7 +50,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Referenced binaries to include in the compilation.")]
         public IEnumerable<string> References { get; set; }
 
-        [Option('n', "noWarn", Required = false, Default = new int[0],
+        [Option('n', "no-warn", Required = false, Default = new int[0],
         HelpText = "Warnings with the given code(s) will be ignored.")]
         public IEnumerable<int> NoWarn { get; set; }
 

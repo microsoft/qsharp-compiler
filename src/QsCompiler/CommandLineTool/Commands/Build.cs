@@ -34,6 +34,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
             }
 
+            [Option("response-files", Required = true, SetName = RESPONSE_FILES,
+            HelpText = "Response file(s) providing the command arguments. Required only if no other arguments are specified. This option replaces all other arguments.")]
+            public IEnumerable<string> ResponseFiles { get; set; }
+
             [Option('o', "output", Required = false, SetName = CODE_MODE,
             HelpText = "Destination folder where the output of the compilation will be generated.")]
             public string OutputFolder { get; set; }
@@ -60,6 +64,27 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         }
 
 
+        /// <summary>
+        /// Reads the content off all given response files and tries to parse their concatenated content as command line arguments. 
+        /// Logs a suitable exceptions and returns null if the parsing fails. 
+        /// Throws an ArgumentNullException if the given sequence of responseFiles is null. 
+        /// </summary>
+        private static BuildOptions FromResponseFiles(IEnumerable<string> responseFiles)
+        {
+            if (responseFiles == null) throw new ArgumentNullException(nameof(responseFiles));
+            var args = responseFiles.Select(File.ReadAllText).SelectMany(content => content.Trim().Split());
+            var parsed = Parser.Default.ParseArguments<BuildOptions>(args.ToArray());
+            return parsed.MapResult(
+                (BuildOptions opts) => opts,
+                (errs => 
+                { 
+                    HelpText.AutoBuild(parsed);
+                    return null;
+                })
+            );
+        }
+
+
         // publicly accessible routines 
 
         /// <summary>
@@ -71,6 +96,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
+
+            if (options?.ResponseFiles != null && options.ResponseFiles.Any())
+            { options = FromResponseFiles(options.ResponseFiles); }
+            if (options == null) return ReturnCode.INVALID_ARGUMENTS;
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
             var loadOptions = new CompilationLoader.Configuration
