@@ -196,7 +196,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
     static member private CheckIfLineIsCall ``namespace`` name input =
         let call = "(" + (Regex.Escape ``namespace``) + @"\.)?" + (Regex.Escape name) 
-        let typeArgs = @"<\s*(.*[^\s])\s*>"
+        let typeArgs = @"<\s*([^<]*[^<\s])\s*>" // Does not support nested type args
         let args = @"\(\s*(.*[^\s])?\s*\)"
         let regex = "^" + call + @"\s*(" + typeArgs + @")?\s*" + args + @";$"
 
@@ -205,6 +205,27 @@ type LinkingTests (output:ITestOutputHelper) =
             (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
         else
             (false, "", "")
+
+    static member private isApplyIfElseArgsMatch input resultVar (opName1 : QsQualifiedName) (opName2 : QsQualifiedName) =
+        let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?"  // Does not support nested type args
+        let args = @"\(\s*(.*[^\s])?\s*\)"
+        let opToRegex (op : QsQualifiedName) = sprintf @"\((%s\.)?%s\s*%s,\s*%s\)"
+                                               <| Regex.Escape op.Namespace.Value
+                                               <| Regex.Escape op.Name.Value
+                                               <| typeArgs
+                                               <| args
+
+        let ApplyIfElseRegex = sprintf
+                                <| @"^%s,\s*%s,\s*%s$"
+                                <| Regex.Escape resultVar
+                                <| opToRegex opName1
+                                <| opToRegex opName2
+
+        let regexMatch = Regex.Match(input, ApplyIfElseRegex)
+        if regexMatch.Success then
+            (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value, regexMatch.Groups.[7].Value, regexMatch.Groups.[8].Value)
+        else
+            (false, "", "", "", "")
 
     static member private CheckIfCallHasContent call (content : seq<int * string * string>) =
         let lines = LinkingTests.GetLinesFromCallable call
@@ -308,34 +329,23 @@ type LinkingTests (output:ITestOutputHelper) =
         let (success, _, args) = LinkingTests.CheckIfLineIsCall BuiltIn.ApplyIfElseR.Namespace.Value BuiltIn.ApplyIfElseR.Name.Value lines.[1]                          
         Assert.True(success, sprintf "Callable %s.%s did not have expected content" Signatures.ClassicalControlNs "Foo")
 
-        let isApplyIfElseArgsMatch resultVar (opName1 : QsQualifiedName) (opName2 : QsQualifiedName) =
-
-            let op1 = Regex.Escape <| opName1.ToString()
-            let op2 = Regex.Escape <| opName2.ToString()
-
-            let ApplyIfElseRegex = sprintf
-                                   <| @"^%s, \(%s, \(.*\)\), \(%s, \(.*\)\)$"
-                                   <| Regex.Escape resultVar
-                                   <| op1
-                                   <| op2
-
-            Regex.Match(args, ApplyIfElseRegex).Success
-
-        isApplyIfElseArgsMatch, ifOp.FullName, elseOp.FullName
+        args, ifOp.FullName, elseOp.FullName
 
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
     member this.``Classical Control Apply If Zero Else One`` () =
-        let (isMatch, ifOp, elseOp) = this.ApplyIfElseTest 4
-        Assert.True(isMatch "r" ifOp elseOp, "ApplyIfElse did not have the correct arguments")
+        let (args, ifOp, elseOp) = this.ApplyIfElseTest 4
+        LinkingTests.isApplyIfElseArgsMatch args "r" ifOp elseOp
+        |> (fun (x,_,_,_,_) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
     member this.``Classical Control Apply If One Else Zero`` () =
-        let (isMatch, ifOp, elseOp) = this.ApplyIfElseTest 5
+        let (args, ifOp, elseOp) = this.ApplyIfElseTest 5
         // The operation arguments should be swapped from the previous test
-        Assert.True(isMatch "r" elseOp ifOp, "ApplyIfElse did not have the correct arguments")
+        LinkingTests.isApplyIfElseArgsMatch args "r" elseOp ifOp
+        |> (fun (x,_,_,_,_) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
     
     [<Fact>]
     [<Trait("Category","Classical Control")>]
@@ -387,22 +397,12 @@ type LinkingTests (output:ITestOutputHelper) =
 
         let (success, _, args) = LinkingTests.CheckIfLineIsCall BuiltIn.ApplyIfElseR.Namespace.Value BuiltIn.ApplyIfElseR.Name.Value lines.[1]                          
         Assert.True(success, sprintf "Callable %s.%s did not have expected content" Signatures.ClassicalControlNs "Foo")
-
-        let isApplyIfElseArgsMatch resultVar (opName1 : QsQualifiedName) (opName2 : QsQualifiedName) =
-
-            let op1 = Regex.Escape <| opName1.ToString()
-            let op2 = Regex.Escape <| opName2.ToString()
-
-            let ApplyIfElseRegex = sprintf
-                                   <| @"^%s, \(%s, \(.*\)\), \(%s, \(.*\)\)$"
-                                   <| Regex.Escape resultVar
-                                   <| op1
-                                   <| op2
-
-            Regex.Match(args, ApplyIfElseRegex).Success
-            
-        Assert.True(isApplyIfElseArgsMatch "r" ifOp.FullName { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }, "ApplyIfElse did not have the correct arguments")
-
+         
+        let errorMsg = "ApplyIfElse did not have the correct arguments"
+        let (success, _, _, _, subArgs) = LinkingTests.isApplyIfElseArgsMatch args "r" ifOp.FullName { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
+        Assert.True(success, errorMsg)
+        LinkingTests.isApplyIfElseArgsMatch subArgs "r" elifOp.FullName elseOp.FullName
+        |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
 
     [<Fact>]
     member this.``Fail on multiple entry points`` () =
