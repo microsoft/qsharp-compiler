@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -35,13 +36,16 @@ namespace Microsoft.Quantum.QsCompiler
                 // implemented in both F# or C#, and whether they are compiled against the current compiler version or an older one.
                 this._InterfaceMethods?.FirstOrDefault(method => method.Name.Split("-").Last() == name);
 
+            private object GetViaReflection(string name) =>
+                InterfaceMethod($"get_{name}")?.Invoke(_SelfAsObject, null);
+
             private T GetViaReflection<T>(string name) =>
                 (T)InterfaceMethod($"get_{name}")?.Invoke(_SelfAsObject, null);
 
             private void SetViaReflection<T>(string name, T arg) =>
                 InterfaceMethod($"set_{name}")?.Invoke(_SelfAsObject, new object[] { arg });
 
-            private T InvokeViaReflection<T>(string name, params object[] args) => 
+            private T InvokeViaReflection<T>(string name, params object[] args) =>
                 (T)InterfaceMethod(name)?.Invoke(_SelfAsObject, args);
 
 
@@ -64,17 +68,45 @@ namespace Microsoft.Quantum.QsCompiler
 
                 // The Name and Priority need to be fixed throughout the loading, 
                 // so whatever their value is when loaded that's what these values well be as far at the compiler is concerned.
-                this.Name = _SelfAsStep?.Name ?? this.GetViaReflection<string>(nameof(IRewriteStep.Name)); 
-                this.Priority = _SelfAsStep?.Priority ?? this.GetViaReflection<int>(nameof(IRewriteStep.Priority)); 
+                this.Name = _SelfAsStep?.Name ?? this.GetViaReflection<string>(nameof(IRewriteStep.Name));
+                this.Priority = _SelfAsStep?.Priority ?? this.GetViaReflection<int>(nameof(IRewriteStep.Priority));
             }
+
 
             public string Name { get; }
             public int Priority { get; }
-            public IDictionary<string, string> AssemblyConstants 
+            internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic d) => new Diagnostic 
             {
-                get => _SelfAsStep?.AssemblyConstants 
+                Message = d.Message                
+            };
+
+            public IDictionary<string, string> AssemblyConstants
+            {
+                get => _SelfAsStep?.AssemblyConstants
                     ?? this.GetViaReflection<IDictionary<string, string>>(nameof(IRewriteStep.AssemblyConstants));
             }
+
+            public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics
+            {
+                get
+                {
+                    if (_SelfAsStep != null) return _SelfAsStep.GeneratedDiagnostics;
+                    static bool IEnumerableInterface(Type t) => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+                    var enumerable = this.GetViaReflection(nameof(IRewriteStep.GeneratedDiagnostics)) as IEnumerable;
+                    var itemType = enumerable.GetType().GetInterfaces().FirstOrDefault(IEnumerableInterface)?.GetGenericArguments()?.FirstOrDefault();
+                    if (itemType == null) return null;
+
+                    var diagnostics = ImmutableArray.CreateBuilder<IRewriteStep.Diagnostic>();
+                    foreach (var obj in enumerable)
+                    {
+                        if (obj == null) continue;
+                        var message = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Message)).GetValue(obj, null) as string;
+                        diagnostics.Add(new IRewriteStep.Diagnostic { Message = message });
+                    }
+                    return diagnostics.ToImmutable();
+                }
+            }
+
 
             public bool ImplementsTransformation
             {
@@ -93,6 +125,7 @@ namespace Microsoft.Quantum.QsCompiler
                 get => _SelfAsStep?.ImplementsPostconditionVerification 
                     ?? this.GetViaReflection<bool>(nameof(IRewriteStep.ImplementsPostconditionVerification));
             }
+
 
             public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
             {

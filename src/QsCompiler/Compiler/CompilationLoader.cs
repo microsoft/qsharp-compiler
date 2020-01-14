@@ -442,16 +442,25 @@ namespace Microsoft.Quantum.QsCompiler
             try
             {
                 transformed = compilation;
-                var preconditionPassed = !rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(compilation);
-                if (!preconditionPassed) this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, new[] { rewriteStep.Name, messageSource }));
+                var preconditionFailed = rewriteStep.ImplementsPreconditionVerification && !rewriteStep.PreconditionVerification(compilation);
+                if (preconditionFailed)
+                {
+                    this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, new[] { rewriteStep.Name, messageSource }));
+                    return status;
+                }
 
-                var executeTransformation = preconditionPassed && rewriteStep.ImplementsTransformation;
-                var transformationPassed = !executeTransformation || rewriteStep.Transformation(compilation, out transformed);
-                if (!transformationPassed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
+                var transformationFailed = rewriteStep.ImplementsTransformation && !rewriteStep.Transformation(compilation, out transformed);
+                var postconditionFailed = this.Config.EnableAdditionalChecks && rewriteStep.ImplementsPostconditionVerification && !rewriteStep.PostconditionVerification(transformed);
 
-                var executePostconditionVerification = this.Config.EnableAdditionalChecks && transformationPassed && rewriteStep.ImplementsPostconditionVerification;
-                var postconditionPassed = !executePostconditionVerification || rewriteStep.PostconditionVerification(transformed);
-                if (!postconditionPassed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
+                if (postconditionFailed || (this.Config.EnableAdditionalChecks && !rewriteStep.ImplementsPostconditionVerification && transformationFailed))
+                {
+                    foreach(var diagnostic in rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty)
+                    { this.LogAndUpdate(ref status, RewriteSteps.LoadedStep.ConvertDiagnostic(diagnostic)); }
+                }
+
+                if (transformationFailed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
+                if (postconditionFailed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
+                return status;
             }
             catch (Exception ex)
             {
