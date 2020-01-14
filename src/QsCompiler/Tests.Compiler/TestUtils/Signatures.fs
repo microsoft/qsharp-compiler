@@ -58,7 +58,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
         | Some ns -> ns
         | None -> sprintf "Expected but did not find namespace: %s" targetNs |> failwith
 
-    let callableSigs =
+    let mutable callableSigs =
         checkedNamespaces
         |> Seq.map (fun checkedNs -> getNs checkedNs)
         |> SyntaxExtensions.Callables
@@ -78,19 +78,25 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
         | QsTypeKind.UnitType -> "()"
         | _ -> args |> (ExpressionToQs () |> ExpressionTypeToQs).Apply
 
+    let removeAt i lst =
+        Seq.append
+        <| Seq.take i lst
+        <| Seq.skip (i+1) lst
+
     (*Tests that all target signatures are present*)
     for targetSig in targetSignatures do
         let sig_fullName, sig_argType, sig_rtrnType = targetSig
         callableSigs
-        |> Seq.exists (fun callSig -> doesCallMatchSig callSig targetSig)
-        |> (fun x -> Assert.True (x, sprintf "Expected but did not find: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
+        |> Seq.tryFindIndex (fun callSig -> doesCallMatchSig callSig targetSig)
+        |> (fun x ->
+                Assert.True (x <> None, sprintf "Expected but did not find: %s.*%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution)
+                callableSigs <- removeAt x.Value callableSigs
+           )
 
     (*Tests that *only* targeted signatures are present*)
     for callSig in callableSigs do
         let sig_fullName, sig_argType, sig_rtrnType = callSig
-        targetSignatures
-        |> Seq.exists (fun targetSig -> doesCallMatchSig callSig targetSig)
-        |> (fun x -> Assert.True (x, sprintf "Found unexpected callable: %s.%s %s : %A" sig_fullName.Namespace.Value sig_fullName.Name.Value (makeArgsString sig_argType) sig_rtrnType.Resolution))
+        failwith (sprintf "Found unexpected callable: %O %s : %A" sig_fullName (makeArgsString sig_argType) sig_rtrnType.Resolution)
 
 /// Names of several testing namespaces
 let public MonomorphizationNs = "Microsoft.Quantum.Testing.Monomorphization"
@@ -220,8 +226,7 @@ let public ClassicalControlSignatures =
             ClassicalControlNs, "Foo", [||], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
-            ClassicalControlNs, "_Foo", [|"Result"; "Int"|], "Unit";
-            ClassicalControlNs, "_Foo", [|"Result"; "Int"|], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
         |]);
     |]
     |> _MakeSignatures
