@@ -39,7 +39,7 @@ let ``valid snippet`` () =
     [|
         "-s" 
         "let a = 0;" 
-        "-v"
+        "-v n"
     |] 
     |> testSnippet ReturnCode.SUCCESS
 
@@ -57,7 +57,8 @@ let ``one valid file`` () =
     [|
         "-i"
         ("TestCases","General.qs") |> Path.Combine
-        "-v"
+        "--verbosity" 
+        "Diagnostic"
     |]
     |> testInput ReturnCode.SUCCESS
     

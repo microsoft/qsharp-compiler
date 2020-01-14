@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 
 namespace Microsoft.Quantum.Sdk.Tools
@@ -17,7 +18,13 @@ namespace Microsoft.Quantum.Sdk.Tools
         public static ReturnCode Generate(Options options)
         {
             if (options == null) return ReturnCode.MISSING_ARGUMENTS;
-            (string, int) ParseQscReference(string qscRef)
+            var verbose =
+                "detailed".Equals(options.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "d".Equals(options.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "diagnostic".Equals(options.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
+                "diag".Equals(options.Verbosity, StringComparison.InvariantCultureIgnoreCase);
+
+            static (string, int) ParseQscReference(string qscRef)
             {
                 var pieces = qscRef.Trim().TrimStart('(').TrimEnd(')').Split(',');
                 var path = pieces.First().Trim();
@@ -38,11 +45,11 @@ namespace Microsoft.Quantum.Sdk.Tools
                 var errMsg = $"Could not parse the given Qsc references. " +
                     $"Expecting a string of the form \"(pathToDll, priority)\" for each qsc reference.";
                 Console.WriteLine(errMsg);
-                if (options.Verbose) Console.WriteLine(ex);
+                if (verbose) Console.WriteLine(ex);
                 return ReturnCode.INVALID_ARGUMENTS;
             }
 
-            return BuildConfiguration.WriteConfigFile(options.OutputFile, orderedQscReferences, options.Verbose)
+            return BuildConfiguration.WriteConfigFile(options.OutputFile, orderedQscReferences, verbose)
                 ? ReturnCode.SUCCESS
                 : ReturnCode.IO_EXCEPTION;
         }
