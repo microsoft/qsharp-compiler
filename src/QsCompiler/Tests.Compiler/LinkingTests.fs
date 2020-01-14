@@ -193,19 +193,25 @@ type LinkingTests (output:ITestOutputHelper) =
         |> ignore
 
         (writer.Scope :?> ScopeToQs).Output.Split("\r\n")
-        
 
-    static member private CheckIfCallable ``namespace`` name input =
+    static member private CheckIfLineIsCall ``namespace`` name input =
         let call = "(" + (Regex.Escape ``namespace``) + @"\.)?" + (Regex.Escape name) 
         let typeArgs = @"<\s*(.*[^\s])\s*>"
         let args = @"\(\s*(.*[^\s])?\s*\)"
-        let regex = "^" + call + @"\s*(" + typeArgs + @")?\s*" + args + @";[\r\n]*$"
+        let regex = "^" + call + @"\s*(" + typeArgs + @")?\s*" + args + @";$"
 
         let regexMatch = Regex.Match(input, regex)
         if regexMatch.Success then
             (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
         else
             (false, "", "")
+
+    static member private CheckIfCallHasContent call (content : seq<int * string * string>) =
+        let lines = LinkingTests.GetLinesFromCallable call
+        Seq.forall (fun (i, ns, name) -> LinkingTests.CheckIfLineIsCall ns name lines.[i] |> (fun (x,_,_) -> x)) content
+
+    static member private AssertCallHasContent call content =
+        Assert.True(LinkingTests.CheckIfCallHasContent call content, sprintf "Callable %A did not have expected content" call.FullName)
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
@@ -214,53 +220,19 @@ type LinkingTests (output:ITestOutputHelper) =
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
-        let lines = result.Namespaces
-                    |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
-                    |> GlobalCallableResolutions
-                    |> Seq.find (fun x -> x.Key.Name.Value.EndsWith("_Foo"))
-                    |> fun x -> x.Value
-                    |> LinkingTests.GetLinesFromCallable 
+        let _Foo = result.Namespaces
+                   |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                   |> GlobalCallableResolutions
+                   |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Foo")
 
-        lines.[0]
-        |> LinkingTests.CheckIfCallable "SubOps" "SubOp1"
-        |> (fun (x, _, _) -> Assert.True(x))
+        let content =
+            [
+                (0, "SubOps", "SubOp1");
+                (1, "SubOps", "SubOp2");
+                (2, "SubOps", "SubOp3");
+            ]
 
-        lines.[1]
-        |> LinkingTests.CheckIfCallable "SubOps" "SubOp2"
-        |> (fun (x, _, _) -> Assert.True(x))
-
-        lines.[2]
-        |> LinkingTests.CheckIfCallable "SubOps" "SubOp3"
-        |> (fun (x, _, _) -> Assert.True(x))
-
-    //[<Fact>]
-    //[<Trait("Category","Classical Control")>]
-    //member this.``Classical Control Basic Implementation`` () =
-    //    let testNumber = 1
-    //    let result = this.CompileClassicalControlTest testNumber
-    //    Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
-    //
-    //    let Foo = result.Namespaces
-    //              |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
-    //              |> GlobalCallableResolutions
-    //              |> Seq.find (fun x -> x.Key.Name.Value = "Foo")
-    //              |> fun x -> x.Value.Specializations
-    //              |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
-    //              |> fun x -> match x.Implementation with | Provided (_, body) -> Some body | _ -> None
-    //              |> Option.get
-    //
-    //    let writer = new SyntaxTreeToQs()
-    //
-    //    writer.Scope.Transform(Foo) |> ignore
-    //    let lines = (writer.Scope :?> ScopeToQs).Output.Split('\n');
-    //
-    //    lines.[1]
-    //    |> LinkingTests.CheckIfCallable {Namespace = BuiltIn.ApplyIfOne.Namespace; Name = BuiltIn.ApplyIfOne.Name}
-    //    |> (fun (x, _, _) -> Assert.True(x))
-    //
-    //    lines.[3]
-    //    |> LinkingTests.CheckIfCallable {Namespace = BuiltIn.ApplyIfZero.Namespace; Name = BuiltIn.ApplyIfZero.Name}
-    //    |> (fun (x, _, _) -> Assert.True(x))
+        LinkingTests.AssertCallHasContent _Foo.Value content
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
@@ -270,11 +242,109 @@ type LinkingTests (output:ITestOutputHelper) =
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Use ApplyIfZero And ApplyIfOne`` () =
+        let testNumber = 3
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+        let Foo = result.Namespaces
+                  |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                  |> GlobalCallableResolutions
+                  |> Seq.find (fun x -> x.Key.Name.Value = "Foo")
+
+        let getNameFromBuiltin (builtIn : BuiltIn) = builtIn.Namespace.Value, builtIn.Name.Value
+        
+        let content =
+            [
+                (1, getNameFromBuiltin BuiltIn.ApplyIfZero);
+                (3, getNameFromBuiltin BuiltIn.ApplyIfOne);
+            ]
+            |> Seq.map (fun (i,(ns,name)) -> (i,ns,name))
+
+        LinkingTests.AssertCallHasContent Foo.Value content
+
+
+    member private this.ApplyIfElseTest testNumber =
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+        let generated = result.Namespaces
+                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                        |> GlobalCallableResolutions
+                        |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_Foo")
+
+        Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
+
+        let ifContent =
+            [
+                (0, "SubOps", "SubOp1");
+                (1, "SubOps", "SubOp2");
+            ]
+
+        let elseContent =
+            [
+                (0, "SubOps", "SubOp2");
+                (1, "SubOps", "SubOp3");
+            ]
+
+        let getGeneratedCallables gen1 gen2 =
+            if LinkingTests.CheckIfCallHasContent gen1 ifContent then
+                LinkingTests.AssertCallHasContent gen2 elseContent
+                (gen1, gen2)
+            else
+                LinkingTests.AssertCallHasContent gen2 ifContent
+                LinkingTests.AssertCallHasContent gen1 elseContent
+                (gen2, gen1)
+
+        let ifOp, elseOp = getGeneratedCallables (Seq.item 0 generated).Value (Seq.item 1 generated).Value
+
+        let lines = result.Namespaces
+                    |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                    |> GlobalCallableResolutions
+                    |> Seq.find (fun x -> x.Key.Name.Value = "Foo")
+                    |> fun x -> x.Value
+                    |> LinkingTests.GetLinesFromCallable
+
+        Assert.True(2 = Seq.length lines, sprintf "Callable %s.%s did not have the expected number of statements" Signatures.ClassicalControlNs "Foo")
+
+        let (success, _, args) = LinkingTests.CheckIfLineIsCall BuiltIn.ApplyIfElseR.Namespace.Value BuiltIn.ApplyIfElseR.Name.Value lines.[1]                          
+        Assert.True(success, sprintf "Callable %s.%s did not have expected content" Signatures.ClassicalControlNs "Foo")
+
+        let isApplyIfElseArgsMatch resultVar (opName1 : QsQualifiedName) (opName2 : QsQualifiedName) =
+
+            let op1 = Regex.Escape <| opName1.ToString()
+            let op2 = Regex.Escape <| opName2.ToString()
+
+            let ApplyIfElseRegex = sprintf
+                                   <| @"^%s, \(%s, \(.*\)\), \(%s, \(.*\)\)$"
+                                   <| Regex.Escape resultVar
+                                   <| op1
+                                   <| op2
+
+            Regex.Match(args, ApplyIfElseRegex).Success
+
+        isApplyIfElseArgsMatch, ifOp.FullName, elseOp.FullName
+
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Apply If Zero Else One`` () =
+        let (isMatch, ifOp, elseOp) = this.ApplyIfElseTest 4
+        Assert.True(isMatch "r" ifOp elseOp, "ApplyIfElse did not have the correct arguments")
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Apply If One Else Zero`` () =
+        let (isMatch, ifOp, elseOp) = this.ApplyIfElseTest 5
+        // The operation arguments should be swapped from the previous test
+        Assert.True(isMatch "r" elseOp ifOp, "ApplyIfElse did not have the correct arguments")
+    
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
     member this.``Classical Control If Elif`` () =
-        let testNumber = 3
+        let testNumber = 6
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
