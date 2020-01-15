@@ -25,6 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
         public string Name => "CsharpGeneration";
         public int Priority => 0;
         public IDictionary<string, string> AssemblyConstants { get; }
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics { get; }
 
         public bool ImplementsTransformation => true;
         public bool ImplementsPreconditionVerification => false;
