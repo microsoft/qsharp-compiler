@@ -13,6 +13,7 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
 namespace Microsoft.Quantum.QsCompiler
@@ -75,10 +76,30 @@ namespace Microsoft.Quantum.QsCompiler
 
             public string Name { get; }
             public int Priority { get; }
-            internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic d) => new Diagnostic 
+            internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic diagnostic, string code = null)
             {
-                Message = d.Message                
-            };
+                var severity =
+                    diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Error ? DiagnosticSeverity.Error :
+                    diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Warning ? DiagnosticSeverity.Warning :
+                    diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Info ? DiagnosticSeverity.Information :
+                    DiagnosticSeverity.Hint;
+
+                var startPosition = diagnostic.Start == null ? null : new Position(diagnostic.Start.Item1, diagnostic.Start.Item2);
+                var endPosition = diagnostic.End == null ? startPosition : new Position(diagnostic.End.Item1, diagnostic.End.Item2);
+                var range = startPosition == null || diagnostic.Source == null ? null : new LSP.Range { Start = startPosition, End = endPosition };
+                if (range != null && !Utils.IsValidRange(range)) range = null;
+
+                // NOTE: If we change data structure to add or change properties, 
+                // then the cast below in GeneratedDiagnostics needs to be adapted. 
+                return new Diagnostic
+                {
+                    Code = code,
+                    Severity = severity,
+                    Message = diagnostic.Message,
+                    Source = diagnostic.Source,
+                    Range = range
+                };
+            }
 
             public IDictionary<string, string> AssemblyConstants
             {
@@ -100,8 +121,14 @@ namespace Microsoft.Quantum.QsCompiler
                     foreach (var obj in enumerable)
                     {
                         if (obj == null) continue;
-                        var message = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Message)).GetValue(obj, null) as string;
-                        diagnostics.Add(new IRewriteStep.Diagnostic { Message = message });
+                        diagnostics.Add(new IRewriteStep.Diagnostic
+                        {
+                            Severity = (CodeAnalysis.DiagnosticSeverity)itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Severity)).GetValue(obj, null),
+                            Message = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Message)).GetValue(obj, null) as string,
+                            Source = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Source)).GetValue(obj, null) as string,
+                            Start = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Start)).GetValue(obj, null) as Tuple<int, int>,
+                            End = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.End)).GetValue(obj, null) as Tuple<int, int>
+                        });
                     }
                     return diagnostics.ToImmutable();
                 }

@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
+using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 
@@ -11,8 +13,30 @@ namespace Microsoft.Quantum.QsCompiler
     {
         public struct Diagnostic
         {
-            // TODO: ADD REASONABLE STUFF - THIS IS JUST A DUMMY HANDLE RIGHT NOW
+            /// <summary>
+            /// Indicates the severity of the diagnostic. 
+            /// Generated diagnostics may be prioritized and filtered according to their severity. 
+            /// </summary>
+            public DiagnosticSeverity Severity { get; set; }
+            /// <summary>
+            /// Diagnostic message to be displayed to the user. 
+            /// </summary>
             public string Message { get; set; }
+            /// <summary>
+            /// Absolute path of the file where the code that caused the generation of the diagnostic is located.
+            /// The source is null if the diagnostic is not caused by a piece of source code. 
+            /// </summary>
+            public string Source { get; set; }
+            /// <summary>
+            /// Position in the source file where the code that caused the generation of the diagnostic starts.
+            /// The position is null if the diagnostic is not caused by a piece of source code. 
+            /// </summary>
+            public Tuple<int, int> Start { get; set; }
+            /// <summary>
+            /// Position in the source file where the code that caused the generation of the diagnostic ends.
+            /// The position is null if the diagnostic is not caused by a piece of source code. 
+            /// </summary>
+            public Tuple<int, int> End { get; set; }
         }
 
         /// <summary>

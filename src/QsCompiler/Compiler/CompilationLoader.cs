@@ -451,11 +451,15 @@ namespace Microsoft.Quantum.QsCompiler
 
                 var transformationFailed = rewriteStep.ImplementsTransformation && !rewriteStep.Transformation(compilation, out transformed);
                 var postconditionFailed = this.Config.EnableAdditionalChecks && rewriteStep.ImplementsPostconditionVerification && !rewriteStep.PostconditionVerification(transformed);
-
                 if (postconditionFailed || (this.Config.EnableAdditionalChecks && !rewriteStep.ImplementsPostconditionVerification && transformationFailed))
                 {
-                    foreach(var diagnostic in rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty)
-                    { this.LogAndUpdate(ref status, RewriteSteps.LoadedStep.ConvertDiagnostic(diagnostic)); }
+                    try
+                    {
+                        foreach (var diagnostic in rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty)
+                        { this.LogAndUpdate(ref status, RewriteSteps.LoadedStep.ConvertDiagnostic(diagnostic)); }
+                    }
+                    catch 
+                    { this.LogAndUpdate(ref status, Warning(WarningCode.RewriteStepDiagnosticsGenerationFailed, new[] { rewriteStep.Name })); }
                 }
 
                 if (transformationFailed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
