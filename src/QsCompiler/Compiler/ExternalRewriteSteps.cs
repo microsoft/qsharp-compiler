@@ -89,13 +89,18 @@ namespace Microsoft.Quantum.QsCompiler
                 var range = startPosition == null || diagnostic.Source == null ? null : new LSP.Range { Start = startPosition, End = endPosition };
                 if (range != null && !Utils.IsValidRange(range)) range = null;
 
+                var stageAnnotation =
+                    diagnostic.Stage == IRewriteStep.Stage.PreconditionVerification ? $"[{diagnostic.Stage}] " :
+                    diagnostic.Stage == IRewriteStep.Stage.PostconditionVerification ? $"[{diagnostic.Stage}] " :
+                    "";
+
                 // NOTE: If we change data structure to add or change properties, 
                 // then the cast below in GeneratedDiagnostics needs to be adapted. 
                 return new Diagnostic
                 {
                     Code = code,
                     Severity = severity,
-                    Message = diagnostic.Message,
+                    Message = $"{stageAnnotation}{diagnostic.Message}",
                     Source = diagnostic.Source,
                     Range = range
                 };

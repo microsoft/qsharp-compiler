@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
                 new IRewriteStep.Diagnostic
                 {
                     Severity = CodeAnalysis.DiagnosticSeverity.Info,
-                    Message = "Invokation of the Q# compiler extension for C# generation to demonstrate execution on the simulation framework."
+                    Message = "Invokation of the Q# compiler extension for C# generation to demonstrate execution on the simulation framework.",
                 }};
 
             var success = true;

@@ -11,6 +11,14 @@ namespace Microsoft.Quantum.QsCompiler
 {
     public interface IRewriteStep
     {
+        public enum Stage 
+        {
+            Unknown = 0,
+            PreconditionVerification = 1,
+            Transformation = 2,
+            PostconditionVerification = 3,
+        }
+
         public struct Diagnostic
         {
             /// <summary>
@@ -27,6 +35,8 @@ namespace Microsoft.Quantum.QsCompiler
             /// The source is null if the diagnostic is not caused by a piece of source code. 
             /// </summary>
             public string Source { get; set; }
+
+            public Stage Stage { get; }
             /// <summary>
             /// Position in the source file where the code that caused the generation of the diagnostic starts.
             /// The position is null if the diagnostic is not caused by a piece of source code. 
