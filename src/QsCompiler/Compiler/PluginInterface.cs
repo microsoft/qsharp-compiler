@@ -35,7 +35,10 @@ namespace Microsoft.Quantum.QsCompiler
             /// The source is null if the diagnostic is not caused by a piece of source code. 
             /// </summary>
             public string Source { get; set; }
-
+            /// <summary>
+            /// The stage during which the diagnostic was generated. 
+            /// The stage is set to Unknown if no stage is specified. 
+            /// </summary>
             public Stage Stage { get; }
             /// <summary>
             /// Position in the source file where the code that caused the generation of the diagnostic starts.
