@@ -76,7 +76,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             public string Name { get; }
             public int Priority { get; }
-            internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic diagnostic, string code = null)
+            internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic diagnostic, Func<DiagnosticSeverity, string> getCode = null)
             {
                 var severity =
                     diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Error ? DiagnosticSeverity.Error :
@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.QsCompiler
                 // then the cast below in GeneratedDiagnostics needs to be adapted. 
                 return new Diagnostic
                 {
-                    Code = code,
+                    Code = getCode?.Invoke(severity),
                     Severity = severity,
                     Message = $"{stageAnnotation}{diagnostic.Message}",
                     Source = diagnostic.Source,

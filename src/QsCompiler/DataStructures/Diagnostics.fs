@@ -282,6 +282,8 @@ type ErrorCode =
     | RewriteStepExecutionFailed = 7112
     | PostconditionVerificationFailed = 7113
 
+    | CsharpGenerationGeneratedError = 8001
+
 
 type WarningCode = 
     | ExcessSemicolon = 2001
@@ -323,6 +325,8 @@ type WarningCode =
     | RewriteStepLoadedViaReflection = 7203
     | FailedToLoadRewriteStepViaReflection = 7204
 
+    | CsharpGenerationGeneratedWarning = 8001
+
 
 type InformationCode = 
     | CommandLineArguments = 7001
@@ -338,6 +342,8 @@ type InformationCode =
     | BuiltTokenization = 7202
     | BuiltSyntaxTree = 7203
     | FormattedQsCode = 7204
+
+    | CsharpGenerationGeneratedInfo = 8001
 
 
 type DiagnosticItem = 
@@ -626,6 +632,8 @@ type DiagnosticItem =
             | ErrorCode.PreEvaluationFailed                       -> "The generated syntax tree could not be pre-evaluated."
             | ErrorCode.RewriteStepExecutionFailed                -> "Executing the transformation for the compilation step \"{0}\" loaded from \"{1}\" failed."
             | ErrorCode.PostconditionVerificationFailed           -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
+
+            | ErrorCode.CsharpGenerationGeneratedError            -> ""
             | _                                                   -> ""
         code |> ApplyArguments             
              
@@ -669,6 +677,8 @@ type DiagnosticItem =
             | WarningCode.PreconditionVerificationFailed          -> "The precondition for the compilation step \"{0}\" loaded from \"{1}\" was not met. The transformation will be skipped."
             | WarningCode.RewriteStepLoadedViaReflection          -> "The compilation step \"{0}\" defined in \"{1}\" is not fully compatible with this compiler version and may fail on execution. The step may have been compiled against an older compiler version."
             | WarningCode.FailedToLoadRewriteStepViaReflection    -> "A possible rewrite step has been detected in \"{0}\". The step could not be loaded and will be ignored."
+
+            | WarningCode.CsharpGenerationGeneratedWarning        -> ""
             | _                                                   -> ""
         code |> ApplyArguments
 
@@ -687,7 +697,8 @@ type DiagnosticItem =
             | InformationCode.BuiltTokenization                   -> "Built tokenization"
             | InformationCode.BuiltSyntaxTree                     -> "Built syntax tree"
             | InformationCode.FormattedQsCode                     -> "Q# code generated based on the built syntax tree"
-                                                                  
+
+            | InformationCode.CsharpGenerationGeneratedInfo       -> ""
             | _                                                   -> ""
         code |> ApplyArguments
         
