@@ -195,49 +195,74 @@ let public IntrinsicResolutionSignatures =
 let public ClassicalControlSignatures =
     [|
         (_DefaultTypes, [|
-            ClassicalControlNs, "ClassicalControlTest1", [||], "Unit";
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
             ClassicalControlNs, "Foo", [||], "Unit"; // The original operation
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"; // The generated operation
         |]);
         (_DefaultTypes, [|
-            ClassicalControlNs, "ClassicalControlTest2", [||], "Unit";
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
+            ClassicalControlNs, "Foo", [||], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
             ClassicalControlNs, "Foo", [||], "Unit";
         |]);
         (_DefaultTypes, [|
-            ClassicalControlNs, "ClassicalControlTest3", [||], "Unit";
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
+            ClassicalControlNs, "Foo", [||], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
+            ClassicalControlNs, "Foo", [||], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
+            ClassicalControlNs, "IfInvalid", [||], "Unit";
+            ClassicalControlNs, "ElseInvalid", [||], "Unit";
+            ClassicalControlNs, "BothInvalid", [||], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
             ClassicalControlNs, "Foo", [||], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"; "Int"|], "Unit";
         |]);
         (_DefaultTypes, [|
-            ClassicalControlNs, "ClassicalControlTest4", [||], "Unit";
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
             ClassicalControlNs, "Foo", [||], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
         |]);
         (_DefaultTypes, [|
-            ClassicalControlNs, "ClassicalControlTest5", [||], "Unit";
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
             ClassicalControlNs, "Foo", [||], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
         |]);
         (_DefaultTypes, [|
-            ClassicalControlNs, "ClassicalControlTest6", [||], "Unit";
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
             ClassicalControlNs, "Foo", [||], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
         |]);
         (_DefaultTypes, [|
-            ClassicalControlNs, "ClassicalControlTest7", [||], "Unit";
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
             ClassicalControlNs, "Foo", [||], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
         |]);
         (_DefaultTypes, [|
-            ClassicalControlNs, "ClassicalControlTest8", [||], "Unit";
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
             ClassicalControlNs, "Foo", [||], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
+            ClassicalControlNs, "Foo", [||], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
         |]);
     |]

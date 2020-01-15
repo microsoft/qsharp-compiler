@@ -255,16 +255,45 @@ type LinkingTests (output:ITestOutputHelper) =
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Single Expression`` () =
-        // Single expressions should not be hoisted into their own operation
+    member this.``Classical Control Hoist Loops`` () =
         let testNumber = 2
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Use ApplyIfZero And ApplyIfOne`` () =
+    member this.``Classical Control Don't Hoist Single Call`` () =
+        // Single calls should not be hoisted into their own operation
         let testNumber = 3
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Hoist Single Non-Call`` () =
+        // Single expressions that are not calls should be hoisted into their own operation
+        let testNumber = 4
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Don't Hoist Return Statments`` () =
+        let testNumber = 5
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control All-Or-None Hoisting`` () =
+        let testNumber = 6
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control ApplyIfZero And ApplyIfOne`` () =
+        let testNumber = 7
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
@@ -335,14 +364,14 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Classical Control")>]
     member this.``Classical Control Apply If Zero Else One`` () =
-        let (args, ifOp, elseOp) = this.ApplyIfElseTest 4
+        let (args, ifOp, elseOp) = this.ApplyIfElseTest 8
         LinkingTests.isApplyIfElseArgsMatch args "r" ifOp elseOp
         |> (fun (x,_,_,_,_) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
     member this.``Classical Control Apply If One Else Zero`` () =
-        let (args, ifOp, elseOp) = this.ApplyIfElseTest 5
+        let (args, ifOp, elseOp) = this.ApplyIfElseTest 9
         // The operation arguments should be swapped from the previous test
         LinkingTests.isApplyIfElseArgsMatch args "r" elseOp ifOp
         |> (fun (x,_,_,_,_) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
@@ -350,7 +379,7 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category","Classical Control")>]
     member this.``Classical Control If Elif`` () =
-        let testNumber = 6
+        let testNumber = 10
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
@@ -406,8 +435,8 @@ type LinkingTests (output:ITestOutputHelper) =
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
-    member this.``Classical Control And Contidtion`` () =
-        let (args, ifOp, elseOp) = this.ApplyIfElseTest 7
+    member this.``Classical Control And Condition`` () =
+        let (args, ifOp, elseOp) = this.ApplyIfElseTest 11
         
         let errorMsg = "ApplyIfElse did not have the correct arguments"
         let (success, _, subArgs, _, _) = LinkingTests.isApplyIfElseArgsMatch args "r" { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name } elseOp
@@ -417,14 +446,22 @@ type LinkingTests (output:ITestOutputHelper) =
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Or Contidtion`` () =
-        let (args, ifOp, elseOp) = this.ApplyIfElseTest 8
+    member this.``Classical Control Or Condition`` () =
+        let (args, ifOp, elseOp) = this.ApplyIfElseTest 12
         
         let errorMsg = "ApplyIfElse did not have the correct arguments"
         let (success, _, _, _, subArgs) = LinkingTests.isApplyIfElseArgsMatch args "r" ifOp { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
         Assert.True(success, errorMsg)
         LinkingTests.isApplyIfElseArgsMatch subArgs "r" ifOp elseOp
         |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Don't Hoist Functions`` () =
+        let testNumber = 13
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
 
     [<Fact>]
     member this.``Fail on multiple entry points`` () =

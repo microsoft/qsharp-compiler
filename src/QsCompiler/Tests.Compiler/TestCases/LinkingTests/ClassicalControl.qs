@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
     @EntryPoint()
-    operation ClassicalControlTest1() : Unit {
+    operation ClassicalControlTestMain() : Unit {
         Foo();
     }
 
@@ -25,6 +25,38 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             SubOp1();
             SubOp2();
             SubOp3();
+            let temp = 4;
+            using (q = Qubit()) {
+                let temp2 = q;
+            }
+        }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+
+    @EntryPoint()
+    operation ClassicalControlTestMain() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (r == Zero) {
+            for (index in 0 .. 3) {
+                let temp = index;
+            }
+
+            repeat {
+                let success = true;
+            } until (success)
+            fixup {
+                let temp2 = 0;
+            }
         }
     }
 
@@ -36,7 +68,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
     @EntryPoint()
-    operation ClassicalControlTest2() : Unit {
+    operation ClassicalControlTestMain() : Unit {
         Foo();
     }
 
@@ -55,7 +87,98 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
     @EntryPoint()
-    operation ClassicalControlTest3() : Unit {
+    operation ClassicalControlTestMain() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (r == Zero) {
+            let temp = 2;
+        }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    @EntryPoint()
+    operation ClassicalControlTestMain() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit {
+        let r = Zero;
+        if (r == Zero) {
+            SubOp1();
+            return ();
+        }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    @EntryPoint()
+    operation ClassicalControlTestMain() : Unit {
+        IfInvalid();
+        ElseInvalid();
+        BothInvalid();
+    }
+
+    operation IfInvalid() : Unit {
+        let r = Zero;
+        if (r == Zero) {
+            SubOp1();
+            SubOp2();
+            return ();
+        } else {
+            SubOp2();
+            SubOp3();
+        }
+    }
+
+    operation ElseInvalid() : Unit {
+        let r = Zero;
+        if (r == Zero) {
+            SubOp1();
+            SubOp2();
+        } else {
+            SubOp2();
+            SubOp3();
+            return ();
+        }
+    }
+
+    operation BothInvalid() : Unit {
+        let r = Zero;
+        if (r == Zero) {
+            SubOp1();
+            SubOp2();
+            return ();
+        } else {
+            SubOp2();
+            SubOp3();
+            return ();
+        }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    @EntryPoint()
+    operation ClassicalControlTestMain() : Unit {
         Foo();
     }
 
@@ -85,7 +208,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
     @EntryPoint()
-    operation ClassicalControlTest4() : Unit {
+    operation ClassicalControlTestMain() : Unit {
         Foo();
     }
 
@@ -109,41 +232,41 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
     @EntryPoint()
-    operation ClassicalControlTest5() : Unit {
+    operation ClassicalControlTestMain() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit {
+        let r = One;
+
+        if (r == One) {
+            SubOp1();
+            SubOp2();
+        } else {
+            SubOp2();
+            SubOp3();
+        }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    @EntryPoint()
+    operation ClassicalControlTestMain() : Unit {
         Foo();
     }
 
     operation Foo() : Unit {
         let r = Zero;
 
-        if (r == One) {
+        if (r == Zero) {
             SubOp1();
             SubOp2();
-        } else {
-            SubOp2();
-            SubOp3();
-        }
-    }
-
-}
-
-// =================================
-
-namespace Microsoft.Quantum.Testing.ClassicalControl {
-    open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTest6() : Unit {
-        Foo();
-    }
-
-    operation Foo() : Unit {
-        let r = One;
-
-        if (r == One) {
-            SubOp1();
-            SubOp2();
-        } elif (r == Zero) {
+        } elif (r == One) {
             SubOp3();
             SubOp1();
         } else {
@@ -160,14 +283,14 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
     @EntryPoint()
-    operation ClassicalControlTest7() : Unit {
+    operation ClassicalControlTestMain() : Unit {
         Foo();
     }
 
     operation Foo() : Unit {
-        let r = One;
+        let r = Zero;
 
-        if (r == One and r == Zero) {
+        if (r == Zero and r == One) {
             SubOp1();
             SubOp2();
         } else {
@@ -184,17 +307,39 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
     @EntryPoint()
-    operation ClassicalControlTest8() : Unit {
+    operation ClassicalControlTestMain() : Unit {
         Foo();
     }
 
     operation Foo() : Unit {
-        let r = One;
+        let r = Zero;
 
-        if (r == One or r == Zero) {
+        if (r == Zero or r == One) {
             SubOp1();
             SubOp2();
         } else {
+            SubOp2();
+            SubOp3();
+        }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    @EntryPoint()
+    operation ClassicalControlTestMain() : Unit {
+        Foo();
+    }
+
+    function Foo() : Unit {
+        let r = Zero;
+
+        if (r == Zero) {
+            SubOp1();
             SubOp2();
             SubOp3();
         }
