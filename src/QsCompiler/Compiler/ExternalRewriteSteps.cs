@@ -114,7 +114,7 @@ namespace Microsoft.Quantum.QsCompiler
                     if (_SelfAsStep != null) return _SelfAsStep.GeneratedDiagnostics;
                     static bool IEnumerableInterface(Type t) => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
                     var enumerable = this.GetViaReflection(nameof(IRewriteStep.GeneratedDiagnostics)) as IEnumerable;
-                    var itemType = enumerable.GetType().GetInterfaces().FirstOrDefault(IEnumerableInterface)?.GetGenericArguments()?.FirstOrDefault();
+                    var itemType = enumerable?.GetType().GetInterfaces().FirstOrDefault(IEnumerableInterface)?.GetGenericArguments().FirstOrDefault();
                     if (itemType == null) return null;
 
                     var diagnostics = ImmutableArray.CreateBuilder<IRewriteStep.Diagnostic>();
