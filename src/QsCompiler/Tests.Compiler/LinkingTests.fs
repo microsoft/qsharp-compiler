@@ -405,6 +405,28 @@ type LinkingTests (output:ITestOutputHelper) =
         |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
 
     [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control And Contidtion`` () =
+        let (args, ifOp, elseOp) = this.ApplyIfElseTest 7
+        
+        let errorMsg = "ApplyIfElse did not have the correct arguments"
+        let (success, _, subArgs, _, _) = LinkingTests.isApplyIfElseArgsMatch args "r" { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name } elseOp
+        Assert.True(success, errorMsg)
+        LinkingTests.isApplyIfElseArgsMatch subArgs "r" ifOp elseOp
+        |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Or Contidtion`` () =
+        let (args, ifOp, elseOp) = this.ApplyIfElseTest 8
+        
+        let errorMsg = "ApplyIfElse did not have the correct arguments"
+        let (success, _, _, _, subArgs) = LinkingTests.isApplyIfElseArgsMatch args "r" ifOp { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
+        Assert.True(success, errorMsg)
+        LinkingTests.isApplyIfElseArgsMatch subArgs "r" ifOp elseOp
+        |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
+
+    [<Fact>]
     member this.``Fail on multiple entry points`` () =
 
         let entryPoints = LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs"
