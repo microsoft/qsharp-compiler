@@ -5,7 +5,7 @@ module Microsoft.Quantum.QsCompiler.Optimizations.CallableInlining
 
 open System.Collections.Generic
 open System.Collections.Immutable
-open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.ComputationExpressions
 open Microsoft.Quantum.QsCompiler.Optimizations.Tools
 open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming

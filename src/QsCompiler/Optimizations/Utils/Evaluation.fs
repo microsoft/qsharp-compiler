@@ -8,7 +8,7 @@ open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.ComputationExpressions
 open Microsoft.Quantum.QsCompiler.Optimizations.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
