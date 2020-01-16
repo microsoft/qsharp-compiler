@@ -44,13 +44,6 @@ type internal MaybeBuilder() =
         this.Using(sequence.GetEnumerator(),
             fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
 
-/// The maybe monad. Returns None if any of the lines are None.
-let internal maybe = MaybeBuilder()
-
-/// Returns Some () if x is true, and returns None otherwise.
-/// Normally used after a do! in the Maybe monad, which makes this act as an assertion.
-let internal check x = if x then Some () else None
-
 
 /// Represents the result of an imperative computation.
 /// 'a represents the internal state of the computation.

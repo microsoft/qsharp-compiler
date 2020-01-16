@@ -1,31 +1,30 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitFinding
+namespace Microsoft.Quantum.QsCompiler.Experimental
 
-open Microsoft.Quantum.QsCompiler.Optimizations.Tools
-open Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitAPI
-open Microsoft.Quantum.QsCompiler.Optimizations.Utils
+open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
+open Microsoft.Quantum.QsCompiler.Experimental.PureCircuitAPI
+open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
-/// Returns whether an expression is an operation call
-let private isOperation expr =
-    match expr.Expression with
-    | x when TypedExpression.IsPartialApplication x -> false
-    | CallLikeExpression (method, _) ->
-        match method.ResolvedType.Resolution with
-        | TypeKind.Operation _ -> true
-        | _ -> false
-    | _ -> false
-
-
 /// The SyntaxTreeTransformation used to find and optimize pure circuits
-type internal PureCircuitFinder(callables) =
+type PureCircuitFinder(callables) =
     inherit OptimizingTransformation()
+
+    /// Returns whether an expression is an operation call
+    let isOperation expr =
+        match expr.Expression with
+        | x when TypedExpression.IsPartialApplication x -> false
+        | CallLikeExpression (method, _) ->
+            match method.ResolvedType.Resolution with
+            | TypeKind.Operation _ -> true
+            | _ -> false
+        | _ -> false
 
     let mutable distinctQubitFinder = None
 

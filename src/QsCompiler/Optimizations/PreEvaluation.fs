@@ -1,20 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.Optimizations
+namespace Microsoft.Quantum.QsCompiler.Experimental
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.Experimental
+open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
-open Microsoft.Quantum.QsCompiler.Optimizations.Tools
-open Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming
-open Microsoft.Quantum.QsCompiler.Optimizations.VariableRemoving
-open Microsoft.Quantum.QsCompiler.Optimizations.StatementRemoving
-open Microsoft.Quantum.QsCompiler.Optimizations.ConstantPropagation
-open Microsoft.Quantum.QsCompiler.Optimizations.LoopUnrolling
-open Microsoft.Quantum.QsCompiler.Optimizations.CallableInlining
-open Microsoft.Quantum.QsCompiler.Optimizations.StatementReordering
-open Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitFinding
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
@@ -34,7 +27,7 @@ type PreEvaluation =
         let rec evaluate (tree : _ list) = 
             let mutable tree = tree
             tree <- List.map (StripAllKnownSymbols().Transform) tree
-            tree <- List.map (VariableRenamer().Transform) tree
+            tree <- List.map (VariableRenaming().Transform) tree
 
             let callables = GlobalCallableResolutions tree // needs to be constructed in every iteration
             let optimizers = script callables
@@ -46,14 +39,14 @@ type PreEvaluation =
         QsCompilation.New (namespaces.ToImmutableArray(), arg.EntryPoints)
 
     /// Default sequence of optimizing transformations
-    static member private DefaultScript removeFunctions maxSize callables : OptimizingTransformation list =
+    static member DefaultScript removeFunctions maxSize callables : OptimizingTransformation list =
         [
-            VariableRemover()
-            StatementRemover(removeFunctions)
-            ConstantPropagator(callables)
-            LoopUnroller(callables, maxSize)
-            CallableInliner(callables)
-            StatementReorderer()
+            VariableRemoval()
+            StatementRemoval(removeFunctions)
+            ConstantPropagation(callables)
+            LoopUnrolling(callables, maxSize)
+            CallableInlining(callables)
+            StatementGrouping()
             PureCircuitFinder(callables)
         ]
 

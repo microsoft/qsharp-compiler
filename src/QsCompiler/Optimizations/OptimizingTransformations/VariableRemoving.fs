@@ -1,18 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Optimizations.VariableRemoving
+namespace Microsoft.Quantum.QsCompiler.Experimental
 
 open System.Collections.Immutable
-open Microsoft.Quantum.QsCompiler.ComputationExpressions
-open Microsoft.Quantum.QsCompiler.Optimizations.Tools
-open Microsoft.Quantum.QsCompiler.Optimizations.Utils
+open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
+open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
 /// The SyntaxTreeTransformation used to remove useless statements
-type internal VariableRemover() =
+type VariableRemoval() =
     inherit OptimizingTransformation()
 
     let mutable referenceCounter = None
