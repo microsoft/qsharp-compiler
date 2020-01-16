@@ -195,10 +195,10 @@ type LinkingTests (output:ITestOutputHelper) =
         (writer.Scope :?> ScopeToQs).Output.Split("\r\n")
 
     static member private CheckIfLineIsCall ``namespace`` name input =
-        let call = "(" + (Regex.Escape ``namespace``) + @"\.)?" + (Regex.Escape name) 
-        let typeArgs = @"<\s*([^<]*[^<\s])\s*>" // Does not support nested type args
+        let call = sprintf @"(%s\.)?%s" <| Regex.Escape ``namespace`` <| Regex.Escape name
+        let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
         let args = @"\(\s*(.*[^\s])?\s*\)"
-        let regex = "^" + call + @"\s*(" + typeArgs + @")?\s*" + args + @";$"
+        let regex = sprintf @"^%s\s*%s\s*%s;$" call typeArgs args
 
         let regexMatch = Regex.Match(input, regex)
         if regexMatch.Success then
@@ -206,20 +206,27 @@ type LinkingTests (output:ITestOutputHelper) =
         else
             (false, "", "")
 
-    static member private isApplyIfElseArgsMatch input resultVar (opName1 : QsQualifiedName) (opName2 : QsQualifiedName) =
+    static member private MakeApplicationRegex (opName : QsQualifiedName) =
+        let call = sprintf @"(%s\.)?%s" <| Regex.Escape opName.Namespace.Value <| Regex.Escape opName.Name.Value
         let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?"  // Does not support nested type args
         let args = @"\(\s*(.*[^\s])?\s*\)"
-        let opToRegex (op : QsQualifiedName) = sprintf @"\((%s\.)?%s\s*%s,\s*%s\)"
-                                               <| Regex.Escape op.Namespace.Value
-                                               <| Regex.Escape op.Name.Value
-                                               <| typeArgs
-                                               <| args
 
-        let ApplyIfElseRegex = sprintf
-                                <| @"^%s,\s*%s,\s*%s$"
+        sprintf @"\(%s\s*%s,\s*%s\)" <| call <| typeArgs <| args
+
+    static member private isApplyIfArgMatch input resultVar (opName : QsQualifiedName) =
+        let regexMatch = Regex.Match(input, sprintf @"^%s,\s*%s$" <| Regex.Escape resultVar <| LinkingTests.MakeApplicationRegex opName)
+
+        if regexMatch.Success then
+            (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
+        else
+            (false, "", "")
+
+
+    static member private isApplyIfElseArgsMatch input resultVar (opName1 : QsQualifiedName) (opName2 : QsQualifiedName) =
+        let ApplyIfElseRegex = sprintf @"^%s,\s*%s,\s*%s$"
                                 <| Regex.Escape resultVar
-                                <| opToRegex opName1
-                                <| opToRegex opName2
+                                <| LinkingTests.MakeApplicationRegex opName1
+                                <| LinkingTests.MakeApplicationRegex opName2
 
         let regexMatch = Regex.Match(input, ApplyIfElseRegex)
         if regexMatch.Success then
@@ -462,6 +469,62 @@ type LinkingTests (output:ITestOutputHelper) =
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Hoist Self-Contained Mutable`` () =
+        let testNumber = 14
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Don't Hoist General Mutable`` () =
+        let testNumber = 15
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Generics Support`` () =
+        let testNumber = 16
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+        let callables = result.Namespaces
+                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                        |> GlobalCallableResolutions
+        let original  = callables
+                        |> Seq.find (fun x -> x.Key.Name.Value = "Foo")
+                        |> fun x -> x.Value
+        let generated = callables
+                        |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Foo")
+                        |> fun x -> x.Value
+
+        let GetTypeParams call =
+            call.Signature.TypeParameters
+            |> Seq.choose (function | ValidName str -> Some str.Value | InvalidName -> None)
+
+        let AssertTypeArgsMatch typeArgs1 typeArgs2 =
+            let errorMsg = "The type parameters for the original and generated operations do not match"
+            Assert.True(Seq.length typeArgs1 = Seq.length typeArgs2, errorMsg)
+        
+            for pair in Seq.zip typeArgs1 typeArgs2 do
+                Assert.True(fst pair = snd pair, errorMsg)
+
+        (*Assert that the generated operation has the same type parameters as the original operation*)
+        let originalTypeParams = GetTypeParams original
+        let generatedTypeParams = GetTypeParams generated
+        AssertTypeArgsMatch originalTypeParams generatedTypeParams
+
+        (*Assert that the original operation calls the generated operation with the appropriate type arguments*)
+        let lines = LinkingTests.GetLinesFromCallable original
+        let (success, _, args) = LinkingTests.CheckIfLineIsCall BuiltIn.ApplyIfZero.Namespace.Value BuiltIn.ApplyIfZero.Name.Value lines.[1]                          
+        Assert.True(success, sprintf "Callable %O did not have expected content" original.FullName)
+
+        let (success, typeArgs, _) = LinkingTests.isApplyIfArgMatch args "r" generated.FullName
+        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+
+        AssertTypeArgsMatch originalTypeParams <| typeArgs.Replace("'", "").Replace(" ", "").Split(",")
 
     [<Fact>]
     member this.``Fail on multiple entry points`` () =

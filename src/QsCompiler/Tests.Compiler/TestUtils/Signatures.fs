@@ -265,5 +265,19 @@ let public ClassicalControlSignatures =
             ClassicalControlNs, "Foo", [||], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
         |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
+            ClassicalControlNs, "Foo", [||], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
+            ClassicalControlNs, "Foo", [||], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
+            ClassicalControlNs, "Foo", [||], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+        |]);
     |]
     |> _MakeSignatures

@@ -346,3 +346,66 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     }
 
 }
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    @EntryPoint()
+    operation ClassicalControlTestMain() : Unit {
+        Foo();
+    }
+
+    function Foo() : Unit {
+        let r = Zero;
+
+        if (r == Zero) {
+            mutable temp = 3;
+            set temp = 4;
+        }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    @EntryPoint()
+    operation ClassicalControlTestMain() : Unit {
+        Foo();
+    }
+
+    function Foo() : Unit {
+        let r = Zero;
+
+        mutable temp = 3;
+        if (r == Zero) {
+            set temp = 4;
+        }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    @EntryPoint()
+    operation ClassicalControlTestMain() : Unit {
+        Foo<Int, Double, String>();
+    }
+
+    operation Foo<'A, 'B, 'C>() : Unit {
+        let r = Zero;
+
+        if (r == Zero) {
+            SubOp1();
+            SubOp2();
+        }
+    }
+
+}
