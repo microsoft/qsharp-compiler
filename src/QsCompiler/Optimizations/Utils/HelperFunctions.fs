@@ -113,7 +113,7 @@ let rec internal optionListToListOption = function
 
 /// Returns the given list without the elements at the given indices
 let rec internal removeIndices idx l =
-    List.indexed l |> List.filter (fun (i, _) -> not (List.contains i idx)) |> List.map snd
+    Seq.indexed l |> Seq.filter (fun (i, _) -> not (Seq.contains i idx)) |> Seq.map snd
 
 
 /// Converts a QsTuple to a SymbolTuple

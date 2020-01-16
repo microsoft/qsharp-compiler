@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.Experimental.PureCircuitAPI
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
@@ -37,27 +38,27 @@ type PureCircuitFinder(callables) =
     override __.Scope = { new ScopeTransformation() with
 
         override this.Transform scope =
-            let mutable circuit = []
-            let mutable newStatements = []
+            let mutable circuit = ImmutableArray.Empty
+            let mutable newStatements = ImmutableArray.Empty
 
             let finishCircuit () =
-                if circuit <> [] then
+                if circuit.Length <> 0 then
                     let newCircuit = optimizeExprList callables distinctQubitFinder.Value.distinctNames circuit
                     (*if newCircuit <> circuit then
                         printfn "Removed %d gates" (circuit.Length - newCircuit.Length)
                         printfn "Old: %O" (List.map (fun x -> printExpr x.Expression) circuit)
                         printfn "New: %O" (List.map (fun x -> printExpr x.Expression) newCircuit)
                         printfn ""*)
-                    newStatements <- newStatements @ List.map (QsExpressionStatement >> wrapStmt) newCircuit
-                    circuit <- []
+                    newStatements <- newStatements.AddRange (Seq.map (QsExpressionStatement >> wrapStmt) newCircuit)
+                    circuit <- ImmutableArray.Empty
 
             for stmt in scope.Statements do
                 match stmt.Statement with
                 | QsExpressionStatement expr when isOperation expr ->
-                    circuit <- circuit @ [expr]
+                    circuit <- circuit.Add expr
                 | _ ->
                     finishCircuit()
-                    newStatements <- newStatements @ [this.onStatement stmt]
+                    newStatements <- newStatements.Add (this.onStatement stmt)
             finishCircuit()
 
             QsScope.New (newStatements, scope.KnownSymbols)
