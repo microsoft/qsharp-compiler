@@ -192,6 +192,13 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | IntLiteral a, IntLiteral b -> BoolLiteral (intOp a b)
         | _ -> qop (lhs, rhs)
 
+    member private this.arithNumBinaryOp qop bigIntOp doubleOp intOp lhs rhs =
+        match lhs.Expression, rhs.Expression with
+        | BigIntLiteral a, BigIntLiteral b -> BigIntLiteral (bigIntOp a b)
+        | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (doubleOp a b)
+        | IntLiteral a, IntLiteral b -> IntLiteral (intOp a b)
+        | _ -> qop (lhs, rhs)
+
     member private this.intBinaryOp qop bigIntOp intOp lhs rhs =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
@@ -330,9 +337,6 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
     override this.onAddition (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
-        | BigIntLiteral a, BigIntLiteral b -> BigIntLiteral (a + b)
-        | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (a + b)
-        | IntLiteral a, IntLiteral b -> IntLiteral (a + b)
         | ValueArray a, ValueArray b -> ValueArray (a.AddRange b)
         | StringLiteral (a, a2), StringLiteral (b, b2) when a2.Length = 0 || b2.Length = 0 ->
             StringLiteral (NonNullable<_>.New (a.Value + b.Value), a2.AddRange b2)
@@ -353,8 +357,8 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
             | Int ->
                 let factor = TypedExpression.New (IntLiteral 2L, ImmutableDictionary.Empty, (ResolvedType.New Int), InferredExpressionInformation.New (false, false), Null)
                 MUL (factor, lhs)
-            | _ -> ADD (lhs, rhs)
-        | _ -> ADD (lhs, rhs)
+            | _ -> this.arithNumBinaryOp ADD (+) (+) (+) lhs rhs
+        | _ -> this.arithNumBinaryOp ADD (+) (+) (+) lhs rhs
 
     // - simplifies subtraction of two constants into single constant
     // - rewrites (integers, big integers, and doubles)
@@ -364,9 +368,6 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
     override this.onSubtraction (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
-        | BigIntLiteral a, BigIntLiteral b -> BigIntLiteral (a - b)
-        | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (a - b)
-        | IntLiteral a, IntLiteral b -> IntLiteral (a - b)
         | op, BigIntLiteral zero when zero.IsZero -> op
         | op, DoubleLiteral 0.0
         | op, IntLiteral 0L -> op
@@ -378,8 +379,8 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
             | BigInt -> BigIntLiteral BigInteger.Zero
             | Double -> DoubleLiteral 0.0
             | Int -> IntLiteral 0L
-            | _ -> SUB (lhs, rhs)
-        | _ -> SUB (lhs, rhs)
+            | _ -> this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
+        | _ -> this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
 
     // - simplifies multiplication of two constants into single constant
     // - rewrites (integers, big integers, and doubles)
@@ -402,10 +403,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | (DoubleLiteral 1.0), op
         | op, (IntLiteral 1L)
         | (IntLiteral 1L), op -> op
-        | (BigIntLiteral a), (BigIntLiteral b) -> BigIntLiteral (a * b)
-        | (DoubleLiteral a), (DoubleLiteral b) -> DoubleLiteral (a * b)
-        | (IntLiteral a), (IntLiteral b) -> IntLiteral (a * b)
-        | _ -> MUL (lhs, rhs)
+        | _ -> this.arithNumBinaryOp MUL (*) (*) (*) lhs rhs
 
     // - simplifies multiplication of two constants into single constant
     override this.onDivision (lhs, rhs) =
@@ -414,10 +412,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | op, (BigIntLiteral one) when one.IsOne -> op
         | op, (DoubleLiteral 1.0)
         | op, (IntLiteral 1L) -> op
-        | (BigIntLiteral a), (BigIntLiteral b) -> BigIntLiteral (a / b)
-        | (DoubleLiteral a), (DoubleLiteral b) -> DoubleLiteral (a / b)
-        | (IntLiteral a), (IntLiteral b) -> IntLiteral (a / b)
-        | _ -> DIV (lhs, rhs)
+        | _ -> this.arithNumBinaryOp DIV (/) (/) (/) lhs rhs
 
     override this.onExponentiate (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
