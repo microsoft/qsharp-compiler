@@ -597,8 +597,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 //bool addControlledAdjoint = false;
                 if (_InBody)
                 {
-                    addAdjoint = adj != null && adj.Implementation.IsGenerated;
-                    addControlled = ctl != null && ctl.Implementation.IsGenerated;
+                    if (adj != null && adj.Implementation is SpecializationImplementation.Generated adjGen) addAdjoint = adjGen.Item.IsInvert;
+                    if (ctl != null && ctl.Implementation is SpecializationImplementation.Generated ctlGen) addControlled = ctlGen.Item.IsDistribute;
                     //addControlledAdjoint = ctlAdj != null && ctlAdj.Implementation.IsGenerated;
                 }
                 else if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated gen)

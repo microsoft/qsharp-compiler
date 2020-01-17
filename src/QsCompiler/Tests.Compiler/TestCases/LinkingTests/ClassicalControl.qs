@@ -3,9 +3,9 @@
 
 
 namespace SubOps {
-    operation SubOp1() : Unit { }
-    operation SubOp2() : Unit { }
-    operation SubOp3() : Unit { }
+    operation SubOp1() : Unit is Adj + Ctl { }
+    operation SubOp2() : Unit is Adj + Ctl { }
+    operation SubOp3() : Unit is Adj + Ctl { }
 }
 
 // =================================
@@ -406,6 +406,59 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             SubOp1();
             SubOp2();
         }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Provided() : Unit is Adj {
+        body (...) {
+            let r = Zero;
+
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        adjoint (...) {
+            let w = One;
+
+            if (w == One) {
+                SubOp2();
+                SubOp3();
+            }
+        }
+    }
+
+    operation Self() : Unit is Adj {
+        body (...) {
+            let r = Zero;
+
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        adjoint self;
+    }
+
+    operation Invert() : Unit is Adj {
+        body (...) {
+            let r = Zero;
+
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        adjoint invert;
     }
 
 }

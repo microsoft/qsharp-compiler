@@ -20,6 +20,7 @@ open Xunit
 open Xunit.Abstractions
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open System.Text.RegularExpressions
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
 
 type LinkingTests (output:ITestOutputHelper) =
@@ -182,11 +183,10 @@ type LinkingTests (output:ITestOutputHelper) =
         Assert.Throws<Exception> (fun _ -> this.RunIntrinsicResolutionTest 6) |> ignore
 
 
-    static member private GetLinesFromCallable callable =
+    static member private GetLinesFromSpecialization specialization =
         let writer = new SyntaxTreeToQs()
 
-        callable.Specializations
-        |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
+        specialization
         |> fun x -> match x.Implementation with | Provided (_, body) -> Some body | _ -> None
         |> Option.get
         |> writer.Scope.Transform
@@ -234,12 +234,31 @@ type LinkingTests (output:ITestOutputHelper) =
         else
             (false, "", "", "", "")
 
-    static member private CheckIfCallHasContent call (content : seq<int * string * string>) =
-        let lines = LinkingTests.GetLinesFromCallable call
+    static member private CheckIfSpecializationHasContent specialization (content : seq<int * string * string>) =
+        let lines = LinkingTests.GetLinesFromSpecialization specialization
         Seq.forall (fun (i, ns, name) -> LinkingTests.CheckIfLineIsCall ns name lines.[i] |> (fun (x,_,_) -> x)) content
 
-    static member private AssertCallHasContent call content =
-        Assert.True(LinkingTests.CheckIfCallHasContent call content, sprintf "Callable %O did not have expected content" call.FullName)
+    static member private AssertSpecializationHasContent specialization content =
+        Assert.True(LinkingTests.CheckIfSpecializationHasContent specialization content, sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind)
+
+    static member private GetCallablesWithSuffix compilation ns (suffix : string) =
+        compilation.Namespaces
+        |> Seq.filter (fun x -> x.Name.Value = ns)
+        |> GlobalCallableResolutions
+        |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith suffix)
+        |> Seq.map (fun x -> x.Value)
+
+    static member private GetCallableWithName compilation ns name =
+        compilation.Namespaces
+        |> Seq.filter (fun x -> x.Name.Value = ns)
+        |> GlobalCallableResolutions
+        |> Seq.find (fun x -> x.Key.Name.Value = name)
+        |> (fun x -> x.Value)
+
+    static member private GetBodyFromCallable call = call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
+    static member private GetAdjFromCallable call = call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsAdjoint)
+    static member private GetCtlFromCallable call = call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlled)
+    static member private GetCtlAdjFromCallable call = call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlledAdjoint)
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
@@ -248,17 +267,15 @@ type LinkingTests (output:ITestOutputHelper) =
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
-        let generated = result.Namespaces
-                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
-                        |> GlobalCallableResolutions
-                        |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Foo")
+        let generated = LinkingTests.GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x |> LinkingTests.GetBodyFromCallable)
 
         [
             (0, "SubOps", "SubOp1");
             (1, "SubOps", "SubOp2");
             (2, "SubOps", "SubOp3");
         ]
-        |> LinkingTests.AssertCallHasContent generated.Value
+        |> LinkingTests.AssertSpecializationHasContent generated
 
     [<Fact>]
     [<Trait("Category","Classical Control")>]
@@ -304,10 +321,7 @@ type LinkingTests (output:ITestOutputHelper) =
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
-        let originalOp = result.Namespaces
-                         |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
-                         |> GlobalCallableResolutions
-                         |> Seq.find (fun x -> x.Key.Name.Value = "Foo")
+        let originalOp = LinkingTests.GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> LinkingTests.GetBodyFromCallable
 
         let getNameFromBuiltin (builtIn : BuiltIn) = builtIn.Namespace.Value, builtIn.Name.Value
         
@@ -316,17 +330,14 @@ type LinkingTests (output:ITestOutputHelper) =
             (3, getNameFromBuiltin BuiltIn.ApplyIfOne);
         ]
         |> Seq.map (fun (i,(ns,name)) -> (i,ns,name))
-        |> LinkingTests.AssertCallHasContent originalOp.Value
+        |> LinkingTests.AssertSpecializationHasContent originalOp
 
 
     member private this.ApplyIfElseTest testNumber =
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
-        let generated = result.Namespaces
-                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
-                        |> GlobalCallableResolutions
-                        |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_Foo")
+        let generated = LinkingTests.GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo" |> Seq.map LinkingTests.GetBodyFromCallable
 
         Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
 
@@ -343,29 +354,25 @@ type LinkingTests (output:ITestOutputHelper) =
             ]
 
         let getGeneratedCallables gen1 gen2 =
-            if LinkingTests.CheckIfCallHasContent gen1 ifContent then
-                LinkingTests.AssertCallHasContent gen2 elseContent
+            if LinkingTests.CheckIfSpecializationHasContent gen1 ifContent then
+                LinkingTests.AssertSpecializationHasContent gen2 elseContent
                 (gen1, gen2)
             else
-                LinkingTests.AssertCallHasContent gen2 ifContent
-                LinkingTests.AssertCallHasContent gen1 elseContent
+                LinkingTests.AssertSpecializationHasContent gen2 ifContent
+                LinkingTests.AssertSpecializationHasContent gen1 elseContent
                 (gen2, gen1)
 
-        let ifOp, elseOp = getGeneratedCallables (Seq.item 0 generated).Value (Seq.item 1 generated).Value
+        let ifOp, elseOp = getGeneratedCallables (Seq.item 0 generated) (Seq.item 1 generated)
 
-        let lines = result.Namespaces
-                    |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
-                    |> GlobalCallableResolutions
-                    |> Seq.find (fun x -> x.Key.Name.Value = "Foo")
-                    |> fun x -> x.Value
-                    |> LinkingTests.GetLinesFromCallable
+        let original = LinkingTests.GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> LinkingTests.GetBodyFromCallable
+        let lines = original |> LinkingTests.GetLinesFromSpecialization
 
-        Assert.True(2 = Seq.length lines, sprintf "Callable %s.%s did not have the expected number of statements" Signatures.ClassicalControlNs "Foo")
+        Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
         let (success, _, args) = LinkingTests.CheckIfLineIsCall BuiltIn.ApplyIfElseR.Namespace.Value BuiltIn.ApplyIfElseR.Name.Value lines.[1]                          
-        Assert.True(success, sprintf "Callable %s.%s did not have expected content" Signatures.ClassicalControlNs "Foo")
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
-        args, ifOp.FullName, elseOp.FullName
+        args, ifOp.Parent, elseOp.Parent
 
 
     [<Fact>]
@@ -390,11 +397,7 @@ type LinkingTests (output:ITestOutputHelper) =
         let result = this.CompileClassicalControlTest testNumber
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
 
-        let generated = result.Namespaces
-                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
-                        |> GlobalCallableResolutions
-                        |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_Foo")
-                        |> Seq.map (fun x -> x.Value)
+        let generated = LinkingTests.GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo" |> Seq.map LinkingTests.GetBodyFromCallable
 
         Assert.True(3 = Seq.length generated) // Should already be asserted by the signature check
 
@@ -403,7 +406,7 @@ type LinkingTests (output:ITestOutputHelper) =
                 (0, "SubOps", "SubOp1");
                 (1, "SubOps", "SubOp2");
             ]
-        let ifOp = Seq.tryFind (fun callable -> LinkingTests.CheckIfCallHasContent callable ifContent) generated
+        let ifOp = Seq.tryFind (fun spec -> LinkingTests.CheckIfSpecializationHasContent spec ifContent) generated
                    |> (fun callOpion -> Assert.True(callOpion <> None, "Could not find the generated operation for the if block"); callOpion.Value)
 
         let elifContent =
@@ -411,7 +414,7 @@ type LinkingTests (output:ITestOutputHelper) =
                 (0, "SubOps", "SubOp3");
                 (1, "SubOps", "SubOp1");
             ]
-        let elifOp = Seq.tryFind (fun callable -> LinkingTests.CheckIfCallHasContent callable elifContent) generated
+        let elifOp = Seq.tryFind (fun spec -> LinkingTests.CheckIfSpecializationHasContent spec elifContent) generated
                      |> (fun callOpion -> Assert.True(callOpion <> None, "Could not find the generated operation for the elif block"); callOpion.Value)
 
         let elseContent =
@@ -419,25 +422,21 @@ type LinkingTests (output:ITestOutputHelper) =
                 (0, "SubOps", "SubOp2");
                 (1, "SubOps", "SubOp3");
             ]
-        let elseOp = Seq.tryFind (fun callable -> LinkingTests.CheckIfCallHasContent callable elseContent) generated
+        let elseOp = Seq.tryFind (fun spec -> LinkingTests.CheckIfSpecializationHasContent spec elseContent) generated
                      |> (fun callOpion -> Assert.True(callOpion <> None, "Could not find the generated operation for the else block"); callOpion.Value)
 
-        let lines = result.Namespaces
-                    |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
-                    |> GlobalCallableResolutions
-                    |> Seq.find (fun x -> x.Key.Name.Value = "Foo")
-                    |> fun x -> x.Value
-                    |> LinkingTests.GetLinesFromCallable
+        let original = LinkingTests.GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> LinkingTests.GetBodyFromCallable
+        let lines = original |> LinkingTests.GetLinesFromSpecialization
 
-        Assert.True(2 = Seq.length lines, sprintf "Callable %s.%s did not have the expected number of statements" Signatures.ClassicalControlNs "Foo")
+        Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
         let (success, _, args) = LinkingTests.CheckIfLineIsCall BuiltIn.ApplyIfElseR.Namespace.Value BuiltIn.ApplyIfElseR.Name.Value lines.[1]                          
-        Assert.True(success, sprintf "Callable %s.%s did not have expected content" Signatures.ClassicalControlNs "Foo")
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
          
         let errorMsg = "ApplyIfElse did not have the correct arguments"
-        let (success, _, _, _, subArgs) = LinkingTests.isApplyIfElseArgsMatch args "r" ifOp.FullName { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
+        let (success, _, _, _, subArgs) = LinkingTests.isApplyIfElseArgsMatch args "r" ifOp.Parent { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
         Assert.True(success, errorMsg)
-        LinkingTests.isApplyIfElseArgsMatch subArgs "r" elifOp.FullName elseOp.FullName
+        LinkingTests.isApplyIfElseArgsMatch subArgs "r" elifOp.Parent elseOp.Parent
         |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
 
     [<Fact>]
@@ -517,14 +516,127 @@ type LinkingTests (output:ITestOutputHelper) =
         AssertTypeArgsMatch originalTypeParams generatedTypeParams
 
         (*Assert that the original operation calls the generated operation with the appropriate type arguments*)
-        let lines = LinkingTests.GetLinesFromCallable original
+        let lines = LinkingTests.GetBodyFromCallable original |> LinkingTests.GetLinesFromSpecialization
         let (success, _, args) = LinkingTests.CheckIfLineIsCall BuiltIn.ApplyIfZero.Namespace.Value BuiltIn.ApplyIfZero.Name.Value lines.[1]                          
-        Assert.True(success, sprintf "Callable %O did not have expected content" original.FullName)
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.FullName QsSpecializationKind.QsBody)
 
         let (success, typeArgs, _) = LinkingTests.isApplyIfArgMatch args "r" generated.FullName
         Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
 
         AssertTypeArgsMatch originalTypeParams <| typeArgs.Replace("'", "").Replace(" ", "").Split(",")
+
+    static member private DoesCallSupportsFunctors expectedFunctors call =
+        let hasAdjoint = expectedFunctors |> Seq.contains QsFunctor.Adjoint
+        let hasControlled = expectedFunctors |> Seq.contains QsFunctor.Controlled
+        
+        (*Checks the Characteristics match*)
+        let charMatch = lazy match call.Signature.Information.Characteristics.SupportedFunctors with
+                             | Value x -> x.SetEquals(expectedFunctors)
+                             | Null -> 0 = Seq.length expectedFunctors
+        
+        (*Checks that the target specializations are present*)
+        let adjMatch = lazy if hasAdjoint then
+                                call.Specializations
+                                |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsAdjoint)
+                                |> function
+                                   | None -> false
+                                   | Some x -> match x.Implementation with
+                                               | SpecializationImplementation.Generated gen -> gen = QsGeneratorDirective.Invert
+                                               | _ -> false
+                            else true
+            
+        let ctlMatch = lazy if hasControlled then
+                                call.Specializations
+                                |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsControlled)
+                                |> function
+                                   | None -> false
+                                   | Some x -> match x.Implementation with
+                                               | SpecializationImplementation.Generated gen -> gen = QsGeneratorDirective.Distribute
+                                               | _ -> false
+                            else true
+        
+        charMatch.Value && adjMatch.Value && ctlMatch.Value
+
+    static member private AssertCallSupportsFunctors expectedFunctors call =
+        Assert.True(LinkingTests.DoesCallSupportsFunctors expectedFunctors call, sprintf "Callable %O did not support the expected functors" call.FullName)
+
+    [<Fact>]
+    [<Trait("Category","Classical Control")>]
+    member this.``Classical Control Adjoint Support`` () =
+        let testNumber = 17
+        let result = this.CompileClassicalControlTest testNumber
+        Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] result
+
+        let callables = result.Namespaces
+                        |> Seq.filter (fun x -> x.Name.Value = Signatures.ClassicalControlNs)
+                        |> GlobalCallableResolutions
+
+        let selfOp = callables
+                     |> Seq.find (fun x -> x.Key.Name.Value = "Self")
+                     |> fun x -> x.Value
+        let invertOp = callables
+                       |> Seq.find (fun x -> x.Key.Name.Value = "Invert")
+                       |> fun x -> x.Value
+        let providedOp = callables
+                       |> Seq.find (fun x -> x.Key.Name.Value = "Provided")
+                       |> fun x -> x.Value
+
+        let getNameFromBuiltin (builtIn : BuiltIn) = builtIn.Namespace.Value, builtIn.Name.Value
+        
+        [(1, getNameFromBuiltin BuiltIn.ApplyIfZero)]
+        |> Seq.map (fun (i,(ns,name)) -> (i,ns,name))
+        |> LinkingTests.AssertSpecializationHasContent (LinkingTests.GetBodyFromCallable selfOp)
+
+        [(1, getNameFromBuiltin BuiltIn.ApplyIfZeroA)]
+        |> Seq.map (fun (i,(ns,name)) -> (i,ns,name))
+        |> LinkingTests.AssertSpecializationHasContent (LinkingTests.GetBodyFromCallable invertOp)
+
+        [(1, getNameFromBuiltin BuiltIn.ApplyIfZero)]
+        |> Seq.map (fun (i,(ns,name)) -> (i,ns,name))
+        |> LinkingTests.AssertSpecializationHasContent (LinkingTests.GetBodyFromCallable selfOp)
+
+        let _selfOp = callables
+                      |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Self")
+                      |> fun x -> x.Value
+        let _invertOp = callables
+                        |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Invert")
+                        |> fun x -> x.Value
+        let _providedOps = callables
+                           |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_Provided")
+                           |> Seq.map (fun x -> x.Value)
+
+        Assert.True(2 = Seq.length _providedOps) // Should already be asserted by the signature check
+
+        let bodyContent =
+            [
+                (0, "SubOps", "SubOp1");
+                (1, "SubOps", "SubOp2");
+            ]
+
+        let adjointContent =
+            [
+                (0, "SubOps", "SubOp2");
+                (1, "SubOps", "SubOp3");
+            ]
+
+        let getGeneratedCallables gen1 gen2 =
+            let spec1 = LinkingTests.GetBodyFromCallable gen1
+            let spec2 = LinkingTests.GetBodyFromCallable gen2
+            if LinkingTests.CheckIfSpecializationHasContent spec1 bodyContent then
+                LinkingTests.AssertSpecializationHasContent spec2 adjointContent
+                (gen1, gen2)
+            else
+                LinkingTests.AssertSpecializationHasContent spec2 bodyContent
+                LinkingTests.AssertSpecializationHasContent spec1 adjointContent
+                (gen2, gen1)
+
+        let bodyProvidedOp, adjointProvidedOp = getGeneratedCallables (Seq.item 0 _providedOps) (Seq.item 1 _providedOps)
+
+        LinkingTests.AssertCallSupportsFunctors [] _selfOp
+        LinkingTests.AssertCallSupportsFunctors [QsFunctor.Adjoint] _invertOp
+        LinkingTests.AssertCallSupportsFunctors [] bodyProvidedOp
+        LinkingTests.AssertCallSupportsFunctors [] adjointProvidedOp
+
 
     [<Fact>]
     member this.``Fail on multiple entry points`` () =
