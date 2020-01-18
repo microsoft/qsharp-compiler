@@ -462,3 +462,399 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     }
 
 }
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Provided() : Unit is Ctl {
+        body (...) {
+            let r = Zero;
+
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        controlled (ctl, ...) {
+            let w = One;
+
+            if (w == One) {
+                SubOp2();
+                SubOp3();
+            }
+        }
+    }
+
+    operation Distribute() : Unit is Ctl {
+        body (...) {
+            let r = Zero;
+
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        controlled distribute;
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation ProvidedBody() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        controlled adjoint (ctl, ...) {
+            let y = One;
+    
+            if (y == One) {
+                SubOp2();
+                SubOp3();
+            }
+        }
+    }
+
+    operation ProvidedAdjoint() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        adjoint (...) {
+            let w = One;
+
+            if (w == One) {
+                SubOp3();
+                SubOp1();
+            }
+        }
+
+        controlled adjoint (ctl, ...) {
+            let y = One;
+    
+            if (y == One) {
+                SubOp2();
+                SubOp3();
+            }
+        }
+    }
+
+    operation ProvidedControlled() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        controlled (ctl, ...) {
+            let w = One;
+
+            if (w == One) {
+                SubOp3();
+                SubOp1();
+            }
+        }
+
+        controlled adjoint (ctl, ...) {
+            let y = One;
+    
+            if (y == One) {
+                SubOp2();
+                SubOp3();
+            }
+        }
+    }
+
+    operation ProvidedAll() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        controlled (ctl, ...) {
+            let w = One;
+
+            if (w == One) {
+                SubOp3();
+                SubOp1();
+            }
+        }
+
+        adjoint (...) {
+            let y = One;
+    
+            if (y == One) {
+                SubOp2();
+                SubOp3();
+            }
+        }
+
+        controlled adjoint (ctl, ...) {
+            let b = One;
+
+            if (b == One) {
+                let temp1 = 0;
+                let temp2 = 0;
+                SubOp3();
+            }
+        }
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation DistributeBody() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        controlled adjoint distribute;
+    }
+
+    operation DistributeAdjoint() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        adjoint (...) {
+            let w = One;
+
+            if (w == One) {
+                SubOp3();
+                SubOp1();
+            }
+        }
+
+        controlled adjoint distribute;
+    }
+
+    operation DistributeControlled() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        controlled (ctl, ...) {
+            let w = One;
+
+            if (w == One) {
+                SubOp3();
+                SubOp1();
+            }
+        }
+
+        controlled adjoint distribute;
+    }
+
+    operation DistributeAll() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+
+        controlled (ctl, ...) {
+            let w = One;
+
+            if (w == One) {
+                SubOp3();
+                SubOp1();
+            }
+        }
+
+        adjoint (...) {
+            let y = One;
+    
+            if (y == One) {
+                SubOp2();
+                SubOp3();
+            }
+        }
+
+        controlled adjoint distribute;
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation InvertBody() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+    
+        controlled adjoint invert;
+    }
+    
+    operation InvertAdjoint() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+    
+        adjoint (...) {
+            let w = One;
+    
+            if (w == One) {
+                SubOp3();
+                SubOp1();
+            }
+        }
+    
+        controlled adjoint invert;
+    }
+    
+    operation InvertControlled() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+    
+        controlled (ctl, ...) {
+            let w = One;
+    
+            if (w == One) {
+                SubOp3();
+                SubOp1();
+            }
+        }
+    
+        controlled adjoint invert;
+    }
+    
+    operation InvertAll() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+    
+        controlled (ctl, ...) {
+            let w = One;
+    
+            if (w == One) {
+                SubOp3();
+                SubOp1();
+            }
+        }
+    
+        adjoint (...) {
+            let y = One;
+    
+            if (y == One) {
+                SubOp2();
+                SubOp3();
+            }
+        }
+    
+        controlled adjoint invert;
+    }
+
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation SelfBody() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+    
+        controlled adjoint self;
+    }
+    
+    operation SelfControlled() : Unit is Ctl + Adj {
+        body (...) {
+            let r = Zero;
+    
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        }
+    
+        controlled (ctl, ...) {
+            let w = One;
+    
+            if (w == One) {
+                SubOp3();
+                SubOp1();
+            }
+        }
+    
+        controlled adjoint self;
+    }
+
+}

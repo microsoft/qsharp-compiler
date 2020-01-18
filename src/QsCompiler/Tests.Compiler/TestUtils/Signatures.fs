@@ -288,5 +288,79 @@ let public ClassicalControlSignatures =
             ClassicalControlNs, "_Self", [|"Result"|], "Unit";
             ClassicalControlNs, "_Invert", [|"Result"|], "Unit";
         |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "Provided", [||], "Unit";
+            ClassicalControlNs, "Distribute", [||], "Unit";
+            ClassicalControlNs, "_Provided", [|"Result"|], "Unit";
+            ClassicalControlNs, "_Provided", [|"Result";"Qubit[]";"Unit"|], "Unit";
+            ClassicalControlNs, "_Distribute", [|"Result"|], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "ProvidedBody", [||], "Unit";
+            ClassicalControlNs, "ProvidedAdjoint", [||], "Unit";
+            ClassicalControlNs, "ProvidedControlled", [||], "Unit";
+            ClassicalControlNs, "ProvidedAll", [||], "Unit";
+
+            ClassicalControlNs, "_ProvidedBody", [|"Result"|], "Unit";
+            ClassicalControlNs, "_ProvidedBody", [|"Result";"Qubit[]";"Unit"|], "Unit";
+
+            ClassicalControlNs, "_ProvidedAdjoint", [|"Result"|], "Unit";
+            ClassicalControlNs, "_ProvidedAdjoint", [|"Result"|], "Unit";
+            ClassicalControlNs, "_ProvidedAdjoint", [|"Result";"Qubit[]";"Unit"|], "Unit";
+
+            ClassicalControlNs, "_ProvidedControlled", [|"Result"|], "Unit";
+            ClassicalControlNs, "_ProvidedControlled", [|"Result";"Qubit[]";"Unit"|], "Unit";
+            ClassicalControlNs, "_ProvidedControlled", [|"Result";"Qubit[]";"Unit"|], "Unit";
+
+            ClassicalControlNs, "_ProvidedAll", [|"Result"|], "Unit";
+            ClassicalControlNs, "_ProvidedAll", [|"Result"|], "Unit";
+            ClassicalControlNs, "_ProvidedAll", [|"Result";"Qubit[]";"Unit"|], "Unit";
+            ClassicalControlNs, "_ProvidedAll", [|"Result";"Qubit[]";"Unit"|], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "DistributeBody", [||], "Unit";
+            ClassicalControlNs, "DistributeAdjoint", [||], "Unit";
+            ClassicalControlNs, "DistributeControlled", [||], "Unit";
+            ClassicalControlNs, "DistributeAll", [||], "Unit";
+
+            ClassicalControlNs, "_DistributeBody", [|"Result"|], "Unit";
+
+            ClassicalControlNs, "_DistributeAdjoint", [|"Result"|], "Unit";
+            ClassicalControlNs, "_DistributeAdjoint", [|"Result"|], "Unit";
+
+            ClassicalControlNs, "_DistributeControlled", [|"Result"|], "Unit";
+            ClassicalControlNs, "_DistributeControlled", [|"Result";"Qubit[]";"Unit"|], "Unit";
+
+            ClassicalControlNs, "_DistributeAll", [|"Result"|], "Unit";
+            ClassicalControlNs, "_DistributeAll", [|"Result"|], "Unit";
+            ClassicalControlNs, "_DistributeAll", [|"Result";"Qubit[]";"Unit"|], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "InvertBody", [||], "Unit";
+            ClassicalControlNs, "InvertAdjoint", [||], "Unit";
+            ClassicalControlNs, "InvertControlled", [||], "Unit";
+            ClassicalControlNs, "InvertAll", [||], "Unit";
+
+            ClassicalControlNs, "_InvertBody", [|"Result"|], "Unit";
+
+            ClassicalControlNs, "_InvertAdjoint", [|"Result"|], "Unit";
+            ClassicalControlNs, "_InvertAdjoint", [|"Result"|], "Unit";
+
+            ClassicalControlNs, "_InvertControlled", [|"Result"|], "Unit";
+            ClassicalControlNs, "_InvertControlled", [|"Result";"Qubit[]";"Unit"|], "Unit";
+
+            ClassicalControlNs, "_InvertAll", [|"Result"|], "Unit";
+            ClassicalControlNs, "_InvertAll", [|"Result"|], "Unit";
+            ClassicalControlNs, "_InvertAll", [|"Result";"Qubit[]";"Unit"|], "Unit";
+        |]);
+        (_DefaultTypes, [|
+            ClassicalControlNs, "SelfBody", [||], "Unit";
+            ClassicalControlNs, "SelfControlled", [||], "Unit";
+
+            ClassicalControlNs, "_SelfBody", [|"Result"|], "Unit";
+
+            ClassicalControlNs, "_SelfControlled", [|"Result"|], "Unit";
+            ClassicalControlNs, "_SelfControlled", [|"Result";"Qubit[]";"Unit"|], "Unit";
+        |]);
     |]
     |> _MakeSignatures
