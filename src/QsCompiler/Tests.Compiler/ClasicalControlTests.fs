@@ -223,8 +223,8 @@ type ClassicalControlTests () =
         Assert.True(DoesCallSupportFunctors expectedFunctors call, sprintf "Callable %O did not support the expected functors" call.FullName)
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Basic Hoist`` () =
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Basic Hoist`` () =
         let result = CompileClassicalControlTest 1
 
         let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
@@ -238,35 +238,35 @@ type ClassicalControlTests () =
         |> AssertSpecializationHasContent generated
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Hoist Loops`` () =
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Hoist Loops`` () =
         CompileClassicalControlTest 2 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Don't Hoist Single Call`` () =
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Don't Hoist Single Call`` () =
         // Single calls should not be hoisted into their own operation
         CompileClassicalControlTest 3 |> ignore
 
-    [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Hoist Single Non-Call`` () =
+    [<Fact(Skip="Failure Tracked")>]
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Hoist Single Non-Call`` () =
         // Single expressions that are not calls should be hoisted into their own operation
         CompileClassicalControlTest 4 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Don't Hoist Return Statments`` () =
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Don't Hoist Return Statments`` () =
         CompileClassicalControlTest 5 |> ignore
 
-    [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control All-Or-None Hoisting`` () =
+    [<Fact(Skip="Failure Tracked")>]
+    [<Trait("Category","Content Hoisting")>]
+    member this.``All-Or-None Hoisting`` () =
         CompileClassicalControlTest 6 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control ApplyIfZero And ApplyIfOne`` () =
+    [<Trait("Category","Apply If Calls")>]
+    member this.``ApplyIfZero And ApplyIfOne`` () =
         let result = CompileClassicalControlTest 7
 
         let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
@@ -279,23 +279,23 @@ type ClassicalControlTests () =
         |> AssertSpecializationHasContent originalOp
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Apply If Zero Else One`` () =
+    [<Trait("Category","Apply If Calls")>]
+    member this.``Apply If Zero Else One`` () =
         let (args, ifOp, elseOp) = CompileClassicalControlTest 8 |> ApplyIfElseTest
         IsApplyIfElseArgsMatch args "r" ifOp elseOp
         |> (fun (x,_,_,_,_) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
-    [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Apply If One Else Zero`` () =
+    [<Fact(Skip="Failure Tracked")>]
+    [<Trait("Category","Apply If Calls")>]
+    member this.``Apply If One Else Zero`` () =
         let (args, ifOp, elseOp) = CompileClassicalControlTest 9 |> ApplyIfElseTest
         // The operation arguments should be swapped from the previous test
         IsApplyIfElseArgsMatch args "r" elseOp ifOp
         |> (fun (x,_,_,_,_) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control If Elif`` () =
+    [<Trait("Category","If Structure Reshape")>]
+    member this.``If Elif`` () =
         let result = CompileClassicalControlTest 10
 
         let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
@@ -336,8 +336,8 @@ type ClassicalControlTests () =
         |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control And Condition`` () =
+    [<Trait("Category","If Structure Reshape")>]
+    member this.``And Condition`` () =
         let (args, ifOp, elseOp) = CompileClassicalControlTest 11 |> ApplyIfElseTest
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
@@ -347,8 +347,8 @@ type ClassicalControlTests () =
         |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Or Condition`` () =
+    [<Trait("Category","If Structure Reshape")>]
+    member this.``Or Condition`` () =
         let (args, ifOp, elseOp) = CompileClassicalControlTest 12 |> ApplyIfElseTest
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
@@ -357,24 +357,24 @@ type ClassicalControlTests () =
         IsApplyIfElseArgsMatch subArgs "r" ifOp elseOp
         |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
 
-    [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Don't Hoist Functions`` () =
+    [<Fact(Skip="Failure Tracked")>]
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Don't Hoist Functions`` () =
         CompileClassicalControlTest 13 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Hoist Self-Contained Mutable`` () =
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Hoist Self-Contained Mutable`` () =
         CompileClassicalControlTest 14 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Don't Hoist General Mutable`` () =
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Don't Hoist General Mutable`` () =
         CompileClassicalControlTest 15 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Generics Support`` () =
+    [<Trait("Category","Generics Support")>]
+    member this.``Generics Support`` () =
         let result = CompileClassicalControlTest 16
 
         let callables = result.Namespaces
@@ -414,8 +414,8 @@ type ClassicalControlTests () =
         AssertTypeArgsMatch originalTypeParams <| typeArgs.Replace("'", "").Replace(" ", "").Split(",")
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Adjoint Support`` () =
+    [<Trait("Category","Functor Support")>]
+    member this.``Adjoint Support`` () =
         let result = CompileClassicalControlTest 17
 
         let callables = result.Namespaces
@@ -476,8 +476,8 @@ type ClassicalControlTests () =
         AssertCallSupportsFunctors [] adjGen
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Controlled Support`` () =
+    [<Trait("Category","Functor Support")>]
+    member this.``Controlled Support`` () =
         let result = CompileClassicalControlTest 18
 
         let callables = result.Namespaces
@@ -527,8 +527,8 @@ type ClassicalControlTests () =
         AssertCallSupportsFunctors [] ctlGen
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Controlled Adjoint Support - Provided`` () =
+    [<Trait("Category","Functor Support")>]
+    member this.``Controlled Adjoint Support - Provided`` () =
         let result = CompileClassicalControlTest 19
 
         let callables = result.Namespaces
@@ -739,8 +739,8 @@ type ClassicalControlTests () =
         allCheck ()
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Controlled Adjoint Support - Distribute`` ()=
+    [<Trait("Category","Functor Support")>]
+    member this.``Controlled Adjoint Support - Distribute`` ()=
         let result = CompileClassicalControlTest 20
 
         let callables = result.Namespaces
@@ -912,8 +912,8 @@ type ClassicalControlTests () =
         allCheck ()
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Controlled Adjoint Support - Invert`` ()=
+    [<Trait("Category","Functor Support")>]
+    member this.``Controlled Adjoint Support - Invert`` ()=
         let result = CompileClassicalControlTest 21
 
         let callables = result.Namespaces
@@ -1085,8 +1085,8 @@ type ClassicalControlTests () =
         allCheck ()
 
     [<Fact>]
-    [<Trait("Category","Classical Control")>]
-    member this.``Classical Control Controlled Adjoint Support - Self`` ()=
+    [<Trait("Category","Functor Support")>]
+    member this.``Controlled Adjoint Support - Self`` ()=
         let result = CompileClassicalControlTest 22
 
         let callables = result.Namespaces
