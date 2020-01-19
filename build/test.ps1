@@ -7,10 +7,17 @@ $ErrorActionPreference = 'Stop'
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
 
+if ($Env:ENABLE_TESTS -eq "false") {
+    Write-Host "##vso[task.logissue type=warning;]Tests skipped due to ENABLE_TESTS variable."
+    return
+}
+
 function Test-One {
     Param(
         [string]$project
     );
+
+    Write-Host "##[info]Testing $project..."
 
     dotnet test (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
@@ -25,7 +32,6 @@ function Test-One {
     }
 }
 
-Write-Host "##[info]Testing Q# compiler..."
 Test-One '../QsCompiler.sln'
 
 
