@@ -285,7 +285,7 @@ type ClassicalControlTests () =
         IsApplyIfElseArgsMatch args "r" ifOp elseOp
         |> (fun (x,_,_,_,_) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
-    [<Fact(Skip="Failure Tracked")>]
+    [<Fact>]
     [<Trait("Category","Apply If Calls")>]
     member this.``Apply If One Else Zero`` () =
         let (args, ifOp, elseOp) = CompileClassicalControlTest 9 |> ApplyIfElseTest
