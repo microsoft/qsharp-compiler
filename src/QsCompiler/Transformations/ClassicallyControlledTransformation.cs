@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Xml.Schema;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -24,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
     {
         public static QsCompilation Apply(QsCompilation compilation)
         {
-            var filter = new SyntaxTreeTransformation<ClassicallyControlledScope>(new ClassicallyControlledScope());
+            var filter = new ClassicallyControlledSyntax();
 
             compilation = HoistTransformation.Apply(compilation);
 
@@ -59,6 +60,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             );
 
         private ClassicallyControlledTransformation() { }
+
+        private class ClassicallyControlledSyntax : SyntaxTreeTransformation<ClassicallyControlledScope>
+        {
+            public ClassicallyControlledSyntax(ClassicallyControlledScope scope = null) : base(scope ?? new ClassicallyControlledScope()) { }
+
+            public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being considered
+        }
 
         private class ClassicallyControlledScope : ScopeTransformation<NoExpressionTransformations>
         {
@@ -750,6 +758,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     return rtrn;
                 }
 
+                public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being hoisted
+
                 public override QsNamespace Transform(QsNamespace ns)
                 {
                     // Control operations list will be populated in the transform
@@ -832,6 +842,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         QsComments.Empty);
                 }
 
+                private bool IsScopeSingleCall(QsScope contents)
+                {
+                    if (contents.Statements.Length != 1) return false;
+                    
+                    return contents.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr &&
+                            expr.Item.Expression is ExpressionKind.CallLikeExpression;
+                }
+
                 public override QsStatementKind onReturnStatement(TypedExpression ex)
                 {
                     _super._IsValidScope = false;
@@ -868,7 +886,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             : condBlock.Item2.Body.KnownSymbols.Variables;
 
                             var (expr, block) = this.onPositionedBlock(condBlock.Item1, condBlock.Item2);
-                            if (_super._IsValidScope && block.Body.Statements.Length > 1) // if sub-scope is valid, hoist content
+                            if (block.Body.Statements.Length > 0 && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
                             {
                                 // Hoist the scope to its own operation
                                 var call = HoistIfContents(block.Body);
@@ -889,7 +907,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             : stm.Default.Item.Body.KnownSymbols.Variables;
 
                         var (_, block) = this.onPositionedBlock(null, stm.Default.Item); // ToDo: null is probably bad here
-                        if (_super._IsValidScope && block.Body.Statements.Length > 1) // if sub-scope is valid, hoist content
+                        if (block.Body.Statements.Length > 0 && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
                         {
                             // Hoist the scope to its own operation
                             var call = HoistIfContents(block.Body);

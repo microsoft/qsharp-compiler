@@ -248,7 +248,7 @@ type ClassicalControlTests () =
         // Single calls should not be hoisted into their own operation
         CompileClassicalControlTest 3 |> ignore
 
-    [<Fact(Skip="Failure Tracked")>]
+    [<Fact>]
     [<Trait("Category","Content Hoisting")>]
     member this.``Hoist Single Non-Call`` () =
         // Single expressions that are not calls should be hoisted into their own operation
@@ -357,7 +357,7 @@ type ClassicalControlTests () =
         IsApplyIfElseArgsMatch subArgs "r" ifOp elseOp
         |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
 
-    [<Fact(Skip="Failure Tracked")>]
+    [<Fact>]
     [<Trait("Category","Content Hoisting")>]
     member this.``Don't Hoist Functions`` () =
         CompileClassicalControlTest 13 |> ignore

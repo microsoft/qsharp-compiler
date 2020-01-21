@@ -263,7 +263,9 @@ let public ClassicalControlSignatures =
         (_DefaultTypes, [|
             ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";
             ClassicalControlNs, "Foo", [||], "Unit";
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+            ClassicalControlNs, "SubFunc1", [||], "Unit";
+            ClassicalControlNs, "SubFunc2", [||], "Unit";
+            ClassicalControlNs, "SubFunc3", [||], "Unit";
         |]);
         (_DefaultTypes, [|
             ClassicalControlNs, "ClassicalControlTestMain", [||], "Unit";

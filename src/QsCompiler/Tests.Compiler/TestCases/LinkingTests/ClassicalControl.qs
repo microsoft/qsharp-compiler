@@ -328,7 +328,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 // =================================
 
 namespace Microsoft.Quantum.Testing.ClassicalControl {
-    open SubOps;
 
     @EntryPoint()
     operation ClassicalControlTestMain() : Unit {
@@ -339,11 +338,15 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         let r = Zero;
 
         if (r == Zero) {
-            SubOp1();
-            SubOp2();
-            SubOp3();
+            SubFunc1();
+            SubFunc2();
+            SubFunc3();
         }
     }
+
+    function SubFunc1() : Unit { }
+    function SubFunc2() : Unit { }
+    function SubFunc3() : Unit { }
 
 }
 
@@ -357,7 +360,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         Foo();
     }
 
-    function Foo() : Unit {
+    operation Foo() : Unit {
         let r = Zero;
 
         if (r == Zero) {
@@ -378,7 +381,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         Foo();
     }
 
-    function Foo() : Unit {
+    operation Foo() : Unit {
         let r = Zero;
 
         mutable temp = 3;
