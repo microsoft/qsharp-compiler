@@ -212,10 +212,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             controlOpType = BuiltIn.ApplyIfElseRResolvedType;
                         }
 
-                        controlArgs = CreateValueTupleExpression(
-                            conditionExpression,
-                            CreateValueTupleExpression(condId, condArgs),
-                            CreateValueTupleExpression(defaultId, defaultArgs));
+                        var (zeroOpArg, oneOpArg) = (result == QsResult.Zero)
+                            ? (CreateValueTupleExpression(condId, condArgs), CreateValueTupleExpression(defaultId, defaultArgs))
+                            : (CreateValueTupleExpression(defaultId, defaultArgs), CreateValueTupleExpression(condId, condArgs));
+
+                        controlArgs = CreateValueTupleExpression(conditionExpression, zeroOpArg, oneOpArg);
 
                         targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
                     }
@@ -223,27 +224,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     {
                         if (adj && ctl)
                         {
-                            (controlOpInfo, controlOpType) = (result == QsResult.One)
-                            ? (BuiltIn.ApplyIfOneCA, BuiltIn.ApplyIfOneCAResolvedType)
-                            : (BuiltIn.ApplyIfZeroCA, BuiltIn.ApplyIfZeroCAResolvedType);
+                            (controlOpInfo, controlOpType) = (result == QsResult.Zero)
+                            ? (BuiltIn.ApplyIfZeroCA, BuiltIn.ApplyIfZeroCAResolvedType)
+                            : (BuiltIn.ApplyIfOneCA, BuiltIn.ApplyIfOneCAResolvedType);
                         }
                         else if (adj)
                         {
-                            (controlOpInfo, controlOpType) = (result == QsResult.One)
-                            ? (BuiltIn.ApplyIfOneA, BuiltIn.ApplyIfOneAResolvedType)
-                            : (BuiltIn.ApplyIfZeroA, BuiltIn.ApplyIfZeroAResolvedType);
+                            (controlOpInfo, controlOpType) = (result == QsResult.Zero)
+                            ? (BuiltIn.ApplyIfZeroA, BuiltIn.ApplyIfZeroAResolvedType)
+                            : (BuiltIn.ApplyIfOneA, BuiltIn.ApplyIfOneAResolvedType);
                         }
                         else if (ctl)
                         {
-                            (controlOpInfo, controlOpType) = (result == QsResult.One)
-                            ? (BuiltIn.ApplyIfOneC, BuiltIn.ApplyIfOneCResolvedType)
-                            : (BuiltIn.ApplyIfZeroC, BuiltIn.ApplyIfZeroCResolvedType);
+                            (controlOpInfo, controlOpType) = (result == QsResult.Zero)
+                            ? (BuiltIn.ApplyIfZeroC, BuiltIn.ApplyIfZeroCResolvedType)
+                            : (BuiltIn.ApplyIfOneC, BuiltIn.ApplyIfOneCResolvedType);
                         }
                         else
                         {
-                            (controlOpInfo, controlOpType) = (result == QsResult.One)
-                            ? (BuiltIn.ApplyIfOne, BuiltIn.ApplyIfOneResolvedType)
-                            : (BuiltIn.ApplyIfZero, BuiltIn.ApplyIfZeroResolvedType);
+                            (controlOpInfo, controlOpType) = (result == QsResult.Zero)
+                            ? (BuiltIn.ApplyIfZero, BuiltIn.ApplyIfZeroResolvedType)
+                            : (BuiltIn.ApplyIfOne, BuiltIn.ApplyIfOneResolvedType);
                         }
 
                         controlArgs = CreateValueTupleExpression(
@@ -394,7 +395,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         stm = this.onStatement(stm);
 
                         var (isCondition, result, conditionExpression, conditionScope, defaultScope) = IsConditionedOnResultLiteralStatement(stm);
-
+                        
                         if (isCondition)
                         {
                             statements.Add(CreateApplyIfStatement(stm, result, conditionExpression, conditionScope, defaultScope));

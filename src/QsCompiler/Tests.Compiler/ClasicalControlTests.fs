@@ -285,7 +285,7 @@ type ClassicalControlTests () =
         IsApplyIfElseArgsMatch args "r" ifOp elseOp
         |> (fun (x,_,_,_,_) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
-    [<Fact(Skip="Failure Tracked")>]
+    [<Fact>]
     [<Trait("Category","Apply If Calls")>]
     member this.``Apply If One Else Zero`` () =
         let (args, ifOp, elseOp) = CompileClassicalControlTest 9 |> ApplyIfElseTest
@@ -332,7 +332,7 @@ type ClassicalControlTests () =
         let errorMsg = "ApplyIfElse did not have the correct arguments"
         let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp.FullName { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
         Assert.True(success, errorMsg)
-        IsApplyIfElseArgsMatch subArgs "r" elifOp.FullName elseOp.FullName
+        IsApplyIfElseArgsMatch subArgs "r" elseOp.FullName elifOp.FullName // elif and else are swapped because second condition is against One
         |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
 
     [<Fact>]
@@ -342,9 +342,9 @@ type ClassicalControlTests () =
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
         let (success, _, subArgs, _, _) = IsApplyIfElseArgsMatch args "r" { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name } elseOp
-        Assert.True(success, errorMsg)
-        IsApplyIfElseArgsMatch subArgs "r" ifOp elseOp
-        |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
+        Assert.True(success, errorMsg + " 1")
+        IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
+        |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg + " 2"))
 
     [<Fact>]
     [<Trait("Category","If Structure Reshape")>]
@@ -354,7 +354,7 @@ type ClassicalControlTests () =
         let errorMsg = "ApplyIfElse did not have the correct arguments"
         let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
         Assert.True(success, errorMsg)
-        IsApplyIfElseArgsMatch subArgs "r" ifOp elseOp
+        IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
         |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
 
     [<Fact>]
