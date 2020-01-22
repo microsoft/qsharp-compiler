@@ -16,8 +16,8 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 /// Returns whether the given expression should be propagated as a constant.
 /// For a statement of the form "let x = [expr];", if shouldPropagate(expr) is true,
-/// then we should substitute [expr] for x wherever x occurs in future code.
-let rec private shouldPropagate callables (expr : TypedExpression) =
+/// then we should substitute x with [expr] wherever x occurs in future code.
+let private shouldPropagate callables (expr : TypedExpression) =
     let folder ex sub = 
         isLiteral callables ex ||
         (match ex.Expression with
