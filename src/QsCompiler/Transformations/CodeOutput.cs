@@ -818,10 +818,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public override QsStatementKind onConjugation(QsConjugation stm)
         {
-            this._Scope.CurrentComments = stm.InnerTransformation.Comments;
-            this.AddBlockStatement(Keywords.qsWithin.id, stm.InnerTransformation.Body, true);
             this._Scope.CurrentComments = stm.OuterTransformation.Comments;
-            this.AddBlockStatement(Keywords.qsApply.id, stm.OuterTransformation.Body, false);
+            this.AddBlockStatement(Keywords.qsWithin.id, stm.OuterTransformation.Body, false);
+            this._Scope.CurrentComments = stm.InnerTransformation.Comments;
+            this.AddBlockStatement(Keywords.qsApply.id, stm.InnerTransformation.Body, true);
             return QsStatementKind.NewQsConjugation(stm);
         }
 

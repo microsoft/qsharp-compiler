@@ -348,5 +348,10 @@ let public ClassicalControlSignatures =
             ClassicalControlNs, "_SelfControlled", [|"Result"|], "Unit";
             ClassicalControlNs, "_SelfControlled", [|"Result";"Qubit[]";"Unit"|], "Unit";
         |]);
+        (_DefaultTypes, [| // Within Block Support
+            ClassicalControlNs, "Foo", [||], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
+        |]);
     |]
     |> _MakeSignatures

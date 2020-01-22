@@ -823,3 +823,27 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     }
 
 }
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    // Within Block Support
+
+    operation Foo() : Unit {
+        let r = One;
+        within {
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        } apply {
+            if (r == One) {
+                SubOp2();
+                SubOp3();
+            }
+        }
+    }
+
+}

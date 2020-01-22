@@ -69,12 +69,13 @@ type ClassicalControlTests () =
         |> ignore
 
         (writer.Scope :?> ScopeToQs).Output.Split("\r\n")
+        |> Array.filter (fun str -> str <> String.Empty)
 
     let CheckIfLineIsCall ``namespace`` name input =
         let call = sprintf @"(%s\.)?%s" <| Regex.Escape ``namespace`` <| Regex.Escape name
         let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
         let args = @"\(\s*(.*[^\s])?\s*\)"
-        let regex = sprintf @"^%s\s*%s\s*%s;$" call typeArgs args
+        let regex = sprintf @"^\s*%s\s*%s\s*%s;$" call typeArgs args
 
         let regexMatch = Regex.Match(input, regex)
         if regexMatch.Success then
@@ -90,13 +91,12 @@ type ClassicalControlTests () =
         sprintf @"\(%s\s*%s,\s*%s\)" <| call <| typeArgs <| args
 
     let IsApplyIfArgMatch input resultVar (opName : QsQualifiedName) =
-        let regexMatch = Regex.Match(input, sprintf @"^%s,\s*%s$" <| Regex.Escape resultVar <| MakeApplicationRegex opName)
+        let regexMatch = Regex.Match(input, sprintf @"^\s*%s,\s*%s$" <| Regex.Escape resultVar <| MakeApplicationRegex opName)
 
         if regexMatch.Success then
             (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
         else
             (false, "", "")
-
 
     let IsApplyIfElseArgsMatch input resultVar (opName1 : QsQualifiedName) (opName2 : QsQualifiedName) =
         let ApplyIfElseRegex = sprintf @"^%s,\s*%s,\s*%s$"
@@ -1164,3 +1164,43 @@ type ClassicalControlTests () =
             AssertCallSupportsFunctors [] ctlGen
 
         controlledCheck ()
+
+    [<Fact>]
+    [<Trait("Category","Functor Support")>]
+    member this.``Within Block Support`` ()=
+        let result = CompileClassicalControlTest 23
+
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
+
+        Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
+
+        let originalContent =
+            [
+                (2, BuiltIn.ApplyIfZeroA);
+                (5, BuiltIn.ApplyIfOne);
+            ] |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
+        let outerContent =
+            [
+                (0, "SubOps", "SubOp1");
+                (1, "SubOps", "SubOp2");
+            ]
+        let innerContent =
+            [
+                (0, "SubOps", "SubOp2");
+                (1, "SubOps", "SubOp3");
+            ]
+
+        AssertSpecializationHasContent original originalContent
+
+        let orderedGens = IdentifyGeneratedByContent generated [outerContent; innerContent]
+        let outerOp = (Seq.item 0 orderedGens)
+
+        AssertCallSupportsFunctors [QsFunctor.Adjoint] outerOp
+
+        let lines = GetLinesFromSpecialization original
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZeroA.Namespace.Value BuiltIn.ApplyIfZeroA.Name.Value lines.[2]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody)
+
+        let (success, _, _) = IsApplyIfArgMatch args "r" outerOp.FullName
+        Assert.True(success, sprintf "ApplyIfZeroA did not have the correct arguments")
