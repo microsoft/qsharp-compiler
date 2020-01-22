@@ -333,7 +333,6 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
     // - rewrites (integers, big integers, and doubles):
     //     0 + x = x
     //     x + 0 = x
-    //     x + x = 2 * x
     override this.onAddition (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
@@ -346,18 +345,6 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | op, DoubleLiteral 0.0
         | IntLiteral 0L, op
         | op, IntLiteral 0L -> op
-        | op1, op2 when op1 = op2 ->
-            match lhs.ResolvedType.Resolution with
-            | BigInt ->
-                let factor = TypedExpression.New (BigIntLiteral (BigInteger 2), ImmutableDictionary.Empty, (ResolvedType.New BigInt), InferredExpressionInformation.New (false, false), Null)
-                MUL (factor, lhs)
-            | Double ->
-                let factor = TypedExpression.New (DoubleLiteral 2.0, ImmutableDictionary.Empty, (ResolvedType.New Double), InferredExpressionInformation.New (false, false), Null)
-                MUL (factor, lhs)
-            | Int ->
-                let factor = TypedExpression.New (IntLiteral 2L, ImmutableDictionary.Empty, (ResolvedType.New Int), InferredExpressionInformation.New (false, false), Null)
-                MUL (factor, lhs)
-            | _ -> this.arithNumBinaryOp ADD (+) (+) (+) lhs rhs
         | _ -> this.arithNumBinaryOp ADD (+) (+) (+) lhs rhs
 
     // - simplifies subtraction of two constants into single constant
