@@ -599,10 +599,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 var ctl = _CurrentCallable.Controlled;
                 var ctlAdj = _CurrentCallable.ControlledAdjoint;
 
-                // ToDo: I don't think you have to add the ControlledAdjoint if you add the Controlled and Adjoint specializations
                 bool addAdjoint = false;
                 bool addControlled = false;
-                //bool addControlledAdjoint = false;
+
                 if (_InBody)
                 {
                     if (adj != null && adj.Implementation is SpecializationImplementation.Generated adjGen) addAdjoint = adjGen.Item.IsInvert;
@@ -654,18 +653,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
                 }
 
-                //if (addControlledAdjoint)
-                //{
-                //    specializations.Add(MakeSpec(
-                //        QsSpecializationKind.QsControlledAdjoint,
-                //        controlledSig,
-                //        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
-                //}
+                if (addAdjoint && addControlled)
+                {
+                    specializations.Add(MakeSpec(
+                        QsSpecializationKind.QsControlledAdjoint,
+                        controlledSig,
+                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
+                }
 
                 return (newSig, specializations);
             }
 
-            private (QsQualifiedName, ResolvedType, CallableInformation) GenerateOperation(QsScope contents)
+            private QsCallable GenerateOperation(QsScope contents)
             {
                 var newName = new QsQualifiedName(
                     _CurrentCallable.Callable.FullName.Namespace,
@@ -711,9 +710,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     QsComments.Empty);
 
                 var updatedCallable = UpdateGeneratedOpTransformation.Apply(controlCallable, knownVariables, _CurrentCallable.Callable.FullName, newName);
-                _ControlOperations.Add(updatedCallable);
 
-                return (newName, paramTypes, signature.Information);
+                return updatedCallable;
             }
 
             private HoistTransformation() { }
@@ -775,33 +773,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public HoistStatementKind(HoistTransformation super, ScopeTransformation<HoistStatementKind, HoistExpression> scope) : base(scope) { _super = super; }
 
-                private QsStatement HoistIfContents(QsScope contents)
+                private (QsCallable, QsStatement) HoistIfContents(QsScope contents)
                 {
-                    var (targetName, targetParamType, callInfo) = _super.GenerateOperation(contents);
+                    var targetOp = _super.GenerateOperation(contents);
                     var targetOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
                         Tuple.Create(
-                            targetParamType,
+                            targetOp.Signature.ArgumentType,
                             ResolvedType.New(ResolvedTypeKind.UnitType)),
-                        callInfo));
+                        targetOp.Signature.Information));
 
                     var targetTypeArgTypes = _super._CurrentCallable.TypeParamTypes;
                     var targetOpId = new TypedExpression
                     (
-                        ExpressionKind.NewIdentifier(Identifier.NewGlobalCallable(targetName), targetTypeArgTypes),
+                        ExpressionKind.NewIdentifier(Identifier.NewGlobalCallable(targetOp.FullName), targetTypeArgTypes),
                         targetTypeArgTypes.IsNull
                             ? ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>.Empty
                             : targetTypeArgTypes.Item
-                                .Select(type => Tuple.Create(targetName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
+                                .Select(type => Tuple.Create(targetOp.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
                                 .ToImmutableArray(),
                         targetOpType,
                         new InferredExpressionInformation(false, false),
                         QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
                     );
 
-                    // ToDo: double-check this is necessary
-                    var knownSymbols = contents.KnownSymbols.IsEmpty
-                        ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
-                        : contents.KnownSymbols.Variables;
+                    var knownSymbols = contents.KnownSymbols.Variables;
 
                     TypedExpression targetArgs = null;
                     if (knownSymbols.Any())
@@ -835,11 +830,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
                     );
 
-                    return new QsStatement(
+                    return (targetOp, new QsStatement(
                         QsStatementKind.NewQsExpressionStatement(call),
                         LocalDeclarations.Empty,
                         QsNullable<QsLocation>.Null,
-                        QsComments.Empty);
+                        QsComments.Empty));
                 }
 
                 private bool IsScopeSingleCall(QsScope contents)
@@ -877,29 +872,38 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     var contextValidScope = _super._IsValidScope;
                     var contextHoistParams = _super._CurrentHoistParams;
 
-                    var newConditionBlocks = stm.ConditionalBlocks
-                        .Select(condBlock =>
-                        {
-                            _super._IsValidScope = true;
-                            _super._CurrentHoistParams = condBlock.Item2.Body.KnownSymbols.IsEmpty
-                            ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
-                            : condBlock.Item2.Body.KnownSymbols.Variables;
+                    var isHoistValid = true;
 
-                            var (expr, block) = this.onPositionedBlock(condBlock.Item1, condBlock.Item2);
-                            if (block.Body.Statements.Length > 0 && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
-                            {
-                                // Hoist the scope to its own operation
-                                var call = HoistIfContents(block.Body);
-                                block = new QsPositionedBlock(
-                                    new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
-                                    block.Location,
-                                    block.Comments);
-                            }
-                            return Tuple.Create(expr.Value, block); // ToDo: .Value may be unnecessary in the future
-                        }).ToImmutableArray();
+                    var newConditionBlocks = new List<Tuple<TypedExpression, QsPositionedBlock>>();
+                    var generatedOperations = new List<QsCallable>();
+                    foreach (var condBlock in stm.ConditionalBlocks)
+                    {
+                        _super._IsValidScope = true;
+                        _super._CurrentHoistParams = condBlock.Item2.Body.KnownSymbols.IsEmpty
+                        ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
+                        : condBlock.Item2.Body.KnownSymbols.Variables;
+
+                        var (expr, block) = this.onPositionedBlock(condBlock.Item1, condBlock.Item2);
+                        if (block.Body.Statements.Length > 0 && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
+                        {
+                            // Hoist the scope to its own operation
+                            var (callable, call) = HoistIfContents(block.Body);
+                            block = new QsPositionedBlock(
+                                new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
+                                block.Location,
+                                block.Comments);
+                            newConditionBlocks.Add(Tuple.Create(expr.Value,block));
+                            generatedOperations.Add(callable);
+                        }
+                        else
+                        {
+                            isHoistValid = false;
+                            break;
+                        }
+                    }
 
                     var newDefault = QsNullable<QsPositionedBlock>.Null;
-                    if (stm.Default.IsValue)
+                    if (isHoistValid && stm.Default.IsValue)
                     {
                         _super._IsValidScope = true;
                         _super._CurrentHoistParams = stm.Default.Item.Body.KnownSymbols.IsEmpty
@@ -910,20 +914,33 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         if (block.Body.Statements.Length > 0 && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
                         {
                             // Hoist the scope to its own operation
-                            var call = HoistIfContents(block.Body);
+                            var (callable, call) = HoistIfContents(block.Body);
                             block = new QsPositionedBlock(
                                 new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
                                 block.Location,
                                 block.Comments);
+                            newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                            generatedOperations.Add(callable);
                         }
-                        newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                        else
+                        {
+                            isHoistValid = false;
+                        }
+                    }
+
+                    if (isHoistValid)
+                    {
+                        _super._ControlOperations.AddRange(generatedOperations);
                     }
 
                     _super._CurrentHoistParams = contextHoistParams;
                     _super._IsValidScope = contextValidScope;
 
-                    return QsStatementKind.NewQsConditionalStatement(
-                        new QsConditionalStatement(newConditionBlocks, newDefault));
+                    return isHoistValid
+                        ? QsStatementKind.NewQsConditionalStatement(
+                          new QsConditionalStatement(newConditionBlocks.ToImmutableArray(), newDefault))
+                        : QsStatementKind.NewQsConditionalStatement(
+                          new QsConditionalStatement(stm.ConditionalBlocks, stm.Default));
                 }
 
                 public override QsStatementKind Transform(QsStatementKind kind)

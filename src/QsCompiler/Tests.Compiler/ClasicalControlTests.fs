@@ -259,7 +259,7 @@ type ClassicalControlTests () =
     member this.``Don't Hoist Return Statments`` () =
         CompileClassicalControlTest 5 |> ignore
 
-    [<Fact(Skip="Failure Tracked")>]
+    [<Fact>]
     [<Trait("Category","Content Hoisting")>]
     member this.``All-Or-None Hoisting`` () =
         CompileClassicalControlTest 6 |> ignore
