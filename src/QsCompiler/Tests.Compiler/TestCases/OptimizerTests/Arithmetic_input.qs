@@ -12,8 +12,18 @@ namespace Microsoft.Quantum.Testing.Optimization.Arithmetic {
         return a;
     }
 
-    operation Test2 (x : Int) : Int {
+    operation TestArithmeticForInt (x : Int) : Int {
         let y = ((x - 0) + (x / 1) * 1) + 0;
+        return y;
+    }
+
+    operation TestArithmeticForDouble (x : Double) : Double {
+        let y = ((x - 0.0) + (x / 1.0) * 1.0) + 0.0;
+        return y;
+    }
+
+    operation TestArithmeticForBigInt (x : BigInt) : BigInt {
+        let y = ((x - 0L) + (x / 1L) * 1L) + 0L;
         return y;
     }
 }
