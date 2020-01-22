@@ -40,7 +40,7 @@ type ExecutionTests (output:ITestOutputHelper) =
         AssertEqual expectedOutput out
 
 
-    [<Fact>]
+    // TODO: [<Fact>]
     member this.``Specialization Generation for Conjugations`` () = 
         ExecuteAndCompareOutput 
             "ConjugationsInBody" "
@@ -139,7 +139,7 @@ type ExecutionTests (output:ITestOutputHelper) =
             "
 
 
-    [<Fact>]
+    // TODO: [<Fact>]
     member this.``Referencing Projects and Packages`` () = 
         ExecuteAndCompareOutput 
             "PackageAndProjectReference" "
