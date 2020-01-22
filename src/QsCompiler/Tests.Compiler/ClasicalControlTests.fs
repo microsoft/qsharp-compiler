@@ -256,7 +256,7 @@ type ClassicalControlTests () =
 
     [<Fact>]
     [<Trait("Category","Content Hoisting")>]
-    member this.``Don't Hoist Return Statments`` () =
+    member this.``Don't Hoist Return Statements`` () =
         CompileClassicalControlTest 5 |> ignore
 
     [<Fact>]
