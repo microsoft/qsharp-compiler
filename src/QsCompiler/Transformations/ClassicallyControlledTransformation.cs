@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Xml.Schema;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -574,6 +575,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             private bool _InAdjoint = false;
             private bool _InControlled = false;
 
+            private bool _InWithinBlock = false;
+
             public static QsCompilation Apply(QsCompilation compilation)
             {
                 var filter = new HoistSyntax(new HoistTransformation());
@@ -603,9 +606,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 bool addAdjoint = false;
                 bool addControlled = false;
 
+                if (_InWithinBlock) addAdjoint = true;
+
                 if (_InBody)
                 {
-                    if (adj != null && adj.Implementation is SpecializationImplementation.Generated adjGen) addAdjoint = adjGen.Item.IsInvert;
+                    if (adj != null && adj.Implementation is SpecializationImplementation.Generated adjGen) addAdjoint = addAdjoint || adjGen.Item.IsInvert;
                     if (ctl != null && ctl.Implementation is SpecializationImplementation.Generated ctlGen) addControlled = ctlGen.Item.IsDistribute;
                     if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated ctlAdjGen)
                     {
@@ -844,6 +849,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     
                     return contents.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr &&
                             expr.Item.Expression is ExpressionKind.CallLikeExpression;
+                }
+
+                public override QsStatementKind onConjugation(QsConjugation stm)
+                {
+                    var superInWithinBlock = _super._InWithinBlock;
+                    _super._InWithinBlock = true;
+                    var (_, outer) = this.onPositionedBlock(null, stm.OuterTransformation);
+                    _super._InWithinBlock = superInWithinBlock;
+
+                    var (_, inner) = this.onPositionedBlock(null, stm.InnerTransformation);
+
+                    return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
                 }
 
                 public override QsStatementKind onReturnStatement(TypedExpression ex)
