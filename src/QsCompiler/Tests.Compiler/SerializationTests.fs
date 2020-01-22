@@ -52,6 +52,7 @@ module SerializationTests =
         ArgumentType = argType |> ResolvedType.New
         ReturnType = rType |> ResolvedType.New
         Information = CallableInformation.New(ResolvedCharacteristics.FromProperties props, InferredCallableInformation.NoInformation)
+        Modifiers = {Access = DefaultAccess}
     }
 
     let varDecl name t (s, e) = {
@@ -210,7 +211,8 @@ module SerializationTests =
             SourceFile      = "%%%" |> NonNullable<string>.New
             Position        = (2,4) |> DeclarationHeader.Offset.Defined
             SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 13}) |> DeclarationHeader.Range.Defined
-            Type            = tupleIntIntType |> ResolvedType.New
+            Type            = {UnderlyingType = ResolvedType.New tupleIntIntType
+                               Modifiers = {Access = DefaultAccess}}
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty
         }
@@ -222,7 +224,8 @@ module SerializationTests =
             SourceFile      = "%%%" |> NonNullable<string>.New
             Position        = (3,4) |> DeclarationHeader.Offset.Defined
             SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 15}) |> DeclarationHeader.Range.Defined
-            Type            = tupleIntIntType |> ResolvedType.New
+            Type            = {UnderlyingType = ResolvedType.New tupleIntIntType
+                               Modifiers = {Access = DefaultAccess}}
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty
         }

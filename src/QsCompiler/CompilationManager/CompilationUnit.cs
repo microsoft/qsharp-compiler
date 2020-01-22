@@ -344,8 +344,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var compilationExists = this.CompiledTypes.TryGetValue(fullName, out QsCustomType compiled);
                     if (!compilationExists) continue; // may happen if a file has been modified during global type checking
 
-                    var type = new QsCustomType(compiled.FullName, compiled.Attributes, compiled.SourceFile, header.Location, 
-                        compiled.Type, compiled.TypeItems, compiled.Documentation, compiled.Comments);
+                    var type = new QsCustomType(
+                        compiled.FullName,
+                        compiled.Attributes,
+                        compiled.SourceFile,
+                        header.Location,
+                        compiled.Type,
+                        compiled.TypeItems,
+                        compiled.Documentation,
+                        compiled.Comments
+                    );
                     this.CompiledTypes[fullName] = type;
                 }
             }
@@ -465,7 +473,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private QsCustomType GetImportedType(TypeDeclarationHeader header)
         {
             if (header == null) throw new ArgumentNullException(nameof(header));
-            return new QsCustomType(header.QualifiedName, header.Attributes, header.SourceFile, header.Location, 
+            return new QsCustomType(header.QualifiedName, header.Attributes, header.SourceFile, header.Location,
                 header.Type, header.TypeItems, header.Documentation, QsComments.Empty);
         }
 

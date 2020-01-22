@@ -201,7 +201,8 @@ module SyntaxGenerator =
     let WithoutRangeInfo (signature : ResolvedSignature) = 
         let argType = signature.ArgumentType |> StripPositionInfo.Apply
         let returnType = signature.ReturnType |> StripPositionInfo.Apply
-        ResolvedSignature.New ((argType, returnType), signature.Information, signature.TypeParameters)
+        ResolvedSignature.New ((argType, returnType),
+                               signature.Information, signature.TypeParameters, signature.Modifiers)
 
     /// Given the resolved argument type of an operation, returns the argument type of its controlled version. 
     let AddControlQubits (argT : ResolvedType) = 

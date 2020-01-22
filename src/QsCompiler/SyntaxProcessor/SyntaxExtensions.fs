@@ -175,7 +175,7 @@ let public SymbolInformation fragmentKind =
     | QsFragmentKind.ControlledAdjointDeclaration    gen -> gen |> SymbolsInGenerator, ([], [], [])
     | QsFragmentKind.OperationDeclaration (n, signature) -> (n, signature)                                      |> SymbolsInCallableDeclaration
     | QsFragmentKind.FunctionDeclaration  (n, signature) -> (n, signature)                                      |> SymbolsInCallableDeclaration
-    | QsFragmentKind.TypeDefinition             (sym, t) -> (sym, t)                                            |> SymbolsInArgumentTuple
+    | QsFragmentKind.TypeDefinition             (sym, t) -> (sym, t.Items)                                      |> SymbolsInArgumentTuple
     | QsFragmentKind.DeclarationAttribute      (sym, ex) -> [], ([AttributeAsCallExpr (sym, ex)], [])           |> collectWith SymbolsFromExpr |> addVariable sym    
     | QsFragmentKind.NamespaceDeclaration            sym -> sym |> SymbolDeclarations, ([], [], [])
     | QsFragmentKind.OpenDirective       (nsName, alias) -> [alias] |> chooseValues,   ([nsName], [], [])
@@ -280,10 +280,11 @@ let private CharacteristicsAnnotation (ex, format) =
 let public TypeInfo (symbolTable : NamespaceManager) (currentNS, source) (qsType : QsType) markdown = 
     let udtInfo udt = 
         match udt |> globalTypeResolution symbolTable (currentNS, source) with 
-        | Some decl, _ -> 
+        | Some decl, _ ->
+            // TODO: Include modifiers.
             let name = decl.QualifiedName.Name.Value |> withNewLine
-            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine 
-            let info = sprintf "Underlying type: %s" (TypeName decl.Type)
+            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine
+            let info = sprintf "Underlying type: %s" (TypeName decl.Type.UnderlyingType)
             let doc = PrintSummary decl.Documentation markdown
             sprintf "User defined type %s%s%s%s" name ns info doc
         | None, Some sym -> sprintf "Type %s" sym.Value
@@ -380,10 +381,11 @@ let public DeclarationInfo symbolTable (locals : LocalDeclarations) (currentNS, 
             sprintf "Declaration of %s variable %s%s" kind name info
         | false, _ ->
         match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be before querying callables
-        | Some decl, _ -> 
+        | Some decl, _ ->
+            // TODO: Include modifiers.
             let name = decl.QualifiedName.Name.Value |> withNewLine
             let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine 
-            let info = sprintf "Underlying type: %s" (decl.Type |> TypeName)
+            let info = sprintf "Underlying type: %s" (decl.Type.UnderlyingType |> TypeName)
             let doc = PrintSummary decl.Documentation markdown
             sprintf "Declaration of user defined type %s%s%s%s" name ns info doc
         | None, _ ->

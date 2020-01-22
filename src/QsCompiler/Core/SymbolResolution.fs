@@ -235,7 +235,13 @@ module SymbolResolution =
             let errs = TypeParameterResolutionWarnings argType (returnType, signature.ReturnType.Range |> orDefault) typeParams
             (typeParams |> Seq.map fst).ToImmutableArray(), errs
         let callableInfo = CallableInformation.Common specBundleInfos
-        let resolvedSig = { TypeParameters = resolvedParams; ArgumentType = argType; ReturnType = returnType; Information = callableInfo }
+        let resolvedSig = {
+            TypeParameters = resolvedParams
+            ArgumentType = argType
+            ReturnType = returnType
+            Modifiers = signature.Modifiers
+            Information = callableInfo
+        }
         (resolvedSig, argTuple), [inErr; outErr; resErrs; tpErrs] |> Array.concat
 
     /// Give a routine for type resolution, fully resolves the given user defined type as well as its items.

@@ -169,11 +169,12 @@ type QsStatement with
     }
 
 type ResolvedSignature with 
-    static member New ((argType, returnType), info, typeParams : IEnumerable<_>) = {
+    static member New ((argType, returnType), info, typeParams : IEnumerable<_>, modifiers) = {
         TypeParameters = typeParams.ToImmutableArray()
         ArgumentType = argType
         ReturnType = returnType
         Information = info
+        Modifiers = modifiers
     }
 
 type QsSpecialization with 
@@ -212,12 +213,12 @@ type QsCallable with
     static member NewTypeConstructor = QsCallable.New QsCallableKind.TypeConstructor
 
 type QsCustomType with
-    static member New (source, location) (name, attributes, items, underlyingType, documentation, comments) = {
+    static member New (source, location) (name, attributes, items, typeSignature, documentation, comments) = {
         FullName = name
         Attributes = attributes
         SourceFile = source
         Location = location
-        Type = underlyingType
+        Type = typeSignature
         TypeItems = items
         Documentation = documentation
         Comments = comments

@@ -185,11 +185,39 @@ type QsTuple<'Item> =
 | QsTupleItem of 'Item
 | QsTuple of ImmutableArray<QsTuple<'Item>> 
 
+/// Defines where a global declaration may be accessed.
+[<Struct>]
+type AccessModifier =
+    /// The default access modifier is public, which means the type or callable can be used from anywhere.
+    | DefaultAccess
+    /// Internal access means that a type or callable may only be used from within the compilation unit in which it is
+    /// declared.
+    | Internal
+    /// Private access means that a type or callable may only be used from within the compilation unit and namespace in
+    /// which it is declared.
+    | Private
+
+/// Used to represent Q# keywords that may be attached to a declaration to modify its visibility or behavior.
+type Modifiers = {
+    /// Defines where a global declaration may be accessed.
+    Access : AccessModifier
+}
+
 type CallableSignature = { 
     TypeParameters : ImmutableArray<QsSymbol>
     Argument : QsTuple<QsSymbol * QsType>
     ReturnType : QsType
     Characteristics : Characteristics
+    /// The modifiers that have been applied to this callable.
+    Modifiers : Modifiers
+}
+
+// The signature of a user-defined type.
+type TypeSignature = {
+    /// The underlying type and any named items.
+    Items : QsTuple<QsSymbol * QsType>
+    /// The modifiers that have been applied to this type.
+    Modifiers : Modifiers
 }
 
 type QsFragmentKind = 
@@ -216,7 +244,7 @@ type QsFragmentKind =
 | ControlledAdjointDeclaration  of QsSpecializationGenerator
 | OperationDeclaration          of QsSymbol * CallableSignature
 | FunctionDeclaration           of QsSymbol * CallableSignature
-| TypeDefinition                of QsSymbol * QsTuple<QsSymbol * QsType>
+| TypeDefinition                of QsSymbol * TypeSignature
 | DeclarationAttribute          of QsSymbol * QsExpression
 | OpenDirective                 of QsSymbol * QsNullable<QsSymbol>
 | NamespaceDeclaration          of QsSymbol

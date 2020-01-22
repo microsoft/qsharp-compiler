@@ -160,7 +160,10 @@ seeAlso:
                                                       ImmutableArray<QsDeclarationAttribute>.Empty,
                                                       NonNullable<string>.New("GeneratorRepresentation.qs"),
                                                       ZeroLocation,
-                                                      baseType,
+                                                      new ResolvedTypeSignature(
+                                                          baseType,
+                                                          new Modifiers(AccessModifier.DefaultAccess)
+                                                      ),
                                                       typeItems,
                                                       comments.ToImmutableArray(),
                                                       QsComments.Empty);
@@ -324,7 +327,8 @@ output:
             var typeParams = new QsLocalSymbol[] { }.ToImmutableArray();
             var argTypes = new ResolvedType[] { qubitToUnitOp, qubitToUnitOp, qubitToUnitOpAC, phaseEstOp, qubitArrayType }.ToImmutableArray();
             var argTupleType = ResolvedType.New(QsType.NewTupleType(argTypes));
-            var signature = new ResolvedSignature(typeParams, argTupleType, doubleType, noInfo);
+            var noModifiers = new Modifiers(AccessModifier.DefaultAccess);
+            var signature = new ResolvedSignature(typeParams, argTupleType, doubleType, noInfo, noModifiers);
 
             var args = new List<ArgDeclType> { BuildArgument("statePrepUnitary", qubitToUnitOp),
                                                BuildArgument("adiabaticUnitary", qubitToUnitOp),

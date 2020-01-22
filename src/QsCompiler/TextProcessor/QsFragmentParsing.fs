@@ -148,7 +148,13 @@ let private signature =
     let symbolDeclaration = expectedIdentifierDeclaration (lAngle <|> lTuple)
     let returnTypeAnnotation = expected (typeAnnotation eof) ErrorCode.InvalidReturnTypeAnnotation ErrorCode.MissingReturnTypeAnnotation invalidType eof
     let characteristicsAnnotation = opt (qsCharacteristics.parse >>. expectedCharacteristics eof) |>> Option.defaultValue ((EmptySet, Null) |> Characteristics.New)
-    let signature = genericParamList .>>. (argumentTuple .>>. returnTypeAnnotation) .>>. characteristicsAnnotation |>> CallableSignature.New
+    // TODO: Parse modifiers.
+    let signature =
+        genericParamList
+        .>>. (argumentTuple .>>. returnTypeAnnotation)
+        .>>. characteristicsAnnotation
+        .>>. (preturn { Access = DefaultAccess })
+        |>> CallableSignature.New
     symbolDeclaration .>>. signature
 
 /// Parses a Q# functor generator directive. 
@@ -285,7 +291,8 @@ and private functionDeclaration =
 
 /// Uses buildFragment to parse a Q# TypeDefinition as QsFragment.
 and private udtDeclaration = 
-    let invalid = TypeDefinition (invalidSymbol, invalidArgTupleItem)
+    let invalid = TypeDefinition (invalidSymbol,
+                                  { Items = invalidArgTupleItem; Modifiers = { Access = DefaultAccess } })
     let udtTuple = // not unified with the argument tuple for callable declarations, since the error handling needs to be different
         let asAnonymousItem t = QsTupleItem ((MissingSymbol, Null) |> QsSymbol.New, t)        
         let namedItem = 
@@ -298,7 +305,10 @@ and private udtDeclaration =
             buildTupleItem tupleItem (fst >> QsTuple) ErrorCode.InvalidUdtItemDeclaration ErrorCode.MissingUdtItemDeclaration invalidArgTupleItem eof
         let invalidNamedSingle = followedBy namedItem >>. optTupleBrackets namedItem |>> fst
         invalidNamedSingle <|> udtTupleItem // require parenthesis for a single named item 
-    let declBody = expectedIdentifierDeclaration equal .>> equal .>>. udtTuple
+    // TODO: Parse modifiers.
+    let declBody =
+        expectedIdentifierDeclaration equal .>> equal
+        .>>. (udtTuple |>> (fun items -> { Items = items; Modifiers = { Access = DefaultAccess } }))
     buildFragment typeDeclHeader.parse declBody invalid TypeDefinition eof
 
 

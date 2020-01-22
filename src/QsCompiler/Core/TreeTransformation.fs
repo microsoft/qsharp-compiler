@@ -78,7 +78,8 @@ type SyntaxTreeTransformation() =
         let argType = this.Scope.Expression.Type.Transform s.ArgumentType
         let returnType = this.Scope.Expression.Type.Transform s.ReturnType
         let info = this.Scope.Expression.Type.onCallableInformation s.Information
-        ResolvedSignature.New ((argType, returnType), info, typeParams)
+        // TODO: Should modifiers also be transformed?
+        ResolvedSignature.New ((argType, returnType), info, typeParams, s.Modifiers)
     
 
     abstract member onExternalImplementation : unit -> unit
@@ -158,11 +159,13 @@ type SyntaxTreeTransformation() =
         let source = this.onSourceFile t.SourceFile 
         let loc = this.onLocation t.Location
         let attributes = t.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let underlyingType = this.Scope.Expression.Type.Transform t.Type
+        let underlyingType = this.Scope.Expression.Type.Transform t.Type.UnderlyingType
+        // TODO: Should modifiers also be transformed?
+        let typeSignature = { UnderlyingType = underlyingType; Modifiers = t.Type.Modifiers }
         let typeItems = this.onTypeItems t.TypeItems
         let doc = this.onDocumentation t.Documentation
-        let comments = t.Comments
-        QsCustomType.New (source, loc) (t.FullName, attributes, typeItems, underlyingType, doc, comments)
+        QsCustomType.New
+            (source, loc) (t.FullName, attributes, typeItems, typeSignature, doc, t.Comments)
 
     abstract member onCallableImplementation : QsCallable -> QsCallable
     default this.onCallableImplementation (c : QsCallable) = 

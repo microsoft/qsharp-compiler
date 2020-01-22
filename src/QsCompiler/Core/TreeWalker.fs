@@ -148,7 +148,8 @@ type SyntaxTreeWalker() =
         this.onSourceFile t.SourceFile 
         this.onLocation t.Location
         t.Attributes |> Seq.iter this.onAttribute
-        this.Scope.Expression.Type.Walk t.Type
+        // TODO: Should modifiers have their own walker?
+        this.Scope.Expression.Type.Walk t.Type.UnderlyingType
         this.onTypeItems t.TypeItems
         this.onDocumentation t.Documentation
 

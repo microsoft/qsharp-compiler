@@ -602,6 +602,8 @@ type ResolvedSignature = {
     ReturnType : ResolvedType
     /// contains the functors that the callable supports (necessarily empty for functions)
     Information : CallableInformation
+    /// Represents the Q# keywords attached to the declaration that modify its behavior.
+    Modifiers : Modifiers
 }
 
 
@@ -696,6 +698,16 @@ type QsTypeItem =
 | Anonymous of ResolvedType
 
 
+/// Used to represent type and access information for a user defined type. 
+type ResolvedTypeSignature = {
+    /// Contains the underlying type, i.e. the argument type of the (auto-generated) type constructor associated with
+    /// the user defined type.
+    UnderlyingType : ResolvedType
+    /// Represents the Q# keywords attached to the declaration that modify its behavior.
+    Modifiers : Modifiers
+}
+
+
 /// describes a Q# user defined type
 type QsCustomType = {
     /// contains the name of the type
@@ -709,11 +721,11 @@ type QsCustomType = {
     /// and the range contains the range occupied by the type name relative to that position.
     /// The location is Null for auto-generated types defined by the compiler.
     Location : QsNullable<QsLocation>
-    /// Contains the underlying Q# type.
-    /// Note that a user defined type is *not* considered to be a subtype of its underlying type,
-    /// but rather its own, entirely distinct type,
-    /// and the underlying type is merely the argument type of the (auto-generated) type constructor associated with the user defined type.
-    Type : ResolvedType
+    /// Contains the type and access information for the user defined type.
+    /// Note that a user defined type is *not* considered to be a subtype of its underlying type, but rather its own,
+    /// entirely distinct type, and the underlying type is merely the argument type of the (auto-generated) type
+    /// constructor associated with the user defined type.
+    Type : ResolvedTypeSignature
     /// contains the type tuple defining the named and anonymous items of the type
     TypeItems : QsTuple<QsTypeItem>
     /// content of documenting comments associated with the type
@@ -768,8 +780,3 @@ type QsCompilation = {
     /// In the case of a library the array is empty.
     EntryPoints : ImmutableArray<QsQualifiedName>
 }
-
-
-
-
-

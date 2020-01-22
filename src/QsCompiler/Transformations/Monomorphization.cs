@@ -224,7 +224,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     ImmutableArray<QsLocalSymbol>.Empty,
                     s.ArgumentType,
                     s.ReturnType,
-                    s.Information
+                    s.Information,
+                    s.Modifiers
                     );
                 return base.onSignature(s);
             }

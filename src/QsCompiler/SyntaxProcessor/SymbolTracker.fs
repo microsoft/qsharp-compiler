@@ -258,7 +258,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// Adds a suitable diagnostic and returns an invalid type if the underlying type could not be determined.
     member this.GetUnderlyingType addError (udt : UserDefinedType) = 
         match this.TryGetTypeDeclaration addError udt with
-        | Value decl -> decl.Type |> StripPositionInfo.Apply
+        | Value decl -> decl.Type.UnderlyingType |> StripPositionInfo.Apply
         | Null -> InvalidType |> ResolvedType.New 
         
     /// Given the fully qualified name of a user defined type as well as the identifier specifying an item, 
