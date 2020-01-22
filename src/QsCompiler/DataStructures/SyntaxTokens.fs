@@ -198,6 +198,7 @@ type AccessModifier =
     | Private
 
 /// Used to represent Q# keywords that may be attached to a declaration to modify its visibility or behavior.
+[<Struct>]
 type Modifiers = {
     /// Defines where a global declaration may be accessed.
     Access : AccessModifier
