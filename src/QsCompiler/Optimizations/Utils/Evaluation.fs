@@ -10,6 +10,7 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
 open Microsoft.Quantum.QsCompiler.Optimizations.Utils
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -192,7 +193,6 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | _ -> qop (lhs, rhs)
 
     member private this.arithNumBinaryOp qop bigIntOp doubleOp intOp lhs rhs =
-        let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | BigIntLiteral a, BigIntLiteral b -> BigIntLiteral (bigIntOp a b)
         | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (doubleOp a b)
@@ -328,25 +328,78 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         | BoolLiteral false -> (this.simplify rhs).Expression
         | _ -> OR (lhs, this.simplify rhs)
 
+    // - simplifies addition of two constants (integers, big integers,
+    //   doubles, arrays, and strings) into single constant
+    // - rewrites (integers, big integers, and doubles):
+    //     0 + x = x
+    //     x + 0 = x
     override this.onAddition (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
-        | BigIntLiteral a, BigIntLiteral b -> BigIntLiteral (a + b)
-        | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (a + b)
-        | IntLiteral a, IntLiteral b -> IntLiteral (a + b)
         | ValueArray a, ValueArray b -> ValueArray (a.AddRange b)
         | StringLiteral (a, a2), StringLiteral (b, b2) when a2.Length = 0 || b2.Length = 0 ->
             StringLiteral (NonNullable<_>.New (a.Value + b.Value), a2.AddRange b2)
-        | _ -> ADD (lhs, rhs)
+        | BigIntLiteral zero, op
+        | op, BigIntLiteral zero when zero.IsZero -> op
+        | DoubleLiteral 0.0, op
+        | op, DoubleLiteral 0.0
+        | IntLiteral 0L, op
+        | op, IntLiteral 0L -> op
+        | _ -> this.arithNumBinaryOp ADD (+) (+) (+) lhs rhs
 
+    // - simplifies subtraction of two constants into single constant
+    // - rewrites (integers, big integers, and doubles)
+    //     x - 0 = x
+    //     0 - x = -x
+    //     x - x = 0
     override this.onSubtraction (lhs, rhs) =
-        this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
+        let lhs, rhs = this.simplify (lhs, rhs)
+        match lhs.Expression, rhs.Expression with
+        | op, BigIntLiteral zero when zero.IsZero -> op
+        | op, DoubleLiteral 0.0
+        | op, IntLiteral 0L -> op
+        | (BigIntLiteral zero), _ when zero.IsZero -> NEG rhs
+        | (DoubleLiteral 0.0), _
+        | (IntLiteral 0L), _ -> NEG rhs
+        | op1, op2 when op1 = op2 ->
+            match lhs.ResolvedType.Resolution with
+            | BigInt -> BigIntLiteral BigInteger.Zero
+            | Double -> DoubleLiteral 0.0
+            | Int -> IntLiteral 0L
+            | _ -> this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
+        | _ -> this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
 
+    // - simplifies multiplication of two constants into single constant
+    // - rewrites (integers, big integers, and doubles)
+    //     x * 0 = 0
+    //     0 * x = 0
+    //     x * 1 = x
+    //     1 * x = x
     override this.onMultiplication (lhs, rhs) =
-        this.arithNumBinaryOp MUL (*) (*) (*) lhs rhs
+        let lhs, rhs = this.simplify (lhs, rhs)
+        match lhs.Expression, rhs.Expression with
+        | _, (BigIntLiteral zero)
+        | (BigIntLiteral zero), _ when zero.IsZero -> BigIntLiteral BigInteger.Zero
+        | _, (DoubleLiteral 0.0)
+        | (DoubleLiteral 0.0), _ -> DoubleLiteral 0.0
+        | _, (IntLiteral 0L)
+        | (IntLiteral 0L), _ -> IntLiteral 0L
+        | op, (BigIntLiteral one)
+        | (BigIntLiteral one), op when one.IsOne -> op
+        | op, (DoubleLiteral 1.0)
+        | (DoubleLiteral 1.0), op
+        | op, (IntLiteral 1L)
+        | (IntLiteral 1L), op -> op
+        | _ -> this.arithNumBinaryOp MUL (*) (*) (*) lhs rhs
 
+    // - simplifies multiplication of two constants into single constant
     override this.onDivision (lhs, rhs) =
-        this.arithNumBinaryOp DIV (/) (/) (/) lhs rhs
+        let lhs, rhs = this.simplify (lhs, rhs)
+        match lhs.Expression, rhs.Expression with
+        | op, (BigIntLiteral one) when one.IsOne -> op
+        | op, (DoubleLiteral 1.0)
+        | op, (IntLiteral 1L) -> op
+        | _ -> this.arithNumBinaryOp DIV (/) (/) (/) lhs rhs
 
     override this.onExponentiate (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
