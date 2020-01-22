@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// with the given compilation should complete without throwing an exception. 
         /// The precondition verification should never throw an exception, 
         /// but instead indicate if the precondition is satisfied via the returned value. 
-        /// More detailed information can be provided via loggging. 
+        /// More detailed information can be provided via logging. 
         /// </summary>
         /// <param name="compilation">Q# compilation for which to verify the precondition.</param>
         /// <returns>Whether or not the given compilation satisfies the precondition.</returns>
