@@ -1,16 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Optimizations.Evaluation
+module internal Microsoft.Quantum.QsCompiler.Experimental.Evaluation
 
 open System
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
-open Microsoft.Quantum.QsCompiler.Optimizations.Utils
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -36,23 +35,23 @@ type private FunctionInterrupt =
 /// A shorthand for the specific Imperative type used by several functions in this file
 type private Imp<'t> = Imperative<EvalState, 't, FunctionInterrupt>
 
-/// Represents a computation that decreases the remaining statements counter by 1.
-/// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
-let private incrementState: Imp<Unit> = imperative {
-    let! vars, counter = getState
-    if counter < 1 then yield TooManyStatements
-    do! putState (vars, counter - 1)
-}
-
-/// Represents a computation that sets the given variables to the given values
-let private setVars callables entry: Imp<Unit> = imperative {
-    let! vars, counter = getState
-    do! putState (defineVarTuple (isLiteral callables) vars entry, counter)
-}
-
 
 /// Evaluates functions by stepping through their code
 type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
+
+    /// Represents a computation that decreases the remaining statements counter by 1.
+    /// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
+    let incrementState: Imp<Unit> = imperative {
+        let! vars, counter = getState
+        if counter < 1 then yield TooManyStatements
+        do! putState (vars, counter - 1)
+    }
+
+    /// Represents a computation that sets the given variables to the given values
+    let setVars callables entry: Imp<Unit> = imperative {
+        let! vars, counter = getState
+        do! putState (defineVarTuple (isLiteral callables) vars entry, counter)
+    }
 
     /// Casts a BoolLiteral to the corresponding bool
     let castToBool x: bool =
