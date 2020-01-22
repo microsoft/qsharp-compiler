@@ -11,22 +11,17 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     internal class ClassicallyControlled : IRewriteStep
     {
-        public string Name { get; }
-        public int Priority { get; }
+        public string Name => "ClassicallyControlled";
+        public int Priority => 10; // Not used for built-in transformations like this
         public IDictionary<string, string> AssemblyConstants { get; }
 
-        public bool ImplementsTransformation { get; }
-        public bool ImplementsPreconditionVerification { get; }
-        public bool ImplementsPostconditionVerification { get; }
+        public bool ImplementsTransformation => true;
+        public bool ImplementsPreconditionVerification => false;
+        public bool ImplementsPostconditionVerification => false;
 
         public ClassicallyControlled()
         {
-            Name = "ClassicallyControlled";
-            Priority = 10; // Not used for built-in transformations like this
             AssemblyConstants = new Dictionary<string, string>();
-            ImplementsTransformation = true;
-            ImplementsPreconditionVerification = false;
-            ImplementsPostconditionVerification = false;
         }
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
