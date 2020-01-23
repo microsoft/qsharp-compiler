@@ -7,7 +7,7 @@ open System
 open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.Optimizations
+open Microsoft.Quantum.QsCompiler.Experimental
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 

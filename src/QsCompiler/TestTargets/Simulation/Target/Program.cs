@@ -25,6 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
         public string Name => "CsharpGeneration";
         public int Priority => 0;
         public IDictionary<string, string> AssemblyConstants { get; }
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics { get; private set; }
 
         public bool ImplementsTransformation => true;
         public bool ImplementsPreconditionVerification => false;
@@ -32,6 +33,14 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
+            // random "diagnostic" to check if diagnostics loading works
+            this.GeneratedDiagnostics = new List<IRewriteStep.Diagnostic>() {
+                new IRewriteStep.Diagnostic
+                {
+                    Severity = CodeAnalysis.DiagnosticSeverity.Info,
+                    Message = "Invokation of the Q# compiler extension for C# generation to demonstrate execution on the simulation framework.",
+                }};
+
             var success = true;
             var outputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.OutputPath, out var path) ? path : null; 
             var allSources = GetSourceFiles.Apply(compilation.Namespaces) // also generate the code for referenced libraries...

@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation;
 
@@ -14,6 +13,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public string Name => "ClassicallyControlled";
         public int Priority => 10; // Not used for built-in transformations like this
         public IDictionary<string, string> AssemblyConstants { get; }
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
         public bool ImplementsTransformation => true;
         public bool ImplementsPreconditionVerification => false;

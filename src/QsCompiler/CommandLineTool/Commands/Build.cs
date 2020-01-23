@@ -34,6 +34,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
             }
 
+            [Option("response-files", Required = true, SetName = RESPONSE_FILES,
+            HelpText = "Response file(s) providing the command arguments. Required only if no other arguments are specified. This option replaces all other arguments.")]
+            public IEnumerable<string> ResponseFiles { get; set; }
+
             [Option('o', "output", Required = false, SetName = CODE_MODE,
             HelpText = "Destination folder where the output of the compilation will be generated.")]
             public string OutputFolder { get; set; }
@@ -53,6 +57,51 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option("trim", Required = false, Default = 1,
             HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
             public int TrimLevel { get; set; }
+
+            [Option("emit-dll", Required = false, Default = false, SetName = CODE_MODE,
+            HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
+            public bool EmitDll { get; set; }
+        }
+
+        /// <summary>
+        /// Given a string representing the command line arguments, splits them into a suitable string array. 
+        /// </summary>
+        private static IEnumerable<string> SplitCommandLineArguments(string commandLine)
+        {
+            var parmChars = commandLine?.ToCharArray() ?? new char[0];
+            var inQuote = false;
+            for (int index = 0; index < parmChars.Length; index++)
+            {
+                var precededByBackslash = index > 0 && parmChars[index - 1] == '\\';
+                var ignoreIfQuote = inQuote && precededByBackslash;
+                if (parmChars[index] == '"' && !ignoreIfQuote) inQuote = !inQuote;
+                if (inQuote && parmChars[index] == '\n') parmChars[index] = ' ';
+                if (!inQuote && !precededByBackslash && Char.IsWhiteSpace(parmChars[index])) parmChars[index] = '\n';
+            }
+            return (new string(parmChars))
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(arg => arg.Trim('"')); 
+        }
+
+        /// <summary>
+        /// Reads the content off all given response files and tries to parse their concatenated content as command line arguments. 
+        /// Logs a suitable exceptions and returns null if the parsing fails. 
+        /// Throws an ArgumentNullException if the given sequence of responseFiles is null. 
+        /// </summary>
+        private static BuildOptions FromResponseFiles(IEnumerable<string> responseFiles)
+        {
+            if (responseFiles == null) throw new ArgumentNullException(nameof(responseFiles));
+            var commandLine = String.Join(" ", responseFiles.Select(File.ReadAllText));
+            var args = SplitCommandLineArguments(commandLine);
+            var parsed = Parser.Default.ParseArguments<BuildOptions>(args);
+            return parsed.MapResult(
+                (BuildOptions opts) => opts,
+                (errs => 
+                { 
+                    HelpText.AutoBuild(parsed);
+                    return null;
+                })
+            );
         }
 
 
@@ -68,6 +117,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
+            if (options?.ResponseFiles != null && options.ResponseFiles.Any())
+            { options = FromResponseFiles(options.ResponseFiles); }
+            if (options == null) return ReturnCode.INVALID_ARGUMENTS;
+
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
             var loadOptions = new CompilationLoader.Configuration
             {
@@ -77,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 AttemptFullPreEvaluation = options.TrimLevel > 1,
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
-                DllOutputPath = " ", // generating the dll in the same location as the .bson file
+                DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false // todo: enable debug mode?
             }; 

@@ -37,6 +37,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// returns the loaded references for the compilation. 
         /// </summary>
         public delegate References ReferenceLoader(Func<IEnumerable<string>, References> loadFromDisk);
+        /// <summary>
+        /// If LoadAssembly is not null, it will be used to load the dlls that are search for classes defining rewrite steps.
+        /// </summary>
+        public static Func<string, Assembly> LoadAssembly { get; set; }
 
 
         /// <summary>
@@ -338,6 +342,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.ExternalRewriteSteps = RewriteSteps.Load(this.Config,
                 d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d),
                 ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
+            this.PrintLoadedRewriteSteps(this.ExternalRewriteSteps);
             this.CompilationStatus = new ExecutionStatus(this.ExternalRewriteSteps);
             this.CompilationStatus.PluginLoading = rewriteStepLoading;
 
@@ -444,27 +449,51 @@ namespace Microsoft.Quantum.QsCompiler
             if (rewriteStep == null) throw new ArgumentNullException(nameof(rewriteStep));
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
 
+            string GetDiagnosticsCode(DiagnosticSeverity severity) =>
+                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
+                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.CsharpGenerationGeneratedWarning) :
+                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
+                null;
+
+            Status LogDiagnostics(Status status = Status.Succeeded)
+            {
+                try
+                {
+                    foreach (var diagnostic in rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty)
+                    { this.LogAndUpdate(ref status, RewriteSteps.LoadedStep.ConvertDiagnostic(diagnostic, GetDiagnosticsCode)); }
+                }
+                catch { this.LogAndUpdate(ref status, Warning(WarningCode.RewriteStepDiagnosticsGenerationFailed, new[] { rewriteStep.Name })); }
+                return status;
+            }
+
             var status = Status.Succeeded;
             var messageSource = ProjectManager.MessageSource(rewriteStep.Origin);
             Diagnostic Warning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, messageSource);
             try
             {
                 transformed = compilation;
-                var preconditionPassed = !rewriteStep.ImplementsPreconditionVerification || rewriteStep.PreconditionVerification(compilation);
-                if (!preconditionPassed) this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, new[] { rewriteStep.Name, messageSource }));
+                var preconditionFailed = rewriteStep.ImplementsPreconditionVerification && !rewriteStep.PreconditionVerification(compilation);
+                if (preconditionFailed)
+                {
+                    LogDiagnostics();
+                    this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, new[] { rewriteStep.Name, messageSource }));
+                    return status;
+                }
 
-                var executeTransformation = preconditionPassed && rewriteStep.ImplementsTransformation;
-                var transformationPassed = !executeTransformation || rewriteStep.Transformation(compilation, out transformed);
-                if (!transformationPassed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
+                var transformationFailed = rewriteStep.ImplementsTransformation && !rewriteStep.Transformation(compilation, out transformed);
+                var postconditionFailed = this.Config.EnableAdditionalChecks && rewriteStep.ImplementsPostconditionVerification && !rewriteStep.PostconditionVerification(transformed);
+                LogDiagnostics();
 
-                var executePostconditionVerification = this.Config.EnableAdditionalChecks && transformationPassed && rewriteStep.ImplementsPostconditionVerification;
-                var postconditionPassed = !executePostconditionVerification || rewriteStep.PostconditionVerification(transformed);
-                if (!postconditionPassed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
+                if (transformationFailed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
+                if (postconditionFailed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
+                return status;
             }
             catch (Exception ex)
             {
-                this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
                 this.LogAndUpdate(ref status, ex);
+                var isLoadException = ex is FileLoadException || ex.InnerException is FileLoadException;
+                if (isLoadException) this.LogAndUpdate(ref status, ErrorCode.FileNotFoundDuringPluginExecution, new[] { rewriteStep.Name, messageSource });
+                else this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
                 transformed = null;
             }
             return status;
@@ -548,7 +577,8 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Logs the names of the given source files as Information unless the given argument is null.
+        /// Logs the names of the given source files as Information.
+        /// Does nothing if the given argument is null.
         /// </summary>
         private void PrintResolvedFiles(IEnumerable<Uri> sourceFiles)
         {
@@ -556,11 +586,12 @@ namespace Microsoft.Quantum.QsCompiler
             var args = sourceFiles.Any()
                 ? sourceFiles.Select(f => f?.LocalPath).ToArray()
                 : new string[] { "(none)" };
-            this.Logger?.Log(InformationCode.CompilingWithSourceFiles, Enumerable.Empty<string>(), messageParam: Diagnostics.Formatting.Indent(args).ToArray());
+            this.Logger?.Log(InformationCode.CompilingWithSourceFiles, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
         }
 
         /// <summary>
-        /// Logs the names of the given assemblies as Information unless the given argument is null.
+        /// Logs the names of the given assemblies as Information.
+        /// Does nothing if the given argument is null.
         /// </summary>
         private void PrintResolvedAssemblies(IEnumerable<NonNullable<string>> assemblies)
         {
@@ -568,7 +599,20 @@ namespace Microsoft.Quantum.QsCompiler
             var args = assemblies.Any()
                 ? assemblies.Select(name => name.Value).ToArray()
                 : new string[] { "(none)" };
-            this.Logger?.Log(InformationCode.CompilingWithAssemblies, Enumerable.Empty<string>(), messageParam: Diagnostics.Formatting.Indent(args).ToArray());
+            this.Logger?.Log(InformationCode.CompilingWithAssemblies, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
+        }
+
+        /// <summary>
+        /// Logs the names and origins of the given rewrite steps as Information.
+        /// Does nothing if the given argument is null.
+        /// </summary>
+        private void PrintLoadedRewriteSteps(IEnumerable<RewriteSteps.LoadedStep> rewriteSteps)
+        {
+            if (rewriteSteps == null) return;
+            var args = rewriteSteps.Any()
+                ? rewriteSteps.Select(step => $"{step.Name} ({step.Origin})").ToArray()
+                : new string[] { "(none)" };
+            this.Logger?.Log(InformationCode.LoadedRewriteSteps, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
         }
 
 
