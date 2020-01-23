@@ -847,3 +847,20 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     }
 
 }
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    // Don't Hoist Purely Classical Conditions
+    
+    operation Foo() : Unit {
+        let x = 3;
+        if (x == 4) {
+            SubOp1();
+            SubOp2();
+        }
+    }
+
+}

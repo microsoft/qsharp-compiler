@@ -1204,3 +1204,8 @@ type ClassicalControlTests () =
 
         let (success, _, _) = IsApplyIfArgMatch args "r" outerOp.FullName
         Assert.True(success, sprintf "ApplyIfZeroA did not have the correct arguments")
+
+    [<Fact>]
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Don't Hoist Purely Classical Conditions`` ()=
+        CompileClassicalControlTest 24 |> ignore
