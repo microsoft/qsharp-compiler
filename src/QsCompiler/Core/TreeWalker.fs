@@ -52,6 +52,9 @@ type SyntaxTreeWalker() =
     abstract member onSourceFile : NonNullable<string> -> unit
     default this.onSourceFile f = ()
 
+    abstract member onModifiers : Modifiers -> unit
+    default this.onModifiers m = ()
+
     abstract member onTypeItems : QsTuple<QsTypeItem> -> unit
     default this.onTypeItems tItem = 
         match tItem with 
@@ -70,6 +73,7 @@ type SyntaxTreeWalker() =
         this.Scope.Expression.Type.Walk s.ArgumentType
         this.Scope.Expression.Type.Walk s.ReturnType
         this.Scope.Expression.Type.onCallableInformation s.Information
+        this.onModifiers s.Modifiers
     
 
     abstract member onExternalImplementation : unit -> unit
@@ -148,10 +152,14 @@ type SyntaxTreeWalker() =
         this.onSourceFile t.SourceFile 
         this.onLocation t.Location
         t.Attributes |> Seq.iter this.onAttribute
-        // TODO: Should modifiers have their own walker?
-        this.Scope.Expression.Type.Walk t.Type.UnderlyingType
+        this.onTypeSignature t.Type
         this.onTypeItems t.TypeItems
         this.onDocumentation t.Documentation
+
+    abstract member onTypeSignature : ResolvedTypeSignature -> unit
+    default this.onTypeSignature s =
+        this.Scope.Expression.Type.Walk s.UnderlyingType
+        this.onModifiers s.Modifiers
 
     abstract member onCallableImplementation : QsCallable -> unit
     default this.onCallableImplementation (c : QsCallable) = 

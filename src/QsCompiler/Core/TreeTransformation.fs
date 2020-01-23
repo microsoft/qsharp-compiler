@@ -49,6 +49,9 @@ type SyntaxTreeTransformation() =
     abstract member onSourceFile : NonNullable<string> -> NonNullable<string>
     default this.onSourceFile f = f
 
+    abstract member onModifiers : Modifiers -> Modifiers
+    default this.onModifiers m = m
+
     abstract member onTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
     default this.onTypeItems tItem = 
         match tItem with 
@@ -78,8 +81,8 @@ type SyntaxTreeTransformation() =
         let argType = this.Scope.Expression.Type.Transform s.ArgumentType
         let returnType = this.Scope.Expression.Type.Transform s.ReturnType
         let info = this.Scope.Expression.Type.onCallableInformation s.Information
-        // TODO: Should modifiers also be transformed?
-        ResolvedSignature.New ((argType, returnType), info, typeParams, s.Modifiers)
+        let modifiers = this.onModifiers s.Modifiers
+        ResolvedSignature.New ((argType, returnType), info, typeParams, modifiers)
     
 
     abstract member onExternalImplementation : unit -> unit
@@ -159,13 +162,17 @@ type SyntaxTreeTransformation() =
         let source = this.onSourceFile t.SourceFile 
         let loc = this.onLocation t.Location
         let attributes = t.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let underlyingType = this.Scope.Expression.Type.Transform t.Type.UnderlyingType
-        // TODO: Should modifiers also be transformed?
-        let typeSignature = { UnderlyingType = underlyingType; Modifiers = t.Type.Modifiers }
+        let typeSignature = this.onTypeSignature t.Type
         let typeItems = this.onTypeItems t.TypeItems
         let doc = this.onDocumentation t.Documentation
-        QsCustomType.New
-            (source, loc) (t.FullName, attributes, typeItems, typeSignature, doc, t.Comments)
+        QsCustomType.New (source, loc) (t.FullName, attributes, typeItems, typeSignature, doc, t.Comments)
+
+    abstract member onTypeSignature : ResolvedTypeSignature -> ResolvedTypeSignature
+    default this.onTypeSignature s =
+        {
+            UnderlyingType = this.Scope.Expression.Type.Transform s.UnderlyingType
+            Modifiers = this.onModifiers s.Modifiers
+        }
 
     abstract member onCallableImplementation : QsCallable -> QsCallable
     default this.onCallableImplementation (c : QsCallable) = 
