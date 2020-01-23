@@ -60,6 +60,44 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
             );
 
+        private static (bool, QsResult, TypedExpression) IsConditionedOnResultLiteralExpression(TypedExpression expression)
+        {
+            if (expression.Expression is ExpressionKind.EQ eq)
+            {
+                if (eq.Item1.Expression is ExpressionKind.ResultLiteral exp1)
+                {
+                    return (true, exp1.Item, eq.Item2);
+                }
+                else if (eq.Item2.Expression is ExpressionKind.ResultLiteral exp2)
+                {
+                    return (true, exp2.Item, eq.Item1);
+                }
+            }
+
+            return (false, null, null);
+        }
+
+        private static (bool, QsResult, TypedExpression, QsScope, QsScope) IsConditionedOnResultLiteralStatement(QsStatement statement)
+        {
+            if (statement.Statement is QsStatementKind.QsConditionalStatement cond)
+            {
+                if (cond.Item.ConditionalBlocks.Length == 1 && (cond.Item.ConditionalBlocks[0].Item1.Expression is ExpressionKind.EQ expression))
+                {
+                    var scope = cond.Item.ConditionalBlocks[0].Item2.Body;
+                    var defaultScope = cond.Item.Default.ValueOr(null)?.Body;
+
+                    var (success, literal, expr) = IsConditionedOnResultLiteralExpression(cond.Item.ConditionalBlocks[0].Item1);
+
+                    if (success)
+                    {
+                        return (true, literal, expr, scope, defaultScope);
+                    }
+                }
+            }
+
+            return (false, null, null, null, null);
+        }
+
         private ClassicallyControlledTransformation() { }
 
         private class ClassicallyControlledSyntax : SyntaxTreeTransformation<ClassicallyControlledScope>
@@ -72,29 +110,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
         private class ClassicallyControlledScope : ScopeTransformation<NoExpressionTransformations>
         {
             public ClassicallyControlledScope(NoExpressionTransformations expr = null) : base(expr ?? new NoExpressionTransformations()) { }
-
-            private (bool, QsResult, TypedExpression, QsScope, QsScope) IsConditionedOnResultLiteralStatement(QsStatement statement)
-            {
-                if (statement.Statement is QsStatementKind.QsConditionalStatement cond)
-                {
-                    if (cond.Item.ConditionalBlocks.Length == 1 && (cond.Item.ConditionalBlocks[0].Item1.Expression is ExpressionKind.EQ expression))
-                    {
-                        var scope = cond.Item.ConditionalBlocks[0].Item2.Body;
-                        var defaultScope = cond.Item.Default.ValueOr(null)?.Body;
-
-                        if (expression.Item1.Expression is ExpressionKind.ResultLiteral exp1)
-                        {
-                            return (true, exp1.Item, expression.Item2, scope, defaultScope);
-                        }
-                        else if (expression.Item2.Expression is ExpressionKind.ResultLiteral exp2)
-                        {
-                            return (true, exp2.Item, expression.Item1, scope, defaultScope);
-                        }
-                    }
-                }
-
-                return (false, null, null, null, null);
-            }
 
             private (bool, TypedExpression, TypedExpression) IsValidScope(QsScope scope)
             {
@@ -855,10 +870,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 {
                     var superInWithinBlock = _super._InWithinBlock;
                     _super._InWithinBlock = true;
-                    var (_, outer) = this.onPositionedBlock(null, stm.OuterTransformation);
+                    var (_, outer) = this.onPositionedBlock(null, stm.OuterTransformation); // ToDo: null is probably bad here
                     _super._InWithinBlock = superInWithinBlock;
 
-                    var (_, inner) = this.onPositionedBlock(null, stm.InnerTransformation);
+                    var (_, inner) = this.onPositionedBlock(null, stm.InnerTransformation); // ToDo: null is probably bad here
 
                     return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
                 }
@@ -902,7 +917,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         : condBlock.Item2.Body.KnownSymbols.Variables;
 
                         var (expr, block) = this.onPositionedBlock(condBlock.Item1, condBlock.Item2);
-                        if (block.Body.Statements.Length > 0 && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
+                        var (isExprCond, _, _) = IsConditionedOnResultLiteralExpression(expr.Value); // ToDo: .Value may not be needed in the future
+                        if (block.Body.Statements.Length > 0 && isExprCond && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
                         {
                             // Hoist the scope to its own operation
                             var (callable, call) = HoistIfContents(block.Body);
