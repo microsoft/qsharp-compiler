@@ -373,13 +373,15 @@ namespace Microsoft.Quantum.QsCompiler
             if (this.Config.ConvertClassicalControl)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationStatus.ConvertClassicalControl = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput);
+                this.CompilationStatus.ConvertClassicalControl = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out var transformed);
+                if (this.CompilationStatus.ConvertClassicalControl == Status.Succeeded) this.CompilationOutput = transformed;
             }
 
             if (!this.Config.SkipMonomorphization && this.CompilationOutput?.EntryPoints.Length != 0)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput);
+                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out var transformed);
+                if (this.CompilationStatus.Monomorphization == Status.Succeeded) this.CompilationOutput = transformed;
             }
 
             if (this.Config.GenerateFunctorSupport)
