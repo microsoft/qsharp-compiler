@@ -353,8 +353,5 @@ let public ClassicalControlSignatures =
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit";
         |]);
-        (_DefaultTypes, [| // Don't Hoist Purely Classical Conditions
-            ClassicalControlNs, "Foo", [||], "Unit";
-        |]);
     |]
     |> _MakeSignatures

@@ -917,8 +917,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         : condBlock.Item2.Body.KnownSymbols.Variables;
 
                         var (expr, block) = this.onPositionedBlock(condBlock.Item1, condBlock.Item2);
-                        var (isExprCond, _, _) = IsConditionedOnResultLiteralExpression(expr.Value); // ToDo: .Value may not be needed in the future
-                        if (block.Body.Statements.Length > 0 && isExprCond && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
+
+                        // ToDo: Reduce the number of unnecessary generated operations by generalizing
+                        // the condition logic for the conversion and using that condition here
+                        //var (isExprCond, _, _) = IsConditionedOnResultLiteralExpression(expr.Value); // ToDo: .Value may not be needed in the future
+
+                        if (block.Body.Statements.Length > 0 /*&& isExprCond*/ && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
                         {
                             // Hoist the scope to its own operation
                             var (callable, call) = HoistIfContents(block.Body);
