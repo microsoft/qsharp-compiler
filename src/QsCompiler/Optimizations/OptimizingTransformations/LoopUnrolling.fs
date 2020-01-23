@@ -1,12 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Optimizations.LoopUnrolling
+namespace Microsoft.Quantum.QsCompiler.Experimental
 
-open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
-open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
-open Microsoft.Quantum.QsCompiler.Optimizations.Utils
-open Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming
+open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -14,12 +11,12 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
 /// The SyntaxTreeTransformation used to unroll loops
-type internal LoopUnroller(callables, maxSize) =
+type LoopUnrolling(callables, maxSize) =
     inherit OptimizingTransformation()
 
     override __.Transform x =
         let x = base.Transform x
-        VariableRenamer().Transform x
+        VariableRenaming().Transform x
 
     override __.Scope = { new ScopeTransformation() with
         override scope.StatementKind = { new StatementKindTransformation() with

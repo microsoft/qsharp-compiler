@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.VisualStudio.LanguageServer.Client;
+using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Utilities;
 using Newtonsoft.Json.Linq;
@@ -26,8 +27,22 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
     [Export(typeof(ILanguageClient))]
     public class QsLanguageClient : VisualStudio.Shell.AsyncPackage, ILanguageClient, ILanguageClientCustomMessage
     {
-        public QsLanguageClient() : base() =>
+        private readonly long LaunchTime;
+        public readonly string LogFile;
+        public readonly string LanguageServerPath;
+
+        public static Guid OutputPaneGuid =
+            new Guid("C6F36B68-90B4-4A12-BE58-34E3F735B0AE");
+
+        public QsLanguageClient() : base()
+        {
+            this.LaunchTime = DateTime.Now.Ticks;
+            this.LogFile = Path.Combine(Path.GetTempPath(), $"qsp-{LaunchTime}.log");
+            this.LanguageServerPath = Path.Combine(
+                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                "LanguageServer", "Microsoft.Quantum.QsLanguageServer.exe");
             CustomMessageTarget = new CustomServerNotifications();
+        }
 
         // properties and methods required by ILanguageClientCustomMessage
 
@@ -67,10 +82,25 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         public Task OnServerInitializedAsync() =>
             Task.Run(() => Telemetry.SendEvent(Telemetry.ExtensionEvent.LspReady));
 
-        public Task OnServerInitializeFailedAsync(Exception ex)
+        /// We create a new pane to show the encountered exception. 
+        public async Task OnServerInitializeFailedAsync(Exception ex)
         {
-            Debug.Assert(false, $"server initialization failed with exception '{ex.Message}'");
-            return Task.CompletedTask;
+            await VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            var outWindow = GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
+
+            var windowTitle = this.Name;
+            outWindow.CreatePane(ref OutputPaneGuid, windowTitle, 1, 1);
+            outWindow.GetPane(ref OutputPaneGuid, out var customPane);
+
+            var messages = new[]
+            {
+                $"Server initialization failed.",
+                $"Path to the language server executable: \"{this.LanguageServerPath}\"",
+                $"Path to the log file: \"{this.LogFile}\"", 
+                ex.ToString()
+            };
+            customPane.OutputString(String.Join(Environment.NewLine, messages)); 
+            customPane.Activate(); // brings the pane into view
         }
 
         /// Invoking the StartAsync event signals that the language server should be started, and triggers a call to this routine.  
@@ -86,20 +116,14 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
                 string ServerWriterPipe = $"QsLanguageServerWriterPipe";
                 #else
 
-                var root = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                var serverPath = Path.Combine(root, "LanguageServer");
-                var exe = Path.Combine(serverPath, "Microsoft.Quantum.QsLanguageServer.exe");
-                var time = DateTime.Now.Ticks;
-                string ServerReaderPipe = $"QsLanguageServerReaderPipe{time}";
-                string ServerWriterPipe = $"QsLanguageServerWriterPipe{time}";
-                string LogPath = Path.Combine(Path.GetTempPath(), $"qsp-{time}.log");
-
+                string ServerReaderPipe = $"QsLanguageServerReaderPipe{this.LaunchTime}";
+                string ServerWriterPipe = $"QsLanguageServerWriterPipe{this.LaunchTime}";
                 ProcessStartInfo info = new ProcessStartInfo
                 {
-                    FileName = exe,
+                    FileName = LanguageServerPath,
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    Arguments = $"--writer={ServerWriterPipe} --reader={ServerReaderPipe} --log={LogPath}"
+                    Arguments = $"--writer={ServerWriterPipe} --reader={ServerReaderPipe} --log={this.LogFile}"
                 };
 
                 Process process = new Process { StartInfo = info };

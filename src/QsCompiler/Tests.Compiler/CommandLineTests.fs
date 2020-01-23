@@ -39,7 +39,7 @@ let ``valid snippet`` () =
     [|
         "-s" 
         "let a = 0;" 
-        "-v"
+        "-v n"
     |] 
     |> testSnippet ReturnCode.SUCCESS
 
@@ -57,7 +57,8 @@ let ``one valid file`` () =
     [|
         "-i"
         ("TestCases","General.qs") |> Path.Combine
-        "-v"
+        "--verbosity" 
+        "Diagnostic"
     |]
     |> testInput ReturnCode.SUCCESS
     
@@ -176,6 +177,13 @@ let ``generate docs`` () =
 
     let result = Program.Main args
     Assert.Equal(ReturnCode.SUCCESS, result) 
+    Assert.True (existsAndNotEmpty toc)
+    Assert.True (existsAndNotEmpty nsDoc)
+    Assert.True (existsAndNotEmpty opDoc)
+
+    // Verify that we can compile repeatedly without errors despite docs already existing.
+    let result2 = Program.Main args
+    Assert.Equal(ReturnCode.SUCCESS, result2) 
     Assert.True (existsAndNotEmpty toc)
     Assert.True (existsAndNotEmpty nsDoc)
     Assert.True (existsAndNotEmpty opDoc)

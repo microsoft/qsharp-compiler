@@ -1,42 +1,40 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Optimizations.ConstantPropagation
+namespace Microsoft.Quantum.QsCompiler.Experimental
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Optimizations.Evaluation
-open Microsoft.Quantum.QsCompiler.Optimizations.MinorTransformations
-open Microsoft.Quantum.QsCompiler.Optimizations.Utils
+open Microsoft.Quantum.QsCompiler.Experimental.Evaluation
+open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
-/// Returns whether the given expression should be propagated as a constant.
-/// For a statement of the form "let x = [expr];", if shouldPropagate(expr) is true,
-/// then we should substitute [expr] for x wherever x occurs in future code.
-let rec private shouldPropagate callables (expr : TypedExpression) =
-    let folder ex sub = 
-        isLiteral callables ex ||
-        (match ex.Expression with
-        | Identifier _ | ArrayItem _ | UnwrapApplication _ | NamedItem _
-        | ValueTuple _ | ValueArray _ | RangeLiteral _ | NewArray _ -> true
-        | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
-            when (callables.get qualName).Kind = TypeConstructor -> true
-        | a when TypedExpression.IsPartialApplication a -> true
-        | _ -> false
-        && Seq.forall id sub)
-    expr.Fold folder
-
-
 /// The SyntaxTreeTransformation used to evaluate constants
-type internal ConstantPropagator(callables) =
+type ConstantPropagation(callables) =
     inherit OptimizingTransformation()
 
     /// The current dictionary that maps variables to the values we substitute for them
     let mutable constants = Map.empty
+
+    /// Returns whether the given expression should be propagated as a constant.
+    /// For a statement of the form "let x = [expr];", if shouldPropagate(expr) is true,
+    /// then we should substitute [expr] for x wherever x occurs in future code.
+    let rec shouldPropagate callables (expr : TypedExpression) =
+        let folder ex sub = 
+            isLiteral callables ex ||
+            (match ex.Expression with
+            | Identifier _ | ArrayItem _ | UnwrapApplication _ | NamedItem _
+            | ValueTuple _ | ValueArray _ | RangeLiteral _ | NewArray _ -> true
+            | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, _)}, _)
+                when (callables.[qualName]).Kind = TypeConstructor -> true
+            | a when TypedExpression.IsPartialApplication a -> true
+            | _ -> false
+            && Seq.forall id sub)
+        expr.Fold folder
 
 
     override __.onProvidedImplementation (argTuple, body) =

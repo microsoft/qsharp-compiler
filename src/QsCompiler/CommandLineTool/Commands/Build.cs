@@ -25,8 +25,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 {
                     yield return new Example("***\nCompiling a Q# source file",
                         new BuildOptions { Input = new string[] { "file.qs" } });
-                    yield return new Example("***\nCompiling a Q# source file and calling the C# generation on the compiled binary",
-                        new BuildOptions { Input = new string[] { "file.qs" }, Targets = new string[] { "path/To/Microsoft.Quantum.CsharpGeneration.dll" } });
+                    yield return new Example("***\nCompiling a Q# source file using additional compilation steps defined in a .NET Core dll",
+                        new BuildOptions { Input = new string[] { "file.qs" }, Plugins = new string[] { "myCustomStep.dll" } });
                     yield return new Example("***\nCompiling several Q# source files and referenced compiled libraries",
                         new BuildOptions { Input = new string[] { "file1.qs", "file2.qs" }, References = new string[] { "library1.dll", "library2.dll" }});
                     yield return new Example("***\nSetting the output folder for the compilation output",
@@ -34,9 +34,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
             }
 
-            [Option('t', "target", Required = false, SetName = CODE_MODE,
-            HelpText = "Path to the dotnet core app(s) to call for processing the compiled binary.")]
-            public IEnumerable<string> Targets { get; set; }
+            [Option("response-files", Required = true, SetName = RESPONSE_FILES,
+            HelpText = "Response file(s) providing the command arguments. Required only if no other arguments are specified. This option replaces all other arguments.")]
+            public IEnumerable<string> ResponseFiles { get; set; }
 
             [Option('o', "output", Required = false, SetName = CODE_MODE,
             HelpText = "Destination folder where the output of the compilation will be generated.")]
@@ -50,9 +50,58 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "Name of the project (needs to be usable as file name).")]
             public string ProjectName { get; set; }
 
+            [Option("load", Required = false, SetName = CODE_MODE,
+            HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
+            public IEnumerable<string> Plugins { get; set; }
+
             [Option("trim", Required = false, Default = 1,
             HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
             public int TrimLevel { get; set; }
+
+            [Option("emit-dll", Required = false, Default = false, SetName = CODE_MODE,
+            HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
+            public bool EmitDll { get; set; }
+        }
+
+        /// <summary>
+        /// Given a string representing the command line arguments, splits them into a suitable string array. 
+        /// </summary>
+        private static IEnumerable<string> SplitCommandLineArguments(string commandLine)
+        {
+            var parmChars = commandLine?.ToCharArray() ?? new char[0];
+            var inQuote = false;
+            for (int index = 0; index < parmChars.Length; index++)
+            {
+                var precededByBackslash = index > 0 && parmChars[index - 1] == '\\';
+                var ignoreIfQuote = inQuote && precededByBackslash;
+                if (parmChars[index] == '"' && !ignoreIfQuote) inQuote = !inQuote;
+                if (inQuote && parmChars[index] == '\n') parmChars[index] = ' ';
+                if (!inQuote && !precededByBackslash && Char.IsWhiteSpace(parmChars[index])) parmChars[index] = '\n';
+            }
+            return (new string(parmChars))
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(arg => arg.Trim('"')); 
+        }
+
+        /// <summary>
+        /// Reads the content off all given response files and tries to parse their concatenated content as command line arguments. 
+        /// Logs a suitable exceptions and returns null if the parsing fails. 
+        /// Throws an ArgumentNullException if the given sequence of responseFiles is null. 
+        /// </summary>
+        private static BuildOptions FromResponseFiles(IEnumerable<string> responseFiles)
+        {
+            if (responseFiles == null) throw new ArgumentNullException(nameof(responseFiles));
+            var commandLine = String.Join(" ", responseFiles.Select(File.ReadAllText));
+            var args = SplitCommandLineArguments(commandLine);
+            var parsed = Parser.Default.ParseArguments<BuildOptions>(args);
+            return parsed.MapResult(
+                (BuildOptions opts) => opts,
+                (errs => 
+                { 
+                    HelpText.AutoBuild(parsed);
+                    return null;
+                })
+            );
         }
 
 
@@ -60,40 +109,19 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         /// <summary>
         /// Builds the compilation for the Q# code or Q# snippet and referenced assemblies defined by the given options.
-        /// Invokes all specified targets (dotnet core apps) with suitable TargetOptions,
-        /// that in particular specify the path to the compiled binary as input and the same output folder, verbosity, and suppressed warnings as the given options.
-        /// The output folder is set to the current directory if one or more targets have been specified but the output folder was left unspecified.
         /// Returns a suitable error code if one of the compilation or generation steps fails.
-        /// </summary>
-        /// <exception cref="ArgumentNullException">If any of the given arguments is null.</exception>
+        /// Throws an ArgumentNullException if any of the given arguments is null.
         /// </summary>
         public static int Run(BuildOptions options, ConsoleLogger logger)
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
-            CompilationLoader.BuildTarget DefineTarget(string exeName) => (binary, onException) =>
-            {
-                var targetOpts = new TargetOptions
-                {
-                    Input = new[] { binary },
-                    OutputFolder = Path.GetFullPath(options.OutputFolder ?? "."), // GetFullPath is needed for the output folder to be relative to the current folder!
-                    Verbose = options.Verbose,
-                    NoWarn = options.NoWarn,
-                };
-                var pathToExe = Path.GetFullPath(exeName);
-                var commandLineArgs = $"{pathToExe} {Parser.Default.FormatCommandLine(targetOpts)}";
-                var success = ProcessRunner.Run("dotnet", commandLineArgs, out var output, out var error, out var exitCode, out var ex, timeout: 30000);
+            if (options?.ResponseFiles != null && options.ResponseFiles.Any())
+            { options = FromResponseFiles(options.ResponseFiles); }
+            if (options == null) return ReturnCode.INVALID_ARGUMENTS;
 
-                if (ex != null) onException?.Invoke(ex);
-                if (exitCode != 0) logger.Log(WarningCode.TargetExitedAbnormally, new[] { exeName, exitCode.ToString() }, pathToExe); 
-                var (outStr, errStr) = (output.ToString(), error.ToString());
-                if (!String.IsNullOrWhiteSpace(outStr)) logger.Log(InformationCode.BuildTargetOutput, Enumerable.Empty<string>(), pathToExe, messageParam: outStr);
-                if (!String.IsNullOrWhiteSpace(errStr)) logger.Log(InformationCode.BuildTargetError, Enumerable.Empty<string>(), pathToExe, messageParam: errStr); 
-                return success;
-            };
-
-            var specifiesTargets = options.Targets != null && options.Targets.Any();
+            var usesPlugins = options.Plugins != null && options.Plugins.Any();
             var loadOptions = new CompilationLoader.Configuration
             {
                 ProjectName = options.ProjectName,
@@ -101,9 +129,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 1,
                 DocumentationOutputFolder = options.DocFolder,
-                BuildOutputFolder = options.OutputFolder ?? (specifiesTargets ? "." : null),
-                DllOutputPath = " ", // generating the dll in the same location as the .bson file
-                Targets = options.Targets.ToImmutableDictionary(id => id, DefineTarget)
+                BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
+                DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
+                RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
+                EnableAdditionalChecks = false // todo: enable debug mode?
             }; 
 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);

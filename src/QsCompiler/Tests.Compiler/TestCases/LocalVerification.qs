@@ -4,6 +4,7 @@
 /// This namespace contains test cases for expression and statement verification
 namespace Microsoft.Quantum.Testing.LocalVerification {
 
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Testing.General;
     open Microsoft.Quantum.Testing.TypeChecking;
 
@@ -873,4 +874,158 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     function UsingRenamedType5 () : (RenamedType[], Int) {
         return Default<(RenamedType[], Int)>();
     }
+
+
+    // unit tests
+
+    @Test("QuantumSimulator")
+    function ValidTestAttribute1 () : Unit {}
+
+    @ Test("ResourcesEstimator")
+    function ValidTestAttribute2 () : Unit {}
+
+    @ Test("ToffoliSimulator")
+    function ValidTestAttribute3 () : Unit {}
+
+    @ Test("QuantumSimulator")
+    operation ValidTestAttribute4 () : Unit {}
+
+    @ Test("ResourcesEstimator")
+    operation ValidTestAttribute5 () : Unit {}
+
+    @ Test("ToffoliSimulator")
+    operation ValidTestAttribute6 () : Unit {}
+
+    @ Test("QuantumSimulator")
+    operation ValidTestAttribute7 () : Unit 
+    is Adj + Ctl{}
+
+    @ Test("ResourcesEstimator")
+    operation ValidTestAttribute8 () : Unit 
+    is Adj {}
+
+    @ Test("ToffoliSimulator")
+    operation ValidTestAttribute9 () : Unit 
+    is Ctl {}
+
+    @ Test("QuantumSimulator")
+    function ValidTestAttribute10 () : ((Unit)) {}
+
+    @ Test("ResourcesEstimator")
+    function ValidTestAttribute11 (arg : Unit) : Unit { }
+
+    @ Test("ToffoliSimulator")
+    operation ValidTestAttribute12 (arg : (Unit)) : Unit { }
+
+    @ Test("QuantumSimulator")
+    @ Test("ToffoliSimulator")
+    @ Test("ResourcesEstimator")
+    function ValidTestAttribute13 () : Unit { }
+
+    @ Test("QuantumSimulator")
+    @ Test("ToffoliSimulator")
+    @ Test("ResourcesEstimator")
+    operation ValidTestAttribute14 () : Unit { }
+
+    @ Test("QuantumSimulator")
+    @ Test("QuantumSimulator")
+    operation ValidTestAttribute15 () : Unit { }
+
+    @ Test("QuantumSimulator")
+    operation ValidTestAttribute16 () : { }
+
+    @ Test("SomeNamespace.Target")
+    operation ValidTestAttribute17 () : Unit { }
+
+    @ Test("SomeNamespace.Target1")
+    @ Test("_Some3_Namespace_._My45.Target2")
+    function ValidTestAttribute18 () : Unit { }
+
+    @ Test("SomeNamespace.Target")
+    @ Test("SomeNamespace.Target")
+    function ValidTestAttribute19 () : Unit { }
+
+    @ Test("SomeNamespace.Target")
+    @ Test("QuantumSimulator")
+    operation ValidTestAttribute20 () : Unit { }
+
+
+    @ Test("QuantumSimulator")
+    newtype InvalidTestAttribute1 = Unit;
+
+    function InvalidTestAttribute2 () : Unit {
+        @ Test("ToffoliSimulator")
+        body (...) {}
+    }
+
+    operation InvalidTestAttribute3 () : Unit {
+        @ Test("ResourcesEstimator")
+        body (...) {}
+    }
+
+    operation InvalidTestAttribute4 () : Unit {
+        body (...) { }
+        @ Test("ResourcesEstimator")
+        adjoint (...) { }
+    }
+
+    @ Test("ResourcesEstimator")
+    function InvalidTestAttribute5<'T> () : Unit { }
+
+    @ Test("QuantumSimulator")
+    operation InvalidTestAttribute6<'T> () : Unit { }
+
+    @ Test("ResourcesEstimator")
+    operation InvalidTestAttribute7 () : Int { 
+        return 1;
+    }
+
+    @ Test("ToffoliSimulator")
+    function InvalidTestAttribute8 () : String { 
+        return "";
+    }
+
+    @ Test("QuantumSimulator")
+    function InvalidTestAttribute9 (a : Unit, b : Unit) : Unit { }
+
+    @ Test("ResourcesEstimator")
+    operation InvalidTestAttribute10 (a : Bool) : Unit { }
+
+    @ Test("ToffoliSimulator")
+    operation InvalidTestAttribute11 ((a : Double)) : Unit { }
+
+    @ Test("")
+    operation InvalidTestAttribute12 () : Unit { }
+
+    @ Test("  ")
+    function InvalidTestAttribute13 () : Unit { }
+
+    @ Test("Target")
+    function InvalidTestAttribute14 () : Unit { }
+
+    @ Test("Target")
+    @ Test("ToffoliSimulator")
+    @ Test("ToffoliSimulator")
+    operation InvalidTestAttribute15 () : Unit { }
+
+    @ Test("QuantumSimulator")
+    operation InvalidTestAttribute16 () : NonExistent { }
+
+    @ Test ()
+    operation InvalidTestAttribute17 () : Unit { }
+
+    @ Test 
+    operation InvalidTestAttribute18 () : Unit { }
+
+    @ Test("SomeNamespace.")
+    operation InvalidTestAttribute19 () : Unit { }
+
+    @ Test("NS.3Qubit")
+    operation InvalidTestAttribute20 () : Unit { }
+
+    @ Test("SomeNamespace .Target")
+    function InvalidTestAttribute21 () : Unit { }
+
+    @ Test("Some Namespace.Target")
+    function InvalidTestAttribute22 () : Unit { }
 }

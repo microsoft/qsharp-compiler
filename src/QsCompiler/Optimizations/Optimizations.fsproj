@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\Common\AssemblyCommon.props" />
+  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -10,22 +10,23 @@
 
   <ItemGroup>
     <Compile Include="Utils\ComputationExpressions.fs" />
-    <Compile Include="Utils\Utils.fs" />
+    <Compile Include="Utils\HelperFunctions.fs" />
+    <Compile Include="Utils\OptimizationTools.fs" />
     <Compile Include="Utils\Evaluation.fs" />
-    <Compile Include="Utils\HelperTransformations.fs" />
     <Compile Include="Utils\VariableRenaming.fs" />
+    <Compile Include="OptimizingTransformations\TransformationBase.fs" />
     <Compile Include="OptimizingTransformations\VariableRemoving.fs" />
     <Compile Include="OptimizingTransformations\StatementRemoving.fs" />
     <Compile Include="OptimizingTransformations\ConstantPropagation.fs" />
     <Compile Include="OptimizingTransformations\LoopUnrolling.fs" />
     <Compile Include="OptimizingTransformations\CallableInlining.fs" />
-    <Compile Include="OptimizingTransformations\StatementReordering.fs" />
-    <Compile Include="..\Common\DelaySign.fs">
+    <Compile Include="OptimizingTransformations\StatementGrouping.fs" />
+    <Compile Include="..\..\Common\DelaySign.fs">
       <Link>DelaySign.fs</Link>
     </Compile>
     <Compile Include="PureCircuitAPI.fs" />
     <Compile Include="PureCircuitFinding.fs" />
-    <Compile Include="PreEvalution.fs" />
+    <Compile Include="PreEvaluation.fs" />
   </ItemGroup>
 
   <ItemGroup>

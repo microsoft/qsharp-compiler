@@ -47,10 +47,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\Common\AssemblyCommon.cs">
+    <Compile Include="..\..\Common\AssemblyCommon.cs">
       <Link>Properties\AssemblyCommon.cs</Link>
     </Compile>
-    <Compile Include="..\Common\DelaySign.cs">
+    <Compile Include="..\..\Common\DelaySign.cs">
       <Link>Properties\DelaySign.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />

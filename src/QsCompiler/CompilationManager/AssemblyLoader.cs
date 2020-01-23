@@ -13,7 +13,6 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
 
 
@@ -35,7 +34,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Throws a FileNotFoundException if no file with the given name exists. 
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </summary>
-        public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers)
+        public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false)
         {
             if (asm == null) throw new ArgumentNullException(nameof(asm));
             if (!CompilationUnitManager.TryGetFileId(asm, out var id) || !File.Exists(asm.LocalPath))
@@ -43,11 +42,11 @@ namespace Microsoft.Quantum.QsCompiler
 
             using var stream = File.OpenRead(asm.LocalPath);
             using var assemblyFile = new PEReader(stream);
-            if (!FromResource(assemblyFile, out var syntaxTree)) 
+            if (ignoreDllResources || !FromResource(assemblyFile, out var syntaxTree)) 
             {
                 var attributes = LoadHeaderAttributes(assemblyFile);
                 headers = new References.Headers(id, attributes);
-                return !attributes.Any(); // just means we have no references
+                return ignoreDllResources || !attributes.Any(); // just means we have no references
             }
             headers = new References.Headers(id, syntaxTree?.Namespaces ?? ImmutableArray<QsNamespace>.Empty);
             return true;
@@ -100,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler
             // In all Q# dlls there will be a resource with the specific name chosen by the compiler. 
             var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
             if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-                !metadataReader.Resources().TryGetValue(AssemblyConstants.AST_RESOURCE_NAME, out var resource) ||
+                !metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out var resource) ||
                 !resource.Implementation.IsNil)
             { return false; }
 

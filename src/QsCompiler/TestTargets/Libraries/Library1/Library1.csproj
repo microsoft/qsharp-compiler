@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="EnsureRecompileOnChange">
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="RecompileOnChange">
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
@@ -7,22 +7,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!--PackageReference Include="Microsoft.Quantum.Standard" Version="0.9.1908.2906" /-->
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.10.1910.2504-alpha" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.10.1912.1204-alpha" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\CommandLineTool\CommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\CoreLibrary\CoreLibrary.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
-    <QscExe>dotnet "..\..\..\CommandLineTool\bin\$(Configuration)\netcoreapp3.0\qsc.dll"</QscExe>
+    <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QscExe>
   </PropertyGroup>
 
-  <Target Name="EnsureRecompileOnChange">
+  <Target Name="RecompileOnChange">
     <ItemGroup>
       <UpToDateCheckInput Include="@(None)" />
       <UpToDateCheckInput Include="@(Content)" />
@@ -36,7 +34,7 @@
       <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
     </ItemGroup>
     <PropertyGroup>
-      <QscCommand>$(QscExe) build -v --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
+      <QscCommand>$(QscExe) build --verbosity "Detailed" --emit-dll --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(OutputPath)</QscCommand>
     </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
   </Target>

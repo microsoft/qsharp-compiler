@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Optimizations.Evaluation
+module internal Microsoft.Quantum.QsCompiler.Experimental.Evaluation
 
 open System
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
-open Microsoft.Quantum.QsCompiler.Optimizations.Utils
+open Microsoft.Quantum.QsCompiler.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -35,23 +35,23 @@ type private FunctionInterrupt =
 /// A shorthand for the specific Imperative type used by several functions in this file
 type private Imp<'t> = Imperative<EvalState, 't, FunctionInterrupt>
 
-/// Represents a computation that decreases the remaining statements counter by 1.
-/// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
-let private incrementState: Imp<Unit> = imperative {
-    let! vars, counter = getState
-    if counter < 1 then yield TooManyStatements
-    do! putState (vars, counter - 1)
-}
-
-/// Represents a computation that sets the given variables to the given values
-let private setVars callables entry: Imp<Unit> = imperative {
-    let! vars, counter = getState
-    do! putState (defineVarTuple (isLiteral callables) vars entry, counter)
-}
-
 
 /// Evaluates functions by stepping through their code
-type internal FunctionEvaluator(callables: Callables) =
+type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
+
+    /// Represents a computation that decreases the remaining statements counter by 1.
+    /// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
+    let incrementState: Imp<Unit> = imperative {
+        let! vars, counter = getState
+        if counter < 1 then yield TooManyStatements
+        do! putState (vars, counter - 1)
+    }
+
+    /// Represents a computation that sets the given variables to the given values
+    let setVars callables entry: Imp<Unit> = imperative {
+        let! vars, counter = getState
+        do! putState (defineVarTuple (isLiteral callables) vars entry, counter)
+    }
 
     /// Casts a BoolLiteral to the corresponding bool
     let castToBool x: bool =
@@ -143,7 +143,7 @@ type internal FunctionEvaluator(callables: Callables) =
     /// Returns None if we were unable to evaluate the function.
     /// Throws an ArgumentException if the input is not a function, or if the function is invalid.
     member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>) (stmtsLeft: int): TypedExpression option =
-        let callable = callables.get name
+        let callable = callables.[name]
         if callable.Kind = Operation then
             ArgumentException "Input is not a function" |> raise
         if callable.Specializations.Length <> 1 then
@@ -163,7 +163,7 @@ type internal FunctionEvaluator(callables: Callables) =
 
 
 /// The ExpressionTransformation used to evaluate constant expressions
-and internal ExpressionEvaluator(callables: Callables, constants: Map<string, TypedExpression>, stmtsLeft: int) =
+and internal ExpressionEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionTransformation()
 
     override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, stmtsLeft) with
@@ -172,7 +172,7 @@ and internal ExpressionEvaluator(callables: Callables, constants: Map<string, Ty
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, constants: Map<string, TypedExpression>, stmtsLeft: int) =
+and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionKindTransformation()
 
     member private this.simplify e1 = this.ExpressionTransformation e1
@@ -192,7 +192,6 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         | _ -> qop (lhs, rhs)
 
     member private this.arithNumBinaryOp qop bigIntOp doubleOp intOp lhs rhs =
-        let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | BigIntLiteral a, BigIntLiteral b -> BigIntLiteral (bigIntOp a b)
         | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (doubleOp a b)
@@ -249,13 +248,13 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         let ex = this.simplify ex
         match ex.Expression with
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, types)}, arg)
-            when (callables.get qualName).Kind = TypeConstructor ->
+            when (callables.[qualName]).Kind = TypeConstructor ->
                 // TODO - must be adapted if we want to support user-defined type constructors
                 QsCompilerError.Verify (
-                    (callables.get qualName).Specializations.Length = 1,
+                    (callables.[qualName]).Specializations.Length = 1,
                     "Type constructors should have exactly one specialization")
                 QsCompilerError.Verify (
-                    (callables.get qualName).Specializations.[0].Implementation = Intrinsic,
+                    (callables.[qualName]).Specializations.[0].Implementation = Intrinsic,
                     "Type constructors should be implicit")
                 arg.Expression
         | _ -> UnwrapApplication ex
@@ -328,25 +327,78 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: Callables, cons
         | BoolLiteral false -> (this.simplify rhs).Expression
         | _ -> OR (lhs, this.simplify rhs)
 
+    // - simplifies addition of two constants (integers, big integers,
+    //   doubles, arrays, and strings) into single constant
+    // - rewrites (integers, big integers, and doubles):
+    //     0 + x = x
+    //     x + 0 = x
     override this.onAddition (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
-        | BigIntLiteral a, BigIntLiteral b -> BigIntLiteral (a + b)
-        | DoubleLiteral a, DoubleLiteral b -> DoubleLiteral (a + b)
-        | IntLiteral a, IntLiteral b -> IntLiteral (a + b)
         | ValueArray a, ValueArray b -> ValueArray (a.AddRange b)
         | StringLiteral (a, a2), StringLiteral (b, b2) when a2.Length = 0 || b2.Length = 0 ->
             StringLiteral (NonNullable<_>.New (a.Value + b.Value), a2.AddRange b2)
-        | _ -> ADD (lhs, rhs)
+        | BigIntLiteral zero, op
+        | op, BigIntLiteral zero when zero.IsZero -> op
+        | DoubleLiteral 0.0, op
+        | op, DoubleLiteral 0.0
+        | IntLiteral 0L, op
+        | op, IntLiteral 0L -> op
+        | _ -> this.arithNumBinaryOp ADD (+) (+) (+) lhs rhs
 
+    // - simplifies subtraction of two constants into single constant
+    // - rewrites (integers, big integers, and doubles)
+    //     x - 0 = x
+    //     0 - x = -x
+    //     x - x = 0
     override this.onSubtraction (lhs, rhs) =
-        this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
+        let lhs, rhs = this.simplify (lhs, rhs)
+        match lhs.Expression, rhs.Expression with
+        | op, BigIntLiteral zero when zero.IsZero -> op
+        | op, DoubleLiteral 0.0
+        | op, IntLiteral 0L -> op
+        | (BigIntLiteral zero), _ when zero.IsZero -> NEG rhs
+        | (DoubleLiteral 0.0), _
+        | (IntLiteral 0L), _ -> NEG rhs
+        | op1, op2 when op1 = op2 ->
+            match lhs.ResolvedType.Resolution with
+            | BigInt -> BigIntLiteral BigInteger.Zero
+            | Double -> DoubleLiteral 0.0
+            | Int -> IntLiteral 0L
+            | _ -> this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
+        | _ -> this.arithNumBinaryOp SUB (-) (-) (-) lhs rhs
 
+    // - simplifies multiplication of two constants into single constant
+    // - rewrites (integers, big integers, and doubles)
+    //     x * 0 = 0
+    //     0 * x = 0
+    //     x * 1 = x
+    //     1 * x = x
     override this.onMultiplication (lhs, rhs) =
-        this.arithNumBinaryOp MUL (*) (*) (*) lhs rhs
+        let lhs, rhs = this.simplify (lhs, rhs)
+        match lhs.Expression, rhs.Expression with
+        | _, (BigIntLiteral zero)
+        | (BigIntLiteral zero), _ when zero.IsZero -> BigIntLiteral BigInteger.Zero
+        | _, (DoubleLiteral 0.0)
+        | (DoubleLiteral 0.0), _ -> DoubleLiteral 0.0
+        | _, (IntLiteral 0L)
+        | (IntLiteral 0L), _ -> IntLiteral 0L
+        | op, (BigIntLiteral one)
+        | (BigIntLiteral one), op when one.IsOne -> op
+        | op, (DoubleLiteral 1.0)
+        | (DoubleLiteral 1.0), op
+        | op, (IntLiteral 1L)
+        | (IntLiteral 1L), op -> op
+        | _ -> this.arithNumBinaryOp MUL (*) (*) (*) lhs rhs
 
+    // - simplifies multiplication of two constants into single constant
     override this.onDivision (lhs, rhs) =
-        this.arithNumBinaryOp DIV (/) (/) (/) lhs rhs
+        let lhs, rhs = this.simplify (lhs, rhs)
+        match lhs.Expression, rhs.Expression with
+        | op, (BigIntLiteral one) when one.IsOne -> op
+        | op, (DoubleLiteral 1.0)
+        | op, (IntLiteral 1L) -> op
+        | _ -> this.arithNumBinaryOp DIV (/) (/) (/) lhs rhs
 
     override this.onExponentiate (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)

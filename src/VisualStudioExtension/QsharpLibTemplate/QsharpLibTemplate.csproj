@@ -54,14 +54,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Common\AssemblyCommon.cs">
+    <Compile Include="..\..\Common\AssemblyCommon.cs">
       <Link>Properties\AssemblyCommon.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="AssemblyInfo.cs" />
-    <None Include="Operations.qs" />
+    <None Include="Library.qs" />
     <Content Include="LibProjectTemplate.xml">
       <SubType>Designer</SubType>
     </Content>

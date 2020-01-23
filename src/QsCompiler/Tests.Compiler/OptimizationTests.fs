@@ -7,7 +7,7 @@ open System
 open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.Optimizations
+open Microsoft.Quantum.QsCompiler.Experimental
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 
@@ -25,7 +25,7 @@ let private buildCompilation code =
 /// Given a string of valid Q# code, outputs the optimized AST as a string
 let private optimize code =
     let mutable compilation = buildCompilation code
-    compilation <- PreEvalution.All compilation
+    compilation <- PreEvaluation.All compilation
     let toQs = SyntaxTreeToQs()
     compilation.Namespaces |> Seq.iter (toQs.Transform >> ignore)
     toQs.Output
@@ -87,3 +87,8 @@ let ``partial evaluation`` () =
 let ``reordering`` () =
     // createTestCase "TestCases/OptimizerTests/Reordering"
     assertOptimization "TestCases/OptimizerTests/Reordering"
+
+[<Fact>]
+let ``trigger infinite loop`` () =
+    // createTestCase "TestCases/OptimizerTests/TypedParameters"
+    assertOptimization "TestCases/OptimizerTests/TypedParameters"

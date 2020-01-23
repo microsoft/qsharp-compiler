@@ -212,8 +212,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 referenceLocations = parent.Specializations
                     .Where(spec => spec.SourceFile.Value == file.FileName.Value)
                     .SelectMany(spec =>
-                        spec.Implementation is SpecializationImplementation.Provided impl
-                            ? IdentifierLocation.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Offset)
+                        spec.Implementation is SpecializationImplementation.Provided impl && spec.Location.IsValue
+                            ? IdentifierLocation.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Item.Offset)
                             : ImmutableArray<IdentifierReferences.Location>.Empty)
                     .Distinct().Select(AsLocation);
             }
