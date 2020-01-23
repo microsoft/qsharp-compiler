@@ -187,6 +187,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
+            private static ResolvedType GetApplyIfResolvedType(BuiltIn builtIn, IEnumerable<OpProperty> props, ResolvedType argumentType)
+            {
+                var characteristics = new CallableInformation(
+                    ResolvedCharacteristics.FromProperties(props),
+                    InferredCallableInformation.NoInformation);
+
+                return ResolvedType.New(ResolvedTypeKind.NewOperation(
+                    Tuple.Create(argumentType, ResolvedType.New(ResolvedTypeKind.UnitType)),
+                    characteristics));
+            }
+
             private TypedExpression GetApplyIfExpression(QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
             {
                 var (isCondValid, condId, condArgs) = IsValidScope(conditionScope);
@@ -196,12 +207,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 ResolvedType controlOpType;
                 TypedExpression controlArgs;
                 ImmutableArray<ResolvedType> targetArgs;
+
+                var props = ImmutableHashSet<OpProperty>.Empty;
+
                 if (isCondValid)
                 {
                     // Get characteristic properties from global id
-                    var props = condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op
-                    ? op.Item2.Characteristics.GetProperties()
-                    : ImmutableHashSet<OpProperty>.Empty;
+                    if (condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
+                    {
+                        props = op.Item2.Characteristics.GetProperties();
+                    }
 
                     (bool adj, bool ctl) = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable));
 
@@ -286,7 +301,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     targetArgs
                         .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
                         .ToImmutableArray(),
-                    controlOpType);
+                    GetApplyIfResolvedType(controlOpInfo, props, controlArgs.ResolvedType));
 
                 return CreateApplyIfCall(controlOpId, controlArgs);
             }
@@ -685,7 +700,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 return (newSig, specializations);
             }
 
-            private QsCallable GenerateOperation(QsScope contents)
+            private (QsCallable, ResolvedType) GenerateOperation(QsScope contents)
             {
                 var newName = new QsQualifiedName(
                     _CurrentCallable.Callable.FullName.Namespace,
@@ -732,7 +747,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 var updatedCallable = UpdateGeneratedOpTransformation.Apply(controlCallable, knownVariables, _CurrentCallable.Callable.FullName, newName);
 
-                return updatedCallable;
+                return (updatedCallable, signature.ArgumentType);
             }
 
             private HoistTransformation() { }
@@ -796,10 +811,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 private (QsCallable, QsStatement) HoistIfContents(QsScope contents)
                 {
-                    var targetOp = _super.GenerateOperation(contents);
+                    var (targetOp, originalArgumentType) = _super.GenerateOperation(contents);
                     var targetOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
                         Tuple.Create(
-                            targetOp.Signature.ArgumentType,
+                            originalArgumentType,
                             ResolvedType.New(ResolvedTypeKind.UnitType)),
                         targetOp.Signature.Information));
 
