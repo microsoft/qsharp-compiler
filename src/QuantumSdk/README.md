@@ -93,6 +93,9 @@ The NuGet version of the Sdk package.
 
 The following properties can be configured to customize the build: 
 
+- `AdditionalQscArguments`:    
+May contain additional arguments to pass to the Q# command line compiler. Valid additional arguments are `--emit-dll`, or `--no-warn` followed by any number of integers specifying the warnings to ignore.   
+
 - `CsharpGeneration`:    
 Specifies whether to generate C# code as part of the compilation process. Setting this property to false may prevent certain interoperability features or integration with other pieces of the Quantum Development Kit. 
 
