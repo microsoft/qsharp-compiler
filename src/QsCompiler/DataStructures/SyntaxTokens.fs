@@ -195,7 +195,8 @@ type CallableSignature = {
 /// Defines where a global declaration may be accessed.
 [<Struct>]
 type AccessModifier =
-    /// The default access modifier is public, which means the type or callable can be used from anywhere.
+    /// For callables and types, the default access modifier is public, which means the type or callable can be used
+    /// from anywhere. For specializations, the default access modifier is the same as the parent callable.
     | DefaultAccess
     /// Internal access means that a type or callable may only be used from within the compilation unit in which it is
     /// declared.
