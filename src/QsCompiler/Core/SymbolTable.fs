@@ -151,12 +151,7 @@ type private PartialNamespace private
                 | QsTupleItem (n, t) -> ImmutableArray.Create (replaceAnonymous (n, t)) |> QsTuple
                 | QsTuple _ -> buildItem typeTuple
             let returnType = {Type = UserDefinedType (QualifiedSymbol (this.Name, tName) |> withoutRange); Range = Null}
-            {
-                TypeParameters = ImmutableArray.Empty
-                Argument = constructorArgument
-                ReturnType = returnType
-                Characteristics = {Characteristics = EmptySet; Range = Null}
-            }
+            {TypeParameters = ImmutableArray.Empty; Argument = constructorArgument; ReturnType = returnType; Characteristics = {Characteristics = EmptySet; Range = Null}}
 
         // There are a couple of reasons not just blindly attach all attributes associated with the type to the constructor:
         // For one, we would need to make sure that the range information for duplications is stripped such that e.g. rename commands are not executed multiple times. 

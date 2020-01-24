@@ -109,8 +109,8 @@ type CallableSignature with
         let invalidType = (InvalidType, Null) |> QsType.New
         let invalidSymbol = (InvalidSymbol, Null) |> QsSymbol.New
         let invalidArg = QsTuple ([QsTupleItem (invalidSymbol, invalidType)].ToImmutableArray())
-        CallableSignature.New ((ImmutableArray.Empty, (invalidArg, invalidType)),
-                               (InvalidSetExpr, Null) |> Characteristics.New)
+        ((ImmutableArray.Empty, (invalidArg, invalidType)), (InvalidSetExpr, Null) |> Characteristics.New) 
+        |> CallableSignature.New
 
 
 type QsFragment with

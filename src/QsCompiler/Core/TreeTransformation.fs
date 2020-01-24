@@ -162,10 +162,11 @@ type SyntaxTreeTransformation() =
         let loc = this.onLocation t.Location
         let attributes = t.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
         let modifiers = this.onModifiers t.Modifiers
-        let typeTuple = this.Scope.Expression.Type.Transform t.Type
+        let underlyingType = this.Scope.Expression.Type.Transform t.Type
         let typeItems = this.onTypeItems t.TypeItems
         let doc = this.onDocumentation t.Documentation
-        QsCustomType.New (source, loc) (t.FullName, attributes, modifiers, typeItems, typeTuple, doc, t.Comments)
+        let comments = t.Comments
+        QsCustomType.New (source, loc) (t.FullName, attributes, modifiers, typeItems, underlyingType, doc, comments)
 
 
     abstract member onCallableImplementation : QsCallable -> QsCallable

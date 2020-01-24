@@ -215,7 +215,7 @@ module SerializationTests =
             SourceFile      = "%%%" |> NonNullable<string>.New
             Position        = (2,4) |> DeclarationHeader.Offset.Defined
             SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 13}) |> DeclarationHeader.Range.Defined
-            Type            = ResolvedType.New tupleIntIntType
+            Type            = tupleIntIntType |> ResolvedType.New
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty
         }
@@ -228,7 +228,7 @@ module SerializationTests =
             SourceFile      = "%%%" |> NonNullable<string>.New
             Position        = (3,4) |> DeclarationHeader.Offset.Defined
             SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 15}) |> DeclarationHeader.Range.Defined
-            Type            = ResolvedType.New tupleIntIntType
+            Type            = tupleIntIntType |> ResolvedType.New
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty
         }

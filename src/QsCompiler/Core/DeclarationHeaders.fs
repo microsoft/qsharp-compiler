@@ -126,8 +126,7 @@ type TypeDeclarationHeader = {
         let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
         let header = if attributesAreNullOrDefault then {header with Attributes = ImmutableArray.Empty} else header // no reason to raise an error
         if not (Object.ReferenceEquals(header.TypeItems, null)) then success, header
-        else false, {header with
-                         TypeItems = header.Type |> Anonymous |> QsTupleItem |> ImmutableArray.Create |> QsTuple}
+        else false, {header with TypeItems = ImmutableArray.Create (header.Type |> Anonymous |> QsTupleItem) |> QsTuple}
 
     member this.ToJson() : string  =
         DeclarationHeader.ToJson this

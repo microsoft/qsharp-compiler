@@ -713,10 +713,10 @@ type QsCustomType = {
     /// and the range contains the range occupied by the type name relative to that position.
     /// The location is Null for auto-generated types defined by the compiler.
     Location : QsNullable<QsLocation>
-    /// Contains the type and access information for the user defined type.
-    /// Note that a user defined type is *not* considered to be a subtype of its underlying type, but rather its own,
-    /// entirely distinct type, and the underlying type is merely the argument type of the (auto-generated) type
-    /// constructor associated with the user defined type.
+    /// Contains the underlying Q# type.
+    /// Note that a user defined type is *not* considered to be a subtype of its underlying type,
+    /// but rather its own, entirely distinct type,
+    /// and the underlying type is merely the argument type of the (auto-generated) type constructor associated with the user defined type.
     Type : ResolvedType
     /// contains the type tuple defining the named and anonymous items of the type
     TypeItems : QsTuple<QsTypeItem>

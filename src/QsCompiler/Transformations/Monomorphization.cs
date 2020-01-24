@@ -225,7 +225,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     s.ArgumentType,
                     s.ReturnType,
                     s.Information
-                );
+                    );
                 return base.onSignature(s);
             }
         }
