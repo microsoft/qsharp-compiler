@@ -347,6 +347,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var type = new QsCustomType(
                         compiled.FullName,
                         compiled.Attributes,
+                        compiled.Modifiers,
                         compiled.SourceFile,
                         header.Location,
                         compiled.Type,
@@ -404,8 +405,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         var defaultSpec = new QsSpecialization(QsSpecializationKind.QsBody, header.QualifiedName, header.Attributes, 
                             header.SourceFile, header.Location, QsNullable<ImmutableArray<ResolvedType>>.Null, header.Signature, SpecializationImplementation.Intrinsic, 
                             ImmutableArray<string>.Empty, QsComments.Empty);
-                        this.CompiledCallables[fullName] = new QsCallable(header.Kind, header.QualifiedName, header.Attributes, header.SourceFile, header.Location,
-                            header.Signature, header.ArgumentTuple, ImmutableArray.Create<QsSpecialization>(defaultSpec), header.Documentation, QsComments.Empty);
+                        this.CompiledCallables[fullName] = new QsCallable(
+                            header.Kind,
+                            header.QualifiedName,
+                            header.Attributes,
+                            header.Modifiers,
+                            header.SourceFile,
+                            header.Location,
+                            header.Signature,
+                            header.ArgumentTuple,
+                            ImmutableArray.Create<QsSpecialization>(defaultSpec),
+                            header.Documentation,
+                            QsComments.Empty
+                        );
                         continue;
                     }
 
@@ -430,8 +442,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     })
                     .Where(spec => spec != null).ToImmutableArray();
 
-                    var callable = new QsCallable(compiled.Kind, compiled.FullName, compiled.Attributes, compiled.SourceFile, header.Location, 
-                        compiled.Signature, compiled.ArgumentTuple, specializations, compiled.Documentation, compiled.Comments); 
+                    var callable = new QsCallable(
+                        compiled.Kind,
+                        compiled.FullName,
+                        compiled.Attributes,
+                        compiled.Modifiers,
+                        compiled.SourceFile,
+                        header.Location, 
+                        compiled.Signature,
+                        compiled.ArgumentTuple,
+                        specializations,
+                        compiled.Documentation,
+                        compiled.Comments
+                    );
                     this.CompiledCallables[fullName] = callable;
                 }
             }
@@ -462,8 +485,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     implementation, specHeader.Documentation, QsComments.Empty);
             })
             .ToImmutableArray();
-            return new QsCallable(header.Kind, header.QualifiedName, header.Attributes, header.SourceFile, header.Location, 
-                header.Signature, header.ArgumentTuple, specializations, header.Documentation, QsComments.Empty);
+            return new QsCallable(
+                header.Kind,
+                header.QualifiedName,
+                header.Attributes,
+                header.Modifiers,
+                header.SourceFile,
+                header.Location, 
+                header.Signature,
+                header.ArgumentTuple,
+                specializations,
+                header.Documentation,
+                QsComments.Empty
+            );
         }
 
         /// <summary>
@@ -473,8 +507,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private QsCustomType GetImportedType(TypeDeclarationHeader header)
         {
             if (header == null) throw new ArgumentNullException(nameof(header));
-            return new QsCustomType(header.QualifiedName, header.Attributes, header.SourceFile, header.Location,
-                header.Type, header.TypeItems, header.Documentation, QsComments.Empty);
+            return new QsCustomType(
+                header.QualifiedName,
+                header.Attributes,
+                header.Modifiers,
+                header.SourceFile,
+                header.Location,
+                header.Type,
+                header.TypeItems,
+                header.Documentation,
+                QsComments.Empty
+            );
         }
 
         /// <summary>

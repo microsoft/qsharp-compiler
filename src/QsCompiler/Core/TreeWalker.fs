@@ -73,7 +73,6 @@ type SyntaxTreeWalker() =
         this.Scope.Expression.Type.Walk s.ArgumentType
         this.Scope.Expression.Type.Walk s.ReturnType
         this.Scope.Expression.Type.onCallableInformation s.Information
-        this.onModifiers s.Modifiers
     
 
     abstract member onExternalImplementation : unit -> unit
@@ -152,20 +151,17 @@ type SyntaxTreeWalker() =
         this.onSourceFile t.SourceFile 
         this.onLocation t.Location
         t.Attributes |> Seq.iter this.onAttribute
-        this.onTypeSignature t.Type
+        this.onModifiers t.Modifiers
+        this.Scope.Expression.Type.Walk t.Type
         this.onTypeItems t.TypeItems
         this.onDocumentation t.Documentation
-
-    abstract member onTypeSignature : ResolvedTypeSignature -> unit
-    default this.onTypeSignature s =
-        this.Scope.Expression.Type.Walk s.UnderlyingType
-        this.onModifiers s.Modifiers
 
     abstract member onCallableImplementation : QsCallable -> unit
     default this.onCallableImplementation (c : QsCallable) = 
         this.onSourceFile c.SourceFile
         this.onLocation c.Location
         c.Attributes |> Seq.iter this.onAttribute
+        this.onModifiers c.Modifiers
         this.onSignature c.Signature
         this.onArgumentTuple c.ArgumentTuple
         c.Specializations |> Seq.iter this.dispatchSpecialization

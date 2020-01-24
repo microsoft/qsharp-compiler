@@ -185,6 +185,13 @@ type QsTuple<'Item> =
 | QsTupleItem of 'Item
 | QsTuple of ImmutableArray<QsTuple<'Item>> 
 
+type CallableSignature = { 
+    TypeParameters : ImmutableArray<QsSymbol>
+    Argument : QsTuple<QsSymbol * QsType>
+    ReturnType : QsType
+    Characteristics : Characteristics
+}
+
 /// Defines where a global declaration may be accessed.
 [<Struct>]
 type AccessModifier =
@@ -202,23 +209,6 @@ type AccessModifier =
 type Modifiers = {
     /// Defines where a global declaration may be accessed.
     Access : AccessModifier
-}
-
-type CallableSignature = { 
-    TypeParameters : ImmutableArray<QsSymbol>
-    Argument : QsTuple<QsSymbol * QsType>
-    ReturnType : QsType
-    Characteristics : Characteristics
-    /// The modifiers that have been applied to this callable.
-    Modifiers : Modifiers
-}
-
-// The signature of a user-defined type.
-type TypeSignature = {
-    /// The underlying type and any named items.
-    Items : QsTuple<QsSymbol * QsType>
-    /// The modifiers that have been applied to this type.
-    Modifiers : Modifiers
 }
 
 type QsFragmentKind = 
@@ -243,9 +233,9 @@ type QsFragmentKind =
 | AdjointDeclaration            of QsSpecializationGenerator
 | ControlledDeclaration         of QsSpecializationGenerator
 | ControlledAdjointDeclaration  of QsSpecializationGenerator
-| OperationDeclaration          of QsSymbol * CallableSignature
-| FunctionDeclaration           of QsSymbol * CallableSignature
-| TypeDefinition                of QsSymbol * TypeSignature
+| OperationDeclaration          of QsSymbol * CallableSignature * Modifiers
+| FunctionDeclaration           of QsSymbol * CallableSignature * Modifiers
+| TypeDefinition                of QsSymbol * QsTuple<QsSymbol * QsType> * Modifiers
 | DeclarationAttribute          of QsSymbol * QsExpression
 | OpenDirective                 of QsSymbol * QsNullable<QsSymbol>
 | NamespaceDeclaration          of QsSymbol

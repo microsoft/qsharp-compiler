@@ -158,12 +158,10 @@ seeAlso:
 
             var generatorIndexType = new QsCustomType(MakeFullName("GeneratorIndex"),
                                                       ImmutableArray<QsDeclarationAttribute>.Empty,
+                                                      new Modifiers(AccessModifier.DefaultAccess),
                                                       NonNullable<string>.New("GeneratorRepresentation.qs"),
                                                       ZeroLocation,
-                                                      new ResolvedTypeSignature(
-                                                          baseType,
-                                                          new Modifiers(AccessModifier.DefaultAccess)
-                                                      ),
+                                                      baseType,
                                                       typeItems,
                                                       comments.ToImmutableArray(),
                                                       QsComments.Empty);
@@ -327,8 +325,7 @@ output:
             var typeParams = new QsLocalSymbol[] { }.ToImmutableArray();
             var argTypes = new ResolvedType[] { qubitToUnitOp, qubitToUnitOp, qubitToUnitOpAC, phaseEstOp, qubitArrayType }.ToImmutableArray();
             var argTupleType = ResolvedType.New(QsType.NewTupleType(argTypes));
-            var noModifiers = new Modifiers(AccessModifier.DefaultAccess);
-            var signature = new ResolvedSignature(typeParams, argTupleType, doubleType, noInfo, noModifiers);
+            var signature = new ResolvedSignature(typeParams, argTupleType, doubleType, noInfo);
 
             var args = new List<ArgDeclType> { BuildArgument("statePrepUnitary", qubitToUnitOp),
                                                BuildArgument("adiabaticUnitary", qubitToUnitOp),
@@ -343,6 +340,7 @@ output:
             var qsCallable = new QsCallable(QsCallableKind.Operation,
                                             MakeFullName("AdiabaticStateEnergyUnitary"),
                                             ImmutableArray<QsDeclarationAttribute>.Empty,
+                                            new Modifiers(AccessModifier.DefaultAccess),
                                             NonNullable<string>.New("Techniques.qs"),
                                             ZeroLocation,
                                             signature,

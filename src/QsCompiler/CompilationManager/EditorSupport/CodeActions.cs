@@ -235,7 +235,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var characteristicsInFragment =
                     fragment?.Kind is QsFragmentKind.FunctionDeclaration function ? GetCharacteristics(function.Item2.Argument) :
                     fragment?.Kind is QsFragmentKind.OperationDeclaration operation ? GetCharacteristics(operation.Item2.Argument) :
-                    fragment?.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item2.Items) :
+                    fragment?.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item2) :
                     Enumerable.Empty<Characteristics>();
 
                 //var symbolInfo = file.TryGetQsSymbolInfo(d.Range.Start, false, out var fragment);
@@ -439,7 +439,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var (argTuple, typeParams) =
                 callableDecl.IsValue ? (callableDecl.Item.Item2.Item2.Argument,
                                         callableDecl.Item.Item2.Item2.TypeParameters)
-                : typeDecl.IsValue ? (typeDecl.Item.Item2.Items, ImmutableArray<QsSymbol>.Empty)
+                : typeDecl.IsValue ? (typeDecl.Item.Item2.Item1, ImmutableArray<QsSymbol>.Empty)
                 : (null, ImmutableArray<QsSymbol>.Empty);
             var hasOutput = callableDecl.IsValue && !callableDecl.Item.Item2.Item2.ReturnType.Type.IsUnitType;
 

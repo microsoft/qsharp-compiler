@@ -37,6 +37,7 @@ type internal Resolution<'T,'R> = internal {
     Resolved : QsNullable<'R>
     DefinedAttributes : ImmutableArray<AttributeAnnotation>
     ResolvedAttributes : ImmutableArray<QsDeclarationAttribute>
+    Modifiers : Modifiers
     Documentation : ImmutableArray<string>
 }
 
@@ -239,7 +240,6 @@ module SymbolResolution =
             TypeParameters = resolvedParams
             ArgumentType = argType
             ReturnType = returnType
-            Modifiers = signature.Modifiers
             Information = callableInfo
         }
         (resolvedSig, argTuple), [inErr; outErr; resErrs; tpErrs] |> Array.concat

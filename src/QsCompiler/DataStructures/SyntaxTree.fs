@@ -602,8 +602,6 @@ type ResolvedSignature = {
     ReturnType : ResolvedType
     /// contains the functors that the callable supports (necessarily empty for functions)
     Information : CallableInformation
-    /// Represents the Q# keywords attached to the declaration that modify its behavior.
-    Modifiers : Modifiers
 }
 
 
@@ -661,6 +659,8 @@ type QsCallable = {
     FullName : QsQualifiedName
     /// contains all attributes associated with the callable
     Attributes : ImmutableArray<QsDeclarationAttribute>
+    /// Represents the Q# keywords attached to the declaration that modify its behavior.
+    Modifiers : Modifiers
     /// identifier for the file the callable is declared in
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared callable.
@@ -698,22 +698,14 @@ type QsTypeItem =
 | Anonymous of ResolvedType
 
 
-/// Used to represent type and access information for a user defined type. 
-type ResolvedTypeSignature = {
-    /// Contains the underlying type, i.e. the argument type of the (auto-generated) type constructor associated with
-    /// the user defined type.
-    UnderlyingType : ResolvedType
-    /// Represents the Q# keywords attached to the declaration that modify its behavior.
-    Modifiers : Modifiers
-}
-
-
 /// describes a Q# user defined type
 type QsCustomType = {
     /// contains the name of the type
     FullName : QsQualifiedName
     /// contains all attributes associated with the type
     Attributes : ImmutableArray<QsDeclarationAttribute>
+    /// Represents the Q# keywords attached to the declaration that modify its behavior.
+    Modifiers : Modifiers
     /// identifier for the file the type is declared in
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared type.
@@ -725,7 +717,7 @@ type QsCustomType = {
     /// Note that a user defined type is *not* considered to be a subtype of its underlying type, but rather its own,
     /// entirely distinct type, and the underlying type is merely the argument type of the (auto-generated) type
     /// constructor associated with the user defined type.
-    Type : ResolvedTypeSignature
+    Type : ResolvedType
     /// contains the type tuple defining the named and anonymous items of the type
     TypeItems : QsTuple<QsTypeItem>
     /// content of documenting comments associated with the type

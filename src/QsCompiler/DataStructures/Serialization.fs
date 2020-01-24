@@ -69,30 +69,6 @@ type ResolvedTypeConverter(?ignoreSerializationException) =
         serializer.Serialize(writer, value.Resolution)
 
 
-type ResolvedTypeSignatureConverter(?ignoreSerializationException) =
-    inherit JsonConverter<ResolvedTypeSignature>()
-    let ignoreSerializationException = defaultArg ignoreSerializationException false
-
-    /// For backwards compatibility, support deserializing either a ResolvedTypeSignture or a ResolvedType (with default
-    /// modifiers).
-    override this.ReadJson(reader : JsonReader,
-                           objectType : Type,
-                           existingValue : ResolvedTypeSignature,
-                           hasExistingValue : bool,
-                           serializer : JsonSerializer) =
-        let jobject = JObject.Load(reader)
-        let (underlyingType, modifiers) = jobject.ToObject<ResolvedType * Modifiers>(serializer)
-        {
-            UnderlyingType =
-                if obj.ReferenceEquals(underlyingType, null) then jobject.ToObject<ResolvedType>(serializer)
-                else underlyingType
-            Modifiers = modifiers
-        }
-
-    override this.WriteJson(writer : JsonWriter, value : ResolvedTypeSignature, serializer : JsonSerializer) =
-        serializer.Serialize(writer, (value.UnderlyingType, value.Modifiers))
-
-
 type ResolvedCharacteristicsConverter(?ignoreSerializationException) =
     inherit JsonConverter<ResolvedCharacteristics>()
     let ignoreSerializationException = defaultArg ignoreSerializationException false
@@ -163,7 +139,6 @@ module Json =
             new NonNullableConverter<string>()                                  :> JsonConverter
             new QsNullableLocationConverter(ignoreSerializationException)       :> JsonConverter
             new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
-            new ResolvedTypeSignatureConverter(ignoreSerializationException)    :> JsonConverter
             new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
             new TypedExpressionConverter()                                      :> JsonConverter
             new ResolvedInitializerConverter()                                  :> JsonConverter

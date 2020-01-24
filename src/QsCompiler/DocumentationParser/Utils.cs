@@ -349,7 +349,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             sb.Append("newtype ");
             sb.Append(customType.FullName.Name.Value);
             sb.Append(" = ");
-            sb.Append(ResolvedTypeToString(customType.Type.UnderlyingType));
+            sb.Append(ResolvedTypeToString(customType.Type));
             sb.Append(";");
             return sb.ToString();
         }

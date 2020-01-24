@@ -81,8 +81,7 @@ type SyntaxTreeTransformation() =
         let argType = this.Scope.Expression.Type.Transform s.ArgumentType
         let returnType = this.Scope.Expression.Type.Transform s.ReturnType
         let info = this.Scope.Expression.Type.onCallableInformation s.Information
-        let modifiers = this.onModifiers s.Modifiers
-        ResolvedSignature.New ((argType, returnType), info, typeParams, modifiers)
+        ResolvedSignature.New ((argType, returnType), info, typeParams)
     
 
     abstract member onExternalImplementation : unit -> unit
@@ -162,29 +161,27 @@ type SyntaxTreeTransformation() =
         let source = this.onSourceFile t.SourceFile 
         let loc = this.onLocation t.Location
         let attributes = t.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let typeSignature = this.onTypeSignature t.Type
+        let modifiers = this.onModifiers t.Modifiers
+        let typeTuple = this.Scope.Expression.Type.Transform t.Type
         let typeItems = this.onTypeItems t.TypeItems
         let doc = this.onDocumentation t.Documentation
-        QsCustomType.New (source, loc) (t.FullName, attributes, typeItems, typeSignature, doc, t.Comments)
+        QsCustomType.New (source, loc) (t.FullName, attributes, modifiers, typeItems, typeTuple, doc, t.Comments)
 
-    abstract member onTypeSignature : ResolvedTypeSignature -> ResolvedTypeSignature
-    default this.onTypeSignature s =
-        {
-            UnderlyingType = this.Scope.Expression.Type.Transform s.UnderlyingType
-            Modifiers = this.onModifiers s.Modifiers
-        }
 
     abstract member onCallableImplementation : QsCallable -> QsCallable
     default this.onCallableImplementation (c : QsCallable) = 
         let source = this.onSourceFile c.SourceFile
         let loc = this.onLocation c.Location
         let attributes = c.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
+        let modifiers = this.onModifiers c.Modifiers
         let signature = this.onSignature c.Signature
         let argTuple = this.onArgumentTuple c.ArgumentTuple
         let specializations = c.Specializations |> Seq.map this.dispatchSpecialization
         let doc = this.onDocumentation c.Documentation
         let comments = c.Comments
-        QsCallable.New c.Kind (source, loc) (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
+        QsCallable.New c.Kind
+                       (source, loc)
+                       (c.FullName, attributes, modifiers, argTuple, signature, specializations, doc, comments)
 
     abstract member onOperation : QsCallable -> QsCallable
     default this.onOperation c = this.onCallableImplementation c

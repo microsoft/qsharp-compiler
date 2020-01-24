@@ -52,7 +52,6 @@ module SerializationTests =
         ArgumentType = argType |> ResolvedType.New
         ReturnType = rType |> ResolvedType.New
         Information = CallableInformation.New(ResolvedCharacteristics.FromProperties props, InferredCallableInformation.NoInformation)
-        Modifiers = {Access = DefaultAccess}
     }
 
     let varDecl name t (s, e) = {
@@ -149,6 +148,7 @@ module SerializationTests =
             Kind            = QsCallableKind.TypeConstructor
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
+            Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
             Position        = (2,4) |> DeclarationHeader.Offset.Defined
             SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 13}) |> DeclarationHeader.Range.Defined
@@ -162,6 +162,7 @@ module SerializationTests =
             Kind            = QsCallableKind.Function
             QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes      = ImmutableArray.Empty
+            Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
             Position        = (4,4) |> DeclarationHeader.Offset.Defined
             SymbolRange     = ({Line = 1; Column = 10}, {Line = 1; Column = 23}) |> DeclarationHeader.Range.Defined
@@ -175,6 +176,7 @@ module SerializationTests =
             Kind            = QsCallableKind.Operation
             QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes      = ImmutableArray.Empty
+            Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
             Position        = (5,4) |> DeclarationHeader.Offset.Defined
             SymbolRange     = ({Line = 1; Column = 11}, {Line = 1; Column = 25}) |> DeclarationHeader.Range.Defined
@@ -188,6 +190,7 @@ module SerializationTests =
             Kind            = QsCallableKind.TypeConstructor
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
+            Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
             Position        = (3,4) |> DeclarationHeader.Offset.Defined
             SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 15}) |> DeclarationHeader.Range.Defined
@@ -208,11 +211,11 @@ module SerializationTests =
         {
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
+            Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
             Position        = (2,4) |> DeclarationHeader.Offset.Defined
             SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 13}) |> DeclarationHeader.Range.Defined
-            Type            = {UnderlyingType = ResolvedType.New tupleIntIntType
-                               Modifiers = {Access = DefaultAccess}}
+            Type            = ResolvedType.New tupleIntIntType
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty
         }
@@ -221,11 +224,11 @@ module SerializationTests =
         {
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
+            Modifiers       = {Access = DefaultAccess}
             SourceFile      = "%%%" |> NonNullable<string>.New
             Position        = (3,4) |> DeclarationHeader.Offset.Defined
             SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 15}) |> DeclarationHeader.Range.Defined
-            Type            = {UnderlyingType = ResolvedType.New tupleIntIntType
-                               Modifiers = {Access = DefaultAccess}}
+            Type            = ResolvedType.New tupleIntIntType
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty
         }

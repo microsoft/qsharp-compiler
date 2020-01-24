@@ -66,12 +66,12 @@ let public OpenedNamespaceName this onInvalid =
     this |> OpenedNamespace |> NameOnly onInvalid
 
 /// If the given fragment kind is a type declaration, 
-/// returns the symbol for the type as well as the declared underlying type as Value.
+/// returns the symbol for the type as well as the declared underlying type and modifiers as Value.
 /// Returns Null otherwise. 
 [<Extension>]
 let public DeclaredType this =
     match this with 
-    | TypeDefinition (sym, decl) -> (sym, decl) |> Value
+    | TypeDefinition (sym, decl, modifiers) -> (sym, (decl, modifiers)) |> Value
     | _ -> Null
 
 /// If the given fragment kind is a type declaration,
@@ -83,13 +83,13 @@ let public DeclaredTypeName this onInvalid =
     this |> DeclaredType |> NameOnly onInvalid
 
 /// If the given fragment kind is a callable declaration, 
-/// returns the symbol for the callable as well as its declared kind and signature as Value.
+/// returns the symbol for the callable as well as its declared kind, signature and modifiers as Value.
 /// Returns Null otherwise.
 [<Extension>]
 let public DeclaredCallable this =
     match this with 
-    | FunctionDeclaration (sym, decl) -> (sym, (QsCallableKind.Function, decl)) |> Value
-    | OperationDeclaration (sym, decl) -> (sym, (QsCallableKind.Operation, decl)) |> Value
+    | FunctionDeclaration (sym, decl, modifiers) -> (sym, (QsCallableKind.Function, decl, modifiers)) |> Value
+    | OperationDeclaration (sym, decl, modifiers) -> (sym, (QsCallableKind.Operation, decl, modifiers)) |> Value
     | _ -> Null
 
 /// If the given fragment kind is a callable declaration,
