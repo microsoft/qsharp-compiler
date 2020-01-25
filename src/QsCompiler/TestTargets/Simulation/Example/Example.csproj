@@ -4,15 +4,15 @@
     <QscVerbosity>Detailed</QscVerbosity>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <CsharpGeneration>false</CsharpGeneration>
-    <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QscExe>
-    <SimulationTarget>"..\Target\bin\$(Configuration)\netstandard2.1\Simulation.dll"</SimulationTarget>
-    <AdditionalQscArguments>--load $(SimulationTarget)</AdditionalQscArguments>
+    <CsharpGeneration>false</CsharpGeneration> <!--we provide our own C# generation for the sake of also generating C# for all references-->
   </PropertyGroup>
 
   <PropertyGroup>
     <GeneratedFilesOutputPath>generated/</GeneratedFilesOutputPath>
     <ExecutionTestsDir>ExecutionTests/</ExecutionTestsDir>
+    <SimulationTarget>"..\Target\bin\$(Configuration)\netstandard2.1\Simulation.dll"</SimulationTarget>
+    <AdditionalQscArguments>--load $(SimulationTarget)</AdditionalQscArguments>
+    <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QscExe>
   </PropertyGroup>
 
   <ItemGroup>
