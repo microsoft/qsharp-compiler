@@ -10,8 +10,8 @@
   <PropertyGroup>
     <GeneratedFilesOutputPath>generated/</GeneratedFilesOutputPath>
     <ExecutionTestsDir>ExecutionTests/</ExecutionTestsDir>
-    <SimulationTarget>"..\Target\bin\$(Configuration)\netstandard2.1\Simulation.dll"</SimulationTarget>
-    <AdditionalQscArguments>--load $(SimulationTarget)</AdditionalQscArguments>
+    <SimulationTarget>../Target/bin/$(Configuration)/netstandard2.1/Simulation.dll</SimulationTarget>
+    <AdditionalQscArguments> --load $(SimulationTarget)</AdditionalQscArguments>
     <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QscExe>
   </PropertyGroup>
 
@@ -27,12 +27,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Target\Simulation.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
     <ProjectReference Include="../../../CommandLineTool/CommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="../../Libraries/Library1/Library1.csproj" />
-  </ItemGroup>  
-  
+  </ItemGroup>
+
+  <Target Name="BeforeCsharpCompile">
+    <ItemGroup>
+      <Compile Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
+    </ItemGroup>
+  </Target>
+
 </Project>
 
 
