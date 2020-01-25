@@ -10,8 +10,8 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-type private ExpressionKind = QsExpressionKind<TypedExpression,Identifier,ResolvedType>
-type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+//type private ExpressionKind = QsExpressionKind<TypedExpression,Identifier,ResolvedType>
+//type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
 
 /// Convention: 
