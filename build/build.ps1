@@ -29,74 +29,88 @@ function Build-One {
     }
 }
 
-Build-One '../QsCompiler.sln'
-Build-One '../src/QuantumSdk/Tools/Tools.sln'
-
 ##
 # VS Code Extension
 ##
-
-Write-Host "##[info]Building VS Code extension..."
-Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
-if (Get-Command npm -ErrorAction SilentlyContinue) {
-    Try {
-        npm install
-        npm run compile
-
-        if  ($LastExitCode -ne 0) {
-            throw
+function Build-VSCode() {
+    Write-Host "##[info]Building VS Code extension..."
+    Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        Try {
+            npm install
+            npm run compile
+    
+            if  ($LastExitCode -ne 0) {
+                throw
+            }
+        } Catch {
+            Write-Host "##vso[task.logissue type=error;]Failed to build VS Code extension."
+            $all_ok = $False
         }
-    } Catch {
-        Write-Host "##vso[task.logissue type=error;]Failed to build VS Code extension."
-        $all_ok = $False
+    } else {
+        Write-Host "##vso[task.logissue type=warning;]npm not installed. Will skip creation of VS Code extension"
     }
-} else {
-    Write-Host "##vso[task.logissue type=warning;]npm not installed. Will skip creation of VS Code extension"
+    Pop-Location
 }
-Pop-Location
+
 
 ##
 # VisualStudioExtension
 ##
-
-Write-Host "##[info]Building VisualStudio extension..."
-Push-Location (Join-Path $PSScriptRoot '..')
-if (Get-Command nuget -ErrorAction SilentlyContinue) {
-    Try {
-        nuget restore VisualStudioExtension.sln
-
-        if ($LastExitCode -ne 0) {
-            throw
-        }
-        
-        if (Get-Command msbuild -ErrorAction SilentlyContinue) {
-            Try {
-                msbuild VisualStudioExtension.sln `
-                    /property:Configuration=$Env:BUILD_CONFIGURATION `
-                    /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
-                    /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
-
-                if ($LastExitCode -ne 0) {
-                    throw
-                }
-            } Catch {
-                Write-Host "##vso[task.logissue type=error;]Failed to build VS extension."
-                $all_ok = $False
+function Build-VS() {
+    Write-Host "##[info]Building VisualStudio extension..."
+    Push-Location (Join-Path $PSScriptRoot '..')
+    if (Get-Command nuget -ErrorAction SilentlyContinue) {
+        Try {
+            nuget restore VisualStudioExtension.sln
+    
+            if ($LastExitCode -ne 0) {
+                throw
             }
-        } else {
-            Write-Host "##vso[task.logissue type=warning;]msbuild not installed. Will skip building the VisualStudio extension"
+            
+            if (Get-Command msbuild -ErrorAction SilentlyContinue) {
+                Try {
+                    msbuild VisualStudioExtension.sln `
+                        /property:Configuration=$Env:BUILD_CONFIGURATION `
+                        /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+                        /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
+    
+                    if ($LastExitCode -ne 0) {
+                        throw
+                    }
+                } Catch {
+                    Write-Host "##vso[task.logissue type=error;]Failed to build VS extension."
+                    $all_ok = $False
+                }
+            } else {
+                Write-Host "msbuild not installed. Will skip building the VisualStudio extension"
+            }
+        } Catch {
+            Write-Host "##vso[task.logissue type=warning;]Failed to restore VS extension solution."
         }
-    } Catch {
-        Write-Host "##vso[task.logissue type=warning;]Failed to restore VS extension solution."
+    } else {
+         Write-Host "##vso[task.logissue type=warning;]nuget not installed. Will skip restoring and building the VisualStudio extension solution"
     }
-} else {
-     Write-Host "##vso[task.logissue type=warning;]nuget not installed. Will skip restoring and building the VisualStudio extension solution"
+    Pop-Location
 }
-Pop-Location
 
+################################
+# Start main execution:
 
-if (-not $all_ok) 
-{
+$all_ok = $True
+
+Build-One '../QsCompiler.sln'
+Build-One '../src/QuantumSdk/Tools/Tools.sln'
+
+if ($Env:ENABLE_VSIX -ne "false") {
+    Build-VSCode
+    Build-VS
+} else {
+    Write-Host "##vso[task.logissue type=warning;]VSIX building skipped due to ENABLE_VSIX variable."
+    return
+}
+
+if (-not $all_ok) {
     throw "Building failed. Check the logs."
     exit 1
 } else {
