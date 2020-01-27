@@ -192,6 +192,26 @@ type CallableSignature = {
     Characteristics : Characteristics
 }
 
+/// Defines where a global declaration may be accessed.
+[<Struct>]
+type AccessModifier =
+    /// For callables and types, the default access modifier is public, which means the type or callable can be used
+    /// from anywhere. For specializations, the default access modifier is the same as the parent callable.
+    | DefaultAccess
+    /// Internal access means that a type or callable may only be used from within the compilation unit in which it is
+    /// declared.
+    | Internal
+    /// Private access means that a type or callable may only be used from within the compilation unit and namespace in
+    /// which it is declared.
+    | Private
+
+/// Used to represent Q# keywords that may be attached to a declaration to modify its visibility or behavior.
+[<Struct>]
+type Modifiers = {
+    /// Defines where a global declaration may be accessed.
+    Access : AccessModifier
+}
+
 type QsFragmentKind = 
 | ExpressionStatement           of QsExpression
 | ReturnStatement               of QsExpression             
@@ -214,9 +234,9 @@ type QsFragmentKind =
 | AdjointDeclaration            of QsSpecializationGenerator
 | ControlledDeclaration         of QsSpecializationGenerator
 | ControlledAdjointDeclaration  of QsSpecializationGenerator
-| OperationDeclaration          of QsSymbol * CallableSignature
-| FunctionDeclaration           of QsSymbol * CallableSignature
-| TypeDefinition                of QsSymbol * QsTuple<QsSymbol * QsType>
+| OperationDeclaration          of QsSymbol * CallableSignature * Modifiers
+| FunctionDeclaration           of QsSymbol * CallableSignature * Modifiers
+| TypeDefinition                of QsSymbol * QsTuple<QsSymbol * QsType> * Modifiers
 | DeclarationAttribute          of QsSymbol * QsExpression
 | OpenDirective                 of QsSymbol * QsNullable<QsSymbol>
 | NamespaceDeclaration          of QsSymbol

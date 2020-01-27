@@ -37,6 +37,7 @@ type internal Resolution<'T,'R> = internal {
     Resolved : QsNullable<'R>
     DefinedAttributes : ImmutableArray<AttributeAnnotation>
     ResolvedAttributes : ImmutableArray<QsDeclarationAttribute>
+    Modifiers : Modifiers
     Documentation : ImmutableArray<string>
 }
 

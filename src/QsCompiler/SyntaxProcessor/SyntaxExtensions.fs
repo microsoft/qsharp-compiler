@@ -152,34 +152,34 @@ let public SymbolInformation fragmentKind =
     let chooseValues = QsNullable<_>.Choose id >> Seq.toList
     let addVariable var (syms, ts, exs) = var :: syms, ts, exs
     fragmentKind |> function          
-    | QsFragmentKind.ExpressionStatement              ex -> [],                        ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ReturnStatement                  ex -> [],                        ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.FailStatement                    ex -> [],                        ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.MutableBinding            (sym, ex) -> sym |> SymbolDeclarations, ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ImmutableBinding          (sym, ex) -> sym |> SymbolDeclarations, ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ValueUpdate              (lhs, rhs) -> [],                        ([lhs;rhs], [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.IfClause                         ex -> [],                        ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ElifClause                       ex -> [],                        ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ElseClause                          -> [],                        ([]       , [], [])
-    | QsFragmentKind.ForLoopIntro              (sym, ex) -> sym |> SymbolDeclarations, ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.WhileLoopIntro                   ex -> [],                        ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.RepeatIntro                         -> [],                        ([]       , [], [])
-    | QsFragmentKind.UntilSuccess                 (ex,_) -> [],                        ([ex]     , [])          |> collectWith SymbolsFromExpr
-    | QsFragmentKind.WithinBlockIntro                    -> [],                        ([]       , [], [])
-    | QsFragmentKind.ApplyBlockIntro                     -> [],                        ([]       , [], [])
-    | QsFragmentKind.UsingBlockIntro         (sym, init) -> sym |> SymbolDeclarations, init                     |> VariablesInInitializer
-    | QsFragmentKind.BorrowingBlockIntro     (sym, init) -> sym |> SymbolDeclarations, init                     |> VariablesInInitializer
-    | QsFragmentKind.BodyDeclaration                 gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | QsFragmentKind.AdjointDeclaration              gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | QsFragmentKind.ControlledDeclaration           gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | QsFragmentKind.ControlledAdjointDeclaration    gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | QsFragmentKind.OperationDeclaration (n, signature) -> (n, signature)                                      |> SymbolsInCallableDeclaration
-    | QsFragmentKind.FunctionDeclaration  (n, signature) -> (n, signature)                                      |> SymbolsInCallableDeclaration
-    | QsFragmentKind.TypeDefinition             (sym, t) -> (sym, t)                                            |> SymbolsInArgumentTuple
-    | QsFragmentKind.DeclarationAttribute      (sym, ex) -> [], ([AttributeAsCallExpr (sym, ex)], [])           |> collectWith SymbolsFromExpr |> addVariable sym    
-    | QsFragmentKind.NamespaceDeclaration            sym -> sym |> SymbolDeclarations, ([], [], [])
-    | QsFragmentKind.OpenDirective       (nsName, alias) -> [alias] |> chooseValues,   ([nsName], [], [])
-    | QsFragmentKind.InvalidFragment                   _ -> [],                        ([], [], [])     
+    | QsFragmentKind.ExpressionStatement                 ex -> [],                        ([ex]     , [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ReturnStatement                     ex -> [],                        ([ex]     , [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.FailStatement                       ex -> [],                        ([ex]     , [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.MutableBinding               (sym, ex) -> sym |> SymbolDeclarations, ([ex]     , [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ImmutableBinding             (sym, ex) -> sym |> SymbolDeclarations, ([ex]     , [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ValueUpdate                 (lhs, rhs) -> [],                        ([lhs;rhs], [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.IfClause                            ex -> [],                        ([ex]     , [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ElifClause                          ex -> [],                        ([ex]     , [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ElseClause                             -> [],                        ([]       , [], [])
+    | QsFragmentKind.ForLoopIntro                 (sym, ex) -> sym |> SymbolDeclarations, ([ex]     , [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.WhileLoopIntro                      ex -> [],                        ([ex]     , [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.RepeatIntro                            -> [],                        ([]       , [], [])
+    | QsFragmentKind.UntilSuccess                    (ex,_) -> [],                        ([ex]     , [])       |> collectWith SymbolsFromExpr
+    | QsFragmentKind.WithinBlockIntro                       -> [],                        ([]       , [], [])
+    | QsFragmentKind.ApplyBlockIntro                        -> [],                        ([]       , [], [])
+    | QsFragmentKind.UsingBlockIntro            (sym, init) -> sym |> SymbolDeclarations, init                  |> VariablesInInitializer
+    | QsFragmentKind.BorrowingBlockIntro        (sym, init) -> sym |> SymbolDeclarations, init                  |> VariablesInInitializer
+    | QsFragmentKind.BodyDeclaration                    gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | QsFragmentKind.AdjointDeclaration                 gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | QsFragmentKind.ControlledDeclaration              gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | QsFragmentKind.ControlledAdjointDeclaration       gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | QsFragmentKind.OperationDeclaration (n, signature, _) -> (n, signature)                                   |> SymbolsInCallableDeclaration
+    | QsFragmentKind.FunctionDeclaration  (n, signature, _) -> (n, signature)                                   |> SymbolsInCallableDeclaration
+    | QsFragmentKind.TypeDefinition             (sym, t, _) -> (sym, t)                                         |> SymbolsInArgumentTuple
+    | QsFragmentKind.DeclarationAttribute         (sym, ex) -> [], ([AttributeAsCallExpr (sym, ex)], [])        |> collectWith SymbolsFromExpr |> addVariable sym    
+    | QsFragmentKind.NamespaceDeclaration               sym -> sym |> SymbolDeclarations, ([], [], [])
+    | QsFragmentKind.OpenDirective          (nsName, alias) -> [alias] |> chooseValues,   ([nsName], [], [])
+    | QsFragmentKind.InvalidFragment                      _ -> [],                        ([], [], [])     
     |> SymbolInformation.New
 
 let rec private ExpressionsInInitializer item = item.Initializer |> function
@@ -280,9 +280,10 @@ let private CharacteristicsAnnotation (ex, format) =
 let public TypeInfo (symbolTable : NamespaceManager) (currentNS, source) (qsType : QsType) markdown = 
     let udtInfo udt = 
         match udt |> globalTypeResolution symbolTable (currentNS, source) with 
-        | Some decl, _ -> 
+        | Some decl, _ ->
+            // TODO: Include modifiers.
             let name = decl.QualifiedName.Name.Value |> withNewLine
-            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine 
+            let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine
             let info = sprintf "Underlying type: %s" (TypeName decl.Type)
             let doc = PrintSummary decl.Documentation markdown
             sprintf "User defined type %s%s%s%s" name ns info doc
@@ -340,8 +341,14 @@ let public PrintArgumentTuple item =
 [<Extension>]
 let public PrintSignature (header : CallableDeclarationHeader) = 
     let callable = 
-        QsCallable.New header.Kind (header.SourceFile, Null) 
-            (header.QualifiedName, header.Attributes, header.ArgumentTuple, header.Signature, ImmutableArray.Empty, ImmutableArray.Empty, QsComments.Empty);
+        QsCallable.New header.Kind (header.SourceFile, Null) (header.QualifiedName,
+                                                              header.Attributes,
+                                                              header.Modifiers,
+                                                              header.ArgumentTuple,
+                                                              header.Signature,
+                                                              ImmutableArray.Empty,
+                                                              ImmutableArray.Empty,
+                                                              QsComments.Empty)
     let signature = SyntaxTreeToQs.DeclarationSignature (callable, new Func<_,_>(TypeName))
     let annotation = CharacteristicsAnnotation (header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
     sprintf "%s%s" signature annotation
@@ -380,7 +387,8 @@ let public DeclarationInfo symbolTable (locals : LocalDeclarations) (currentNS, 
             sprintf "Declaration of %s variable %s%s" kind name info
         | false, _ ->
         match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be before querying callables
-        | Some decl, _ -> 
+        | Some decl, _ ->
+            // TODO: Include modifiers.
             let name = decl.QualifiedName.Name.Value |> withNewLine
             let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine 
             let info = sprintf "Underlying type: %s" (decl.Type |> TypeName)

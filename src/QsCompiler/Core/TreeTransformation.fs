@@ -49,6 +49,9 @@ type SyntaxTreeTransformation() =
     abstract member onSourceFile : NonNullable<string> -> NonNullable<string>
     default this.onSourceFile f = f
 
+    abstract member onModifiers : Modifiers -> Modifiers
+    default this.onModifiers m = m
+
     abstract member onTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
     default this.onTypeItems tItem = 
         match tItem with 
@@ -158,23 +161,28 @@ type SyntaxTreeTransformation() =
         let source = this.onSourceFile t.SourceFile 
         let loc = this.onLocation t.Location
         let attributes = t.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
+        let modifiers = this.onModifiers t.Modifiers
         let underlyingType = this.Scope.Expression.Type.Transform t.Type
         let typeItems = this.onTypeItems t.TypeItems
         let doc = this.onDocumentation t.Documentation
         let comments = t.Comments
-        QsCustomType.New (source, loc) (t.FullName, attributes, typeItems, underlyingType, doc, comments)
+        QsCustomType.New (source, loc) (t.FullName, attributes, modifiers, typeItems, underlyingType, doc, comments)
+
 
     abstract member onCallableImplementation : QsCallable -> QsCallable
     default this.onCallableImplementation (c : QsCallable) = 
         let source = this.onSourceFile c.SourceFile
         let loc = this.onLocation c.Location
         let attributes = c.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
+        let modifiers = this.onModifiers c.Modifiers
         let signature = this.onSignature c.Signature
         let argTuple = this.onArgumentTuple c.ArgumentTuple
         let specializations = c.Specializations |> Seq.map this.dispatchSpecialization
         let doc = this.onDocumentation c.Documentation
         let comments = c.Comments
-        QsCallable.New c.Kind (source, loc) (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
+        QsCallable.New c.Kind
+                       (source, loc)
+                       (c.FullName, attributes, modifiers, argTuple, signature, specializations, doc, comments)
 
     abstract member onOperation : QsCallable -> QsCallable
     default this.onOperation c = this.onCallableImplementation c

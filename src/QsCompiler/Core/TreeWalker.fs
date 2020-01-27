@@ -52,6 +52,9 @@ type SyntaxTreeWalker() =
     abstract member onSourceFile : NonNullable<string> -> unit
     default this.onSourceFile f = ()
 
+    abstract member onModifiers : Modifiers -> unit
+    default this.onModifiers m = ()
+
     abstract member onTypeItems : QsTuple<QsTypeItem> -> unit
     default this.onTypeItems tItem = 
         match tItem with 
@@ -148,6 +151,7 @@ type SyntaxTreeWalker() =
         this.onSourceFile t.SourceFile 
         this.onLocation t.Location
         t.Attributes |> Seq.iter this.onAttribute
+        this.onModifiers t.Modifiers
         this.Scope.Expression.Type.Walk t.Type
         this.onTypeItems t.TypeItems
         this.onDocumentation t.Documentation
@@ -157,6 +161,7 @@ type SyntaxTreeWalker() =
         this.onSourceFile c.SourceFile
         this.onLocation c.Location
         c.Attributes |> Seq.iter this.onAttribute
+        this.onModifiers c.Modifiers
         this.onSignature c.Signature
         this.onArgumentTuple c.ArgumentTuple
         c.Specializations |> Seq.iter this.dispatchSpecialization

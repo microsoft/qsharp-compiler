@@ -30,13 +30,14 @@ type private PartialNamespace private
 
     let keySelector (item : KeyValuePair<'k,'v>) = item.Key
     let valueSelector (item : KeyValuePair<'k,'v>) = item.Value
-    let unresolved (location : QsLocation) (definition, attributes, doc) = {
-        Defined = definition; 
+    let unresolved (location : QsLocation) (definition, attributes, modifiers, doc) = {
+        Defined = definition
         DefinedAttributes = attributes
-        Resolved = Null; 
+        Resolved = Null
         ResolvedAttributes = ImmutableArray.Empty
-        Position = location.Offset; 
-        Range = location.Range; 
+        Modifiers = modifiers
+        Position = location.Offset
+        Range = location.Range
         Documentation = doc
     }
 
@@ -130,7 +131,7 @@ type private PartialNamespace private
     /// Adds the corresponding type constructor to the dictionary of declared callables. 
     /// The given location is associated with both the type constructur and the type itself and accessible via the record properties Position and SymbolRange. 
     /// -> Note that this routine will fail with the standard dictionary.Add error if either a type or a callable with that name already exists. 
-    member this.AddType (location : QsLocation) (tName, typeTuple, attributes, documentation) = 
+    member this.AddType (location : QsLocation) (tName, typeTuple, attributes, modifiers, documentation) = 
         let mutable anonItemId = 0
         let withoutRange sym = {Symbol = sym; Range = Null}
         let replaceAnonymous (itemName : QsSymbol, itemType) = // positional info for types in type constructors is removed upon resolution 
@@ -165,8 +166,8 @@ type private PartialNamespace private
             if attributes |> Seq.exists (SymbolResolution.IndicatesDeprecation validDeprecatedQualification) then ImmutableArray.Create deprecationWithoutRedirect 
             else ImmutableArray.Empty
 
-        TypeDeclarations.Add(tName, (typeTuple, attributes, documentation) |> unresolved location)
-        this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), constructorAttr, ImmutableArray.Empty) 
+        TypeDeclarations.Add(tName, (typeTuple, attributes, modifiers, documentation) |> unresolved location)
+        this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), constructorAttr, modifiers, ImmutableArray.Empty) 
         let bodyGen = {TypeArguments = Null; Generator = QsSpecializationGeneratorKind.Intrinsic; Range = Value location.Range}
         this.AddCallableSpecialization location QsBody (tName, bodyGen, ImmutableArray.Empty, ImmutableArray.Empty) 
 
@@ -174,8 +175,8 @@ type private PartialNamespace private
     /// with the given callable name and signature to the dictionary of declared callables.
     /// The given location is associated with the callable declaration and accessible via the record properties Position and SymbolRange. 
     /// -> Note that this routine will fail with the standard dictionary.Add error if a callable with that name already exists. 
-    member this.AddCallableDeclaration location (cName, (kind, signature), attributes, documentation) = 
-        CallableDeclarations.Add(cName, (kind, (signature, attributes, documentation) |> unresolved location))
+    member this.AddCallableDeclaration location (cName, (kind, signature), attributes, modifiers, documentation) = 
+        CallableDeclarations.Add(cName, (kind, (signature, attributes, modifiers, documentation) |> unresolved location))
 
     /// Adds the callable specialization defined by the given kind and generator for the callable of the given name to the dictionary of declared specializations. 
     /// The given location is associated with the given specialization and accessible via the record properties Position and HeaderRange. 
@@ -186,7 +187,7 @@ type private PartialNamespace private
     member this.AddCallableSpecialization location kind (cName, generator : QsSpecializationGenerator, attributes, documentation) = 
     // NOTE: all types that are not specialized need to be resolved according to the file in which the callable is declared, 
     // but all specialized types need to be resolved according to *this* file  
-        let spec = kind, (generator, attributes, documentation) |> unresolved location
+        let spec = kind, (generator, attributes, {Access = DefaultAccess}, documentation) |> unresolved location
         match CallableSpecializations.TryGetValue cName with
         | true, specs -> specs.Add spec // it is up to the namespace to verify the type specializations
         | false, _ -> CallableSpecializations.Add(cName, new List<_>([spec]))
@@ -535,12 +536,12 @@ and Namespace private
     /// The given location is associated with both the type constructur and the type itself and accessible via the record properties Position and SymbolRange. 
     /// If a type or callable with that name already exists, returns an array of suitable diagnostics.
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
-    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, documentation) : QsCompilerDiagnostic[] = 
+    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, modifiers, documentation) : QsCompilerDiagnostic[] = 
         match Parts.TryGetValue source with 
         | true, partial when not (IsDefined tName) -> 
             TypesDefinedInAllSourcesCache <- null
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddType location (tName, typeTuple, attributes, documentation); [||]
+            partial.AddType location (tName, typeTuple, attributes, modifiers, documentation); [||]
         | true, _ ->  this.ContainsType tName |> function
             | Value _ -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeRedefinition, [tName.Value]) |]
             | Null -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeConstructorOverlapWithCallable, [tName.Value]) |] 
@@ -552,11 +553,11 @@ and Namespace private
     /// The given location is associated with the callable declaration and accessible via the record properties Position and SymbolRange. 
     /// If a callable with that name already exists, returns an array of suitable diagnostics.
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
-    member this.TryAddCallableDeclaration (source, location) ((cName, cRange), (kind, signature), attributes, documentation) =
+    member this.TryAddCallableDeclaration (source, location) ((cName, cRange), (kind, signature), attributes, modifiers, documentation) =
         match Parts.TryGetValue source with 
         | true, partial when not (IsDefined cName) -> 
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, documentation); [||]
+            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, modifiers, documentation); [||]
         | true, _ -> this.ContainsType cName |> function 
             | Value _ -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableOverlapWithTypeConstructor, [cName.Value]) |]
             | Null -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableRedefinition, [cName.Value]) |]
@@ -1106,6 +1107,7 @@ and NamespaceManager
                         Kind = kind
                         QualifiedName = {Namespace = ns.Name; Name = cName}
                         Attributes = declaration.ResolvedAttributes
+                        Modifiers = declaration.Modifiers
                         SourceFile = source
                         Position = DeclarationHeader.Offset.Defined declaration.Position
                         SymbolRange = DeclarationHeader.Range.Defined declaration.Range
@@ -1137,9 +1139,10 @@ and NamespaceManager
                     | Value (underlyingType, items) -> Some {
                         QualifiedName = {Namespace = ns.Name; Name = tName}
                         Attributes = qsType.ResolvedAttributes
+                        Modifiers = qsType.Modifiers
                         SourceFile = source
                         Position = DeclarationHeader.Offset.Defined qsType.Position
-                        SymbolRange = DeclarationHeader.Range.Defined qsType.Range 
+                        SymbolRange = DeclarationHeader.Range.Defined qsType.Range
                         Type = underlyingType
                         TypeItems = items
                         Documentation = qsType.Documentation
@@ -1232,6 +1235,7 @@ and NamespaceManager
                 Kind = kind
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
+                Modifiers = declaration.Modifiers
                 SourceFile = source
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range 
@@ -1277,15 +1281,16 @@ and NamespaceManager
     /// throws the corresponding exception if no such type exists in that file. 
     /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
     member private this.TryGetTypeHeader (typeName : QsQualifiedName, declSource) (nsName, source) =
-        let BuildHeader fullName (source, declaration) = 
+        let BuildHeader fullName (source, declaration) =
             let fallback () = declaration.Defined |> this.ResolveTypeDeclaration (typeName, source) |> fst
             let underlyingType, items = declaration.Resolved.ValueOrApply fallback
             Value {
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
+                Modifiers = declaration.Modifiers
                 SourceFile = source
                 Position = DeclarationHeader.Offset.Defined declaration.Position
-                SymbolRange = DeclarationHeader.Range.Defined declaration.Range 
+                SymbolRange = DeclarationHeader.Range.Defined declaration.Range
                 Type = underlyingType
                 TypeItems = items
                 Documentation = declaration.Documentation

@@ -437,9 +437,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var docString = $"{docPrefix}# Summary{endLine}{docPrefix}{endLine}";
 
             var (argTuple, typeParams) =
-                callableDecl.IsValue ? (callableDecl.Item.Item2.Item2.Argument, callableDecl.Item.Item2.Item2.TypeParameters) :
-                typeDecl.IsValue ? (typeDecl.Item.Item2, ImmutableArray<QsSymbol>.Empty) :
-                (null, ImmutableArray<QsSymbol>.Empty);
+                callableDecl.IsValue ? (callableDecl.Item.Item2.Item2.Argument,
+                                        callableDecl.Item.Item2.Item2.TypeParameters)
+                : typeDecl.IsValue ? (typeDecl.Item.Item2.Item1, ImmutableArray<QsSymbol>.Empty)
+                : (null, ImmutableArray<QsSymbol>.Empty);
             var hasOutput = callableDecl.IsValue && !callableDecl.Item.Item2.Item2.ReturnType.Type.IsUnitType;
 
             var args = argTuple == null ? ImmutableArray<Tuple<QsSymbol, QsType>>.Empty : SyntaxGenerator.ExtractItems(argTuple);
