@@ -61,6 +61,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option("emit-dll", Required = false, Default = false, SetName = CODE_MODE,
             HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
             public bool EmitDll { get; set; }
+
+            [Option('p', "perf", Required = false, SetName = CODE_MODE,
+            HelpText = "Destination folder where the output of the performance assessment will be generated.")]
+            public string PerfFolder { get; set; }
         }
 
         /// <summary>

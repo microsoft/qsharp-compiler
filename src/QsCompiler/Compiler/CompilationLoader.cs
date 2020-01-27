@@ -111,7 +111,12 @@ namespace Microsoft.Quantum.QsCompiler
             /// However, the compiler may overwrite the assembly constants defined for the Q# compilation unit in the dictionary of the loaded step.
             /// The given dictionary in this configuration is left unchanged in any case. 
             /// </summary>
-            public IReadOnlyDictionary<string, string> AssemblyConstants; 
+            public IReadOnlyDictionary<string, string> AssemblyConstants;
+            /// <summary>
+            /// Directory where the output of the perfomance assessment will be generated. 
+            /// No perfomance assessment will be done unless this path is specified and valid. 
+            /// </summary>
+            public string PerfOutputFolder;
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
