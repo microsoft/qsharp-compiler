@@ -116,6 +116,22 @@ Directory where any generated documentation will be saved.
 
 [comment]: # (TODO: document QscBuildConfigExe, QscBuildConfigOutputPath)
 
+## Defined item groups ##
+
+The following configurable item groups are used by the Sdk: 
+
+- `PackageLoadFallbackFolder`:    
+Contains the directories where the Q# compiler will look for a suitable dll if a qsc reference or one if its dependencies cannot be found. By default, the project output path is included in this item group. 
+
+- `PackageReference`:    
+Contains all referenced NuGet packages. Package references for which the `IsQscReference` attribute is set to "true" may extend the Q# compiler and any implemented rewrite steps will be executed as part of the compilation process. See [this section](#extending-the-q#-compiler) for more details.
+
+- `ProjectReference`:    
+Contains all referenced projects. Project references for which the `IsQscReference` attribute is set to "true" may extend the Q# compiler and any implemented rewrite steps will be executed as part of the compilation process. See [this section](#extending-the-q#-compiler) for more details.
+
+- `QsharpCompile`:    
+Contains all Q# source files included in the compilation.
+
 # Sdk Packages #
 
 To understand how the content in this package works it is useful to understand how the properties, item groups, and targets defined in the Sdk are combined with those defined by a specific project. 
