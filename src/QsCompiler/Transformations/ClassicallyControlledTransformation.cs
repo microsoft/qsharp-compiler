@@ -166,11 +166,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 return (false, null, null);
             }
 
-            private TypedExpression CreateApplyIfCall(TypedExpression id, TypedExpression args) =>
+            private TypedExpression CreateApplyIfCall(TypedExpression id, TypedExpression args, TypeArgsResolution typeRes) =>
                 new TypedExpression
                 (
                     ExpressionKind.NewCallLikeExpression(id, args),
-                    TypeArgsResolution.Empty, // ToDo: Can't be left empty
+                    typeRes,
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     new InferredExpressionInformation(false, true),
                     QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
@@ -306,7 +306,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         .ToImmutableArray(),
                     GetApplyIfResolvedType(controlOpInfo, props, controlArgs.ResolvedType));
 
-                return CreateApplyIfCall(controlOpId, controlArgs);
+                // Creates identity resolutions for the call expression
+                var opTypeArgResolutions = targetArgs
+                    .SelectMany(x =>
+                        x.Resolution is ResolvedTypeKind.TupleType tup
+                        ? tup.Item
+                        : ImmutableArray.Create(x))
+                    .Where(x => x.Resolution.IsTypeParameter)
+                    .Select(x => (x.Resolution as ResolvedTypeKind.TypeParameter).Item)
+                    .GroupBy(x => (x.Origin, x.TypeName))
+                    .Select(group =>
+                    {
+                        var typeParam = group.First();
+                        return Tuple.Create(typeParam.Origin, typeParam.TypeName, ResolvedType.New(ResolvedTypeKind.NewTypeParameter(typeParam)));
+                    })
+                    .ToImmutableArray();
+
+                return CreateApplyIfCall(controlOpId, controlArgs, opTypeArgResolutions);
             }
 
             private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement cond)
