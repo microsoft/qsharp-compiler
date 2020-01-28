@@ -155,6 +155,11 @@ module Declarations =
 
     /// keyword for a Q# declaration
     let Namespace   = "namespace"
+    
+    /// keyword for a Q# declaration modifier
+    let Private     = "private"
+    /// keyword for a Q# declaration modifier
+    let Internal    = "internal"
 
 
 /// contains keywords for Q# directives

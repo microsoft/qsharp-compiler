@@ -113,6 +113,11 @@ let private allocationScope =
     let initializerTuple = buildTupleItem validInitializer buildInitializerTuple ErrorCode.InvalidInitializerExpression ErrorCode.MissingInitializerExpression invalidInitializer isTupleContinuation
     optTupleBrackets (initializerTuple |> symbolBinding equal ErrorCode.ExpectingAssignment) |>> fst
 
+/// Parses keywords that modify the visibility or behavior of a declaration.
+let private modifiers =
+    let accessModifier = (qsPrivate.parse >>% Private) <|> (qsInternal.parse >>% Internal) <|>% DefaultAccess
+    accessModifier |>> fun access -> { Access = access }
+
 /// Parses a Q# operation or function signature. 
 /// Expects type annotations for each symbol in the argument tuple, and raises Missing- or InvalidTypeAnnotation errors otherwise. 
 /// Raises Missing- or InvalidArumentDeclaration error for entirely missing or invalid arguments, 
@@ -149,9 +154,7 @@ let private signature =
     let returnTypeAnnotation = expected (typeAnnotation eof) ErrorCode.InvalidReturnTypeAnnotation ErrorCode.MissingReturnTypeAnnotation invalidType eof
     let characteristicsAnnotation = opt (qsCharacteristics.parse >>. expectedCharacteristics eof) |>> Option.defaultValue ((EmptySet, Null) |> Characteristics.New)
     let signature = genericParamList .>>. (argumentTuple .>>. returnTypeAnnotation) .>>. characteristicsAnnotation |>> CallableSignature.New
-    // TODO: Parse modifiers.
-    symbolDeclaration .>>. signature
-    |>> (fun (symbol, signature) -> (symbol, signature, {Access = DefaultAccess}))
+    tuple3 modifiers symbolDeclaration signature
 
 /// Parses a Q# functor generator directive. 
 /// For a user defined implementation, expects a tuple argument of items that can either be a localIdentifier or omittedSymbols.
@@ -277,17 +280,17 @@ and private controlledAdjointDeclaration =
 
 /// Uses buildFragment to parse a Q# OperationDeclaration as QsFragment.
 and private operationDeclaration =  
-    let invalid = OperationDeclaration (invalidSymbol, CallableSignature.Invalid, {Access = DefaultAccess})
+    let invalid = OperationDeclaration ({Access = DefaultAccess}, invalidSymbol, CallableSignature.Invalid)
     buildFragment opDeclHeader.parse signature invalid OperationDeclaration eof
          
 /// Uses buildFragment to parse a Q# FunctionDeclaration as QsFragment.
 and private functionDeclaration =
-    let invalid = FunctionDeclaration (invalidSymbol, CallableSignature.Invalid, {Access = DefaultAccess})
+    let invalid = FunctionDeclaration ({Access = DefaultAccess}, invalidSymbol, CallableSignature.Invalid)
     buildFragment fctDeclHeader.parse signature invalid FunctionDeclaration eof
 
 /// Uses buildFragment to parse a Q# TypeDefinition as QsFragment.
 and private udtDeclaration = 
-    let invalid = TypeDefinition (invalidSymbol, invalidArgTupleItem, {Access = DefaultAccess})
+    let invalid = TypeDefinition ({Access = DefaultAccess}, invalidSymbol, invalidArgTupleItem)
     let udtTuple = // not unified with the argument tuple for callable declarations, since the error handling needs to be different
         let asAnonymousItem t = QsTupleItem ((MissingSymbol, Null) |> QsSymbol.New, t)        
         let namedItem = 
@@ -300,10 +303,7 @@ and private udtDeclaration =
             buildTupleItem tupleItem (fst >> QsTuple) ErrorCode.InvalidUdtItemDeclaration ErrorCode.MissingUdtItemDeclaration invalidArgTupleItem eof
         let invalidNamedSingle = followedBy namedItem >>. optTupleBrackets namedItem |>> fst
         invalidNamedSingle <|> udtTupleItem // require parenthesis for a single named item 
-    let declBody =
-        // TODO: Parse modifiers.
-        expectedIdentifierDeclaration equal .>> equal .>>. udtTuple
-        |>> (fun (symbol, tuple) -> (symbol, tuple, {Access = DefaultAccess}))
+    let declBody = tuple3 modifiers (expectedIdentifierDeclaration equal .>> equal) udtTuple
     buildFragment typeDeclHeader.parse declBody invalid TypeDefinition eof
 
 
