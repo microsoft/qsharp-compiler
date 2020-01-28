@@ -108,6 +108,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             );
         }
 
+        
+
 
         // publicly accessible routines 
 
@@ -139,7 +141,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 EnableAdditionalChecks = false // todo: enable debug mode?
             }; 
 
-            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
+            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger, CompilationTracker.OnCompilationEvent);
             return ReturnCode.Status(loaded);
         }
     }

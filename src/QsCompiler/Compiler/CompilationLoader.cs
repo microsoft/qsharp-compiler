@@ -131,7 +131,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal string ProjectNameWithExtension =>
                 this.ProjectName == null ? null :
-                this.ProjectName.EndsWith("proj") ? this.ProjectName : 
+                this.ProjectName.EndsWith("proj") ? this.ProjectName :
                 $"{this.ProjectName}.qsproj";
 
             /// <summary>
@@ -268,6 +268,42 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public bool Success => this.CompilationStatus.Success(this.Config, this.CompilationOutput?.EntryPoints.Length != 0);
 
+        /// <summary>
+        /// ToDo
+        /// </summary>
+        public enum CompilationProcessEventType
+        {
+            Start,
+            End
+        }
+
+        /// <summary>
+        /// ToDo
+        /// </summary>
+        public class CompilationProcessEventArgs : EventArgs
+        {
+
+            public string ParentName;
+            public string Name;
+            public CompilationProcessEventType Type;
+
+            public CompilationProcessEventArgs(string parentName, string name, CompilationProcessEventType type)
+            {
+                this.ParentName = parentName;
+                this.Name = name;
+                this.Type = type;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public delegate void CompilationProcessEventHandler(object sender, CompilationProcessEventArgs args);
+
+        /// <summary>
+        /// ToDo
+        /// </summary>
+        public event CompilationProcessEventHandler CompilationProcessEvent;
 
         /// <summary>
         /// Logger used to log all diagnostic events during compilation.
@@ -329,8 +365,17 @@ namespace Microsoft.Quantum.QsCompiler
         /// Uses the specified logger to log all diagnostic events. 
         /// Throws an ArgumentNullException if either one of the given loaders is null or returns null.
         /// </summary>
-        public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger logger = null)
+        public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger logger = null, CompilationProcessEventHandler onCompilationProcessEvent = null)
         {
+
+            // adding the event handlers.
+            if (onCompilationProcessEvent != null)
+            {
+                this.CompilationProcessEvent += onCompilationProcessEvent;
+            }
+
+            RaiseCompilationProcessStart(null, "EndToEndCompilation");
+
             // loading the content to compiler 
 
             this.Logger = logger;
@@ -429,6 +474,8 @@ namespace Microsoft.Quantum.QsCompiler
                 if (executed == Status.Succeeded) this.CompilationOutput = transformed;
                 this.CompilationStatus.LoadedRewriteSteps[i] = executed;
             }
+
+            RaiseCompilationProcessEnd(null, "EndToEndCompilation");
         }
 
         /// <summary>
@@ -514,8 +561,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// Uses the specified logger to log all diagnostic events. 
         /// Throws an ArgumentNullException if the given loader is null or returns null.
         /// </summary>
-        public CompilationLoader(SourceLoader loadSources, IEnumerable<string> references, Configuration? options = null, ILogger logger = null)
-            : this(loadSources, load => load(references), options, logger) { }
+        public CompilationLoader(SourceLoader loadSources, IEnumerable<string> references, Configuration? options = null, ILogger logger = null, CompilationProcessEventHandler onCompilationProcessEvent = null)
+            : this(loadSources, load => load(references), options, logger, onCompilationProcessEvent) { }
 
 
         // private routines used for logging and status updates
@@ -831,6 +878,15 @@ namespace Microsoft.Quantum.QsCompiler
             if (!Directory.Exists(fileDir)) Directory.CreateDirectory(fileDir);
             File.WriteAllText(targetFile, content);
             return targetFile;
+        }
+
+        private void RaiseCompilationProcessStart (string parentName, string name)
+        {
+            this.CompilationProcessEvent?.Invoke(this, new CompilationProcessEventArgs(parentName, name, CompilationProcessEventType.Start));
+        }
+        private void RaiseCompilationProcessEnd(string parentName, string name)
+        {
+            this.CompilationProcessEvent?.Invoke(this, new CompilationProcessEventArgs(parentName, name, CompilationProcessEventType.End));
         }
     }
 }
