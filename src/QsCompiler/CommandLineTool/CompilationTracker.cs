@@ -19,6 +19,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public long? DurationInMs;
             private readonly Stopwatch Watch;
 
+            public static string GenerateKey(string parentName, string name)
+            {
+                return String.Format("{0}.{1}", parentName ?? "ROOT", name);
+            }
+
 
             public CompilationProcess(string parentName, string name)
             {
@@ -37,6 +42,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 this.DurationInMs = this.Watch.ElapsedMilliseconds;
             }
 
+            public string Key()
+            {
+                return CompilationProcess.GenerateKey(ParentName, Name);
+            }
+
             public bool IsInProgress()
             {
                 return this.Watch.IsRunning;
@@ -52,20 +62,26 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             ProcessAlreadyExists,
             ProcessDoesNotExist,
-            ProcessAlreadyEnded
+            ProcessAlreadyEnded,
+            ProcessStillInProgress
         }
 
         private class Warning
         {
             public readonly WarningType Type;
             public readonly DateTime UtcDateTime;
-            public readonly CompilationLoader.CompilationProcessEventArgs Args;
+            public readonly string Key;
 
-            public Warning(WarningType type, CompilationLoader.CompilationProcessEventArgs args)
+            public Warning(WarningType type, string key)
             {
                 this.UtcDateTime = DateTime.UtcNow;
                 this.Type = type;
-                this.Args = args;
+                this.Key = key;
+            }
+
+            public override string ToString()
+            {
+                return String.Format("Type: {0}, UTC: {1}, Key: {2}", Type, UtcDateTime, Key);
             }
         }
 
@@ -73,12 +89,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         private delegate void CompilationEventTypeHandler(CompilationLoader.CompilationProcessEventArgs eventArgs);
         private static void CompilationEventStartHandler(CompilationLoader.CompilationProcessEventArgs eventArgs)
         {
-            string key = String.Format("{0}.{1}", eventArgs.ParentName ?? "ROOT", eventArgs.Name);
-            // ToDo: remove.
-            Console.WriteLine(key);
+            string key = CompilationProcess.GenerateKey(eventArgs.ParentName, eventArgs.Name);
             if (CompilationProcesses.ContainsKey(key))
             {
-                Warnings.Add(new Warning(WarningType.ProcessAlreadyExists, eventArgs));
+                Warnings.Add(new Warning(WarningType.ProcessAlreadyExists, key));
                 return;
             }
 
@@ -87,18 +101,16 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         private static void CompilationEventEndHandler(CompilationLoader.CompilationProcessEventArgs eventArgs)
         {
-            string key = String.Format("{0}.{1}", eventArgs.ParentName ?? "ROOT", eventArgs.Name);
-            // ToDo: remove.
-            Console.WriteLine(key);
+            string key = CompilationProcess.GenerateKey(eventArgs.ParentName, eventArgs.Name);
             if (!CompilationProcesses.TryGetValue(key, out CompilationProcess process))
             {
-                Warnings.Add(new Warning(WarningType.ProcessDoesNotExist, eventArgs));
+                Warnings.Add(new Warning(WarningType.ProcessDoesNotExist, key));
                 return;
             }
 
             if (!process.IsInProgress())
             {
-                Warnings.Add(new Warning(WarningType.ProcessAlreadyEnded, eventArgs));
+                Warnings.Add(new Warning(WarningType.ProcessAlreadyEnded, key));
                 return;
             }
 
@@ -120,10 +132,28 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public static void PublishResults()
         {
 
-            Console.WriteLine("\n>> RESULTS <<");
+            // Validate that all compilation processes are no longer running.
+            foreach (KeyValuePair<string, CompilationProcess> entry in CompilationProcesses)
+            {
+                if (entry.Value.IsInProgress())
+                {
+                    Warnings.Add(new Warning(WarningType.ProcessStillInProgress, entry.Value.Key()));
+                }
+            }
+
+            Console.WriteLine(">> RESULTS <<");
+            Console.WriteLine("PROCESSES:");
             foreach (KeyValuePair<string, CompilationProcess> entry in CompilationProcesses)
             {
                 Console.WriteLine(String.Format("[{0}] {1}", entry.Key, entry.Value));
+            }
+
+            Console.WriteLine();
+
+            Console.WriteLine("WARNINGS:");
+            foreach (Warning warning in Warnings)
+            {
+                Console.WriteLine(warning);
             }
         }
     }
