@@ -160,7 +160,13 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 }
             }
 
-            itemListNode.Children.Sort((node1, node2) => CompareUids(node1, node2));
+            var children = itemListNode
+                .Children
+                .OrderBy((node1, node2) => CompareUids(node1, node2))
+                .GroupBy(node => TryGetUid(node))
+                .Select(group => group.First());
+            itemListNode.Children.Clear();
+            itemListNode.Children.AddRange(children);
         }
 
         /// <summary>

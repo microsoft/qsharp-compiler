@@ -475,6 +475,21 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
     // See https://stackoverflow.com/a/5037815/267841.
     internal static class SortExtensions
     {
+        internal static void AddRange<T>(this IList<T> list, IEnumerable<T> source)
+        {
+            if (list is List<T> concreteList)
+            {
+                concreteList.AddRange(source);
+            }
+            else
+            {
+                foreach (var element in list)
+                {
+                    list.Add(element);
+                }
+            }
+        }
+
         //  Sorts an IList<T> in place.
         internal static void Sort<T>(this IList<T> list, Comparison<T> comparison)
         {
