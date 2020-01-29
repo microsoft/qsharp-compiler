@@ -141,7 +141,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 EnableAdditionalChecks = false // todo: enable debug mode?
             }; 
 
+            // ToDo: check options before using the OnCompilationEvent handler.
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger, CompilationTracker.OnCompilationEvent);
+            // ToDo: check options before publishing results.
+            CompilationTracker.PublishResults();
             return ReturnCode.Status(loaded);
         }
     }
