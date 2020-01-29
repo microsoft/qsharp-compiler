@@ -50,7 +50,7 @@
         },
         {
           "name": "keyword.other.qsharp",
-          "match": "\\b(new|not|and|or|w\/)\\b"
+          "match": "\\b(new|not|and|or|w\/|private|internal)\\b"
         },
         {
           "comment": "C# reserved words which can't be used in Q#, A-D",
@@ -60,12 +60,12 @@
         {
           "comment": "C# reserved words which can't be used in Q#, E-L",
           "name": "invalid.illegal.el.qsharp",
-          "match": "\\b(enum|event|explicit|extern|finally|fixed|float|foreach|goto|implicit|int|interface|internal|lock|long)\\b"
+          "match": "\\b(enum|event|explicit|extern|finally|fixed|float|foreach|goto|implicit|int|interface|lock|long)\\b"
         },
         {
           "comment": "C# reserved words which can't be used in Q#, N-S",
           "name": "invalid.illegal.ns.qsharp",
-          "match": "\\b(null|object|operator|out|override|params|private|protected|public|readonly|ref|sbyte|sealed|short|sizeof|stackalloc)\\b"
+          "match": "\\b(null|object|operator|out|override|params|protected|public|readonly|ref|sbyte|sealed|short|sizeof|stackalloc)\\b"
         },
         {
           "comment": "C# reserved words which can't be used in Q#, S-V",

@@ -234,9 +234,9 @@ type QsFragmentKind =
 | AdjointDeclaration            of QsSpecializationGenerator
 | ControlledDeclaration         of QsSpecializationGenerator
 | ControlledAdjointDeclaration  of QsSpecializationGenerator
-| OperationDeclaration          of QsSymbol * CallableSignature * Modifiers
-| FunctionDeclaration           of QsSymbol * CallableSignature * Modifiers
-| TypeDefinition                of QsSymbol * QsTuple<QsSymbol * QsType> * Modifiers
+| OperationDeclaration          of Modifiers * QsSymbol * CallableSignature
+| FunctionDeclaration           of Modifiers * QsSymbol * CallableSignature
+| TypeDefinition                of Modifiers * QsSymbol * QsTuple<QsSymbol * QsType>
 | DeclarationAttribute          of QsSymbol * QsExpression
 | OpenDirective                 of QsSymbol * QsNullable<QsSymbol>
 | NamespaceDeclaration          of QsSymbol

@@ -200,6 +200,11 @@ let typeDeclHeader = addFragmentHeader Declarations.Type
 /// keyword for a Q# declaration (QsFragmentHeader)
 let namespaceDeclHeader = addFragmentHeader Declarations.Namespace
 
+/// keyword for a Q# declaration modifier (QsLanguageKeyword)
+let qsPrivate = addLanguageKeyword Declarations.Private
+/// keyword for a Q# declaration modifier (QsLanguageKeyword)
+let qsInternal = addLanguageKeyword Declarations.Internal
+
 // directives
 
 /// keyword for a Q# directive (QsFragmentHeader)

@@ -233,9 +233,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
                     SyntaxGenerator.ExtractItems(argTuple).SelectMany(item => item.Item2.ExtractCharacteristics()).Distinct();
                 var characteristicsInFragment =
-                    fragment?.Kind is QsFragmentKind.FunctionDeclaration function ? GetCharacteristics(function.Item2.Argument) :
-                    fragment?.Kind is QsFragmentKind.OperationDeclaration operation ? GetCharacteristics(operation.Item2.Argument) :
-                    fragment?.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item2) :
+                    fragment?.Kind is QsFragmentKind.FunctionDeclaration function ? GetCharacteristics(function.Item3.Argument) :
+                    fragment?.Kind is QsFragmentKind.OperationDeclaration operation ? GetCharacteristics(operation.Item3.Argument) :
+                    fragment?.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item3) :
                     Enumerable.Empty<Characteristics>();
 
                 //var symbolInfo = file.TryGetQsSymbolInfo(d.Range.Start, false, out var fragment);
@@ -437,11 +437,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var docString = $"{docPrefix}# Summary{endLine}{docPrefix}{endLine}";
 
             var (argTuple, typeParams) =
-                callableDecl.IsValue ? (callableDecl.Item.Item2.Item2.Argument,
-                                        callableDecl.Item.Item2.Item2.TypeParameters)
-                : typeDecl.IsValue ? (typeDecl.Item.Item2.Item1, ImmutableArray<QsSymbol>.Empty)
+                callableDecl.IsValue ? (callableDecl.Item.Item2.Item3.Argument,
+                                        callableDecl.Item.Item2.Item3.TypeParameters)
+                : typeDecl.IsValue ? (typeDecl.Item.Item2.Item2, ImmutableArray<QsSymbol>.Empty)
                 : (null, ImmutableArray<QsSymbol>.Empty);
-            var hasOutput = callableDecl.IsValue && !callableDecl.Item.Item2.Item2.ReturnType.Type.IsUnitType;
+            var hasOutput = callableDecl.IsValue && !callableDecl.Item.Item2.Item3.ReturnType.Type.IsUnitType;
 
             var args = argTuple == null ? ImmutableArray<Tuple<QsSymbol, QsType>>.Empty : SyntaxGenerator.ExtractItems(argTuple);
             docString = String.Concat(

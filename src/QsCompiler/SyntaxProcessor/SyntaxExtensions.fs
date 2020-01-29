@@ -173,9 +173,9 @@ let public SymbolInformation fragmentKind =
     | QsFragmentKind.AdjointDeclaration                 gen -> gen |> SymbolsInGenerator, ([], [], [])
     | QsFragmentKind.ControlledDeclaration              gen -> gen |> SymbolsInGenerator, ([], [], [])
     | QsFragmentKind.ControlledAdjointDeclaration       gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | QsFragmentKind.OperationDeclaration (n, signature, _) -> (n, signature)                                   |> SymbolsInCallableDeclaration
-    | QsFragmentKind.FunctionDeclaration  (n, signature, _) -> (n, signature)                                   |> SymbolsInCallableDeclaration
-    | QsFragmentKind.TypeDefinition             (sym, t, _) -> (sym, t)                                         |> SymbolsInArgumentTuple
+    | QsFragmentKind.OperationDeclaration (_, n, signature) -> (n, signature)                                   |> SymbolsInCallableDeclaration
+    | QsFragmentKind.FunctionDeclaration  (_, n, signature) -> (n, signature)                                   |> SymbolsInCallableDeclaration
+    | QsFragmentKind.TypeDefinition             (_, sym, t) -> (sym, t)                                         |> SymbolsInArgumentTuple
     | QsFragmentKind.DeclarationAttribute         (sym, ex) -> [], ([AttributeAsCallExpr (sym, ex)], [])        |> collectWith SymbolsFromExpr |> addVariable sym    
     | QsFragmentKind.NamespaceDeclaration               sym -> sym |> SymbolDeclarations, ([], [], [])
     | QsFragmentKind.OpenDirective          (nsName, alias) -> [alias] |> chooseValues,   ([nsName], [], [])
