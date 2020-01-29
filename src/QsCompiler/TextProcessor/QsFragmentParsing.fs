@@ -154,6 +154,7 @@ let private signature =
     let returnTypeAnnotation = expected (typeAnnotation eof) ErrorCode.InvalidReturnTypeAnnotation ErrorCode.MissingReturnTypeAnnotation invalidType eof
     let characteristicsAnnotation = opt (qsCharacteristics.parse >>. expectedCharacteristics eof) |>> Option.defaultValue ((EmptySet, Null) |> Characteristics.New)
     let signature = genericParamList .>>. (argumentTuple .>>. returnTypeAnnotation) .>>. characteristicsAnnotation |>> CallableSignature.New
+    // TODO: Parse modifiers before the "operation" and "function" keywords.
     tuple3 modifiers symbolDeclaration signature
 
 /// Parses a Q# functor generator directive. 
@@ -302,7 +303,8 @@ and private udtDeclaration =
             let tupleItem = attempt namedItem <|> (typeParser typeTuple |>> asAnonymousItem) // namedItem needs to be first, and we can't be permissive for tuple types!
             buildTupleItem tupleItem (fst >> QsTuple) ErrorCode.InvalidUdtItemDeclaration ErrorCode.MissingUdtItemDeclaration invalidArgTupleItem eof
         let invalidNamedSingle = followedBy namedItem >>. optTupleBrackets namedItem |>> fst
-        invalidNamedSingle <|> udtTupleItem // require parenthesis for a single named item 
+        invalidNamedSingle <|> udtTupleItem // require parenthesis for a single named item
+    // TODO: Parse modifiers before the "operation" and "function" keywords.
     let declBody = tuple3 modifiers (expectedIdentifierDeclaration equal .>> equal) udtTuple
     buildFragment typeDeclHeader.parse declBody invalid TypeDefinition eof
 
