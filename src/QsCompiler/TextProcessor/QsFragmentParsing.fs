@@ -116,7 +116,7 @@ let private allocationScope =
 /// Parses keywords that modify the visibility or behavior of a declaration.
 let private modifiers =
     let accessModifier = (qsPrivate.parse >>% Private) <|> (qsInternal.parse >>% Internal) <|>% DefaultAccess
-    accessModifier |>> fun access -> { Access = access }
+    accessModifier |>> fun access -> {Access = access}
 
 /// Parses a Q# operation or function signature. 
 /// Expects type annotations for each symbol in the argument tuple, and raises Missing- or InvalidTypeAnnotation errors otherwise. 
