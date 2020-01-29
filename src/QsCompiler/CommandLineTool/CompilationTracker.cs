@@ -14,8 +14,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             public readonly string ParentName;
             public readonly string Name;
-            public readonly DateTime UtcStartDateTime;
-            public DateTime? UtcEndDateTime;
+            public readonly DateTime UtcStart;
+            public DateTime? UtcEnd;
             public long? DurationInMs;
             private readonly Stopwatch Watch;
 
@@ -24,15 +24,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 this.ParentName = parentName;
                 this.Name = name;
-                this.UtcStartDateTime = DateTime.UtcNow;
-                this.UtcEndDateTime = null;
+                this.UtcStart = DateTime.UtcNow;
+                this.UtcEnd = null;
                 this.DurationInMs = null;
                 this.Watch = Stopwatch.StartNew();
             }
 
             public void End()
             {
-                this.UtcEndDateTime = DateTime.UtcNow;
+                this.UtcEnd = DateTime.UtcNow;
                 this.Watch.Stop();
                 this.DurationInMs = this.Watch.ElapsedMilliseconds;
             }
@@ -40,6 +40,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public bool IsInProgress()
             {
                 return this.Watch.IsRunning;
+            }
+
+            public override string ToString()
+            {
+                return String.Format("Parent: {0}, Name: {1}, UtcStart: {2}, UtcEnd: {3}, DurationInMs: {4}", ParentName ?? "ROOT", Name, UtcStart, UtcEnd, DurationInMs);
             }
         }
 
@@ -68,7 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         private delegate void CompilationEventTypeHandler(CompilationLoader.CompilationProcessEventArgs eventArgs);
         private static void CompilationEventStartHandler(CompilationLoader.CompilationProcessEventArgs eventArgs)
         {
-            string key = String.Format("{0}.{1}", eventArgs.ParentName ?? "", eventArgs.Name);
+            string key = String.Format("{0}.{1}", eventArgs.ParentName ?? "ROOT", eventArgs.Name);
             // ToDo: remove.
             Console.WriteLine(key);
             if (CompilationProcesses.ContainsKey(key))
@@ -82,7 +87,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         private static void CompilationEventEndHandler(CompilationLoader.CompilationProcessEventArgs eventArgs)
         {
-            string key = String.Format("{0}.{1}", eventArgs.ParentName ?? "", eventArgs.Name);
+            string key = String.Format("{0}.{1}", eventArgs.ParentName ?? "ROOT", eventArgs.Name);
             // ToDo: remove.
             Console.WriteLine(key);
             if (!CompilationProcesses.TryGetValue(key, out CompilationProcess process))
@@ -114,7 +119,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
         public static void PublishResults()
         {
-            Console.WriteLine(CompilationProcesses);
+
+            Console.WriteLine("\n>> RESULTS <<");
+            foreach (KeyValuePair<string, CompilationProcess> entry in CompilationProcesses)
+            {
+                Console.WriteLine(String.Format("[{0}] {1}", entry.Key, entry.Value));
+            }
         }
     }
 }

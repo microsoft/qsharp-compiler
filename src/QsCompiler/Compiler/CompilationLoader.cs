@@ -374,7 +374,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.CompilationProcessEvent += onCompilationProcessEvent;
             }
 
-            RaiseCompilationProcessStart(null, "EndToEndCompilation");
+            RaiseCompilationProcessStart(null, "OverallCompilation");
 
             // loading the content to compiler 
 
@@ -390,13 +390,18 @@ namespace Microsoft.Quantum.QsCompiler
             this.CompilationStatus = new ExecutionStatus(this.ExternalRewriteSteps);
             this.CompilationStatus.PluginLoading = rewriteStepLoading;
 
+            RaiseCompilationProcessStart("OverallCompilation", "SourcesLoading");
             var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles) 
                 ?? throw new ArgumentNullException("unable to load source files");
+            RaiseCompilationProcessEnd("OverallCompilation", "SourcesLoading");
+            RaiseCompilationProcessStart("OverallCompilation", "ReferenceLoading");
             var references = loadReferences?.Invoke(refs => this.LoadAssemblies(refs, this.Config.LoadReferencesBasedOnGeneratedCsharp)) 
                 ?? throw new ArgumentNullException("unable to load referenced binary files");
+            RaiseCompilationProcessEnd("OverallCompilation", "ReferenceLoading");
 
             // building the compilation
 
+            RaiseCompilationProcessStart("OverallCompilation", "Build");
             this.CompilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
             var compilationManager = new CompilationUnitManager(this.OnCompilerException);
@@ -443,27 +448,44 @@ namespace Microsoft.Quantum.QsCompiler
                 if (!evaluated) this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ErrorCode.PreEvaluationFailed, Enumerable.Empty<string>());
             }
 
+            RaiseCompilationProcessEnd("OverallCompilation", "Build");
+
             // generating the compiled binary and dll
 
+            RaiseCompilationProcessStart("OverallCompilation", "OutputGeneration");
             using (var ms = new MemoryStream())
             {
+                RaiseCompilationProcessStart("OutputGeneration", "SyntaxTreeSerialization");
                 var serialized = this.Config.SerializeSyntaxTree && this.SerializeSyntaxTree(ms);
+                RaiseCompilationProcessEnd("OutputGeneration", "SyntaxTreeSerialization");
                 if (serialized && this.Config.BuildOutputFolder != null)
-                { this.PathToCompiledBinary = this.GenerateBinary(ms); }
+                {
+                    RaiseCompilationProcessStart("OutputGeneration", "BinaryGeneration");
+                    this.PathToCompiledBinary = this.GenerateBinary(ms);
+                    RaiseCompilationProcessEnd("OutputGeneration", "BinaryGeneration");
+                }
                 if (serialized && this.Config.DllOutputPath != null)
-                { this.DllOutputPath = this.GenerateDll(ms); }
+                {
+                    RaiseCompilationProcessStart("OutputGeneration", "DllGeneration");
+                    this.DllOutputPath = this.GenerateDll(ms);
+                    RaiseCompilationProcessEnd("OutputGeneration", "DllGeneration");
+                }
             }
 
             // executing the specified generation steps 
 
             if (this.Config.DocumentationOutputFolder != null)
             {
+                RaiseCompilationProcessStart("OutputGeneration", "DocumentationGeneration");
                 this.CompilationStatus.Documentation = Status.Succeeded;
                 var docsFolder = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DocumentationOutputFolder) ? "." : this.Config.DocumentationOutputFolder);
                 void onDocException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.Documentation, ex);
                 var docsGenerated = this.VerifiedCompilation != null && DocBuilder.Run(docsFolder, this.VerifiedCompilation.SyntaxTree.Values, this.VerifiedCompilation.SourceFiles, onException: onDocException);
                 if (!docsGenerated) this.LogAndUpdate(ref this.CompilationStatus.Documentation, ErrorCode.DocGenerationFailed, Enumerable.Empty<string>());
+                RaiseCompilationProcessEnd("OutputGeneration", "DocumentationGeneration");
             }
+
+            RaiseCompilationProcessEnd("OverallCompilation", "OutputGeneration");
 
             // invoking rewrite steps in external dlls
 
@@ -475,7 +497,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.CompilationStatus.LoadedRewriteSteps[i] = executed;
             }
 
-            RaiseCompilationProcessEnd(null, "EndToEndCompilation");
+            RaiseCompilationProcessEnd(null, "OverallCompilation");
         }
 
         /// <summary>
