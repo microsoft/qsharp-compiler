@@ -10,7 +10,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
+//type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 
 
 /// Convention: 
