@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
 
             itemListNode.Children.Clear();
-            foreach (var (uid, name) in itemsByUid)
+            foreach (var (uid, name) in itemsByUid.OrderBy(item => item.Key))
             {
                 itemListNode.Add(Utils.BuildMappingNode(
                     Utils.NameKey, name, Utils.UidKey, uid
