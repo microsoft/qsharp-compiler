@@ -27,19 +27,19 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             public CompilationProcess(string parentName, string name)
             {
-                this.ParentName = parentName;
-                this.Name = name;
-                this.UtcStart = DateTime.UtcNow;
-                this.UtcEnd = null;
-                this.DurationInMs = null;
-                this.Watch = Stopwatch.StartNew();
+                ParentName = parentName;
+                Name = name;
+                UtcStart = DateTime.UtcNow;
+                UtcEnd = null;
+                DurationInMs = null;
+                Watch = Stopwatch.StartNew();
             }
 
             public void End()
             {
-                this.UtcEnd = DateTime.UtcNow;
-                this.Watch.Stop();
-                this.DurationInMs = this.Watch.ElapsedMilliseconds;
+                UtcEnd = DateTime.UtcNow;
+                Watch.Stop();
+                DurationInMs = Watch.ElapsedMilliseconds;
             }
 
             public string Key()
@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             public bool IsInProgress()
             {
-                return this.Watch.IsRunning;
+                return Watch.IsRunning;
             }
 
             public override string ToString()
@@ -74,9 +74,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             public Warning(WarningType type, string key)
             {
-                this.UtcDateTime = DateTime.UtcNow;
-                this.Type = type;
-                this.Key = key;
+                UtcDateTime = DateTime.UtcNow;
+                Type = type;
+                Key = key;
             }
 
             public override string ToString()
