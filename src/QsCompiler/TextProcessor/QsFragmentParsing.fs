@@ -154,8 +154,7 @@ let private signature =
     let returnTypeAnnotation = expected (typeAnnotation eof) ErrorCode.InvalidReturnTypeAnnotation ErrorCode.MissingReturnTypeAnnotation invalidType eof
     let characteristicsAnnotation = opt (qsCharacteristics.parse >>. expectedCharacteristics eof) |>> Option.defaultValue ((EmptySet, Null) |> Characteristics.New)
     let signature = genericParamList .>>. (argumentTuple .>>. returnTypeAnnotation) .>>. characteristicsAnnotation |>> CallableSignature.New
-    // TODO: Parse modifiers before the "operation" and "function" keywords.
-    tuple3 modifiers symbolDeclaration signature
+    symbolDeclaration .>>. signature
 
 /// Parses a Q# functor generator directive. 
 /// For a user defined implementation, expects a tuple argument of items that can either be a localIdentifier or omittedSymbols.
@@ -218,6 +217,10 @@ let rec private getFragments() = // Note: this needs to be a function!
         (ctrlDeclHeader       , controlledDeclaration       )
         (bodyDeclHeader       , bodyDeclaration             )
         (importDirectiveHeader, openDirective               )
+        // Modifiers need to be considered fragment headers for parsing reasons, but the actual parsing is handled by
+        // the fragment being modified.
+        (qsPrivate            , pzero                       )
+        (qsInternal           , pzero                       )
     ]
 
 and private headerCheck = // DO NOT REMOVE - the check is executed once at the beginning, just as it should be 
@@ -282,12 +285,16 @@ and private controlledAdjointDeclaration =
 /// Uses buildFragment to parse a Q# OperationDeclaration as QsFragment.
 and private operationDeclaration =  
     let invalid = OperationDeclaration ({Access = DefaultAccess}, invalidSymbol, CallableSignature.Invalid)
-    buildFragment opDeclHeader.parse signature invalid OperationDeclaration eof
+    let makeOperation mods (symbol, signature) = OperationDeclaration (mods, symbol, signature)
+    modifiers .>> followedBy opDeclHeader.parse |> attempt >>= fun mods ->
+        buildFragment opDeclHeader.parse signature invalid (makeOperation mods) eof
          
 /// Uses buildFragment to parse a Q# FunctionDeclaration as QsFragment.
 and private functionDeclaration =
     let invalid = FunctionDeclaration ({Access = DefaultAccess}, invalidSymbol, CallableSignature.Invalid)
-    buildFragment fctDeclHeader.parse signature invalid FunctionDeclaration eof
+    let makeFunction mods (symbol, signature) = FunctionDeclaration (mods, symbol, signature)
+    modifiers .>> followedBy fctDeclHeader.parse |> attempt >>= fun mods ->
+        buildFragment fctDeclHeader.parse signature invalid (makeFunction mods) eof
 
 /// Uses buildFragment to parse a Q# TypeDefinition as QsFragment.
 and private udtDeclaration = 
@@ -304,9 +311,10 @@ and private udtDeclaration =
             buildTupleItem tupleItem (fst >> QsTuple) ErrorCode.InvalidUdtItemDeclaration ErrorCode.MissingUdtItemDeclaration invalidArgTupleItem eof
         let invalidNamedSingle = followedBy namedItem >>. optTupleBrackets namedItem |>> fst
         invalidNamedSingle <|> udtTupleItem // require parenthesis for a single named item
-    // TODO: Parse modifiers before the "operation" and "function" keywords.
-    let declBody = tuple3 modifiers (expectedIdentifierDeclaration equal .>> equal) udtTuple
-    buildFragment typeDeclHeader.parse declBody invalid TypeDefinition eof
+    let declBody = expectedIdentifierDeclaration equal .>> equal .>>. udtTuple
+    let makeType mods (symbol, underlyingType) = TypeDefinition (mods, symbol, underlyingType)
+    modifiers .>> followedBy typeDeclHeader.parse |> attempt >>= fun mods ->
+        buildFragment typeDeclHeader.parse declBody invalid (makeType mods) eof
 
 
 // statement parsing
