@@ -71,16 +71,15 @@ type MyEvent<'T> (defaultHandler : 'T -> 'T) = inherit MyEvent<'T,'T>(defaultHan
 /// even if the corresponding transformation routine (starting with "on") is overridden.
 type BaseTransformation() as this =
 
+    member private this.exprMap ex = this.onTypedExpression.Call ex
+    member private this.opMap (lhs, rhs) = (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)
+
     (*Expression Kind*)
 
     member val beforeCallLike : MyEvent<TypedExpression * TypedExpression> = MyEvent<TypedExpression * TypedExpression> id
-
     member val beforeFunctorApplication : MyEvent<TypedExpression> = MyEvent<TypedExpression> id
-
     member val beforeModifierApplication : MyEvent<TypedExpression> = MyEvent<TypedExpression> id
-
     member val beforeBinaryOperatorExpression : MyEvent<TypedExpression * TypedExpression> = MyEvent<TypedExpression * TypedExpression> id
-
     member val beforeUnaryOperatorExpression : MyEvent<TypedExpression> = MyEvent<TypedExpression> id
 
     member val onIdentifier : MyEvent<Identifier * QsNullable<ImmutableArray<ResolvedType>>, ExpressionKind> =
@@ -90,49 +89,31 @@ type BaseTransformation() as this =
             Identifier)
 
     member val onOperationCall : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (method, arg) -> (this.onTypedExpression.Call method, this.onTypedExpression.Call arg)),
-            CallLikeExpression)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, CallLikeExpression)
 
     member val onFunctionCall : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (method, arg) -> (this.onTypedExpression.Call method, this.onTypedExpression.Call arg)),
-            CallLikeExpression)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, CallLikeExpression)
 
     member val onPartialApplication : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (method, arg) -> (this.onTypedExpression.Call method, this.onTypedExpression.Call arg)),
-            CallLikeExpression)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, CallLikeExpression)
 
     member val onAdjointApplication : MyEvent<TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression, ExpressionKind>
-            ((fun ex -> this.onTypedExpression.Call ex),
-            AdjointApplication)
+        MyEvent<TypedExpression, ExpressionKind> (this.exprMap, AdjointApplication)
 
     member val onControlledApplication : MyEvent<TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression, ExpressionKind>
-            ((fun ex -> this.onTypedExpression.Call ex),
-            ControlledApplication)
+        MyEvent<TypedExpression, ExpressionKind> (this.exprMap, ControlledApplication)
 
     member val onUnwrapApplication : MyEvent<TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression, ExpressionKind>
-            ((fun ex -> this.onTypedExpression.Call ex),
-            UnwrapApplication)
+        MyEvent<TypedExpression, ExpressionKind> (this.exprMap, UnwrapApplication)
 
     member val onUnitValue : MyEvent<unit, ExpressionKind> =
-        MyEvent<unit, ExpressionKind>
-            (id,
-            (fun () -> ExpressionKind.UnitValue))
+        MyEvent<unit, ExpressionKind> (id, (fun () -> ExpressionKind.UnitValue))
 
     member val onMissingExpression : MyEvent<unit, ExpressionKind> =
-        MyEvent<unit, ExpressionKind>
-            (id,
-            (fun () -> MissingExpr))
+        MyEvent<unit, ExpressionKind> (id, (fun () -> MissingExpr))
 
     member val onInvalidExpression : MyEvent<unit, ExpressionKind> =
-        MyEvent<unit, ExpressionKind>
-            (id,
-            (fun () -> InvalidExpr))
+        MyEvent<unit, ExpressionKind> (id, (fun () -> InvalidExpr))
 
     member val onValueTuple : MyEvent<ImmutableArray<TypedExpression>, ExpressionKind> =
         MyEvent<ImmutableArray<TypedExpression>, ExpressionKind>
@@ -140,9 +121,7 @@ type BaseTransformation() as this =
             ValueTuple)
 
     member val onArrayItem : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (arr, idx) -> (this.onTypedExpression.Call arr, this.onTypedExpression.Call idx)),
-            ArrayItem)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, ArrayItem)
 
     member val onNamedItem : MyEvent<TypedExpression * Identifier, ExpressionKind> =
         MyEvent<TypedExpression * Identifier, ExpressionKind>
@@ -160,34 +139,22 @@ type BaseTransformation() as this =
             NewArray)
 
     member val onIntLiteral : MyEvent<int64, ExpressionKind> =
-        MyEvent<int64, ExpressionKind>
-            (id,
-            IntLiteral)
+        MyEvent<int64, ExpressionKind> (id, IntLiteral)
 
     member val onBigIntLiteral : MyEvent<BigInteger, ExpressionKind> =
-        MyEvent<BigInteger, ExpressionKind>
-            (id,
-            BigIntLiteral)
+        MyEvent<BigInteger, ExpressionKind> (id, BigIntLiteral)
 
     member val onDoubleLiteral : MyEvent<double, ExpressionKind> =
-        MyEvent<double, ExpressionKind>
-            (id,
-            DoubleLiteral)
+        MyEvent<double, ExpressionKind> (id, DoubleLiteral)
 
     member val onBoolLiteral : MyEvent<bool, ExpressionKind> =
-        MyEvent<bool, ExpressionKind>
-            (id,
-            BoolLiteral)
+        MyEvent<bool, ExpressionKind> (id, BoolLiteral)
 
     member val onResultLiteral : MyEvent<QsResult, ExpressionKind> =
-        MyEvent<QsResult, ExpressionKind>
-            (id,
-            ResultLiteral)
+        MyEvent<QsResult, ExpressionKind> (id, ResultLiteral)
 
     member val onPauliLiteral : MyEvent<QsPauli, ExpressionKind> =
-        MyEvent<QsPauli, ExpressionKind>
-            (id,
-            PauliLiteral)
+        MyEvent<QsPauli, ExpressionKind> (id, PauliLiteral)
 
     member val onStringLiteral : MyEvent<NonNullable<string> * ImmutableArray<TypedExpression>, ExpressionKind> =
         MyEvent<NonNullable<string> * ImmutableArray<TypedExpression>, ExpressionKind>
@@ -195,9 +162,7 @@ type BaseTransformation() as this =
             StringLiteral)
 
     member val onRangeLiteral : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            RangeLiteral)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, RangeLiteral)
 
     member val onCopyAndUpdateExpression : MyEvent<TypedExpression * TypedExpression * TypedExpression, ExpressionKind> =
         MyEvent<TypedExpression * TypedExpression * TypedExpression, ExpressionKind>
@@ -210,115 +175,65 @@ type BaseTransformation() as this =
             CONDITIONAL)
 
     member val onEquality : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            EQ)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, EQ)
 
     member val onInequality : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            NEQ)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, NEQ)
 
     member val onLessThan : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            LT)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, LT)
 
     member val onLessThanOrEqual : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            LTE)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, LTE)
 
     member val onGreaterThan : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            GT)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, GT)
 
     member val onGreaterThanOrEqual : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            GTE)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, GTE)
 
     member val onLogicalAnd : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            AND)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, AND)
 
     member val onLogicalOr : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            OR)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, OR)
 
     member val onAddition : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            ADD)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, ADD)
 
     member val onSubtraction : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            SUB)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, SUB)
 
     member val onMultiplication : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            MUL)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, MUL)
 
     member val onDivision : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            DIV)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, DIV)
 
     member val onExponentiate : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            POW)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, POW)
 
     member val onModulo : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            MOD)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, MOD)
 
     member val onLeftShift : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            LSHIFT)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, LSHIFT)
 
     member val onRightShift : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            RSHIFT)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, RSHIFT)
 
     member val onBitwiseExclusiveOr : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            BXOR)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, BXOR)
 
     member val onBitwiseOr : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            BOR)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, BOR)
 
     member val onBitwiseAnd : MyEvent<TypedExpression * TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression * TypedExpression, ExpressionKind>
-            ((fun (lhs, rhs) -> (this.onTypedExpression.Call lhs, this.onTypedExpression.Call rhs)),
-            BAND)
+        MyEvent<TypedExpression * TypedExpression, ExpressionKind> (this.opMap, BAND)
 
-    member val onLogicalNot : MyEvent<TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression, ExpressionKind>
-            ((fun ex -> this.onTypedExpression.Call ex),
-            NOT)
-
-    member val onNegative : MyEvent<TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression, ExpressionKind>
-            ((fun ex -> this.onTypedExpression.Call ex),
-            NEG)
-
-    member val onBitwiseNot : MyEvent<TypedExpression, ExpressionKind> =
-        MyEvent<TypedExpression, ExpressionKind>
-            ((fun ex -> this.onTypedExpression.Call ex),
-            BNOT)
-
+    member val onLogicalNot : MyEvent<TypedExpression, ExpressionKind> = MyEvent<TypedExpression, ExpressionKind> (this.exprMap, NOT)
+    member val onNegative : MyEvent<TypedExpression, ExpressionKind> = MyEvent<TypedExpression, ExpressionKind> (this.exprMap, NEG)
+    member val onBitwiseNot : MyEvent<TypedExpression, ExpressionKind> = MyEvent<TypedExpression, ExpressionKind> (this.exprMap, BNOT)
 
     member private this.dispatchCallLikeExpression (method, arg) =
         match method.ResolvedType.Resolution with
@@ -377,7 +292,6 @@ type BaseTransformation() as this =
     (*Expression Type*)
 
     member val onRangeInformation : MyEvent<QsRangeInfo> = MyEvent<QsRangeInfo> id
-
     member val onCharacteristicsExpression : MyEvent<ResolvedCharacteristics> = MyEvent<ResolvedCharacteristics> id
 
     member val onCallableInformation : MyEvent<CallableInformation> = MyEvent<CallableInformation> (fun opInfo ->
@@ -403,9 +317,7 @@ type BaseTransformation() as this =
             ExpressionType.TypeParameter)
 
     member val onUnitType : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.UnitType))
+        MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.UnitType))
 
     member val onOperationType : MyEvent<(ResolvedType * ResolvedType) * CallableInformation, ExpressionType> =
         MyEvent<(ResolvedType * ResolvedType) * CallableInformation, ExpressionType>
@@ -427,60 +339,17 @@ type BaseTransformation() as this =
             ((fun b -> this.onResolvedType.Call b),
             ExpressionType.ArrayType)
 
-    member val onQubit : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.Qubit))
-
-    member val onMissingType : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.MissingType))
-
-    member val onInvalidType : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.InvalidType))
-
-    member val onInt : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.Int))
-
-    member val onBigInt : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.BigInt))
-
-    member val onDouble : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.Double))
-
-    member val onBool : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.Bool))
-
-    member val onString : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.String))
-
-    member val onResult : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.Result))
-
-    member val onPauli : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.Pauli))
-
-    member val onRange : MyEvent<unit, ExpressionType> =
-        MyEvent<unit, ExpressionType>
-            (id,
-            (fun () -> ExpressionType.Range))
+    member val onQubit : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.Qubit))
+    member val onMissingType : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.MissingType))
+    member val onInvalidType : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.InvalidType))
+    member val onInt : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.Int))
+    member val onBigInt : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.BigInt))
+    member val onDouble : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.Double))
+    member val onBool : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.Bool))
+    member val onString : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.String))
+    member val onResult : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.Result))
+    member val onPauli : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.Pauli))
+    member val onRange : MyEvent<unit, ExpressionType> = MyEvent<unit, ExpressionType> (id, (fun () -> ExpressionType.Range))
 
     member val onResolvedType : MyEvent<ResolvedType> = MyEvent<ResolvedType> (fun t ->
         match t.Resolution with
@@ -507,7 +376,6 @@ type BaseTransformation() as this =
     (*Expression*)
 
     member val onLocation : MyEvent<QsNullable<QsLocation>> = MyEvent<QsNullable<QsLocation>> id
-
     member val onExpressionInformation : MyEvent<InferredExpressionInformation> = MyEvent<InferredExpressionInformation> id
 
     member val onTypeParamResolutions : MyEvent<ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType>> =
@@ -538,24 +406,16 @@ type BaseTransformation() as this =
         |> ResolvedInitializer.New)
 
     member val beforeVariableDeclaration : MyEvent<SymbolTuple> = MyEvent<SymbolTuple> id
-
     member val onSymbolTuple : MyEvent<SymbolTuple> = MyEvent<SymbolTuple> id
 
-
     member val onExpressionStatement : MyEvent<TypedExpression, QsStatementKind> =
-        MyEvent<TypedExpression, QsStatementKind>
-            ((fun ex -> this.onTypedExpression.Call ex),
-            QsExpressionStatement)
+        MyEvent<TypedExpression, QsStatementKind> (this.exprMap, QsExpressionStatement)
 
     member val onReturnStatement : MyEvent<TypedExpression, QsStatementKind> =
-        MyEvent<TypedExpression, QsStatementKind>
-            ((fun ex -> this.onTypedExpression.Call ex),
-            QsReturnStatement)
+        MyEvent<TypedExpression, QsStatementKind> (this.exprMap, QsReturnStatement)
 
     member val onFailStatement : MyEvent<TypedExpression, QsStatementKind> =
-        MyEvent<TypedExpression, QsStatementKind>
-            ((fun ex -> this.onTypedExpression.Call ex),
-            QsFailStatement)
+        MyEvent<TypedExpression, QsStatementKind> (this.exprMap, QsFailStatement)
 
     member val onVariableDeclaration : MyEvent<QsBinding<TypedExpression>, QsStatementKind> =
         MyEvent<QsBinding<TypedExpression>, QsStatementKind>
@@ -636,15 +496,10 @@ type BaseTransformation() as this =
             QsQubitScope)
 
     member val onAllocateQubits : MyEvent<QsQubitScope, QsStatementKind> =
-        MyEvent<QsQubitScope, QsStatementKind>
-            (id,
-            (fun x -> this.onQubitScope.Call x))
+        MyEvent<QsQubitScope, QsStatementKind> (id, (fun x -> this.onQubitScope.Call x))
 
     member val onBorrowQubits : MyEvent<QsQubitScope, QsStatementKind> =
-        MyEvent<QsQubitScope, QsStatementKind>
-            (id,
-            (fun x -> this.onQubitScope.Call x))
-
+        MyEvent<QsQubitScope, QsStatementKind> (id, (fun x -> this.onQubitScope.Call x))
 
     member private this.dispatchQubitScope (stm : QsQubitScope) =
         match stm.Kind with
@@ -667,8 +522,7 @@ type BaseTransformation() as this =
         | QsWhileStatement stm       -> this.onWhileStatement.Call       (stm)
         | QsRepeatStatement stm      -> this.onRepeatStatement.Call      (stm)
         | QsConjugation stm          -> this.onConjugation.Call          (stm)
-        | QsQubitScope stm           -> this.dispatchQubitScope          (stm  |> beforeQubitScope)
-    )
+        | QsQubitScope stm           -> this.dispatchQubitScope          (stm  |> beforeQubitScope))
 
     (*Scope*)
 
@@ -696,17 +550,11 @@ type BaseTransformation() as this =
     (*Syntax Tree*)
 
     member val beforeNamespaceElement : MyEvent<QsNamespaceElement> = MyEvent<QsNamespaceElement> id
-
     member val beforeCallable : MyEvent<QsCallable> = MyEvent<QsCallable> id
-
     member val beforeSpecialization : MyEvent<QsSpecialization> = MyEvent<QsSpecialization> id
-
     member val beforeSpecializationImplementation : MyEvent<SpecializationImplementation> = MyEvent<SpecializationImplementation> id
-
     member val beforeGeneratedImplementation : MyEvent<QsGeneratorDirective> = MyEvent<QsGeneratorDirective> id
-
     member val onDocumentation : MyEvent<ImmutableArray<string>> = MyEvent<ImmutableArray<string>> id
-
     member val onSourceFile : MyEvent<NonNullable<string>> = MyEvent<NonNullable<string>> id
 
     member val onTypeItems : MyEvent<QsTuple<QsTypeItem>> = MyEvent<QsTuple<QsTypeItem>> (fun tItem ->
@@ -738,7 +586,6 @@ type BaseTransformation() as this =
         ResolvedSignature.New ((argType, returnType), info, typeParams))
 
     member val onExternalImplementation : MyEvent<unit> = MyEvent<unit> id
-
     member val onIntrinsicImplementation : MyEvent<unit> = MyEvent<unit> id
 
     member val onProvidedImplementation : MyEvent<QsArgumentTuple * QsScope> = MyEvent<QsArgumentTuple * QsScope> (fun (argTuple, body) ->
@@ -747,11 +594,8 @@ type BaseTransformation() as this =
         argTuple, body)
 
     member val onSelfInverseDirective : MyEvent<unit> = MyEvent<unit> id
-
     member val onInvertDirective : MyEvent<unit> = MyEvent<unit> id
-
     member val onDistributeDirective : MyEvent<unit> = MyEvent<unit> id
-
     member val onInvalidGeneratorDirective : MyEvent<unit> = MyEvent<unit> id
 
     member this.dispatchGeneratedImplementation dir =
@@ -780,11 +624,8 @@ type BaseTransformation() as this =
         QsSpecialization.New spec.Kind (source, loc) (spec.Parent, attributes, typeArgs, signature, impl, doc, comments))
 
     member val onBodySpecialization : MyEvent<QsSpecialization> = MyEvent<QsSpecialization> (fun spec -> this.onSpecializationImplementation.Call spec)
-
     member val onAdjointSpecialization : MyEvent<QsSpecialization> = MyEvent<QsSpecialization> (fun spec -> this.onSpecializationImplementation.Call spec)
-
     member val onControlledSpecialization : MyEvent<QsSpecialization> = MyEvent<QsSpecialization> (fun spec -> this.onSpecializationImplementation.Call spec)
-
     member val onControlledAdjointSpecialization : MyEvent<QsSpecialization> = MyEvent<QsSpecialization> (fun spec -> this.onSpecializationImplementation.Call spec)
 
     member this.dispatchSpecialization spec =
@@ -817,9 +658,7 @@ type BaseTransformation() as this =
         QsCallable.New c.Kind (source, loc) (c.FullName, attributes, argTuple, signature, specializations, doc, comments))
 
     member val onOperation : MyEvent<QsCallable> = MyEvent<QsCallable> (fun c -> this.onCallableImplementation.Call c)
-
     member val onFunction : MyEvent<QsCallable> = MyEvent<QsCallable> (fun c -> this.onCallableImplementation.Call c)
-
     member val onTypeConstructor : MyEvent<QsCallable> = MyEvent<QsCallable> (fun c -> this.onCallableImplementation.Call c)
 
     member this.dispatchCallable c =
