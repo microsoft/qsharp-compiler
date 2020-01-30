@@ -58,6 +58,20 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
         }
 
+        private class CompilationProcessNode
+        {
+            public readonly CompilationProcess Process;
+            public readonly IDictionary<string, CompilationProcessNode> Children;
+
+            public CompilationProcessNode(CompilationProcess process)
+            {
+                Process = process;
+                Children = new Dictionary<string, CompilationProcessNode>();
+            }
+        }
+
+        private delegate void CompilationEventTypeHandler(CompilationLoader.CompilationProcessEventArgs eventArgs);
+
         private enum WarningType
         {
             ProcessAlreadyExists,
@@ -85,8 +99,49 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
         }
 
+        private static readonly IDictionary<CompilationLoader.CompilationProcessEventType, CompilationEventTypeHandler> CompilationEventTypeHandlers = new Dictionary<CompilationLoader.CompilationProcessEventType, CompilationEventTypeHandler>
+        {
+            { CompilationLoader.CompilationProcessEventType.Start, CompilationEventStartHandler },
+            { CompilationLoader.CompilationProcessEventType.End, CompilationEventEndHandler }
+        };
+
         private static readonly IDictionary<string, CompilationProcess> CompilationProcesses = new Dictionary<string, CompilationProcess>();
-        private delegate void CompilationEventTypeHandler(CompilationLoader.CompilationProcessEventArgs eventArgs);
+        private static readonly IList<CompilationProcessNode> CompilationProcessesForest = new List<CompilationProcessNode>();
+        private static readonly IList<Warning> Warnings = new List<Warning>();
+
+        private static void BuildCompilationProcessesForest()
+        {
+            Queue<CompilationProcessNode> toFindChildrenNodes = new Queue<CompilationProcessNode>();
+
+            // First add the roots of all trees to the forest.
+
+            foreach (KeyValuePair<string, CompilationProcess> entry in CompilationProcesses)
+            {
+                if (entry.Value.ParentName == null)
+                {
+                    CompilationProcessNode node = new CompilationProcessNode(entry.Value);
+                    CompilationProcessesForest.Add(node);
+                    toFindChildrenNodes.Enqueue(node);
+                }
+            }
+
+            // Build the trees.
+
+            while (toFindChildrenNodes.Count > 0)
+            {
+                CompilationProcessNode parentNode = toFindChildrenNodes.Dequeue();
+                foreach (KeyValuePair<string, CompilationProcess> entry in CompilationProcesses)
+                {
+                    if (parentNode.Process.Name.Equals(entry.Value.ParentName))
+                    {
+                        CompilationProcessNode childNode = new CompilationProcessNode(entry.Value);
+                        parentNode.Children.Add(childNode.Process.Name, childNode);
+                        toFindChildrenNodes.Enqueue(childNode);
+                    }
+                }
+            }
+        }
+
         private static void CompilationEventStartHandler(CompilationLoader.CompilationProcessEventArgs eventArgs)
         {
             string key = CompilationProcess.GenerateKey(eventArgs.ParentName, eventArgs.Name);
@@ -117,13 +172,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             process.End();
         }
 
-        private static readonly IDictionary<CompilationLoader.CompilationProcessEventType, CompilationEventTypeHandler> CompilationEventTypeHandlers = new Dictionary<CompilationLoader.CompilationProcessEventType, CompilationEventTypeHandler>
-        {
-            { CompilationLoader.CompilationProcessEventType.Start, CompilationEventStartHandler },
-            { CompilationLoader.CompilationProcessEventType.End, CompilationEventEndHandler }
-        };
-
-        private static readonly IList<Warning> Warnings = new List<Warning>();
         public static void OnCompilationEvent(object sender, CompilationLoader.CompilationProcessEventArgs args)
         {
             CompilationEventTypeHandlers[args.Type](args);
@@ -141,8 +189,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
             }
 
+            BuildCompilationProcessesForest();
+
             Console.WriteLine(">> RESULTS <<");
             Console.WriteLine("PROCESSES:");
+            Console.WriteLine(CompilationProcessesForest);
             foreach (KeyValuePair<string, CompilationProcess> entry in CompilationProcesses)
             {
                 Console.WriteLine(String.Format("[{0}] {1}", entry.Key, entry.Value));
