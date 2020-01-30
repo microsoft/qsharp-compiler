@@ -7,11 +7,11 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
 {
-    public class MonomorphizationValidationTransformation
+    public class old_MonomorphizationValidationTransformation
     {
         public static void Apply(QsCompilation compilation)
         {
@@ -66,6 +66,55 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             {
                 throw new Exception("Type Parameter types must be resolved");
             }
+        }
+    }
+
+    public class MonomorphizationValidationTransformation
+    {
+        private readonly BaseTransformation transformation;
+        
+        public static void Apply(QsCompilation compilation)
+        {
+            var filter = new MonomorphizationValidationTransformation();
+
+            foreach (var ns in compilation.Namespaces)
+            {
+                filter.transformation.onNamespace.Call(ns);
+            }
+        }
+
+        public MonomorphizationValidationTransformation()
+        {
+            transformation = new BaseTransformation();
+
+            transformation.onSignature.Add(x => this.onSignature(x));
+            transformation.onTypeParamResolutions.Add(x => this.onTypeParamResolutions(x));
+            transformation.onTypeParameter.Add(x => this.onTypeParameter(x));
+        }
+
+        private ResolvedSignature onSignature(ResolvedSignature s)
+        {
+            if (s.TypeParameters.Any())
+            {
+                throw new Exception("Signatures cannot contains type parameters");
+            }
+
+            return transformation.onSignature.CallDefault(s);
+        }
+
+        public ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
+        {
+            if (typeParams.Any())
+            {
+                throw new Exception("Type Parameter Resolutions must be empty");
+            }
+
+            return typeParams;
+        }
+
+        public QsTypeParameter onTypeParameter(QsTypeParameter tp)
+        {
+            throw new Exception("Type Parameter types must be resolved");
         }
     }
 }
