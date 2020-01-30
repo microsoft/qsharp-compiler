@@ -96,6 +96,26 @@ type OptimizingTransformation() =
         if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then changed <- true
         newX
 
+type OptimizingTransformation2() as this =
+
+    let mutable changed = false
+
+    do this.Transformation.onNamespace.Add this.onNamespace |> ignore
+    
+    member val Transformation : BaseTransformation = BaseTransformation()
+
+    /// Returns whether the syntax tree has been modified since this function was last called
+    member internal this.checkChanged() =
+        let x = changed
+        changed <- false
+        x
+
+    /// Checks whether the syntax tree changed at all
+    member this.onNamespace x =
+        let newX = this.Transformation.onNamespace.CallDefault x
+        if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then changed <- true
+        newX
+
 
 /// A ScopeTransformation that counts how many times each variable is referenced
 type internal ReferenceCounter() =
