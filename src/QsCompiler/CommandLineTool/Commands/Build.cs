@@ -139,12 +139,16 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false // todo: enable debug mode?
-            }; 
+            };
 
-            // ToDo: check options before using the OnCompilationEvent handler.
+            // Note that performance is evaluated only if the performance folder option is present.
+            CompilationLoader.CompilationProcessEventHandler onCompilationProcessEvent = options.PerfFolder != null ? CompilationTracker.OnCompilationEvent : (CompilationLoader.CompilationProcessEventHandler)null;
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger, CompilationTracker.OnCompilationEvent);
-            // ToDo: check options before publishing results.
-            CompilationTracker.PublishResults();
+            if (options.PerfFolder != null)
+            {
+                CompilationTracker.PublishResults(options.PerfFolder);
+            }
+
             return ReturnCode.Status(loaded);
         }
     }

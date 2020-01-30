@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using Microsoft.Quantum.QsCompiler;
-
+using Newtonsoft.Json;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
@@ -76,8 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             ProcessAlreadyExists,
             ProcessDoesNotExist,
-            ProcessAlreadyEnded,
-            ProcessStillInProgress
+            ProcessAlreadyEnded
         }
 
         private class Warning
@@ -106,11 +106,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         };
 
         private static readonly IDictionary<string, CompilationProcess> CompilationProcesses = new Dictionary<string, CompilationProcess>();
-        private static readonly IList<CompilationProcessNode> CompilationProcessesForest = new List<CompilationProcessNode>();
         private static readonly IList<Warning> Warnings = new List<Warning>();
 
-        private static void BuildCompilationProcessesForest()
+        private static IList<CompilationProcessNode> BuildCompilationProcessesForest()
         {
+            IList<CompilationProcessNode> compilationProcessesForest = new List<CompilationProcessNode>();
             Queue<CompilationProcessNode> toFindChildrenNodes = new Queue<CompilationProcessNode>();
 
             // First add the roots of all trees to the forest.
@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 if (entry.Value.ParentName == null)
                 {
                     CompilationProcessNode node = new CompilationProcessNode(entry.Value);
-                    CompilationProcessesForest.Add(node);
+                    compilationProcessesForest.Add(node);
                     toFindChildrenNodes.Enqueue(node);
                 }
             }
@@ -140,6 +140,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     }
                 }
             }
+
+            return compilationProcessesForest;
         }
 
         private static void CompilationEventStartHandler(CompilationLoader.CompilationProcessEventArgs eventArgs)
@@ -177,34 +179,36 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             CompilationEventTypeHandlers[args.Type](args);
         }
 
-        public static void PublishResults()
+        public static void PublishResults(string outputFolder)
         {
-
-            // Validate that all compilation processes are no longer running.
-            foreach (KeyValuePair<string, CompilationProcess> entry in CompilationProcesses)
+            IList<CompilationProcessNode> compilationProcessesForest = BuildCompilationProcessesForest();
+            string outputPath = Path.GetFullPath(outputFolder);
+            DirectoryInfo outputDirectoryInfo = new DirectoryInfo(outputPath);
+            if (!outputDirectoryInfo.Exists)
             {
-                if (entry.Value.IsInProgress())
+                outputDirectoryInfo.Create();
+            }
+
+            using (StreamWriter file = File.CreateText(Path.Combine(outputPath, "compilationPerf.json")))
+            {
+                JsonSerializer serializer = new JsonSerializer
                 {
-                    Warnings.Add(new Warning(WarningType.ProcessStillInProgress, entry.Value.Key()));
+                    Formatting = Formatting.Indented
+                };
+
+                serializer.Serialize(file, compilationProcessesForest);
+            }
+
+            if (Warnings.Count > 0) {
+                using (StreamWriter file = File.CreateText(Path.Combine(outputPath, "compilationPerfWarnings.json")))
+                {
+                    JsonSerializer serializer = new JsonSerializer
+                    {
+                        Formatting = Formatting.Indented
+                    };
+
+                    serializer.Serialize(file, Warnings);
                 }
-            }
-
-            BuildCompilationProcessesForest();
-
-            Console.WriteLine(">> RESULTS <<");
-            Console.WriteLine("PROCESSES:");
-            Console.WriteLine(CompilationProcessesForest);
-            foreach (KeyValuePair<string, CompilationProcess> entry in CompilationProcesses)
-            {
-                Console.WriteLine(String.Format("[{0}] {1}", entry.Key, entry.Value));
-            }
-
-            Console.WriteLine();
-
-            Console.WriteLine("WARNINGS:");
-            foreach (Warning warning in Warnings)
-            {
-                Console.WriteLine(warning);
             }
         }
     }
