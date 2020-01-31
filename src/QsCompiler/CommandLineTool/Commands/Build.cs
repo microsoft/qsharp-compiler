@@ -137,7 +137,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false // todo: enable debug mode?
-            };
+            }; 
 
             CompilationLoader.CompilationTaskEventHandler onCompilationProcessEvent = options.PerfFolder != null ? CompilationTracker.OnCompilationTaskEvent : (CompilationLoader.CompilationTaskEventHandler)null;
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger, CompilationTracker.OnCompilationTaskEvent);

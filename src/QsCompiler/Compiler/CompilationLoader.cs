@@ -111,7 +111,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// However, the compiler may overwrite the assembly constants defined for the Q# compilation unit in the dictionary of the loaded step.
             /// The given dictionary in this configuration is left unchanged in any case. 
             /// </summary>
-            public IReadOnlyDictionary<string, string> AssemblyConstants;
+            public IReadOnlyDictionary<string, string> AssemblyConstants; 
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
@@ -126,7 +126,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal string ProjectNameWithExtension =>
                 this.ProjectName == null ? null :
-                this.ProjectName.EndsWith("proj") ? this.ProjectName :
+                this.ProjectName.EndsWith("proj") ? this.ProjectName : 
                 $"{this.ProjectName}.qsproj";
 
             /// <summary>
