@@ -162,16 +162,16 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static IList<CompilationTaskNode> BuildCompilationTasksHierarchy()
         {
-            IList<CompilationTaskNode> compilationTasksForest = new List<CompilationTaskNode>();
-            Queue<CompilationTaskNode> toFindChildrenNodes = new Queue<CompilationTaskNode>();
+            var compilationTasksForest = new List<CompilationTaskNode>();
+            var toFindChildrenNodes = new Queue<CompilationTaskNode>();
 
             // First add the roots (top-level tasks) of all trees to the forest.
 
-            foreach (KeyValuePair<string, CompilationTask> entry in CompilationTasks)
+            foreach (var entry in CompilationTasks)
             {
                 if (entry.Value.ParentName == null)
                 {
-                    CompilationTaskNode node = new CompilationTaskNode(entry.Value);
+                    var node = new CompilationTaskNode(entry.Value);
                     compilationTasksForest.Add(node);
                     toFindChildrenNodes.Enqueue(node);
                 }
@@ -181,12 +181,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             while (toFindChildrenNodes.Count > 0)
             {
-                CompilationTaskNode parentNode = toFindChildrenNodes.Dequeue();
-                foreach (KeyValuePair<string, CompilationTask> entry in CompilationTasks)
+                var parentNode = toFindChildrenNodes.Dequeue();
+                foreach (var entry in CompilationTasks)
                 {
                     if (parentNode.Task.Name.Equals(entry.Value.ParentName))
                     {
-                        CompilationTaskNode childNode = new CompilationTaskNode(entry.Value);
+                        var childNode = new CompilationTaskNode(entry.Value);
                         parentNode.Children.Add(childNode.Task.Name, childNode);
                         toFindChildrenNodes.Enqueue(childNode);
                     }
@@ -216,20 +216,20 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static void CompilationEventEndHandler(CompilationLoader.CompilationTaskEventArgs eventArgs)
         {
-            string key = CompilationTask.GenerateKey(eventArgs.ParentTaskName, eventArgs.TaskName);
-            if (!CompilationTasks.TryGetValue(key, out CompilationTask process))
+            var key = CompilationTask.GenerateKey(eventArgs.ParentTaskName, eventArgs.TaskName);
+            if (!CompilationTasks.TryGetValue(key, out var task))
             {
                 Warnings.Add(new Warning(WarningType.ProcessDoesNotExist, key));
                 return;
             }
 
-            if (!process.IsInProgress())
+            if (!task.IsInProgress())
             {
                 Warnings.Add(new Warning(WarningType.ProcessAlreadyEnded, key));
                 return;
             }
 
-            process.End();
+            task.End();
         }
 
         // Public methods.
@@ -247,17 +247,17 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public static void PublishResults(string outputFolder)
         {
-            IList<CompilationTaskNode> compilationProcessesForest = BuildCompilationTasksHierarchy();
-            string outputPath = Path.GetFullPath(outputFolder);
-            DirectoryInfo outputDirectoryInfo = new DirectoryInfo(outputPath);
+            var compilationProcessesForest = BuildCompilationTasksHierarchy();
+            var outputPath = Path.GetFullPath(outputFolder);
+            var outputDirectoryInfo = new DirectoryInfo(outputPath);
             if (!outputDirectoryInfo.Exists)
             {
                 outputDirectoryInfo.Create();
             }
 
-            using (StreamWriter file = File.CreateText(Path.Combine(outputPath, "compilationPerf.json")))
+            using (var file = File.CreateText(Path.Combine(outputPath, "compilationPerf.json")))
             {
-                JsonSerializer serializer = new JsonSerializer
+                var serializer = new JsonSerializer
                 {
                     Formatting = Formatting.Indented
                 };
@@ -266,9 +266,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
 
             if (Warnings.Count > 0) {
-                using (StreamWriter file = File.CreateText(Path.Combine(outputPath, "compilationPerfWarnings.json")))
+                using (var file = File.CreateText(Path.Combine(outputPath, "compilationPerfWarnings.json")))
                 {
-                    JsonSerializer serializer = new JsonSerializer
+                    var serializer = new JsonSerializer
                     {
                         Formatting = Formatting.Indented
                     };
