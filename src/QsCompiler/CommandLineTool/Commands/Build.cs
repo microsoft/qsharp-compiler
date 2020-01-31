@@ -108,8 +108,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             );
         }
 
-        
-
 
         // publicly accessible routines 
 

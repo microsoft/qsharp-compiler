@@ -112,11 +112,6 @@ namespace Microsoft.Quantum.QsCompiler
             /// The given dictionary in this configuration is left unchanged in any case. 
             /// </summary>
             public IReadOnlyDictionary<string, string> AssemblyConstants;
-            /// <summary>
-            /// Directory where the output of the perfomance assessment will be generated. 
-            /// No perfomance assessment will be done unless this path is specified and valid. 
-            /// </summary>
-            public string PerfOutputFolder;
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
@@ -140,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal string ProjectNameWithoutExtension =>
                 this.ProjectName == null ? null :
-                Path.GetExtension(this.ProjectName).EndsWith("proj") ? Path.GetFileNameWithoutExtension(this.ProjectName) :
+                Path.GetExtension(this.ProjectName).EndsWith("proj") ? Path.GetFileNameWithoutExtension(this.ProjectName) : 
                 this.ProjectName;
         }
 
