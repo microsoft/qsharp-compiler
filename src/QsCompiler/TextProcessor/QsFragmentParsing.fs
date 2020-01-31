@@ -432,6 +432,55 @@ let private borrowingHeader =
     let invalid = BorrowingBlockIntro (invalidSymbol, invalidInitializer)
     buildFragment qsBorrowing.parse allocationScope invalid (fun _ -> BorrowingBlockIntro) eof
 
+/// Fragment header keywords and their corresponding fragment parsers.
+let private fragments =
+    [
+        (qsImmutableBinding, letStatement)
+        (qsMutableBinding, mutableStatement)
+        (qsValueUpdate, setStatement)
+        (qsReturn, returnStatement)
+        (qsFail, failStatement)
+        (qsIf, ifClause)
+        (qsElif, elifClause)
+        (qsElse, elseClause)
+        (qsFor, forHeader)
+        (qsWhile, whileHeader)
+        (qsRepeat, repeatHeader)
+        (qsUntil, untilSuccess)
+        (qsWithin, withinHeader)
+        (qsApply, applyHeader)
+        (qsUsing, usingHeader)
+        (qsBorrowing, borrowingHeader)
+        (namespaceDeclHeader, namespaceDeclaration)
+        (typeDeclHeader, udtDeclaration)
+        (opDeclHeader, operationDeclaration)
+        (fctDeclHeader, functionDeclaration)
+        (ctrlAdjDeclHeader, controlledAdjointDeclaration) // needs to be before adjointDeclaration and controlledDeclaration!
+        (adjDeclHeader, adjointDeclaration)
+        (ctrlDeclHeader, controlledDeclaration)
+        (bodyDeclHeader, bodyDeclaration)
+        (importDirectiveHeader, openDirective)
+    ]
+
+do
+    // Fragment headers which do not have their own fragment kind. Instead, they are only parsed as part of another
+    // fragment kind.
+    let dependentHeaders =
+        [
+            qsPrivate
+            qsInternal
+        ]
+    
+    // Make sure all of the fragment header keywords are listed above.
+    let implementedHeaders =
+        List.append
+            (List.map (fun (keyword, _) -> keyword.id) fragments)
+            (List.map (fun keyword -> keyword.id) dependentHeaders)
+        |> fun h -> h.ToImmutableHashSet()
+    let existingHeaders = Keywords.FragmentHeaders.ToImmutableHashSet()
+    if (implementedHeaders.SymmetricExcept existingHeaders).Count <> 0 then 
+        System.NotImplementedException "mismatch between existing Q# fragments and implemented Q# fragments" |> raise
+
 
 /// Uses buildFragment to parse a Q# expression statement as QsFragment.
 /// Raises a NonCallExprAsStatement error if the expression is not a call-like expression, and returns UnknownStatement as QsFragment instead. 
@@ -445,55 +494,6 @@ let private expressionStatement =
         let anyExpr = getPosition .>>. expr >>= errOnNonCallLike >>% InvalidFragment // keeping this as unknown fragment so no further type checking is done
         attempt callLikeExpr |>> ExpressionStatement <|> anyExpr
     buildFragment (lookAhead valid) valid invalid (fun _ -> id) eof // let's limit this to call like expressions
-
-/// Fragment header keywords and their corresponding fragment parsers.
-let private fragments =
-    let fragments =
-        [
-            (qsImmutableBinding, letStatement)
-            (qsMutableBinding, mutableStatement)
-            (qsValueUpdate, setStatement)
-            (qsReturn, returnStatement)
-            (qsFail, failStatement)
-            (qsIf, ifClause)
-            (qsElif, elifClause)
-            (qsElse, elseClause)
-            (qsFor, forHeader)
-            (qsWhile, whileHeader)
-            (qsRepeat, repeatHeader)
-            (qsUntil, untilSuccess)
-            (qsWithin, withinHeader)
-            (qsApply, applyHeader)
-            (qsUsing, usingHeader)
-            (qsBorrowing, borrowingHeader)
-            (namespaceDeclHeader, namespaceDeclaration)
-            (typeDeclHeader, udtDeclaration)
-            (opDeclHeader, operationDeclaration)
-            (fctDeclHeader, functionDeclaration)
-            (ctrlAdjDeclHeader, controlledAdjointDeclaration) // needs to be before adjointDeclaration and controlledDeclaration!
-            (adjDeclHeader, adjointDeclaration)
-            (ctrlDeclHeader, controlledDeclaration)
-            (bodyDeclHeader, bodyDeclaration)
-            (importDirectiveHeader, openDirective)
-        ]
-
-    // Fragment headers which do not have their own fragment kind. Instead, they are only parsed as part of another
-    // fragment kind.
-    let dependentHeaders =
-        [
-            qsPrivate
-            qsInternal
-        ]
-
-    // Make sure all of the fragment header keywords are listed here.
-    let implementedHeaders =
-        ((fragments |> List.map (fun (keyword, _) -> keyword.id)) @
-         (dependentHeaders |> List.map (fun keyword -> keyword.id))).ToImmutableHashSet()
-    let existingHeaders = Keywords.FragmentHeaders.ToImmutableHashSet()
-    if (implementedHeaders.SymmetricExcept existingHeaders).Count <> 0 then 
-        System.NotImplementedException "mismatch between existing Q# fragments and implemented Q# fragments" |> raise
-
-    fragments
 
 // externally called routines
 
