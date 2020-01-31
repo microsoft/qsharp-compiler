@@ -141,9 +141,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 EnableAdditionalChecks = false // todo: enable debug mode?
             };
 
-            // Note that performance is evaluated only if the performance folder option is present.
-            CompilationLoader.CompilationProcessEventHandler onCompilationProcessEvent = options.PerfFolder != null ? CompilationTracker.OnCompilationEvent : (CompilationLoader.CompilationProcessEventHandler)null;
-            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger, CompilationTracker.OnCompilationEvent);
+            CompilationLoader.CompilationTaskEventHandler onCompilationProcessEvent = options.PerfFolder != null ? CompilationTracker.OnCompilationTaskEvent : (CompilationLoader.CompilationTaskEventHandler)null;
+            var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger, CompilationTracker.OnCompilationTaskEvent);
             if (options.PerfFolder != null)
             {
                 CompilationTracker.PublishResults(options.PerfFolder);

@@ -188,6 +188,37 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
+        /// Represents the type of a task event.
+        /// </summary>
+        public enum CompilationTaskEventType
+        {
+            Start,
+            End
+        }
+
+        /// <summary>
+        /// Represents the arguments associated to a task event.
+        /// </summary>
+        public class CompilationTaskEventArgs : EventArgs
+        {
+            public CompilationTaskEventType Type;
+            public string ParentTaskName;
+            public string TaskName;
+
+            public CompilationTaskEventArgs(CompilationTaskEventType type, string parentTaskName, string taskName)
+            {
+                ParentTaskName = parentTaskName;
+                TaskName = taskName;
+                Type = type;
+            }
+        }
+
+        /// <summary>
+        /// Defines the handler for compilation task events.
+        /// </summary>
+        public delegate void CompilationTaskEventHandler(object sender, CompilationTaskEventArgs args);
+
+        /// <summary>
         /// Indicates whether all source files were loaded successfully.
         /// Source file loading may not be executed if the content was preloaded using methods outside this class. 
         /// </summary>
@@ -269,41 +300,9 @@ namespace Microsoft.Quantum.QsCompiler
         public bool Success => this.CompilationStatus.Success(this.Config, this.CompilationOutput?.EntryPoints.Length != 0);
 
         /// <summary>
-        /// ToDo
+        /// Used to raise a compilation task event.
         /// </summary>
-        public enum CompilationProcessEventType
-        {
-            Start,
-            End
-        }
-
-        /// <summary>
-        /// ToDo
-        /// </summary>
-        public class CompilationProcessEventArgs : EventArgs
-        {
-
-            public string ParentName;
-            public string Name;
-            public CompilationProcessEventType Type;
-
-            public CompilationProcessEventArgs(string parentName, string name, CompilationProcessEventType type)
-            {
-                this.ParentName = parentName;
-                this.Name = name;
-                this.Type = type;
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public delegate void CompilationProcessEventHandler(object sender, CompilationProcessEventArgs args);
-
-        /// <summary>
-        /// ToDo
-        /// </summary>
-        public event CompilationProcessEventHandler CompilationProcessEvent;
+        public event CompilationTaskEventHandler CompilationTaskEvent;
 
         /// <summary>
         /// Logger used to log all diagnostic events during compilation.
@@ -365,16 +364,16 @@ namespace Microsoft.Quantum.QsCompiler
         /// Uses the specified logger to log all diagnostic events. 
         /// Throws an ArgumentNullException if either one of the given loaders is null or returns null.
         /// </summary>
-        public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger logger = null, CompilationProcessEventHandler onCompilationProcessEvent = null)
+        public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger logger = null, CompilationTaskEventHandler onCompilationTaskEvent = null)
         {
 
             // adding the event handlers.
-            if (onCompilationProcessEvent != null)
+            if (onCompilationTaskEvent != null)
             {
-                this.CompilationProcessEvent += onCompilationProcessEvent;
+                CompilationTaskEvent += onCompilationTaskEvent;
             }
 
-            RaiseCompilationProcessStart(null, "OverallCompilation");
+            RaiseCompilationTaskStart(null, "OverallCompilation");
 
             // loading the content to compiler 
 
@@ -390,18 +389,18 @@ namespace Microsoft.Quantum.QsCompiler
             this.CompilationStatus = new ExecutionStatus(this.ExternalRewriteSteps);
             this.CompilationStatus.PluginLoading = rewriteStepLoading;
 
-            RaiseCompilationProcessStart("OverallCompilation", "SourcesLoading");
+            RaiseCompilationTaskStart("OverallCompilation", "SourcesLoading");
             var sourceFiles = loadSources?.Invoke(this.LoadSourceFiles) 
                 ?? throw new ArgumentNullException("unable to load source files");
-            RaiseCompilationProcessEnd("OverallCompilation", "SourcesLoading");
-            RaiseCompilationProcessStart("OverallCompilation", "ReferenceLoading");
+            RaiseCompilationTaskEnd("OverallCompilation", "SourcesLoading");
+            RaiseCompilationTaskStart("OverallCompilation", "ReferenceLoading");
             var references = loadReferences?.Invoke(refs => this.LoadAssemblies(refs, this.Config.LoadReferencesBasedOnGeneratedCsharp)) 
                 ?? throw new ArgumentNullException("unable to load referenced binary files");
-            RaiseCompilationProcessEnd("OverallCompilation", "ReferenceLoading");
+            RaiseCompilationTaskEnd("OverallCompilation", "ReferenceLoading");
 
             // building the compilation
 
-            RaiseCompilationProcessStart("OverallCompilation", "Build");
+            RaiseCompilationTaskStart("OverallCompilation", "Build");
             this.CompilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
             var compilationManager = new CompilationUnitManager(this.OnCompilerException);
@@ -448,27 +447,27 @@ namespace Microsoft.Quantum.QsCompiler
                 if (!evaluated) this.LogAndUpdate(ref this.CompilationStatus.PreEvaluation, ErrorCode.PreEvaluationFailed, Enumerable.Empty<string>());
             }
 
-            RaiseCompilationProcessEnd("OverallCompilation", "Build");
+            RaiseCompilationTaskEnd("OverallCompilation", "Build");
 
             // generating the compiled binary and dll
 
-            RaiseCompilationProcessStart("OverallCompilation", "OutputGeneration");
+            RaiseCompilationTaskStart("OverallCompilation", "OutputGeneration");
             using (var ms = new MemoryStream())
             {
-                RaiseCompilationProcessStart("OutputGeneration", "SyntaxTreeSerialization");
+                RaiseCompilationTaskStart("OutputGeneration", "SyntaxTreeSerialization");
                 var serialized = this.Config.SerializeSyntaxTree && this.SerializeSyntaxTree(ms);
-                RaiseCompilationProcessEnd("OutputGeneration", "SyntaxTreeSerialization");
+                RaiseCompilationTaskEnd("OutputGeneration", "SyntaxTreeSerialization");
                 if (serialized && this.Config.BuildOutputFolder != null)
                 {
-                    RaiseCompilationProcessStart("OutputGeneration", "BinaryGeneration");
+                    RaiseCompilationTaskStart("OutputGeneration", "BinaryGeneration");
                     this.PathToCompiledBinary = this.GenerateBinary(ms);
-                    RaiseCompilationProcessEnd("OutputGeneration", "BinaryGeneration");
+                    RaiseCompilationTaskEnd("OutputGeneration", "BinaryGeneration");
                 }
                 if (serialized && this.Config.DllOutputPath != null)
                 {
-                    RaiseCompilationProcessStart("OutputGeneration", "DllGeneration");
+                    RaiseCompilationTaskStart("OutputGeneration", "DllGeneration");
                     this.DllOutputPath = this.GenerateDll(ms);
-                    RaiseCompilationProcessEnd("OutputGeneration", "DllGeneration");
+                    RaiseCompilationTaskEnd("OutputGeneration", "DllGeneration");
                 }
             }
 
@@ -476,16 +475,16 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.Config.DocumentationOutputFolder != null)
             {
-                RaiseCompilationProcessStart("OutputGeneration", "DocumentationGeneration");
+                RaiseCompilationTaskStart("OutputGeneration", "DocumentationGeneration");
                 this.CompilationStatus.Documentation = Status.Succeeded;
                 var docsFolder = Path.GetFullPath(String.IsNullOrWhiteSpace(this.Config.DocumentationOutputFolder) ? "." : this.Config.DocumentationOutputFolder);
                 void onDocException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.Documentation, ex);
                 var docsGenerated = this.VerifiedCompilation != null && DocBuilder.Run(docsFolder, this.VerifiedCompilation.SyntaxTree.Values, this.VerifiedCompilation.SourceFiles, onException: onDocException);
                 if (!docsGenerated) this.LogAndUpdate(ref this.CompilationStatus.Documentation, ErrorCode.DocGenerationFailed, Enumerable.Empty<string>());
-                RaiseCompilationProcessEnd("OutputGeneration", "DocumentationGeneration");
+                RaiseCompilationTaskEnd("OutputGeneration", "DocumentationGeneration");
             }
 
-            RaiseCompilationProcessEnd("OverallCompilation", "OutputGeneration");
+            RaiseCompilationTaskEnd("OverallCompilation", "OutputGeneration");
 
             // invoking rewrite steps in external dlls
 
@@ -497,7 +496,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.CompilationStatus.LoadedRewriteSteps[i] = executed;
             }
 
-            RaiseCompilationProcessEnd(null, "OverallCompilation");
+            RaiseCompilationTaskEnd(null, "OverallCompilation");
         }
 
         /// <summary>
@@ -583,7 +582,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Uses the specified logger to log all diagnostic events. 
         /// Throws an ArgumentNullException if the given loader is null or returns null.
         /// </summary>
-        public CompilationLoader(SourceLoader loadSources, IEnumerable<string> references, Configuration? options = null, ILogger logger = null, CompilationProcessEventHandler onCompilationProcessEvent = null)
+        public CompilationLoader(SourceLoader loadSources, IEnumerable<string> references, Configuration? options = null, ILogger logger = null, CompilationTaskEventHandler onCompilationProcessEvent = null)
             : this(loadSources, load => load(references), options, logger, onCompilationProcessEvent) { }
 
 
@@ -902,13 +901,20 @@ namespace Microsoft.Quantum.QsCompiler
             return targetFile;
         }
 
-        private void RaiseCompilationProcessStart (string parentName, string name)
+        /// <summary>
+        /// Raises a compilation task start event.
+        /// </summary>
+        private void RaiseCompilationTaskStart (string parentTaskName, string taskName)
         {
-            this.CompilationProcessEvent?.Invoke(this, new CompilationProcessEventArgs(parentName, name, CompilationProcessEventType.Start));
+            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.Start, parentTaskName, taskName));
         }
-        private void RaiseCompilationProcessEnd(string parentName, string name)
+
+        /// <summary>
+        /// Raises a compilation task end event.
+        /// </summary>
+        private void RaiseCompilationTaskEnd(string parentTaskName, string taskName)
         {
-            this.CompilationProcessEvent?.Invoke(this, new CompilationProcessEventArgs(parentName, name, CompilationProcessEventType.End));
+            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.End, parentTaskName, taskName));
         }
     }
 }

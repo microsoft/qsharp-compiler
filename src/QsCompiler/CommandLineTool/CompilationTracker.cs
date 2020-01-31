@@ -1,32 +1,65 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
-using Microsoft.Quantum.QsCompiler;
 using Newtonsoft.Json;
+
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
+    /// <summary>
+    /// Provides an event tracker of the compilation process for the purpose of assessing performance. 
+    /// </summary>
     public static class CompilationTracker
     {
 
-        private class CompilationProcess
+        // Private classes and types.
+
+        /// <summary>
+        /// Represents a task performed by the compiler (eg. source loading, reference loading, syntax tree serialization, etc.).
+        /// </summary>
+        private class CompilationTask
         {
+            /// <summary>
+            /// Represents the name of the parent compilation task.
+            /// </summary>
             public readonly string ParentName;
+            /// <summary>
+            /// Represents the name of the compilation task.
+            /// </summary>
             public readonly string Name;
+            /// <summary>
+            /// Contains the UTC datetime when the task started.
+            /// </summary>
             public readonly DateTime UtcStart;
+            /// <summary>
+            /// Contains the UTC datetime when the task ended.
+            /// </summary>
             public DateTime? UtcEnd;
+            /// <summary>
+            /// Contains the duration of the task in milliseconds.
+            /// </summary>
             public long? DurationInMs;
+            /// <summary>
+            /// Stopwatch used to measure the duration of the task.
+            /// </summary>
             private readonly Stopwatch Watch;
 
+            /// <summary>
+            /// Generates a key that uniquely identifies a task in the compilation process based on the task's name and its parent's name.
+            /// </summary>
             public static string GenerateKey(string parentName, string name)
             {
                 return String.Format("{0}.{1}", parentName ?? "ROOT", name);
             }
 
-
-            public CompilationProcess(string parentName, string name)
+            /// <summary>
+            /// Creates a compilation task object and starts its stopwatch.
+            /// </summary>
+            public CompilationTask(string parentName, string name)
             {
                 ParentName = parentName;
                 Name = name;
@@ -36,6 +69,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 Watch = Stopwatch.StartNew();
             }
 
+            /// <summary>
+            /// Halts the stopwatch of the compilation task and stores its duration.
+            /// </summary>
             public void End()
             {
                 UtcEnd = DateTime.UtcNow;
@@ -43,36 +79,33 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 DurationInMs = Watch.ElapsedMilliseconds;
             }
 
-            public string Key()
-            {
-                return CompilationProcess.GenerateKey(ParentName, Name);
-            }
-
+            /// <summary>
+            /// Returns whether a compilation class is in progress.
+            /// </summary>
             public bool IsInProgress()
             {
                 return Watch.IsRunning;
             }
-
-            public override string ToString()
-            {
-                return String.Format("Parent: {0}, Name: {1}, UtcStart: {2}, UtcEnd: {3}, DurationInMs: {4}", ParentName ?? "ROOT", Name, UtcStart, UtcEnd, DurationInMs);
-            }
         }
 
-        private class CompilationProcessNode
+        /// <summary>
+        /// Represents a node in the tree of tasks performed by the compiler.
+        /// </summary>
+        private class CompilationTaskNode
         {
-            public readonly CompilationProcess Process;
-            public readonly IDictionary<string, CompilationProcessNode> Children;
+            public readonly CompilationTask Task;
+            public readonly IDictionary<string, CompilationTaskNode> Children;
 
-            public CompilationProcessNode(CompilationProcess process)
+            public CompilationTaskNode(CompilationTask task)
             {
-                Process = process;
-                Children = new Dictionary<string, CompilationProcessNode>();
+                Task = task;
+                Children = new Dictionary<string, CompilationTaskNode>();
             }
         }
 
-        private delegate void CompilationEventTypeHandler(CompilationLoader.CompilationProcessEventArgs eventArgs);
-
+        /// <summary>
+        /// Represents a warning type detected while tracking compilation events.
+        /// </summary>
         private enum WarningType
         {
             ProcessAlreadyExists,
@@ -80,6 +113,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             ProcessAlreadyEnded
         }
 
+        /// <summary>
+        /// Represents a warning detected while tracking compilation events.
+        /// </summary>
         private class Warning
         {
             public readonly WarningType Type;
@@ -92,74 +128,96 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 Type = type;
                 Key = key;
             }
-
-            public override string ToString()
-            {
-                return String.Format("Type: {0}, UTC: {1}, Key: {2}", Type, UtcDateTime, Key);
-            }
         }
 
-        private static readonly IDictionary<CompilationLoader.CompilationProcessEventType, CompilationEventTypeHandler> CompilationEventTypeHandlers = new Dictionary<CompilationLoader.CompilationProcessEventType, CompilationEventTypeHandler>
+        // Private members.
+
+        /// <summary>
+        /// Defines a handler for a type of compilation task event.
+        /// </summary>
+        private delegate void CompilationTaskEventTypeHandler(CompilationLoader.CompilationTaskEventArgs eventArgs);
+
+        /// <summary>
+        /// Contains a handler that takes care of each type of task event.
+        /// </summary>
+        private static readonly IDictionary<CompilationLoader.CompilationTaskEventType, CompilationTaskEventTypeHandler> CompilationEventTypeHandlers = new Dictionary<CompilationLoader.CompilationTaskEventType, CompilationTaskEventTypeHandler>
         {
-            { CompilationLoader.CompilationProcessEventType.Start, CompilationEventStartHandler },
-            { CompilationLoader.CompilationProcessEventType.End, CompilationEventEndHandler }
+            { CompilationLoader.CompilationTaskEventType.Start, CompilationEventStartHandler },
+            { CompilationLoader.CompilationTaskEventType.End, CompilationEventEndHandler }
         };
 
-        private static readonly IDictionary<string, CompilationProcess> CompilationProcesses = new Dictionary<string, CompilationProcess>();
+        /// <summary>
+        /// Contains the compilation tasks tracked through the handled events.
+        /// </summary>
+        private static readonly IDictionary<string, CompilationTask> CompilationTasks = new Dictionary<string, CompilationTask>();
+        /// <summary>
+        /// Contains the warnings generated while handling the compiler tasks events.
+        /// </summary>
         private static readonly IList<Warning> Warnings = new List<Warning>();
 
-        private static IList<CompilationProcessNode> BuildCompilationProcessesForest()
+        // Private methods.
+
+        /// <summary>
+        /// Creates a hierarchical structure that contains the compilation tasks.
+        /// </summary>
+        private static IList<CompilationTaskNode> BuildCompilationTasksHierarchy()
         {
-            IList<CompilationProcessNode> compilationProcessesForest = new List<CompilationProcessNode>();
-            Queue<CompilationProcessNode> toFindChildrenNodes = new Queue<CompilationProcessNode>();
+            IList<CompilationTaskNode> compilationTasksForest = new List<CompilationTaskNode>();
+            Queue<CompilationTaskNode> toFindChildrenNodes = new Queue<CompilationTaskNode>();
 
-            // First add the roots of all trees to the forest.
+            // First add the roots (top-level tasks) of all trees to the forest.
 
-            foreach (KeyValuePair<string, CompilationProcess> entry in CompilationProcesses)
+            foreach (KeyValuePair<string, CompilationTask> entry in CompilationTasks)
             {
                 if (entry.Value.ParentName == null)
                 {
-                    CompilationProcessNode node = new CompilationProcessNode(entry.Value);
-                    compilationProcessesForest.Add(node);
+                    CompilationTaskNode node = new CompilationTaskNode(entry.Value);
+                    compilationTasksForest.Add(node);
                     toFindChildrenNodes.Enqueue(node);
                 }
             }
 
-            // Build the trees.
+            // Iterate through the tasks until all of them have been added to the hierarchy.
 
             while (toFindChildrenNodes.Count > 0)
             {
-                CompilationProcessNode parentNode = toFindChildrenNodes.Dequeue();
-                foreach (KeyValuePair<string, CompilationProcess> entry in CompilationProcesses)
+                CompilationTaskNode parentNode = toFindChildrenNodes.Dequeue();
+                foreach (KeyValuePair<string, CompilationTask> entry in CompilationTasks)
                 {
-                    if (parentNode.Process.Name.Equals(entry.Value.ParentName))
+                    if (parentNode.Task.Name.Equals(entry.Value.ParentName))
                     {
-                        CompilationProcessNode childNode = new CompilationProcessNode(entry.Value);
-                        parentNode.Children.Add(childNode.Process.Name, childNode);
+                        CompilationTaskNode childNode = new CompilationTaskNode(entry.Value);
+                        parentNode.Children.Add(childNode.Task.Name, childNode);
                         toFindChildrenNodes.Enqueue(childNode);
                     }
                 }
             }
 
-            return compilationProcessesForest;
+            return compilationTasksForest;
         }
 
-        private static void CompilationEventStartHandler(CompilationLoader.CompilationProcessEventArgs eventArgs)
+        /// <summary>
+        /// Handles a compilation task start event.
+        /// </summary>
+        private static void CompilationEventStartHandler(CompilationLoader.CompilationTaskEventArgs eventArgs)
         {
-            string key = CompilationProcess.GenerateKey(eventArgs.ParentName, eventArgs.Name);
-            if (CompilationProcesses.ContainsKey(key))
+            string key = CompilationTask.GenerateKey(eventArgs.ParentTaskName, eventArgs.TaskName);
+            if (CompilationTasks.ContainsKey(key))
             {
                 Warnings.Add(new Warning(WarningType.ProcessAlreadyExists, key));
                 return;
             }
 
-            CompilationProcesses.Add(key, new CompilationProcess(eventArgs.ParentName, eventArgs.Name));
+            CompilationTasks.Add(key, new CompilationTask(eventArgs.ParentTaskName, eventArgs.TaskName));
         }
 
-        private static void CompilationEventEndHandler(CompilationLoader.CompilationProcessEventArgs eventArgs)
+        /// <summary>
+        /// Handles a compilation task end event.
+        /// </summary>
+        private static void CompilationEventEndHandler(CompilationLoader.CompilationTaskEventArgs eventArgs)
         {
-            string key = CompilationProcess.GenerateKey(eventArgs.ParentName, eventArgs.Name);
-            if (!CompilationProcesses.TryGetValue(key, out CompilationProcess process))
+            string key = CompilationTask.GenerateKey(eventArgs.ParentTaskName, eventArgs.TaskName);
+            if (!CompilationTasks.TryGetValue(key, out CompilationTask process))
             {
                 Warnings.Add(new Warning(WarningType.ProcessDoesNotExist, key));
                 return;
@@ -174,14 +232,22 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             process.End();
         }
 
-        public static void OnCompilationEvent(object sender, CompilationLoader.CompilationProcessEventArgs args)
+        // Public methods.
+
+        /// <summary>
+        /// Handles a compilation task event.
+        /// </summary>
+        public static void OnCompilationTaskEvent(object sender, CompilationLoader.CompilationTaskEventArgs args)
         {
             CompilationEventTypeHandlers[args.Type](args);
         }
 
+        /// <summary>
+        /// Publishes the results to text files in the specified folder.
+        /// </summary>
         public static void PublishResults(string outputFolder)
         {
-            IList<CompilationProcessNode> compilationProcessesForest = BuildCompilationProcessesForest();
+            IList<CompilationTaskNode> compilationProcessesForest = BuildCompilationTasksHierarchy();
             string outputPath = Path.GetFullPath(outputFolder);
             DirectoryInfo outputDirectoryInfo = new DirectoryInfo(outputPath);
             if (!outputDirectoryInfo.Exists)
