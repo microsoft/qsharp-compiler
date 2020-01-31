@@ -192,7 +192,7 @@ let private functorGenDirective = // parsing all possible directives for all fun
 // namespace and attribute parsing
 
 /// Uses buildFragment to parse a Q# OpenDirective as QsFragment.
-let rec private openDirective = 
+let private openDirective = 
     let invalid = OpenDirective (invalidSymbol, Null)
     let nsNameAndAlias = 
         let aliasOption = (importedAs.parse >>. expectedNamespaceName eof |>> Value) <|>% Null
@@ -200,12 +200,12 @@ let rec private openDirective =
     buildFragment importDirectiveHeader.parse nsNameAndAlias invalid (fun _ -> OpenDirective) eof
        
 /// Uses buildFragment to parse a Q# NamespaceDeclaration as QsFragment.
-and private namespaceDeclaration = 
+let private namespaceDeclaration = 
     let invalid = NamespaceDeclaration invalidSymbol
     buildFragment namespaceDeclHeader.parse (expectedNamespaceName eof) invalid (fun _ -> NamespaceDeclaration) eof
 
 /// Uses buildFragment to parse a Q# DeclarationAttribute as QsFragment.
-and private attributeDeclaration = 
+let private attributeDeclaration = 
     let invalid = DeclarationAttribute (invalidSymbol, unknownExpr)
     let attributeId = multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> asQualifiedSymbol 
     let expectedArgs = 
@@ -222,27 +222,27 @@ and private attributeDeclaration =
 // operation and function parsing
 
 /// Uses buildFragment to parse a Q# BodyDeclaration as QsFragment.
-and private bodyDeclaration = 
+let private bodyDeclaration = 
     let invalid = BodyDeclaration unknownGenerator
     buildFragment bodyDeclHeader.parse functorGenDirective invalid (fun _ -> BodyDeclaration) eof
 
 /// Uses buildFragment to parse a Q# AdjointDeclaration as QsFragment.
-and private adjointDeclaration =
+let private adjointDeclaration =
     let invalid = AdjointDeclaration unknownGenerator
     buildFragment adjDeclHeader.parse functorGenDirective invalid (fun _ -> AdjointDeclaration) eof
 
 /// Uses buildFragment to parse a Q# ControlledDeclaration as QsFragment.
-and private controlledDeclaration = 
+let private controlledDeclaration = 
     let invalid = ControlledDeclaration unknownGenerator
     buildFragment ctrlDeclHeader.parse functorGenDirective invalid (fun _ -> ControlledDeclaration) eof
 
 /// Uses buildFragment to parse a Q# ControlledAdjointDeclaration as QsFragment.
-and private controlledAdjointDeclaration = 
+let private controlledAdjointDeclaration = 
     let invalid = ControlledAdjointDeclaration unknownGenerator
     buildFragment (attempt ctrlAdjDeclHeader.parse) functorGenDirective invalid (fun _ -> ControlledAdjointDeclaration) eof
 
 /// Uses buildFragment to parse a Q# OperationDeclaration as QsFragment.
-and private operationDeclaration =  
+let private operationDeclaration =  
     let invalid = OperationDeclaration ({Access = DefaultAccess}, invalidSymbol, CallableSignature.Invalid)
     buildFragment
         (modifiers .>> opDeclHeader.parse |> attempt)
@@ -252,7 +252,7 @@ and private operationDeclaration =
         eof
 
 /// Uses buildFragment to parse a Q# FunctionDeclaration as QsFragment.
-and private functionDeclaration =
+let private functionDeclaration =
     let invalid = FunctionDeclaration ({Access = DefaultAccess}, invalidSymbol, CallableSignature.Invalid)
     buildFragment
         (modifiers .>> fctDeclHeader.parse |> attempt)
@@ -262,7 +262,7 @@ and private functionDeclaration =
         eof
 
 /// Uses buildFragment to parse a Q# TypeDefinition as QsFragment.
-and private udtDeclaration = 
+let private udtDeclaration = 
     let invalid = TypeDefinition ({Access = DefaultAccess}, invalidSymbol, invalidArgTupleItem)
     let udtTuple = // not unified with the argument tuple for callable declarations, since the error handling needs to be different
         let asAnonymousItem t = QsTupleItem ((MissingSymbol, Null) |> QsSymbol.New, t)        
@@ -288,18 +288,18 @@ and private udtDeclaration =
 // statement parsing
 
 /// Uses buildFragment to parse a Q# return-statement as QsFragment.
-and private returnStatement = 
+let private returnStatement = 
     let invalid = ReturnStatement unknownExpr
     buildFragment qsReturn.parse (expectedExpr eof) invalid (fun _ -> ReturnStatement) eof
 
 /// Uses buildFragment to parse a Q# fail-statement as QsFragment.
-and private failStatement =
+let private failStatement =
     let invalid = FailStatement unknownExpr
     buildFragment qsFail.parse (expectedExpr eof) invalid (fun _ -> FailStatement) eof
 
 
 /// Uses buildFragment to parse a Q# immutable binding (i.e. let-statement) as QsFragment.
-and private letStatement =
+let private letStatement =
     let invalid = ImmutableBinding (invalidSymbol, unknownExpr)
     buildFragment
         qsImmutableBinding.parse
@@ -309,7 +309,7 @@ and private letStatement =
         eof
 
 /// Uses buildFragment to parse a Q# mutable binding (i.e. mutable-statement) as QsFragment.
-and private mutableStatement = 
+let private mutableStatement = 
     let invalid = MutableBinding (invalidSymbol, unknownExpr)
     buildFragment
         qsMutableBinding.parse
@@ -320,7 +320,7 @@ and private mutableStatement =
 
 
 /// Uses buildFragment to parse a Q# value update (i.e. set-statement) as QsFragment.
-and private setStatement =
+let private setStatement =
     let applyAndReassignOp = 
         let updateAndReassign id = 
             let update = pstring qsCopyAndUpdateOp.cont |> term
@@ -373,22 +373,22 @@ and private setStatement =
 
 
 /// Uses buildFragment to parse a Q# if clause as QsFragment.
-and private ifClause = 
+let private ifClause = 
     let invalid = IfClause unknownExpr
     buildFragment qsIf.parse (expectedCondition eof) invalid (fun _ -> IfClause) eof
 
 /// Uses buildFragment to parse a Q# elif clause as QsFragment.
-and private elifClause = 
+let private elifClause = 
     let invalid = ElifClause unknownExpr
     buildFragment qsElif.parse (expectedCondition eof) invalid (fun _ -> ElifClause) eof
 
 /// Uses buildFragment to parse a Q# else clause as QsFragment.
-and private elseClause = 
+let private elseClause = 
     buildFragment qsElse.parse (preturn "") ElseClause (fun _ _ -> ElseClause) eof
 
 
 /// Uses buildFragment to parse a Q# for-statement intro (for-statement without the body) as QsFragment.
-and private forHeader =
+let private forHeader =
     let invalid = ForLoopIntro (invalidSymbol, unknownExpr)
     let loopVariableBinding = expectedExpr rTuple |> symbolBinding qsRangeIter.parse ErrorCode.ExpectingIteratorItemAssignment
     let forBody = optTupleBrackets loopVariableBinding |>> fst
@@ -396,39 +396,39 @@ and private forHeader =
     
 
 /// Uses buildFragment to parse a Q# while-statement intro (while-statement without the body) as QsFragment.
-and private whileHeader =
+let private whileHeader =
     let invalid = WhileLoopIntro unknownExpr
     let whileBody = optTupleBrackets (expectedExpr isTupleContinuation) |>> fst
     buildFragment qsWhile.parse whileBody invalid (fun _ -> WhileLoopIntro) eof
 
 
 /// Uses buildFragment to parse a Q# repeat intro as QsFragment.
-and private repeatHeader =
+let private repeatHeader =
     buildFragment qsRepeat.parse (preturn "") RepeatIntro (fun _ _ -> RepeatIntro) eof
 
 /// Uses buildFragment to parse a Q# until success clause as QsFragment.
-and private untilSuccess = 
+let private untilSuccess = 
     let invalid = UntilSuccess (unknownExpr, false)
     let optionalFixup = qsRUSfixup.parse >>% true <|> preturn false
     buildFragment qsUntil.parse (expectedCondition qsRUSfixup.parse .>>. optionalFixup) invalid (fun _ -> UntilSuccess) eof
 
 
 /// Uses buildFragment to parse a Q# within-block intro as QsFragment.
-and private withinHeader =
+let private withinHeader =
     buildFragment qsWithin.parse (preturn "") WithinBlockIntro (fun _ _ -> WithinBlockIntro) eof
 
 /// Uses buildFragment to parse a Q# apply block intro as QsFragment.
-and private applyHeader =
+let private applyHeader =
     buildFragment qsApply.parse (preturn "") ApplyBlockIntro (fun _ _ -> ApplyBlockIntro) eof
 
 
 /// Uses buildFragment to parse a Q# using block intro as QsFragment.
-and private usingHeader =
+let private usingHeader =
     let invalid = UsingBlockIntro (invalidSymbol, invalidInitializer)
     buildFragment qsUsing.parse allocationScope invalid (fun _ -> UsingBlockIntro) eof
 
 /// Uses buildFragment to parse a Q# borrowing block intro as QsFragment.
-and private borrowingHeader =
+let private borrowingHeader =
     let invalid = BorrowingBlockIntro (invalidSymbol, invalidInitializer)
     buildFragment qsBorrowing.parse allocationScope invalid (fun _ -> BorrowingBlockIntro) eof
 
