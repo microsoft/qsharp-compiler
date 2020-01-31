@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal string ProjectNameWithoutExtension =>
                 this.ProjectName == null ? null :
-                Path.GetExtension(this.ProjectName).EndsWith("proj") ? Path.GetFileNameWithoutExtension(this.ProjectName) : 
+                Path.GetExtension(this.ProjectName).EndsWith("proj") ? Path.GetFileNameWithoutExtension(this.ProjectName) :
                 this.ProjectName;
         }
 
