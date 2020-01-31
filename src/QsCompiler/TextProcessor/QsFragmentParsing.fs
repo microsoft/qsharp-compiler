@@ -189,57 +189,10 @@ let private functorGenDirective = // parsing all possible directives for all fun
 
 // Q# fragments
 
-// making this recursive so any new fragment only needs to be added here (defining the necessary keywords in the Language module)
-let rec private getFragments () = // Note: this needs to be a function!
-    [
-        (qsImmutableBinding   , letStatement                )
-        (qsMutableBinding     , mutableStatement            )
-        (qsValueUpdate        , setStatement                )
-        (qsReturn             , returnStatement             )
-        (qsFail               , failStatement               )
-        (qsIf                 , ifClause                    )
-        (qsElif               , elifClause                  )
-        (qsElse               , elseClause                  )
-        (qsFor                , forHeader                   )
-        (qsWhile              , whileHeader                 )
-        (qsRepeat             , repeatHeader                )
-        (qsUntil              , untilSuccess                )
-        (qsWithin             , withinHeader                )
-        (qsApply              , applyHeader                 )
-        (qsUsing              , usingHeader                 )
-        (qsBorrowing          , borrowingHeader             )
-        (namespaceDeclHeader  , namespaceDeclaration        )
-        (typeDeclHeader       , udtDeclaration              )
-        (opDeclHeader         , operationDeclaration        )
-        (fctDeclHeader        , functionDeclaration         )
-        (ctrlAdjDeclHeader    , controlledAdjointDeclaration) // needs to be before adjointDeclaration and controlledDeclaration!
-        (adjDeclHeader        , adjointDeclaration          )
-        (ctrlDeclHeader       , controlledDeclaration       )
-        (bodyDeclHeader       , bodyDeclaration             )
-        (importDirectiveHeader, openDirective               )
-    ]
-
-/// Fragment headers which do not have their own fragment kind. Instead, they are only parsed as part of another
-/// fragment kind.
-and private dependentHeaders =
-    [
-        qsPrivate
-        qsInternal
-    ]
-
-and private headerCheck = // DO NOT REMOVE - the check is executed once at the beginning, just as it should be 
-    let implementedHeaders =
-        ((getFragments () |> List.map (fun (keyword, _) -> keyword.id)) @
-         (dependentHeaders |> List.map (fun keyword -> keyword.id))).ToImmutableHashSet()
-    let existingHeaders = Keywords.FragmentHeaders.ToImmutableHashSet()
-    if (implementedHeaders.SymmetricExcept existingHeaders).Count <> 0 then 
-        System.NotImplementedException "mismatch between existing Q# fragments and implemented Q# fragments" |> raise
-
-
 // namespace and attribute parsing
 
 /// Uses buildFragment to parse a Q# OpenDirective as QsFragment.
-and private openDirective = 
+let rec private openDirective = 
     let invalid = OpenDirective (invalidSymbol, Null)
     let nsNameAndAlias = 
         let aliasOption = (importedAs.parse >>. expectedNamespaceName eof |>> Value) <|>% Null
@@ -493,6 +446,54 @@ let private expressionStatement =
         attempt callLikeExpr |>> ExpressionStatement <|> anyExpr
     buildFragment (lookAhead valid) valid invalid (fun _ -> id) eof // let's limit this to call like expressions
 
+/// Fragment header keywords and their corresponding fragment parsers.
+let private fragments =
+    let fragments =
+        [
+            (qsImmutableBinding, letStatement)
+            (qsMutableBinding, mutableStatement)
+            (qsValueUpdate, setStatement)
+            (qsReturn, returnStatement)
+            (qsFail, failStatement)
+            (qsIf, ifClause)
+            (qsElif, elifClause)
+            (qsElse, elseClause)
+            (qsFor, forHeader)
+            (qsWhile, whileHeader)
+            (qsRepeat, repeatHeader)
+            (qsUntil, untilSuccess)
+            (qsWithin, withinHeader)
+            (qsApply, applyHeader)
+            (qsUsing, usingHeader)
+            (qsBorrowing, borrowingHeader)
+            (namespaceDeclHeader, namespaceDeclaration)
+            (typeDeclHeader, udtDeclaration)
+            (opDeclHeader, operationDeclaration)
+            (fctDeclHeader, functionDeclaration)
+            (ctrlAdjDeclHeader, controlledAdjointDeclaration) // needs to be before adjointDeclaration and controlledDeclaration!
+            (adjDeclHeader, adjointDeclaration)
+            (ctrlDeclHeader, controlledDeclaration)
+            (bodyDeclHeader, bodyDeclaration)
+            (importDirectiveHeader, openDirective)
+        ]
+
+    // Fragment headers which do not have their own fragment kind. Instead, they are only parsed as part of another
+    // fragment kind.
+    let dependentHeaders =
+        [
+            qsPrivate
+            qsInternal
+        ]
+
+    // Make sure all of the fragment header keywords are listed here.
+    let implementedHeaders =
+        ((fragments |> List.map (fun (keyword, _) -> keyword.id)) @
+         (dependentHeaders |> List.map (fun keyword -> keyword.id))).ToImmutableHashSet()
+    let existingHeaders = Keywords.FragmentHeaders.ToImmutableHashSet()
+    if (implementedHeaders.SymmetricExcept existingHeaders).Count <> 0 then 
+        System.NotImplementedException "mismatch between existing Q# fragments and implemented Q# fragments" |> raise
+
+    fragments
 
 // externally called routines
 
@@ -500,7 +501,7 @@ let private expressionStatement =
 /// Raises a suitable error and returns UnknownStatement as QsFragment if the parsing fails.
 let internal codeFragment =
     let validFragment = 
-        choice (getFragments() |> List.map snd)
+        choice (fragments |> List.map snd)
         <|> attributeDeclaration
         <|> expressionStatement// the expressionStatement needs to be last
     let invalidFragment = 
