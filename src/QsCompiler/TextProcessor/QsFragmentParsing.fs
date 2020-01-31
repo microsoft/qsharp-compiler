@@ -190,7 +190,7 @@ let private functorGenDirective = // parsing all possible directives for all fun
 // Q# fragments
 
 // making this recursive so any new fragment only needs to be added here (defining the necessary keywords in the Language module)
-let rec private getFragments() = // Note: this needs to be a function!
+let rec private getFragments () = // Note: this needs to be a function!
     [
         (qsImmutableBinding   , letStatement                )
         (qsMutableBinding     , mutableStatement            )
@@ -217,14 +217,20 @@ let rec private getFragments() = // Note: this needs to be a function!
         (ctrlDeclHeader       , controlledDeclaration       )
         (bodyDeclHeader       , bodyDeclaration             )
         (importDirectiveHeader, openDirective               )
-        // Modifiers need to be considered fragment headers for parsing reasons, but the actual parsing is handled by
-        // the fragment being modified.
-        (qsPrivate            , pzero                       )
-        (qsInternal           , pzero                       )
+    ]
+
+/// Fragment headers which do not have their own fragment kind. Instead, they are only parsed as part of another
+/// fragment kind.
+and private dependentHeaders =
+    [
+        qsPrivate
+        qsInternal
     ]
 
 and private headerCheck = // DO NOT REMOVE - the check is executed once at the beginning, just as it should be 
-    let implementedHeaders = (getFragments() |> List.map (fun x -> (fst x).id)).ToImmutableHashSet()
+    let implementedHeaders =
+        ((getFragments () |> List.map (fun (keyword, _) -> keyword.id)) @
+         (dependentHeaders |> List.map (fun keyword -> keyword.id))).ToImmutableHashSet()
     let existingHeaders = Keywords.FragmentHeaders.ToImmutableHashSet()
     if (implementedHeaders.SymmetricExcept existingHeaders).Count <> 0 then 
         System.NotImplementedException "mismatch between existing Q# fragments and implemented Q# fragments" |> raise
