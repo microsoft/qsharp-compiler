@@ -71,7 +71,7 @@ For example, if a qsc reference contains a rewrite step that generates C# code d
   </Target>  
 ```
 
-### Trouble shooting compiler extensions ###
+### Troubleshooting compiler extensions ###
 
 The compiler attempts to load rewrite steps even if these have been compiled against a different compiler version. While we do our best to mitigate issue due to a version mismatch, it is generally recommended to use compiler extensions that are compiled against the same compiler package version as the Sdk version of the project. 
 
@@ -81,12 +81,12 @@ When a rewrite steps fails to execute, setting the `QscVerbosity` to "Detailed" 
 ```
 A `FileNotFoundException` will be raised if a compiler extension attempts to load a reference that either could not be found, or could not be loaded for other reasons. 
 By default, the compiler will search the project output directory for a suitable assembly in case a dependency cannot be found.
-If such an exception occurs during a compilation step loaded from a package reference, adding the package containing the dll that could not be found to the project or to copying the missing dll to the output directory may resolve the issue. 
-If such an exception occurs during a compilation step loaded from a project reference, then defining the property
+If such an exception occurs during a compilation step loaded from a package reference, the issue may be resolved by adding the package containing the missing dll to the project or by copying the missing dll to the output directory. 
+If such an exception occurs during a compilation step loaded from a project reference, issue may be resolved by defining the property
 ```
   <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 ```
-in the project that implements the compilation step may resolve the issue. 
+in the project that implements the compilation step. 
 
 ## Defined project properties ##
 
