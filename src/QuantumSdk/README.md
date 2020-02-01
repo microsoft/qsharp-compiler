@@ -81,7 +81,7 @@ When a rewrite steps fails to execute, setting the `QscVerbosity` to "Detailed" 
 ```
 A `FileNotFoundException` will be raised if a compiler extension attempts to load a reference that either could not be found, or could not be loaded for other reasons. 
 By default, the compiler will search the project output directory for a suitable assembly in case a dependency cannot be found.
-If such an exception occurs during a compilation step loaded from a package reference, adding the package containing the dll that could not be found to the project or to copying the missing dll to the output directory may resolve the issue. 
+If such an exception occurs during a compilation step loaded from a package reference, adding the package containing the dll that could not be found to the project or copying the missing dll to the output directory may resolve the issue. 
 If such an exception occurs during a compilation step loaded from a project reference, then defining the property
 ```
   <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
