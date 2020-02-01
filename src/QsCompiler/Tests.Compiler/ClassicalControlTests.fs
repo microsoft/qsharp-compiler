@@ -112,7 +112,7 @@ type ClassicalControlTests () =
 
     let CheckIfSpecializationHasCalls specialization (calls : seq<int * string * string>) =
         let lines = GetLinesFromSpecialization specialization
-        Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x,_,_) -> x)) calls
+        Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) calls
 
     let AssertSpecializationHasCalls specialization calls =
         Assert.True(CheckIfSpecializationHasCalls specialization calls, sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind)
@@ -123,9 +123,9 @@ type ClassicalControlTests () =
         let mutable callables = generatedCallables |> Seq.map (fun x -> x, x |> (GetBodyFromCallable >> GetLinesFromSpecialization))
         let hasCall callable (call : seq<int * string * string>) =
             let (_, lines : string[]) = callable
-            Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x,_,_) -> x)) call
+            Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) call
 
-        Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is call correctly
+        Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
 
         let mutable rtrn = Seq.empty
 
@@ -490,8 +490,8 @@ type ClassicalControlTests () =
                            |> Seq.find (fun x -> x.Key.Name.Value = "Distribute")
                            |> fun x -> x.Value
         let providedOp = callables
-                       |> Seq.find (fun x -> x.Key.Name.Value = "Provided")
-                       |> fun x -> x.Value
+                         |> Seq.find (fun x -> x.Key.Name.Value = "Provided")
+                         |> fun x -> x.Value
 
         [(1, BuiltIn.ApplyIfZeroC)]
         |> Seq.map ExpandBuiltInQualifiedSymbol
