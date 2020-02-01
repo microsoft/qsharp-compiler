@@ -23,8 +23,8 @@ type ClassicalControlTests () =
     let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
-    do  let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
-        Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
+    do let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
+       Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
     let ReadAndChunkSourceFile fileName =
         let sourceInput = Path.Combine ("TestCases", "LinkingTests", fileName) |> File.ReadAllText
@@ -68,7 +68,7 @@ type ClassicalControlTests () =
         |> writer.Scope.Transform
         |> ignore
 
-        (writer.Scope :?> ScopeToQs).Output.Split("\r\n")
+        (writer.Scope :?> ScopeToQs).Output.Split(Environment.NewLine)
         |> Array.filter (fun str -> str <> String.Empty)
 
     let CheckIfLineIsCall ``namespace`` name input =
@@ -110,20 +110,22 @@ type ClassicalControlTests () =
         else
             (false, "", "", "", "")
 
-    let CheckIfSpecializationHasContent specialization (content : seq<int * string * string>) =
+    let CheckIfSpecializationHasCalls specialization (calls : seq<int * string * string>) =
         let lines = GetLinesFromSpecialization specialization
-        Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x,_,_) -> x)) content
+        Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x,_,_) -> x)) calls
 
-    let AssertSpecializationHasContent specialization content =
-        Assert.True(CheckIfSpecializationHasContent specialization content, sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind)
+    let AssertSpecializationHasCalls specialization calls =
+        Assert.True(CheckIfSpecializationHasCalls specialization calls, sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind)
 
-    let IdentifyGeneratedByContent generatedCalls contents =
-        let mutable calls = generatedCalls |> Seq.map (fun x -> x, x |> (GetBodyFromCallable >> GetLinesFromSpecialization))
-        let hasContent call (content : seq<int * string * string>) =
-            let (_, lines : string[]) = call
-            Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x,_,_) -> x)) content
+    let ExpandBuiltInQualifiedSymbol (i, (builtin : BuiltIn)) = (i, builtin.Namespace.Value, builtin.Name.Value)
 
-        Assert.True(Seq.length calls = Seq.length contents) // This should be true if this method is call correctly
+    let IdentifyGeneratedByCalls generatedCallables calls =
+        let mutable callables = generatedCallables |> Seq.map (fun x -> x, x |> (GetBodyFromCallable >> GetLinesFromSpecialization))
+        let hasCall callable (call : seq<int * string * string>) =
+            let (_, lines : string[]) = callable
+            Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x,_,_) -> x)) call
+
+        Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is call correctly
 
         let mutable rtrn = Seq.empty
 
@@ -132,13 +134,13 @@ type ClassicalControlTests () =
             <| Seq.take i lst
             <| Seq.skip (i+1) lst
 
-        for content in contents do
-            calls
-            |> Seq.tryFindIndex (fun callSig -> hasContent callSig content)
+        for call in calls do
+            callables
+            |> Seq.tryFindIndex (fun callSig -> hasCall callSig call)
             |> (fun x ->
                     Assert.True (x <> None, sprintf "Did not find expected generated content")
-                    rtrn <- Seq.append rtrn [Seq.item x.Value calls]
-                    calls <- removeAt x.Value calls
+                    rtrn <- Seq.append rtrn [Seq.item x.Value callables]
+                    callables <- removeAt x.Value callables
                )
         rtrn |> Seq.map (fun (x,y) -> x)
 
@@ -172,7 +174,7 @@ type ClassicalControlTests () =
                 (1, "SubOps", "SubOp3");
             ]
 
-        let orderedGens = IdentifyGeneratedByContent generated [ifContent; elseContent]
+        let orderedGens = IdentifyGeneratedByCalls generated [ifContent; elseContent]
         let ifOp, elseOp = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
 
         let original = GetCallableWithName compilation Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
@@ -189,12 +191,12 @@ type ClassicalControlTests () =
         let hasAdjoint = expectedFunctors |> Seq.contains QsFunctor.Adjoint
         let hasControlled = expectedFunctors |> Seq.contains QsFunctor.Controlled
 
-        (*Checks the Characteristics match*)
+        // Checks the characteristics match
         let charMatch = lazy match call.Signature.Information.Characteristics.SupportedFunctors with
                              | Value x -> x.SetEquals(expectedFunctors)
                              | Null -> 0 = Seq.length expectedFunctors
 
-        (*Checks that the target specializations are present*)
+        // Checks that the target specializations are present
         let adjMatch = lazy if hasAdjoint then
                                 call.Specializations
                                 |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsAdjoint)
@@ -235,7 +237,7 @@ type ClassicalControlTests () =
             (1, "SubOps", "SubOp2");
             (2, "SubOps", "SubOp3");
         ]
-        |> AssertSpecializationHasContent generated
+        |> AssertSpecializationHasCalls generated
 
     [<Fact>]
     [<Trait("Category","Content Hoisting")>]
@@ -275,15 +277,15 @@ type ClassicalControlTests () =
             (1, BuiltIn.ApplyIfZero);
             (3, BuiltIn.ApplyIfOne);
         ]
-        |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-        |> AssertSpecializationHasContent originalOp
+        |> Seq.map ExpandBuiltInQualifiedSymbol
+        |> AssertSpecializationHasCalls originalOp
 
     [<Fact>]
     [<Trait("Category","Apply If Calls")>]
     member this.``Apply If Zero Else One`` () =
         let (args, ifOp, elseOp) = CompileClassicalControlTest 8 |> ApplyIfElseTest
         IsApplyIfElseArgsMatch args "r" ifOp elseOp
-        |> (fun (x,_,_,_,_) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
+        |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
     [<Fact>]
     [<Trait("Category","Apply If Calls")>]
@@ -291,7 +293,7 @@ type ClassicalControlTests () =
         let (args, ifOp, elseOp) = CompileClassicalControlTest 9 |> ApplyIfElseTest
         // The operation arguments should be swapped from the previous test
         IsApplyIfElseArgsMatch args "r" elseOp ifOp
-        |> (fun (x,_,_,_,_) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
+        |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
     [<Fact>]
     [<Trait("Category","If Structure Reshape")>]
@@ -318,7 +320,7 @@ type ClassicalControlTests () =
                 (1, "SubOps", "SubOp3");
             ]
 
-        let orderedGens = IdentifyGeneratedByContent generated [ifContent; elifContent; elseContent]
+        let orderedGens = IdentifyGeneratedByCalls generated [ifContent; elifContent; elseContent]
         let ifOp, elifOp, elseOp = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
 
         let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
@@ -333,7 +335,7 @@ type ClassicalControlTests () =
         let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp.FullName { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
         Assert.True(success, errorMsg)
         IsApplyIfElseArgsMatch subArgs "r" elseOp.FullName elifOp.FullName // elif and else are swapped because second condition is against One
-        |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
+        |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
     [<Fact>]
     [<Trait("Category","If Structure Reshape")>]
@@ -342,9 +344,9 @@ type ClassicalControlTests () =
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
         let (success, _, subArgs, _, _) = IsApplyIfElseArgsMatch args "r" { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name } elseOp
-        Assert.True(success, errorMsg + " 1")
+        Assert.True(success, errorMsg)
         IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
-        |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg + " 2"))
+        |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
     [<Fact>]
     [<Trait("Category","If Structure Reshape")>]
@@ -355,7 +357,7 @@ type ClassicalControlTests () =
         let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
         Assert.True(success, errorMsg)
         IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
-        |> (fun (x,_,_,_,_) -> Assert.True(x, errorMsg))
+        |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
     [<Fact>]
     [<Trait("Category","Content Hoisting")>]
@@ -398,12 +400,12 @@ type ClassicalControlTests () =
             for pair in Seq.zip typeArgs1 typeArgs2 do
                 Assert.True(fst pair = snd pair, errorMsg)
 
-        (*Assert that the generated operation has the same type parameters as the original operation*)
+        // Assert that the generated operation has the same type parameters as the original operation
         let originalTypeParams = GetTypeParams original
         let generatedTypeParams = GetTypeParams generated
         AssertTypeArgsMatch originalTypeParams generatedTypeParams
 
-        (*Assert that the original operation calls the generated operation with the appropriate type arguments*)
+        // Assert that the original operation calls the generated operation with the appropriate type arguments
         let lines = GetBodyFromCallable original |> GetLinesFromSpecialization
         let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZero.Namespace.Value BuiltIn.ApplyIfZero.Name.Value lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.FullName QsSpecializationKind.QsBody)
@@ -433,16 +435,16 @@ type ClassicalControlTests () =
                        |> fun x -> x.Value
 
         [(1, BuiltIn.ApplyIfZero)]
-        |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-        |> AssertSpecializationHasContent (GetBodyFromCallable selfOp)
+        |> Seq.map ExpandBuiltInQualifiedSymbol
+        |> AssertSpecializationHasCalls (GetBodyFromCallable selfOp)
 
         [(1, BuiltIn.ApplyIfZeroA)]
-        |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-        |> AssertSpecializationHasContent (GetBodyFromCallable invertOp)
+        |> Seq.map ExpandBuiltInQualifiedSymbol
+        |> AssertSpecializationHasCalls (GetBodyFromCallable invertOp)
 
         [(1, BuiltIn.ApplyIfZero)]
-        |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-        |> AssertSpecializationHasContent (GetBodyFromCallable providedOp)
+        |> Seq.map ExpandBuiltInQualifiedSymbol
+        |> AssertSpecializationHasCalls (GetBodyFromCallable providedOp)
 
         let _selfOp = callables
                       |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Self")
@@ -467,7 +469,7 @@ type ClassicalControlTests () =
                 (1, "SubOps", "SubOp3");
             ]
 
-        let orderedGens = IdentifyGeneratedByContent _providedOps [bodyContent; adjointContent]
+        let orderedGens = IdentifyGeneratedByCalls _providedOps [bodyContent; adjointContent]
         let bodyGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
 
         AssertCallSupportsFunctors [] _selfOp
@@ -492,12 +494,12 @@ type ClassicalControlTests () =
                        |> fun x -> x.Value
 
         [(1, BuiltIn.ApplyIfZeroC)]
-        |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-        |> AssertSpecializationHasContent (GetBodyFromCallable distributeOp)
+        |> Seq.map ExpandBuiltInQualifiedSymbol
+        |> AssertSpecializationHasCalls (GetBodyFromCallable distributeOp)
 
         [(1, BuiltIn.ApplyIfZero)]
-        |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-        |> AssertSpecializationHasContent (GetBodyFromCallable providedOp)
+        |> Seq.map ExpandBuiltInQualifiedSymbol
+        |> AssertSpecializationHasCalls (GetBodyFromCallable providedOp)
 
         let _distributeOp = callables
                             |> Seq.find (fun x -> x.Key.Name.Value.EndsWith "_Distribute")
@@ -519,7 +521,7 @@ type ClassicalControlTests () =
                 (1, "SubOps", "SubOp3");
             ]
 
-        let orderedGens = IdentifyGeneratedByContent _providedOps [bodyContent; controlledContent]
+        let orderedGens = IdentifyGeneratedByCalls _providedOps [bodyContent; controlledContent]
         let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
 
         AssertCallSupportsFunctors [QsFunctor.Controlled] _distributeOp
@@ -543,12 +545,12 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroCA)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlAdjFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlAdjFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_ProvidedBody")
@@ -567,7 +569,7 @@ type ClassicalControlTests () =
                     (1, "SubOps", "SubOp3");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; ctlAdjContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlAdjContent]
             let bodyGen, ctlAdjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -584,16 +586,16 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroA)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlAdjFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlAdjFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_ProvidedControlled")
@@ -617,7 +619,7 @@ type ClassicalControlTests () =
                     (1, "SubOps", "SubOp3");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; ctlContent; ctlAdjContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent; ctlAdjContent]
             let bodyGen, ctlGen, ctlAdjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -635,16 +637,16 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroC)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetAdjFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetAdjFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlAdjFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlAdjFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_ProvidedAdjoint")
@@ -668,7 +670,7 @@ type ClassicalControlTests () =
                     (1, "SubOps", "SubOp3");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; adjContent; ctlAdjContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; adjContent; ctlAdjContent]
             let bodyGen, adjGen, ctlAdjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -686,20 +688,20 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZero)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetAdjFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetAdjFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlAdjFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlAdjFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_ProvidedAll")
@@ -727,7 +729,7 @@ type ClassicalControlTests () =
                     (2, "SubOps", "SubOp3");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; ctlContent; adjContent; ctlAdjContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent; adjContent; ctlAdjContent]
             let bodyGen, ctlGen, adjGen, ctlAdjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens), (Seq.item 3 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -755,8 +757,8 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroCA)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_DistributeBody")
@@ -771,7 +773,7 @@ type ClassicalControlTests () =
                 ]
 
             let bodyGen = (Seq.item 0 generated)
-            AssertSpecializationHasContent (GetBodyFromCallable bodyGen) bodyContent
+            AssertSpecializationHasCalls (GetBodyFromCallable bodyGen) bodyContent
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] bodyGen
@@ -786,12 +788,12 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroCA)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_DistributeControlled")
@@ -810,7 +812,7 @@ type ClassicalControlTests () =
                     (1, "SubOps", "SubOp1");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; ctlContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent]
             let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -827,12 +829,12 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroC)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOneC)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetAdjFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetAdjFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_DistributeAdjoint")
@@ -851,7 +853,7 @@ type ClassicalControlTests () =
                     (1, "SubOps", "SubOp1");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; adjContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; adjContent]
             let bodyGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -868,16 +870,16 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZero)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlFromCallable original)
 
             [(1, BuiltIn.ApplyIfOneC)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetAdjFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetAdjFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_DistributeAll")
@@ -901,7 +903,7 @@ type ClassicalControlTests () =
                     (1, "SubOps", "SubOp3");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; ctlContent; adjContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent; adjContent]
             let bodyGen, ctlGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -928,8 +930,8 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroCA)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_InvertBody")
@@ -944,7 +946,7 @@ type ClassicalControlTests () =
                 ]
 
             let bodyGen = (Seq.item 0 generated)
-            AssertSpecializationHasContent (GetBodyFromCallable bodyGen) bodyContent
+            AssertSpecializationHasCalls (GetBodyFromCallable bodyGen) bodyContent
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] bodyGen
@@ -959,12 +961,12 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroA)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOneA)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_InvertControlled")
@@ -983,7 +985,7 @@ type ClassicalControlTests () =
                     (1, "SubOps", "SubOp1");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; ctlContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent]
             let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -1000,12 +1002,12 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroCA)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetAdjFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetAdjFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_InvertAdjoint")
@@ -1024,7 +1026,7 @@ type ClassicalControlTests () =
                     (1, "SubOps", "SubOp1");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; adjContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; adjContent]
             let bodyGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -1041,16 +1043,16 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZero)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOneA)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetAdjFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetAdjFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_InvertAll")
@@ -1074,7 +1076,7 @@ type ClassicalControlTests () =
                     (1, "SubOps", "SubOp3");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; ctlContent; adjContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent; adjContent]
             let bodyGen, ctlGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -1101,8 +1103,8 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZeroC)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_SelfBody")
@@ -1117,7 +1119,7 @@ type ClassicalControlTests () =
                 ]
 
             let bodyGen = (Seq.item 0 generated)
-            AssertSpecializationHasContent (GetBodyFromCallable bodyGen) bodyContent
+            AssertSpecializationHasCalls (GetBodyFromCallable bodyGen) bodyContent
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
             AssertCallSupportsFunctors [QsFunctor.Controlled] bodyGen
@@ -1132,12 +1134,12 @@ type ClassicalControlTests () =
                            |> fun x -> x.Value
 
             [(1, BuiltIn.ApplyIfZero)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetBodyFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetBodyFromCallable original)
 
             [(1, BuiltIn.ApplyIfOne)]
-            |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
-            |> AssertSpecializationHasContent (GetCtlFromCallable original)
+            |> Seq.map ExpandBuiltInQualifiedSymbol
+            |> AssertSpecializationHasCalls (GetCtlFromCallable original)
 
             let generated = callables
                             |> Seq.filter (fun x -> x.Key.Name.Value.EndsWith "_SelfControlled")
@@ -1156,7 +1158,7 @@ type ClassicalControlTests () =
                     (1, "SubOps", "SubOp1");
                 ]
 
-            let orderedGens = IdentifyGeneratedByContent generated [bodyContent; ctlContent]
+            let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent]
             let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
 
             AssertCallSupportsFunctors [QsFunctor.Controlled;QsFunctor.Adjoint] original
@@ -1179,7 +1181,7 @@ type ClassicalControlTests () =
             [
                 (2, BuiltIn.ApplyIfZeroA);
                 (5, BuiltIn.ApplyIfOne);
-            ] |> Seq.map (fun (i, builtin) -> (i, builtin.Namespace.Value, builtin.Name.Value))
+            ] |> Seq.map ExpandBuiltInQualifiedSymbol
         let outerContent =
             [
                 (0, "SubOps", "SubOp1");
@@ -1191,9 +1193,9 @@ type ClassicalControlTests () =
                 (1, "SubOps", "SubOp3");
             ]
 
-        AssertSpecializationHasContent original originalContent
+        AssertSpecializationHasCalls original originalContent
 
-        let orderedGens = IdentifyGeneratedByContent generated [outerContent; innerContent]
+        let orderedGens = IdentifyGeneratedByCalls generated [outerContent; innerContent]
         let outerOp = (Seq.item 0 orderedGens)
 
         AssertCallSupportsFunctors [QsFunctor.Adjoint] outerOp
