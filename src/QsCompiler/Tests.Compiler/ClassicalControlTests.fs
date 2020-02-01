@@ -120,11 +120,11 @@ type ClassicalControlTests () =
 
     let IdentifyGeneratedByCalls generatedCallables calls =
         let mutable callables = generatedCallables |> Seq.map (fun x -> x, x |> (GetBodyFromCallable >> GetLinesFromSpecialization))
-        let hasContent call (content : seq<int * string * string>) =
-            let (_, lines : string[]) = call
-            Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) content
+        let hasCall callable (call : seq<int * string * string>) =
+            let (_, lines : string[]) = callable
+            Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) call
 
-        Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is call correctly
+        Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
 
         let mutable rtrn = Seq.empty
 
@@ -133,9 +133,9 @@ type ClassicalControlTests () =
             <| Seq.take i lst
             <| Seq.skip (i+1) lst
 
-        for content in calls do
+        for call in calls do
             callables
-            |> Seq.tryFindIndex (fun callSig -> hasContent callSig content)
+            |> Seq.tryFindIndex (fun callSig -> hasCall callSig call)
             |> (fun x ->
                     Assert.True (x <> None, sprintf "Did not find expected generated content")
                     rtrn <- Seq.append rtrn [Seq.item x.Value callables]
