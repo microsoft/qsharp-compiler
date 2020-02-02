@@ -48,6 +48,8 @@ Steps defined within packages or projects with higher priority are executed firs
 
 If you develop a NuGet package to extend the Q# compilation process, we recommend to distribute it as a self-contained package to avoid issues due to references that could not be resolved. Each qsc reference is loaded into its own context to avoid issues when several references depend on different versions of the same package. 
 
+An example for defining custom compilation steps in a referenced .NET Core project can be found [here](https://github.com/microsoft/qsharp-compiler/tree/master/examples). 
+
 ### Injected C# code ###
 
 It is possible to inject C# code into Q# packages e.g. for integration purposes. By default the Sdk is configured to do just that, see also the section on [defined properties](#defined-project-properties). That code may be generated as part of a custom rewrite step, e.g. if the code generation requires information about the Q# compilation. 
