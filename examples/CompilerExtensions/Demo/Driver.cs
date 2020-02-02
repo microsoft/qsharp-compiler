@@ -9,7 +9,7 @@ namespace Microsoft.Quantum.Demo
         {
             using var qsim = new QuantumSimulator();
             SampleProgram.Run(qsim).Wait();
-            Console.WriteLine("SampleProgram executed sucessfully!");
+            Console.WriteLine("SampleProgram executed successfully!");
         }
     }
 }
