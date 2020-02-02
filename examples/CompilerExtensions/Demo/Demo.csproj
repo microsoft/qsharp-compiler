@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.10.2001.2831">
+
+  <PropertyGroup>
+    <QscVerbosity>Detailed</QscVerbosity>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CustomExtension\CustomExtension.csproj" IsQscReference="true" Priority="0" />
+  </ItemGroup>
+ 
+</Project>
