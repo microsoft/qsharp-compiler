@@ -365,23 +365,27 @@ namespace Microsoft.Quantum.QsCompiler
             foreach (var diag in this.VerifiedCompilation?.Diagnostics() ?? Enumerable.Empty<Diagnostic>())
             { this.LogAndUpdate(ref this.CompilationStatus.Validation, diag); }
 
+            // executing the specified rewrite steps
+
             if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
             { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
 
-            // executing the specified rewrite steps
+            QsCompilation ExecuteAsAtomicTransformation(RewriteSteps.LoadedStep rewriteStep, ref Status status) 
+            {
+                status = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out var transformed);
+                return status == Status.Succeeded ? transformed : this.CompilationOutput;
+            }
 
             if (this.Config.ConvertClassicalControl)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationStatus.ConvertClassicalControl = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out var transformed);
-                if (this.CompilationStatus.ConvertClassicalControl == Status.Succeeded) this.CompilationOutput = transformed;
+                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.ConvertClassicalControl);
             }
 
             if (!this.Config.SkipMonomorphization && this.CompilationOutput?.EntryPoints.Length != 0)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out var transformed);
-                if (this.CompilationStatus.Monomorphization == Status.Succeeded) this.CompilationOutput = transformed;
+                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.Monomorphization);
             }
 
             if (this.Config.GenerateFunctorSupport)
@@ -435,9 +439,7 @@ namespace Microsoft.Quantum.QsCompiler
             for (int i = 0; i < this.ExternalRewriteSteps.Length; i++)
             {
                 if (this.CompilationOutput == null) continue;
-                var executed = this.ExecuteRewriteStep(this.ExternalRewriteSteps[i], this.CompilationOutput, out var transformed);
-                if (executed == Status.Succeeded) this.CompilationOutput = transformed;
-                this.CompilationStatus.LoadedRewriteSteps[i] = executed;
+                this.CompilationOutput = ExecuteAsAtomicTransformation(this.ExternalRewriteSteps[i], ref this.CompilationStatus.LoadedRewriteSteps[i]);
             }
         }
 
