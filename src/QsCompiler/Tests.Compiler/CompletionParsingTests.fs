@@ -128,6 +128,8 @@ let ``Namespace top-level parser tests`` () =
         Keyword "function"
         Keyword "operation"
         Keyword "newtype"
+        Keyword "private"
+        Keyword "internal"
         Keyword "open"
     ]
     List.iter (matches NamespaceTopLevel Null) [
@@ -143,6 +145,10 @@ let ``Namespace top-level parser tests`` () =
         ("newt", keywords)
         ("newtype", keywords)
         ("open", keywords)
+        ("pri", keywords)
+        ("private", keywords)
+        ("int", keywords)
+        ("internal", keywords)
     ]
 
 [<Fact>]

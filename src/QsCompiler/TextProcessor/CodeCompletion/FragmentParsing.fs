@@ -22,6 +22,10 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.ParsingPrimitive
 #nowarn "40"
 
 
+/// Parses a declaration modifier list.
+let private modifiers =
+    expectedKeyword qsPrivate <|>@ expectedKeyword qsInternal
+
 /// Parses a callable signature.
 let private callableSignature =
     let name = expectedId Declaration (term symbol)
@@ -33,11 +37,11 @@ let private callableSignature =
 
 /// Parses a function declaration.
 let private functionDeclaration =
-    expectedKeyword fctDeclHeader ?>> callableSignature
+    optR modifiers @>> expectedKeyword fctDeclHeader ?>> callableSignature
 
 /// Parses an operation declaration.
 let private operationDeclaration =
-    expectedKeyword opDeclHeader ?>> callableSignature ?>> characteristicsAnnotation
+    optR modifiers @>> expectedKeyword opDeclHeader ?>> callableSignature ?>> characteristicsAnnotation
 
 /// Parses a user-defined type declaration.
 let private udtDeclaration = 
@@ -46,7 +50,7 @@ let private udtDeclaration =
         let namedItem = name ?>> expected colon ?>> qsType
         return! qsType <|>@ tuple1 (namedItem <|>@ udt)
     }
-    expectedKeyword typeDeclHeader ?>> name ?>> expected equal ?>> udt
+    optR modifiers @>> expectedKeyword typeDeclHeader ?>> name ?>> expected equal ?>> udt
 
 /// Parses an open directive.
 let private openDirective =
