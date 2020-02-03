@@ -118,9 +118,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 return inner.Select(innerRes =>
                 {
                     if (innerRes.Item3.Resolution is ResolvedTypeKind.TypeParameter typeParam &&
-                        outerDict.ContainsKey((typeParam.Item.Origin, typeParam.Item.TypeName)))
+                        outerDict.TryGetValue((typeParam.Item.Origin, typeParam.Item.TypeName), out var outerRes))
                     {
-                        var outerRes = outerDict[(typeParam.Item.Origin, typeParam.Item.TypeName)];
                         return Tuple.Create(innerRes.Item1, innerRes.Item2, outerRes);
                     }
                     else
@@ -195,7 +194,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            private static ResolvedType GetApplyIfResolvedType(BuiltIn builtIn, IEnumerable<OpProperty> props, ResolvedType argumentType)
+            private static ResolvedType GetApplyIfResolvedType(IEnumerable<OpProperty> props, ResolvedType argumentType)
             {
                 var characteristics = new CallableInformation(
                     ResolvedCharacteristics.FromProperties(props),
@@ -304,7 +303,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     targetArgs
                         .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
                         .ToImmutableArray(),
-                    GetApplyIfResolvedType(controlOpInfo, props, controlArgs.ResolvedType));
+                    GetApplyIfResolvedType(props, controlArgs.ResolvedType));
 
                 // Creates identity resolutions for the call expression
                 var opTypeArgResolutions = targetArgs

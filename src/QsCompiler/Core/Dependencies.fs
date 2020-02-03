@@ -22,7 +22,7 @@ type BuiltIn = {
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
     static member DiagnosticsNamespace = NonNullable<string>.New "Microsoft.Quantum.Diagnostics"
-    static member ClassicallyControlledNamespace = NonNullable<string>.New "Microsoft.Quantum.ClassicallyControlled"
+    static member ClassicallyControlledNamespace = NonNullable<string>.New "Microsoft.Quantum.Simulation.QuantumProcessor.Extensions"
 
     /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
