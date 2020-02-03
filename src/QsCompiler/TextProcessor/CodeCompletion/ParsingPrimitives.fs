@@ -113,7 +113,7 @@ let expectedQualifiedSymbol kind =
 /// Optionally parses `p`, backtracking if it consumes EOT so another parser can try, too. Best if used with `@>>`,
 /// e.g., `optR foo @>> bar`.
 let optR p =
-    (p .>> previousCharSatisfies ((<>) '\u0004') |> opt |>> Option.defaultValue [] |> attempt) <|> lookAhead p
+    attempt (p .>> previousCharSatisfies ((<>) '\u0004')) <|> lookAhead p <|>% []
 
 /// `manyR p shouldBacktrack` is like `many p` but is reentrant on the last item if
 ///     1. The last item is followed by EOT; and
