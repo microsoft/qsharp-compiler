@@ -93,6 +93,9 @@ The NuGet version of the Sdk package.
 
 The following properties can be configured to customize the build: 
 
+- `AdditionalQscArguments`:    
+May contain additional arguments to pass to the Q# command line compiler. Valid additional arguments are `--emit-dll`, or `--no-warn` followed by any number of integers specifying the warnings to ignore.   
+
 - `CsharpGeneration`:    
 Specifies whether to generate C# code as part of the compilation process. Setting this property to false may prevent certain interoperability features or integration with other pieces of the Quantum Development Kit. 
 
@@ -112,6 +115,22 @@ Specified whether to generate yml documentation for the compiled Q# code. The de
 Directory where any generated documentation will be saved. 
 
 [comment]: # (TODO: document QscBuildConfigExe, QscBuildConfigOutputPath)
+
+## Defined item groups ##
+
+The following configurable item groups are used by the Sdk: 
+
+- `PackageLoadFallbackFolder`:    
+Contains the directories where the Q# compiler will look for a suitable dll if a qsc reference or one if its dependencies cannot be found. By default, the project output path is included in this item group. 
+
+- `PackageReference`:    
+Contains all referenced NuGet packages. Package references for which the `IsQscReference` attribute is set to "true" may extend the Q# compiler and any implemented rewrite steps will be executed as part of the compilation process. See [this section](#extending-the-q#-compiler) for more details.
+
+- `ProjectReference`:    
+Contains all referenced projects. Project references for which the `IsQscReference` attribute is set to "true" may extend the Q# compiler and any implemented rewrite steps will be executed as part of the compilation process. See [this section](#extending-the-q#-compiler) for more details.
+
+- `QsharpCompile`:    
+Contains all Q# source files included in the compilation.
 
 # Sdk Packages #
 

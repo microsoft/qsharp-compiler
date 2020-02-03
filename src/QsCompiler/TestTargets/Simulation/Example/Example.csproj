@@ -1,69 +1,47 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="RecompileOnChange">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.10.2001.2502-alpha">
+
   <PropertyGroup>
+    <QscVerbosity>Detailed</QscVerbosity>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <PlatformTarget>x64</PlatformTarget>
-    <QsharpLangVersion>0.10</QsharpLangVersion>
+    <CsharpGeneration>false</CsharpGeneration> <!--we provide our own C# generation for the sake of also generating C# for all references-->
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\CommandLineTool\CommandLineTool.csproj">
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\Target\Simulation.csproj">
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\Library1\Library1.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
-    <ExecutionTestsDir>ExecutionTests\</ExecutionTestsDir>
-    <GenFilesDir>generated\</GenFilesDir>
-    <SimulationTarget>"..\Target\bin\$(Configuration)\netstandard2.1\Simulation.dll"</SimulationTarget>
+    <GeneratedFilesOutputPath>generated/</GeneratedFilesOutputPath>
+    <ExecutionTestsDir>ExecutionTests/</ExecutionTestsDir>
+    <SimulationTarget>../Target/bin/$(Configuration)/netstandard2.1/Simulation.dll</SimulationTarget>
+    <AdditionalQscArguments> --load $(SimulationTarget)</AdditionalQscArguments>
     <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.0/qsc.dll"</QscExe>
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="$(GenFilesDir)" />
-    <Compile Remove="..\Target\Driver.cs" />
-    <Compile Include="..\Target\Driver.cs">
+    <Folder Include="$(GeneratedFilesOutputPath)" />
+    <Compile Remove="../Target/Driver.cs" />
+    <Compile Include="../Target/Driver.cs">
       <Visible>false</Visible>
     </Compile>
-    <None Include="..\..\..\Tests.Compiler\TestCases\ExecutionTests\*.*">
+    <QsharpCompile Include="../../../Tests.Compiler/TestCases/ExecutionTests/*.*">
       <Link>$(ExecutionTestsDir)%(RecursiveDir)%(Filename)%(Extension)</Link>
-    </None>
+    </QsharpCompile>
   </ItemGroup>
 
-  <Target Name="RecompileOnChange">
+  <ItemGroup>
+    <ProjectReference Include="..\Target\Simulation.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="../../../CommandLineTool/CommandLineTool.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="../../Libraries/Library1/Library1.csproj" />
+  </ItemGroup>
+
+  <Target Name="BeforeCsharpCompile">
     <ItemGroup>
-      <UpToDateCheckInput Include="@(None)" />
-      <UpToDateCheckInput Include="@(Content)" />
+      <Compile Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
     </ItemGroup>
   </Target>
-  
-  <Target Name="QsharpClean" BeforeTargets="Clean">
-    <ItemGroup>
-      <RemoveFiles Include="$(GenFilesDir)**" />
-      <Compile Remove="@(RemoveFiles)" />
-    </ItemGroup>
-    <Delete Files="@(RemoveFiles)" />
-  </Target>  
-  
-  <Target Name="QsharpCompile" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="ResolveAssemblyReferences;QsharpClean" BeforeTargets="CoreCompile">
-    <MakeDir Directories="$(GenFilesDir)" />
-    <ItemGroup>
-      <QsReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app')) == false" />
-      <QsSourceFiles Include="@(None)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '.qs$')) == true" />
-      <QsSourceFiles Include="**\*.qs" Exclude="@(QsSourceFiles)" />
-    </ItemGroup>
-    <PropertyGroup>
-      <QscCommand>$(QscExe) build -v diag --format MsBuild --proj "$(MSBuildProjectName)" -i "@(QsSourceFiles,'" "')" -r "@(QsReferences,'" "')" -o $(GenFilesDir) --load "$(SimulationTarget)"</QscCommand>
-    </PropertyGroup>
-    <Message Importance="low" Text="executing command '$(QscCommand)'" />
-    <Exec Command="$(QscCommand)" IgnoreExitCode="false" />
-    <Delete Files="$(GenFilesDir)$(MSBuildProjectName).bson" />
-    <ItemGroup>
-      <Compile Include="$(GenFilesDir)**\*.g.cs" Exclude="@(Compile)" />
-    </ItemGroup>
-  </Target>    
+
 </Project>
+
+
