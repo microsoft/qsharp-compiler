@@ -22,7 +22,7 @@ type BuiltIn = {
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
     static member DiagnosticsNamespace = NonNullable<string>.New "Microsoft.Quantum.Diagnostics"
-    static member ClassicallyControlledNamespace = NonNullable<string>.New "Microsoft.Quantum.ClassicallyControlled"
+    static member ClassicallyControlledNamespace = NonNullable<string>.New "Microsoft.Quantum.Simulation.QuantumProcessor.Extensions"
 
     /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
@@ -267,8 +267,8 @@ type BuiltIn = {
     static member ApplyIfElseRCResolvedType = BuiltIn._MakeApplyIfElseResolvedType BuiltIn.ApplyIfElseRC [OpProperty.Controllable]
 
     // This is expected to have type <'T, 'U>((Result, (('T => Unit is Adj + Ctl), 'T), (('U => Unit is Adj + Ctl), 'U)) => Unit is Adj + Ctl)
-    static member ApplyIfElseCA = {
-        Name = "ApplyIfElseCA" |> NonNullable<string>.New
+    static member ApplyIfElseRCA = {
+        Name = "ApplyIfElseRCA" |> NonNullable<string>.New
         Namespace = BuiltIn.ClassicallyControlledNamespace
         TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
     }
