@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 EnableAdditionalChecks = false // todo: enable debug mode?
             }; 
 
-            CompilationLoader.CompilationTaskEventHandler onCompilationProcessEvent = options.PerfFolder != null ? CompilationTracker.OnCompilationTaskEvent : (CompilationLoader.CompilationTaskEventHandler)null;
+            var onCompilationProcessEvent = options.PerfFolder != null ? CompilationTracker.OnCompilationTaskEvent : (CompilationLoader.CompilationTaskEventHandler)null;
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger, CompilationTracker.OnCompilationTaskEvent);
             if (options.PerfFolder != null)
             {
