@@ -48,6 +48,8 @@ Steps defined within packages or projects with higher priority are executed firs
 
 If you develop a NuGet package to extend the Q# compilation process, we recommend to distribute it as a self-contained package to avoid issues due to references that could not be resolved. Each qsc reference is loaded into its own context to avoid issues when several references depend on different versions of the same package. 
 
+An example for defining custom compilation steps in a referenced .NET Core project can be found [here](https://github.com/microsoft/qsharp-compiler/tree/master/examples). 
+
 ### Injected C# code ###
 
 It is possible to inject C# code into Q# packages e.g. for integration purposes. By default the Sdk is configured to do just that, see also the section on [defined properties](#defined-project-properties). That code may be generated as part of a custom rewrite step, e.g. if the code generation requires information about the Q# compilation. 
@@ -71,7 +73,7 @@ For example, if a qsc reference contains a rewrite step that generates C# code d
   </Target>  
 ```
 
-### Trouble shooting compiler extensions ###
+### Troubleshooting compiler extensions ###
 
 The compiler attempts to load rewrite steps even if these have been compiled against a different compiler version. While we do our best to mitigate issue due to a version mismatch, it is generally recommended to use compiler extensions that are compiled against the same compiler package version as the Sdk version of the project. 
 
@@ -79,7 +81,14 @@ When a rewrite steps fails to execute, setting the `QscVerbosity` to "Detailed" 
 ```
   <QscVerbosity>Detailed</QscVerbosity>
 ```
-By default, the compiler will search the project output directory for a suitable assembly in case a dependency cannot be found. In case of a `FileNotFoundException`, and option may be to add the corresponding reference to the project, or to copy the missing dll to the output directory. 
+A `FileNotFoundException` will be raised if a compiler extension attempts to load a reference that either could not be found, or could not be loaded for other reasons. 
+By default, the compiler will search the project output directory for a suitable assembly in case a dependency cannot be found.
+If such an exception occurs during a compilation step loaded from a package reference, the issue may be resolved by adding the package containing the missing dll to the project or by copying the missing dll to the output directory. 
+If such an exception occurs during a compilation step loaded from a project reference, issue may be resolved by defining the property
+```
+  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+```
+in the project that implements the compilation step. 
 
 ## Defined project properties ##
 
