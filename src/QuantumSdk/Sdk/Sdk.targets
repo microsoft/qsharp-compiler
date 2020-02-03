@@ -64,7 +64,7 @@
     <ItemGroup>
       <PackageLoadFallbackFolder Include="$(MSBuildProjectDirectory)/$(OutputPath)" Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''" />
       <ResolvedPackageLoadFallbackFolders Include="@(PackageLoadFallbackFolder->'$([MSBuild]::Unescape('%(PackageLoadFallbackFolder.Identity)').Replace('\','/'))')" />
-      <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet')) == false" />
+      <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig')) == false" />
     </ItemGroup>
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
