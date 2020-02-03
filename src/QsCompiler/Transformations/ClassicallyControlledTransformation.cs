@@ -185,8 +185,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     {
                         if (adj && ctl)
                         {
-                            controlOpInfo = BuiltIn.ApplyIfElseCA;
-                            controlOpType = BuiltIn.ApplyIfElseCAResolvedType;
+                            controlOpInfo = BuiltIn.ApplyIfElseRCA;
+                            controlOpType = BuiltIn.ApplyIfElseRCAResolvedType;
                         }
                         else if (adj)
                         {

@@ -272,7 +272,7 @@ type BuiltIn = {
         Namespace = BuiltIn.ClassicallyControlledNamespace
         TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
     }
-    static member ApplyIfElseCAResolvedType = BuiltIn._MakeApplyIfElseResolvedType BuiltIn.ApplyIfElseCA [OpProperty.Adjointable; OpProperty.Controllable]
+    static member ApplyIfElseRCAResolvedType = BuiltIn._MakeApplyIfElseResolvedType BuiltIn.ApplyIfElseRCA [OpProperty.Adjointable; OpProperty.Controllable]
 
     // "weak dependencies" in other namespaces (e.g. things used for code actions)
 
