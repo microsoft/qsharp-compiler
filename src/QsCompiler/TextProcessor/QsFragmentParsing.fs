@@ -432,6 +432,10 @@ let private borrowingHeader =
     let invalid = BorrowingBlockIntro (invalidSymbol, invalidInitializer)
     buildFragment qsBorrowing.parse allocationScope invalid (fun _ -> BorrowingBlockIntro) eof
 
+/// Always builds an invalid fragment after parsing the given fragment header.
+let private buildInvalidFragment header =
+    buildFragment header (fail "invalid syntax") InvalidFragment (fun _ _ -> InvalidFragment) attributeIntro
+
 /// Fragment header keywords and their corresponding fragment parsers.
 let private fragments =
     [
@@ -460,23 +464,18 @@ let private fragments =
         (ctrlDeclHeader, controlledDeclaration)
         (bodyDeclHeader, bodyDeclaration)
         (importDirectiveHeader, openDirective)
+
+        // These fragment headers do not have their own fragment kind. Instead, they are only parsed as part of another
+        // fragment kind. If one of these headers occurs by itself, without the other header it's a part of, an invalid
+        // fragment should be created. Since they're at the end of the list, we know that all of the other fragment
+        // kinds have been tried first.
+        (qsPrivate, buildInvalidFragment qsPrivate.parse)
+        (qsInternal, buildInvalidFragment qsInternal.parse)
     ]
 
 do
-    // Fragment headers which do not have their own fragment kind. Instead, they are only parsed as part of another
-    // fragment kind.
-    let dependentHeaders =
-        [
-            qsPrivate
-            qsInternal
-        ]
-    
     // Make sure all of the fragment header keywords are listed above.
-    let implementedHeaders =
-        List.append
-            (List.map (fun (keyword, _) -> keyword.id) fragments)
-            (List.map (fun keyword -> keyword.id) dependentHeaders)
-        |> fun h -> h.ToImmutableHashSet()
+    let implementedHeaders = (List.map (fun (keyword, _) -> keyword.id) fragments).ToImmutableHashSet()
     let existingHeaders = Keywords.FragmentHeaders.ToImmutableHashSet()
     if (implementedHeaders.SymmetricExcept existingHeaders).Count <> 0 then 
         System.NotImplementedException "mismatch between existing Q# fragments and implemented Q# fragments" |> raise
@@ -503,7 +502,5 @@ let internal codeFragment =
     let validFragment = 
         choice (fragments |> List.map snd)
         <|> attributeDeclaration
-        <|> expressionStatement// the expressionStatement needs to be last
-    let invalidFragment = 
-        buildFragment (preturn ()) (fail "invalid syntax") InvalidFragment (fun _ _ -> InvalidFragment) attributeIntro
-    attempt validFragment <|> invalidFragment
+        <|> expressionStatement // the expressionStatement needs to be last
+    attempt validFragment <|> buildInvalidFragment (preturn ())
