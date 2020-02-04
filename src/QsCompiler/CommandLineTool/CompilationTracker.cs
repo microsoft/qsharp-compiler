@@ -52,7 +52,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// <summary>
             /// Generates a key that uniquely identifies a task in the compilation process based on the task's name and its parent's name.
             /// </summary>
-            public static string GenerateKey(string parentName, string name)
+            internal static string GenerateKey(string parentName, string name)
             {
                 return String.Format("{0}.{1}", parentName ?? "ROOT", name);
             }
