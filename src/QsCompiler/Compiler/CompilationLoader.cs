@@ -28,6 +28,36 @@ namespace Microsoft.Quantum.QsCompiler
     public class CompilationLoader
     {
         /// <summary>
+        /// Represents the type of a task event.
+        /// </summary>
+        public enum CompilationTaskEventType
+        {
+            Start,
+            End
+        }
+
+        /// <summary>
+        /// Represents the arguments associated to a task event.
+        /// </summary>
+        public class CompilationTaskEventArgs : EventArgs
+        {
+            public CompilationTaskEventType Type;
+            public string ParentTaskName;
+            public string TaskName;
+
+            public CompilationTaskEventArgs(CompilationTaskEventType type, string parentTaskName, string taskName)
+            {
+                ParentTaskName = parentTaskName;
+                TaskName = taskName;
+                Type = type;
+            }
+        }
+
+        /// <summary>
+        /// Defines the handler for compilation task events.
+        /// </summary>
+        public delegate void CompilationTaskEventHandler(object sender, CompilationTaskEventArgs args);
+        /// <summary>
         /// Given a load function that loads the content of a sequence of files from disk, 
         /// returns the content for all sources to compile. 
         /// </summary>
@@ -37,6 +67,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// returns the loaded references for the compilation. 
         /// </summary>
         public delegate References ReferenceLoader(Func<IEnumerable<string>, References> loadFromDisk);
+        /// <summary>
+        /// Used to raise a compilation task event.
+        /// </summary>
+        public static event CompilationTaskEventHandler CompilationTaskEvent;
         /// <summary>
         /// If LoadAssembly is not null, it will be used to load the dlls that are search for classes defining rewrite steps.
         /// </summary>
@@ -183,37 +217,6 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Represents the type of a task event.
-        /// </summary>
-        public enum CompilationTaskEventType
-        {
-            Start,
-            End
-        }
-
-        /// <summary>
-        /// Represents the arguments associated to a task event.
-        /// </summary>
-        public class CompilationTaskEventArgs : EventArgs
-        {
-            public CompilationTaskEventType Type;
-            public string ParentTaskName;
-            public string TaskName;
-
-            public CompilationTaskEventArgs(CompilationTaskEventType type, string parentTaskName, string taskName)
-            {
-                ParentTaskName = parentTaskName;
-                TaskName = taskName;
-                Type = type;
-            }
-        }
-
-        /// <summary>
-        /// Defines the handler for compilation task events.
-        /// </summary>
-        public delegate void CompilationTaskEventHandler(object sender, CompilationTaskEventArgs args);
-
-        /// <summary>
         /// Indicates whether all source files were loaded successfully.
         /// Source file loading may not be executed if the content was preloaded using methods outside this class. 
         /// </summary>
@@ -294,10 +297,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public bool Success => this.CompilationStatus.Success(this.Config, this.CompilationOutput?.EntryPoints.Length != 0);
 
-        /// <summary>
-        /// Used to raise a compilation task event.
-        /// </summary>
-        public event CompilationTaskEventHandler CompilationTaskEvent;
 
         /// <summary>
         /// Logger used to log all diagnostic events during compilation.
@@ -359,15 +358,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// Uses the specified logger to log all diagnostic events. 
         /// Throws an ArgumentNullException if either one of the given loaders is null or returns null.
         /// </summary>
-        public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger logger = null, CompilationTaskEventHandler onCompilationTaskEvent = null)
+        public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger logger = null)
         {
-
-            // adding the event handlers.
-            if (onCompilationTaskEvent != null)
-            {
-                CompilationTaskEvent += onCompilationTaskEvent;
-            }
-
             RaiseCompilationTaskStart(null, "OverallCompilation");
 
             // loading the content to compiler 
@@ -483,6 +475,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             // invoking rewrite steps in external dlls
 
+            RaiseCompilationTaskStart("OverallCompilation", "RewriteSteps");
             for (int i = 0; i < this.ExternalRewriteSteps.Length; i++)
             {
                 if (this.CompilationOutput == null) continue;
@@ -491,6 +484,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.CompilationStatus.LoadedRewriteSteps[i] = executed;
             }
 
+            RaiseCompilationTaskEnd("OverallCompilation", "RewriteSteps");
             RaiseCompilationTaskEnd(null, "OverallCompilation");
         }
 
@@ -577,8 +571,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// Uses the specified logger to log all diagnostic events. 
         /// Throws an ArgumentNullException if the given loader is null or returns null.
         /// </summary>
-        public CompilationLoader(SourceLoader loadSources, IEnumerable<string> references, Configuration? options = null, ILogger logger = null, CompilationTaskEventHandler onCompilationProcessEvent = null)
-            : this(loadSources, load => load(references), options, logger, onCompilationProcessEvent) { }
+        public CompilationLoader(SourceLoader loadSources, IEnumerable<string> references, Configuration? options = null, ILogger logger = null)
+            : this(loadSources, load => load(references), options, logger) { }
 
 
         // private routines used for logging and status updates
@@ -899,17 +893,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Raises a compilation task start event.
         /// </summary>
-        private void RaiseCompilationTaskStart (string parentTaskName, string taskName)
-        {
+        private void RaiseCompilationTaskStart (string parentTaskName, string taskName) =>
             CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.Start, parentTaskName, taskName));
-        }
 
         /// <summary>
         /// Raises a compilation task end event.
         /// </summary>
-        private void RaiseCompilationTaskEnd(string parentTaskName, string taskName)
-        {
+        private void RaiseCompilationTaskEnd(string parentTaskName, string taskName) =>
             CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.End, parentTaskName, taskName));
-        }
     }
 }
