@@ -284,6 +284,8 @@ type ErrorCode =
 
     | CsharpGenerationGeneratedError = 8001
 
+    | PublishingPerfResultsFailed = 9001
+
 
 type WarningCode = 
     | ExcessSemicolon = 2001
@@ -634,6 +636,8 @@ type DiagnosticItem =
             | ErrorCode.PostconditionVerificationFailed           -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
 
             | ErrorCode.CsharpGenerationGeneratedError            -> ""
+
+            | ErrorCode.PublishingPerfResultsFailed               -> "Performance results failed to be published at \"{0}\"."
             | _                                                   -> ""
         code |> ApplyArguments             
              
