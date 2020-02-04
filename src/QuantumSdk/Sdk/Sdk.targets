@@ -44,7 +44,7 @@
   <Target Name="QsharpCompile" 
           Condition="'$(DesignTimeBuild)' != 'true'"
           DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;BeforeQsharpCompile;_CopyFilesMarkedCopyLocal" 
-          BeforeTargets="BeforeCsharpCompile;BeforeBuild">
+          BeforeTargets="PrepareCsharpCompileAfterCsharpGeneration">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
@@ -64,7 +64,7 @@
     <ItemGroup>
       <PackageLoadFallbackFolder Include="$(MSBuildProjectDirectory)/$(OutputPath)" Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''" />
       <ResolvedPackageLoadFallbackFolders Include="@(PackageLoadFallbackFolder->'$([MSBuild]::Unescape('%(PackageLoadFallbackFolder.Identity)').Replace('\','/'))')" />
-      <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet')) == false" />
+      <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig')) == false" />
     </ItemGroup>
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
@@ -80,7 +80,10 @@
     </PropertyGroup>
     <WriteLinesToFile File="$(_QscCommandArgsFile)" Lines="$(_QscCommandArgs)" Overwrite="true"/> <!-- we use a response file to avoid issues when the command gets long -->
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 
-    <!-- configure the dll built by the C# compiler -->
+  </Target>   
+
+  <!-- Configures the dll built by the C# compiler. This target needs to execute during the C# design time build to get accurate intellisense information for (non-generate) C# source files. -->
+  <Target Name="PrepareCsharpCompileAfterCsharpGeneration" DependsOnTargets="QsharpCompile" AfterTargets="QsharpCompile" BeforeTargets="BeforeCsharpCompile;BeforeBuild">
     <ItemGroup>
       <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data__.bson" Visible="false" />
       <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
