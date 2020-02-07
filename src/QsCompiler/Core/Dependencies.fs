@@ -87,6 +87,8 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
+    // hard dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions
+
     // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
     static member ApplyIfZero = {
         Name = "ApplyIfZero" |> NonNullable<string>.New
@@ -165,8 +167,8 @@ type BuiltIn = {
     }
 
     // This is expected to have type <'T, 'U>((Result, (('T => Unit is Adj + Ctl), 'T), (('U => Unit is Adj + Ctl), 'U)) => Unit is Adj + Ctl)
-    static member ApplyIfElseCA = {
-        Name = "ApplyIfElseCA" |> NonNullable<string>.New
+    static member ApplyIfElseRCA = {
+        Name = "ApplyIfElseRCA" |> NonNullable<string>.New
         Namespace = BuiltIn.ClassicallyControlledNamespace
         TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
     }

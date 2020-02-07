@@ -49,6 +49,16 @@ let private _MakeSignatures sigs =
     |> Seq.map (fun (types, case) -> Seq.map (fun _sig -> _MakeSig _sig types) case)
     |> Seq.toArray
 
+let _MakeTypeParam originNs originName paramName =
+    originName + "." + paramName, {
+        Origin = {
+            Namespace = NonNullable<_>.New originNs;
+            Name = NonNullable<_>.New originName
+        }
+        TypeName = NonNullable<_>.New paramName
+        Range = Null
+    } |> TypeParameter
+
 /// For all given namespaces in checkedNamespaces, checks that there are exactly
 /// the callables specified with targetSignatures in the given compilation.
 let public SignatureCheck checkedNamespaces targetSignatures compilation =
@@ -190,6 +200,18 @@ let public IntrinsicResolutionSignatures =
         |])
     |]
     |> _MakeSignatures
+
+let private _TypeParameterTypes = _MakeTypeMap [|
+    _MakeTypeParam ClassicalControlNs "Bar" "Q"
+    _MakeTypeParam ClassicalControlNs "Bar" "W"
+|]
+
+let private _DefaultWithOperation = _MakeTypeMap [|
+    "SubOp1Type[]", ((ResolvedType.New UnitType, ResolvedType.New UnitType), {
+        Characteristics = (ResolvedCharacteristics.FromProperties [OpProperty.Adjointable; OpProperty.Controllable])
+        InferredInformation = InferredCallableInformation.NoInformation
+    }) |> QsTypeKind.Operation |> ResolvedType.New |> ArrayType
+|]
 
 /// Expected callable signatures to be found when running Classical Control tests
 let public ClassicalControlSignatures =
@@ -352,6 +374,23 @@ let public ClassicalControlSignatures =
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
+        |])
+        (_TypeParameterTypes, [| // Arguments Partially Resolve Type Parameters
+            ClassicalControlNs, "Bar", [|"Bar.Q";"Bar.W"|], "Unit"
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
+        (_DefaultTypes, [| // Hoist Functor Application
+            ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
+        |])
+        (_DefaultTypes, [| // Hoist Partial Application
+            ClassicalControlNs, "Bar", [|"Int";"Double"|], "Unit"
+            ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
+        |])
+        (_DefaultWithOperation, [| // Hoist Array Item Call
+            ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"SubOp1Type[]";"Result"|], "Unit"
         |])
     |]
     |> _MakeSignatures

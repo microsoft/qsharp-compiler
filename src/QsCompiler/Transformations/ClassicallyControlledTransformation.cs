@@ -21,14 +21,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
     // 2nd Pass: On the way down the tree, reshape conditional statements to replace Elif's and
     // top level OR and AND conditions with equivalent nested if-else statements. One the way back up
     // the tree, convert conditional statements into ApplyIf calls, where possible.
+    // This relies on anything having type parameters must be a global callable.
     public class ClassicallyControlledTransformation
     {
         public static QsCompilation Apply(QsCompilation compilation)
         {
-            var filter = new ClassicallyControlledSyntax();
-
             compilation = HoistTransformation.Apply(compilation);
 
+            var filter = new ClassicallyControlledSyntax(compilation);
             return new QsCompilation(compilation.Namespaces.Select(ns => filter.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
         }
 
@@ -101,40 +101,48 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
         private class ClassicallyControlledSyntax : SyntaxTreeTransformation<ClassicallyControlledScope>
         {
-            public ClassicallyControlledSyntax(ClassicallyControlledScope scope = null) : base(scope ?? new ClassicallyControlledScope()) { }
+            public ClassicallyControlledSyntax(QsCompilation compilation, ClassicallyControlledScope scope = null) : base(scope ?? new ClassicallyControlledScope(compilation)) { }
 
             public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being considered
         }
 
         private class ClassicallyControlledScope : ScopeTransformation<NoExpressionTransformations>
         {
-            public ClassicallyControlledScope(NoExpressionTransformations expr = null) : base(expr ?? new NoExpressionTransformations()) { }
+            private QsCompilation _Compilation;
+
+            public ClassicallyControlledScope(QsCompilation compilation, NoExpressionTransformations expr = null) : base(expr ?? new NoExpressionTransformations())
+            {
+                _Compilation = compilation;
+            }
 
             private TypeArgsResolution GetCombinedType(TypeArgsResolution outer, TypeArgsResolution inner)
             {
-                var result = new List<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>();
                 var outerDict = outer.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
-
                 return inner.Select(innerRes =>
                 {
                     if (innerRes.Item3.Resolution is ResolvedTypeKind.TypeParameter typeParam &&
                         outerDict.TryGetValue((typeParam.Item.Origin, typeParam.Item.TypeName), out var outerRes))
                     {
+                        outerDict.Remove((typeParam.Item.Origin, typeParam.Item.TypeName));
                         return Tuple.Create(innerRes.Item1, innerRes.Item2, outerRes);
                     }
                     else
                     {
                         return innerRes;
                     }
-                }).ToImmutableArray();
+                }).Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
             }
 
             private (bool, TypedExpression, TypedExpression) IsValidScope(QsScope scope)
             {
                 // if the scope has exactly one statement in it and that statement is a call like expression statement
-                if (scope != null && scope.Statements.Length == 1 &&
-                    scope.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr &&
-                    expr.Item.ResolvedType.Resolution.IsUnitType && expr.Item.Expression is ExpressionKind.CallLikeExpression call)
+                if (scope != null
+                    && scope.Statements.Length == 1
+                    && scope.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr
+                    && expr.Item.ResolvedType.Resolution.IsUnitType
+                    && expr.Item.Expression is ExpressionKind.CallLikeExpression call
+                    && !TypedExpression.IsPartialApplication(expr.Item.Expression)
+                    && call.Item1.Expression is ExpressionKind.Identifier)
                 {
                     // We are dissolving the application of arguments here, so the call's type argument
                     // resolutions have to be moved to the 'identifier' sub expression.
@@ -143,16 +151,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     var idTypeArguments = call.Item1.TypeArguments;
                     var combinedTypeArguments = GetCombinedType(callTypeArguments, idTypeArguments);
 
+                    // This relies on anything having type parameters must be a global callable.
                     var newExpr1 = call.Item1;
-                    // ToDo: shouldn't rely on expr1 being identifier
-                    if (combinedTypeArguments.Any() && newExpr1.Expression is ExpressionKind.Identifier id)
+                    if (combinedTypeArguments.Any()
+                        && newExpr1.Expression is ExpressionKind.Identifier id
+                        && id.Item1 is Identifier.GlobalCallable global)
                     {
+                        var globalCallable = _Compilation.Namespaces
+                            .Where(ns => ns.Name.Equals(global.Item.Namespace))
+                            .Callables()
+                            .FirstOrDefault(c => c.FullName.Name.Equals(global.Item.Name));
+
+                        QsCompilerError.Verify(globalCallable != null, $"Could not find the global reference {global.Item.Namespace.Value + "." + global.Item.Name.Value}");
+
+                        var callableTypeParameters = globalCallable.Signature.TypeParameters
+                            .Select(x => x as QsLocalSymbol.ValidName);
+
+                        QsCompilerError.Verify(callableTypeParameters.All(x => x != null), $"Invalid type parameter names.");
+
                         newExpr1 = new TypedExpression(
                             ExpressionKind.NewIdentifier(
                                 id.Item1,
-                                QsNullable<ImmutableArray<ResolvedType>>.NewValue(combinedTypeArguments
-                                    .Select(arg => arg.Item3)
-                                    .ToImmutableArray())),
+                                QsNullable<ImmutableArray<ResolvedType>>.NewValue(
+                                    callableTypeParameters
+                                    .Select(x => combinedTypeArguments.First(y => y.Item2.Equals(x.Item)).Item3).ToImmutableArray())),
                             combinedTypeArguments,
                             call.Item1.ResolvedType,
                             call.Item1.InferredInformation,
@@ -230,7 +252,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     {
                         if (adj && ctl)
                         {
-                            controlOpInfo = BuiltIn.ApplyIfElseCA;
+                            controlOpInfo = BuiltIn.ApplyIfElseRCA;
                         }
                         else if (adj)
                         {
@@ -860,7 +882,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     {
                         targetArgs = CreateValueTupleExpression(knownSymbols.Select(var => CreateIdentifierExpression(
                             Identifier.NewLocalVariable(var.VariableName),
-                            // ToDo: may need to be more careful here with the type argument mapping on the identifiers
                             TypeArgsResolution.Empty,
                             var.Type))
                             .ToArray());
@@ -901,8 +922,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 {
                     if (contents.Statements.Length != 1) return false;
                     
-                    return contents.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr &&
-                            expr.Item.Expression is ExpressionKind.CallLikeExpression;
+                    return contents.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr
+                           && expr.Item.Expression is ExpressionKind.CallLikeExpression call
+                           && !TypedExpression.IsPartialApplication(expr.Item.Expression)
+                           && call.Item1.Expression is ExpressionKind.Identifier;
                 }
 
                 public override QsStatementKind onConjugation(QsConjugation stm)
