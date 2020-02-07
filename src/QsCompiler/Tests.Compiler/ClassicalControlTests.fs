@@ -15,6 +15,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
+
 type ClassicalControlTests () =
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
@@ -24,6 +25,7 @@ type ClassicalControlTests () =
 
     do let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
        Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
+       Path.Combine ("TestCases", "LinkingTests", "QuantumProcessorExtensions.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
     let ReadAndChunkSourceFile fileName =
         let sourceInput = Path.Combine ("TestCases", "LinkingTests", fileName) |> File.ReadAllText
@@ -68,12 +70,13 @@ type ClassicalControlTests () =
         |> ignore
 
         (writer.Scope :?> ScopeToQs).Output.Split(Environment.NewLine)
+        |> Array.filter (fun str -> str <> String.Empty)
 
     let CheckIfLineIsCall ``namespace`` name input =
         let call = sprintf @"(%s\.)?%s" <| Regex.Escape ``namespace`` <| Regex.Escape name
         let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
         let args = @"\(\s*(.*[^\s])?\s*\)"
-        let regex = sprintf @"^%s\s*%s\s*%s;$" call typeArgs args
+        let regex = sprintf @"^\s*%s\s*%s\s*%s;$" call typeArgs args
 
         let regexMatch = Regex.Match(input, regex)
         if regexMatch.Success then
@@ -89,13 +92,12 @@ type ClassicalControlTests () =
         sprintf @"\(%s\s*%s,\s*%s\)" <| call <| typeArgs <| args
 
     let IsApplyIfArgMatch input resultVar (opName : QsQualifiedName) =
-        let regexMatch = Regex.Match(input, sprintf @"^%s,\s*%s$" <| Regex.Escape resultVar <| MakeApplicationRegex opName)
+        let regexMatch = Regex.Match(input, sprintf @"^\s*%s,\s*%s$" <| Regex.Escape resultVar <| MakeApplicationRegex opName)
 
         if regexMatch.Success then
             (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
         else
             (false, "", "")
-
 
     let IsApplyIfElseArgsMatch input resultVar (opName1 : QsQualifiedName) (opName2 : QsQualifiedName) =
         let ApplyIfElseRegex = sprintf @"^%s,\s*%s,\s*%s$"
@@ -249,7 +251,7 @@ type ClassicalControlTests () =
         // Single calls should not be hoisted into their own operation
         CompileClassicalControlTest 3 |> ignore
 
-    [<Fact(Skip="Failure Tracked")>]
+    [<Fact>]
     [<Trait("Category","Content Hoisting")>]
     member this.``Hoist Single Non-Call`` () =
         // Single expressions that are not calls should be hoisted into their own operation
@@ -257,10 +259,10 @@ type ClassicalControlTests () =
 
     [<Fact>]
     [<Trait("Category","Content Hoisting")>]
-    member this.``Don't Hoist Return Statments`` () =
+    member this.``Don't Hoist Return Statements`` () =
         CompileClassicalControlTest 5 |> ignore
 
-    [<Fact(Skip="Failure Tracked")>]
+    [<Fact>]
     [<Trait("Category","Content Hoisting")>]
     member this.``All-Or-None Hoisting`` () =
         CompileClassicalControlTest 6 |> ignore
@@ -286,7 +288,7 @@ type ClassicalControlTests () =
         IsApplyIfElseArgsMatch args "r" ifOp elseOp
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
-    [<Fact(Skip="Failure Tracked")>]
+    [<Fact>]
     [<Trait("Category","Apply If Calls")>]
     member this.``Apply If One Else Zero`` () =
         let (args, ifOp, elseOp) = CompileClassicalControlTest 9 |> ApplyIfElseTest
@@ -333,7 +335,7 @@ type ClassicalControlTests () =
         let errorMsg = "ApplyIfElse did not have the correct arguments"
         let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp.FullName { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
         Assert.True(success, errorMsg)
-        IsApplyIfElseArgsMatch subArgs "r" elifOp.FullName elseOp.FullName
+        IsApplyIfElseArgsMatch subArgs "r" elseOp.FullName elifOp.FullName // elif and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
     [<Fact>]
@@ -344,7 +346,7 @@ type ClassicalControlTests () =
         let errorMsg = "ApplyIfElse did not have the correct arguments"
         let (success, _, subArgs, _, _) = IsApplyIfElseArgsMatch args "r" { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name } elseOp
         Assert.True(success, errorMsg)
-        IsApplyIfElseArgsMatch subArgs "r" ifOp elseOp
+        IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
     [<Fact>]
@@ -355,10 +357,10 @@ type ClassicalControlTests () =
         let errorMsg = "ApplyIfElse did not have the correct arguments"
         let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
         Assert.True(success, errorMsg)
-        IsApplyIfElseArgsMatch subArgs "r" ifOp elseOp
+        IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
-    [<Fact(Skip="Failure Tracked")>]
+    [<Fact>]
     [<Trait("Category","Content Hoisting")>]
     member this.``Don't Hoist Functions`` () =
         CompileClassicalControlTest 13 |> ignore
@@ -1165,3 +1167,74 @@ type ClassicalControlTests () =
             AssertCallSupportsFunctors [] ctlGen
 
         controlledCheck ()
+
+    [<Fact>]
+    [<Trait("Category","Functor Support")>]
+    member this.``Within Block Support`` () =
+        let result = CompileClassicalControlTest 23
+
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
+
+        Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
+
+        let originalContent =
+            [
+                (2, BuiltIn.ApplyIfZeroA);
+                (5, BuiltIn.ApplyIfOne);
+            ] |> Seq.map ExpandBuiltInQualifiedSymbol
+        let outerContent =
+            [
+                (0, "SubOps", "SubOp1");
+                (1, "SubOps", "SubOp2");
+            ]
+        let innerContent =
+            [
+                (0, "SubOps", "SubOp2");
+                (1, "SubOps", "SubOp3");
+            ]
+
+        AssertSpecializationHasCalls original originalContent
+
+        let orderedGens = IdentifyGeneratedByCalls generated [outerContent; innerContent]
+        let outerOp = (Seq.item 0 orderedGens)
+
+        AssertCallSupportsFunctors [QsFunctor.Adjoint] outerOp
+
+        let lines = GetLinesFromSpecialization original
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZeroA.Namespace.Value BuiltIn.ApplyIfZeroA.Name.Value lines.[2]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody)
+
+        let (success, _, _) = IsApplyIfArgMatch args "r" outerOp.FullName
+        Assert.True(success, "ApplyIfZeroA did not have the correct arguments")
+
+    [<Fact>]
+    [<Trait("Category","Generics Support")>]
+    member this.``Arguments Partially Resolve Type Parameters`` () =
+        let result = CompileClassicalControlTest 24
+
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+
+        let lines = GetLinesFromSpecialization original
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZero.Namespace.Value BuiltIn.ApplyIfZero.Name.Value lines.[1]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody)
+
+        let (success, typeArgs, _) = IsApplyIfArgMatch args "r" {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
+
+        Assert.True((typeArgs = "Int, Double"), "Bar did not have the correct type arguments")
+
+    [<Fact>]
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Hoist Functor Application`` () =
+        CompileClassicalControlTest 25 |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Hoist Partial Application`` () =
+        CompileClassicalControlTest 26 |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Hoist Array Item Call`` () =
+        CompileClassicalControlTest 27 |> ignore

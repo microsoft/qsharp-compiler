@@ -10,13 +10,9 @@ namespace SubOps {
 
 // =================================
 
+// Basic Hoist
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = Zero;
@@ -36,12 +32,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Hoist Loops
 namespace Microsoft.Quantum.Testing.ClassicalControl {
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = Zero;
@@ -64,13 +56,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Don't Hoist Single Call
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = Zero;
@@ -83,13 +71,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Hoist Single Non-Call
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = Zero;
@@ -103,13 +87,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Don't Hoist Return Statements
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = Zero;
@@ -123,15 +103,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// All-Or-None Hoisting
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        IfInvalid();
-        ElseInvalid();
-        BothInvalid();
-    }
 
     operation IfInvalid() : Unit {
         let r = Zero;
@@ -174,13 +148,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// ApplyIfZero And ApplyIfOne
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = Zero;
@@ -204,13 +174,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Apply If Zero Else One
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = Zero;
@@ -228,13 +194,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Apply If One Else Zero
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = One;
@@ -252,13 +214,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// If Elif
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = Zero;
@@ -279,13 +237,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// And Condition
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = Zero;
@@ -303,13 +257,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Or Condition
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     operation Foo() : Unit {
         let r = Zero;
@@ -327,37 +277,32 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Don't Hoist Functions
 namespace Microsoft.Quantum.Testing.ClassicalControl {
-    open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
 
     function Foo() : Unit {
         let r = Zero;
 
         if (r == Zero) {
-            SubOp1();
-            SubOp2();
-            SubOp3();
+            SubFunc1();
+            SubFunc2();
+            SubFunc3();
         }
     }
+
+    function SubFunc1() : Unit { }
+    function SubFunc2() : Unit { }
+    function SubFunc3() : Unit { }
 
 }
 
 // =================================
 
+// Hoist Self-Contained Mutable
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
-
-    function Foo() : Unit {
+    operation Foo() : Unit {
         let r = Zero;
 
         if (r == Zero) {
@@ -370,15 +315,11 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Don't Hoist General Mutable
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo();
-    }
-
-    function Foo() : Unit {
+    operation Foo() : Unit {
         let r = Zero;
 
         mutable temp = 3;
@@ -391,13 +332,9 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Generics Support
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
-
-    @EntryPoint()
-    operation ClassicalControlTestMain() : Unit {
-        Foo<Int, Double, String>();
-    }
 
     operation Foo<'A, 'B, 'C>() : Unit {
         let r = Zero;
@@ -412,6 +349,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Adjoint Support
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
@@ -465,6 +403,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Controlled Support
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
@@ -505,6 +444,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Controlled Adjoint Support - Provided
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
@@ -629,6 +569,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Controlled Adjoint Support - Distribute
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
@@ -724,6 +665,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Controlled Adjoint Support - Invert
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
@@ -819,6 +761,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
+// Controlled Adjoint Support - Self
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
@@ -857,4 +800,86 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         controlled adjoint self;
     }
 
+}
+
+// =================================
+
+// Within Block Support
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let r = One;
+        within {
+            if (r == Zero) {
+                SubOp1();
+                SubOp2();
+            }
+        } apply {
+            if (r == One) {
+                SubOp2();
+                SubOp3();
+            }
+        }
+    }
+
+}
+
+// =================================
+
+// Arguments Partially Resolve Type Parameters
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+
+    operation Bar<'Q, 'W> (q : 'Q, w : 'W) : Unit { }
+
+    operation Foo() : Unit {
+        let r = Zero;
+        if (r == Zero) {
+            Bar<Int, _>(1, 1.0);
+        }
+    }
+}
+
+// =================================
+
+// Hoist Functor Application
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let r = Zero;
+        if (r == Zero) {
+            Adjoint SubOp1();
+        }
+    }
+}
+
+// =================================
+
+// Hoist Partial Application
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+
+    operation Bar (q : Int, w : Double) : Unit { }
+
+    operation Foo() : Unit {
+        let r = Zero;
+        if (r == Zero) {
+            (Bar(1, _))(1.0);
+        }
+    }
+}
+
+// =================================
+
+// Hoist Array Item Call
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let f = [SubOp1];
+        let r = Zero;
+        if (r == Zero) {
+            f[0]();
+        }
+    }
 }
