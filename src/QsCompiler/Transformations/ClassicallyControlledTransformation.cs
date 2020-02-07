@@ -932,10 +932,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 {
                     var superInWithinBlock = _super._InWithinBlock;
                     _super._InWithinBlock = true;
-                    var (_, outer) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation); // ToDo: null is probably bad here
+                    var (_, outer) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
                     _super._InWithinBlock = superInWithinBlock;
 
-                    var (_, inner) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation); // ToDo: null is probably bad here
+                    var (_, inner) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
 
                     return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
                 }
