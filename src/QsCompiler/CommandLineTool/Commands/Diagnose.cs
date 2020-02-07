@@ -221,7 +221,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
-                AttemptFullPreEvaluation = options.TrimLevel > 1,
+                ConvertClassicalControl = options.TrimLevel >= 2,
+                AttemptFullPreEvaluation = options.TrimLevel > 2,
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = true
             }; 

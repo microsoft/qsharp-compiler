@@ -932,10 +932,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 {
                     var superInWithinBlock = _super._InWithinBlock;
                     _super._InWithinBlock = true;
-                    var (_, outer) = this.onPositionedBlock(null, stm.OuterTransformation); // ToDo: null is probably bad here
+                    var (_, outer) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation); // ToDo: null is probably bad here
                     _super._InWithinBlock = superInWithinBlock;
 
-                    var (_, inner) = this.onPositionedBlock(null, stm.InnerTransformation); // ToDo: null is probably bad here
+                    var (_, inner) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation); // ToDo: null is probably bad here
 
                     return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
                 }
@@ -962,8 +962,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public override QsStatementKind onConditionalStatement(QsConditionalStatement stm)
                 {
-                    // ToDo: Revisit this method when the F# Option type has been removed from the onPositionBlock function.
-
                     var contextValidScope = _super._IsValidScope;
                     var contextHoistParams = _super._CurrentHoistParams;
 
@@ -978,11 +976,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
                         : condBlock.Item2.Body.KnownSymbols.Variables;
 
-                        var (expr, block) = this.onPositionedBlock(condBlock.Item1, condBlock.Item2);
+                        var (expr, block) = this.onPositionedBlock(QsNullable<TypedExpression>.NewValue(condBlock.Item1), condBlock.Item2);
 
                         // ToDo: Reduce the number of unnecessary generated operations by generalizing
                         // the condition logic for the conversion and using that condition here
-                        //var (isExprCond, _, _) = IsConditionedOnResultLiteralExpression(expr.Value); // ToDo: .Value may not be needed in the future
+                        //var (isExprCond, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
 
                         if (block.Body.Statements.Length > 0 /*&& isExprCond*/ && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
                         {
@@ -992,7 +990,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                                 new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
                                 block.Location,
                                 block.Comments);
-                            newConditionBlocks.Add(Tuple.Create(expr.Value,block));
+                            newConditionBlocks.Add(Tuple.Create(expr.Item,block));
                             generatedOperations.Add(callable);
                         }
                         else
@@ -1010,7 +1008,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
                             : stm.Default.Item.Body.KnownSymbols.Variables;
 
-                        var (_, block) = this.onPositionedBlock(null, stm.Default.Item); // ToDo: null is probably bad here
+                        var (_, block) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item); 
                         if (block.Body.Statements.Length > 0 && _super._IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
                         {
                             // Hoist the scope to its own operation

@@ -1,13 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitAPI
+module Microsoft.Quantum.QsCompiler.Experimental.PureCircuitAPI
 
 open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
-open Microsoft.Quantum.QsCompiler.Optimizations.Utils
+open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
@@ -17,14 +16,14 @@ type Literal =
     | IntLiteral            of int64
     | DoubleLiteral         of double
     | PauliLiteral          of QsPauli
-    | PauliArray            of QsPauli list
+    | PauliArray            of ImmutableArray<QsPauli>
 
 /// Any expression
 type Expression =
     | Literal               of Literal
-    | Tuple                 of Expression list
+    | Tuple                 of ImmutableArray<Expression>
     | Qubit                 of int
-    | QubitArray            of int list
+    | QubitArray            of ImmutableArray<int>
     | UnknownValue          of int
 
 /// A call to a quantum gate, with the given functors and arguments
@@ -32,7 +31,7 @@ type GateCall = {
     gate:       QsQualifiedName
     info:       CallableInformation
     adjoint:    bool
-    controls:   int list
+    controls:   ImmutableArray<int>
     arg:        Expression
 }
 
@@ -40,7 +39,7 @@ type GateCall = {
 type Circuit = {
     numQubits: int
     numUnknownValues: int
-    gates: GateCall list
+    gates: ImmutableArray<GateCall>
 }
 
 /// Metadata used for constructing circuits.
@@ -49,8 +48,8 @@ type Circuit = {
 type private CircuitContext = {
     callables: ImmutableDictionary<QsQualifiedName, QsCallable>
     distinctNames: Set<NonNullable<string>>
-    qubits: TypedExpression list
-    unknownValues: TypedExpression list
+    qubits: ImmutableArray<TypedExpression>
+    unknownValues: ImmutableArray<TypedExpression>
 }
 
 
@@ -58,9 +57,9 @@ type private CircuitContext = {
 let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (CircuitContext * Expression) option =
     let someLiteral a = Some (cc, Literal a)
     let typeIsArray k = expr.ResolvedType.Resolution = TypeKind.ArrayType (ResolvedType.New k)
-    let ensureMatchingIndex l =
-        let existing = List.indexed l |> List.tryPick (fun (i, ex) -> if expr = ex then Some (l, i) else None)
-        let newList, index = existing |? (l @ [expr], l.Length)
+    let ensureMatchingIndex (l : ImmutableArray<_>) =
+        let existing = Seq.indexed l |> Seq.tryPick (fun (i, ex) -> if expr = ex then Some (l, i) else None)
+        let newList, index = existing |? (l.Add expr, l.Length)
         if index > (1 <<< 29) then
             ArgumentException "Trying to create too large of a circuit" |> raise
         newList, index
@@ -72,7 +71,7 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression): (Circu
             let! toAdd = f exprNew
             ccRef := ccNew
             outputRef := !outputRef @ [toAdd]
-        return !ccRef, g !outputRef }
+        return !ccRef, g (ImmutableArray.CreateRange (!outputRef)) }
     let rec mightContainQubit = function
     | TypeKind.Qubit -> true
     | TypeKind.ArrayType t -> mightContainQubit t.Resolution
@@ -115,12 +114,12 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
                 let! cc, controlsExpr = toExpression (cc, vt.[0])
                 let! controlQubits = match controlsExpr with QubitArray i -> Some i | _ -> None
                 let! cc, result = helper cc x vt.[1]
-                return cc, { result with controls = controlQubits @ result.controls }
+                return cc, { result with controls = controlQubits.AddRange result.controls }
             | _ -> return! None
         | Identifier (GlobalCallable name, _) ->
             let! cc, argVal = toExpression (cc, arg)
             let info = (cc.callables.[name]).Signature.Information
-            return cc, { gate = name; info = info; adjoint = false; controls = []; arg = argVal }
+            return cc, { gate = name; info = info; adjoint = false; controls = ImmutableArray.Empty; arg = argVal }
         | _ ->
             return! None
     }
@@ -130,15 +129,15 @@ let private toGateCall (cc: CircuitContext, expr: TypedExpression): (CircuitCont
 
 /// Converts a list of TypedExpressions to a Circuit, CircuitContext pair.
 /// Returns None if the given expression list cannot be converted to a pure circuit.
-let private toCircuit callables distinctNames (exprList: TypedExpression list): (Circuit * CircuitContext) option =
+let private toCircuit callables distinctNames exprList : (Circuit * CircuitContext) option =
     maybe {
-        let ccRef = ref { callables = callables; distinctNames = distinctNames; qubits = []; unknownValues = [] }
+        let ccRef = ref { callables = callables; distinctNames = distinctNames; qubits = ImmutableArray.Empty; unknownValues = ImmutableArray.Empty }
         let outputRef = ref []
         for expr in exprList do
             let! ccNew, gate = toGateCall (!ccRef, expr)
             ccRef := ccNew
             outputRef := !outputRef @ [gate]
-        let circuit = { numQubits = (!ccRef).qubits.Length; numUnknownValues = (!ccRef).unknownValues.Length; gates = !outputRef }
+        let circuit = { numQubits = (!ccRef).qubits.Length; numUnknownValues = (!ccRef).unknownValues.Length; gates = ImmutableArray.CreateRange !outputRef }
         return circuit, !ccRef
     }
 
@@ -181,8 +180,8 @@ let private fromGateCall (cc: CircuitContext) (gc: GateCall): TypedExpression =
     wrapExpr UnitType (CallLikeExpression (method, arg))
 
 /// Returns the list of Q# expressions corresponding to the given circuit
-let private fromCircuit (cc: CircuitContext) (circuit: Circuit): TypedExpression list =
-    List.map (fromGateCall cc) circuit.gates
+let private fromCircuit (cc: CircuitContext) (circuit: Circuit) =
+    Seq.map (fromGateCall cc) circuit.gates |> ImmutableArray.CreateRange
 
 
 /// Given a pure circuit, performs basic optimizations and returns the new circuit
@@ -191,9 +190,9 @@ let private optimizeCircuit (circuit: Circuit): Circuit option =
     let mutable i = 0
     while i < circuit.gates.Length - 1 do
         if circuit.gates.[i] = { circuit.gates.[i+1] with adjoint = not circuit.gates.[i+1].adjoint } then
-            circuit <- { circuit with gates = removeIndices [i; i+1] circuit.gates}
+            circuit <- { circuit with gates = removeIndices [i; i+1] circuit.gates |> ImmutableArray.CreateRange}
         elif circuit.gates.[i] = circuit.gates.[i+1] && circuit.gates.[i].info.InferredInformation.IsSelfAdjoint then
-            circuit <- { circuit with gates = removeIndices [i; i+1] circuit.gates}
+            circuit <- { circuit with gates = removeIndices [i; i+1] circuit.gates |> ImmutableArray.CreateRange}
         else
             i <- i + 1
     Some circuit
@@ -202,7 +201,7 @@ let private optimizeCircuit (circuit: Circuit): Circuit option =
 /// Given a list of Q# expressions, tries to convert it to a pure circuit.
 /// If this succeeds, optimizes the circuit and returns the new list of Q# expressions.
 /// Otherwise, returns the given list.
-let internal optimizeExprList callables distinctNames (exprList: TypedExpression list): TypedExpression list =
+let internal optimizeExprList callables distinctNames exprList =
     (* let s = List.map (fun x -> printExpr x.Expression) exprList
     if exprList.Length >= 5 then
         printfn "Optimizing %O" s*)

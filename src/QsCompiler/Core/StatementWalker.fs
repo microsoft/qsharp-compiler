@@ -60,16 +60,18 @@ type StatementKindWalker(?enable) =
         this.ExpressionWalker stm.Rhs
         this.ExpressionWalker stm.Lhs
 
-    abstract member onPositionedBlock : TypedExpression option * QsPositionedBlock -> unit
-    default this.onPositionedBlock (intro : TypedExpression option, block : QsPositionedBlock) = 
+    abstract member onPositionedBlock : QsNullable<TypedExpression> * QsPositionedBlock -> unit
+    default this.onPositionedBlock (intro : QsNullable<TypedExpression>, block : QsPositionedBlock) = 
         this.LocationWalker block.Location
-        intro |> Option.iter this.ExpressionWalker
+        match intro with
+        | Value ex -> this.ExpressionWalker ex
+        | Null -> ()
         this.ScopeWalker block.Body
 
     abstract member onConditionalStatement : QsConditionalStatement -> unit
     default this.onConditionalStatement stm = 
-        stm.ConditionalBlocks |> Seq.iter (fun (c, b) -> this.onPositionedBlock (Some c, b))
-        stm.Default |> QsNullable<_>.Iter (fun b -> this.onPositionedBlock (None, b))
+        stm.ConditionalBlocks |> Seq.iter (fun (c, b) -> this.onPositionedBlock (Value c, b))
+        stm.Default |> QsNullable<_>.Iter (fun b -> this.onPositionedBlock (Null, b))
 
     abstract member onForStatement : QsForStatement -> unit
     default this.onForStatement stm = 
@@ -85,13 +87,13 @@ type StatementKindWalker(?enable) =
 
     abstract member onRepeatStatement : QsRepeatStatement -> unit
     default this.onRepeatStatement stm = 
-        this.onPositionedBlock (None, stm.RepeatBlock)
-        this.onPositionedBlock (Some stm.SuccessCondition, stm.FixupBlock)
+        this.onPositionedBlock (Null, stm.RepeatBlock)
+        this.onPositionedBlock (Value stm.SuccessCondition, stm.FixupBlock)
 
     abstract member onConjugation : QsConjugation -> unit
     default this.onConjugation stm = 
-        this.onPositionedBlock (None, stm.OuterTransformation)
-        this.onPositionedBlock (None, stm.InnerTransformation)
+        this.onPositionedBlock (Null, stm.OuterTransformation)
+        this.onPositionedBlock (Null, stm.InnerTransformation)
 
     abstract member onQubitScope : QsQubitScope -> unit
     default this.onQubitScope (stm : QsQubitScope) = 
