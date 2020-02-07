@@ -756,6 +756,14 @@ and NamespaceManager
                 | Value (declSource, deprecation) -> buildAndReturn (ns.Name, declSource, deprecation, [||]) 
                 | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, [symName.Value; qualifier.Value]) |]
 
+    /// Returns whether a declaration is visible from the calling location, given whether the calling location is in the
+    /// same assembly and/or namespace as the declaration, and the declaration's modifiers.
+    let IsDeclarationVisible isSameAssembly isSameNs modifiers =
+        match modifiers.Access with
+        | DefaultAccess -> true
+        | Internal -> isSameAssembly
+        | Private -> isSameAssembly && isSameNs
+
     /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given attribute.
     /// Generates suitable diagnostics if a suitable attribute cannot be determined, 
     /// or if the attribute argument contains expressions that are not supported, 
@@ -1247,14 +1255,22 @@ and NamespaceManager
         try match (nsName, source) |> TryResolveQualifier callableName.Namespace with
             | None -> Null
             | Some ns -> ns.CallablesInReferencedAssemblies.TryGetValue callableName.Name |> function
-                | true, cDecl -> Value cDecl
+                | true, cDecl ->
+                    if IsDeclarationVisible false (nsName = cDecl.QualifiedName.Namespace) cDecl.Modifiers then
+                        Value cDecl
+                    else Null
                 | false, _ -> declSource |> function
                     | Some source -> 
                         let kind, decl = ns.CallableInSource source callableName.Name // ok only because/if we have covered that the callable is not in a reference!
-                        BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl)
+                        if IsDeclarationVisible true (nsName = ns.Name) decl.Modifiers then
+                            BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl)
+                        else Null
                     | None -> 
                         ns.CallablesDefinedInAllSources().TryGetValue callableName.Name |> function
-                        | true, (source, (kind, decl)) -> BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl)
+                        | true, (source, (kind, decl)) ->
+                            if IsDeclarationVisible true (nsName = ns.Name) decl.Modifiers then
+                                BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl)
+                            else Null
                         | false, _ -> Null
         finally syncRoot.ExitReadLock()
 
@@ -1270,7 +1286,7 @@ and NamespaceManager
         syncRoot.EnterReadLock()
         try match (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsCallable cName) with 
             | [(declNS, (declSource, _))] -> this.TryGetCallableHeader ({Namespace = declNS; Name = cName}, Some declSource) (nsName, source) |> function
-                | Null -> QsCompilerError.Raise "failed to get the callable information about a resolved callable"; Null, Seq.empty
+                | Null -> Null, Seq.empty
                 | info -> info, seq {yield declNS}
             | resolutions -> Null, resolutions.Select fst
         finally syncRoot.ExitReadLock()
