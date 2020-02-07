@@ -87,6 +87,8 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
+    // hard dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions
+
     // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
     static member ApplyIfZero = {
         Name = "ApplyIfZero" |> NonNullable<string>.New
