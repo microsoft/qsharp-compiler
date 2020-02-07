@@ -182,18 +182,26 @@ and internal defaultValue (bt: TypeKind): ExprKind option =
     | _ -> None
 
 
+/// Returns true if the expression contains missing expressions.
+/// Returns false otherwise.
+let rec private containsMissing (ex : TypedExpression) =
+    match ex.Expression with 
+    | MissingExpr -> true
+    | ValueTuple items -> items |> Seq.exists containsMissing
+    | _ -> false
+
 /// Fills a partial argument by replacing MissingExprs with the corresponding values of a tuple
 let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpression): TypedExpression =
     match partialArg with
     | Missing -> arg
     | Tuple items ->
         let argsList =
-            match List.filter TypedExpression.ContainsMissing items, arg with
+            match List.filter containsMissing items, arg with
             | [_], _ -> [arg]
             | _, Tuple args -> args
             | _ -> failwithf "args must be a tuple"
         items |> List.mapFold (fun args t1 ->
-            if TypedExpression.ContainsMissing t1 then
+            if containsMissing t1 then
                 match args with
                 | [] -> failwithf "ran out of args"
                 | head :: tail -> fillPartialArg (t1, head), tail
