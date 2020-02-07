@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 #nullable enable
@@ -122,6 +122,17 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 else { return null; }
             }
 
+            string? TryGetName(YamlNode node)
+            {
+                if (node is YamlMappingNode mappingNode)
+                {
+                    mappingNode.Children.TryGetValue(Utils.NameKey, out var nameNode);
+                    return (nameNode as YamlScalarNode)?.Value;
+                }
+                else { return null; }
+            }
+
+
             int CompareUids(YamlNode node1, YamlNode node2) =>
                 String.Compare(
                     TryGetUid(node1),
@@ -152,15 +163,32 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 namespaceNode.Add(Utils.ItemsKey, itemListNode);
             }
 
-            foreach (var item in items)
+            var itemsByUid = items
+                .GroupBy(item => item.Uid)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .Select(item => item.Name)
+                        .Single()
+                );
+
+            // Update itemsByUid with any items that may already exist.
+            foreach (var existingChild in itemListNode.Children)
             {
-                if (!itemListNode.Children.Any(c => MatchByUid(c, item.Uid)))
+                var uid = TryGetUid(existingChild);
+                if (uid != null)
                 {
-                    itemListNode.Add(Utils.BuildMappingNode(Utils.NameKey, item.Name, Utils.UidKey, item.Uid));
+                    itemsByUid[uid] = TryGetName(existingChild) ?? "";
                 }
             }
 
-            itemListNode.Children.Sort((node1, node2) => CompareUids(node1, node2));
+            itemListNode.Children.Clear();
+            foreach (var (uid, name) in itemsByUid.OrderBy(item => item.Key))
+            {
+                itemListNode.Add(Utils.BuildMappingNode(
+                    Utils.NameKey, name, Utils.UidKey, uid
+                ));
+            }
         }
 
         /// <summary>

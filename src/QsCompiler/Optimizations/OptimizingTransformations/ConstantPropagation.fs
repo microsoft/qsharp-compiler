@@ -66,14 +66,14 @@ type ConstantPropagation(callables) =
                     stm.ConditionalBlocks |> Seq.fold (fun s (cond, block) ->
                         let newCond = this.ExpressionTransformation cond
                         match newCond.Expression with
-                        | BoolLiteral true -> s @ [None, block]
+                        | BoolLiteral true -> s @ [Null, block]
                         | BoolLiteral false -> s
-                        | _ -> s @ [Some cond, block]
-                    ) [] |> List.ofSeq |> takeWhilePlus1 (fun (c, _) -> c <> None)
+                        | _ -> s @ [Value cond, block]
+                    ) [] |> List.ofSeq |> takeWhilePlus1 (fun (c, _) -> c <> Null)
                 let newDefault = cbListEnd |> Option.map (snd >> Value) |? stm.Default
 
                 let cbList = cbList |> List.map (fun (c, b) -> this.onPositionedBlock (c, b))
-                let newDefault = match newDefault with Value x -> this.onPositionedBlock (None, x) |> snd |> Value | Null -> Null
+                let newDefault = match newDefault with Value x -> this.onPositionedBlock (Null, x) |> snd |> Value | Null -> Null
 
                 match cbList, newDefault with
                 | [], Value x ->
@@ -81,7 +81,8 @@ type ConstantPropagation(callables) =
                 | [], Null ->
                     QsScope.New ([], LocalDeclarations.New []) |> newScopeStatement
                 | _ ->
-                    let cases = cbList |> Seq.map (fun (c, b) -> (Option.get c, b))
+                    let invalidCondition () = failwith "missing condition"
+                    let cases = cbList |> Seq.map (fun (c, b) -> (c.ValueOrApply invalidCondition, b))
                     QsConditionalStatement.New (cases, newDefault) |> QsConditionalStatement
 
             override this.onQubitScope (stm : QsQubitScope) =
