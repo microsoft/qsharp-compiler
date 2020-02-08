@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation;
 
@@ -16,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
         public bool ImplementsTransformation => true;
-        public bool ImplementsPreconditionVerification => false;
+        public bool ImplementsPreconditionVerification => true;
         public bool ImplementsPostconditionVerification => false;
 
         public ClassicallyControlled()
@@ -32,7 +34,34 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool PreconditionVerification(QsCompilation compilation)
         {
-            throw new System.NotImplementedException();
+            var controlNs = compilation.Namespaces
+                .FirstOrDefault(ns => ns.Name.Equals(BuiltIn.ClassicallyControlledNamespace));
+
+            if (controlNs == null)
+            {
+                return false;
+            }
+
+            var providedOperations = new QsNamespace[] { controlNs }.Callables().Select(c => c.FullName.Name);
+            var requiredBuiltIns = new List<NonNullable<string>>()
+            {
+                BuiltIn.ApplyIfZero.Name,
+                BuiltIn.ApplyIfZeroA.Name,
+                BuiltIn.ApplyIfZeroC.Name,
+                BuiltIn.ApplyIfZeroCA.Name,
+
+                BuiltIn.ApplyIfOne.Name,
+                BuiltIn.ApplyIfOneA.Name,
+                BuiltIn.ApplyIfOneC.Name,
+                BuiltIn.ApplyIfOneCA.Name,
+
+                BuiltIn.ApplyIfElseR.Name,
+                BuiltIn.ApplyIfElseRA.Name,
+                BuiltIn.ApplyIfElseRC.Name,
+                BuiltIn.ApplyIfElseRCA.Name
+            };
+
+            return requiredBuiltIns.All(builtIn => providedOperations.Any(provided => provided.Equals(builtIn)));
         }
 
         public bool PostconditionVerification(QsCompilation compilation)
