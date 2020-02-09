@@ -473,7 +473,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         }
                         else
                         {
-                            statements.Add(this.onStatement(stm));
+                            statements.Add(stm);
                         }
                     }
                     else
