@@ -60,20 +60,21 @@ type StatementKindTransformation(?enable) =
         let lhs = this.ExpressionTransformation stm.Lhs
         QsValueUpdate.New (lhs, rhs) |> QsValueUpdate
 
-    abstract member onPositionedBlock : TypedExpression option * QsPositionedBlock -> TypedExpression option * QsPositionedBlock
-    default this.onPositionedBlock (intro : TypedExpression option, block : QsPositionedBlock) = 
+    abstract member onPositionedBlock : QsNullable<TypedExpression> * QsPositionedBlock -> QsNullable<TypedExpression> * QsPositionedBlock
+    default this.onPositionedBlock (intro : QsNullable<TypedExpression>, block : QsPositionedBlock) = 
         let location = this.LocationTransformation block.Location
         let comments = block.Comments
-        let expr = intro |> Option.map this.ExpressionTransformation
+        let expr = intro |> QsNullable<_>.Map this.ExpressionTransformation
         let body = this.ScopeTransformation block.Body
         expr, QsPositionedBlock.New comments location body
 
     abstract member onConditionalStatement : QsConditionalStatement -> QsStatementKind
     default this.onConditionalStatement stm = 
         let cases = stm.ConditionalBlocks |> Seq.map (fun (c, b) -> 
-            let cond, block = this.onPositionedBlock (Some c, b)
-            cond |> Option.get, block)
-        let defaultCase = stm.Default |> QsNullable<_>.Map (fun b -> this.onPositionedBlock (None, b) |> snd)
+            let cond, block = this.onPositionedBlock (Value c, b)
+            let invalidCondition () = failwith "missing condition in if-statement"
+            cond.ValueOrApply invalidCondition, block)
+        let defaultCase = stm.Default |> QsNullable<_>.Map (fun b -> this.onPositionedBlock (Null, b) |> snd)
         QsConditionalStatement.New (cases, defaultCase) |> QsConditionalStatement
 
     abstract member onForStatement : QsForStatement -> QsStatementKind
@@ -92,14 +93,15 @@ type StatementKindTransformation(?enable) =
 
     abstract member onRepeatStatement : QsRepeatStatement -> QsStatementKind
     default this.onRepeatStatement stm = 
-        let repeatBlock = this.onPositionedBlock (None, stm.RepeatBlock) |> snd
-        let successCondition, fixupBlock = this.onPositionedBlock (Some stm.SuccessCondition, stm.FixupBlock)
-        QsRepeatStatement.New (repeatBlock, successCondition |> Option.get, fixupBlock) |> QsRepeatStatement
+        let repeatBlock = this.onPositionedBlock (Null, stm.RepeatBlock) |> snd
+        let successCondition, fixupBlock = this.onPositionedBlock (Value stm.SuccessCondition, stm.FixupBlock)
+        let invalidCondition () = failwith "missing success condition in repeat-statement"
+        QsRepeatStatement.New (repeatBlock, successCondition.ValueOrApply invalidCondition, fixupBlock) |> QsRepeatStatement
 
     abstract member onConjugation : QsConjugation -> QsStatementKind
     default this.onConjugation stm = 
-        let outer = this.onPositionedBlock (None, stm.OuterTransformation) |> snd
-        let inner = this.onPositionedBlock (None, stm.InnerTransformation) |> snd
+        let outer = this.onPositionedBlock (Null, stm.OuterTransformation) |> snd
+        let inner = this.onPositionedBlock (Null, stm.InnerTransformation) |> snd
         QsConjugation.New (outer, inner) |> QsConjugation
 
     abstract member onQubitScope : QsQubitScope -> QsStatementKind

@@ -9,9 +9,9 @@ namespace Microsoft.Quantum.Sdk.Tools
 {
     public class Options
     {
-        [Option('v', "verbose", Required = false, Default = false,
-        HelpText = "Specifies whether to turn on verbose mode.")]
-        public bool Verbose { get; set; }
+        [Option('v', "verbosity", Required = false, Default = "Normal",
+        HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
+        public string Verbosity { get; set; }
 
         [Option("QscReferences", Required = false,
         HelpText = ".NET Core assemblies containing rewrite steps to be passed to the Q# compiler. " +
