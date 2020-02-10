@@ -733,13 +733,13 @@ and NamespaceManager
         | true, _ -> [builtIn.Namespace.Value];
         | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
 
-    /// Returns whether a declaration is visible from the calling location, given whether the calling location is in the
-    /// same assembly and/or namespace as the declaration, and the declaration's modifiers.
-    let IsDeclarationVisible isSameAssembly isSameNs modifiers =
+    /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
+    /// the same assembly and/or namespace as the declaration, and the declaration's modifiers.
+    let IsDeclarationAccessible sameAssembly sameNs modifiers =
         match modifiers.Access with
         | DefaultAccess -> true
-        | Internal -> isSameAssembly
-        | Private -> isSameAssembly && isSameNs
+        | Internal -> sameAssembly
+        | Private -> sameAssembly && sameNs
 
     /// Given the qualified or unqualfied name of a type used within the given parent namespace and source file, determines if such a type exists 
     /// and returns its full name and the source file or referenced assembly in which it is defined as Some if it does. 
@@ -754,14 +754,17 @@ and NamespaceManager
             let deprecatedWarnings = deprecation |> SymbolResolution.GenerateDeprecationWarning ({Namespace = ns; Name = symName}, symRange |> orDefault)
             Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings |> Array.append errs
         let tryFind (parentNS, source) (tName, tRange) = 
-            match (parentNS, source) |> PossibleResolutions (fun ns -> ns.ContainsType (tName, checkQualificationForDeprecation)) with 
-            | [(nsName, (declSource, deprecated, isSameAssembly, modifiers))]
-              when IsDeclarationVisible isSameAssembly (parentNS = nsName) modifiers ->
-                Value (nsName, declSource, deprecated), [||]
-            | resolutions when resolutions.Length > 1 -> 
+            let resolutions =
+                (parentNS, source)
+                |> PossibleResolutions (fun ns -> ns.ContainsType (tName, checkQualificationForDeprecation))
+                |> List.filter (fun (nsName, (_, _, sameAssembly, modifiers)) ->
+                    IsDeclarationAccessible sameAssembly (parentNS = nsName) modifiers)
+            match resolutions with
+            | [] -> Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, [tName.Value]) |]
+            | [(nsName, (declSource, deprecated, _, _))] -> Value (nsName, declSource, deprecated), [||]
+            | resolutions -> 
                 let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
                 Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [tName.Value; diagArg]) |]
-            | _ -> Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, [tName.Value]) |]
         
         match nsName with 
         | None -> tryFind (parentNS, source) (symName, symRange) |> function
@@ -771,9 +774,11 @@ and NamespaceManager
             | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [qualifier.Value]) |] 
             | Some ns -> 
                 ns.ContainsType (symName, checkQualificationForDeprecation) |> function
-                | Value (declSource, deprecation, isSameAssembly, modifiers)
-                  when IsDeclarationVisible isSameAssembly (parentNS = ns.Name) modifiers ->
-                    buildAndReturn (ns.Name, declSource, deprecation, [||]) 
+                | Value (declSource, deprecation, isSameAssembly, modifiers) ->
+                    if IsDeclarationAccessible isSameAssembly (parentNS = ns.Name) modifiers then
+                        buildAndReturn (ns.Name, declSource, deprecation, [||])
+                    else
+                        None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InaccessibleTypeInNamespace, [symName.Value; qualifier.Value]) |]
                 | _ -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, [symName.Value; qualifier.Value]) |]
 
 
@@ -1269,19 +1274,19 @@ and NamespaceManager
             | None -> Null
             | Some ns -> ns.CallablesInReferencedAssemblies.TryGetValue callableName.Name |> function
                 | true, cDecl ->
-                    if IsDeclarationVisible false (nsName = cDecl.QualifiedName.Namespace) cDecl.Modifiers then
+                    if IsDeclarationAccessible false (nsName = cDecl.QualifiedName.Namespace) cDecl.Modifiers then
                         Value cDecl
                     else Null
                 | false, _ -> declSource |> function
                     | Some source -> 
                         let kind, decl = ns.CallableInSource source callableName.Name // ok only because/if we have covered that the callable is not in a reference!
-                        if IsDeclarationVisible true (nsName = ns.Name) decl.Modifiers then
+                        if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers then
                             BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl) |> Value
                         else Null
                     | None -> 
                         ns.CallablesDefinedInAllSources().TryGetValue callableName.Name |> function
                         | true, (source, (kind, decl)) ->
-                            if IsDeclarationVisible true (nsName = ns.Name) decl.Modifiers then
+                            if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers then
                                 BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl) |> Value
                             else Null
                         | false, _ -> Null
@@ -1330,19 +1335,19 @@ and NamespaceManager
             | None -> Null
             | Some ns -> ns.TypesInReferencedAssemblies.TryGetValue typeName.Name |> function
                 | true, tDecl ->
-                    if IsDeclarationVisible false (nsName = tDecl.QualifiedName.Namespace) tDecl.Modifiers then
+                    if IsDeclarationAccessible false (nsName = tDecl.QualifiedName.Namespace) tDecl.Modifiers then
                         Value tDecl
                     else Null
                 | false, _ -> declSource |> function
                     | Some source ->
                         let decl = ns.TypeInSource source typeName.Name // ok only because/if we have covered that the type is not in a reference!
-                        if IsDeclarationVisible true (nsName = ns.Name) decl.Modifiers then
+                        if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers then
                             BuildHeader {typeName with Namespace = ns.Name} (source, decl) |> Value
                         else Null
                     | None -> 
                         ns.TypesDefinedInAllSources().TryGetValue typeName.Name |> function
                         | true, (source, decl) ->
-                            if IsDeclarationVisible true (nsName = ns.Name) decl.Modifiers then
+                            if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers then
                                 BuildHeader {typeName with Namespace = ns.Name} (source, decl) |> Value
                             else Null
                         | false, _ -> Null
