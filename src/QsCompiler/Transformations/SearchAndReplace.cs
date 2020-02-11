@@ -396,7 +396,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         private const string Prefix = "qsVar";
         private const string OrigVarName = "origVarName";
-        private static Regex WrappedVarName = new Regex($"^__{Prefix}[0-9]*__(?<{OrigVarName}>.*)__$");
+        private static readonly Regex WrappedVarName = new Regex($"^__{Prefix}[0-9]*__(?<{OrigVarName}>.*)__$");
 
         public NonNullable<string> StripUniqueName(NonNullable<string> uniqueName)
         {

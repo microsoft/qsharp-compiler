@@ -87,19 +87,19 @@ let ``Strip unique variable name resolution`` () =
     |> List.iter Assert.Equal
 
     origNames
-    |> List.map NameResolution.GenerateUniqueName
-    |> List.map (fun unique -> unique, NameResolution.GenerateUniqueName unique)
+    |> List.map NameResolution.InternalState.GenerateUniqueName
+    |> List.map (fun unique -> unique, NameResolution.InternalState.GenerateUniqueName unique)
     |> List.map (fun (unique, twiceWrapped) -> unique, NameResolution.StripUniqueName twiceWrapped)
     |> List.iter Assert.Equal
 
     origNames
-    |> List.map (fun var -> var, NameResolution.GenerateUniqueName var)
-    |> List.map (fun (var, unique) -> var, NameResolution.GenerateUniqueName unique)
+    |> List.map (fun var -> var, NameResolution.InternalState.GenerateUniqueName var)
+    |> List.map (fun (var, unique) -> var, NameResolution.InternalState.GenerateUniqueName unique)
     |> List.map (fun (var, twiceWrapped) -> var, NameResolution.StripUniqueName twiceWrapped)
     |> List.map (fun (var, unique) -> var, NameResolution.StripUniqueName unique)
     |> List.iter Assert.Equal
 
     origNames
-    |> List.map (fun var -> var, NameResolution.GenerateUniqueName var)
+    |> List.map (fun var -> var, NameResolution.InternalState.GenerateUniqueName var)
     |> List.map (fun (var, unique) -> var, NameResolution.StripUniqueName unique)
     |> List.iter Assert.Equal
