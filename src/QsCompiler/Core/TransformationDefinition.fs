@@ -16,101 +16,53 @@ type private ExpressionKind = QsExpressionKind<TypedExpression,Identifier,Resolv
 type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
     
 
-type ExpressionTypeTransformation<'T when 'T :> QsSyntaxTreeTransformation>() = 
+type QsSyntaxTreeTransformation<'T> private (state : 'T, init : QsSyntaxTreeTransformationInitialization<'T>) as this =     
 
-    let mutable _Parent : 'T option = None
-    member this.Parent 
-        with get () = _Parent.Value
-        and internal set value = _Parent <- Some value
+    member this.InternalState = state
 
-and ExpressionKindTransformation<'T when 'T :> QsSyntaxTreeTransformation>() = 
+    member val ExpressionTypeTransformation = init.ExpressionTypeTransformation this
+    member val ExpressionKindTransformation = init.ExpressionKindTransformation this
+    member val ExpressionTransformation     = init.ExpressionTransformation this
+    member val StatementKindTransformation  = init.StatementKindTransformation this
+    member val StatementTransformation      = init.StatementTransformation this
+    member val NamespaceTransformation      = init.NamespaceTransformation this
 
-    let mutable _Parent : 'T option = None
-    member this.Parent 
-        with get () = _Parent.Value
-        and internal set value = _Parent <- Some value
+    new (state : 'T) =
+        let init = {
+            ExpressionTypeTransformation = fun this -> new ExpressionTypeTransformation<'T> (this)
+            ExpressionKindTransformation = fun this -> new ExpressionKindTransformation<'T> (this)
+            ExpressionTransformation     = fun this -> new ExpressionTransformation<'T> (this)
+            StatementKindTransformation  = fun this -> new StatementKindTransformation<'T> (this)
+            StatementTransformation      = fun this -> new StatementTransformation<'T> (this)
+            NamespaceTransformation      = fun this -> new NamespaceTransformation<'T> (this)
+        }
+        QsSyntaxTreeTransformation(state, init)
+
+and ExpressionTypeTransformation<'T>(parent) = 
+    member this.Parent : QsSyntaxTreeTransformation<'T> = parent
+
+and ExpressionKindTransformation<'T >(parent) = 
+    member this.Parent : QsSyntaxTreeTransformation<'T> = parent
         
-and ExpressionTransformation<'T when 'T :> QsSyntaxTreeTransformation>() = 
+and ExpressionTransformation<'T>(parent) = 
+    member this.Parent : QsSyntaxTreeTransformation<'T> = parent
 
-    let mutable _Parent : 'T option = None
-    member this.Parent 
-        with get () = _Parent.Value
-        and internal set value = _Parent <- Some value
+and StatementKindTransformation<'T>(parent) = 
+    member this.Parent : QsSyntaxTreeTransformation<'T> = parent
 
-and StatementKindTransformation<'T when 'T :> QsSyntaxTreeTransformation>() = 
+and StatementTransformation<'T>(parent) = 
+    member this.Parent : QsSyntaxTreeTransformation<'T> = parent
 
-    let mutable _Parent : 'T option = None
-    member this.Parent 
-        with get () = _Parent.Value
-        and internal set value = _Parent <- Some value
-
-and StatementTransformation<'T when 'T :> QsSyntaxTreeTransformation>() = 
-
-    let mutable _Parent : 'T option = None
-    member this.Parent 
-        with get () = _Parent.Value
-        and internal set value = _Parent <- Some value
-
-and NamespaceTransformation<'T when 'T :> QsSyntaxTreeTransformation>() = 
-
-    let mutable _Parent : 'T option = None
-    member this.Parent 
-        with get () = _Parent.Value
-        and internal set value = _Parent <- Some value
+and NamespaceTransformation<'T>(parent) = 
+    member this.Parent : QsSyntaxTreeTransformation<'T> = parent
 
 
-and QsSyntaxTreeTransformation private (dummy) = 
-
-    let mutable _ExpressionTypeTransformation = new ExpressionTypeTransformation<_> ()
-    let mutable _ExpressionKindTransformation = new ExpressionKindTransformation<_> ()
-    let mutable _ExpressionTransformation = new ExpressionTransformation<_> ()
-    let mutable _StatementKindTransformation  = new StatementKindTransformation<_> ()
-    let mutable _StatementTransformation = new StatementTransformation<_> ()
-    let mutable _NamespaceTransformation = new NamespaceTransformation<_> ()
-
-    member this.ExpressionTypeTransformation
-        with get () = _ExpressionTypeTransformation
-        and private set t = 
-            _ExpressionTypeTransformation <- t
-            t.Parent <- this
-
-    member this.ExpressionKindTransformation 
-        with get () = _ExpressionKindTransformation
-        and private set t = 
-            _ExpressionKindTransformation <- t
-            t.Parent <- this
-
-    member this.ExpressionTransformation 
-        with get () = _ExpressionTransformation
-        and private set t = 
-            _ExpressionTransformation <- t
-            t.Parent <- this
-
-    member this.StatementKindTransformation 
-        with get () = _StatementKindTransformation
-        and private set t = 
-            _StatementKindTransformation <- t
-            t.Parent <- this
-
-    member this.StatementTransformation
-        with get () = _StatementTransformation
-        and private set t = 
-            _StatementTransformation <- t
-            t.Parent <- this
-
-    member this.NamespaceTransformation 
-        with get () = _NamespaceTransformation
-        and private set t = 
-            _NamespaceTransformation <- t
-            t.Parent <- this
-
-    new() as this = 
-        let foo = ()
-        QsSyntaxTreeTransformation(0) then 
-            this.ExpressionTypeTransformation.Parent <- this
-            this.ExpressionKindTransformation.Parent <- this
-            this.ExpressionTransformation.Parent <- this
-            this.StatementKindTransformation.Parent <- this
-            this.StatementTransformation.Parent <- this
-            this.NamespaceTransformation.Parent <- this
+and QsSyntaxTreeTransformationInitialization<'T> = {
+    ExpressionTypeTransformation : QsSyntaxTreeTransformation<'T> -> ExpressionTypeTransformation<'T>
+    ExpressionKindTransformation : QsSyntaxTreeTransformation<'T> -> ExpressionKindTransformation<'T>
+    ExpressionTransformation : QsSyntaxTreeTransformation<'T> -> ExpressionTransformation<'T>
+    StatementKindTransformation : QsSyntaxTreeTransformation<'T> -> StatementKindTransformation<'T>
+    StatementTransformation : QsSyntaxTreeTransformation<'T> -> StatementTransformation<'T>
+    NamespaceTransformation : QsSyntaxTreeTransformation<'T> -> NamespaceTransformation<'T>
+}
 
