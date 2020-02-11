@@ -363,45 +363,40 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
     // routines for replacing symbols/identifiers
 
-    public class __UniqueVariableNames__
-         : QsSyntaxTreeTransformation<__UniqueVariableNames__.TransformationState>
-    {
-
-        public class TransformationState
-        { 
-        
-        }
-
-        public __UniqueVariableNames__() :
-            base(new TransformationState())
-        { }
-    }
-
-
     /// <summary>
     /// Upon transformation, assigns each defined variable a unique name, independent on the scope, and replaces all references to it accordingly.
     /// The original variable name can be recovered by using the static method StripUniqueName.  
     /// This class is *not* threadsafe. 
     /// </summary>
     public class UniqueVariableNames
-        : ScopeTransformation<UniqueVariableNames.ReplaceDeclarations, ExpressionTransformation<UniqueVariableNames.ReplaceIdentifiers>>
+         : QsSyntaxTreeTransformation<UniqueVariableNames.TransformationState>
     {
+        public class TransformationState
+        {
+            private int VariableNr = 0;
+            private Dictionary<NonNullable<string>, NonNullable<string>> UniqueNames =
+                new Dictionary<NonNullable<string>, NonNullable<string>>();
+
+            internal QsExpressionKind AdaptIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
+                sym is Identifier.LocalVariable varName && this.UniqueNames.TryGetValue(varName.Item, out var unique)
+                    ? QsExpressionKind.NewIdentifier(Identifier.NewLocalVariable(unique), tArgs)
+                    : QsExpressionKind.NewIdentifier(sym, tArgs);
+
+            /// <summary>
+            /// Will overwrite the dictionary entry mapping a variable name to the corresponding unique name if the key already exists. 
+            /// </summary>
+            internal NonNullable<string> GenerateUniqueName(NonNullable<string> varName)
+            {
+                var unique = NonNullable<string>.New($"__{Prefix}{this.VariableNr++}__{varName.Value}__");
+                this.UniqueNames[varName] = unique;
+                return unique;
+            }
+        }
+
+
         private const string Prefix = "qsVar";
         private const string OrigVarName = "origVarName";
         private static Regex WrappedVarName = new Regex($"^__{Prefix}[0-9]*__(?<{OrigVarName}>.*)__$");
-
-        private int VariableNr;
-        private Dictionary<NonNullable<string>, NonNullable<string>> UniqueNames;
-
-        /// <summary>
-        /// Will overwrite the dictionary entry mapping a variable name to the corresponding unique name if the key already exists. 
-        /// </summary>
-        internal NonNullable<string> GenerateUniqueName(NonNullable<string> varName)
-        {
-            var unique = NonNullable<string>.New($"__{Prefix}{this.VariableNr++}__{varName.Value}__");
-            this.UniqueNames[varName] = unique;
-            return unique;
-        }
 
         public NonNullable<string> StripUniqueName(NonNullable<string> uniqueName)
         {
@@ -409,50 +404,44 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return matched.Success ? NonNullable<string>.New(matched.Value) : uniqueName;
         }
 
-        private QsExpressionKind AdaptIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
-            sym is Identifier.LocalVariable varName && this.UniqueNames.TryGetValue(varName.Item, out var unique)
-                ? QsExpressionKind.NewIdentifier(Identifier.NewLocalVariable(unique), tArgs)
-                : QsExpressionKind.NewIdentifier(sym, tArgs);
 
-        public UniqueVariableNames(int initVarNr = 0) :
-            base(s => new ReplaceDeclarations(s as UniqueVariableNames),
-                new ExpressionTransformation<ReplaceIdentifiers>(e =>
-                    new ReplaceIdentifiers(e as ExpressionTransformation<ReplaceIdentifiers>)))
-        {
-            this._Expression._Kind.ReplaceId = this.AdaptIdentifier;
-            this.VariableNr = initVarNr;
-            this.UniqueNames = new Dictionary<NonNullable<string>, NonNullable<string>>();
-        }
+        public UniqueVariableNames() :
+            base(new TransformationState())
+        { }
+
+        public override Core.ExpressionKindTransformation<TransformationState> NewExpressionKindTransformation() =>
+            new ExpressionKindTransformation(this);
+
+        public override Core.StatementKindTransformation<TransformationState> NewStatementKindTransformation() =>
+            new StatementKindTransformation(this);
 
 
         // helper classes
 
-        public class ReplaceDeclarations
-            : StatementKindTransformation<UniqueVariableNames>
+        public class StatementKindTransformation
+            : Core.StatementKindTransformation<TransformationState>
         {
-            public ReplaceDeclarations(UniqueVariableNames scope)
-                : base(scope) { }
+            public StatementKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+                : base(parent)
+            { }
 
             public override SymbolTuple onSymbolTuple(SymbolTuple syms) =>
                 syms is SymbolTuple.VariableNameTuple tuple
                     ? SymbolTuple.NewVariableNameTuple(tuple.Item.Select(this.onSymbolTuple).ToImmutableArray())
                     : syms is SymbolTuple.VariableName varName
-                    ? SymbolTuple.NewVariableName(this._Scope.GenerateUniqueName(varName.Item))
+                    ? SymbolTuple.NewVariableName(this.Parent.InternalState.GenerateUniqueName(varName.Item))
                     : syms;
         }
 
-        public class ReplaceIdentifiers
-            : ExpressionKindTransformation<ExpressionTransformation<ReplaceIdentifiers>>
+        public class ExpressionKindTransformation
+            : Core.ExpressionKindTransformation<TransformationState>
         {
-            internal Func<Identifier, QsNullable<ImmutableArray<ResolvedType>>, QsExpressionKind> ReplaceId;
-
-            public ReplaceIdentifiers(ExpressionTransformation<ReplaceIdentifiers> expression,
-                Func<Identifier, QsNullable<ImmutableArray<ResolvedType>>, QsExpressionKind> replaceId = null)
-                : base(expression) =>
-                this.ReplaceId = replaceId ?? ((sym, tArgs) => QsExpressionKind.NewIdentifier(sym, tArgs));
+            public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+                : base(parent)
+            { }
 
             public override QsExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
-                this.ReplaceId(sym, tArgs);
+                this.Parent.InternalState.AdaptIdentifier(sym, tArgs);
         }
     }
 

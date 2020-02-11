@@ -55,11 +55,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
         : ScopeTransformation<StatementKindTransformation<InlineConjugationStatements>, NoExpressionTransformations>
     {
         private Func<QsScope, QsScope> ResolveNames;
-        internal void Reset() => this.ResolveNames = new UniqueVariableNames().Transform;
+        internal void Reset() => this.ResolveNames = new UniqueVariableNames().Statements.Transform;
 
         public InlineConjugationStatements()
             : base(s => new StatementKindTransformation<InlineConjugationStatements>(s as InlineConjugationStatements), new NoExpressionTransformations()) =>
-            this.ResolveNames = new UniqueVariableNames().Transform;
+            this.ResolveNames = new UniqueVariableNames().Statements.Transform;
 
         public override QsScope Transform(QsScope scope)
         {
