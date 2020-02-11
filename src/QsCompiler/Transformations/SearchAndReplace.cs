@@ -429,7 +429,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 syms is SymbolTuple.VariableNameTuple tuple
                     ? SymbolTuple.NewVariableNameTuple(tuple.Item.Select(this.onSymbolTuple).ToImmutableArray())
                     : syms is SymbolTuple.VariableName varName
-                    ? SymbolTuple.NewVariableName(this.Parent.InternalState.GenerateUniqueName(varName.Item))
+                    ? SymbolTuple.NewVariableName(this.Transformation.InternalState.GenerateUniqueName(varName.Item))
                     : syms;
         }
 
@@ -441,7 +441,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             { }
 
             public override QsExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
-                this.Parent.InternalState.AdaptIdentifier(sym, tArgs);
+                this.Transformation.InternalState.AdaptIdentifier(sym, tArgs);
         }
     }
 
