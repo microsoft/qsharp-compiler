@@ -173,6 +173,7 @@ type ErrorCode =
     | TypeConstructorOverlapWithCallable = 6004
     | UnknownType = 6005
     | AmbiguousType = 6006
+    | InaccessibleType = 6007
     | AmbiguousCallable = 6008
     | TypeSpecializationMismatch = 6009
     | SpecializationForUnknownCallable = 6010
@@ -517,6 +518,7 @@ type DiagnosticItem =
             | ErrorCode.TypeConstructorOverlapWithCallable        -> "Invalid type declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.UnknownType                               -> "No type with the name \"{0}\" exists in any of the open namespaces."
             | ErrorCode.AmbiguousType                             -> "Multiple open namespaces contain a type with the name \"{0}\". Use a fully qualified name instead. Open namespaces containing a type with that name are {1}."
+            | ErrorCode.InaccessibleType                          -> "The type {0} exists in an open namespace, but is not accessible from here."
             | ErrorCode.AmbiguousCallable                         -> "Multiple open namespaces contain a callable with the name \"{0}\". Use a fully qualified name instead. Open namespaces containing a callable with that name are {1}." 
             | ErrorCode.TypeSpecializationMismatch                -> "Invalid specialization declaration. The type specializations do not match the expected number of type parameters. Expecting {0} type argument(s)."
             | ErrorCode.SpecializationForUnknownCallable          -> "No callable with the name \"{0}\" exists in the current namespace. Specializations need to be declared in the same namespace as the callable they extend."

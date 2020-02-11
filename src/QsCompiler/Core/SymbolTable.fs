@@ -754,16 +754,21 @@ and NamespaceManager
             let deprecatedWarnings = deprecation |> SymbolResolution.GenerateDeprecationWarning ({Namespace = ns; Name = symName}, symRange |> orDefault)
             Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings |> Array.append errs
         let tryFind (parentNS, source) (tName, tRange) = 
-            let resolutions =
+            let allResolutions =
                 (parentNS, source)
                 |> PossibleResolutions (fun ns -> ns.ContainsType (tName, checkQualificationForDeprecation))
-                |> List.filter (fun (nsName, (_, _, sameAssembly, modifiers)) ->
+            let accessibleResolutions =
+                allResolutions |> List.filter (fun (nsName, (_, _, sameAssembly, modifiers)) ->
                     IsDeclarationAccessible sameAssembly (parentNS = nsName) modifiers)
-            match resolutions with
-            | [] -> Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, [tName.Value]) |]
+            match accessibleResolutions with
+            | [] ->
+                if List.isEmpty allResolutions then
+                    Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, [tName.Value]) |]
+                else
+                    Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InaccessibleType, [tName.Value]) |]
             | [(nsName, (declSource, deprecated, _, _))] -> Value (nsName, declSource, deprecated), [||]
-            | resolutions -> 
-                let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
+            | _ ->
+                let diagArg = String.Join(", ", accessibleResolutions.Select (fun (ns,_) -> ns.Value))
                 Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [tName.Value; diagArg]) |]
         
         match nsName with 
