@@ -2,18 +2,6 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
-
-open System.Collections.Immutable
-open System.Numerics
-open System.Runtime.CompilerServices
-open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
-open Microsoft.Quantum.QsCompiler.SyntaxTree
-open System
-
-type private ExpressionKind = QsExpressionKind<TypedExpression,Identifier,ResolvedType>
-type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
     
 
 type QsSyntaxTreeTransformation<'T> (state : 'T) as this =     
@@ -45,22 +33,42 @@ type QsSyntaxTreeTransformation<'T> (state : 'T) as this =
     member val StatementTransformation      = this.InitializeStatementTransformation()
     member val NamespaceTransformation      = this.InitializeNamespaceTransformation()
 
+
 and ExpressionTypeTransformation<'T>(parent) = 
+    inherit ExpressionTypeTransformation()
     member this.Parent : QsSyntaxTreeTransformation<'T> = parent
+
 
 and ExpressionKindTransformation<'T >(parent) = 
+    inherit ExpressionKindTransformation()
     member this.Parent : QsSyntaxTreeTransformation<'T> = parent
-        
+    
+    override this.ExpressionTransformation ex = this.Parent.ExpressionTransformation.Transform ex
+    override this.TypeTransformation t = this.Parent.ExpressionTypeTransformation.Transform t
+
+    
 and ExpressionTransformation<'T>(parent) = 
+    inherit ExpressionTransformation()
     member this.Parent : QsSyntaxTreeTransformation<'T> = parent
+
 
 and StatementKindTransformation<'T>(parent) = 
+    inherit StatementKindTransformation()
     member this.Parent : QsSyntaxTreeTransformation<'T> = parent
+
+    override this.ScopeTransformation scope = this.Parent.StatementTransformation.Transform scope
+    override this.ExpressionTransformation ex = this.Parent.ExpressionTransformation.Transform ex
+    override this.TypeTransformation t = this.Parent.ExpressionTypeTransformation.Transform t
+    override this.LocationTransformation loc = this.Parent.NamespaceTransformation.onLocation loc
+
 
 and StatementTransformation<'T>(parent) = 
+    inherit ScopeTransformation()
     member this.Parent : QsSyntaxTreeTransformation<'T> = parent
 
+
 and NamespaceTransformation<'T>(parent) = 
+    inherit SyntaxTreeTransformation()
     member this.Parent : QsSyntaxTreeTransformation<'T> = parent
 
 
