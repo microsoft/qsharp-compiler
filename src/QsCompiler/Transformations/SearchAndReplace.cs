@@ -283,8 +283,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// as well as one for all local variables reassigned in any of the transformed scopes and their locations. 
     /// Note that the location information is relative to the root node, i.e. the start position of the containing specialization declaration. 
     /// </summary>
-    public class __AccumulateIdentifiers__
-         : QsSyntaxTreeTransformation<__AccumulateIdentifiers__.TransformationState>
+    public class AccumulateIdentifiers
+         : QsSyntaxTreeTransformation<AccumulateIdentifiers.TransformationState>
     {
         public class TransformationState
         {
@@ -295,7 +295,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             private readonly List<(NonNullable<string>, QsLocation)> UsedLocals = new List<(NonNullable<string>, QsLocation)>();
 
             internal TransformationState() => 
-                this.UpdatedExpression = new __OnTypedExpression__<TransformationState>(this, this.UpdatedLocal).Transform; // FIXME: ENTIRELY NEW PARENT!
+                this.UpdatedExpression = new __OnTypedExpression__<TransformationState>(this.UpdatedLocal, this).Transform;
 
             public ILookup<NonNullable<string>, QsLocation> ReassignedVariables =>
                 this.UpdatedLocals.ToLookup(var => var.Item1, var => var.Item2);
@@ -319,26 +319,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
 
-        public __AccumulateIdentifiers__() :
+        public AccumulateIdentifiers() :
             base(new TransformationState())
         { }
 
         public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
-            new __OnTypedExpression__<TransformationState>(this, this.InternalState.UsedLocal);
+            new __OnTypedExpression__<TransformationState>(this.InternalState.UsedLocal, this);
 
         public override Core.StatementKindTransformation<TransformationState> NewStatementKindTransformation() =>
-            new VariableReassignments(this);
+            new StatementKindTransformation(this);
 
         public override StatementTransformation<TransformationState> NewStatementTransformation() =>
-            new AccumulateIdentifiers(this);
+            new StatementTransformation(this);
 
 
         // helper classes 
 
-        public class AccumulateIdentifiers :
+        public class StatementTransformation :
             StatementTransformation<TransformationState>
         {
-            public AccumulateIdentifiers(QsSyntaxTreeTransformation<TransformationState> parent)
+            public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -350,10 +350,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
-        public class VariableReassignments :
+        public class StatementKindTransformation :
             Core.StatementKindTransformation<TransformationState>
         {
-            public VariableReassignments(QsSyntaxTreeTransformation<TransformationState> parent)
+            public StatementKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -482,8 +482,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     public class __OnTypedExpression__<T> :
         Core.ExpressionTransformation<T>
     {
-        public __OnTypedExpression__(QsSyntaxTreeTransformation<T> parent, Action<TypedExpression> onExpression) 
+        public __OnTypedExpression__(Action<TypedExpression> onExpression, QsSyntaxTreeTransformation<T> parent) 
             : base(parent) =>
+            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
+
+        public __OnTypedExpression__(Action<TypedExpression> onExpression, T internalState = default)
+            : base(internalState) =>
             this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
 
         public readonly Action<TypedExpression> OnExpression;
