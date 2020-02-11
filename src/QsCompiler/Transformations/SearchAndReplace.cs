@@ -304,7 +304,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 this.UsedLocals.ToLookup(var => var.Item1, var => var.Item2);
 
 
-            private Func<TypedExpression, TypedExpression> Add(List<(NonNullable<string>, QsLocation)> accumulate) => (TypedExpression ex) =>
+            private Action<TypedExpression> Add(List<(NonNullable<string>, QsLocation)> accumulate) => (TypedExpression ex) =>
             {
                 if (ex.Expression is QsExpressionKind.Identifier id &&
                     id.Item1 is Identifier.LocalVariable var)
@@ -314,8 +314,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 }
             };
 
-            internal Func<TypedExpression, TypedExpression> UsedLocal => Add(this.UsedLocals);
-            internal Func<TypedExpression, TypedExpression> UpdatedLocal => Add(this.UpdatedLocals);
+            internal Action<TypedExpression> UsedLocal => Add(this.UsedLocals);
+            internal Action<TypedExpression> UpdatedLocal => Add(this.UpdatedLocals);
         }
 
 
@@ -475,16 +475,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
     }
 
-
+    /// <summary>
+    /// Upon transformation, applies the specified action to each expression and subexpression. 
+    /// The action to apply is specified upon construction, and will be applied before recurring into subexpressions. 
+    /// </summary>
     public class __OnTypedExpression__<T> :
         Core.ExpressionTransformation<T>
     {
-        public __OnTypedExpression__(QsSyntaxTreeTransformation<T> parent, Func<TypedExpression, TypedExpression> onExpression) 
+        public __OnTypedExpression__(QsSyntaxTreeTransformation<T> parent, Action<TypedExpression> onExpression) 
             : base(parent) =>
             this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
 
-        public Func<TypedExpression, TypedExpression> OnExpression;
-        public override TypedExpression Transform(TypedExpression ex) => 
+        public readonly Action<TypedExpression> OnExpression;
+        public override TypedExpression Transform(TypedExpression ex)
+        {
             this.OnExpression(ex);
+            return base.Transform(ex);
+        }
     }
 }
