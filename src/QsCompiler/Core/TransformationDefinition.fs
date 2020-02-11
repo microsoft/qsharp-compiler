@@ -77,6 +77,12 @@ and ExpressionTypeTransformation<'T> internal (parentTransformation) =
         and private set value = _Transformation <- Some value
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>) = ExpressionTypeTransformation<'T>(Some parentTransformation)
+    new (sharedInternalState : 'T) as this = 
+        ExpressionTypeTransformation<'T>(None) then
+            this.Transformation <- { 
+                new QsSyntaxTreeTransformation<'T>(sharedInternalState) with
+                    override parent.NewExpressionTypeTransformation () = this
+            }
 
 
 and ExpressionKindTransformation<'T> internal (parentTransformation) = 
@@ -88,6 +94,12 @@ and ExpressionKindTransformation<'T> internal (parentTransformation) =
         and private set value = _Transformation <- Some value
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>) = ExpressionKindTransformation<'T>(Some parentTransformation)
+    new (sharedInternalState : 'T) as this = 
+        ExpressionKindTransformation<'T>(None) then
+            this.Transformation <- { 
+                new QsSyntaxTreeTransformation<'T>(sharedInternalState) with
+                    override parent.NewExpressionKindTransformation () = this
+            }
     
     override this.ExpressionTransformation ex = this.Transformation.Expressions.Transform ex
     override this.TypeTransformation t = this.Transformation.Types.Transform t
@@ -102,6 +114,12 @@ and ExpressionTransformation<'T> internal (parentTransformation) =
         and private set value = _Transformation <- Some value
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>) = ExpressionTransformation<'T>(Some parentTransformation)
+    new (sharedInternalState : 'T) as this = 
+        ExpressionTransformation<'T>(None) then
+            this.Transformation <- { 
+                new QsSyntaxTreeTransformation<'T>(sharedInternalState) with
+                    override parent.NewExpressionTransformation () = this
+            }
 
     override this.Kind = upcast this.Transformation.ExpressionKinds
     override this.Type = upcast this.Transformation.Types
@@ -116,6 +134,12 @@ and StatementKindTransformation<'T> internal (parentTransformation) =
         and private set value = _Transformation <- Some value
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>) = StatementKindTransformation<'T>(Some parentTransformation)
+    new (sharedInternalState : 'T) as this = 
+        StatementKindTransformation<'T>(None) then
+            this.Transformation <- { 
+                new QsSyntaxTreeTransformation<'T>(sharedInternalState) with
+                    override parent.NewStatementKindTransformation () = this
+            }
 
     override this.ScopeTransformation scope = this.Transformation.Statements.Transform scope
     override this.ExpressionTransformation ex = this.Transformation.Expressions.Transform ex
@@ -128,6 +152,12 @@ and StatementTransformation<'T> internal (parentTransformation) =
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = parentTransformation
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>) = StatementTransformation<'T>(Some parentTransformation)
+    new (sharedInternalState : 'T) as this = 
+        StatementTransformation<'T>(None) then
+            this.Transformation <- { 
+                new QsSyntaxTreeTransformation<'T>(sharedInternalState) with
+                    override parent.NewStatementTransformation () = this
+            }
 
     member this.Transformation 
         with get () = _Transformation.Value
@@ -142,6 +172,12 @@ and NamespaceTransformation<'T> internal (parentTransformation) =
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = parentTransformation
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>) = NamespaceTransformation<'T>(Some parentTransformation)
+    new (sharedInternalState : 'T) as this = 
+        NamespaceTransformation<'T>(None) then
+            this.Transformation <- { 
+                new QsSyntaxTreeTransformation<'T>(sharedInternalState) with
+                    override parent.NewNamespaceTransformation () = this
+            }
 
     member this.Transformation 
         with get () = _Transformation.Value
