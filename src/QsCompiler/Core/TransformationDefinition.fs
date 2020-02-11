@@ -8,30 +8,30 @@ type QsSyntaxTreeTransformation<'T> (state : 'T) as this =
 
     member this.InternalState = state
 
-    abstract member InitializeExpressionTypeTransformation : unit -> ExpressionTypeTransformation<'T>
-    default this.InitializeExpressionTypeTransformation () = new ExpressionTypeTransformation<'T>(this)
+    abstract member NewExpressionTypeTransformation : unit -> ExpressionTypeTransformation<'T>
+    default this.NewExpressionTypeTransformation () = new ExpressionTypeTransformation<'T>(this)
 
-    abstract member InitializeExpressionKindTransformation : unit -> ExpressionKindTransformation<'T>
-    default this.InitializeExpressionKindTransformation () = new ExpressionKindTransformation<'T>(this)
+    abstract member NewExpressionKindTransformation : unit -> ExpressionKindTransformation<'T>
+    default this.NewExpressionKindTransformation () = new ExpressionKindTransformation<'T>(this)
 
-    abstract member InitializeExpressionTransformation : unit -> ExpressionTransformation<'T>
-    default this.InitializeExpressionTransformation () = new ExpressionTransformation<'T>(this)
+    abstract member NewExpressionTransformation : unit -> ExpressionTransformation<'T>
+    default this.NewExpressionTransformation () = new ExpressionTransformation<'T>(this)
     
-    abstract member InitializeStatementKindTransformation : unit -> StatementKindTransformation<'T>
-    default this.InitializeStatementKindTransformation () = new StatementKindTransformation<'T>(this)
+    abstract member NewStatementKindTransformation : unit -> StatementKindTransformation<'T>
+    default this.NewStatementKindTransformation () = new StatementKindTransformation<'T>(this)
     
-    abstract member InitializeStatementTransformation : unit -> StatementTransformation<'T>
-    default this.InitializeStatementTransformation () = new StatementTransformation<'T>(this)
+    abstract member NewStatementTransformation : unit -> StatementTransformation<'T>
+    default this.NewStatementTransformation () = new StatementTransformation<'T>(this)
     
-    abstract member InitializeNamespaceTransformation : unit -> NamespaceTransformation<'T>
-    default this.InitializeNamespaceTransformation () = new NamespaceTransformation<'T>(this)
+    abstract member NewNamespaceTransformation : unit -> NamespaceTransformation<'T>
+    default this.NewNamespaceTransformation () = new NamespaceTransformation<'T>(this)
     
-    member val ExpressionTypeTransformation = this.InitializeExpressionTypeTransformation()
-    member val ExpressionKindTransformation = this.InitializeExpressionKindTransformation()
-    member val ExpressionTransformation     = this.InitializeExpressionTransformation()
-    member val StatementKindTransformation  = this.InitializeStatementKindTransformation()
-    member val StatementTransformation      = this.InitializeStatementTransformation()
-    member val NamespaceTransformation      = this.InitializeNamespaceTransformation()
+    member val Types           = this.NewExpressionTypeTransformation()
+    member val ExpressionKinds = this.NewExpressionKindTransformation()
+    member val Expressions     = this.NewExpressionTransformation()
+    member val StatementKind   = this.NewStatementKindTransformation()
+    member val Statements      = this.NewStatementTransformation()
+    member val Namespaces      = this.NewNamespaceTransformation()
 
 
 and ExpressionTypeTransformation<'T>(parent) = 
@@ -43,8 +43,8 @@ and ExpressionKindTransformation<'T >(parent) =
     inherit ExpressionKindTransformation()
     member this.Parent : QsSyntaxTreeTransformation<'T> = parent
     
-    override this.ExpressionTransformation ex = this.Parent.ExpressionTransformation.Transform ex
-    override this.TypeTransformation t = this.Parent.ExpressionTypeTransformation.Transform t
+    override this.ExpressionTransformation ex = this.Parent.Expressions.Transform ex
+    override this.TypeTransformation t = this.Parent.Types.Transform t
 
     
 and ExpressionTransformation<'T>(parent) = 
@@ -56,10 +56,10 @@ and StatementKindTransformation<'T>(parent) =
     inherit StatementKindTransformation()
     member this.Parent : QsSyntaxTreeTransformation<'T> = parent
 
-    override this.ScopeTransformation scope = this.Parent.StatementTransformation.Transform scope
-    override this.ExpressionTransformation ex = this.Parent.ExpressionTransformation.Transform ex
-    override this.TypeTransformation t = this.Parent.ExpressionTypeTransformation.Transform t
-    override this.LocationTransformation loc = this.Parent.NamespaceTransformation.onLocation loc
+    override this.ScopeTransformation scope = this.Parent.Statements.Transform scope
+    override this.ExpressionTransformation ex = this.Parent.Expressions.Transform ex
+    override this.TypeTransformation t = this.Parent.Types.Transform t
+    override this.LocationTransformation loc = this.Parent.Namespaces.onLocation loc
 
 
 and StatementTransformation<'T>(parent) = 
