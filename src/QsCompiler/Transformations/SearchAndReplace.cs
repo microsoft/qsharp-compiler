@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 {
@@ -19,6 +19,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
     // routines for finding occurrences of symbols/identifiers
+
+    public class __IdentifierReferences__
+         : QsSyntaxTreeTransformation<__IdentifierReferences__.TransformationState>
+    {
+
+        public class TransformationState
+        {
+
+        }
+
+        public __IdentifierReferences__() :
+            base(new TransformationState())
+        { }
+    }
 
     /// <summary>
     /// Class that allows to walk the syntax tree and find all locations where a certain identifier occurs.
@@ -264,6 +278,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
     // routines for finding all symbols/identifiers
 
+    public class __AccumulateIdentifiers__
+         : QsSyntaxTreeTransformation<__AccumulateIdentifiers__.TransformationState>
+    {
+
+        public class TransformationState
+        {
+
+        }
+
+        public __AccumulateIdentifiers__() :
+            base(new TransformationState())
+        { }
+    }
+
     /// <summary>
     /// Generates a look-up for all used local variables and their location in any of the transformed scopes, 
     /// as well as one for all local variables reassigned in any of the transformed scopes and their locations. 
@@ -334,6 +362,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
     // routines for replacing symbols/identifiers
+
+    public class __UniqueVariableNames__
+         : QsSyntaxTreeTransformation<__UniqueVariableNames__.TransformationState>
+    {
+
+        public class TransformationState
+        { 
+        
+        }
+
+        public __UniqueVariableNames__() :
+            base(new TransformationState())
+        { }
+    }
+
 
     /// <summary>
     /// Upon transformation, assigns each defined variable a unique name, independent on the scope, and replaces all references to it accordingly.
