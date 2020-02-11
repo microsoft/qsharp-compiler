@@ -191,7 +191,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
         private IdentifierLocation(Func<Identifier, bool> trackId, QsLocation defaultOffset) :
-            base(null, new OnTypedExpression<TypeLocation>(null, _ => new TypeLocation(), recur: true))
+            base(null, new OnTypedExpression<TypeLocation>(null, _ => new TypeLocation()))
         {
             this.TrackIdentifier = trackId ?? throw new ArgumentNullException(nameof(trackId));
             this.Locations = ImmutableList<IdentifierReferences.Location>.Empty;
@@ -278,82 +278,88 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
     // routines for finding all symbols/identifiers
 
-    public class __AccumulateIdentifiers__
-         : QsSyntaxTreeTransformation<__AccumulateIdentifiers__.TransformationState>
-    {
-
-        public class TransformationState
-        {
-
-        }
-
-        public __AccumulateIdentifiers__() :
-            base(new TransformationState())
-        { }
-    }
-
     /// <summary>
     /// Generates a look-up for all used local variables and their location in any of the transformed scopes, 
     /// as well as one for all local variables reassigned in any of the transformed scopes and their locations. 
     /// Note that the location information is relative to the root node, i.e. the start position of the containing specialization declaration. 
     /// </summary>
-    public class AccumulateIdentifiers :
-        ScopeTransformation<AccumulateIdentifiers.VariableReassignments, OnTypedExpression<Core.ExpressionTypeTransformation>>
+    public class __AccumulateIdentifiers__
+         : QsSyntaxTreeTransformation<__AccumulateIdentifiers__.TransformationState>
     {
-        private QsLocation StatementLocation;
-        private Func<TypedExpression, TypedExpression> UpdatedExpression;
-
-        private List<(NonNullable<string>, QsLocation)> UpdatedLocals;
-        private List<(NonNullable<string>, QsLocation)> UsedLocals;
-
-        public ILookup<NonNullable<string>, QsLocation> ReassignedVariables => 
-            this.UpdatedLocals.ToLookup(var => var.Item1, var => var.Item2);
-
-        public ILookup<NonNullable<string>, QsLocation> UsedLocalVariables =>
-            this.UsedLocals.ToLookup(var => var.Item1, var => var.Item2);
-
-
-        public AccumulateIdentifiers() :
-            base(
-                scope => new VariableReassignments(scope as AccumulateIdentifiers),
-                new OnTypedExpression<Core.ExpressionTypeTransformation>(recur: true))
+        public class TransformationState
         {
-            this.UpdatedLocals = new List<(NonNullable<string>, QsLocation)>();
-            this.UsedLocals = new List<(NonNullable<string>, QsLocation)>();
-            this._Expression.OnExpression = this.onLocal(this.UsedLocals);
-            this.UpdatedExpression = new OnTypedExpression<Core.ExpressionTypeTransformation>(this.onLocal(this.UpdatedLocals), recur: true).Transform;
-        }
+            internal QsLocation StatementLocation = null;
+            internal Func<TypedExpression, TypedExpression> UpdatedExpression;
 
-        private Action<TypedExpression> onLocal(List<(NonNullable<string>, QsLocation)> accumulate) => (TypedExpression ex) =>
-        {
-            if (ex.Expression is QsExpressionKind.Identifier id &&
-                id.Item1 is Identifier.LocalVariable var)
+            private readonly List<(NonNullable<string>, QsLocation)> UpdatedLocals = new List<(NonNullable<string>, QsLocation)>();
+            private readonly List<(NonNullable<string>, QsLocation)> UsedLocals = new List<(NonNullable<string>, QsLocation)>();
+
+            internal TransformationState() => 
+                this.UpdatedExpression = new __OnTypedExpression__<TransformationState>(this, this.UpdatedLocal).Transform; // FIXME: ENTIRELY NEW PARENT!
+
+            public ILookup<NonNullable<string>, QsLocation> ReassignedVariables =>
+                this.UpdatedLocals.ToLookup(var => var.Item1, var => var.Item2);
+
+            public ILookup<NonNullable<string>, QsLocation> UsedLocalVariables =>
+                this.UsedLocals.ToLookup(var => var.Item1, var => var.Item2);
+
+
+            private Func<TypedExpression, TypedExpression> Add(List<(NonNullable<string>, QsLocation)> accumulate) => (TypedExpression ex) =>
             {
-                var range = ex.Range.IsValue ? ex.Range.Item : this.StatementLocation.Range;
-                accumulate.Add((var.Item, new QsLocation(this.StatementLocation.Offset, range)));
-            }
-        };
+                if (ex.Expression is QsExpressionKind.Identifier id &&
+                    id.Item1 is Identifier.LocalVariable var)
+                {
+                    var range = ex.Range.IsValue ? ex.Range.Item : this.StatementLocation.Range;
+                    accumulate.Add((var.Item, new QsLocation(this.StatementLocation.Offset, range)));
+                }
+            };
 
-        public override QsStatement onStatement(QsStatement stm)
-        {
-            this.StatementLocation = stm.Location.IsNull ? null : stm.Location.Item;
-            this.StatementKind.Transform(stm.Statement);
-            return stm;
+            internal Func<TypedExpression, TypedExpression> UsedLocal => Add(this.UsedLocals);
+            internal Func<TypedExpression, TypedExpression> UpdatedLocal => Add(this.UpdatedLocals);
         }
 
 
-        // helper class
+        public __AccumulateIdentifiers__() :
+            base(new TransformationState())
+        { }
+
+        public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
+            new __OnTypedExpression__<TransformationState>(this, this.InternalState.UsedLocal);
+
+        public override Core.StatementKindTransformation<TransformationState> NewStatementKindTransformation() =>
+            new VariableReassignments(this);
+
+        public override StatementTransformation<TransformationState> NewStatementTransformation() =>
+            new AccumulateIdentifiers(this);
+
+
+        // helper classes 
+
+        public class AccumulateIdentifiers :
+            StatementTransformation<TransformationState>
+        {
+            public AccumulateIdentifiers(QsSyntaxTreeTransformation<TransformationState> parent)
+                : base(parent)
+            { }
+
+            public override QsStatement onStatement(QsStatement stm)
+            {
+                this.Transformation.InternalState.StatementLocation = stm.Location.IsNull ? null : stm.Location.Item;
+                this.StatementKind.Transform(stm.Statement);
+                return stm;
+            }
+        }
 
         public class VariableReassignments :
-            StatementKindTransformation<AccumulateIdentifiers>
+            Core.StatementKindTransformation<TransformationState>
         {
-            public VariableReassignments(AccumulateIdentifiers scope)
-                : base(scope)
+            public VariableReassignments(QsSyntaxTreeTransformation<TransformationState> parent)
+                : base(parent)
             { }
 
             public override QsStatementKind onValueUpdate(QsValueUpdate stm)
             {
-                this._Scope.UpdatedExpression(stm.Lhs);
+                this.Transformation.InternalState.UpdatedExpression(stm.Lhs);
                 this.ExpressionTransformation(stm.Rhs);
                 return QsStatementKind.NewQsValueUpdate(stm);
             }
@@ -456,21 +462,29 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         ExpressionTransformation<ExpressionKindTransformation<OnTypedExpression<T>>, T>
         where T : Core.ExpressionTypeTransformation
     {
-        private readonly bool recur;
-
-        public OnTypedExpression(Action<TypedExpression> onExpression = null, Func<OnTypedExpression<T>, T> typeTransformation = null, bool recur = false) :
+        public OnTypedExpression(Action<TypedExpression> onExpression = null, Func<OnTypedExpression<T>, T> typeTransformation = null) :
             base(e => new ExpressionKindTransformation<OnTypedExpression<T>>(e as OnTypedExpression<T>),
-                 e => typeTransformation?.Invoke(e as OnTypedExpression<T>))
-        {
+                 e => typeTransformation?.Invoke(e as OnTypedExpression<T>)) =>
             this.OnExpression = onExpression;
-            this.recur = recur;
-        }
 
         public Action<TypedExpression> OnExpression;
         public override TypedExpression Transform(TypedExpression ex)
         {
             this.OnExpression?.Invoke(ex);
-            return this.recur ? base.Transform(ex) : ex;
+            return base.Transform(ex);
         }
+    }
+
+
+    public class __OnTypedExpression__<T> :
+        Core.ExpressionTransformation<T>
+    {
+        public __OnTypedExpression__(QsSyntaxTreeTransformation<T> parent, Func<TypedExpression, TypedExpression> onExpression) 
+            : base(parent) =>
+            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
+
+        public Func<TypedExpression, TypedExpression> OnExpression;
+        public override TypedExpression Transform(TypedExpression ex) => 
+            this.OnExpression(ex);
     }
 }

@@ -79,6 +79,7 @@ and ExpressionTypeTransformation<'T> private (parentTransformation) =
     internal new() = ExpressionTypeTransformation<'T>(None)
     new (parentTransformation : QsSyntaxTreeTransformation<'T>) = ExpressionTypeTransformation<'T>(Some parentTransformation)
 
+
 and ExpressionKindTransformation<'T> private (parentTransformation) = 
     inherit ExpressionKindTransformation()
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = parentTransformation
