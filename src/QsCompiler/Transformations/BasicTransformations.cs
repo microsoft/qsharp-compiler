@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
@@ -14,8 +15,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     // syntax tree transformations
 
     public class GetSourceFiles :
-        SyntaxTreeTransformation<NoScopeTransformations>
+        QsSyntaxTreeTransformation<GetSourceFiles.TransformationState>
     {
+        public class TransformationState
+        {
+            internal readonly HashSet<NonNullable<string>> SourceFiles = 
+                new HashSet<NonNullable<string>>();
+        }
+
+
+        private GetSourceFiles() :
+            base(new TransformationState())
+        { }
+
+        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
+            new NamespaceTransformation(this);
+
+
+        // static methods for convenience
+
         /// <summary>
         /// Returns a hash set containing all source files in the given namespaces.
         /// Throws an ArgumentNullException if the given sequence or any of the given namespaces is null. 
@@ -24,34 +42,42 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         {
             if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
             var filter = new GetSourceFiles();
-            foreach(var ns in namespaces) filter.Transform(ns);
-            return filter.SourceFiles.ToImmutableHashSet();
+            foreach (var ns in namespaces) filter.Namespaces.Transform(ns);
+            return filter.InternalState.SourceFiles.ToImmutableHashSet();
         }
 
         /// <summary>
         /// Returns a hash set containing all source files in the given namespace(s).
         /// Throws an ArgumentNullException if any of the given namespaces is null. 
         /// </summary>
-        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) => 
+        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) =>
             Apply((IEnumerable<QsNamespace>)namespaces);
 
-        private readonly HashSet<NonNullable<string>> SourceFiles;
-        private GetSourceFiles() :
-            base(new NoScopeTransformations()) =>
-            this.SourceFiles = new HashSet<NonNullable<string>>();
 
-        public override QsSpecialization onSpecializationImplementation(QsSpecialization spec) // short cut to avoid further evaluation
-        {
-            this.onSourceFile(spec.SourceFile);
-            return spec;
-        }
+        // helper classes
 
-        public override NonNullable<string> onSourceFile(NonNullable<string> f)
+        private class NamespaceTransformation :
+            NamespaceTransformation<TransformationState>
         {
-            this.SourceFiles.Add(f);
-            return base.onSourceFile(f);
+
+            public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+                : base(parent)
+            { }
+
+            public override QsSpecialization onSpecializationImplementation(QsSpecialization spec) // short cut to avoid further evaluation
+            {
+                this.onSourceFile(spec.SourceFile);
+                return spec;
+            }
+
+            public override NonNullable<string> onSourceFile(NonNullable<string> f)
+            {
+                this.Transformation.InternalState.SourceFiles.Add(f);
+                return base.onSourceFile(f);
+            }
         }
     }
+
 
     /// <summary>
     /// Calling Transform on a syntax tree returns a new tree that only contains the type and callable declarations
@@ -60,61 +86,81 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// the location at which they are defined in the file. Auto-generated declarations will be ordered alphabetically.
     /// </summary>
     public class FilterBySourceFile :
-        SyntaxTreeTransformation<NoScopeTransformations>
-    {
+        QsSyntaxTreeTransformation<FilterBySourceFile.TransformationState>
+    { 
+        public class TransformationState 
+        {
+            internal readonly Func<NonNullable<string>, bool> Predicate;
+            internal readonly List<(int?, QsNamespaceElement)> Elements =
+                new List<(int?, QsNamespaceElement)>();
+
+            public TransformationState(Func<NonNullable<string>, bool> predicate) => 
+                this.Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+        }
+
+
+        public FilterBySourceFile(Func<NonNullable<string>, bool> predicate)
+            : base(new TransformationState(predicate))
+        { }
+
+        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
+            new NamespaceTransformation(this);
+
+
+        // static methods for convenience
+
         public static QsNamespace Apply(QsNamespace ns, Func<NonNullable<string>, bool> predicate)
         {
             if (ns == null) throw new ArgumentNullException(nameof(ns));
             var filter = new FilterBySourceFile(predicate);
-            return filter.Transform(ns); 
+            return filter.Namespaces.Transform(ns);
         }
 
         public static QsNamespace Apply(QsNamespace ns, params NonNullable<string>[] fileIds)
         {
             var sourcesToKeep = fileIds.Select(f => f.Value).ToImmutableHashSet();
-            return FilterBySourceFile.Apply(ns, s => sourcesToKeep.Contains(s.Value));
+            return Apply(ns, s => sourcesToKeep.Contains(s.Value));
         }
 
-        private readonly List<(int?, QsNamespaceElement)> Elements;
-        private readonly Func<NonNullable<string>, bool> Predicate;
 
-        public FilterBySourceFile(Func<NonNullable<string>, bool> predicate) :
-            base(new NoScopeTransformations())
+        // helper classes 
+
+        public class NamespaceTransformation : 
+            NamespaceTransformation<TransformationState>
         {
-            this.Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
-            this.Elements = new List<(int?, QsNamespaceElement)>();
-        }
+            public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+                : base(parent)
+            { }
 
-        private QsCallable AddCallableIfInSource(QsCallable c)
-        {
-            if (Predicate(c.SourceFile))
-            { Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
-            return c;
-        }
+            // TODO: these overrides needs to be adapted once we support external specializations
 
-        private QsCustomType AddTypeIfInSource(QsCustomType t)
-        {
-            if (Predicate(t.SourceFile))
-            { Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t))); }
-            return t;
-        }
-
-        // TODO: these transformations needs to be adapted once we support external specializations
-        public override QsCustomType onType(QsCustomType t) => AddTypeIfInSource(t);
-        public override QsCallable onCallableImplementation(QsCallable c) => AddCallableIfInSource(c);
-
-        public override QsNamespace Transform(QsNamespace ns)
-        {
-            static int SortComparison((int?, QsNamespaceElement) x, (int?, QsNamespaceElement) y)
+            public override QsCustomType onType(QsCustomType t)
             {
-                if (x.Item1.HasValue && y.Item1.HasValue) return Comparer<int>.Default.Compare(x.Item1.Value, y.Item1.Value);
-                if (!x.Item1.HasValue && !y.Item1.HasValue) return Comparer<string>.Default.Compare(x.Item2.GetFullName().ToString(), y.Item2.GetFullName().ToString());
-                return x.Item1.HasValue ? -1 : 1;
+                if (this.Transformation.InternalState.Predicate(t.SourceFile))
+                { this.Transformation.InternalState.Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t))); }
+                return t;
             }
-            this.Elements.Clear();
-            base.Transform(ns);
-            this.Elements.Sort(SortComparison);
-            return new QsNamespace(ns.Name, this.Elements.Select(e => e.Item2).ToImmutableArray(), ns.Documentation);
+
+            public override QsCallable onCallableImplementation(QsCallable c) 
+            {
+                if (this.Transformation.InternalState.Predicate(c.SourceFile))
+                { this.Transformation.InternalState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
+                return c;
+            }
+
+            public override QsNamespace Transform(QsNamespace ns)
+            {
+                static int SortComparison((int?, QsNamespaceElement) x, (int?, QsNamespaceElement) y)
+                {
+                    if (x.Item1.HasValue && y.Item1.HasValue) return Comparer<int>.Default.Compare(x.Item1.Value, y.Item1.Value);
+                    if (!x.Item1.HasValue && !y.Item1.HasValue) return Comparer<string>.Default.Compare(x.Item2.GetFullName().ToString(), y.Item2.GetFullName().ToString());
+                    return x.Item1.HasValue ? -1 : 1;
+                }
+                this.Transformation.InternalState.Elements.Clear();
+                base.Transform(ns);
+                this.Transformation.InternalState.Elements.Sort(SortComparison);
+                return new QsNamespace(ns.Name, this.Transformation.InternalState.Elements.Select(e => e.Item2).ToImmutableArray(), ns.Documentation);
+            }
         }
     }
 
