@@ -214,7 +214,8 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
-                WasSuccessful(!options.ConvertClassicalControl, this.ConvertClassicalControl) &&
+                WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
+
                 WasSuccessful(isExe && !options.SkipMonomorphization, this.Monomorphization) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
