@@ -3,6 +3,7 @@
 
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -499,9 +500,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 case CompletionItemKind.Function:
                 case CompletionItemKind.Constructor:
-                    var callable = compilation.GlobalSymbols.TryGetCallable(
+                    var result = compilation.GlobalSymbols.TryGetCallable(
                         data.QualifiedName, data.QualifiedName.Namespace, NonNullable<string>.New(data.SourceFile));
-                    if (callable.IsNull)
+                    if (!(result is ResolutionResult<CallableDeclarationHeader>.Found callable))
                         return null;
                     var signature = callable.Item.PrintSignature();
                     var documentation = callable.Item.Documentation.PrintSummary(useMarkdown);
@@ -510,8 +511,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var type =
                         compilation.GlobalSymbols.TryGetType(
                             data.QualifiedName, data.QualifiedName.Namespace, NonNullable<string>.New(data.SourceFile))
-                        .Item;
-                    return type?.Documentation.PrintSummary(useMarkdown).Trim();
+                        as ResolutionResult<TypeDeclarationHeader>.Found;
+                    return type?.Item.Documentation.PrintSummary(useMarkdown).Trim();
                 default:
                     return null;
             }

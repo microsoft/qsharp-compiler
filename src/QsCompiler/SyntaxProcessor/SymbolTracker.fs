@@ -6,7 +6,6 @@ namespace Microsoft.Quantum.QsCompiler.SymbolTracker
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
-open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -71,11 +70,11 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// IMPORTANT: these need to be adapted if we want to support type specializations and/or external specializations!
     let parentIsOperation, typeParameters, expectedReturnType = 
         match GlobalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with 
-        | Null -> ArgumentException "the given NamespaceManager does not contain a callable with the given parent name" |> raise
-        | Value decl -> 
+        | Found decl ->
             let isOperation = decl.Kind |> function | QsCallableKind.Operation -> true | _ -> false
             let validTypeParams = decl.Signature.TypeParameters |> Seq.choose (function | ValidName name -> Some name | InvalidName -> None)
             isOperation, validTypeParams.ToImmutableArray(), decl.Signature.ReturnType |> StripPositionInfo.Apply // NOTE: valid only since we do not yet support external and/or type specializations
+        | _ -> ArgumentException "the given NamespaceManager does not contain a callable with the given parent name" |> raise
     
     /// If a local variable with the given name is visible on the current scope, 
     /// returns the dictionary that contains its declaration as Value.
@@ -93,7 +92,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// source file, namespace, and callable associated with this symbol tracker instance. 
     let globalTypeWithName (ns, name : NonNullable<string>) = ns |> function
         | None -> GlobalSymbols().TryResolveAndGetType name (parent.Namespace, sourceFile)
-        | Some nsName -> GlobalSymbols().TryGetType (QsQualifiedName.New (nsName, name)) (parent.Namespace, sourceFile), Seq.empty
+        | Some nsName -> GlobalSymbols().TryGetType (QsQualifiedName.New (nsName, name)) (parent.Namespace, sourceFile)
 
     /// If a callable declaration (including type constructors!) for a callable with the given name exists in GlobalSymbols, 
     /// returns a its header information as Value. Returns Null otherwise. 
@@ -101,7 +100,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// source file, namespace, and callable associated with this symbol tracker instance. 
     let globalCallableWithName (ns, name : NonNullable<string>) = ns |> function
         | None -> GlobalSymbols().TryResolveAndGetCallable name (parent.Namespace, sourceFile) 
-        | Some nsName -> GlobalSymbols().TryGetCallable (QsQualifiedName.New (nsName, name)) (parent.Namespace, sourceFile), (Seq.empty, Seq.empty)
+        | Some nsName -> GlobalSymbols().TryGetCallable (QsQualifiedName.New (nsName, name)) (parent.Namespace, sourceFile)
 
     /// the namespace and callable declaration within which the symbols tracked by this SymbolTracker instance are used
     member this.Parent = parent
@@ -150,8 +149,8 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// Throws an InvalidOperationException if no scope is currently open.
     member this.TryAddVariableDeclartion (decl : LocalVariableDeclaration<NonNullable<string>>) =
         if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
-        if (globalTypeWithName (None, decl.VariableName)) |> fst <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalTypeAlreadyExists, [decl.VariableName.Value]) |]
-        elif (globalCallableWithName (None, decl.VariableName)) |> fst <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalCallableAlreadyExists, [decl.VariableName.Value]) |]
+        if (globalTypeWithName (None, decl.VariableName)) <> NotFound then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalTypeAlreadyExists, [decl.VariableName.Value]) |]
+        elif (globalCallableWithName (None, decl.VariableName)) <> NotFound then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.GlobalCallableAlreadyExists, [decl.VariableName.Value]) |]
         elif (localVariableWithName decl.VariableName) <> Null then false, [| decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.LocalVariableAlreadyExists, [decl.VariableName.Value]) |]
         else pushedScopes.Head.LocalVariables.Add(decl.VariableName, decl); true, [||]
 
@@ -210,20 +209,24 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
             let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.New 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
 
-        let resolveGlobal (sym : NonNullable<string>) input =
+        let addDiagnosticForSymbol code args =
+            qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error (code, args) |> addDiagnostic
+            invalid
+
+        let resolveGlobal (ns : NonNullable<string> option, sym : NonNullable<string>) input =
             match input with
-            | Value (decl : CallableDeclarationHeader), _ -> decl.Kind |> function 
+            | Found (decl : CallableDeclarationHeader) -> decl.Kind |> function
                 | QsCallableKind.Operation -> buildCallable QsTypeKind.Operation decl.QualifiedName decl.Signature decl.Attributes
                 | QsCallableKind.TypeConstructor
                 | QsCallableKind.Function -> buildCallable (fst >> QsTypeKind.Function) decl.QualifiedName decl.Signature decl.Attributes
-            | Null, ((possibleResolutions : NonNullable<string> seq), (inaccessibleResolutions : NonNullable<string> seq)) ->
-                let resolutionStrings = String.Join(", ", possibleResolutions |> Seq.map (fun nsName -> nsName.Value))
-                let errCode =
-                    if possibleResolutions.Any() then (ErrorCode.AmbiguousCallable, [sym.Value; resolutionStrings])
-                    else if inaccessibleResolutions.Any() then (ErrorCode.InaccessibleCallable, [sym.Value])
-                    else (ErrorCode.UnknownIdentifier, [sym.Value])
-                qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error errCode |> addDiagnostic
-                invalid
+            | Ambiguous possibilities ->
+                let possibleNames = String.Join(", ", possibilities |> Seq.map (fun nsName -> nsName.Value))
+                addDiagnosticForSymbol ErrorCode.AmbiguousCallable [sym.Value; possibleNames]
+            | Inaccessible ->
+                match ns with
+                | None -> addDiagnosticForSymbol ErrorCode.InaccessibleCallable [sym.Value]
+                | Some ns -> addDiagnosticForSymbol ErrorCode.InaccessibleCallableInNamespace [sym.Value; ns.Value]
+            | NotFound -> addDiagnosticForSymbol ErrorCode.UnknownIdentifier [sym.Value]
         
         let resolveNative sym =
             match localVariableWithName sym with 
@@ -231,14 +234,13 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
                 let decl = dict.[sym]
                 let properties = (defaultLoc, LocalVariable sym, decl.Type |> StripPositionInfo.Apply, decl.InferredInformation.HasLocalQuantumDependency)
                 properties |> LocalVariableDeclaration.New decl.InferredInformation.IsMutable, ImmutableArray<_>.Empty
-            | Null -> globalCallableWithName (None, sym) |> resolveGlobal sym
+            | Null -> globalCallableWithName (None, sym) |> resolveGlobal (None, sym)
 
         match qsSym.Symbol with 
         | InvalidSymbol -> invalid
         | Symbol sym -> resolveNative sym
-        | QualifiedSymbol (ns, sym) -> globalCallableWithName (Some ns, sym) |> resolveGlobal sym
-        | _ -> qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error (ErrorCode.ExpectingIdentifier, []) |> addDiagnostic; 
-               invalid
+        | QualifiedSymbol (ns, sym) -> globalCallableWithName (Some ns, sym) |> resolveGlobal (Some ns, sym)
+        | _ -> addDiagnosticForSymbol ErrorCode.ExpectingIdentifier []
 
     /// Given a Q# type, resolves it calling the NamespaceManager associated with this symbol tracker.
     /// For each diagnostic generated during the resolution, calls the given addDiagnostics function on it. 
@@ -252,9 +254,11 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// Adds a suitable error using the given function and returns None if no declaration can be found.
     member private this.TryGetTypeDeclaration addError (udt : UserDefinedType) = 
         match globalTypeWithName (Some udt.Namespace, udt.Name) with
-        | Value decl, _ -> Value decl
-        | Null, _ -> // may occur when the return type of a referenced callable is defined in an assembly that is not referenced
-            addError (ErrorCode.IndirectlyReferencedExpressionType, [sprintf "%s.%s" udt.Namespace.Value udt.Name.Value]); Null
+        | Found decl -> Value decl
+        | _ ->
+            // may occur when the return type of a referenced callable is defined in an assembly that is not referenced
+            addError (ErrorCode.IndirectlyReferencedExpressionType, [sprintf "%s.%s" udt.Namespace.Value udt.Name.Value])
+            Null
 
     /// Given the fully qualified name of a user defined type, returns its underlying type where all range information is stripped.
     /// Adds a suitable diagnostic and returns an invalid type if the underlying type could not be determined.

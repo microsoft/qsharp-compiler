@@ -1346,19 +1346,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // check that the declarations for the types and callables to be built from the given FragmentTrees exist in the given CompilationUnit
                 var typeRoots = roots.Where(root => root.Value.Item2.Specializations == null);
                 var typeDeclarations = typeRoots.ToImmutableDictionary(
-                    root => root.Key, root =>
+                    root => root.Key,
+                    root =>
                     {
-                        var info = compilation.GlobalSymbols.TryGetType(root.Key, root.Value.Item2.Namespace, root.Value.Item2.Source);
-                        if (info.IsNull) throw new ArgumentException("type to build is no longer present in the given NamespaceManager");
-                        return info.Item;
+                        var result = compilation.GlobalSymbols.TryGetType(root.Key, root.Value.Item2.Namespace, root.Value.Item2.Source);
+                        return result is ResolutionResult<TypeDeclarationHeader>.Found type
+                            ? type.Item
+                            : throw new ArgumentException("type to build is no longer present in the given NamespaceManager");
                     });
                 var callableRoots = roots.Where(root => root.Value.Item2.Specializations != null);
                 var callableDeclarations = callableRoots.ToImmutableDictionary(
-                    root => root.Key, root => 
+                    root => root.Key,
+                    root =>
                     {
-                        var info = compilation.GlobalSymbols.TryGetCallable(root.Key, root.Value.Item2.Namespace, root.Value.Item2.Source);
-                        if (info.IsNull) throw new ArgumentException("callable to build is no longer present in the given NamespaceManager");
-                        return info.Item;
+                        var result = compilation.GlobalSymbols.TryGetCallable(root.Key, root.Value.Item2.Namespace, root.Value.Item2.Source);
+                        return result is ResolutionResult<CallableDeclarationHeader>.Found callable
+                            ? callable.Item
+                            : throw new ArgumentException("callable to build is no longer present in the given NamespaceManager");
                     });
 
                 (QsQualifiedName, ImmutableArray<QsSpecialization>) GetSpecializations

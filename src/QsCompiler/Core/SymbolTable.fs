@@ -18,6 +18,19 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Newtonsoft.Json
 
 
+/// Represents the outcome of resolving a symbol in the symbol table.
+type ResolutionResult<'T> =
+    /// The symbol resolved successfully.
+    | Found of 'T
+    /// The symbol is ambiguous, and more than one resolution is possible. Contains the list of possible namespaces in
+    /// which the symbol could be resolved to.
+    | Ambiguous of NonNullable<string> seq
+    /// The symbol resolved to a declaration which is not accessible from the location referencing it.
+    | Inaccessible
+    /// No declaration with that name was found.
+    | NotFound
+    
+
 /// Note that this class is *not* threadsafe!
 type private PartialNamespace private
     (name : NonNullable<string>,
@@ -1282,25 +1295,25 @@ and NamespaceManager
             }
         syncRoot.EnterReadLock()
         try match (nsName, source) |> TryResolveQualifier callableName.Namespace with
-            | None -> Null
+            | None -> NotFound
             | Some ns -> ns.CallablesInReferencedAssemblies.TryGetValue callableName.Name |> function
                 | true, cDecl ->
-                    if IsDeclarationAccessible false (nsName = cDecl.QualifiedName.Namespace) cDecl.Modifiers then
-                        Value cDecl
-                    else Null
+                    if IsDeclarationAccessible false (nsName = cDecl.QualifiedName.Namespace) cDecl.Modifiers
+                    then Found cDecl
+                    else Inaccessible
                 | false, _ -> declSource |> function
                     | Some source -> 
                         let kind, decl = ns.CallableInSource source callableName.Name // ok only because/if we have covered that the callable is not in a reference!
-                        if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers then
-                            BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl) |> Value
-                        else Null
+                        if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers
+                        then BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl) |> Found
+                        else Inaccessible
                     | None -> 
                         ns.CallablesDefinedInAllSources().TryGetValue callableName.Name |> function
                         | true, (source, (kind, decl)) ->
-                            if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers then
-                                BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl) |> Value
-                            else Null
-                        | false, _ -> Null
+                            if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers
+                            then BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl) |> Found
+                            else Inaccessible
+                        | false, _ -> NotFound
         finally syncRoot.ExitReadLock()
 
     /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader as Value, 
@@ -1313,16 +1326,20 @@ and NamespaceManager
     /// Returns Null as well as a list with namespaces containing a callable with that name if this is not the case. 
     member this.TryResolveAndGetCallable cName (nsName, source) = 
         syncRoot.EnterReadLock()
-        let allResolutions = (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsCallable cName)
-        let accessibleResolutions, inaccessibleResolutions =
-            allResolutions |> List.partition (fun (declaredNS, (_, _, sameAssembly, modifiers)) ->
-                IsDeclarationAccessible sameAssembly (declaredNS = nsName) modifiers)
-        try match accessibleResolutions with 
+        try
+            let allResolutions = (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsCallable cName)
+            let accessibleResolutions =
+                allResolutions |> List.filter (fun (declaredNS, (_, _, sameAssembly, modifiers)) ->
+                    IsDeclarationAccessible sameAssembly (declaredNS = nsName) modifiers)
+            match accessibleResolutions with
+            | [] -> if not <| List.isEmpty allResolutions then Inaccessible else NotFound
             | [(declNS, (declSource, _, _, _))] ->
                 this.TryGetCallableHeader ({Namespace = declNS; Name = cName}, Some declSource) (nsName, source) |> function
-                | Null -> Null, (Seq.empty, Seq.empty)
-                | info -> info, (seq {yield declNS}, Seq.empty)
-            | _ -> Null, (accessibleResolutions.Select fst, inaccessibleResolutions.Select fst)
+                | Found decl -> Found decl
+                | _ ->
+                    QsCompilerError.Raise "Expected to find the header corresponding to a possible resolution"
+                    NotFound
+            | _ -> accessibleResolutions.Select fst |> Ambiguous
         finally syncRoot.ExitReadLock()
 
     /// Given a qualified type name, returns the corresponding TypeDeclarationHeader as Value, 
@@ -1348,25 +1365,25 @@ and NamespaceManager
         syncRoot.EnterReadLock()
         try
             match (nsName, source) |> TryResolveQualifier typeName.Namespace with 
-            | None -> Null
+            | None -> NotFound
             | Some ns -> ns.TypesInReferencedAssemblies.TryGetValue typeName.Name |> function
                 | true, tDecl ->
-                    if IsDeclarationAccessible false (nsName = tDecl.QualifiedName.Namespace) tDecl.Modifiers then
-                        Value tDecl
-                    else Null
+                    if IsDeclarationAccessible false (nsName = tDecl.QualifiedName.Namespace) tDecl.Modifiers
+                    then Found tDecl
+                    else Inaccessible
                 | false, _ -> declSource |> function
                     | Some source ->
                         let decl = ns.TypeInSource source typeName.Name // ok only because/if we have covered that the type is not in a reference!
-                        if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers then
-                            BuildHeader {typeName with Namespace = ns.Name} (source, decl) |> Value
-                        else Null
+                        if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers
+                        then BuildHeader {typeName with Namespace = ns.Name} (source, decl) |> Found
+                        else Inaccessible
                     | None -> 
                         ns.TypesDefinedInAllSources().TryGetValue typeName.Name |> function
                         | true, (source, decl) ->
-                            if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers then
-                                BuildHeader {typeName with Namespace = ns.Name} (source, decl) |> Value
-                            else Null
-                        | false, _ -> Null
+                            if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers
+                            then BuildHeader {typeName with Namespace = ns.Name} (source, decl) |> Found
+                            else Inaccessible
+                        | false, _ -> NotFound
         finally syncRoot.ExitReadLock()
 
     /// Given a qualified type name, returns the corresponding TypeDeclarationHeader as Value, 
@@ -1379,12 +1396,20 @@ and NamespaceManager
     /// Returns Null as well as a list with namespaces containing a type with that name if this is not the case. 
     member this.TryResolveAndGetType tName (nsName, source) = 
         syncRoot.EnterReadLock()
-        try match (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsType tName) with 
+        try
+            let allResolutions = (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsType tName)
+            let accessibleResolutions =
+                allResolutions |> List.filter (fun (declaredNS, (_, _, sameAssembly, modifiers)) ->
+                    IsDeclarationAccessible sameAssembly (declaredNS = nsName) modifiers)
+            match accessibleResolutions with
+            | [] -> if not <| List.isEmpty allResolutions then Inaccessible else NotFound
             | [(declNS, (declSource, _, _, _))] ->
                 this.TryGetTypeHeader ({Namespace = declNS; Name = tName}, Some declSource) (nsName, source) |> function
-                | Null -> Null, Seq.empty
-                | info -> info, seq {yield declNS}
-            | resolutions -> Null, resolutions.Select fst
+                | Found decl -> Found decl
+                | _ ->
+                    QsCompilerError.Raise "Expected to find the header corresponding to a possible resolution"
+                    NotFound
+            | _ -> accessibleResolutions.Select fst |> Ambiguous
         finally syncRoot.ExitReadLock()
 
 

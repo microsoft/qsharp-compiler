@@ -200,6 +200,7 @@ type ErrorCode =
     | UnknownItemName = 6108
     | NotMarkedAsAttribute = 6109
     | InaccessibleTypeInNamespace = 6110
+    | InaccessibleCallableInNamespace = 6111
 
     | ArgumentTupleShapeMismatch = 6201
     | ArgumentTupleMismatch = 6202
@@ -546,6 +547,7 @@ type DiagnosticItem =
             | ErrorCode.UnknownItemName                           -> "The type {0} does not define an item with name \"{1}\"."
             | ErrorCode.NotMarkedAsAttribute                      -> "The type {0} is not marked as an attribute. Add \"@Attribute()\" above its declaration to indicate that it may be used as attribute."
             | ErrorCode.InaccessibleTypeInNamespace               -> "The type {0} in namespace {1} is not accessible from here."
+            | ErrorCode.InaccessibleCallableInNamespace           -> "The callable {0} in namespace {1} is not accessible from here."
                                                 
             | ErrorCode.ArgumentTupleShapeMismatch                -> "The shape of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.ArgumentTupleMismatch                     -> "The type of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
