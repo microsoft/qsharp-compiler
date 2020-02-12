@@ -427,7 +427,7 @@ and Namespace private
     /// This excludes specializations that are defined in files contained in referenced assemblies.
     /// Throws an ArgumentException if no callable with the given name is defined in this namespace. 
     member internal this.SpecializationsDefinedInAllSources cName = 
-        match this.ContainsCallable cName with
+        match this.TryFindCallable cName with
         | Value _ -> (Parts.Values.SelectMany (fun partial -> 
             partial.GetSpecializations cName |> Seq.map (fun (kind, decl) -> kind, (partial.Source, decl)))).ToImmutableArray()        
         | Null -> ArgumentException "no callable with the given name exist within the namespace" |> raise
@@ -447,7 +447,7 @@ and Namespace private
     /// Note that if the type is declared in a source files, the *unresolved* attributes will be checked.
     /// In that case checkDeprecation is used to validate the namespace qualification of the attribute. 
     /// If checkDeprecation is not specified, it is assumed that no qualification is needed in the relevant namespace and source file.
-    member this.ContainsType (tName, ?checkDeprecation : (string -> bool)) = 
+    member this.TryFindType (tName, ?checkDeprecation : (string -> bool)) = 
         let checkDeprecation = defaultArg checkDeprecation (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.Namespace.Value)
         match TypesInReferences.TryGetValue tName with 
         | true, tDecl -> Value (tDecl.SourceFile, tDecl.Attributes |> SymbolResolution.TryFindRedirect, false, tDecl.Modifiers)
@@ -472,7 +472,7 @@ and Namespace private
     /// Note that if the type is declared in a source files, the *unresolved* attributes will be checked.
     /// In that case checkDeprecation is used to validate the namespace qualification of the attribute. 
     /// If checkDeprecation is not specified, it is assumed that no qualification is needed in the relevant namespace and source file.
-    member this.ContainsCallable (cName, ?checkDeprecation : (string -> bool)) = 
+    member this.TryFindCallable (cName, ?checkDeprecation : (string -> bool)) = 
         let checkDeprecation = defaultArg checkDeprecation (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.Namespace.Value)
         match CallablesInReferences.TryGetValue cName with 
         | true, cDecl -> Value (cDecl.SourceFile, cDecl.Attributes |> SymbolResolution.TryFindRedirect, false, cDecl.Modifiers)
@@ -569,7 +569,7 @@ and Namespace private
             TypesDefinedInAllSourcesCache <- null
             CallablesDefinedInAllSourcesCache <- null
             partial.AddType location (tName, typeTuple, attributes, modifiers, documentation); [||]
-        | true, _ ->  this.ContainsType tName |> function
+        | true, _ ->  this.TryFindType tName |> function
             | Value _ -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeRedefinition, [tName.Value]) |]
             | Null -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeConstructorOverlapWithCallable, [tName.Value]) |] 
         | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
@@ -585,7 +585,7 @@ and Namespace private
         | true, partial when not (IsDefined cName) -> 
             CallablesDefinedInAllSourcesCache <- null
             partial.AddCallableDeclaration location (cName, (kind, signature), attributes, modifiers, documentation); [||]
-        | true, _ -> this.ContainsType cName |> function 
+        | true, _ -> this.TryFindType cName |> function 
             | Value _ -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableOverlapWithTypeConstructor, [cName.Value]) |]
             | Null -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableRedefinition, [cName.Value]) |]
         | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
@@ -616,7 +616,7 @@ and Namespace private
 
         match Parts.TryGetValue source with 
         | true, partial ->
-            match this.ContainsCallable cName with
+            match this.TryFindCallable cName with
             | Value (declSource, _, _, _) ->
                 let AddAndClearCache () = 
                     CallablesDefinedInAllSourcesCache <- null
@@ -746,7 +746,7 @@ and NamespaceManager
     let PossibleQualifications (nsName, source) (builtIn : BuiltIn) = 
         match Namespaces.TryGetValue nsName with 
         | true, ns when ns.Sources.Contains source -> (ns.ImportedNamespaces source).TryGetValue builtIn.Namespace |> function
-            | true, null when ns.ContainsType builtIn.Name = Null || nsName.Value = builtIn.Namespace.Value -> [""; builtIn.Namespace.Value] 
+            | true, null when ns.TryFindType builtIn.Name = Null || nsName.Value = builtIn.Namespace.Value -> [""; builtIn.Namespace.Value] 
             | true, null -> [builtIn.Namespace.Value] // the built-in type or callable is shadowed
             | true, alias -> [alias; builtIn.Namespace.Value]
             | false, _ -> [builtIn.Namespace.Value]
@@ -776,7 +776,7 @@ and NamespaceManager
         let tryFind (parentNS, source) (tName, tRange) = 
             let allResolutions =
                 (parentNS, source)
-                |> PossibleResolutions (fun ns -> ns.ContainsType (tName, checkQualificationForDeprecation))
+                |> PossibleResolutions (fun ns -> ns.TryFindType (tName, checkQualificationForDeprecation))
             let accessibleResolutions = allResolutions |> List.filter (fun (nsName, (_, _, sameAssembly, modifiers)) ->
                 IsDeclarationAccessible sameAssembly (parentNS = nsName) modifiers)
             match accessibleResolutions with
@@ -797,7 +797,7 @@ and NamespaceManager
         | Some qualifier -> (parentNS, source) |> TryResolveQualifier qualifier |> function
             | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [qualifier.Value]) |] 
             | Some ns -> 
-                ns.ContainsType (symName, checkQualificationForDeprecation) |> function
+                ns.TryFindType (symName, checkQualificationForDeprecation) |> function
                 | Value (declSource, deprecation, isSameAssembly, modifiers) ->
                     if IsDeclarationAccessible isSameAssembly (parentNS = ns.Name) modifiers then
                         buildAndReturn (ns.Name, declSource, deprecation, [||])
@@ -1327,7 +1327,7 @@ and NamespaceManager
     member this.TryResolveAndGetCallable cName (nsName, source) = 
         syncRoot.EnterReadLock()
         try
-            let allResolutions = (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsCallable cName)
+            let allResolutions = (nsName, source) |> PossibleResolutions (fun ns -> ns.TryFindCallable cName)
             let accessibleResolutions =
                 allResolutions |> List.filter (fun (declaredNS, (_, _, sameAssembly, modifiers)) ->
                     IsDeclarationAccessible sameAssembly (declaredNS = nsName) modifiers)
@@ -1397,7 +1397,7 @@ and NamespaceManager
     member this.TryResolveAndGetType tName (nsName, source) = 
         syncRoot.EnterReadLock()
         try
-            let allResolutions = (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsType tName)
+            let allResolutions = (nsName, source) |> PossibleResolutions (fun ns -> ns.TryFindType tName)
             let accessibleResolutions =
                 allResolutions |> List.filter (fun (declaredNS, (_, _, sameAssembly, modifiers)) ->
                     IsDeclarationAccessible sameAssembly (declaredNS = nsName) modifiers)
@@ -1427,16 +1427,16 @@ and NamespaceManager
     member this.NamespacesContainingCallable cName = 
         // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
         syncRoot.EnterReadLock()
-        try let containsCallable (ns : Namespace) = ns.ContainsCallable cName |> QsNullable<_>.Map (fun _ -> ns.Name)
-            (Namespaces.Values |> QsNullable<_>.Choose containsCallable).ToImmutableArray()
+        try let tryFindCallable (ns : Namespace) = ns.TryFindCallable cName |> QsNullable<_>.Map (fun _ -> ns.Name)
+            (Namespaces.Values |> QsNullable<_>.Choose tryFindCallable).ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
     /// Returns the names of all namespaces in which a type with the given name is declared. 
     member this.NamespacesContainingType tName = 
         // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
         syncRoot.EnterReadLock()
-        try let containsType (ns : Namespace) = ns.ContainsType tName |> QsNullable<_>.Map (fun _ -> ns.Name)
-            (Namespaces.Values |> QsNullable<_>.Choose containsType).ToImmutableArray()
+        try let tryFindType (ns : Namespace) = ns.TryFindType tName |> QsNullable<_>.Map (fun _ -> ns.Name)
+            (Namespaces.Values |> QsNullable<_>.Choose tryFindType).ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
     /// Returns the name of all namespaces declared in source files or referenced assemblies.
