@@ -96,6 +96,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             base(new TransformationState(idName, limitToSourceFiles))
         { }
 
+        public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() =>
+            new TypeLocation(this, onId); // FIXME
+
         public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => 
             new NamespaceTransformation(this);
 
@@ -113,6 +116,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
         // helper classes
+
+        public class TypeLocation :
+            Core.ExpressionTypeTransformation<TransformationState>
+        {
+            private readonly QsCodeOutput.ExpressionTypeToQs CodeOutput = new QsCodeOutput.ExpressionToQs()._Type;
+            internal Action<Identifier, QsRangeInfo> OnIdentifier;
+
+            public TypeLocation(QsSyntaxTreeTransformation<TransformationState> parent, Action<Identifier, QsRangeInfo> onIdentifier = null) :
+                base(parent) =>
+                this.OnIdentifier = onIdentifier;
+
+            public override QsTypeKind onUserDefinedType(UserDefinedType udt)
+            {
+                this.OnIdentifier?.Invoke(Identifier.NewGlobalCallable(new QsQualifiedName(udt.Namespace, udt.Name)), udt.Range);
+                return QsTypeKind.NewUserDefinedType(udt);
+            }
+
+            public override QsTypeKind onTypeParameter(QsTypeParameter tp)
+            {
+                this.CodeOutput.onTypeParameter(tp);
+                var tpName = NonNullable<string>.New(this.CodeOutput.Output ?? "");
+                this.OnIdentifier?.Invoke(Identifier.NewLocalVariable(tpName), tp.Range);
+                return QsTypeKind.NewTypeParameter(tp);
+            }
+        }
 
         public class NamespaceTransformation :
             NamespaceTransformation<TransformationState>
@@ -189,32 +217,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     public class IdentifierLocation :
         ScopeTransformation<Core.StatementKindTransformation, OnTypedExpression<IdentifierLocation.TypeLocation>>
     {
-        public class TypeLocation :
-            Core.ExpressionTypeTransformation
-        {
-            private readonly QsCodeOutput.ExpressionTypeToQs CodeOutput = new QsCodeOutput.ExpressionToQs()._Type;
-            internal Action<Identifier, QsRangeInfo> OnIdentifier;
-
-            public TypeLocation(Action<Identifier, QsRangeInfo> onIdentifier = null) :
-                base(true) =>
-                this.OnIdentifier = onIdentifier;
-
-            public override QsTypeKind onUserDefinedType(UserDefinedType udt)
-            {
-                this.OnIdentifier?.Invoke(Identifier.NewGlobalCallable(new QsQualifiedName(udt.Namespace, udt.Name)), udt.Range);
-                return QsTypeKind.NewUserDefinedType(udt);
-            }
-
-            public override QsTypeKind onTypeParameter(QsTypeParameter tp)
-            {
-                this.CodeOutput.onTypeParameter(tp);
-                var tpName = NonNullable<string>.New(this.CodeOutput.Output ?? "");
-                this.OnIdentifier?.Invoke(Identifier.NewLocalVariable(tpName), tp.Range);
-                return QsTypeKind.NewTypeParameter(tp);
-            }
-        }
-
-
         private IdentifierLocation(Func<Identifier, bool> trackId, QsLocation defaultOffset) :
             base(null, new OnTypedExpression<TypeLocation>(null, _ => new TypeLocation()))
         {
