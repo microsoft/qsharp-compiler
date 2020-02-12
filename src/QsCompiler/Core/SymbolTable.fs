@@ -424,8 +424,8 @@ and Namespace private
     ///     (1) the name of the source file or the name of the file within a referenced assembly in which it is
     ///         declared;
     ///     (2) a string option indicating the redirection for the type if it has been deprecated;
-    ///     (3) true if the declaration is declared in the assembly being compiled, or false if it is declared in a
-    ///         referenced assembly;
+    ///     (3) true if the declaration is declared in the assembly currently being compiled, or false if it is declared
+    ///         in a referenced assembly;
     ///     (4) the modifiers for the declaration.
     ///
     /// Returns Null otherwise.
@@ -442,10 +442,17 @@ and Namespace private
             | true, tDecl -> Some (partialNS.Source, tDecl.DefinedAttributes |> SymbolResolution.TryFindRedirectInUnresolved checkDeprecation, true, tDecl.Modifiers)
             | false, _ -> None)
 
-    /// If this namespace contains the declaration for the given callable name, 
-    /// returns a Value with the name of the source file or the name of the file within a referenced assembly
-    /// in which it is declared as well as a string option indicating the redirection for the callable if it has been deprecated. 
+    /// If this namespace contains a declaration for the given callable name, returns a Value with:
+    ///
+    ///     (1) the name of the source file or the name of the file within a referenced assembly in which it is
+    ///         declared;
+    ///     (2) a string option indicating the redirection for the type if it has been deprecated;
+    ///     (3) true if the declaration is declared in the assembly currently being compiled, or false if it is declared
+    ///         in a referenced assembly;
+    ///     (4) the modifiers for the declaration.
+    ///
     /// Returns Null otherwise.
+    ///
     /// If the given callable corresponds to the (auto-generated) type constructor for a user defined type,
     /// returns the file in which that type is declared as source.
     /// Whether the callable has been deprecated is determined by checking the associated attributes for an attribute with the corresponding name. 
@@ -455,9 +462,9 @@ and Namespace private
     member this.ContainsCallable (cName, ?checkDeprecation : (string -> bool)) = 
         let checkDeprecation = defaultArg checkDeprecation (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.Namespace.Value)
         match CallablesInReferences.TryGetValue cName with 
-        | true, cDecl -> Value (cDecl.SourceFile, cDecl.Attributes |> SymbolResolution.TryFindRedirect)
+        | true, cDecl -> Value (cDecl.SourceFile, cDecl.Attributes |> SymbolResolution.TryFindRedirect, false, cDecl.Modifiers)
         | false, _ -> FromSingleSource (fun partialNS -> partialNS.TryGetCallable cName |> function
-            | true, (_, cDecl) -> Some (partialNS.Source, cDecl.DefinedAttributes |> SymbolResolution.TryFindRedirectInUnresolved checkDeprecation)
+            | true, (_, cDecl) -> Some (partialNS.Source, cDecl.DefinedAttributes |> SymbolResolution.TryFindRedirectInUnresolved checkDeprecation, true, cDecl.Modifiers)
             | false, _ -> None)
 
     /// Sets the resolution for the type with the given name in the given source file to the given type,
@@ -597,7 +604,7 @@ and Namespace private
         match Parts.TryGetValue source with 
         | true, partial ->
             match this.ContainsCallable cName with
-            | Value (declSource, _) ->
+            | Value (declSource, _, _, _) ->
                 let AddAndClearCache () = 
                     CallablesDefinedInAllSourcesCache <- null
                     partial.AddCallableSpecialization location kind (cName, generator, attributes, documentation)
@@ -757,9 +764,8 @@ and NamespaceManager
             let allResolutions =
                 (parentNS, source)
                 |> PossibleResolutions (fun ns -> ns.ContainsType (tName, checkQualificationForDeprecation))
-            let accessibleResolutions =
-                allResolutions |> List.filter (fun (nsName, (_, _, sameAssembly, modifiers)) ->
-                    IsDeclarationAccessible sameAssembly (parentNS = nsName) modifiers)
+            let accessibleResolutions = allResolutions |> List.filter (fun (nsName, (_, _, sameAssembly, modifiers)) ->
+                IsDeclarationAccessible sameAssembly (parentNS = nsName) modifiers)
             match accessibleResolutions with
             | [] ->
                 if List.isEmpty allResolutions then
@@ -1307,11 +1313,16 @@ and NamespaceManager
     /// Returns Null as well as a list with namespaces containing a callable with that name if this is not the case. 
     member this.TryResolveAndGetCallable cName (nsName, source) = 
         syncRoot.EnterReadLock()
-        try match (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsCallable cName) with 
-            | [(declNS, (declSource, _))] -> this.TryGetCallableHeader ({Namespace = declNS; Name = cName}, Some declSource) (nsName, source) |> function
-                | Null -> Null, Seq.empty
-                | info -> info, seq {yield declNS}
-            | resolutions -> Null, resolutions.Select fst
+        let allResolutions = (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsCallable cName)
+        let accessibleResolutions, inaccessibleResolutions =
+            allResolutions |> List.partition (fun (declaredNS, (_, _, sameAssembly, modifiers)) ->
+                IsDeclarationAccessible sameAssembly (declaredNS = nsName) modifiers)
+        try match accessibleResolutions with 
+            | [(declNS, (declSource, _, _, _))] ->
+                this.TryGetCallableHeader ({Namespace = declNS; Name = cName}, Some declSource) (nsName, source) |> function
+                | Null -> Null, (Seq.empty, Seq.empty)
+                | info -> info, (seq {yield declNS}, Seq.empty)
+            | _ -> Null, (accessibleResolutions.Select fst, inaccessibleResolutions.Select fst)
         finally syncRoot.ExitReadLock()
 
     /// Given a qualified type name, returns the corresponding TypeDeclarationHeader as Value, 

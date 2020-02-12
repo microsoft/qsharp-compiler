@@ -101,7 +101,7 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
     /// source file, namespace, and callable associated with this symbol tracker instance. 
     let globalCallableWithName (ns, name : NonNullable<string>) = ns |> function
         | None -> GlobalSymbols().TryResolveAndGetCallable name (parent.Namespace, sourceFile) 
-        | Some nsName -> GlobalSymbols().TryGetCallable (QsQualifiedName.New (nsName, name)) (parent.Namespace, sourceFile), Seq.empty
+        | Some nsName -> GlobalSymbols().TryGetCallable (QsQualifiedName.New (nsName, name)) (parent.Namespace, sourceFile), (Seq.empty, Seq.empty)
 
     /// the namespace and callable declaration within which the symbols tracked by this SymbolTracker instance are used
     member this.Parent = parent
@@ -216,11 +216,13 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
                 | QsCallableKind.Operation -> buildCallable QsTypeKind.Operation decl.QualifiedName decl.Signature decl.Attributes
                 | QsCallableKind.TypeConstructor
                 | QsCallableKind.Function -> buildCallable (fst >> QsTypeKind.Function) decl.QualifiedName decl.Signature decl.Attributes
-            | Null, (possibleResolutions : NonNullable<string> seq) ->
+            | Null, ((possibleResolutions : NonNullable<string> seq), (inaccessibleResolutions : NonNullable<string> seq)) ->
                 let resolutionStrings = String.Join(", ", possibleResolutions |> Seq.map (fun nsName -> nsName.Value))
-                let ambiguousCallableErr = (ErrorCode.AmbiguousCallable, [sym.Value; resolutionStrings])
-                let errCode = if possibleResolutions.Count() > 1 then ambiguousCallableErr else (ErrorCode.UnknownIdentifier, [sym.Value])
-                qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error errCode |> addDiagnostic;
+                let errCode =
+                    if possibleResolutions.Any() then (ErrorCode.AmbiguousCallable, [sym.Value; resolutionStrings])
+                    else if inaccessibleResolutions.Any() then (ErrorCode.InaccessibleCallable, [sym.Value])
+                    else (ErrorCode.UnknownIdentifier, [sym.Value])
+                qsSym.RangeOrDefault |> QsCompilerDiagnostic.Error errCode |> addDiagnostic
                 invalid
         
         let resolveNative sym =
