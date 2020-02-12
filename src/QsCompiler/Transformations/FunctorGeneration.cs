@@ -10,6 +10,7 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
@@ -19,74 +20,97 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// with a call to the operation after application of the functor given on initialization. 
     /// The default values used for auto-generation will be used for the additional functor arguments.  
     /// </summary>
-    public class ApplyFunctorToOperationCalls : 
-        ScopeTransformation<
-            ApplyFunctorToOperationCalls.IgnoreOuterBlockInConjugations<ApplyFunctorToOperationCalls>, 
-            ExpressionTransformation <ApplyFunctorToOperationCalls.ApplyToExpressionKind>>
+    public class __ApplyFunctorToOperationCalls__ :
+        QsSyntaxTreeTransformation<__ApplyFunctorToOperationCalls__.TransformationsState>
     {
-        public ApplyFunctorToOperationCalls(QsFunctor functor) : base(
-            s => new IgnoreOuterBlockInConjugations<ApplyFunctorToOperationCalls>(s as ApplyFunctorToOperationCalls),
-            new ExpressionTransformation<ApplyToExpressionKind>(e => new ApplyToExpressionKind(e, functor)))
+        public class TransformationsState
+        {
+            public readonly QsFunctor FunctorToApply;
+
+            public TransformationsState(QsFunctor functor) =>
+                this.FunctorToApply = functor ?? throw new ArgumentNullException(nameof(functor));
+        }
+
+
+        public __ApplyFunctorToOperationCalls__(QsFunctor functor)
+            : base(new TransformationsState(functor))
         { }
+
+        public override Core.StatementKindTransformation<TransformationsState> NewStatementKindTransformation() =>
+            new IgnoreOuterBlockInConjugations<TransformationsState>(this);
+
+        public override Core.ExpressionKindTransformation<TransformationsState> NewExpressionKindTransformation() =>
+            new ExpressionKindTransformation(this);
+
+
+        // static methods for convenience
 
         private static readonly TypedExpression ControlQubits =
             SyntaxGenerator.ImmutableQubitArrayWithName(NonNullable<string>.New(InternalUse.ControlQubitsName));
 
         public static readonly Func<QsScope, QsScope> ApplyAdjoint =
-            new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Transform;
+            new __ApplyFunctorToOperationCalls__(QsFunctor.Adjoint).Statements.Transform;
 
         public static readonly Func<QsScope, QsScope> ApplyControlled =
-            new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Transform;
+            new __ApplyFunctorToOperationCalls__(QsFunctor.Controlled).Statements.Transform;
 
 
-        // helper class
-
-        /// <summary>
-        /// Ignores outer blocks of conjugations, transforming only the inner one. 
-        /// </summary>
-        public class IgnoreOuterBlockInConjugations<S> :
-            StatementKindTransformation<S>
-            where S : Core.ScopeTransformation
-        {
-            public IgnoreOuterBlockInConjugations(S scope)
-                : base(scope)
-            { }
-
-            public override QsStatementKind onConjugation(QsConjugation stm)
-            {
-                var inner = stm.InnerTransformation;
-                var innerLoc = this._Scope.onLocation(inner.Location);
-                var transformedInner = new QsPositionedBlock(this._Scope.Transform(inner.Body), innerLoc, inner.Comments);
-                return QsStatementKind.NewQsConjugation(new QsConjugation(stm.OuterTransformation, transformedInner));
-            }
-        }
+        // helper classes
 
         /// <summary>
         /// Replaces each operation call with a call to the operation after application of the given functor. 
         /// The default values used for auto-generation will be used for the additional functor arguments.  
         /// </summary>
-        public class ApplyToExpressionKind : 
-            ExpressionKindTransformation<Core.ExpressionTransformation> 
+        public class ExpressionKindTransformation :
+            Core.ExpressionKindTransformation<TransformationsState>
         {
-            public readonly QsFunctor FunctorToApply;
-            public ApplyToExpressionKind(Core.ExpressionTransformation expression, QsFunctor functor) : 
-                base(expression) =>
-                this.FunctorToApply = functor ?? throw new ArgumentNullException(nameof(functor));
+            public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationsState> parent)
+                : base(parent)
+            { }
+
+            public ExpressionKindTransformation(QsFunctor functor)
+                : base(new TransformationsState(functor))
+            { }
+
 
             public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> onOperationCall(TypedExpression method, TypedExpression arg)
             {
-                if (this.FunctorToApply.IsControlled)
+                if (this.Transformation.InternalState.FunctorToApply.IsControlled)
                 {
                     method = SyntaxGenerator.ControlledOperation(method);
                     arg = SyntaxGenerator.ArgumentWithControlQubits(arg, ControlQubits);
                 }
-                else if (this.FunctorToApply.IsAdjoint)
+                else if (this.Transformation.InternalState.FunctorToApply.IsAdjoint)
                 {
                     method = SyntaxGenerator.AdjointOperation(method);
                 }
                 else throw new NotImplementedException("unsupported functor");
                 return base.onOperationCall(method, arg);
             }
+        }
+    }
+
+
+    /// <summary>
+    /// Ensures that the outer block of conjugations is ignored during transformation. 
+    /// </summary>
+    public class IgnoreOuterBlockInConjugations<T> :
+        Core.StatementKindTransformation<T>
+    {
+        public IgnoreOuterBlockInConjugations(QsSyntaxTreeTransformation<T> parent)
+            : base(parent)
+        { }
+
+        public IgnoreOuterBlockInConjugations(T sharedInternalState)
+            : base(sharedInternalState)
+        { }
+
+        public override QsStatementKind onConjugation(QsConjugation stm)
+        {
+            var inner = stm.InnerTransformation;
+            var innerLoc = this.Transformation.Statements.onLocation(inner.Location);
+            var transformedInner = new QsPositionedBlock(this.Transformation.Statements.Transform(inner.Body), innerLoc, inner.Comments);
+            return QsStatementKind.NewQsConjugation(new QsConjugation(stm.OuterTransformation, transformedInner));
         }
     }
 
