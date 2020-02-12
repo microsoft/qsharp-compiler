@@ -219,7 +219,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
                 let fe = FunctionEvaluator (callables)
                 return! fe.evaluateFunction qualName arg types stmtsLeft |> Option.map (fun x -> x.Expression)
             | CallLikeExpression (baseMethod, partialArg) ->
-                do! check (TypedExpression.ContainsMissing partialArg)
+                do! check (TypedExpression.IsPartialApplication method.Expression)
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
@@ -229,7 +229,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         maybe {
             match method.Expression with
             | CallLikeExpression (baseMethod, partialArg) ->
-                do! check (TypedExpression.ContainsMissing partialArg)
+                do! check (TypedExpression.IsPartialApplication method.Expression)
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
@@ -239,7 +239,7 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
         maybe {
             match method.Expression with
             | CallLikeExpression (baseMethod, partialArg) ->
-                do! check (TypedExpression.ContainsMissing partialArg)
+                do! check (TypedExpression.IsPartialApplication method.Expression)
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
