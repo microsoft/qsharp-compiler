@@ -25,8 +25,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// Class that allows to walk the syntax tree and find all locations where a certain identifier occurs.
     /// If a set of source file names is given on initialization, the search is limited to callables and specializations in those files. 
     /// </summary>
-    public class __IdentifierReferences__
-         : QsSyntaxTreeTransformation<__IdentifierReferences__.TransformationState>
+    public class IdentifierReferences
+         : QsSyntaxTreeTransformation<IdentifierReferences.TransformationState>
     {
         public class Location : IEquatable<Location>
         {
@@ -74,32 +74,40 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
 
+        /// <summary>
+        /// Class used to track the internal state for a transformation that finds all locations where a certain identifier occurs.
+        /// If no source file is specified prior to transformation, its name is set to the empty string. 
+        /// The DeclarationOffset needs to be set prior to transformation, and in particular after defining a source file.
+        /// If no defaultOffset is specified upon initialization then only the locations of occurrences within statements are logged. 
+        /// </summary>
         public class TransformationState
         {
-            public QsQualifiedName IdentifierName;
             public Tuple<NonNullable<string>, QsLocation> DeclarationLocation { get; internal set; }
-            //public IEnumerable<__IdentifierReferences__.Location> Locations => this._Scope.Locations;
-
-            private readonly IImmutableSet<NonNullable<string>> RelevantSourseFiles;
-            internal bool IsRelevant(NonNullable<string> source) =>
-                this.RelevantSourseFiles?.Contains(source) ?? true;
-
-            internal TransformationState(QsQualifiedName idName, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) 
-            {
-                this.IdentifierName = idName ?? throw new ArgumentNullException(nameof(idName));
-                this.RelevantSourseFiles = limitToSourceFiles;
-            }
+            public ImmutableList<Location> Locations { get; private set; }
 
             /// <summary>
             /// Whenever DeclarationOffset is set, the current statement offset is set to this default value.
             /// </summary>
-            public readonly QsLocation DefaultOffset;
-            public ImmutableList<__IdentifierReferences__.Location> Locations { get; private set; }
+            private readonly QsLocation DefaultOffset = null;
+            private readonly IImmutableSet<NonNullable<string>> RelevantSourseFiles = null;
 
-            private NonNullable<string> SourceFile;
-            private Tuple<int, int> RootOffset;
-            internal QsLocation CurrentLocation;
-            private readonly Func<Identifier, bool> TrackIdentifier;
+            internal bool IsRelevant(NonNullable<string> source) =>
+                this.RelevantSourseFiles?.Contains(source) ?? true;
+
+
+            internal TransformationState(Func<Identifier, bool> trackId, 
+                QsLocation defaultOffset = null, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) 
+            {
+                this.TrackIdentifier = trackId ?? throw new ArgumentNullException(nameof(trackId));
+                this.RelevantSourseFiles = limitToSourceFiles;
+                this.Locations = ImmutableList<Location>.Empty;
+                this.DefaultOffset = defaultOffset;
+            }
+
+            private NonNullable<string> CurrentSourceFile = NonNullable<string>.New("");
+            private Tuple<int, int> RootOffset = null;
+            internal QsLocation CurrentLocation = null;
+            internal readonly Func<Identifier, bool> TrackIdentifier;
 
             public Tuple<int, int> DeclarationOffset
             {
@@ -113,23 +121,47 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public NonNullable<string> Source
             {
-                internal get => this.SourceFile;
+                internal get => this.CurrentSourceFile;
                 set
                 {
-                    this.SourceFile = value;
+                    this.CurrentSourceFile = value;
                     this.RootOffset = null;
                     this.CurrentLocation = null;
                 }
             }
+
+            internal void LogIdentifierLocation(Identifier id, QsRangeInfo range)
+            {
+                if (this.TrackIdentifier(id) && this.CurrentLocation?.Offset != null && range.IsValue)
+                {
+                    var idLoc = new Location(this.Source, this.RootOffset, this.CurrentLocation, range.Item);
+                    this.Locations = this.Locations.Add(idLoc);
+                }
+            }
+
+            internal void LogIdentifierLocation(TypedExpression ex)
+            {
+                if (ex.Expression is QsExpressionKind.Identifier id)
+                { this.LogIdentifierLocation(id.Item1, ex.Range); }
+            }
         }
 
 
-        public __IdentifierReferences__(QsQualifiedName idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) :
-            base(new TransformationState(idName, limitToSourceFiles))
+        public IdentifierReferences(NonNullable<string> idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) :
+            base(new TransformationState(id => id is Identifier.LocalVariable varName && varName.Item.Value == idName.Value, defaultOffset, limitToSourceFiles))
         { }
 
+        public IdentifierReferences(QsQualifiedName idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) :
+            base(new TransformationState(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset, limitToSourceFiles))
+        {
+            if (idName == null) throw new ArgumentNullException(nameof(idName));
+        }
+
         public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() =>
-            new TypeLocation(this, onId); // FIXME
+            new ExpressionTypeTransformation(this);
+
+        public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
+            new TypedExpressionWalker<TransformationState>(this.InternalState.LogIdentifierLocation, this);
 
         public override StatementTransformation<TransformationState> NewStatementTransformation() =>
             new StatementTransformation(this);
@@ -139,11 +171,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
         // static methods for convenience
+        
+        public static IEnumerable<Location> Find(NonNullable<string> idName, QsScope scope,
+            NonNullable<string> sourceFile, Tuple<int, int> rootLoc)
+        {
+            var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
+            finder.InternalState.Source = sourceFile;
+            finder.InternalState.DeclarationOffset = rootLoc; // will throw if null
+            finder.Statements.Transform(scope ?? throw new ArgumentNullException(nameof(scope)));
+            return finder.InternalState.Locations;
+        }
 
         public static IEnumerable<Location> Find(QsQualifiedName idName, QsNamespace ns, QsLocation defaultOffset,
             out Tuple<NonNullable<string>, QsLocation> declarationLocation, IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
-            var finder = new __IdentifierReferences__(idName, defaultOffset, limitToSourceFiles);
+            var finder = new IdentifierReferences(idName, defaultOffset, limitToSourceFiles);
             finder.Namespaces.Transform(ns ?? throw new ArgumentNullException(nameof(ns)));
             declarationLocation = finder.InternalState.DeclarationLocation;
             return finder.InternalState.Locations;
@@ -152,32 +194,32 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // helper classes
 
-        public class TypeLocation :
+        private class ExpressionTypeTransformation :
             Core.ExpressionTypeTransformation<TransformationState>
         {
             private readonly QsCodeOutput.ExpressionTypeToQs CodeOutput = new QsCodeOutput.ExpressionToQs()._Type;
-            internal Action<Identifier, QsRangeInfo> OnIdentifier;
 
-            public TypeLocation(QsSyntaxTreeTransformation<TransformationState> parent, Action<Identifier, QsRangeInfo> onIdentifier = null) :
-                base(parent) =>
-                this.OnIdentifier = onIdentifier;
+            public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) :
+                base(parent)
+            { }
 
             public override QsTypeKind onUserDefinedType(UserDefinedType udt)
             {
-                this.OnIdentifier?.Invoke(Identifier.NewGlobalCallable(new QsQualifiedName(udt.Namespace, udt.Name)), udt.Range);
+                var id = Identifier.NewGlobalCallable(new QsQualifiedName(udt.Namespace, udt.Name));
+                this.Transformation.InternalState.LogIdentifierLocation(id, udt.Range);
                 return QsTypeKind.NewUserDefinedType(udt);
             }
 
             public override QsTypeKind onTypeParameter(QsTypeParameter tp)
             {
                 this.CodeOutput.onTypeParameter(tp);
-                var tpName = NonNullable<string>.New(this.CodeOutput.Output ?? "");
-                this.OnIdentifier?.Invoke(Identifier.NewLocalVariable(tpName), tp.Range);
+                var id = Identifier.NewLocalVariable(NonNullable<string>.New(this.CodeOutput.Output ?? ""));
+                this.Transformation.InternalState.LogIdentifierLocation(id, tp.Range);
                 return QsTypeKind.NewTypeParameter(tp);
             }
         }
 
-        public class StatementTransformation :
+        private class StatementTransformation :
             StatementTransformation<TransformationState>
         {
             public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
@@ -191,7 +233,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
-        public class NamespaceTransformation :
+        private class NamespaceTransformation :
             NamespaceTransformation<TransformationState>
         {
 
@@ -202,7 +244,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsCustomType onType(QsCustomType t)
             {
                 if (!this.Transformation.InternalState.IsRelevant(t.SourceFile) || t.Location.IsNull) return t;
-                if (t.FullName.Equals(this.Transformation.InternalState.IdentifierName))
+                if (this.Transformation.InternalState.TrackIdentifier(Identifier.NewGlobalCallable(t.FullName)))
                 { this.Transformation.InternalState.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(t.SourceFile, t.Location.Item); }
                 return base.onType(t);
             }
@@ -210,7 +252,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsCallable onCallableImplementation(QsCallable c)
             {
                 if (!this.Transformation.InternalState.IsRelevant(c.SourceFile) || c.Location.IsNull) return c;
-                if (c.FullName.Equals(this.Transformation.InternalState.IdentifierName))
+                if (this.Transformation.InternalState.TrackIdentifier(Identifier.NewGlobalCallable(c.FullName)))
                 { this.Transformation.InternalState.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(c.SourceFile, c.Location.Item); }
                 return base.onCallableImplementation(c);
             }
@@ -228,88 +270,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsSpecialization onSpecializationImplementation(QsSpecialization spec) =>
                 this.Transformation.InternalState.IsRelevant(spec.SourceFile) ? base.onSpecializationImplementation(spec) : spec;
 
-            public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> l)
+            public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> loc)
             {
-                this.Transformation.InternalState.DeclarationOffset = l.IsValue ? l.Item.Offset : null;
-                return l;
+                this.Transformation.InternalState.DeclarationOffset = loc.IsValue ? loc.Item.Offset : null;
+                return loc;
             }
 
-            public override NonNullable<string> onSourceFile(NonNullable<string> f)
+            public override NonNullable<string> onSourceFile(NonNullable<string> source)
             {
-                this.Transformation.InternalState.Source = f;
-                return base.onSourceFile(f);
+                this.Transformation.InternalState.Source = source;
+                return source;
             }
-        }
-    }
-
-    /// <summary>
-    /// Class that allows to walk the syntax tree and find all locations where a certain identifier occurs.
-    /// If a set of source file names is given on initialization, the search is limited to callables and specializations in those files. 
-    /// </summary>
-    public class IdentifierReferences :
-        SyntaxTreeTransformation<IdentifierLocation>
-    {
-
-        public IdentifierReferences(QsQualifiedName idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) :
-            base(new IdentifierLocation(idName, defaultOffset))
-        {
-        }
-    }
-
-    /// <summary>
-    /// Class that allows to walk a scope and find all locations where a certain identifier occurs within an expression.
-    /// If no source file is specified prior to transformation, its name is set to the empty string. 
-    /// The DeclarationOffset needs to be set prior to transformation, and in particular after defining a source file.
-    /// If no DefaultOffset is set on initialization then only the locations of occurrences within statements are logged. 
-    /// </summary>
-    public class IdentifierLocation :
-        ScopeTransformation<Core.StatementKindTransformation, OnTypedExpression<IdentifierLocation.TypeLocation>>
-    {
-        private IdentifierLocation(Func<Identifier, bool> trackId, QsLocation defaultOffset) :
-            base(null, new OnTypedExpression<TypeLocation>(null, _ => new TypeLocation()))
-        {
-            this.TrackIdentifier = trackId ?? throw new ArgumentNullException(nameof(trackId));
-            this.Locations = ImmutableList<__IdentifierReferences__.Location>.Empty;
-            this.DefaultOffset = defaultOffset;
-            this._Expression.OnExpression = this.OnExpression;
-            this._Expression._Type.OnIdentifier = this.LogIdentifierLocation;
-        }
-
-        public IdentifierLocation(NonNullable<string> idName, QsLocation defaultOffset = null) :
-            this(id => id is Identifier.LocalVariable varName && varName.Item.Value == idName.Value, defaultOffset)
-        { }
-
-        public IdentifierLocation(QsQualifiedName idName, QsLocation defaultOffset = null) :
-            this(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset)
-        { }
-
-
-        private void LogIdentifierLocation(Identifier id, QsRangeInfo range)
-        {
-            if (this.TrackIdentifier(id) && this.CurrentLocation?.Offset != null && range.IsValue)
-            {
-                var idLoc = new __IdentifierReferences__.Location(this.SourceFile, this.RootOffset, this.CurrentLocation, range.Item);
-                this.Locations = this.Locations.Add(idLoc);
-            }
-        }
-
-        private void OnExpression(TypedExpression ex)
-        {
-            if (ex.Expression is QsExpressionKind<TypedExpression, Identifier, ResolvedType>.Identifier id)
-            { this.LogIdentifierLocation(id.Item1, ex.Range); }
-        }
-
-
-        // static methods for convenience
-
-        public static IEnumerable<__IdentifierReferences__.Location> Find(NonNullable<string> idName, QsScope scope,
-            NonNullable<string> sourceFile, Tuple<int, int> rootLoc)
-        {
-            var finder = new IdentifierLocation(idName, null);
-            finder.SourceFile = sourceFile;
-            finder.RootOffset = rootLoc ?? throw new ArgumentNullException(nameof(rootLoc));
-            finder.Transform(scope ?? throw new ArgumentNullException(nameof(scope)));
-            return finder.Locations;
         }
     }
 
@@ -333,7 +304,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             private readonly List<(NonNullable<string>, QsLocation)> UsedLocals = new List<(NonNullable<string>, QsLocation)>();
 
             internal TransformationState() => 
-                this.UpdatedExpression = new __OnTypedExpression__<TransformationState>(this.UpdatedLocal, this).Transform;
+                this.UpdatedExpression = new TypedExpressionWalker<TransformationState>(this.UpdatedLocal, this).Transform;
 
             public ILookup<NonNullable<string>, QsLocation> ReassignedVariables =>
                 this.UpdatedLocals.ToLookup(var => var.Item1, var => var.Item2);
@@ -362,7 +333,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         { }
 
         public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
-            new __OnTypedExpression__<TransformationState>(this.InternalState.UsedLocal, this);
+            new TypedExpressionWalker<TransformationState>(this.InternalState.UsedLocal, this);
 
         public override Core.StatementKindTransformation<TransformationState> NewStatementKindTransformation() =>
             new StatementKindTransformation(this);
@@ -373,7 +344,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // helper classes 
 
-        public class StatementTransformation :
+        private class StatementTransformation :
             StatementTransformation<TransformationState>
         {
             public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
@@ -388,7 +359,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
-        public class StatementKindTransformation :
+        private class StatementKindTransformation :
             Core.StatementKindTransformation<TransformationState>
         {
             public StatementKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
@@ -462,7 +433,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // helper classes
 
-        public class StatementKindTransformation
+        private class StatementKindTransformation
             : Core.StatementKindTransformation<TransformationState>
         {
             public StatementKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
@@ -477,7 +448,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                     : syms;
         }
 
-        public class ExpressionKindTransformation
+        private class ExpressionKindTransformation
             : Core.ExpressionKindTransformation<TransformationState>
         {
             public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
@@ -493,38 +464,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     // general purpose helpers
 
     /// <summary>
-    /// Recursively applies the specified action OnExpression to each identifier expression upon transformation. 
-    /// Does nothing upon transformation if no action is specified. 
-    /// </summary>
-    public class OnTypedExpression<T> :
-        ExpressionTransformation<ExpressionKindTransformation<OnTypedExpression<T>>, T>
-        where T : Core.ExpressionTypeTransformation
-    {
-        public OnTypedExpression(Action<TypedExpression> onExpression = null, Func<OnTypedExpression<T>, T> typeTransformation = null) :
-            base(e => new ExpressionKindTransformation<OnTypedExpression<T>>(e as OnTypedExpression<T>),
-                 e => typeTransformation?.Invoke(e as OnTypedExpression<T>)) =>
-            this.OnExpression = onExpression;
-
-        public Action<TypedExpression> OnExpression;
-        public override TypedExpression Transform(TypedExpression ex)
-        {
-            this.OnExpression?.Invoke(ex);
-            return base.Transform(ex);
-        }
-    }
-
-    /// <summary>
     /// Upon transformation, applies the specified action to each expression and subexpression. 
     /// The action to apply is specified upon construction, and will be applied before recurring into subexpressions. 
     /// </summary>
-    public class __OnTypedExpression__<T> :
+    public class TypedExpressionWalker<T> :
         Core.ExpressionTransformation<T>
     {
-        public __OnTypedExpression__(Action<TypedExpression> onExpression, QsSyntaxTreeTransformation<T> parent) 
+        public TypedExpressionWalker(Action<TypedExpression> onExpression, QsSyntaxTreeTransformation<T> parent) 
             : base(parent) =>
             this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
 
-        public __OnTypedExpression__(Action<TypedExpression> onExpression, T internalState = default)
+        public TypedExpressionWalker(Action<TypedExpression> onExpression, T internalState = default)
             : base(internalState) =>
             this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
 

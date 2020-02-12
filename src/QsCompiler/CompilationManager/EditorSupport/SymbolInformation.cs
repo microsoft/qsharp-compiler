@@ -213,7 +213,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .Where(spec => spec.SourceFile.Value == file.FileName.Value)
                     .SelectMany(spec =>
                         spec.Implementation is SpecializationImplementation.Provided impl && spec.Location.IsValue
-                            ? IdentifierLocation.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Item.Offset)
+                            ? IdentifierReferences.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Item.Offset)
                             : ImmutableArray<IdentifierReferences.Location>.Empty)
                     .Distinct().Select(AsLocation);
             }
@@ -223,7 +223,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var statements = implementation.StatementsAfterDeclaration(defStart.Subtract(specPos));
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
                 var rootOffset = DiagnosticTools.AsTuple(specPos); 
-                referenceLocations = IdentifierLocation.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Distinct().Select(AsLocation);
+                referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Distinct().Select(AsLocation);
             }
             declarationLocation = AsLocation(file.FileName, definition.Item.Item2, defRange);
             return true;
