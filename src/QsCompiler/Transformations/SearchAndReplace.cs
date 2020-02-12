@@ -78,7 +78,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             public QsQualifiedName IdentifierName;
             public Tuple<NonNullable<string>, QsLocation> DeclarationLocation { get; internal set; }
-            public IEnumerable<__IdentifierReferences__.Location> Locations => this._Scope.Locations;
+            //public IEnumerable<__IdentifierReferences__.Location> Locations => this._Scope.Locations;
 
             private readonly IImmutableSet<NonNullable<string>> RelevantSourseFiles;
             internal bool IsRelevant(NonNullable<string> source) =>
@@ -89,6 +89,38 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 this.IdentifierName = idName ?? throw new ArgumentNullException(nameof(idName));
                 this.RelevantSourseFiles = limitToSourceFiles;
             }
+
+            /// <summary>
+            /// Whenever DeclarationOffset is set, the current statement offset is set to this default value.
+            /// </summary>
+            public readonly QsLocation DefaultOffset;
+            public ImmutableList<__IdentifierReferences__.Location> Locations { get; private set; }
+
+            private NonNullable<string> SourceFile;
+            private Tuple<int, int> RootOffset;
+            internal QsLocation CurrentLocation;
+            private readonly Func<Identifier, bool> TrackIdentifier;
+
+            public Tuple<int, int> DeclarationOffset
+            {
+                internal get => this.RootOffset;
+                set
+                {
+                    this.RootOffset = value ?? throw new ArgumentNullException(nameof(value), "declaration offset cannot be null");
+                    this.CurrentLocation = this.DefaultOffset;
+                }
+            }
+
+            public NonNullable<string> Source
+            {
+                internal get => this.SourceFile;
+                set
+                {
+                    this.SourceFile = value;
+                    this.RootOffset = null;
+                    this.CurrentLocation = null;
+                }
+            }
         }
 
 
@@ -98,6 +130,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() =>
             new TypeLocation(this, onId); // FIXME
+
+        public override StatementTransformation<TransformationState> NewStatementTransformation() =>
+            new StatementTransformation(this);
 
         public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => 
             new NamespaceTransformation(this);
@@ -142,6 +177,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
+        public class StatementTransformation :
+            StatementTransformation<TransformationState>
+        {
+            public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+                : base(parent)
+            { }
+
+            public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> loc)
+            {
+                this.Transformation.InternalState.CurrentLocation = loc.IsValue ? loc.Item : null;
+                return base.onLocation(loc);
+            }
+        }
+
         public class NamespaceTransformation :
             NamespaceTransformation<TransformationState>
         {
@@ -168,11 +217,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
             {
-                var declRoot = this._Scope.DeclarationOffset;
-                this._Scope.DeclarationOffset = att.Offset;
+                var declRoot = this.Transformation.InternalState.DeclarationOffset;
+                this.Transformation.InternalState.DeclarationOffset = att.Offset;
                 if (att.TypeId.IsValue) this.Transformation.Types.onUserDefinedType(att.TypeId.Item);
                 this.Transformation.Expressions.Transform(att.Argument);
-                this._Scope.DeclarationOffset = declRoot;
+                this.Transformation.InternalState.DeclarationOffset = declRoot;
                 return att;
             }
 
@@ -181,16 +230,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> l)
             {
-                this._Scope.DeclarationOffset = l.IsValue ? l.Item.Offset : null;
+                this.Transformation.InternalState.DeclarationOffset = l.IsValue ? l.Item.Offset : null;
                 return l;
             }
 
             public override NonNullable<string> onSourceFile(NonNullable<string> f)
             {
-                this._Scope.Source = f;
+                this.Transformation.InternalState.Source = f;
                 return base.onSourceFile(f);
             }
-
         }
     }
 
@@ -235,43 +283,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             this(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset)
         { }
 
-        private NonNullable<string> SourceFile;
-        private Tuple<int, int> RootOffset;
-        private QsLocation CurrentLocation;
-        private readonly Func<Identifier, bool> TrackIdentifier;
-
-        public Tuple<int, int> DeclarationOffset
-        {
-            internal get => this.RootOffset;
-            set
-            {
-                this.RootOffset = value ?? throw new ArgumentNullException(nameof(value), "declaration offset cannot be null");
-                this.CurrentLocation = this.DefaultOffset;
-            }
-        }
-
-        public NonNullable<string> Source
-        {
-            internal get => this.SourceFile;
-            set
-            {
-                this.SourceFile = value;
-                this.RootOffset = null;
-                this.CurrentLocation = null;
-            }
-        }
-
-        /// <summary>
-        /// Whenever DeclarationOffset is set, the current statement offset is set to this default value.
-        /// </summary>
-        public readonly QsLocation DefaultOffset;
-        public ImmutableList<__IdentifierReferences__.Location> Locations { get; private set; }
-
-        public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> loc)
-        {
-            this.CurrentLocation = loc.IsValue ? loc.Item : null;
-            return base.onLocation(loc);
-        }
 
         private void LogIdentifierLocation(Identifier id, QsRangeInfo range)
         {
