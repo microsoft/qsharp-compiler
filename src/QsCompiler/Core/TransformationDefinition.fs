@@ -144,7 +144,7 @@ and StatementKindTransformation<'T> internal (parentTransformation) =
     override this.ScopeTransformation scope = this.Transformation.Statements.Transform scope
     override this.ExpressionTransformation ex = this.Transformation.Expressions.Transform ex
     override this.TypeTransformation t = this.Transformation.Types.Transform t
-    override this.LocationTransformation loc = this.Transformation.Namespaces.onLocation loc
+    override this.LocationTransformation loc = this.Transformation.Statements.onLocation loc
 
 
 and StatementTransformation<'T> internal (parentTransformation) = 

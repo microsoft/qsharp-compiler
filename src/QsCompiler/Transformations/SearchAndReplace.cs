@@ -229,7 +229,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> loc)
             {
                 this.Transformation.InternalState.CurrentLocation = loc.IsValue ? loc.Item : null;
-                return base.onLocation(loc);
+                return loc;
             }
         }
 
