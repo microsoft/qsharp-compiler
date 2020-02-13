@@ -195,7 +195,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         { }
 
         public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
-            new __FoldOverExpressions__<TransformationState, bool>(this);
+            new FoldOverExpressions<TransformationState, bool>(this);
 
         public override Core.StatementTransformation<TransformationState> NewStatementTransformation() =>
             new StatementTransformation<SelectByFoldingOverExpressions>(
@@ -222,11 +222,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
             public override QsStatement onStatement(QsStatement stm)
             {
-                this.SubSelector = this.CreateSelector(this.Transformation.InternalState); 
-                stm = this.SubSelector.Statements.onStatement(stm);
+                this.SubSelector = this.CreateSelector(this.Transformation.InternalState);
+                var loc = this.SubSelector.Statements.onLocation(stm.Location);
+                var stmKind = this.SubSelector.StatementKinds.Transform(stm.Statement);
+                var varDecl = this.SubSelector.Statements.onLocalDeclarations(stm.SymbolDeclarations);
                 this.Transformation.InternalState.FoldResult = this.Transformation.InternalState.ConstructFold(
                     this.Transformation.InternalState.FoldResult, this.SubSelector.InternalState.FoldResult);
-                return stm;
+                return new QsStatement(stmKind, varDecl, loc, stm.Comments);
             }
 
             public override QsScope Transform(QsScope scope)
@@ -299,15 +301,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// Otherwise the specified folder is only applied to the expression itself. 
     /// The result of the fold is accessible via the FoldResult property in the internal state of the transformation. 
     /// </summary>
-    public class __FoldOverExpressions__<T, S> :
+    public class FoldOverExpressions<T, S> :
         Core.ExpressionTransformation<T>
         where T : FoldingState<S>
     {
-        public __FoldOverExpressions__(QsSyntaxTreeTransformation<T> parent)
+        public FoldOverExpressions(QsSyntaxTreeTransformation<T> parent)
             : base(parent)
         { }
 
-        public __FoldOverExpressions__(T state)
+        public FoldOverExpressions(T state)
             : base(state)
         { }
 
