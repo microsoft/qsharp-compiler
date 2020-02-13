@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
     /// <summary>
     /// Class that allows to walk the syntax tree and find all locations where a certain identifier occurs.
-    /// If a set of source file names is given on initialization, the search is limited to callables and specializations in those files. 
+    /// If a set of source file names is given on initialization, the search is limited to callables and specializations in those files.
     /// </summary>
     public class IdentifierReferences
          : QsSyntaxTreeTransformation<IdentifierReferences.TransformationState>
@@ -76,9 +76,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         /// <summary>
         /// Class used to track the internal state for a transformation that finds all locations where a certain identifier occurs.
-        /// If no source file is specified prior to transformation, its name is set to the empty string. 
+        /// If no source file is specified prior to transformation, its name is set to the empty string.
         /// The DeclarationOffset needs to be set prior to transformation, and in particular after defining a source file.
-        /// If no defaultOffset is specified upon initialization then only the locations of occurrences within statements are logged. 
+        /// If no defaultOffset is specified upon initialization then only the locations of occurrences within statements are logged.
         /// </summary>
         public class TransformationState
         {
@@ -95,8 +95,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 this.RelevantSourseFiles?.Contains(source) ?? true;
 
 
-            internal TransformationState(Func<Identifier, bool> trackId, 
-                QsLocation defaultOffset = null, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) 
+            internal TransformationState(Func<Identifier, bool> trackId,
+                QsLocation defaultOffset = null, IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
             {
                 this.TrackIdentifier = trackId ?? throw new ArgumentNullException(nameof(trackId));
                 this.RelevantSourseFiles = limitToSourceFiles;
@@ -166,12 +166,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public override StatementTransformation<TransformationState> NewStatementTransformation() =>
             new StatementTransformation(this);
 
-        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => 
+        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
             new NamespaceTransformation(this);
 
 
         // static methods for convenience
-        
+
         public static IEnumerable<Location> Find(NonNullable<string> idName, QsScope scope,
             NonNullable<string> sourceFile, Tuple<int, int> rootLoc)
         {
@@ -288,9 +288,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     // routines for finding all symbols/identifiers
 
     /// <summary>
-    /// Generates a look-up for all used local variables and their location in any of the transformed scopes, 
-    /// as well as one for all local variables reassigned in any of the transformed scopes and their locations. 
-    /// Note that the location information is relative to the root node, i.e. the start position of the containing specialization declaration. 
+    /// Generates a look-up for all used local variables and their location in any of the transformed scopes,
+    /// as well as one for all local variables reassigned in any of the transformed scopes and their locations.
+    /// Note that the location information is relative to the root node, i.e. the start position of the containing specialization declaration.
     /// </summary>
     public class AccumulateIdentifiers
          : QsSyntaxTreeTransformation<AccumulateIdentifiers.TransformationState>
@@ -303,7 +303,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             private readonly List<(NonNullable<string>, QsLocation)> UpdatedLocals = new List<(NonNullable<string>, QsLocation)>();
             private readonly List<(NonNullable<string>, QsLocation)> UsedLocals = new List<(NonNullable<string>, QsLocation)>();
 
-            internal TransformationState() => 
+            internal TransformationState() =>
                 this.UpdatedExpression = new TypedExpressionWalker<TransformationState>(this.UpdatedLocal, this).Transform;
 
             public ILookup<NonNullable<string>, QsLocation> ReassignedVariables =>
@@ -342,7 +342,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             new StatementTransformation(this);
 
 
-        // helper classes 
+        // helper classes
 
         private class StatementTransformation :
             StatementTransformation<TransformationState>
@@ -380,8 +380,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
     /// <summary>
     /// Upon transformation, assigns each defined variable a unique name, independent on the scope, and replaces all references to it accordingly.
-    /// The original variable name can be recovered by using the static method StripUniqueName.  
-    /// This class is *not* threadsafe. 
+    /// The original variable name can be recovered by using the static method StripUniqueName.
+    /// This class is *not* threadsafe.
     /// </summary>
     public class UniqueVariableNames
          : QsSyntaxTreeTransformation<UniqueVariableNames.TransformationState>
@@ -398,7 +398,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                     : QsExpressionKind.NewIdentifier(sym, tArgs);
 
             /// <summary>
-            /// Will overwrite the dictionary entry mapping a variable name to the corresponding unique name if the key already exists. 
+            /// Will overwrite the dictionary entry mapping a variable name to the corresponding unique name if the key already exists.
             /// </summary>
             internal NonNullable<string> GenerateUniqueName(NonNullable<string> varName)
             {
@@ -464,13 +464,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     // general purpose helpers
 
     /// <summary>
-    /// Upon transformation, applies the specified action to each expression and subexpression. 
-    /// The action to apply is specified upon construction, and will be applied before recurring into subexpressions. 
+    /// Upon transformation, applies the specified action to each expression and subexpression.
+    /// The action to apply is specified upon construction, and will be applied before recurring into subexpressions.
     /// </summary>
     public class TypedExpressionWalker<T> :
         Core.ExpressionTransformation<T>
     {
-        public TypedExpressionWalker(Action<TypedExpression> onExpression, QsSyntaxTreeTransformation<T> parent) 
+        public TypedExpressionWalker(Action<TypedExpression> onExpression, QsSyntaxTreeTransformation<T> parent)
             : base(parent) =>
             this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
 

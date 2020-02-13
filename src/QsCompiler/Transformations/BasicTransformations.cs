@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     {
         public class TransformationState
         {
-            internal readonly HashSet<NonNullable<string>> SourceFiles = 
+            internal readonly HashSet<NonNullable<string>> SourceFiles =
                 new HashSet<NonNullable<string>>();
         }
 
@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         /// <summary>
         /// Returns a hash set containing all source files in the given namespaces.
-        /// Throws an ArgumentNullException if the given sequence or any of the given namespaces is null. 
+        /// Throws an ArgumentNullException if the given sequence or any of the given namespaces is null.
         /// </summary>
         public static ImmutableHashSet<NonNullable<string>> Apply(IEnumerable<QsNamespace> namespaces)
         {
@@ -46,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         /// <summary>
         /// Returns a hash set containing all source files in the given namespace(s).
-        /// Throws an ArgumentNullException if any of the given namespaces is null. 
+        /// Throws an ArgumentNullException if any of the given namespaces is null.
         /// </summary>
         public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) =>
             Apply((IEnumerable<QsNamespace>)namespaces);
@@ -79,20 +79,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
     /// <summary>
     /// Calling Transform on a syntax tree returns a new tree that only contains the type and callable declarations
-    /// that are defined in the source file with the identifier given upon initialization. 
-    /// The transformation also ensures that the elements in each namespace are ordered according to 
+    /// that are defined in the source file with the identifier given upon initialization.
+    /// The transformation also ensures that the elements in each namespace are ordered according to
     /// the location at which they are defined in the file. Auto-generated declarations will be ordered alphabetically.
     /// </summary>
     public class FilterBySourceFile :
         QsSyntaxTreeTransformation<FilterBySourceFile.TransformationState>
-    { 
-        public class TransformationState 
+    {
+        public class TransformationState
         {
             internal readonly Func<NonNullable<string>, bool> Predicate;
             internal readonly List<(int?, QsNamespaceElement)> Elements =
                 new List<(int?, QsNamespaceElement)>();
 
-            public TransformationState(Func<NonNullable<string>, bool> predicate) => 
+            public TransformationState(Func<NonNullable<string>, bool> predicate) =>
                 this.Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
         }
 
@@ -121,9 +121,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         }
 
 
-        // helper classes 
+        // helper classes
 
-        public class NamespaceTransformation : 
+        public class NamespaceTransformation :
             NamespaceTransformation<TransformationState>
         {
             public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 return t;
             }
 
-            public override QsCallable onCallableImplementation(QsCallable c) 
+            public override QsCallable onCallableImplementation(QsCallable c)
             {
                 if (this.Transformation.InternalState.Predicate(c.SourceFile))
                 { this.Transformation.InternalState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
@@ -164,10 +164,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
     /// <summary>
-    /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion. 
-    /// Calling Transform will build a new Scope that contains only the statements for which the fold of a given condition 
-    /// over all contained expressions evaluates to true. 
-    /// If evaluateOnSubexpressions is set to true, the fold is evaluated on all subexpressions as well. 
+    /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion.
+    /// Calling Transform will build a new Scope that contains only the statements for which the fold of a given condition
+    /// over all contained expressions evaluates to true.
+    /// If evaluateOnSubexpressions is set to true, the fold is evaluated on all subexpressions as well.
     /// </summary>
     public class SelectByFoldingOverExpressions :
         QsSyntaxTreeTransformation<SelectByFoldingOverExpressions.TransformationState>
@@ -206,13 +206,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         public override Core.StatementTransformation<TransformationState> NewStatementTransformation() =>
             new StatementTransformation<SelectByFoldingOverExpressions>(
-                state => new SelectByFoldingOverExpressions(state.Condition, state.ConstructFold, state.Seed, state.Recur), 
+                state => new SelectByFoldingOverExpressions(state.Condition, state.ConstructFold, state.Seed, state.Recur),
                 this);
 
 
         // helper classes
 
-        public class StatementTransformation<P> : 
+        public class StatementTransformation<P> :
             Core.StatementTransformation<TransformationState>
             where P : SelectByFoldingOverExpressions
         {
@@ -221,7 +221,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
             /// <summary>
             /// The given function for creating a new subselector is expected to initialize a new internal state with the same configurations as the one given upon construction.
-            /// Upon initialization, the FoldResult of the internal state should be set to the specified seed rather than the FoldResult of the given constructor argument. 
+            /// Upon initialization, the FoldResult of the internal state should be set to the specified seed rather than the FoldResult of the given constructor argument.
             /// </summary>
             public StatementTransformation(Func<TransformationState, P> createSelector, QsSyntaxTreeTransformation<TransformationState> parent)
                 : base(parent) =>
@@ -243,7 +243,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 var statements = new List<QsStatement>();
                 foreach (var statement in scope.Statements)
                 {
-                    // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement, 
+                    // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement,
                     // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
                     var transformed = this.onStatement(statement);
                     if (this.SubSelector.InternalState.SatisfiesCondition) statements.Add(transformed);
@@ -255,10 +255,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
     /// <summary>
-    /// Class that allows to transform scopes by keeping only statements that contain certain expressions. 
-    /// Calling Transform will build a new Scope that contains only the statements 
-    /// which contain an expression or subexpression (only if evaluateOnSubexpressions is set to true) 
-    /// that satisfies the condition given on initialization. 
+    /// Class that allows to transform scopes by keeping only statements that contain certain expressions.
+    /// Calling Transform will build a new Scope that contains only the statements
+    /// which contain an expression or subexpression (only if evaluateOnSubexpressions is set to true)
+    /// that satisfies the condition given on initialization.
     /// </summary>
     public class SelectByAnyContainedExpression :
         SelectByFoldingOverExpressions
@@ -269,8 +269,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     }
 
     /// <summary>
-    /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion. 
-    /// Calling Transform will build a new Scope that contains only the statements 
+    /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion.
+    /// Calling Transform will build a new Scope that contains only the statements
     /// for which all contained expressions or subexpressions satisfy the condition given on initialization.
     /// Note that subexpressions will only be verified if evaluateOnSubexpressions is set to true (default value).
     /// </summary>
@@ -284,12 +284,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
     /// <summary>
-    /// Class that evaluates a fold on upon transforming an expression. 
-    /// If recur is set to true in the internal state of the transformation, 
+    /// Class that evaluates a fold on upon transforming an expression.
+    /// If recur is set to true in the internal state of the transformation,
     /// the fold function given on initialization is applied to all subexpressions as well as the expression itself -
-    /// i.e. the fold it take starting on inner expressions (from the inside out). 
-    /// Otherwise the specified folder is only applied to the expression itself. 
-    /// The result of the fold is accessible via the FoldResult property in the internal state of the transformation. 
+    /// i.e. the fold it take starting on inner expressions (from the inside out).
+    /// Otherwise the specified folder is only applied to the expression itself.
+    /// The result of the fold is accessible via the FoldResult property in the internal state of the transformation.
     /// </summary>
     public class FoldOverExpressions<T, S> :
         Core.ExpressionTransformation<T>
