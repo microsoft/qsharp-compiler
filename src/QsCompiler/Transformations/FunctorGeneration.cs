@@ -20,8 +20,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// with a call to the operation after application of the functor given on initialization. 
     /// The default values used for auto-generation will be used for the additional functor arguments.  
     /// </summary>
-    public class __ApplyFunctorToOperationCalls__ :
-        QsSyntaxTreeTransformation<__ApplyFunctorToOperationCalls__.TransformationsState>
+    public class ApplyFunctorToOperationCalls :
+        QsSyntaxTreeTransformation<ApplyFunctorToOperationCalls.TransformationsState>
     {
         public class TransformationsState
         {
@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         }
 
 
-        public __ApplyFunctorToOperationCalls__(QsFunctor functor)
+        public ApplyFunctorToOperationCalls(QsFunctor functor)
             : base(new TransformationsState(functor))
         { }
 
@@ -49,10 +49,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             SyntaxGenerator.ImmutableQubitArrayWithName(NonNullable<string>.New(InternalUse.ControlQubitsName));
 
         public static readonly Func<QsScope, QsScope> ApplyAdjoint =
-            new __ApplyFunctorToOperationCalls__(QsFunctor.Adjoint).Statements.Transform;
+            new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Statements.Transform;
 
         public static readonly Func<QsScope, QsScope> ApplyControlled =
-            new __ApplyFunctorToOperationCalls__(QsFunctor.Controlled).Statements.Transform;
+            new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Statements.Transform;
 
 
         // helper classes
@@ -123,42 +123,54 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// Throws an InvalidOperationException if the scope to transform contains while-loops. 
     /// </summary>
     internal class ReverseOrderOfOperationCalls :
-        SelectByAllContainedExpressions<ReverseOrderOfOperationCalls.ReverseLoops>
+        SelectByAllContainedExpressions 
     {
         public ReverseOrderOfOperationCalls() :
-            base(ex => !ex.InferredInformation.HasLocalQuantumDependency, false, s => new ReverseLoops(s as ReverseOrderOfOperationCalls)) // no need to evaluate subexpressions
+            base(ex => !ex.InferredInformation.HasLocalQuantumDependency, false) // no need to evaluate subexpressions
         { }
 
-        protected override SelectByFoldingOverExpressions<ReverseLoops> GetSubSelector() =>
-            new ReverseOrderOfOperationCalls();
+        public override Core.StatementKindTransformation<TransformationState> NewStatementKindTransformation() =>
+            new ReverseLoops(this);
 
-        public override QsScope Transform(QsScope scope)
+        public override Core.StatementTransformation<TransformationState> NewStatementTransformation() =>
+            new StatementTransformation(this);
+
+
+        // helper classes
+
+        private class StatementTransformation
+            : StatementTransformation<ReverseOrderOfOperationCalls>
         {
-            var topStatements = ImmutableArray.CreateBuilder<QsStatement>();
-            var bottomStatements = new List<QsStatement>();
-            foreach (var statement in scope.Statements)
+            public StatementTransformation(ReverseOrderOfOperationCalls parent)
+                : base(state => new ReverseOrderOfOperationCalls(), parent)
+            { }
+
+            public override QsScope Transform(QsScope scope)
             {
-                var transformed = this.onStatement(statement);
-                if (this.SubSelector.SatisfiesCondition) topStatements.Add(statement);
-                else bottomStatements.Add(transformed);
+                var topStatements = ImmutableArray.CreateBuilder<QsStatement>();
+                var bottomStatements = new List<QsStatement>();
+                foreach (var statement in scope.Statements)
+                {
+                    var transformed = this.onStatement(statement);
+                    if (this.SubSelector.InternalState.SatisfiesCondition) topStatements.Add(statement);
+                    else bottomStatements.Add(transformed);
+                }
+                bottomStatements.Reverse();
+                return new QsScope(topStatements.Concat(bottomStatements).ToImmutableArray(), scope.KnownSymbols);
             }
-            bottomStatements.Reverse();
-            return new QsScope(topStatements.Concat(bottomStatements).ToImmutableArray(), scope.KnownSymbols);
         }
-
-
-        // helper class
 
         /// <summary>
         /// Helper class for the scope transformation that reverses the order of all operation calls
         /// unless these calls occur within the outer block of a conjugation. Outer tranformations of conjugations are left unchanged.
         /// Throws an InvalidOperationException upon while-loops. 
         /// </summary>
-        internal class ReverseLoops : 
-            ApplyFunctorToOperationCalls.IgnoreOuterBlockInConjugations<ReverseOrderOfOperationCalls>
+        private class ReverseLoops : 
+            IgnoreOuterBlockInConjugations<TransformationState>
         {
-            internal ReverseLoops(ReverseOrderOfOperationCalls scope) :
-                base(scope) { }
+            internal ReverseLoops(ReverseOrderOfOperationCalls parent) :
+                base(parent) 
+            { }
 
             public override QsStatementKind onForStatement(QsForStatement stm)
             {

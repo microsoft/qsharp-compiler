@@ -169,8 +169,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// over all contained expressions evaluates to true. 
     /// If evaluateOnSubexpressions is set to true, the fold is evaluated on all subexpressions as well. 
     /// </summary>
-    public class __SelectByFoldingOverExpressions__ :
-        QsSyntaxTreeTransformation<__SelectByFoldingOverExpressions__.TransformationState>
+    public class SelectByFoldingOverExpressions :
+        QsSyntaxTreeTransformation<SelectByFoldingOverExpressions.TransformationState>
     {
         public class TransformationState : FoldingState<bool>
         {
@@ -190,7 +190,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         }
 
 
-        public __SelectByFoldingOverExpressions__(Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool evaluateOnSubexpressions = true)
+        public SelectByFoldingOverExpressions(Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool evaluateOnSubexpressions = true)
             : base(new TransformationState(condition, fold, seed, evaluateOnSubexpressions))
         { }
 
@@ -198,19 +198,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             new __FoldOverExpressions__<TransformationState, bool>(this);
 
         public override Core.StatementTransformation<TransformationState> NewStatementTransformation() =>
-            new StatementTransformation<__SelectByFoldingOverExpressions__>(
-                state => new __SelectByFoldingOverExpressions__(state.Condition, state.ConstructFold, state.Seed, state.Recur), 
+            new StatementTransformation<SelectByFoldingOverExpressions>(
+                state => new SelectByFoldingOverExpressions(state.Condition, state.ConstructFold, state.Seed, state.Recur), 
                 this);
 
 
         // helper classes
 
-        private class StatementTransformation<P> : 
+        public class StatementTransformation<P> : 
             Core.StatementTransformation<TransformationState>
-            where P : __SelectByFoldingOverExpressions__
+            where P : SelectByFoldingOverExpressions
         {
-            private P SubSelector;
-            private readonly Func<TransformationState, P> CreateSelector;
+            protected P SubSelector;
+            protected readonly Func<TransformationState, P> CreateSelector;
 
             /// <summary>
             /// The given function for creating a new subselector is expected to initialize a new internal state with the same configurations as the one given upon construction.
@@ -252,17 +252,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// that satisfies the condition given on initialization. 
     /// </summary>
     public class SelectByAnyContainedExpression :
-        __SelectByFoldingOverExpressions__
+        SelectByFoldingOverExpressions
     {
-        private readonly Func<SelectByFoldingOverExpressions<K>, K> GetStatementKind;
-        protected override SelectByFoldingOverExpressions<K> GetSubSelector() =>
-            new SelectByAnyContainedExpression<K>(this.Condition, this._Expression.recur, this.GetStatementKind);
-
-        public SelectByAnyContainedExpression(
-            Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true,
-            Func<SelectByFoldingOverExpressions<K>, K> statementKind = null) :
-                base(condition, (a, b) => a || b, false, evaluateOnSubexpressions, s => statementKind(s as SelectByFoldingOverExpressions<K>)) =>
-                this.GetStatementKind = statementKind;
+        public SelectByAnyContainedExpression(Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true)
+            : base(condition, (a, b) => a || b, false, evaluateOnSubexpressions)
+        { }
     }
 
     /// <summary>
@@ -272,17 +266,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// Note that subexpressions will only be verified if evaluateOnSubexpressions is set to true (default value).
     /// </summary>
     public class SelectByAllContainedExpressions :
-        __SelectByFoldingOverExpressions__
+        SelectByFoldingOverExpressions
     {
-        private readonly Func<SelectByFoldingOverExpressions<K>, K> GetStatementKind;
-        protected override SelectByFoldingOverExpressions<K> GetSubSelector() =>
-            new SelectByAllContainedExpressions<K>(this.Condition, this._Expression.recur, this.GetStatementKind);
-
-        public SelectByAllContainedExpressions(
-            Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true,
-            Func<SelectByFoldingOverExpressions<K>, K> statementKind = null) :
-                base(condition, (a, b) => a && b, true, evaluateOnSubexpressions, s => statementKind(s as SelectByFoldingOverExpressions<K>)) =>
-                this.GetStatementKind = statementKind;
+        public SelectByAllContainedExpressions(Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true)
+            : base(condition, (a, b) => a && b, true, evaluateOnSubexpressions)
+        { }
     }
 
 
