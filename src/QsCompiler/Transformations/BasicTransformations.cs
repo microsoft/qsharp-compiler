@@ -172,20 +172,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     public class SelectByFoldingOverExpressions :
         QsSyntaxTreeTransformation<SelectByFoldingOverExpressions.TransformationState>
     {
-        public class TransformationState : FoldingState<bool>
+        public class TransformationState : FoldOverExpressions<TransformationState, bool>.IFoldingState
         {
+            public bool Recur { get; }
+            public readonly bool Seed;
+
             internal readonly Func<TypedExpression, bool> Condition;
             internal readonly Func<bool, bool, bool> ConstructFold;
-            internal readonly bool Seed;
 
+            public bool Fold(TypedExpression ex, bool current) =>
+                this.ConstructFold(this.Condition(ex), current);
+
+            public bool FoldResult { get; set; }
             public bool SatisfiesCondition => this.FoldResult;
 
             public TransformationState(Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool recur = true)
-                : base((ex, current) => fold(condition(ex), current), seed, recur: recur)
             {
-                this.Condition = condition ?? throw new ArgumentNullException(nameof(condition));
-                this.ConstructFold = fold ?? throw new ArgumentNullException(nameof(condition));
+                this.Recur = recur;
                 this.Seed = seed;
+                this.FoldResult = seed;
+                this.Condition = condition ?? throw new ArgumentNullException(nameof(condition));
+                this.ConstructFold = fold ?? throw new ArgumentNullException(nameof(fold));
             }
         }
 
@@ -277,23 +284,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
     /// <summary>
-    /// ... 
-    /// </summary>
-    public class FoldingState<T> // FIXME: MAKE THIS AN INTERFACE within FoldOverExpressions
-    {
-        public readonly bool Recur; // FIXME: REMOVE THAT
-        public readonly Func<TypedExpression, T, T> Fold;
-        public T FoldResult { get; set; }
-
-        public FoldingState(Func<TypedExpression, T, T> fold, T seed, bool recur = true)
-        {
-            this.Recur = recur;
-            this.Fold = fold ?? throw new ArgumentNullException(nameof(fold));
-            this.FoldResult = seed;
-        }
-    }
-
-    /// <summary>
     /// Class that evaluates a fold on upon transforming an expression. 
     /// If recur is set to true in the internal state of the transformation, 
     /// the fold function given on initialization is applied to all subexpressions as well as the expression itself -
@@ -303,8 +293,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// </summary>
     public class FoldOverExpressions<T, S> :
         Core.ExpressionTransformation<T>
-        where T : FoldingState<S>
+        where T : FoldOverExpressions<T,S>.IFoldingState
     {
+        public interface IFoldingState
+        {
+            public bool Recur { get; }
+            public S Fold(TypedExpression ex, S current);
+            public S FoldResult { get; set; }
+        }
+
+
         public FoldOverExpressions(QsSyntaxTreeTransformation<T> parent)
             : base(parent)
         { }
