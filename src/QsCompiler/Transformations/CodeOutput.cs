@@ -24,189 +24,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     // Q# type to Code
 
     /// <summary>
-    /// Class used to generate Q# code for Q# types. 
-    /// Adds an Output string property to ExpressionTypeTransformation, 
-    /// that upon calling Transform on a Q# type is set to the Q# code corresponding to that type. 
-    /// </summary>
-    public class ExpressionTypeToQs :
-        ExpressionTypeTransformation<ExpressionToQs>
-    {
-        public string Output;
-
-        public string Apply(ResolvedType t)
-        {
-            this.Transform(t);
-            return this.Output;
-        }
-
-        public ExpressionTypeToQs(ExpressionToQs expression) :
-            base(expression)
-        { }
-        
-
-        public override QsTypeKind onArrayType(ResolvedType b)
-        {
-            this.Output = $"{this.Apply(b)}[]";
-            return QsTypeKind.NewArrayType(b);
-        }
-
-        public override QsTypeKind onBool()
-        {
-            this.Output = Keywords.qsBool.id;
-            return QsTypeKind.Bool;
-        }
-
-        public override QsTypeKind onDouble()
-        {
-            this.Output = Keywords.qsDouble.id;
-            return QsTypeKind.Double;
-        }
-
-        public override QsTypeKind onFunction(ResolvedType it, ResolvedType ot)
-        {
-            this.Output = $"({this.Apply(it)} -> {this.Apply(ot)})";
-            return QsTypeKind.NewFunction(it, ot);
-        }
-
-        public override QsTypeKind onInt()
-        {
-            this.Output = Keywords.qsInt.id;
-            return QsTypeKind.Int;
-        }
-
-        public override QsTypeKind onBigInt()
-        {
-            this.Output = Keywords.qsBigInt.id;
-            return QsTypeKind.BigInt;
-        }
-
-        public override QsTypeKind onInvalidType()
-        {
-            this.beforeInvalidType?.Invoke();
-            this.Output = InvalidType;
-            return QsTypeKind.InvalidType;
-        }
-
-        public override QsTypeKind onMissingType()
-        {
-            this.Output = "_"; // needs to be underscore, since this is valid as type argument specifier
-            return QsTypeKind.MissingType;
-        }
-
-        public override ResolvedCharacteristics onCharacteristicsExpression(ResolvedCharacteristics fs)
-        {
-            int CurrentPrecedence = 0;
-            string SetPrecedenceAndReturn(int prec, string str)
-            {
-                CurrentPrecedence = prec;
-                return str;
-            }
-
-            string Recur(int prec, ResolvedCharacteristics ex)
-            {
-                var output = SetAnnotation(ex);
-                return prec < CurrentPrecedence || CurrentPrecedence == int.MaxValue ? output : $"({output})";
-            }
-
-            string BinaryOperator(Keywords.QsOperator op, ResolvedCharacteristics lhs, ResolvedCharacteristics rhs) =>
-                SetPrecedenceAndReturn(op.prec, $"{Recur(op.prec, lhs)} {op.op} {Recur(op.prec, rhs)}");
-
-            string SetAnnotation(ResolvedCharacteristics characteristics)
-            {
-                if (characteristics.Expression is CharacteristicsKind<ResolvedCharacteristics>.SimpleSet set)
-                {
-                    string setName = null;
-                    if (set.Item.IsAdjointable) setName = Keywords.qsAdjSet.id;
-                    else if (set.Item.IsControllable) setName = Keywords.qsCtlSet.id;
-                    else throw new NotImplementedException("unknown set name");
-                    return SetPrecedenceAndReturn(int.MaxValue, setName);
-                }
-                else if (characteristics.Expression is CharacteristicsKind<ResolvedCharacteristics>.Union u)
-                { return BinaryOperator(Keywords.qsSetUnion, u.Item1, u.Item2); }
-                else if (characteristics.Expression is CharacteristicsKind<ResolvedCharacteristics>.Intersection i)
-                { return BinaryOperator(Keywords.qsSetIntersection, i.Item1, i.Item2); }
-                else if (characteristics.Expression.IsInvalidSetExpr)
-                {
-                    this.beforeInvalidSet?.Invoke();
-                    return SetPrecedenceAndReturn(int.MaxValue, InvalidSet);
-                }
-                else throw new NotImplementedException("unknown set expression");
-            }
-
-            this.Output = fs.Expression.IsEmptySet ? null : SetAnnotation(fs); 
-            return fs;
-        }
-
-        public override QsTypeKind onOperation(Tuple<ResolvedType, ResolvedType> sign, CallableInformation info)
-        {
-            info = base.onCallableInformation(info); 
-            var characteristics = String.IsNullOrWhiteSpace(this.Output) ? "" : $" {Keywords.qsCharacteristics.id} {this.Output}"; 
-            this.Output = $"({this.Apply(sign.Item1)} => {this.Apply(sign.Item2)}{characteristics})";
-            return QsTypeKind.NewOperation(sign, info);
-        }
-
-        public override QsTypeKind onPauli()
-        {
-            this.Output = Keywords.qsPauli.id;
-            return QsTypeKind.Pauli;
-        }
-
-        public override QsTypeKind onQubit()
-        {
-            this.Output = Keywords.qsQubit.id;
-            return QsTypeKind.Qubit;
-        }
-
-        public override QsTypeKind onRange()
-        {
-            this.Output = Keywords.qsRange.id;
-            return QsTypeKind.Range;
-        }
-
-        public override QsTypeKind onResult()
-        {
-            this.Output = Keywords.qsResult.id;
-            return QsTypeKind.Result;
-        }
-
-        public override QsTypeKind onString()
-        {
-            this.Output = Keywords.qsString.id;
-            return QsTypeKind.String;
-        }
-
-        public override QsTypeKind onTupleType(ImmutableArray<ResolvedType> ts)
-        {
-            this.Output = $"({String.Join(", ", ts.Select(this.Apply))})";
-            return QsTypeKind.NewTupleType(ts);
-        }
-
-        public override QsTypeKind onTypeParameter(QsTypeParameter tp)
-        {
-            this.Output = $"'{tp.TypeName.Value}";
-            return QsTypeKind.NewTypeParameter(tp);
-        }
-
-        public override QsTypeKind onUnitType()
-        {
-            this.Output = Keywords.qsUnit.id;
-            return QsTypeKind.UnitType;
-        }
-
-        public override QsTypeKind onUserDefinedType(UserDefinedType udt)
-        {
-            var isInCurrentNamespace = udt.Namespace.Value == this._Expression.Context.CurrentNamespace;
-            var isInOpenNamespace = this._Expression.Context.OpenedNamespaces.Contains(udt.Namespace) && !this._Expression.Context.SymbolsInCurrentNamespace.Contains(udt.Name);
-            var hasShortName = this._Expression.Context.NamespaceShortNames.TryGetValue(udt.Namespace, out var shortName);
-            this.Output = isInCurrentNamespace || (isInOpenNamespace && !this._Expression.Context.AmbiguousNames.Contains(udt.Name))
-                ? udt.Name.Value
-                : $"{(hasShortName ? shortName.Value : udt.Namespace.Value)}.{udt.Name.Value}";
-            return QsTypeKind.NewUserDefinedType(udt);
-        }
-    }
-
-
-    /// <summary>
     /// Class used to generate Q# code for Q# expressions. 
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to an expression of the given kind. 
     /// </summary>
@@ -891,15 +708,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public class SharedState
         {
-            public Action BeforeInvalidType;
-            public Action BeforeInvalidSet;
-            public Action BeforeInvalidIdentifier;
-            public Action BeforeInvalidExpression;
-            public Action BeforeInvalidSymbol;
-            public Action BeforeInvalidInitializer;
-            public Action BeforeExternalImplementation;
-            public Action BeforeInvalidFunctorGenerator;
+            public Action BeforeInvalidType = null;
+            public Action BeforeInvalidSet = null;
+            public Action BeforeInvalidIdentifier = null;
+            public Action BeforeInvalidExpression = null;
+            public Action BeforeInvalidSymbol = null;
+            public Action BeforeInvalidInitializer = null;
+            public Action BeforeExternalImplementation = null;
+            public Action BeforeInvalidFunctorGenerator = null;
 
+            public string TypeOutputHandle = null;
         }
 
 
@@ -1026,12 +844,192 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         }
 
 
+        /// <summary>
+        /// Class used to generate Q# code for Q# types. 
+        /// Adds an Output string property to ExpressionTypeTransformation, 
+        /// that upon calling Transform on a Q# type is set to the Q# code corresponding to that type. 
+        /// </summary>
         private class ExpressionTypeTransformation
             : Core.ExpressionTypeTransformation<SharedState>
         {
+            private string Output // the sole purpose of this is a shorter name ...
+            {
+                get => this.Transformation.InternalState.TypeOutputHandle;
+                set => Transformation.InternalState.TypeOutputHandle = value;
+            }
+
             public ExpressionTypeTransformation(QsSyntaxTreeTransformation<SharedState> parent)
                 : base(parent)
             { }
+
+            public string Apply(ResolvedType t)
+            {
+                this.Transform(t);
+                return this.Output;
+            }
+
+
+            // overrides 
+
+            public override QsTypeKind onArrayType(ResolvedType b)
+            {
+                this.Output = $"{this.Apply(b)}[]";
+                return QsTypeKind.NewArrayType(b);
+            }
+
+            public override QsTypeKind onBool()
+            {
+                this.Output = Keywords.qsBool.id;
+                return QsTypeKind.Bool;
+            }
+
+            public override QsTypeKind onDouble()
+            {
+                this.Output = Keywords.qsDouble.id;
+                return QsTypeKind.Double;
+            }
+
+            public override QsTypeKind onFunction(ResolvedType it, ResolvedType ot)
+            {
+                this.Output = $"({this.Apply(it)} -> {this.Apply(ot)})";
+                return QsTypeKind.NewFunction(it, ot);
+            }
+
+            public override QsTypeKind onInt()
+            {
+                this.Output = Keywords.qsInt.id;
+                return QsTypeKind.Int;
+            }
+
+            public override QsTypeKind onBigInt()
+            {
+                this.Output = Keywords.qsBigInt.id;
+                return QsTypeKind.BigInt;
+            }
+
+            public override QsTypeKind onInvalidType()
+            {
+                this.Transformation.InternalState.BeforeInvalidType?.Invoke();
+                this.Output = InvalidType;
+                return QsTypeKind.InvalidType;
+            }
+
+            public override QsTypeKind onMissingType()
+            {
+                this.Output = "_"; // needs to be underscore, since this is valid as type argument specifier
+                return QsTypeKind.MissingType;
+            }
+
+            public override QsTypeKind onPauli()
+            {
+                this.Output = Keywords.qsPauli.id;
+                return QsTypeKind.Pauli;
+            }
+
+            public override QsTypeKind onQubit()
+            {
+                this.Output = Keywords.qsQubit.id;
+                return QsTypeKind.Qubit;
+            }
+
+            public override QsTypeKind onRange()
+            {
+                this.Output = Keywords.qsRange.id;
+                return QsTypeKind.Range;
+            }
+
+            public override QsTypeKind onResult()
+            {
+                this.Output = Keywords.qsResult.id;
+                return QsTypeKind.Result;
+            }
+
+            public override QsTypeKind onString()
+            {
+                this.Output = Keywords.qsString.id;
+                return QsTypeKind.String;
+            }
+
+            public override QsTypeKind onTupleType(ImmutableArray<ResolvedType> ts)
+            {
+                this.Output = $"({String.Join(", ", ts.Select(this.Apply))})";
+                return QsTypeKind.NewTupleType(ts);
+            }
+
+            public override QsTypeKind onTypeParameter(QsTypeParameter tp)
+            {
+                this.Output = $"'{tp.TypeName.Value}";
+                return QsTypeKind.NewTypeParameter(tp);
+            }
+
+            public override QsTypeKind onUnitType()
+            {
+                this.Output = Keywords.qsUnit.id;
+                return QsTypeKind.UnitType;
+            }
+
+            public override QsTypeKind onUserDefinedType(UserDefinedType udt)
+            {
+                var isInCurrentNamespace = udt.Namespace.Value == this.Transformation.Expressions.Context.CurrentNamespace;
+                var isInOpenNamespace = this.Transformation.Expressions.Context.OpenedNamespaces.Contains(udt.Namespace) && !this.Transformation.Expressions.Context.SymbolsInCurrentNamespace.Contains(udt.Name);
+                var hasShortName = this.Transformation.Expressions.Context.NamespaceShortNames.TryGetValue(udt.Namespace, out var shortName);
+                this.Output = isInCurrentNamespace || (isInOpenNamespace && !this.Transformation.Expressions.Context.AmbiguousNames.Contains(udt.Name))
+                    ? udt.Name.Value
+                    : $"{(hasShortName ? shortName.Value : udt.Namespace.Value)}.{udt.Name.Value}";
+                return QsTypeKind.NewUserDefinedType(udt);
+            }
+
+            public override ResolvedCharacteristics onCharacteristicsExpression(ResolvedCharacteristics fs)
+            {
+                int CurrentPrecedence = 0;
+                string SetPrecedenceAndReturn(int prec, string str)
+                {
+                    CurrentPrecedence = prec;
+                    return str;
+                }
+
+                string Recur(int prec, ResolvedCharacteristics ex)
+                {
+                    var output = SetAnnotation(ex);
+                    return prec < CurrentPrecedence || CurrentPrecedence == int.MaxValue ? output : $"({output})";
+                }
+
+                string BinaryOperator(Keywords.QsOperator op, ResolvedCharacteristics lhs, ResolvedCharacteristics rhs) =>
+                    SetPrecedenceAndReturn(op.prec, $"{Recur(op.prec, lhs)} {op.op} {Recur(op.prec, rhs)}");
+
+                string SetAnnotation(ResolvedCharacteristics characteristics)
+                {
+                    if (characteristics.Expression is CharacteristicsKind<ResolvedCharacteristics>.SimpleSet set)
+                    {
+                        string setName = null;
+                        if (set.Item.IsAdjointable) setName = Keywords.qsAdjSet.id;
+                        else if (set.Item.IsControllable) setName = Keywords.qsCtlSet.id;
+                        else throw new NotImplementedException("unknown set name");
+                        return SetPrecedenceAndReturn(int.MaxValue, setName);
+                    }
+                    else if (characteristics.Expression is CharacteristicsKind<ResolvedCharacteristics>.Union u)
+                    { return BinaryOperator(Keywords.qsSetUnion, u.Item1, u.Item2); }
+                    else if (characteristics.Expression is CharacteristicsKind<ResolvedCharacteristics>.Intersection i)
+                    { return BinaryOperator(Keywords.qsSetIntersection, i.Item1, i.Item2); }
+                    else if (characteristics.Expression.IsInvalidSetExpr)
+                    {
+                        this.Transformation.InternalState.BeforeInvalidSet?.Invoke();
+                        return SetPrecedenceAndReturn(int.MaxValue, InvalidSet);
+                    }
+                    else throw new NotImplementedException("unknown set expression");
+                }
+
+                this.Output = fs.Expression.IsEmptySet ? null : SetAnnotation(fs);
+                return fs;
+            }
+
+            public override QsTypeKind onOperation(Tuple<ResolvedType, ResolvedType> sign, CallableInformation info)
+            {
+                info = base.onCallableInformation(info);
+                var characteristics = String.IsNullOrWhiteSpace(this.Output) ? "" : $" {Keywords.qsCharacteristics.id} {this.Output}";
+                this.Output = $"({this.Apply(sign.Item1)} => {this.Apply(sign.Item2)}{characteristics})";
+                return QsTypeKind.NewOperation(sign, info);
+            }
         }
     }
 
