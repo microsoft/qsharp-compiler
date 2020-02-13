@@ -13,7 +13,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
-
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 {
@@ -32,11 +32,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         ExpressionTypeTransformation<ExpressionToQs>
     {
         public string Output;
-        public const string InvalidType = "__UnknownType__";
-        public const string InvalidSet = "__UnknownSet__"; 
-
-        public Action beforeInvalidType;
-        public Action beforeInvalidSet;
 
         public string Apply(ResolvedType t)
         {
@@ -219,12 +214,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         ExpressionKindTransformation<ExpressionToQs>
     {
         public string Output;
-
-        public const string InvalidIdentifier = "__UnknownId__";
-        public const string InvalidExpression = "__InvalidEx__";
-
-        public Action beforeInvalidIdentifier;
-        public Action beforeInvalidExpression;
 
         /// <summary>
         /// allows to omit unnecessary parentheses
@@ -670,12 +659,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     {
         private int currentIndendation = 0;
 
-        public const string InvalidSymbol = "__InvalidName__";
-        public const string InvalidInitializer = "__InvalidInitializer__";
-
-        public Action beforeInvalidSymbol;
-        public Action beforeInvalidInitializer;
-
         internal StatementKindToQs(ScopeToQs scope) :
             base(scope)
         { }
@@ -893,6 +876,165 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     /// Class used to generate Q# code for compiled Q# namespaces. 
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given namespace.
     /// </summary>
+    public class __SyntaxTreeToQs__
+        : QsSyntaxTreeTransformation<__SyntaxTreeToQs__.SharedState>
+    {
+        public const string InvalidType = "__UnknownType__";
+        public const string InvalidSet = "__UnknownSet__";
+        public const string InvalidIdentifier = "__UnknownId__";
+        public const string InvalidExpression = "__InvalidEx__";
+        public const string InvalidSymbol = "__InvalidName__";
+        public const string InvalidInitializer = "__InvalidInitializer__";
+        public const string ExternalImplementation = "__external__";
+        public const string InvalidFunctorGenerator = "__UnknownGenerator__";
+
+
+        public class SharedState
+        {
+            public Action BeforeInvalidType;
+            public Action BeforeInvalidSet;
+            public Action BeforeInvalidIdentifier;
+            public Action BeforeInvalidExpression;
+            public Action BeforeInvalidSymbol;
+            public Action BeforeInvalidInitializer;
+            public Action BeforeExternalImplementation;
+            public Action BeforeInvalidFunctorGenerator;
+
+        }
+
+
+        public __SyntaxTreeToQs__()
+            : base(new SharedState())
+        { }
+
+        public override NamespaceTransformation<SharedState> NewNamespaceTransformation() =>
+            new NamespaceTransformation(this);
+
+        public override StatementTransformation<SharedState> NewStatementTransformation() =>
+            new StatementTransformation(this);
+
+        public override Core.StatementKindTransformation<SharedState> NewStatementKindTransformation() =>
+            new StatementKindTransformation(this);
+
+        public override Core.ExpressionTransformation<SharedState> NewExpressionTransformation() =>
+            new ExpressionTransformation(this);
+
+        public override Core.ExpressionKindTransformation<SharedState> NewExpressionKindTransformation() =>
+            new ExpressionKindTransformation(this);
+
+        public override Core.ExpressionTypeTransformation<SharedState> NewExpressionTypeTransformation() =>
+            new ExpressionTypeTransformation(this);
+
+
+        // ...
+
+        internal void SetAllInvalid(Action action)
+        {
+            this.InternalState.BeforeExternalImplementation = action;
+            this.InternalState.BeforeInvalidInitializer = action;
+            this.InternalState.BeforeInvalidSymbol = action;
+            this.InternalState.BeforeInvalidIdentifier = action;
+            this.InternalState.BeforeInvalidExpression = action;
+            this.InternalState.BeforeInvalidType = action;
+            this.InternalState.BeforeInvalidSet = action;
+        }
+
+        internal void SetAllInvalid(__SyntaxTreeToQs__ other)
+        {
+            this.InternalState.BeforeExternalImplementation = other.InternalState.BeforeExternalImplementation;
+            this.InternalState.BeforeInvalidInitializer = other.InternalState.BeforeInvalidInitializer;
+            this.InternalState.BeforeInvalidSymbol = other.InternalState.BeforeInvalidSymbol;
+            this.InternalState.BeforeInvalidIdentifier = other.InternalState.BeforeInvalidIdentifier;
+            this.InternalState.BeforeInvalidExpression = other.InternalState.BeforeInvalidExpression;
+            this.InternalState.BeforeInvalidType = other.InternalState.BeforeInvalidType;
+            this.InternalState.BeforeInvalidSet = other.InternalState.BeforeInvalidSet;
+        }
+
+
+        // helper classes
+
+        private class NamespaceTransformation
+            : NamespaceTransformation<SharedState>
+        {
+            public NamespaceTransformation(QsSyntaxTreeTransformation<SharedState> parent)
+                : base(parent)
+            { }
+
+
+            public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
+            {
+                // do *not* set CurrentComments!
+                this.Transformation.Expressions.Transform(att.Argument);
+                var arg = this.Transformation.ExpressionKinds.Output;
+                var argStr = att.Argument.Expression.IsValueTuple || att.Argument.Expression.IsUnitValue ? arg : $"({arg})";
+                var id = att.TypeId.IsValue
+                    ? Identifier.NewGlobalCallable(new QsQualifiedName(att.TypeId.Item.Namespace, att.TypeId.Item.Name))
+                    : Identifier.InvalidIdentifier;
+                this.Transformation.ExpressionKinds.onIdentifier(id, QsNullable<ImmutableArray<ResolvedType>>.Null);
+                this.AddComments(att.Comments.OpeningComments);
+                this.AddToOutput($"@ {this.Transform.ExpressionKinds.Output}{argStr}");
+                return att;
+            }
+
+            public override QsNamespace Transform(QsNamespace ns)
+            {
+                var scope = new ScopeToQs(new TransformationContext { CurrentNamespace = ns.Name.Value });
+                var generator = new SyntaxTreeToQs(scope);
+                generator.SetAllInvalid(this);
+
+                generator.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name.Value}");
+                generator.AddBlock(() => generator.ProcessNamespaceElements(ns.Elements));
+                this._Output.AddRange(generator._Output);
+                return ns;
+            }
+        }
+
+
+        private class StatementTransformation
+            : StatementTransformation<SharedState>
+        {
+            public StatementTransformation(QsSyntaxTreeTransformation<SharedState> parent)
+                : base(parent)
+            { }
+        }
+
+
+        private class StatementKindTransformation
+            : Core.StatementKindTransformation<SharedState>
+        {
+            public StatementKindTransformation(QsSyntaxTreeTransformation<SharedState> parent)
+                : base(parent)
+            { }
+        }
+
+
+        private class ExpressionTransformation
+            : Core.ExpressionTransformation<SharedState>
+        {
+            public ExpressionTransformation(QsSyntaxTreeTransformation<SharedState> parent)
+                : base(parent)
+            { }
+        }
+
+
+        private class ExpressionKindTransformation
+            : Core.ExpressionKindTransformation<SharedState>
+        {
+            public ExpressionKindTransformation(QsSyntaxTreeTransformation<SharedState> parent)
+                : base(parent)
+            { }
+        }
+
+
+        private class ExpressionTypeTransformation
+            : Core.ExpressionTypeTransformation<SharedState>
+        {
+            public ExpressionTypeTransformation(QsSyntaxTreeTransformation<SharedState> parent)
+                : base(parent)
+            { }
+        }
+    }
+
     public class SyntaxTreeToQs :
         SyntaxTreeTransformation<ScopeToQs>
     {
@@ -910,33 +1052,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         internal static bool PrecededByBlock(IEnumerable<string> output) =>
             output == null ? false : output.Any() && output.Last().Trim() == "}";
 
-        public const string ExternalImplementation = "__external__";
-        public const string InvalidFunctorGenerator = "__UnknownGenerator__";
-
-        public Action beforeExternalImplementation;
-        public Action beforeInvalidFunctorGenerator;
-
-        private void SetAllInvalid(Action action)
-        {
-            this.beforeExternalImplementation = action;
-            this._Scope._StatementKind.beforeInvalidInitializer = action;
-            this._Scope._StatementKind.beforeInvalidSymbol = action;
-            this._Scope._Expression._Kind.beforeInvalidIdentifier = action;
-            this._Scope._Expression._Kind.beforeInvalidExpression = action;
-            this._Scope._Expression._Type.beforeInvalidType = action;
-            this._Scope._Expression._Type.beforeInvalidSet = action;
-        }
-
-        private void SetAllInvalid(SyntaxTreeToQs other)
-        {
-            this.beforeExternalImplementation = other.beforeExternalImplementation;
-            this._Scope._StatementKind.beforeInvalidInitializer = other._Scope._StatementKind.beforeInvalidInitializer;
-            this._Scope._StatementKind.beforeInvalidSymbol = other._Scope._StatementKind.beforeInvalidSymbol;
-            this._Scope._Expression._Kind.beforeInvalidIdentifier = other._Scope._Expression._Kind.beforeInvalidIdentifier;
-            this._Scope._Expression._Kind.beforeInvalidExpression = other._Scope._Expression._Kind.beforeInvalidExpression;
-            this._Scope._Expression._Type.beforeInvalidType = other._Scope._Expression._Type.beforeInvalidType;
-            this._Scope._Expression._Type.beforeInvalidSet = other._Scope._Expression._Type.beforeInvalidSet; 
-        }
 
         /// <summary>
         /// For each file in the given parameter array of open directives, 
@@ -1280,32 +1395,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             return t;
         }
 
-        public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
-        {
-            // do *not* set CurrentComments!
-            this._Scope._Expression.Transform(att.Argument);
-            var arg = this._Scope._Expression._Kind.Output;
-            var argStr = att.Argument.Expression.IsValueTuple || att.Argument.Expression.IsUnitValue ? arg : $"({arg})";
-            var id = att.TypeId.IsValue  
-                ? Identifier.NewGlobalCallable(new QsQualifiedName(att.TypeId.Item.Namespace, att.TypeId.Item.Name))
-                : Identifier.InvalidIdentifier;
-            this._Scope._Expression._Kind.onIdentifier(id, QsNullable<ImmutableArray<ResolvedType>>.Null);
-            this.AddComments(att.Comments.OpeningComments);
-            this.AddToOutput($"@ {this._Scope._Expression._Kind.Output}{argStr}");
-            return att;
-        }
-
-        public override QsNamespace Transform(QsNamespace ns)
-        {
-            var scope = new ScopeToQs(new TransformationContext { CurrentNamespace = ns.Name.Value });
-            var generator = new SyntaxTreeToQs(scope);
-            generator.SetAllInvalid(this);
-
-            generator.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name.Value}");
-            generator.AddBlock(() => generator.ProcessNamespaceElements(ns.Elements));
-            this._Output.AddRange(generator._Output);
-            return ns;
-        }
     }
 }
 
