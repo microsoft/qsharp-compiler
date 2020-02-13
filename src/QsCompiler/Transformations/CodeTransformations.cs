@@ -58,9 +58,9 @@ namespace Microsoft.Quantum.QsCompiler
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             var inline = new InlineConjugations(onException);
-            var namespaces = compilation.Namespaces.Select(inline.Transform).ToImmutableArray();
+            var namespaces = compilation.Namespaces.Select(inline.Namespaces.Transform).ToImmutableArray();
             inlined = new QsCompilation(namespaces, compilation.EntryPoints);
-            return inline.Success;
+            return inline.InternalState.Success;
         }
 
         /// <summary>
