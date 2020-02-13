@@ -266,12 +266,12 @@ let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) =
         | Value loc -> loc
     let usedInOuter = 
         let accumulate = new AccumulateIdentifiers()
-        accumulate.Transform outer.Body |> ignore
-        accumulate.UsedLocalVariables
+        accumulate.Statements.Transform outer.Body |> ignore
+        accumulate.InternalState.UsedLocalVariables
     let updatedInInner = 
         let accumulate = new AccumulateIdentifiers()
-        accumulate.Transform inner.Body |> ignore
-        accumulate.ReassignedVariables
+        accumulate.Statements.Transform inner.Body |> ignore
+        accumulate.InternalState.ReassignedVariables
     let updateErrs = 
         updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
         |> Seq.map (fun loc -> (loc.Offset, loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))) |> Seq.toArray
