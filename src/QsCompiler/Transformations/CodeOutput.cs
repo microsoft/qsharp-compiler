@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 
     /// <summary>
-    /// used to pass contextual information for expression transformations
+    /// Class used to represent contextual information for expression transformations.
     /// </summary>
     public class TransformationContext
     {
@@ -39,229 +39,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             this.NamespaceShortNames = ImmutableDictionary<NonNullable<string>, NonNullable<string>>.Empty;
             this.SymbolsInCurrentNamespace = ImmutableHashSet<NonNullable<string>>.Empty;
             this.AmbiguousNames = ImmutableHashSet<NonNullable<string>>.Empty;
-        }
-    }
-
-
-    /// <summary>
-    /// Class used to generate Q# code for Q# statements. 
-    /// Upon calling Transform, the _Output property of the scope transformation given on initialization
-    /// is set to the Q# code corresponding to a statement of the given kind. 
-    /// </summary>
-    public class StatementKindToQs :
-        StatementKindTransformation<ScopeToQs>
-    {
-        private int currentIndendation = 0;
-
-        internal StatementKindToQs(ScopeToQs scope) :
-            base(scope)
-        { }
-
-        private void AddToOutput(string line)
-        {
-            for (var i = 0; i < currentIndendation; ++i) line = $"    {line}";
-            this._Scope._Output.Add(line);
-        }
-
-        private void AddComments(IEnumerable<string> comments)
-        {
-            foreach (var comment in comments)
-            { this.AddToOutput(String.IsNullOrWhiteSpace(comment) ? "" : $"//{comment}"); }
-        }
-
-        private bool PrecededByCode =>
-            SyntaxTreeToQs.PrecededByCode(this._Scope._Output);
-
-        private void AddStatement(string stm)
-        {
-            var comments = this._Scope.CurrentComments;
-            var precededByBlockStatement = SyntaxTreeToQs.PrecededByBlock(this._Scope._Output);
-
-            if (precededByBlockStatement || (PrecededByCode && comments.OpeningComments.Length != 0)) this.AddToOutput("");
-            this.AddComments(comments.OpeningComments);
-            this.AddToOutput($"{stm};");
-            this.AddComments(comments.ClosingComments);
-            if (comments.ClosingComments.Length != 0) this.AddToOutput("");
-        }
-
-        private void AddBlockStatement(string intro, QsScope statements, bool withWhiteSpace = true)
-        {
-            var comments = this._Scope.CurrentComments;
-            if (PrecededByCode && withWhiteSpace) this.AddToOutput("");
-            this.AddComments(comments.OpeningComments);
-            this.AddToOutput($"{intro} {"{"}");
-            ++currentIndendation;
-            this._Scope.Transform(statements);
-            this.AddComments(comments.ClosingComments);
-            --currentIndendation;
-            this.AddToOutput("}");
-        }
-
-        private string Expression(TypedExpression ex) =>
-            this._Scope._Expression._Kind.Apply(ex.Expression);
-
-        private string SymbolTuple(SymbolTuple sym)
-        {
-            if (sym.IsDiscardedItem) return "_";
-            else if (sym is SymbolTuple.VariableName name) return name.Item.Value;
-            else if (sym is SymbolTuple.VariableNameTuple tuple) return $"({String.Join(", ", tuple.Item.Select(SymbolTuple))})";
-            else if (sym.IsInvalidItem)
-            {
-                this.beforeInvalidSymbol?.Invoke();
-                return InvalidSymbol;
-            }
-            else throw new NotImplementedException("unknown item in symbol tuple");
-        }
-
-        private string InitializerTuple(ResolvedInitializer init)
-        {
-            if (init.Resolution.IsSingleQubitAllocation) return $"{Keywords.qsQubit.id}()";
-            else if (init.Resolution is QsInitializerKind<ResolvedInitializer, TypedExpression>.QubitRegisterAllocation reg)
-            { return $"{Keywords.qsQubit.id}[{Expression(reg.Item)}]"; }
-            else if (init.Resolution is QsInitializerKind<ResolvedInitializer, TypedExpression>.QubitTupleAllocation tuple)
-            { return $"({String.Join(", ", tuple.Item.Select(InitializerTuple))})"; }
-            else if (init.Resolution.IsInvalidInitializer)
-            {
-                this.beforeInvalidInitializer?.Invoke();
-                return InvalidInitializer;
-            }
-            else throw new NotImplementedException("unknown qubit initializer");
-        }
-
-
-        private QsStatementKind QubitScope(QsQubitScope stm)
-        {
-            var symbols = SymbolTuple(stm.Binding.Lhs);
-            var initializers = InitializerTuple(stm.Binding.Rhs);
-            string header;
-            if (stm.Kind.IsBorrow) header = Keywords.qsBorrowing.id;
-            else if (stm.Kind.IsAllocate) header = Keywords.qsUsing.id;
-            else throw new NotImplementedException("unknown qubit scope");
-
-            var intro = $"{header} ({symbols} = {initializers})";
-            this.AddBlockStatement(intro, stm.Body);
-            return QsStatementKind.NewQsQubitScope(stm);
-        }
-
-        public override QsStatementKind onAllocateQubits(QsQubitScope stm) =>
-            this.QubitScope(stm);
-
-        public override QsStatementKind onBorrowQubits(QsQubitScope stm) =>
-            this.QubitScope(stm);
-
-        public override QsStatementKind onForStatement(QsForStatement stm)
-        {
-            var symbols = SymbolTuple(stm.LoopItem.Item1);
-            var intro = $"{Keywords.qsFor.id} ({symbols} {Keywords.qsRangeIter.id} {Expression(stm.IterationValues)})";
-            this.AddBlockStatement(intro, stm.Body);
-            return QsStatementKind.NewQsForStatement(stm);
-        }
-
-        public override QsStatementKind onWhileStatement(QsWhileStatement stm)
-        {
-            var intro = $"{Keywords.qsWhile.id} ({Expression(stm.Condition)})";
-            this.AddBlockStatement(intro, stm.Body);
-            return QsStatementKind.NewQsWhileStatement(stm);
-        }
-
-        public override QsStatementKind onRepeatStatement(QsRepeatStatement stm)
-        {
-            this._Scope.CurrentComments = stm.RepeatBlock.Comments;
-            this.AddBlockStatement(Keywords.qsRepeat.id, stm.RepeatBlock.Body);
-            this._Scope.CurrentComments = stm.FixupBlock.Comments;
-            this.AddToOutput($"{Keywords.qsUntil.id} ({Expression(stm.SuccessCondition)})");
-            this.AddBlockStatement(Keywords.qsRUSfixup.id, stm.FixupBlock.Body, false);
-            return QsStatementKind.NewQsRepeatStatement(stm);
-        }
-
-        public override QsStatementKind onConditionalStatement(QsConditionalStatement stm)
-        {
-            var header = Keywords.qsIf.id;
-            if (PrecededByCode) this.AddToOutput("");
-            foreach (var clause in stm.ConditionalBlocks)
-            {
-                this._Scope.CurrentComments = clause.Item2.Comments;
-                var intro = $"{header} ({Expression(clause.Item1)})";
-                this.AddBlockStatement(intro, clause.Item2.Body, false);
-                header = Keywords.qsElif.id;
-            }
-            if (stm.Default.IsValue)
-            {
-                this._Scope.CurrentComments = stm.Default.Item.Comments;
-                this.AddBlockStatement(Keywords.qsElse.id, stm.Default.Item.Body, false);
-            }
-            return QsStatementKind.NewQsConditionalStatement(stm);
-        }
-
-        public override QsStatementKind onConjugation(QsConjugation stm)
-        {
-            this._Scope.CurrentComments = stm.InnerTransformation.Comments;
-            this.AddBlockStatement(Keywords.qsWithin.id, stm.InnerTransformation.Body, true);
-            this._Scope.CurrentComments = stm.OuterTransformation.Comments;
-            this.AddBlockStatement(Keywords.qsApply.id, stm.OuterTransformation.Body, false);
-            return QsStatementKind.NewQsConjugation(stm);
-        }
-
-
-        public override QsStatementKind onExpressionStatement(TypedExpression ex)
-        {
-            this.AddStatement(Expression(ex));
-            return QsStatementKind.NewQsExpressionStatement(ex);
-        }
-
-        public override QsStatementKind onFailStatement(TypedExpression ex)
-        {
-            this.AddStatement($"{Keywords.qsFail.id} {Expression(ex)}");
-            return QsStatementKind.NewQsFailStatement(ex);
-        }
-
-        public override QsStatementKind onReturnStatement(TypedExpression ex)
-        {
-            this.AddStatement($"{Keywords.qsReturn.id} {Expression(ex)}");
-            return QsStatementKind.NewQsReturnStatement(ex);
-        }
-
-        public override QsStatementKind onVariableDeclaration(QsBinding<TypedExpression> stm)
-        {
-            string header;
-            if (stm.Kind.IsImmutableBinding) header = Keywords.qsImmutableBinding.id;
-            else if (stm.Kind.IsMutableBinding) header = Keywords.qsMutableBinding.id;
-            else throw new NotImplementedException("unknown binding kind");
-
-            this.AddStatement($"{header} {SymbolTuple(stm.Lhs)} = {Expression(stm.Rhs)}");
-            return QsStatementKind.NewQsVariableDeclaration(stm);
-        }
-
-        public override QsStatementKind onValueUpdate(QsValueUpdate stm)
-        {
-            this.AddStatement($"{Keywords.qsValueUpdate.id} {Expression(stm.Lhs)} = {Expression(stm.Rhs)}");
-            return QsStatementKind.NewQsValueUpdate(stm);
-        }
-    }
-
-
-    /// <summary>
-    /// Class used to generate Q# code for Q# statements. 
-    /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given statement block.
-    /// </summary>
-    public class ScopeToQs :
-        ScopeTransformation<StatementKindToQs, ExpressionToQs>
-    {
-        internal readonly List<string> _Output;
-        public string Output => String.Join(Environment.NewLine, this._Output);
-        internal QsComments CurrentComments;
-
-        public ScopeToQs(TransformationContext context = null) :
-            base(s => new StatementKindToQs(s as ScopeToQs), new ExpressionToQs(context))
-        {
-            this.CurrentComments = QsComments.Empty;
-            this._Output = new List<string>();
-        }
-
-        public override QsStatement onStatement(QsStatement stm)
-        {
-            this.CurrentComments = stm.Comments;
-            return base.onStatement(stm);
         }
     }
 
@@ -294,8 +71,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             public Action BeforeExternalImplementation = null;
             public Action BeforeInvalidFunctorGenerator = null;
 
-            public string TypeOutputHandle = null;
-            public string ExpressionKindOutputHandle = null;
+            internal string TypeOutputHandle = null;
+            internal string ExpressionKindOutputHandle = null;
+            internal readonly List<string> StatementKindOutputHandle = new List<string>();
+            //public string Output => String.Join(Environment.NewLine, this._Output);
+
+            internal QsComments StatementComments = QsComments.Empty;
+            internal QsComments DeclarationComments = QsComments.Empty;
 
             internal readonly TransformationContext Context = null;
 
@@ -381,14 +163,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             {
                 // do *not* set CurrentComments!
                 this.Transformation.Expressions.Transform(att.Argument);
-                var arg = this.Transformation.ExpressionKinds.Output;
+                var arg = this.Transformation.InternalState.ExpressionKindOutputHandle;
                 var argStr = att.Argument.Expression.IsValueTuple || att.Argument.Expression.IsUnitValue ? arg : $"({arg})";
                 var id = att.TypeId.IsValue
                     ? Identifier.NewGlobalCallable(new QsQualifiedName(att.TypeId.Item.Namespace, att.TypeId.Item.Name))
                     : Identifier.InvalidIdentifier;
                 this.Transformation.ExpressionKinds.onIdentifier(id, QsNullable<ImmutableArray<ResolvedType>>.Null);
                 this.AddComments(att.Comments.OpeningComments);
-                this.AddToOutput($"@ {this.Transformation.ExpressionKinds.Output}{argStr}");
+                this.AddToOutput($"@ {this.Transformation.InternalState.ExpressionKindOutputHandle}{argStr}");
                 return att;
             }
 
@@ -403,24 +185,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this._Output.AddRange(generator._Output);
                 return ns;
             }
-        }
-
-
-        private class StatementTransformation
-            : StatementTransformation<SharedState>
-        {
-            public StatementTransformation(QsSyntaxTreeTransformation<SharedState> parent)
-                : base(parent)
-            { }
-        }
-
-
-        private class StatementKindTransformation
-            : Core.StatementKindTransformation<SharedState>
-        {
-            public StatementKindTransformation(QsSyntaxTreeTransformation<SharedState> parent)
-                : base(parent)
-            { }
         }
 
 
@@ -1021,6 +785,223 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
                 this.CurrentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewIdentifier(sym, tArgs);
+            }
+        }
+
+
+        /// <summary>
+        /// Class used to generate Q# code for Q# statements. 
+        /// Upon calling Transform, the _Output property of the scope transformation given on initialization
+        /// is set to the Q# code corresponding to a statement of the given kind. 
+        /// </summary>
+        private class StatementKindTransformation
+            : Core.StatementKindTransformation<SharedState>
+        {
+            private int CurrentIndendation = 0;
+
+            private readonly Func<TypedExpression, string> ExpressionToQs;
+
+            public StatementKindTransformation(__SyntaxTreeToQs__ parent)
+                : base(parent) =>
+                this.ExpressionToQs = parent.ToCode;
+
+
+            // private helper functions
+
+            private bool PrecededByCode => // FIXME: MOVE THIS SOMEWHERE ELSE
+                SyntaxTreeToQs.PrecededByCode(this.Transformation.InternalState.StatementKindOutputHandle);
+
+            private void AddToOutput(string line)
+            {
+                for (var i = 0; i < this.CurrentIndendation; ++i) line = $"    {line}";
+                this.Transformation.InternalState.StatementKindOutputHandle.Add(line);
+            }
+
+            private void AddComments(IEnumerable<string> comments)
+            {
+                foreach (var comment in comments)
+                { this.AddToOutput(String.IsNullOrWhiteSpace(comment) ? "" : $"//{comment}"); }
+            }
+
+            private void AddStatement(string stm)
+            {
+                var comments = this.Transformation.InternalState.StatementComments;
+                var precededByBlockStatement = SyntaxTreeToQs.PrecededByBlock(this.Transformation.InternalState.StatementKindOutputHandle);
+
+                if (precededByBlockStatement || (this.PrecededByCode && comments.OpeningComments.Length != 0)) this.AddToOutput("");
+                this.AddComments(comments.OpeningComments);
+                this.AddToOutput($"{stm};");
+                this.AddComments(comments.ClosingComments);
+                if (comments.ClosingComments.Length != 0) this.AddToOutput("");
+            }
+
+            private void AddBlockStatement(string intro, QsScope statements, bool withWhiteSpace = true)
+            {
+                var comments = this.Transformation.InternalState.StatementComments;
+                if (this.PrecededByCode && withWhiteSpace) this.AddToOutput("");
+                this.AddComments(comments.OpeningComments);
+                this.AddToOutput($"{intro} {"{"}");
+                ++this.CurrentIndendation;
+                this.Transformation.Statements.Transform(statements);
+                this.AddComments(comments.ClosingComments);
+                --this.CurrentIndendation;
+                this.AddToOutput("}");
+            }
+
+            private string SymbolTuple(SymbolTuple sym)
+            {
+                if (sym.IsDiscardedItem) return "_";
+                else if (sym is SymbolTuple.VariableName name) return name.Item.Value;
+                else if (sym is SymbolTuple.VariableNameTuple tuple) return $"({String.Join(", ", tuple.Item.Select(SymbolTuple))})";
+                else if (sym.IsInvalidItem)
+                {
+                    this.Transformation.InternalState.BeforeInvalidSymbol?.Invoke();
+                    return InvalidSymbol;
+                }
+                else throw new NotImplementedException("unknown item in symbol tuple");
+            }
+
+            private string InitializerTuple(ResolvedInitializer init)
+            {
+                if (init.Resolution.IsSingleQubitAllocation) return $"{Keywords.qsQubit.id}()";
+                else if (init.Resolution is QsInitializerKind<ResolvedInitializer, TypedExpression>.QubitRegisterAllocation reg)
+                { return $"{Keywords.qsQubit.id}[{this.ExpressionToQs(reg.Item)}]"; }
+                else if (init.Resolution is QsInitializerKind<ResolvedInitializer, TypedExpression>.QubitTupleAllocation tuple)
+                { return $"({String.Join(", ", tuple.Item.Select(InitializerTuple))})"; }
+                else if (init.Resolution.IsInvalidInitializer)
+                {
+                    this.Transformation.InternalState.BeforeInvalidInitializer?.Invoke();
+                    return InvalidInitializer;
+                }
+                else throw new NotImplementedException("unknown qubit initializer");
+            }
+
+
+            // overrides
+
+            public override QsStatementKind onQubitScope(QsQubitScope stm)
+            {
+                var symbols = this.SymbolTuple(stm.Binding.Lhs);
+                var initializers = this.InitializerTuple(stm.Binding.Rhs);
+                string header;
+                if (stm.Kind.IsBorrow) header = Keywords.qsBorrowing.id;
+                else if (stm.Kind.IsAllocate) header = Keywords.qsUsing.id;
+                else throw new NotImplementedException("unknown qubit scope");
+
+                var intro = $"{header} ({symbols} = {initializers})";
+                this.AddBlockStatement(intro, stm.Body);
+                return QsStatementKind.NewQsQubitScope(stm);
+            }
+
+            public override QsStatementKind onForStatement(QsForStatement stm)
+            {
+                var symbols = this.SymbolTuple(stm.LoopItem.Item1);
+                var intro = $"{Keywords.qsFor.id} ({symbols} {Keywords.qsRangeIter.id} {this.ExpressionToQs(stm.IterationValues)})";
+                this.AddBlockStatement(intro, stm.Body);
+                return QsStatementKind.NewQsForStatement(stm);
+            }
+
+            public override QsStatementKind onWhileStatement(QsWhileStatement stm)
+            {
+                var intro = $"{Keywords.qsWhile.id} ({this.ExpressionToQs(stm.Condition)})";
+                this.AddBlockStatement(intro, stm.Body);
+                return QsStatementKind.NewQsWhileStatement(stm);
+            }
+
+            public override QsStatementKind onRepeatStatement(QsRepeatStatement stm)
+            {
+                this.Transformation.InternalState.StatementComments = stm.RepeatBlock.Comments;
+                this.AddBlockStatement(Keywords.qsRepeat.id, stm.RepeatBlock.Body);
+                this.Transformation.InternalState.StatementComments = stm.FixupBlock.Comments;
+                this.AddToOutput($"{Keywords.qsUntil.id} ({this.ExpressionToQs(stm.SuccessCondition)})");
+                this.AddBlockStatement(Keywords.qsRUSfixup.id, stm.FixupBlock.Body, false);
+                return QsStatementKind.NewQsRepeatStatement(stm);
+            }
+
+            public override QsStatementKind onConditionalStatement(QsConditionalStatement stm)
+            {
+                var header = Keywords.qsIf.id;
+                if (this.PrecededByCode) this.AddToOutput("");
+                foreach (var clause in stm.ConditionalBlocks)
+                {
+                    this.Transformation.InternalState.StatementComments = clause.Item2.Comments;
+                    var intro = $"{header} ({this.ExpressionToQs(clause.Item1)})";
+                    this.AddBlockStatement(intro, clause.Item2.Body, false);
+                    header = Keywords.qsElif.id;
+                }
+                if (stm.Default.IsValue)
+                {
+                    this.Transformation.InternalState.StatementComments = stm.Default.Item.Comments;
+                    this.AddBlockStatement(Keywords.qsElse.id, stm.Default.Item.Body, false);
+                }
+                return QsStatementKind.NewQsConditionalStatement(stm);
+            }
+
+            public override QsStatementKind onConjugation(QsConjugation stm)
+            {
+                this.Transformation.InternalState.StatementComments = stm.InnerTransformation.Comments;
+                this.AddBlockStatement(Keywords.qsWithin.id, stm.InnerTransformation.Body, true);
+                this.Transformation.InternalState.StatementComments = stm.OuterTransformation.Comments;
+                this.AddBlockStatement(Keywords.qsApply.id, stm.OuterTransformation.Body, false);
+                return QsStatementKind.NewQsConjugation(stm);
+            }
+
+
+            public override QsStatementKind onExpressionStatement(TypedExpression ex)
+            {
+                this.AddStatement(this.ExpressionToQs(ex));
+                return QsStatementKind.NewQsExpressionStatement(ex);
+            }
+
+            public override QsStatementKind onFailStatement(TypedExpression ex)
+            {
+                this.AddStatement($"{Keywords.qsFail.id} {this.ExpressionToQs(ex)}");
+                return QsStatementKind.NewQsFailStatement(ex);
+            }
+
+            public override QsStatementKind onReturnStatement(TypedExpression ex)
+            {
+                this.AddStatement($"{Keywords.qsReturn.id} {this.ExpressionToQs(ex)}");
+                return QsStatementKind.NewQsReturnStatement(ex);
+            }
+
+            public override QsStatementKind onVariableDeclaration(QsBinding<TypedExpression> stm)
+            {
+                string header;
+                if (stm.Kind.IsImmutableBinding) header = Keywords.qsImmutableBinding.id;
+                else if (stm.Kind.IsMutableBinding) header = Keywords.qsMutableBinding.id;
+                else throw new NotImplementedException("unknown binding kind");
+
+                this.AddStatement($"{header} {this.SymbolTuple(stm.Lhs)} = {this.ExpressionToQs(stm.Rhs)}");
+                return QsStatementKind.NewQsVariableDeclaration(stm);
+            }
+
+            public override QsStatementKind onValueUpdate(QsValueUpdate stm)
+            {
+                this.AddStatement($"{Keywords.qsValueUpdate.id} {this.ExpressionToQs(stm.Lhs)} = {this.ExpressionToQs(stm.Rhs)}");
+                return QsStatementKind.NewQsValueUpdate(stm);
+            }
+        }
+
+
+        /// <summary>
+        /// Class used to generate Q# code for Q# statements. 
+        /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given statement block.
+        /// </summary>
+        private class StatementTransformation
+            : StatementTransformation<SharedState>
+        {
+            public StatementTransformation(QsSyntaxTreeTransformation<SharedState> parent)
+                : base(parent)
+            { }
+
+
+            // overrides
+
+            public override QsStatement onStatement(QsStatement stm)
+            {
+                this.Transformation.InternalState.StatementComments = stm.Comments;
+                return base.onStatement(stm);
             }
         }
     }
