@@ -78,8 +78,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             //public string Output => String.Join(Environment.NewLine, this._Output);
 
             internal QsComments StatementComments = QsComments.Empty;
-            internal QsComments DeclarationComments = QsComments.Empty;
-
             internal readonly TransformationContext Context = null;
 
             public SharedState(TransformationContext context = null) =>
@@ -980,9 +978,101 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         private class NamespaceTransformation
             : NamespaceTransformation<SharedState>
         {
-            public NamespaceTransformation(QsSyntaxTreeTransformation<SharedState> parent)
-                : base(parent)
-            { }
+            private int CurrentIndendation = 0;
+            private string CurrentSpecialization = null;
+            private int NrSpecialzations = 0;
+
+            private QsComments DeclarationComments = QsComments.Empty;
+
+            private readonly Func<ResolvedType, string> TypeToQs;
+
+            public NamespaceTransformation(__SyntaxTreeToQs__ parent)
+                : base(parent) =>
+                this.TypeToQs = parent.ToCode;
+
+
+            // private helper functions
+
+            private void AddToOutput(string line)
+            {
+                for (var i = 0; i < this.CurrentIndendation; ++i) line = $"    {line}";
+                this._Output.Add(line);
+            }
+
+            private void AddComments(IEnumerable<string> comments)
+            {
+                foreach (var comment in comments)
+                { this.AddToOutput(String.IsNullOrWhiteSpace(comment) ? "" : $"//{comment}"); }
+            }
+
+            private void AddDirective(string str)
+            {
+                this.AddToOutput($"{str};");
+            }
+
+            private void AddDocumentation(ImmutableArray<string> doc)
+            {
+                foreach (var line in doc)
+                { this.AddToOutput($"///{line}"); }
+            }
+
+            private void AddBlock(Action processBlock)
+            {
+                var comments = this.DeclarationComments;
+                var opening = "{";
+                if (!this._Output.Any()) this.AddToOutput(opening);
+                else this._Output[this._Output.Count - 1] += $" {opening}";
+                ++this.CurrentIndendation;
+                processBlock();
+                this.AddComments(comments.ClosingComments);
+                --this.CurrentIndendation;
+                this.AddToOutput("}");
+            }
+
+
+            // private static methods 
+
+            private static string SymbolName(QsLocalSymbol sym, Action onInvalidName)
+            {
+                if (sym is QsLocalSymbol.ValidName n) return n.Item.Value;
+                else if (sym.IsInvalidName)
+                {
+                    onInvalidName?.Invoke();
+                    return InvalidSymbol;
+                }
+                else throw new NotImplementedException("unknown case for local symbol");
+            }
+
+            private static string TypeParameters(ResolvedSignature sign, Action onInvalidName)
+            {
+                if (sign.TypeParameters.IsEmpty) return String.Empty;
+                return $"<{String.Join(", ", sign.TypeParameters.Select(tp => $"'{SymbolName(tp, onInvalidName)}"))}>";
+            }
+
+            private static string ArgumentTuple<T>(QsTuple<T> arg,
+                Func<T, (string, ResolvedType)> getItemNameAndType, Func<ResolvedType, string> typeTransformation, bool symbolsOnly = false)
+            {
+                if (arg is QsTuple<T>.QsTuple t)
+                { return $"({String.Join(", ", t.Item.Select(a => ArgumentTuple(a, getItemNameAndType, typeTransformation, symbolsOnly)))})"; }
+                else if (arg is QsTuple<T>.QsTupleItem i)
+                {
+                    var (itemName, itemType) = getItemNameAndType(i.Item);
+                    return itemName == null
+                        ? $"{(symbolsOnly ? "_" : $"{typeTransformation(itemType)}")}"
+                        : $"{itemName}{(symbolsOnly ? "" : $" : {typeTransformation(itemType)}")}";
+                }
+                else throw new NotImplementedException("unknown case for argument tuple item");
+            }
+
+            //public static string ArgumentTuple(QsTuple<LocalVariableDeclaration<QsLocalSymbol>> arg,
+            //    Func<ResolvedType, string> typeTransformation, Action onInvalidName = null, bool symbolsOnly = false) =>
+            //    ArgumentTuple(arg, item => (SymbolName(item.VariableName, onInvalidName), item.Type), typeTransformation, symbolsOnly);
+            //
+            //public static string DeclarationSignature(QsCallable c, Func<ResolvedType, string> typeTransformation, Action onInvalidName = null)
+            //{
+            //    var argTuple = SyntaxTreeToQs.ArgumentTuple(c.ArgumentTuple, typeTransformation, onInvalidName);
+            //    return $"{c.FullName.Name.Value}{TypeParameters(c.Signature, onInvalidName)} {argTuple} : {typeTransformation(c.Signature.ReturnType)}";
+            //}
 
 
             // overrides
@@ -991,12 +1081,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
             {
                 var functorArg = "(...)";
-                if (this.currentSpec == Keywords.ctrlDeclHeader.id || this.currentSpec == Keywords.ctrlAdjDeclHeader.id)
+                if (this.CurrentSpecialization == Keywords.ctrlDeclHeader.id || this.CurrentSpecialization == Keywords.ctrlAdjDeclHeader.id)
                 {
                     var ctlQubitsName = SyntaxGenerator.ControlledFunctorArgument(argTuple);
                     if (ctlQubitsName != null) functorArg = $"({ctlQubitsName}, ...)";
                 }
-                else if (this.currentSpec != Keywords.bodyDeclHeader.id && this.currentSpec != Keywords.adjDeclHeader.id)
+                else if (this.CurrentSpecialization != Keywords.bodyDeclHeader.id && this.CurrentSpecialization != Keywords.adjDeclHeader.id)
                 { throw new NotImplementedException("the current specialization could not be determined"); }
 
                 void ProcessContent()
@@ -1006,14 +1096,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     foreach (var line in this.Transformation.InternalState.StatementKindOutputHandle)
                     { this.AddToOutput(line); }
                 }
-                if (this.nrSpecialzations != 1) // todo: needs to be adapted once we support type specializations
+                if (this.NrSpecialzations != 1) // todo: needs to be adapted once we support type specializations
                 {
-                    this.AddToOutput($"{this.currentSpec} {functorArg}");
+                    this.AddToOutput($"{this.CurrentSpecialization} {functorArg}");
                     this.AddBlock(ProcessContent);
                 }
                 else
                 {
-                    var comments = this.CurrentComments;
+                    var comments = this.DeclarationComments;
                     ProcessContent();
                     this.AddComments(comments.ClosingComments);
                 }
@@ -1023,48 +1113,48 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             public override void onInvalidGeneratorDirective()
             {
                 this.Transformation.InternalState.BeforeInvalidFunctorGenerator?.Invoke();
-                this.AddDirective($"{this.currentSpec} {InvalidFunctorGenerator}");
+                this.AddDirective($"{this.CurrentSpecialization} {InvalidFunctorGenerator}");
             }
 
             public override void onDistributeDirective() =>
-                this.AddDirective($"{this.currentSpec} {Keywords.distributeFunctorGenDirective.id}");
+                this.AddDirective($"{this.CurrentSpecialization} {Keywords.distributeFunctorGenDirective.id}");
 
             public override void onInvertDirective() =>
-                this.AddDirective($"{this.currentSpec} {Keywords.invertFunctorGenDirective.id}");
+                this.AddDirective($"{this.CurrentSpecialization} {Keywords.invertFunctorGenDirective.id}");
 
             public override void onSelfInverseDirective() =>
-                this.AddDirective($"{this.currentSpec} {Keywords.selfFunctorGenDirective.id}");
+                this.AddDirective($"{this.CurrentSpecialization} {Keywords.selfFunctorGenDirective.id}");
 
             public override void onIntrinsicImplementation() =>
-                this.AddDirective($"{this.currentSpec} {Keywords.intrinsicFunctorGenDirective.id}");
+                this.AddDirective($"{this.CurrentSpecialization} {Keywords.intrinsicFunctorGenDirective.id}");
 
             public override void onExternalImplementation()
             {
                 this.Transformation.InternalState.BeforeExternalImplementation?.Invoke();
-                this.AddDirective($"{this.currentSpec} {ExternalImplementation}");
+                this.AddDirective($"{this.CurrentSpecialization} {ExternalImplementation}");
             }
 
             public override QsSpecialization onBodySpecialization(QsSpecialization spec)
             {
-                this.currentSpec = Keywords.bodyDeclHeader.id;
+                this.CurrentSpecialization = Keywords.bodyDeclHeader.id;
                 return base.onBodySpecialization(spec);
             }
 
             public override QsSpecialization onAdjointSpecialization(QsSpecialization spec)
             {
-                this.currentSpec = Keywords.adjDeclHeader.id;
+                this.CurrentSpecialization = Keywords.adjDeclHeader.id;
                 return base.onAdjointSpecialization(spec);
             }
 
             public override QsSpecialization onControlledSpecialization(QsSpecialization spec)
             {
-                this.currentSpec = Keywords.ctrlDeclHeader.id;
+                this.CurrentSpecialization = Keywords.ctrlDeclHeader.id;
                 return base.onControlledSpecialization(spec);
             }
 
             public override QsSpecialization onControlledAdjointSpecialization(QsSpecialization spec)
             {
-                this.currentSpec = Keywords.ctrlAdjDeclHeader.id;
+                this.CurrentSpecialization = Keywords.ctrlAdjDeclHeader.id;
                 return base.onControlledAdjointSpecialization(spec);
             }
 
@@ -1073,7 +1163,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 var precededByCode = this.Transformation.InternalState.PrecededByCode(this._Output);
                 var precededByBlock = this.Transformation.InternalState.PrecededByBlock(this._Output);
                 if (precededByCode && (precededByBlock || spec.Implementation.IsProvided || spec.Documentation.Any())) this.AddToOutput("");
-                this.CurrentComments = spec.Comments;
+                this.DeclarationComments = spec.Comments;
                 this.AddComments(spec.Comments.OpeningComments);
                 if (spec.Comments.OpeningComments.Any() && spec.Documentation.Any()) this.AddToOutput("");
                 this.AddDocumentation(spec.Documentation);
@@ -1085,14 +1175,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 if (c.Kind.IsTypeConstructor) return c; // no code for these
 
                 this.AddToOutput("");
-                this.CurrentComments = c.Comments;
+                this.DeclarationComments = c.Comments;
                 this.AddComments(c.Comments.OpeningComments);
                 if (c.Comments.OpeningComments.Any() && c.Documentation.Any()) this.AddToOutput("");
                 this.AddDocumentation(c.Documentation);
                 foreach (var attribute in c.Attributes)
                 { this.onAttribute(attribute); }
 
-                var signature = SyntaxTreeToQs.DeclarationSignature(c, this.Type, this.Transformation.InternalState.BeforeInvalidSymbol);
+                var signature = DeclarationSignature(c, this.TypeToQs, this.Transformation.InternalState.BeforeInvalidSymbol);
                 this.Transformation.Types.onCharacteristicsExpression(c.Signature.Information.Characteristics);
                 var characteristics = this.Transformation.InternalState.TypeOutputHandle;
 
@@ -1118,7 +1208,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     else return !s.Implementation.IsIntrinsic;
                 }
                 c = c.WithSpecializations(specs => specs.Where(NeedsToBeExplicit).ToImmutableArray());
-                this.nrSpecialzations = c.Specializations.Length;
+                this.NrSpecialzations = c.Specializations.Length;
 
                 var declHeader =
                     c.Kind.IsOperation ? Keywords.opDeclHeader.id :
@@ -1135,7 +1225,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             public override QsCustomType onType(QsCustomType t)
             {
                 this.AddToOutput("");
-                this.CurrentComments = t.Comments; // no need to deal with closing comments (can't exist), but need to make sure CurrentComments is up to date
+                this.DeclarationComments = t.Comments; // no need to deal with closing comments (can't exist), but need to make sure DeclarationComments is up to date
                 this.AddComments(t.Comments.OpeningComments);
                 if (t.Comments.OpeningComments.Any() && t.Documentation.Any()) this.AddToOutput("");
                 this.AddDocumentation(t.Documentation);
@@ -1148,14 +1238,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     else if (item is QsTypeItem.Anonymous type) return (null, type.Item);
                     else throw new NotImplementedException("unknown case for type item");
                 }
-                var udtTuple = ArgumentTuple<QsTypeItem>(t.TypeItems, GetItemNameAndType, this.Type);
+                var udtTuple = ArgumentTuple<QsTypeItem>(t.TypeItems, GetItemNameAndType, this.TypeToQs);
                 this.AddDirective($"{Keywords.typeDeclHeader.id} {t.FullName.Name.Value} = {udtTuple}");
                 return t;
             }
 
             public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
             {
-                // do *not* set CurrentComments!
+                // do *not* set DeclarationComments!
                 this.Transformation.Expressions.Transform(att.Argument);
                 var arg = this.Transformation.InternalState.ExpressionKindOutputHandle;
                 var argStr = att.Argument.Expression.IsValueTuple || att.Argument.Expression.IsUnitValue ? arg : $"({arg})";
@@ -1187,12 +1277,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     public class SyntaxTreeToQs :
         SyntaxTreeTransformation<ScopeToQs>
     {
-        private QsComments CurrentComments;
-        private int currentIndendation = 0;
-        private string currentSpec;
-        private int nrSpecialzations;
-
-
         /// <summary>
         /// For each file in the given parameter array of open directives, 
         /// generates a dictionary that maps (the name of) each partial namespace contained in the file 
@@ -1269,87 +1353,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public SyntaxTreeToQs(ScopeToQs scope = null) :
             base(scope ?? new ScopeToQs())
         {
-            this.CurrentComments = QsComments.Empty;
+            this.DeclarationComments = QsComments.Empty;
             this._Output = new List<string>();
-        }
-
-        private void AddToOutput(string line)
-        {
-            for (var i = 0; i < currentIndendation; ++i) line = $"    {line}";
-            this._Output.Add(line);
-        }
-
-        private void AddComments(IEnumerable<string> comments)
-        {
-            foreach (var comment in comments)
-            { this.AddToOutput(String.IsNullOrWhiteSpace(comment) ? "" : $"//{comment}"); }
-        }
-
-        private void AddDirective(string str) =>
-            this.AddToOutput($"{str};");
-
-        private void AddBlock(Action processBlock)
-        {
-            var comments = this.CurrentComments;
-            var opening = "{";
-            if (!this._Output.Any()) this.AddToOutput(opening);
-            else this._Output[this._Output.Count - 1] += $" {opening}";
-            ++currentIndendation;
-            processBlock();
-            this.AddComments(comments.ClosingComments);
-            --currentIndendation;
-            this.AddToOutput("}");
-        }
-
-        private string Type(ResolvedType t) =>
-            this._Scope._Expression._Type.Apply(t);
-
-        private static string SymbolName(QsLocalSymbol sym, Action onInvalidName)
-        {
-            if (sym is QsLocalSymbol.ValidName n) return n.Item.Value;
-            else if (sym.IsInvalidName)
-            {
-                onInvalidName?.Invoke();
-                return StatementKindToQs.InvalidSymbol;
-            }
-            else throw new NotImplementedException("unknown case for local symbol");
-        }
-
-        private static string TypeParameters(ResolvedSignature sign, Action onInvalidName)
-        {
-            if (sign.TypeParameters.IsEmpty) return String.Empty;
-            return $"<{String.Join(", ", sign.TypeParameters.Select(tp => $"'{SyntaxTreeToQs.SymbolName(tp, onInvalidName)}"))}>";
-        }
-
-        private static string ArgumentTuple<T>(QsTuple<T> arg, 
-            Func<T, (string, ResolvedType)> getItemNameAndType, Func<ResolvedType, string> typeTransformation, bool symbolsOnly = false)
-        {
-            if (arg is QsTuple<T>.QsTuple t)
-            { return $"({String.Join(", ", t.Item.Select(a => ArgumentTuple(a, getItemNameAndType, typeTransformation, symbolsOnly)))})"; }
-            else if (arg is QsTuple<T>.QsTupleItem i)
-            {
-                var (itemName, itemType) = getItemNameAndType(i.Item);
-                return itemName == null 
-                    ? $"{(symbolsOnly ? "_" : $"{typeTransformation(itemType)}")}"
-                    : $"{itemName}{(symbolsOnly ? "" : $" : {typeTransformation(itemType)}")}";
-            }
-            else throw new NotImplementedException("unknown case for argument tuple item");
-        }
-
-        public static string ArgumentTuple(QsTuple<LocalVariableDeclaration<QsLocalSymbol>> arg,
-            Func<ResolvedType, string> typeTransformation, Action onInvalidName = null, bool symbolsOnly = false) =>
-            ArgumentTuple(arg, item => (SymbolName(item.VariableName, onInvalidName), item.Type), typeTransformation, symbolsOnly);
-
-        public static string DeclarationSignature(QsCallable c, Func<ResolvedType, string> typeTransformation, Action onInvalidName = null)
-        {
-            var argTuple = SyntaxTreeToQs.ArgumentTuple(c.ArgumentTuple, typeTransformation, onInvalidName);
-            return $"{c.FullName.Name.Value}{TypeParameters(c.Signature, onInvalidName)} {argTuple} : {typeTransformation(c.Signature.ReturnType)}";
-        }
-
-        private void AddDocumentation(ImmutableArray<string> doc)
-        {
-            foreach (var line in doc)
-            { this.AddToOutput($"///{line}"); }
         }
 
         private void ProcessNamespaceElements(IEnumerable<QsNamespaceElement> elements)
