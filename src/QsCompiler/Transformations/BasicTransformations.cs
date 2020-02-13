@@ -174,9 +174,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     {
         public class TransformationState : FoldingState<bool>
         {
-            private readonly Func<TypedExpression, bool> Condition;
+            internal readonly Func<TypedExpression, bool> Condition;
             internal readonly Func<bool, bool, bool> ConstructFold;
-            private readonly bool Seed;
+            internal readonly bool Seed;
 
             public bool SatisfiesCondition => this.FoldResult;
 
@@ -187,10 +187,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 this.ConstructFold = fold ?? throw new ArgumentNullException(nameof(condition));
                 this.Seed = seed;
             }
-
-            internal TransformationState(TransformationState state)
-                : this(state.Condition, state.ConstructFold, state.Seed, state.Recur)
-            {}
         }
 
 
@@ -198,32 +194,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             : base(new TransformationState(condition, fold, seed, evaluateOnSubexpressions))
         { }
 
-        private __SelectByFoldingOverExpressions__(TransformationState state)
-            : base(state)
-        { }
-
         public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
             new __FoldOverExpressions__<TransformationState, bool>(this);
 
-        public override StatementTransformation<TransformationState> NewStatementTransformation() =>
-            new StatementTransformation(this);
+        public override Core.StatementTransformation<TransformationState> NewStatementTransformation() =>
+            new StatementTransformation<__SelectByFoldingOverExpressions__>(
+                state => new __SelectByFoldingOverExpressions__(state.Condition, state.ConstructFold, state.Seed, state.Recur), 
+                this);
 
 
         // helper classes
 
-        private class StatementTransformation : 
-            StatementTransformation<TransformationState>
+        private class StatementTransformation<P> : 
+            Core.StatementTransformation<TransformationState>
+            where P : __SelectByFoldingOverExpressions__
         {
-            private __SelectByFoldingOverExpressions__ SubSelector;
+            private P SubSelector;
+            private readonly Func<TransformationState, P> CreateSelector;
 
-            public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            /// <summary>
+            /// The given function for creating a new subselector is expected to initialize a new internal state with the same configurations as the one given upon construction.
+            /// Upon initialization, the FoldResult of the internal state should be set to the specified seed rather than the FoldResult of the given constructor argument. 
+            /// </summary>
+            public StatementTransformation(Func<TransformationState, P> createSelector, QsSyntaxTreeTransformation<TransformationState> parent)
+                : base(parent) =>
+                this.CreateSelector = createSelector ?? throw new ArgumentNullException(nameof(createSelector));
 
             public override QsStatement onStatement(QsStatement stm)
             {
-                var state = new TransformationState(this.Transformation.InternalState); // initializes a new state with the same configurations as the given one
-                this.SubSelector = new __SelectByFoldingOverExpressions__(state); 
+                this.SubSelector = this.CreateSelector(this.Transformation.InternalState); 
                 stm = this.SubSelector.Statements.onStatement(stm);
                 this.Transformation.InternalState.FoldResult = this.Transformation.InternalState.ConstructFold(
                     this.Transformation.InternalState.FoldResult, this.SubSelector.InternalState.FoldResult);
@@ -252,9 +251,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// which contain an expression or subexpression (only if evaluateOnSubexpressions is set to true) 
     /// that satisfies the condition given on initialization. 
     /// </summary>
-    public class SelectByAnyContainedExpression<K> :
-        SelectByFoldingOverExpressions<K>
-        where K : Core.StatementKindTransformation
+    public class SelectByAnyContainedExpression :
+        __SelectByFoldingOverExpressions__
     {
         private readonly Func<SelectByFoldingOverExpressions<K>, K> GetStatementKind;
         protected override SelectByFoldingOverExpressions<K> GetSubSelector() =>
@@ -273,9 +271,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// for which all contained expressions or subexpressions satisfy the condition given on initialization.
     /// Note that subexpressions will only be verified if evaluateOnSubexpressions is set to true (default value).
     /// </summary>
-    public class SelectByAllContainedExpressions<K> :
-        SelectByFoldingOverExpressions<K>
-        where K : Core.StatementKindTransformation
+    public class SelectByAllContainedExpressions :
+        __SelectByFoldingOverExpressions__
     {
         private readonly Func<SelectByFoldingOverExpressions<K>, K> GetStatementKind;
         protected override SelectByFoldingOverExpressions<K> GetSubSelector() =>
