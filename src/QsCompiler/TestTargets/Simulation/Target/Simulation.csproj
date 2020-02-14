@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.2001.2831" />
+    <PackageReference Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.2002.703-alpha" />
   </ItemGroup>
 
 </Project>

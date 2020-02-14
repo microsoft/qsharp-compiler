@@ -93,7 +93,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Verifies whether a given compilation satisfies the precondition for executing this rewrite step. 
         /// <see cref="ImplementsPreconditionVerification"/> indicates whether or not this method is implemented. 
-        /// If the precondition verfication succeeds, then the invocation of an implemented transformation (if any) 
+        /// If the precondition verification succeeds, then the invocation of an implemented transformation (if any) 
         /// with the given compilation should complete without throwing an exception. 
         /// The precondition verification should never throw an exception, 
         /// but instead indicate if the precondition is satisfied via the returned value. 

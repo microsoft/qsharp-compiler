@@ -171,21 +171,6 @@ type TypedExpression with
 
     // utils for walking the data structure
 
-    /// Returns true if the expression contains missing expressions.
-    /// Returns false otherwise.
-    static member public ContainsMissing (ex : TypedExpression) =
-        match ex.TupleItems with 
-        | Some items when items.Length > 1 -> items |> List.exists TypedExpression.ContainsMissing
-        | Some [] -> true
-        | _ -> false
-
-    /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
-    /// Returns false otherwise.
-    static member public IsPartialApplication kind =
-        match kind with
-        | CallLikeExpression (_, args) -> args |> TypedExpression.ContainsMissing
-        | _ -> false
-
     /// Returns true if the expression kind does not contain any inner expressions. 
     static member private IsAtomic (kind : QsExpressionKind<'E, _, _>) = 
         match kind with

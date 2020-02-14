@@ -103,6 +103,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool AttemptFullPreEvaluation;
             /// <summary>
+            /// If set to true, the compiler will remove if-statements and replace them with calls to appropriate
+            /// intrinsic operations.
+            /// </summary>
+            public bool ConvertClassicalControl;
+            /// <summary>
             /// Unless this is set to true, all usages of type-parameterized callables are replaced with 
             /// the concrete callable instantiation if an entry point is specified for the compilation.
             /// Removes all type-parameterizations in the syntax tree.
@@ -187,6 +192,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status FunctorSupport = Status.NotRun;
             internal Status PreEvaluation = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
+            internal Status ConvertClassicalControl = Status.NotRun;
             internal Status Monomorphization = Status.NotRun;
             internal Status Documentation = Status.NotRun;
             internal Status Serialization = Status.NotRun;
@@ -208,6 +214,8 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
+                WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
+
                 WasSuccessful(isExe && !options.SkipMonomorphization, this.Monomorphization) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
@@ -400,14 +408,27 @@ namespace Microsoft.Quantum.QsCompiler
             foreach (var diag in this.VerifiedCompilation?.Diagnostics() ?? Enumerable.Empty<Diagnostic>())
             { this.LogAndUpdate(ref this.CompilationStatus.Validation, diag); }
 
-            // executing the specified rewrite steps 
+            // executing the specified rewrite steps
+
+            if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
+            { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
+
+            QsCompilation ExecuteAsAtomicTransformation(RewriteSteps.LoadedStep rewriteStep, ref Status status) 
+            {
+                status = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out var transformed);
+                return status == Status.Succeeded ? transformed : this.CompilationOutput;
+            }
+
+            if (this.Config.ConvertClassicalControl)
+            {
+                var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
+                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.ConvertClassicalControl);
+            }
 
             if (!this.Config.SkipMonomorphization && this.CompilationOutput?.EntryPoints.Length != 0)
             {
-                if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
-                { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationStatus.Monomorphization = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out this.CompilationOutput); 
+                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.Monomorphization);
             }
 
             if (this.Config.GenerateFunctorSupport)
@@ -479,9 +500,7 @@ namespace Microsoft.Quantum.QsCompiler
             for (int i = 0; i < this.ExternalRewriteSteps.Length; i++)
             {
                 if (this.CompilationOutput == null) continue;
-                var executed = this.ExecuteRewriteStep(this.ExternalRewriteSteps[i], this.CompilationOutput, out var transformed);
-                if (executed == Status.Succeeded) this.CompilationOutput = transformed;
-                this.CompilationStatus.LoadedRewriteSteps[i] = executed;
+                this.CompilationOutput = ExecuteAsAtomicTransformation(this.ExternalRewriteSteps[i], ref this.CompilationStatus.LoadedRewriteSteps[i]);
             }
 
             RaiseCompilationTaskEnd("OverallCompilation", "RewriteSteps");
