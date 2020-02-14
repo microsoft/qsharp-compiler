@@ -14,8 +14,7 @@ type private ExpressionKind = QsExpressionKind<TypedExpression,Identifier,Resolv
 type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
 
-type TypeTransformationBase(?enable) = 
-    let enable = defaultArg enable true
+type TypeTransformationBase() = 
 
     abstract member onRangeInformation : QsRangeInfo -> QsRangeInfo
     default this.onRangeInformation r = r
@@ -91,7 +90,6 @@ type TypeTransformationBase(?enable) =
     default this.onRange () = ExpressionType.Range
 
     member this.Transform (t : ResolvedType) =
-        if not enable then t else
         match t.Resolution with
         | ExpressionType.UnitType                    -> this.onUnitType ()
         | ExpressionType.Operation ((it, ot), fs)    -> this.onOperation ((it, ot), fs)
@@ -114,16 +112,26 @@ type TypeTransformationBase(?enable) =
         |> ResolvedType.New
 
 
-/// Convention: 
-/// All methods starting with "on" implement the transformation for an expression of a certain kind.
-/// All methods starting with "before" group a set of statements, and are called before applying the transformation
-/// even if the corresponding transformation routine (starting with "on") is overridden.
-[<AbstractClass>]
-type ExpressionKindTransformation( ?enable) =
-    let enable = defaultArg enable true
+/// After construction, both the Types and ExpressionKinds transformations need to be set by the invoking piece. 
+/// If these are not set, then the transformation will fail on execution.  
+type ExpressionKindTransformationBase internal (expressionTransformation : ExpressionTransformationBase option, typeTransformation : TypeTransformationBase option) =
 
-    abstract member ExpressionTransformation : TypedExpression -> TypedExpression
-    abstract member TypeTransformation : ResolvedType -> ResolvedType
+    let mutable _Types : TypeTransformationBase option = typeTransformation
+    let mutable _Expressions : ExpressionTransformationBase option = expressionTransformation
+
+    member this.Types
+        with private get () = _Types.Value
+        and internal set value = _Types <- Some value
+
+    member this.Expressions 
+        with private get () = _Expressions.Value
+        and internal set value = _Expressions <- Some value 
+
+    new () as this = 
+        new ExpressionKindTransformationBase(None, None) then 
+            this.Types <- new TypeTransformationBase()
+            this.Expressions <- new ExpressionTransformationBase(Some this, Some this.Types)
+
 
     abstract member beforeCallLike : TypedExpression * TypedExpression -> TypedExpression * TypedExpression
     default this.beforeCallLike (method, arg) = (method, arg)
@@ -142,25 +150,25 @@ type ExpressionKindTransformation( ?enable) =
 
 
     abstract member onIdentifier : Identifier * QsNullable<ImmutableArray<ResolvedType>> -> ExpressionKind
-    default this.onIdentifier (sym, tArgs) = Identifier (sym, tArgs |> QsNullable<_>.Map (fun ts -> (ts |> Seq.map this.TypeTransformation).ToImmutableArray()))
+    default this.onIdentifier (sym, tArgs) = Identifier (sym, tArgs |> QsNullable<_>.Map (fun ts -> (ts |> Seq.map this.Types.Transform).ToImmutableArray()))
 
     abstract member onOperationCall : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onOperationCall (method, arg) = CallLikeExpression (this.ExpressionTransformation method, this.ExpressionTransformation arg)
+    default this.onOperationCall (method, arg) = CallLikeExpression (this.Expressions.Transform method, this.Expressions.Transform arg)
 
     abstract member onFunctionCall : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onFunctionCall (method, arg) = CallLikeExpression (this.ExpressionTransformation method, this.ExpressionTransformation arg)
+    default this.onFunctionCall (method, arg) = CallLikeExpression (this.Expressions.Transform method, this.Expressions.Transform arg)
 
     abstract member onPartialApplication : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onPartialApplication (method, arg) = CallLikeExpression (this.ExpressionTransformation method, this.ExpressionTransformation arg)
+    default this.onPartialApplication (method, arg) = CallLikeExpression (this.Expressions.Transform method, this.Expressions.Transform arg)
 
     abstract member onAdjointApplication : TypedExpression -> ExpressionKind
-    default this.onAdjointApplication ex = AdjointApplication (this.ExpressionTransformation ex)
+    default this.onAdjointApplication ex = AdjointApplication (this.Expressions.Transform ex)
 
     abstract member onControlledApplication : TypedExpression -> ExpressionKind
-    default this.onControlledApplication ex = ControlledApplication (this.ExpressionTransformation ex)
+    default this.onControlledApplication ex = ControlledApplication (this.Expressions.Transform ex)
 
     abstract member onUnwrapApplication : TypedExpression -> ExpressionKind
-    default this.onUnwrapApplication ex = UnwrapApplication (this.ExpressionTransformation ex)
+    default this.onUnwrapApplication ex = UnwrapApplication (this.Expressions.Transform ex)
 
     abstract member onUnitValue : unit -> ExpressionKind
     default this.onUnitValue () = ExpressionKind.UnitValue
@@ -172,19 +180,19 @@ type ExpressionKindTransformation( ?enable) =
     default this.onInvalidExpression () = InvalidExpr
 
     abstract member onValueTuple : ImmutableArray<TypedExpression> -> ExpressionKind
-    default this.onValueTuple vs = ValueTuple ((vs |> Seq.map this.ExpressionTransformation).ToImmutableArray())
+    default this.onValueTuple vs = ValueTuple ((vs |> Seq.map this.Expressions.Transform).ToImmutableArray())
 
     abstract member onArrayItem : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onArrayItem (arr, idx) = ArrayItem (this.ExpressionTransformation arr, this.ExpressionTransformation idx)
+    default this.onArrayItem (arr, idx) = ArrayItem (this.Expressions.Transform arr, this.Expressions.Transform idx)
 
     abstract member onNamedItem : TypedExpression * Identifier -> ExpressionKind
-    default this.onNamedItem (ex, acc) = NamedItem (this.ExpressionTransformation ex, acc) 
+    default this.onNamedItem (ex, acc) = NamedItem (this.Expressions.Transform ex, acc) 
 
     abstract member onValueArray : ImmutableArray<TypedExpression> -> ExpressionKind
-    default this.onValueArray vs = ValueArray ((vs |> Seq.map this.ExpressionTransformation).ToImmutableArray())
+    default this.onValueArray vs = ValueArray ((vs |> Seq.map this.Expressions.Transform).ToImmutableArray())
 
     abstract member onNewArray : ResolvedType * TypedExpression -> ExpressionKind
-    default this.onNewArray (bt, idx) = NewArray (this.TypeTransformation bt, this.ExpressionTransformation idx)
+    default this.onNewArray (bt, idx) = NewArray (this.Types.Transform bt, this.Expressions.Transform idx)
 
     abstract member onIntLiteral : int64 -> ExpressionKind
     default this.onIntLiteral i = IntLiteral i
@@ -205,82 +213,82 @@ type ExpressionKindTransformation( ?enable) =
     default this.onPauliLiteral p = PauliLiteral p
 
     abstract member onStringLiteral : NonNullable<string> * ImmutableArray<TypedExpression> -> ExpressionKind
-    default this.onStringLiteral (s, exs) = StringLiteral (s, (exs |> Seq.map this.ExpressionTransformation).ToImmutableArray())
+    default this.onStringLiteral (s, exs) = StringLiteral (s, (exs |> Seq.map this.Expressions.Transform).ToImmutableArray())
 
     abstract member onRangeLiteral : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onRangeLiteral (lhs, rhs) = RangeLiteral (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onRangeLiteral (lhs, rhs) = RangeLiteral (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onCopyAndUpdateExpression : TypedExpression * TypedExpression * TypedExpression -> ExpressionKind
-    default this.onCopyAndUpdateExpression (lhs, accEx, rhs) = CopyAndUpdate (this.ExpressionTransformation lhs, this.ExpressionTransformation accEx, this.ExpressionTransformation rhs)
+    default this.onCopyAndUpdateExpression (lhs, accEx, rhs) = CopyAndUpdate (this.Expressions.Transform lhs, this.Expressions.Transform accEx, this.Expressions.Transform rhs)
 
     abstract member onConditionalExpression : TypedExpression * TypedExpression * TypedExpression -> ExpressionKind
-    default this.onConditionalExpression (cond, ifTrue, ifFalse) = CONDITIONAL (this.ExpressionTransformation cond, this.ExpressionTransformation ifTrue, this.ExpressionTransformation ifFalse)
+    default this.onConditionalExpression (cond, ifTrue, ifFalse) = CONDITIONAL (this.Expressions.Transform cond, this.Expressions.Transform ifTrue, this.Expressions.Transform ifFalse)
 
     abstract member onEquality : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onEquality (lhs, rhs) = EQ (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onEquality (lhs, rhs) = EQ (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onInequality : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onInequality (lhs, rhs) = NEQ (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onInequality (lhs, rhs) = NEQ (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onLessThan : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onLessThan (lhs, rhs) = LT (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onLessThan (lhs, rhs) = LT (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onLessThanOrEqual : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onLessThanOrEqual (lhs, rhs) = LTE (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onLessThanOrEqual (lhs, rhs) = LTE (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onGreaterThan : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onGreaterThan (lhs, rhs) = GT (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onGreaterThan (lhs, rhs) = GT (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onGreaterThanOrEqual : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onGreaterThanOrEqual (lhs, rhs) = GTE (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onGreaterThanOrEqual (lhs, rhs) = GTE (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onLogicalAnd : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onLogicalAnd (lhs, rhs) = AND (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onLogicalAnd (lhs, rhs) = AND (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onLogicalOr : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onLogicalOr (lhs, rhs) = OR (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onLogicalOr (lhs, rhs) = OR (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onAddition : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onAddition (lhs, rhs) = ADD (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onAddition (lhs, rhs) = ADD (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onSubtraction : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onSubtraction (lhs, rhs) = SUB (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onSubtraction (lhs, rhs) = SUB (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onMultiplication : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onMultiplication (lhs, rhs) = MUL (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onMultiplication (lhs, rhs) = MUL (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onDivision : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onDivision (lhs, rhs) = DIV (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onDivision (lhs, rhs) = DIV (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onExponentiate : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onExponentiate (lhs, rhs) = POW (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onExponentiate (lhs, rhs) = POW (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onModulo : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onModulo (lhs, rhs) = MOD (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onModulo (lhs, rhs) = MOD (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onLeftShift : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onLeftShift (lhs, rhs) = LSHIFT (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onLeftShift (lhs, rhs) = LSHIFT (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onRightShift : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onRightShift (lhs, rhs) = RSHIFT (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onRightShift (lhs, rhs) = RSHIFT (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onBitwiseExclusiveOr : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onBitwiseExclusiveOr (lhs, rhs) = BXOR (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onBitwiseExclusiveOr (lhs, rhs) = BXOR (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onBitwiseOr : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onBitwiseOr (lhs, rhs) = BOR (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onBitwiseOr (lhs, rhs) = BOR (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onBitwiseAnd : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onBitwiseAnd (lhs, rhs) = BAND (this.ExpressionTransformation lhs, this.ExpressionTransformation rhs)
+    default this.onBitwiseAnd (lhs, rhs) = BAND (this.Expressions.Transform lhs, this.Expressions.Transform rhs)
 
     abstract member onLogicalNot : TypedExpression -> ExpressionKind
-    default this.onLogicalNot ex = NOT (this.ExpressionTransformation ex)
+    default this.onLogicalNot ex = NOT (this.Expressions.Transform ex)
 
     abstract member onNegative : TypedExpression -> ExpressionKind
-    default this.onNegative ex = NEG (this.ExpressionTransformation ex)
+    default this.onNegative ex = NEG (this.Expressions.Transform ex)
 
     abstract member onBitwiseNot : TypedExpression -> ExpressionKind
-    default this.onBitwiseNot ex = BNOT (this.ExpressionTransformation ex)
+    default this.onBitwiseNot ex = BNOT (this.Expressions.Transform ex)
 
 
     member private this.dispatchCallLikeExpression (method, arg) = 
@@ -291,7 +299,6 @@ type ExpressionKindTransformation( ?enable) =
 
     abstract member Transform : ExpressionKind -> ExpressionKind
     default this.Transform kind = 
-        if not enable then kind else 
         match kind with 
         | Identifier (sym, tArgs)                          -> this.onIdentifier                 (sym, tArgs)
         | CallLikeExpression (method,arg)                  -> this.dispatchCallLikeExpression   ((method, arg)        |> this.beforeCallLike)
@@ -340,19 +347,25 @@ type ExpressionKindTransformation( ?enable) =
         | BNOT ex                                          -> this.onBitwiseNot                 (ex                  |> this.beforeUnaryOperatorExpression)
 
 
-and ExpressionTransformation(?enableKindTransformations) = 
-    let enableKind = defaultArg enableKindTransformations true
-    let typeTransformation = new TypeTransformationBase()
+/// After construction, both the Types and ExpressionKinds transformations need to be set by the invoking piece. 
+/// If these are not set, then the transformation will fail on execution.  
+and ExpressionTransformationBase internal (exkindTransformation : ExpressionKindTransformationBase option, typeTransformation : TypeTransformationBase option) = 
+    let mutable _Types : TypeTransformationBase option = typeTransformation
+    let mutable _ExpressionKinds : ExpressionKindTransformationBase option = exkindTransformation
 
-    abstract member Kind : ExpressionKindTransformation
-    default this.Kind = {
-        new ExpressionKindTransformation (enableKind) with 
-            override x.ExpressionTransformation ex = this.Transform ex
-            override x.TypeTransformation t = this.Type.Transform t
-        }
+    member this.Types
+        with private get () = _Types.Value
+        and internal set value = _Types <- Some value
 
-    abstract member Type : TypeTransformationBase
-    default this.Type = typeTransformation
+    member this.ExpressionKinds 
+        with private get () = _ExpressionKinds.Value
+        and internal set value = _ExpressionKinds <- Some value 
+
+    new () as this = 
+        new ExpressionTransformationBase(None, None) then
+            this.Types <- new TypeTransformationBase()
+            this.ExpressionKinds <- new ExpressionKindTransformationBase(Some this, Some this.Types)
+
 
     abstract member onRangeInformation : QsNullable<QsPositionInfo*QsPositionInfo> -> QsNullable<QsPositionInfo*QsPositionInfo>
     default this.onRangeInformation r = r
@@ -365,15 +378,15 @@ and ExpressionTransformation(?enableKindTransformations) =
         let asTypeParameter (key) = QsTypeParameter.New (fst key, snd key, Null)
         let filteredTypeParams = 
             typeParams 
-            |> Seq.map (fun kv -> this.Type.onTypeParameter (kv.Key |> asTypeParameter), kv.Value)
-            |> Seq.choose (function | TypeParameter tp, value -> Some ((tp.Origin, tp.TypeName), this.Type.Transform value) | _ -> None)
+            |> Seq.map (fun kv -> this.Types.onTypeParameter (kv.Key |> asTypeParameter), kv.Value)
+            |> Seq.choose (function | TypeParameter tp, value -> Some ((tp.Origin, tp.TypeName), this.Types.Transform value) | _ -> None)
         filteredTypeParams.ToImmutableDictionary (fst,snd)
 
     abstract member Transform : TypedExpression -> TypedExpression
     default this.Transform (ex : TypedExpression) =
         let range                = this.onRangeInformation ex.Range
         let typeParamResolutions = this.onTypeParamResolutions ex.TypeParameterResolutions
-        let kind                 = this.Kind.Transform ex.Expression
-        let exType               = this.Type.Transform ex.ResolvedType
+        let kind                 = this.ExpressionKinds.Transform ex.Expression
+        let exType               = this.Types.Transform ex.ResolvedType
         let inferredInfo         = this.onExpressionInformation ex.InferredInformation
         TypedExpression.New (kind, typeParamResolutions, exType, inferredInfo, range)

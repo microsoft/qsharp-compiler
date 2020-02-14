@@ -86,7 +86,7 @@ and TypeTransformation<'T> internal (parentTransformation) =
 
 
 and ExpressionKindTransformation<'T> internal (parentTransformation) =
-    inherit ExpressionKindTransformation()
+    inherit ExpressionKindTransformationBase()
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = parentTransformation
 
     member this.Transformation
@@ -106,7 +106,7 @@ and ExpressionKindTransformation<'T> internal (parentTransformation) =
 
 
 and ExpressionTransformation<'T> internal (parentTransformation) =
-    inherit ExpressionTransformation()
+    inherit ExpressionTransformationBase()
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = parentTransformation
 
     member this.Transformation
