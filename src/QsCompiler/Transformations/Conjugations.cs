@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
 
 
         public InlineConjugations(Action<Exception> onException = null)
-            : base(new TransformationState())
+            : base(new TransformationState(onException))
         { }
 
         public override StatementTransformation<TransformationState> NewStatementTransformation() =>
