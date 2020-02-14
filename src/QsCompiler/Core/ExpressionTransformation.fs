@@ -116,8 +116,8 @@ type TypeTransformationBase() =
 /// If these are not set, then the transformation will fail on execution.  
 type ExpressionKindTransformationBase internal (expressionTransformation : ExpressionTransformationBase option, typeTransformation : TypeTransformationBase option) =
 
-    let mutable _Types : TypeTransformationBase option = typeTransformation
-    let mutable _Expressions : ExpressionTransformationBase option = expressionTransformation
+    let mutable _Types = typeTransformation
+    let mutable _Expressions = expressionTransformation
 
     member this.Types
         with private get () = _Types.Value

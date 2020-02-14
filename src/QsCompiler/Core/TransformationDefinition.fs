@@ -68,9 +68,9 @@ type QsSyntaxTreeTransformation<'T> private (state : 'T, dummy) =
             this.Namespaces      <- this.NewNamespaceTransformation()
 
 
-and TypeTransformation<'T> internal (parentTransformation) =
+and TypeTransformation<'T> internal (parentTransformation : QsSyntaxTreeTransformation<'T> option) =
     inherit TypeTransformationBase()
-    let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = parentTransformation
+    let mutable _Transformation = parentTransformation
 
     member this.Transformation
         with get () = _Transformation.Value
@@ -85,13 +85,18 @@ and TypeTransformation<'T> internal (parentTransformation) =
             }
 
 
-and ExpressionKindTransformation<'T> internal (parentTransformation) =
-    inherit ExpressionKindTransformationBase()
-    let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = parentTransformation
+and ExpressionKindTransformation<'T> internal (parentTransformation : QsSyntaxTreeTransformation<'T> option) =
+    inherit ExpressionKindTransformationBase(
+        parentTransformation |> Option.map (fun parent -> parent.Expressions :> ExpressionTransformationBase), 
+        parentTransformation |> Option.map (fun parent -> parent.Types :> TypeTransformationBase))
+    let mutable _Transformation = parentTransformation
 
     member this.Transformation
         with get () = _Transformation.Value
-        and private set value = _Transformation <- Some value
+        and private set value = 
+            _Transformation <- Some value
+            this.Types <- value.Types
+            this.Expressions <- value.Expressions
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>) = ExpressionKindTransformation<'T>(Some parentTransformation)
     new (sharedInternalState : 'T) as this =
@@ -100,9 +105,6 @@ and ExpressionKindTransformation<'T> internal (parentTransformation) =
                 new QsSyntaxTreeTransformation<'T>(sharedInternalState) with
                     override parent.NewExpressionKindTransformation () = this
             }
-
-    override this.ExpressionTransformation ex = this.Transformation.Expressions.Transform ex
-    override this.TypeTransformation t = this.Transformation.Types.Transform t
 
 
 and ExpressionTransformation<'T> internal (parentTransformation) =
