@@ -13,8 +13,8 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation
-open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
-open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
+open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransformation
+open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidationTransformation
 open Xunit
 open Xunit.Abstractions
 

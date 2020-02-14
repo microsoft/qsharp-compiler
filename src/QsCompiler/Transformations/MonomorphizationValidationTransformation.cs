@@ -7,26 +7,31 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidationTransformation
 {
-    public class MonomorphizationValidationTransformation
+    public class MonomorphizationValidationTransformation : QsSyntaxTreeTransformation<MonomorphizationValidationTransformation.TransformationState>
     {
         public static void Apply(QsCompilation compilation)
         {
-            var filter = new MonomorphizationValidationSyntax();
+            var filter = new MonomorphizationValidationTransformation();
 
             foreach (var ns in compilation.Namespaces)
             {
-                filter.Transform(ns);
+                filter.Namespaces.Transform(ns);
             }
         }
 
-        private class MonomorphizationValidationSyntax : SyntaxTreeTransformation<ScopeTransformation<MonomorphizationValidationExpression>>
+        public class TransformationState { }
+
+        public MonomorphizationValidationTransformation() : base(new TransformationState()) { }
+
+        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
+        private class NamespaceTransformation : NamespaceTransformation<TransformationState>
         {
-            public MonomorphizationValidationSyntax(ScopeTransformation<MonomorphizationValidationExpression> scope = null) :
-                base(scope ?? new ScopeTransformation<MonomorphizationValidationExpression>(new MonomorphizationValidationExpression())) { }
+            public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
             public override ResolvedSignature onSignature(ResolvedSignature s)
             {
@@ -39,13 +44,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             }
         }
 
-        private class MonomorphizationValidationExpression :
-            ExpressionTransformation<Core.ExpressionKindTransformation, MonomorphizationValidationExpressionType>
+        public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() => new ExpressionTransformation(this);
+        private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
         {
-            public MonomorphizationValidationExpression() :
-                base(expr => new ExpressionKindTransformation<MonomorphizationValidationExpression>(expr as MonomorphizationValidationExpression),
-                     expr => new MonomorphizationValidationExpressionType(expr as MonomorphizationValidationExpression))
-            { }
+            public ExpressionTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
             public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
             {
@@ -58,9 +60,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             }
         }
 
-        private class MonomorphizationValidationExpressionType : ExpressionTypeTransformation<MonomorphizationValidationExpression>
+        public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() => new ExpressionTypeTransformation(this);
+        private class ExpressionTypeTransformation : Core.ExpressionTypeTransformation<TransformationState>
         {
-            public MonomorphizationValidationExpressionType(MonomorphizationValidationExpression expr) : base(expr) { }
+            public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
             public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
             {

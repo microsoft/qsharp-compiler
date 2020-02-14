@@ -11,6 +11,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
+
 namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransformation
 {
     using Concretion = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
@@ -170,8 +171,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 }
             }
 
-            public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
+            /// <summary>
+            /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
+            /// </summary>
+            /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
+            public ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables)) { }
 
+            public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
                 public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -188,12 +194,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                         .ToImmutableArray());
                 }
             }
-
-            /// <summary>
-            /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
-            /// </summary>
-            /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            public ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables)) { }
         }
 
         #endregion
@@ -232,7 +232,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             public ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams)) { }
 
             public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
-
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
                 public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -251,7 +250,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             }
 
             public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() => new ExpressionTypeTransformation(this);
-
             private class ExpressionTypeTransformation : Core.ExpressionTypeTransformation<TransformationState>
             {
                 public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -301,7 +299,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             public ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier) : base(new TransformationState(getConcreteIdentifier)) { }
 
             public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() => new ExpressionTransformation(this);
-
             private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
             {
                 public ExpressionTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -335,7 +332,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             }
 
             public override Core.ExpressionKindTransformation<TransformationState> NewExpressionKindTransformation() => new ExpressionKindTransformation(this);
-
             private class ExpressionKindTransformation : Core.ExpressionKindTransformation<TransformationState>
             {
                 public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -368,7 +364,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             }
 
             public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() => new ExpressionTypeTransformation(this);
-
             private class ExpressionTypeTransformation : Core.ExpressionTypeTransformation<TransformationState>
             {
                 public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
