@@ -161,8 +161,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         }
 
         /// <summary>
-        /// Helper class for the scope transformation that reverses the order of all operation calls
-        /// unless these calls occur within the outer block of a conjugation. Outer tranformations of conjugations are left unchanged.
+        /// Helper class to reverse the order of all operation calls
+        /// unless these calls occur within the outer block of a conjugation. 
+        /// Outer tranformations of conjugations are left unchanged.
         /// Throws an InvalidOperationException upon while-loops. 
         /// </summary>
         private class ReverseLoops : 
