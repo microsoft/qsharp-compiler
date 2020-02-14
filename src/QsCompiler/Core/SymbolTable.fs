@@ -22,8 +22,8 @@ open Newtonsoft.Json
 type ResolutionResult<'T> =
     /// The symbol resolved successfully.
     | Found of 'T
-    /// The symbol is ambiguous, and more than one resolution is possible. Contains the list of possible namespaces in
-    /// which the symbol could be resolved to.
+    /// An unqualified symbol is ambiguous, and it is possible to resolve it to more than one namespace. Includes the
+    /// list of possible namespaces.
     | Ambiguous of NonNullable<string> seq
     /// The symbol resolved to a declaration which is not accessible from the location referencing it.
     | Inaccessible
@@ -1485,17 +1485,25 @@ and NamespaceManager
             | Some ns -> ns.Name.Value
         finally syncRoot.ExitReadLock()
 
-    /// Returns the names of all namespaces in which a callable with the given name is declared. 
-    member this.NamespacesContainingCallable cName = 
+    /// Returns the names of all namespaces in which a callable with the given name is declared, including private and
+    /// internal declarations.
+    member this.NamespacesContainingCallable cName =
         // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
+        //
+        // TODO: It may be useful to limit the results to only declarations which are accessible from a given location
+        // (e.g., for code actions in the language server).
         syncRoot.EnterReadLock()
         try let tryFindCallable (ns : Namespace) = ns.TryFindCallable cName |> QsNullable<_>.Map (fun _ -> ns.Name)
             (Namespaces.Values |> QsNullable<_>.Choose tryFindCallable).ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
-    /// Returns the names of all namespaces in which a type with the given name is declared. 
-    member this.NamespacesContainingType tName = 
+    /// Returns the names of all namespaces in which a type with the given name is declared, including private and
+    /// internal declarations.
+    member this.NamespacesContainingType tName =
         // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
+        //
+        // TODO: It may be useful to limit the results to only declarations which are accessible from a given location
+        // (e.g., for code actions in the language server).
         syncRoot.EnterReadLock()
         try let tryFindType (ns : Namespace) = ns.TryFindType tName |> QsNullable<_>.Map (fun _ -> ns.Name)
             (Namespaces.Values |> QsNullable<_>.Choose tryFindType).ToImmutableArray()
