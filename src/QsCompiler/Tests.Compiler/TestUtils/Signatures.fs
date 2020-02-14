@@ -75,7 +75,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
     let makeArgsString (args : ResolvedType) =
         match args.Resolution with
         | QsTypeKind.UnitType -> "()"
-        | _ -> args |> (ExpressionToQs () |> ExpressionTypeToQs).Apply
+        | _ -> args |> SyntaxTreeToQs.Default.ToCode 
 
     (*Tests that all target signatures are present*)
     for targetSig in targetSignatures do

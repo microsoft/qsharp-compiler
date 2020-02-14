@@ -173,7 +173,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 if (Options.IsCodeSnippet(file))
                 {
                     var subtree = evaluatedTree.Select(ns => FilterBySourceFile.Apply(ns, file)).Where(ns => ns.Elements.Any());
-                    var code = new string[] { "" }.Concat(StripSnippetWrapping(subtree).Select(FormatCompilation.FormatStatement));
+                    var code = new string[] { "" }.Concat(StripSnippetWrapping(subtree).Select(SyntaxTreeToQs.Default.ToCode));
                     logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), messageParam: code.ToArray());
                 }
                 else 
