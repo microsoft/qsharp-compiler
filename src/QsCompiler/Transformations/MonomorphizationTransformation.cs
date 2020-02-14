@@ -78,11 +78,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 responses.Add(currentResponse);
             }
 
-            var filter = new ResolveGenerics(responses
-                .GroupBy(res => res.concreteCallable.FullName.Namespace)
-                .ToImmutableDictionary(group => group.Key, group => group.Select(res => res.concreteCallable)));
-            return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
-            
+            return ResolveGenerics.Apply(compilation, responses);
         }
 
         private static Identifier GetConcreteIdentifier(
@@ -161,6 +157,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
         private class ResolveGenerics : QsSyntaxTreeTransformation<ResolveGenerics.TransformationState>
         {
+            public static QsCompilation Apply(QsCompilation compilation, List<Response> responses)
+            {
+                var filter = new ResolveGenerics(responses
+                    .GroupBy(res => res.concreteCallable.FullName.Namespace)
+                    .ToImmutableDictionary(group => group.Key, group => group.Select(res => res.concreteCallable)));
+
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
+            }
+
             public class TransformationState
             {
                 internal readonly ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> NamespaceCallables;
@@ -175,7 +180,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
             /// </summary>
             /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            public ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables)) { }
+            private ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables)) { }
 
             public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
@@ -229,7 +234,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 }
             }
 
-            public ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams)) { }
+            private ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams)) { }
 
             public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
@@ -296,7 +301,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 }
             }
 
-            public ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier) : base(new TransformationState(getConcreteIdentifier)) { }
+            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier) : base(new TransformationState(getConcreteIdentifier)) { }
 
             public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() => new ExpressionTransformation(this);
             private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
