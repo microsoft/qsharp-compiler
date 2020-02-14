@@ -211,13 +211,13 @@ let public CallExpressions fragmentKind =
 let private tryResolveWith resolve extract (currentNS, source) = function 
     | QsSymbolKind.Symbol sym -> 
         try resolve sym (currentNS, source) |> function
-            | Value decl, _ -> Some decl, Some sym
-            | Null, _ -> None, Some sym
+            | Found decl -> Some decl, Some sym
+            | _ -> None, Some sym
         with | :? ArgumentException -> None, Some sym
     | QsSymbolKind.QualifiedSymbol (ns, sym) ->
         try extract {Namespace = ns; Name = sym} (currentNS, source) |> function
-            | Value decl -> Some decl, Some sym
-            | Null -> None, None
+            | Found decl -> Some decl, Some sym
+            | _ -> None, None
         with | :? ArgumentException -> None, None
     | _ -> None, None
 

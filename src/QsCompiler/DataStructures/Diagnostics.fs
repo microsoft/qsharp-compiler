@@ -187,6 +187,8 @@ type ErrorCode =
     | AliasForOpenedNamespace = 6019
     | InvalidNamespaceAliasName = 6020 // i.e. the chosen alias already exists
     | ConflictInReferences = 6021
+    | InaccessibleType = 6022
+    | InaccessibleCallable = 6023
 
     | ExpectingUnqualifiedSymbol = 6101
     | ExpectingItemName = 6102
@@ -197,6 +199,8 @@ type ErrorCode =
     | UnknownTypeParameterName = 6107
     | UnknownItemName = 6108
     | NotMarkedAsAttribute = 6109
+    | InaccessibleTypeInNamespace = 6110
+    | InaccessibleCallableInNamespace = 6111
 
     | ArgumentTupleShapeMismatch = 6201
     | ArgumentTupleMismatch = 6202
@@ -516,6 +520,8 @@ type DiagnosticItem =
             | ErrorCode.TypeConstructorOverlapWithCallable        -> "Invalid type declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.UnknownType                               -> "No type with the name \"{0}\" exists in any of the open namespaces."
             | ErrorCode.AmbiguousType                             -> "Multiple open namespaces contain a type with the name \"{0}\". Use a fully qualified name instead. Open namespaces containing a type with that name are {1}."
+            | ErrorCode.InaccessibleType                          -> "The type {0} exists in an open namespace, but is not accessible from here."
+            | ErrorCode.InaccessibleCallable                      -> "The callable {0} exists in an open namespace, but is not accessible from here."
             | ErrorCode.AmbiguousCallable                         -> "Multiple open namespaces contain a callable with the name \"{0}\". Use a fully qualified name instead. Open namespaces containing a callable with that name are {1}." 
             | ErrorCode.TypeSpecializationMismatch                -> "Invalid specialization declaration. The type specializations do not match the expected number of type parameters. Expecting {0} type argument(s)."
             | ErrorCode.SpecializationForUnknownCallable          -> "No callable with the name \"{0}\" exists in the current namespace. Specializations need to be declared in the same namespace as the callable they extend."
@@ -540,6 +546,8 @@ type DiagnosticItem =
             | ErrorCode.UnknownTypeParameterName                  -> "No type parameter with the name \"{0}\" exists."
             | ErrorCode.UnknownItemName                           -> "The type {0} does not define an item with name \"{1}\"."
             | ErrorCode.NotMarkedAsAttribute                      -> "The type {0} is not marked as an attribute. Add \"@Attribute()\" above its declaration to indicate that it may be used as attribute."
+            | ErrorCode.InaccessibleTypeInNamespace               -> "The type {0} in namespace {1} is not accessible from here."
+            | ErrorCode.InaccessibleCallableInNamespace           -> "The callable {0} in namespace {1} is not accessible from here."
                                                 
             | ErrorCode.ArgumentTupleShapeMismatch                -> "The shape of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.ArgumentTupleMismatch                     -> "The type of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
