@@ -22,8 +22,8 @@ open Newtonsoft.Json
 type ResolutionResult<'T> =
     /// The symbol resolved successfully.
     | Found of 'T
-    /// The symbol is ambiguous, and more than one resolution is possible. Contains the list of possible namespaces in
-    /// which the symbol could be resolved to.
+    /// An unqualified symbol is ambiguous, and it is possible to resolve it to more than one namespace. Includes the
+    /// list of possible namespaces.
     | Ambiguous of NonNullable<string> seq
     /// The symbol resolved to a declaration which is not accessible from the location referencing it.
     | Inaccessible
