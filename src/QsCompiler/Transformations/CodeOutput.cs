@@ -48,8 +48,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     /// Class used to generate Q# code for compiled Q# namespaces. 
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given namespace.
     /// </summary>
-    public class __SyntaxTreeToQs__
-        : QsSyntaxTreeTransformation<__SyntaxTreeToQs__.SharedState>
+    public class SyntaxTreeToQs
+        : QsSyntaxTreeTransformation<SyntaxTreeToQs.SharedState>
     {
         public const string InvalidType = "__UnknownType__";
         public const string InvalidSet = "__UnknownSet__";
@@ -72,12 +72,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             public Action BeforeInvalidFunctorGenerator = null;
 
             internal string TypeOutputHandle = null;
-            internal string ExpressionKindOutputHandle = null;
-            internal readonly List<string> StatementKindOutputHandle = new List<string>();
+            internal string ExpressionOutputHandle = null;
+            internal readonly List<string> StatementOutputHandle = new List<string>();
             internal readonly List<string> NamespaceOutputHandle = new List<string>();
 
             internal QsComments StatementComments = QsComments.Empty;
             internal TransformationContext Context;
+            internal IEnumerable<string> NamespaceDocumentation = null;
 
             public SharedState(TransformationContext context = null) =>
                 this.Context = context ?? new TransformationContext();
@@ -101,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         }
 
 
-        public __SyntaxTreeToQs__(TransformationContext context = null)
+        public SyntaxTreeToQs(TransformationContext context = null)
             : base(new SharedState(context))
         { }
 
@@ -118,13 +119,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             new ExpressionKindTransformation(this);
 
         public override Core.ExpressionTypeTransformation<SharedState> NewExpressionTypeTransformation() =>
-            new ExpressionTypeTransformation(this);
+            new TypeTransformation(this);
 
 
         // public methods for convenience
 
-        public static __SyntaxTreeToQs__ Default = 
-            new __SyntaxTreeToQs__();
+        public static SyntaxTreeToQs Default = 
+            new SyntaxTreeToQs();
 
         public string ToCode(ResolvedType t)
         {
@@ -135,7 +136,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public string ToCode(QsExpressionKind k)
         {
             this.ExpressionKinds.Transform(k);
-            return this.InternalState.ExpressionKindOutputHandle;
+            return this.InternalState.ExpressionOutputHandle;
         }
 
         public string ToCode(TypedExpression ex) =>
@@ -144,7 +145,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public string ToCode(QsStatementKind stmKind)
         {
             this.StatementKinds.Transform(stmKind);
-            return String.Join(Environment.NewLine, this.InternalState.StatementKindOutputHandle);
+            return String.Join(Environment.NewLine, this.InternalState.StatementOutputHandle);
         }
 
         public string ToCode(QsStatement stm) =>
@@ -155,6 +156,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             this.Namespaces.Transform(ns);
             return String.Join(Environment.NewLine, this.InternalState.NamespaceOutputHandle);
         }
+
+        public static string CharacteristicsExpression(ResolvedCharacteristics characteristics) =>
+            TypeTransformation.CharacteristicsExpression(characteristics);
 
         public static string ArgumentTuple(QsTuple<LocalVariableDeclaration<QsLocalSymbol>> arg,
             Func<ResolvedType, string> typeTransformation, Action onInvalidName = null, bool symbolsOnly = false) =>
@@ -213,25 +217,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                         AmbiguousNames = ambiguousSymbols
                     };
 
-                    var generator = new  __SyntaxTreeToQs__(context);
                     var totNrInvalid = 0;
-                    generator.InternalState.InvokeOnInvalid(() => ++totNrInvalid);
-
                     var docComments = ns.Documentation[sourceFile];
-                    generator.AddDocumentation(docComments.Count() == 1 ? docComments.Single() : ImmutableArray<string>.Empty); // let's drop the doc if it is ambiguous
-
-                    generator.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name.Value}");
-                    generator.AddBlock(() =>
-                    {
-                        var explicitImports = openedNS.Where(opened => !BuiltIn.NamespacesToAutoOpen.Contains(opened));
-                        if (explicitImports.Any() || nsShortNames.Any()) generator.AddToOutput("");
-                        foreach (var nsName in explicitImports.OrderBy(name => name))
-                        { generator.AddDirective($"{Keywords.importDirectiveHeader.id} {nsName.Value}"); }
-                        foreach (var kv in nsShortNames.OrderBy(pair => pair.Key))
-                        { generator.AddDirective($"{Keywords.importDirectiveHeader.id} {kv.Key.Value} {Keywords.importedAs.id} {kv.Value.Value}"); }
-                        if (explicitImports.Any() || nsShortNames.Any()) generator.AddToOutput("");
-                        generator.ProcessNamespaceElements(tree.Elements);
-                    });
+                    var generator = new  SyntaxTreeToQs(context);
+                    generator.InternalState.InvokeOnInvalid(() => ++totNrInvalid);
+                    generator.InternalState.NamespaceDocumentation = docComments.Count() == 1 ? docComments.Single() : ImmutableArray<string>.Empty; // let's drop the doc if it is ambiguous
+                    generator.Namespaces.Transform(tree);
 
                     if (totNrInvalid > 0) success = false;
                     nsInFile.Add(ns.Name, String.Join(Environment.NewLine, generator.InternalState.NamespaceOutputHandle));
@@ -249,21 +240,73 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// Adds an Output string property to ExpressionTypeTransformation, 
         /// that upon calling Transform on a Q# type is set to the Q# code corresponding to that type. 
         /// </summary>
-        private class ExpressionTypeTransformation
+        public class TypeTransformation
             : Core.ExpressionTypeTransformation<SharedState>
         {
-            private readonly Func<ResolvedType, string> TypeToQs; 
+            private readonly Func<ResolvedType, string> TypeToQs;
 
-            private string Output // the sole purpose of this is a shorter name ...
+            protected string Output // the sole purpose of this is a shorter name ...
             {
                 get => this.Transformation.InternalState.TypeOutputHandle;
                 set => Transformation.InternalState.TypeOutputHandle = value;
             }
 
-            public ExpressionTypeTransformation(__SyntaxTreeToQs__ parent)
-                : base(parent) =>
+            public TypeTransformation(SyntaxTreeToQs parent) : base(parent) =>
                 this.TypeToQs = parent.ToCode;
-            
+
+            public TypeTransformation() : base(new SharedState()) =>
+                this.TypeToQs = t =>
+                {
+                    this.Transformation.Types.Transform(t);
+                    return this.Transformation.InternalState.TypeOutputHandle;
+                };
+
+
+            // internal static methods
+
+            internal static string CharacteristicsExpression(ResolvedCharacteristics characteristics, Action onInvalidSet = null)
+            {
+                int CurrentPrecedence = 0;
+                string SetPrecedenceAndReturn(int prec, string str)
+                {
+                    CurrentPrecedence = prec;
+                    return str;
+                }
+
+                string Recur(int prec, ResolvedCharacteristics ex)
+                {
+                    var output = SetAnnotation(ex);
+                    return prec < CurrentPrecedence || CurrentPrecedence == int.MaxValue ? output : $"({output})";
+                }
+
+                string BinaryOperator(Keywords.QsOperator op, ResolvedCharacteristics lhs, ResolvedCharacteristics rhs) =>
+                    SetPrecedenceAndReturn(op.prec, $"{Recur(op.prec, lhs)} {op.op} {Recur(op.prec, rhs)}");
+
+                string SetAnnotation(ResolvedCharacteristics charEx)
+                {
+                    if (charEx.Expression is CharacteristicsKind<ResolvedCharacteristics>.SimpleSet set)
+                    {
+                        string setName = null;
+                        if (set.Item.IsAdjointable) setName = Keywords.qsAdjSet.id;
+                        else if (set.Item.IsControllable) setName = Keywords.qsCtlSet.id;
+                        else throw new NotImplementedException("unknown set name");
+                        return SetPrecedenceAndReturn(int.MaxValue, setName);
+                    }
+                    else if (charEx.Expression is CharacteristicsKind<ResolvedCharacteristics>.Union u)
+                    { return BinaryOperator(Keywords.qsSetUnion, u.Item1, u.Item2); }
+                    else if (charEx.Expression is CharacteristicsKind<ResolvedCharacteristics>.Intersection i)
+                    { return BinaryOperator(Keywords.qsSetIntersection, i.Item1, i.Item2); }
+                    else if (charEx.Expression.IsInvalidSetExpr)
+                    {
+                        onInvalidSet?.Invoke();
+                        return SetPrecedenceAndReturn(int.MaxValue, InvalidSet);
+                    }
+                    else throw new NotImplementedException("unknown set expression");
+                }
+
+                return characteristics.Expression.IsEmptySet ? null : SetAnnotation(characteristics);
+            }
+
 
             // overrides 
 
@@ -375,48 +418,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsTypeKind.NewUserDefinedType(udt);
             }
 
-            public override ResolvedCharacteristics onCharacteristicsExpression(ResolvedCharacteristics fs)
+            public override ResolvedCharacteristics onCharacteristicsExpression(ResolvedCharacteristics set)
             {
-                int CurrentPrecedence = 0;
-                string SetPrecedenceAndReturn(int prec, string str)
-                {
-                    CurrentPrecedence = prec;
-                    return str;
-                }
-
-                string Recur(int prec, ResolvedCharacteristics ex)
-                {
-                    var output = SetAnnotation(ex);
-                    return prec < CurrentPrecedence || CurrentPrecedence == int.MaxValue ? output : $"({output})";
-                }
-
-                string BinaryOperator(Keywords.QsOperator op, ResolvedCharacteristics lhs, ResolvedCharacteristics rhs) =>
-                    SetPrecedenceAndReturn(op.prec, $"{Recur(op.prec, lhs)} {op.op} {Recur(op.prec, rhs)}");
-
-                string SetAnnotation(ResolvedCharacteristics characteristics)
-                {
-                    if (characteristics.Expression is CharacteristicsKind<ResolvedCharacteristics>.SimpleSet set)
-                    {
-                        string setName = null;
-                        if (set.Item.IsAdjointable) setName = Keywords.qsAdjSet.id;
-                        else if (set.Item.IsControllable) setName = Keywords.qsCtlSet.id;
-                        else throw new NotImplementedException("unknown set name");
-                        return SetPrecedenceAndReturn(int.MaxValue, setName);
-                    }
-                    else if (characteristics.Expression is CharacteristicsKind<ResolvedCharacteristics>.Union u)
-                    { return BinaryOperator(Keywords.qsSetUnion, u.Item1, u.Item2); }
-                    else if (characteristics.Expression is CharacteristicsKind<ResolvedCharacteristics>.Intersection i)
-                    { return BinaryOperator(Keywords.qsSetIntersection, i.Item1, i.Item2); }
-                    else if (characteristics.Expression.IsInvalidSetExpr)
-                    {
-                        this.Transformation.InternalState.BeforeInvalidSet?.Invoke();
-                        return SetPrecedenceAndReturn(int.MaxValue, InvalidSet);
-                    }
-                    else throw new NotImplementedException("unknown set expression");
-                }
-
-                this.Output = fs.Expression.IsEmptySet ? null : SetAnnotation(fs);
-                return fs;
+                this.Output = CharacteristicsExpression(set, onInvalidSet: this.Transformation.InternalState.BeforeInvalidSet);
+                return set;
             }
 
             public override QsTypeKind onOperation(Tuple<ResolvedType, ResolvedType> sign, CallableInformation info)
@@ -433,7 +438,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// Class used to generate Q# code for Q# expressions. 
         /// Upon calling Transform, the Output property is set to the Q# code corresponding to an expression of the given kind. 
         /// </summary>
-        private class ExpressionKindTransformation
+        public class ExpressionKindTransformation
             : Core.ExpressionKindTransformation<SharedState>
         {
             // allows to omit unnecessary parentheses
@@ -445,13 +450,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             private readonly Func<ResolvedType, string> TypeToQs;
 
-            private string Output // the sole purpose of this is a shorter name ...
+            protected string Output // the sole purpose of this is a shorter name ...
             {
-                get => this.Transformation.InternalState.ExpressionKindOutputHandle;
-                set => Transformation.InternalState.ExpressionKindOutputHandle = value;
+                get => this.Transformation.InternalState.ExpressionOutputHandle;
+                set => Transformation.InternalState.ExpressionOutputHandle = value;
             }
 
-            public ExpressionKindTransformation(__SyntaxTreeToQs__ parent)
+            public ExpressionKindTransformation(SyntaxTreeToQs parent)
                 : base(parent) =>
                 this.TypeToQs = parent.ToCode;
 
@@ -850,7 +855,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// Upon calling Transform, the _Output property of the scope transformation given on initialization
         /// is set to the Q# code corresponding to a statement of the given kind. 
         /// </summary>
-        private class StatementKindTransformation
+        public class StatementKindTransformation
             : Core.StatementKindTransformation<SharedState>
         {
             private int CurrentIndendation = 0;
@@ -858,12 +863,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             private readonly Func<TypedExpression, string> ExpressionToQs;
             
             private bool PrecededByCode => 
-                SharedState.PrecededByCode(this.Transformation.InternalState.StatementKindOutputHandle);
+                SharedState.PrecededByCode(this.Transformation.InternalState.StatementOutputHandle);
 
             private bool PrecededByBlock => 
-                SharedState.PrecededByBlock(this.Transformation.InternalState.StatementKindOutputHandle);
+                SharedState.PrecededByBlock(this.Transformation.InternalState.StatementOutputHandle);
 
-            public StatementKindTransformation(__SyntaxTreeToQs__ parent)
+            public StatementKindTransformation(SyntaxTreeToQs parent)
                 : base(parent) =>
                 this.ExpressionToQs = parent.ToCode;
 
@@ -873,7 +878,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             private void AddToOutput(string line)
             {
                 for (var i = 0; i < this.CurrentIndendation; ++i) line = $"    {line}";
-                this.Transformation.InternalState.StatementKindOutputHandle.Add(line);
+                this.Transformation.InternalState.StatementOutputHandle.Add(line);
             }
 
             private void AddComments(IEnumerable<string> comments)
@@ -1045,7 +1050,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// Class used to generate Q# code for Q# statements. 
         /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given statement block.
         /// </summary>
-        private class StatementTransformation
+        public class StatementTransformation
             : StatementTransformation<SharedState>
         {
             public StatementTransformation(QsSyntaxTreeTransformation<SharedState> parent)
@@ -1063,7 +1068,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         }
 
 
-        private class NamespaceTransformation
+        public class NamespaceTransformation
             : NamespaceTransformation<SharedState>
         {
             private int CurrentIndendation = 0;
@@ -1077,7 +1082,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             private List<string> Output => // the sole purpose of this is a shorter name ...
                 this.Transformation.InternalState.NamespaceOutputHandle;
 
-            public NamespaceTransformation(__SyntaxTreeToQs__ parent)
+            public NamespaceTransformation(SyntaxTreeToQs parent)
                 : base(parent) =>
                 this.TypeToQs = parent.ToCode;
 
@@ -1101,8 +1106,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this.AddToOutput($"{str};");
             }
 
-            private void AddDocumentation(ImmutableArray<string> doc)
+            private void AddDocumentation(IEnumerable<string> doc)
             {
+                if (doc == null) return;
                 foreach (var line in doc)
                 { this.AddToOutput($"///{line}"); }
             }
@@ -1185,9 +1191,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
                 void ProcessContent()
                 {
-                    this.Transformation.InternalState.StatementKindOutputHandle.Clear();
+                    this.Transformation.InternalState.StatementOutputHandle.Clear();
                     this.Transformation.Statements.Transform(body);
-                    foreach (var line in this.Transformation.InternalState.StatementKindOutputHandle)
+                    foreach (var line in this.Transformation.InternalState.StatementOutputHandle)
                     { this.AddToOutput(line); }
                 }
                 if (this.NrSpecialzations != 1) // todo: needs to be adapted once we support type specializations
@@ -1341,24 +1347,41 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             {
                 // do *not* set DeclarationComments!
                 this.Transformation.Expressions.Transform(att.Argument);
-                var arg = this.Transformation.InternalState.ExpressionKindOutputHandle;
+                var arg = this.Transformation.InternalState.ExpressionOutputHandle;
                 var argStr = att.Argument.Expression.IsValueTuple || att.Argument.Expression.IsUnitValue ? arg : $"({arg})";
                 var id = att.TypeId.IsValue
                     ? Identifier.NewGlobalCallable(new QsQualifiedName(att.TypeId.Item.Namespace, att.TypeId.Item.Name))
                     : Identifier.InvalidIdentifier;
                 this.Transformation.ExpressionKinds.onIdentifier(id, QsNullable<ImmutableArray<ResolvedType>>.Null);
                 this.AddComments(att.Comments.OpeningComments);
-                this.AddToOutput($"@ {this.Transformation.InternalState.ExpressionKindOutputHandle}{argStr}");
+                this.AddToOutput($"@ {this.Transformation.InternalState.ExpressionOutputHandle}{argStr}");
                 return att;
             }
 
             public override QsNamespace Transform(QsNamespace ns)
             {
-                this.Transformation.InternalState.Context =
-                    new TransformationContext { CurrentNamespace = ns.Name.Value };
+                if (this.Transformation.InternalState.Context.CurrentNamespace != ns.Name.Value)
+                {
+                    this.Transformation.InternalState.Context =
+                        new TransformationContext { CurrentNamespace = ns.Name.Value };
+                    this.Transformation.InternalState.NamespaceDocumentation = null;
+                }
 
+                this.AddDocumentation(this.Transformation.InternalState.NamespaceDocumentation);
                 this.AddToOutput($"{Keywords.namespaceDeclHeader.id} {ns.Name.Value}");
-                this.AddBlock(() => this.ProcessNamespaceElements(ns.Elements));
+                this.AddBlock(() =>
+                {
+                    var context = this.Transformation.InternalState.Context;
+                    var explicitImports = context.OpenedNamespaces.Where(opened => !BuiltIn.NamespacesToAutoOpen.Contains(opened));
+                    if (explicitImports.Any() || context.NamespaceShortNames.Any()) this.AddToOutput("");
+                    foreach (var nsName in explicitImports.OrderBy(name => name))
+                    { this.AddDirective($"{Keywords.importDirectiveHeader.id} {nsName.Value}"); }
+                    foreach (var kv in context.NamespaceShortNames.OrderBy(pair => pair.Key))
+                    { this.AddDirective($"{Keywords.importDirectiveHeader.id} {kv.Key.Value} {Keywords.importedAs.id} {kv.Value.Value}"); }
+                    if (explicitImports.Any() || context.NamespaceShortNames.Any()) this.AddToOutput("");
+                    this.ProcessNamespaceElements(ns.Elements);
+                });
+
                 return ns;
             }
         }

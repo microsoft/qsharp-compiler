@@ -260,7 +260,7 @@ let private namespaceDocumentation (docs : ILookup<NonNullable<string>, Immutabl
     PrintSummary allDoc markdown
 
 type private TName () = 
-    inherit ExpressionTypeToQs(new ExpressionToQs())
+    inherit SyntaxTreeToQs.TypeTransformation() 
     override this.onCharacteristicsExpression characteristics =
         if characteristics.AreInvalid then this.Output <- "?"; characteristics
         else base.onCharacteristicsExpression characteristics
@@ -270,11 +270,14 @@ type private TName () =
     override this.onUserDefinedType udt = 
         this.Output <- udt.Name.Value
         UserDefinedType udt
+    member this.Apply t = 
+        this.Transform t |> ignore
+        this.Output
 let private TypeString = new TName()
 let private TypeName = TypeString.Apply
 let private CharacteristicsAnnotation (ex, format) = 
-    ex |> TypeString.onCharacteristicsExpression |> ignore
-    if String.IsNullOrWhiteSpace TypeString.Output then "" else sprintf "is %s" TypeString.Output |> format
+    let charEx = SyntaxTreeToQs.CharacteristicsExpression ex
+    if String.IsNullOrWhiteSpace charEx then "" else sprintf "is %s" charEx |> format
 
 [<Extension>]
 let public TypeInfo (symbolTable : NamespaceManager) (currentNS, source) (qsType : QsType) markdown = 
@@ -390,8 +393,8 @@ let public DeclarationInfo symbolTable (locals : LocalDeclarations) (currentNS, 
         match qsSym |> globalCallableResolution symbolTable (currentNS, source) with 
         | Some decl, _ ->
             let functorSupport characteristics =
-                TypeString.onCharacteristicsExpression characteristics |> ignore
-                if String.IsNullOrWhiteSpace TypeString.Output then "(None)" else TypeString.Output
+                let charEx = SyntaxTreeToQs.CharacteristicsExpression characteristics
+                if String.IsNullOrWhiteSpace charEx then "(None)" else charEx
             let name = sprintf "%s %s" (printCallableKind false decl.Kind) decl.QualifiedName.Name.Value |> withNewLine
             let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine 
             let input = sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName) |> withNewLine
