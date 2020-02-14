@@ -144,8 +144,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public string ToCode(QsStatementKind stmKind)
         {
+            var nrPreexistingLines = this.InternalState.StatementOutputHandle.Count;
             this.StatementKinds.Transform(stmKind);
-            return String.Join(Environment.NewLine, this.InternalState.StatementOutputHandle);
+            return String.Join(Environment.NewLine, this.InternalState.StatementOutputHandle.Skip(nrPreexistingLines));
         }
 
         public string ToCode(QsStatement stm) =>
@@ -153,8 +154,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public string ToCode(QsNamespace ns)
         {
+            var nrPreexistingLines = this.InternalState.NamespaceOutputHandle.Count;
             this.Namespaces.Transform(ns);
-            return String.Join(Environment.NewLine, this.InternalState.NamespaceOutputHandle);
+            return String.Join(Environment.NewLine, this.InternalState.NamespaceOutputHandle.Skip(nrPreexistingLines));
         }
 
         public static string CharacteristicsExpression(ResolvedCharacteristics characteristics) =>
