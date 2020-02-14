@@ -158,7 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             if (idName == null) throw new ArgumentNullException(nameof(idName));
         }
 
-        public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() =>
+        public override TypeTransformation<TransformationState> NewTypeTransformation() =>
             new ExpressionTypeTransformation(this);
 
         public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
@@ -196,7 +196,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         // helper classes
 
         private class ExpressionTypeTransformation :
-            Core.ExpressionTypeTransformation<TransformationState>
+            TypeTransformation<TransformationState>
         {
             public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) :
                 base(parent)

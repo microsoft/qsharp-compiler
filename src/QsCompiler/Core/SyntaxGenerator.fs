@@ -17,12 +17,12 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 // transformations used to strip range information for auto-generated syntax
 
 type private StripPositionInfoFromType () = 
-    inherit ExpressionTypeTransformation(true)
+    inherit TypeTransformationBase(true)
     override this.onRangeInformation _ = Null
 
 type private StripPositionInfoFromExpression () = 
     inherit ExpressionTransformation()
-    let typeTransformation = new StripPositionInfoFromType() :> ExpressionTypeTransformation
+    let typeTransformation = new StripPositionInfoFromType() :> TypeTransformationBase
     override this.onRangeInformation _ = Null
     override this.Type = typeTransformation
 

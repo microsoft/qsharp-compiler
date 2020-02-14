@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public override Core.ExpressionKindTransformation<SharedState> NewExpressionKindTransformation() =>
             new ExpressionKindTransformation(this);
 
-        public override Core.ExpressionTypeTransformation<SharedState> NewExpressionTypeTransformation() =>
+        public override TypeTransformation<SharedState> NewTypeTransformation() =>
             new TypeTransformation(this);
 
 
@@ -243,7 +243,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// that upon calling Transform on a Q# type is set to the Q# code corresponding to that type. 
         /// </summary>
         public class TypeTransformation
-            : Core.ExpressionTypeTransformation<SharedState>
+            : TypeTransformation<SharedState>
         {
             private readonly Func<ResolvedType, string> TypeToQs;
 

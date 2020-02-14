@@ -108,7 +108,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// Base class for all ExpressionTypeTransformations.
     /// </summary>
     public class ExpressionTypeTransformation<E> :
-        Core.ExpressionTypeTransformation
+        Core.TypeTransformationBase
         where E : Core.ExpressionTransformation
     {
         public readonly E _Expression;
@@ -144,15 +144,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     public class ExpressionTransformation<K, T> : 
         Core.ExpressionTransformation
         where K : Core.ExpressionKindTransformation
-        where T : Core.ExpressionTypeTransformation
+        where T : Core.TypeTransformationBase
     {
         public readonly K _Kind;
         private readonly Core.ExpressionKindTransformation DefaultKind;
         public override Core.ExpressionKindTransformation Kind => _Kind ?? DefaultKind;
 
         public readonly T _Type;
-        private readonly Core.ExpressionTypeTransformation DefaultType;
-        public override Core.ExpressionTypeTransformation Type => _Type ?? DefaultType;
+        private readonly Core.TypeTransformationBase DefaultType;
+        public override Core.TypeTransformationBase Type => _Type ?? DefaultType;
 
         public ExpressionTransformation(Func<ExpressionTransformation<K, T>, K> kind, Func<ExpressionTransformation<K, T>, T> type) : 
             base(false) // disable transformations by default
@@ -160,7 +160,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             this.DefaultKind = base.Kind;
             this._Kind = kind?.Invoke(this);
 
-            this.DefaultType = new Core.ExpressionTypeTransformation(false); // disabled by default
+            this.DefaultType = new Core.TypeTransformationBase(false); // disabled by default
             this._Type = type?.Invoke(this);
         }
     }
@@ -169,10 +169,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// Given an expression kind transformation, Transform applies the given transformation to the Kind of every expression. 
     /// </summary>
     public class ExpressionTransformation<K> :
-        ExpressionTransformation<K, Core.ExpressionTypeTransformation>
+        ExpressionTransformation<K, Core.TypeTransformationBase>
         where K : Core.ExpressionKindTransformation
     {
-        public ExpressionTransformation(Func<ExpressionTransformation<K, Core.ExpressionTypeTransformation>, K> kind) : 
+        public ExpressionTransformation(Func<ExpressionTransformation<K, Core.TypeTransformationBase>, K> kind) : 
             base(kind, null) { }
     }
 

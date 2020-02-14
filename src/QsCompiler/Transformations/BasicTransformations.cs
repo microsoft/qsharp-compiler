@@ -285,7 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         ExpressionTransformation<ExpressionKindTransformation<FoldOverExpressions<T>>>
     {
         private static readonly Func<
-            ExpressionTransformation<ExpressionKindTransformation<FoldOverExpressions<T>>, Core.ExpressionTypeTransformation>,
+            ExpressionTransformation<ExpressionKindTransformation<FoldOverExpressions<T>>, Core.TypeTransformationBase>,
             ExpressionKindTransformation<FoldOverExpressions<T>>> InitializeKind =
             e => new ExpressionKindTransformation<FoldOverExpressions<T>>(e as FoldOverExpressions<T>);
 

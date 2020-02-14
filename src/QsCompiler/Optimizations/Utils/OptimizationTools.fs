@@ -103,7 +103,7 @@ type internal ReplaceTypeParams(typeParams: ImmutableDictionary<_, ResolvedType>
     inherit ScopeTransformation()
 
     override __.Expression = { new ExpressionTransformation() with
-        override __.Type = { new ExpressionTypeTransformation() with
+        override __.Type = { new TypeTransformationBase() with
             override __.onTypeParameter tp =
                 let key = tp.Origin, tp.TypeName
                 match typeParams.TryGetValue key with 
