@@ -770,40 +770,92 @@ and NamespaceManager
     let TryResolveTypeName (parentNS, source) ((nsName, symName), symRange) = 
         let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
         let checkQualificationForDeprecation qual = BuiltIn.Deprecated |> PossibleQualifications (parentNS, source) |> Seq.contains qual
-        let buildAndReturn (ns, declSource, deprecation, errs) = 
-            let deprecatedWarnings = deprecation |> SymbolResolution.GenerateDeprecationWarning ({Namespace = ns; Name = symName}, symRange |> orDefault)
-            Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings |> Array.append errs
-        let tryFind (parentNS, source) (tName, tRange) = 
+        let buildAndReturn (ns, declSource, deprecation, modifiers, errs) =
+            let deprecatedWarnings =
+                deprecation
+                |> SymbolResolution.GenerateDeprecationWarning ({Namespace = ns; Name = symName}, symRange |> orDefault)
+            (Some ({Namespace = ns; Name = symName; Range = symRange}, declSource, modifiers),
+             Array.append errs deprecatedWarnings)
+        let tryFind (parentNS, source) (tName, tRange) =
             let allResolutions =
-                (parentNS, source)
-                |> PossibleResolutions (fun ns -> ns.TryFindType (tName, checkQualificationForDeprecation))
+                PossibleResolutions
+                    (fun ns -> ns.TryFindType (tName, checkQualificationForDeprecation))
+                    (parentNS, source)
             let accessibleResolutions = allResolutions |> List.filter (fun (nsName, (_, _, sameAssembly, modifiers)) ->
                 IsDeclarationAccessible sameAssembly (parentNS = nsName) modifiers)
             match accessibleResolutions with
             | [] ->
-                if List.isEmpty allResolutions then
-                    Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, [tName.Value]) |]
-                else
-                    Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InaccessibleType, [tName.Value]) |]
-            | [(nsName, (declSource, deprecated, _, _))] -> Value (nsName, declSource, deprecated), [||]
+                if List.isEmpty allResolutions
+                then Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, [tName.Value]) |]
+                else Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InaccessibleType, [tName.Value]) |]
+            | [(nsName, (declSource, deprecated, _, modifiers))] ->
+                Value (nsName, declSource, deprecated, modifiers), [||]
             | _ ->
                 let diagArg = String.Join(", ", accessibleResolutions.Select (fun (ns,_) -> ns.Value))
                 Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [tName.Value; diagArg]) |]
         
-        match nsName with 
+        match nsName with
         | None -> tryFind (parentNS, source) (symName, symRange) |> function
-            | Value (ns, declSource, deprecation), errs -> buildAndReturn (ns, declSource, deprecation, errs)
+            | Value (ns, declSource, deprecation, modifiers), errs ->
+                buildAndReturn (ns, declSource, deprecation, modifiers, errs)
             | Null, errs -> None, errs
         | Some qualifier -> (parentNS, source) |> TryResolveQualifier qualifier |> function
-            | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [qualifier.Value]) |] 
-            | Some ns -> 
+            | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [qualifier.Value]) |]
+            | Some ns ->
                 ns.TryFindType (symName, checkQualificationForDeprecation) |> function
-                | Value (declSource, deprecation, isSameAssembly, modifiers) ->
-                    if IsDeclarationAccessible isSameAssembly (parentNS = ns.Name) modifiers then
-                        buildAndReturn (ns.Name, declSource, deprecation, [||])
-                    else
-                        None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InaccessibleTypeInNamespace, [symName.Value; qualifier.Value]) |]
+                | Value (declSource, deprecation, sameAssembly, modifiers) ->
+                    if IsDeclarationAccessible sameAssembly (parentNS = ns.Name) modifiers
+                    then buildAndReturn (ns.Name, declSource, deprecation, modifiers, [||])
+                    else None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InaccessibleTypeInNamespace, [symName.Value; qualifier.Value]) |]
                 | _ -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, [symName.Value; qualifier.Value]) |]
+
+    /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file. The
+    /// resolution consists of replacing all unqualified names for user defined types by their qualified name.
+    ///
+    /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or
+    /// unqualified) can be found. In that case, resolves the user defined type by replacing it with the Q# type
+    /// denoting an invalid type.
+    ///
+    /// Diagnostics can be generated in additional cases by returning an array of diagnostics from the given checkUdt
+    /// function.
+    ///
+    /// Verifies that all used type parameters are defined in the given list of type parameters, and generates suitable
+    /// diagnostics if they are not, replacing them by the Q# type denoting an invalid type. Returns the resolved type
+    /// as well as an array with diagnostics.
+    ///
+    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
+    /// consistent with the defined callables.
+    /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations. 
+    /// Throws a NonSupportedException if the QsType to resolve contains a MissingType.
+    let resolveType (parent : QsQualifiedName, tpNames, source) qsType checkUdt =
+        let processUDT = TryResolveTypeName (parent.Namespace, source) >> function
+            | Some (udt, _, modifiers), errs -> UserDefinedType udt, Array.append errs (checkUdt (udt, modifiers))
+            | None, errs -> InvalidType, errs
+        let processTP (symName, symRange) =
+            if tpNames |> Seq.contains symName
+            then TypeParameter {Origin = parent; TypeName = symName; Range = symRange}, [||]
+            else InvalidType, [| symRange.ValueOr QsCompilerDiagnostic.DefaultRange
+                                 |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, [symName.Value]) |]
+        syncRoot.EnterReadLock()
+        try SymbolResolution.ResolveType (processUDT, processTP) qsType
+        finally syncRoot.ExitReadLock()
+
+    /// Compares the accessibility of the parent declaration with the accessibility of the UDT being referenced. If the
+    /// accessibility of a referenced type is less than the accessibility of the parent, returns a diagnostic using the
+    /// given error code. Otherwise, returns an empty array.
+    let checkUdtAccessibility code
+                              (parent : NonNullable<string>, parentModifiers)
+                              (udt : UserDefinedType, udtModifiers) =
+        match (parentModifiers.Access, udtModifiers.Access) with
+        | (DefaultAccess, DefaultAccess)
+        | (Internal, DefaultAccess)
+        | (Internal, Internal)
+        | (Private, _) -> [||] // OK
+        | _ ->
+            // Error
+            [| QsCompilerDiagnostic.Error
+                   (code, [udt.Name.Value; parent.Value])
+                   (udt.Range.ValueOr QsCompilerDiagnostic.DefaultRange) |]
 
 
     /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given attribute.
@@ -818,7 +870,7 @@ and NamespaceManager
     member private this.ResolveAttribute (parentNS, source) attribute = 
         let getAttribute ((nsName, symName), symRange) = 
             match TryResolveTypeName (parentNS, source) ((nsName, symName), symRange) with
-            | Some (udt, declSource), errs -> // declSource may be the name of an assembly!
+            | Some (udt, declSource, _), errs -> // declSource may be the name of an assembly!
                 let fullName = sprintf "%s.%s" udt.Namespace.Value udt.Name.Value
                 let validQualifications = BuiltIn.Attribute |> PossibleQualifications (udt.Namespace, declSource)
                 match Namespaces.TryGetValue udt.Namespace with 
@@ -909,33 +961,37 @@ and NamespaceManager
         let resAttr = attr |> List.fold validateAttributes ([], []) |> snd
         resAttr.Reverse() |> ImmutableArray.CreateRange, errs.ToArray()
 
-    /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
-    /// The resolution consists of replacing all unqualified names for user defined types by their qualified name.
-    /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or unqualified) can be found.
-    /// In that case, resolves the user defined type by replacing it with the Q# type denoting an invalid type.
-    /// Verifies that all used type parameters are defined in the given list of type parameters,
-    /// and generates suitable diagnostics if they are not, replacing them by the Q# type denoting an invalid type.
-    /// Returns the resolved type as well as an array with diagnostics.
-    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined callables. 
+    /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file. The
+    /// resolution consists of replacing all unqualified names for user defined types by their qualified name.
+    ///
+    /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or
+    /// unqualified) can be found. In that case, resolves the user defined type by replacing it with the Q# type
+    /// denoting an invalid type.
+    ///
+    /// Verifies that all used type parameters are defined in the given list of type parameters, and generates suitable
+    /// diagnostics if they are not, replacing them by the Q# type denoting an invalid type. Returns the resolved type
+    /// as well as an array with diagnostics.
+    ///
+    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
+    /// consistent with the defined callables.
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations. 
-    /// Throws a NonSupportedException if the QsType to resolve contains a MissingType. 
-    member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>) (qsType : QsType) : ResolvedType * QsCompilerDiagnostic[] = 
-        let processUDT = TryResolveTypeName (parent.Namespace, source) >> function 
-            | Some (udt, _), errs -> UserDefinedType udt, errs
-            | None, errs -> InvalidType, errs 
-        let processTP (symName, symRange) = 
-            if tpNames |> Seq.contains symName then TypeParameter {Origin = parent; TypeName = symName; Range = symRange}, [||]
-            else InvalidType, [| symRange.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, [symName.Value]) |]
-        syncRoot.EnterReadLock()
-        try SymbolResolution.ResolveType (processUDT, processTP) qsType
-        finally syncRoot.ExitReadLock()
+    /// Throws a NonSupportedException if the QsType to resolve contains a MissingType.
+    member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>)
+                            (qsType : QsType)
+                            : ResolvedType * QsCompilerDiagnostic[] =
+        resolveType (parent, tpNames, source) qsType (fun _ -> [||])
 
     /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the specified source file. 
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined types. 
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined types. 
     /// Throws an ArgumentException if the given type tuple is an empty QsTuple. 
-    member private this.ResolveTypeDeclaration (fullName : QsQualifiedName, source) typeTuple = 
-        let resolveType = this.ResolveType (fullName, ImmutableArray<_>.Empty, source) // currently type parameters for udts are not supported
+    member private this.ResolveTypeDeclaration (fullName, source, modifiers) typeTuple =
+        // Currently, type parameters for UDTs are not supported.
+        let resolveType qsType =
+            resolveType
+                (fullName, ImmutableArray<_>.Empty, source)
+                qsType
+                (checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, modifiers))
         SymbolResolution.ResolveTypeDeclaration resolveType typeTuple
 
     /// Given the namespace and the name of the callable that the given signature belongs to, as well as its kind and the source file it is declared in,
@@ -946,9 +1002,14 @@ and NamespaceManager
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined callables. 
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables. 
     /// Throws an ArgumentException if the given list of characteristics is empty.
-    member private this.ResolveCallableSignature (parentKind, parentName : QsQualifiedName, source) (signature : CallableSignature, specBundleCharacteristics) =
-        let resolveType tpNames t = 
-            let res, errs = this.ResolveType (parentName, tpNames, source) t
+    member private this.ResolveCallableSignature (parentKind, parentName, source, modifiers)
+                                                 (signature, specBundleCharacteristics) =
+        let resolveType tpNames qsType =
+            let res, errs =
+                resolveType
+                    (parentName, tpNames, source)
+                    qsType
+                    (checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, modifiers))
             if parentKind <> TypeConstructor then res, errs
             else res.WithoutRangeInfo, errs // strip positional info for auto-generated type constructors
         SymbolResolution.ResolveCallableSignature (resolveType, specBundleCharacteristics) signature
@@ -976,7 +1037,7 @@ and NamespaceManager
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let tName, (source, qsType) = kvPair.Key, kvPair.Value
                 let fullName = {Namespace = ns.Name; Name = tName}
-                let resolved, msgs = qsType.Defined |> this.ResolveTypeDeclaration (fullName, source) 
+                let resolved, msgs = qsType.Defined |> this.ResolveTypeDeclaration (fullName, source, qsType.Modifiers) 
                 ns.SetTypeResolution source (tName, resolved |> Value, ImmutableArray.Empty) 
                 msgs |> Array.map (fun msg -> source, (qsType.Position, msg))))
         // ... before we can resolve the corresponding attributes. 
@@ -1031,7 +1092,7 @@ and NamespaceManager
 
                 // and finally we resolve the overall signature (whose characteristics are the intersection of the one of all bundles)
                 let characteristics = props.Values |> Seq.map (fun bundle -> bundle.BundleInfo) |> Seq.toList
-                let resolved, msgs = (signature.Defined, characteristics) |> this.ResolveCallableSignature (kind, parent, source) // no positional info for type constructors
+                let resolved, msgs = (signature.Defined, characteristics) |> this.ResolveCallableSignature (kind, parent, source, signature.Modifiers) // no positional info for type constructors
                 ns.SetCallableResolution source (parent.Name, resolved |> Value, callableAttributes)
                 errs <- (attrErrs |> Array.map (fun m -> source, m)) :: (msgs |> Array.map (fun m -> source, (signature.Position, m))) :: errs
 
@@ -1279,7 +1340,7 @@ and NamespaceManager
     /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
     member private this.TryGetCallableHeader (callableName : QsQualifiedName, declSource) (nsName, source) =
         let BuildHeader fullName (source, kind, declaration : Resolution<_,_>) = 
-            let fallback () = (declaration.Defined, [CallableInformation.Invalid]) |> this.ResolveCallableSignature (kind, callableName, source) |> fst
+            let fallback () = (declaration.Defined, [CallableInformation.Invalid]) |> this.ResolveCallableSignature (kind, callableName, source, declaration.Modifiers) |> fst
             let resolvedSignature, argTuple = declaration.Resolved.ValueOrApply fallback
             {
                 Kind = kind
@@ -1349,7 +1410,8 @@ and NamespaceManager
     /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
     member private this.TryGetTypeHeader (typeName : QsQualifiedName, declSource) (nsName, source) =
         let BuildHeader fullName (source, declaration) =
-            let fallback () = declaration.Defined |> this.ResolveTypeDeclaration (typeName, source) |> fst
+            let fallback () =
+                declaration.Defined |> this.ResolveTypeDeclaration (typeName, source, declaration.Modifiers) |> fst
             let underlyingType, items = declaration.Resolved.ValueOrApply fallback
             {
                 QualifiedName = fullName
