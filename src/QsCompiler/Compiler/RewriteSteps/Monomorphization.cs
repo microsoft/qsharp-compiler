@@ -4,8 +4,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization;
-using Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation;
+using Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransformation;
+using Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidationTransformation;
 
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps

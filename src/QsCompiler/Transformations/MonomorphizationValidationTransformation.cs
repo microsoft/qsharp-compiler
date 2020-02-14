@@ -9,7 +9,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
+namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidationTransformation
 {
     public class MonomorphizationValidationTransformation
     {
