@@ -816,8 +816,8 @@ and NamespaceManager
     /// unqualified) can be found. In that case, resolves the user defined type by replacing it with the Q# type
     /// denoting an invalid type.
     ///
-    /// Diagnostics can be generated in additional cases by returning an array of diagnostics from the given checkUdt
-    /// function.
+    /// Diagnostics can be generated in additional cases when UDTs are referenced by returning an array of diagnostics
+    /// from the given checkUdt function.
     ///
     /// Verifies that all used type parameters are defined in the given list of type parameters, and generates suitable
     /// diagnostics if they are not, replacing them by the Q# type denoting an invalid type. Returns the resolved type
