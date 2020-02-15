@@ -147,9 +147,9 @@ type StatementKindTransformation(?enable) =
 
 and ScopeTransformation(?enableStatementKindTransformations) =
     let enableStatementKind = defaultArg enableStatementKindTransformations true
-    let expressionsTransformation = new ExpressionTransformation()
+    let expressionsTransformation = new ExpressionTransformationBase()
 
-    abstract member Expression : ExpressionTransformation
+    abstract member Expression : ExpressionTransformationBase
     default this.Expression = expressionsTransformation
 
     abstract member StatementKind : StatementKindTransformation
@@ -157,7 +157,7 @@ and ScopeTransformation(?enableStatementKindTransformations) =
         new StatementKindTransformation (enableStatementKind) with 
             override x.ScopeTransformation s = this.Transform s
             override x.ExpressionTransformation ex = this.Expression.Transform ex
-            override x.TypeTransformation t = this.Expression.Type.Transform t
+            override x.TypeTransformation t = this.Expression.Types.Transform t
             override x.LocationTransformation l = this.onLocation l
         }
 
@@ -169,7 +169,7 @@ and ScopeTransformation(?enableStatementKindTransformations) =
         let onLocalVariableDeclaration (local : LocalVariableDeclaration<NonNullable<string>>) = 
             let loc = local.Position, local.Range
             let info = this.Expression.onExpressionInformation local.InferredInformation
-            let varType = this.Expression.Type.Transform local.Type 
+            let varType = this.Expression.Types.Transform local.Type 
             LocalVariableDeclaration.New info.IsMutable (loc, local.VariableName, varType, info.HasLocalQuantumDependency)
         let variableDeclarations = decl.Variables |> Seq.map onLocalVariableDeclaration |> ImmutableArray.CreateRange
         LocalDeclarations.New variableDeclarations

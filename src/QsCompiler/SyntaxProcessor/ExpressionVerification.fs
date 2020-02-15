@@ -24,7 +24,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 // utils for verifying types in expressions
 
 type private StripInferredInfoFromType () = 
-    inherit TypeTransformationBase(true)
+    inherit TypeTransformationBase()
     default this.onCallableInformation opInfo = 
         let characteristics = this.onCharacteristicsExpression opInfo.Characteristics
         CallableInformation.New (characteristics, InferredCallableInformation.NoInformation)

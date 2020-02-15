@@ -84,10 +84,9 @@ type internal ReferenceCounter() =
     /// Returns the number of times the variable with the given name is referenced
     member __.getNumUses name = numUses.TryFind name |? 0
 
-    override this.Expression = { new ExpressionTransformation() with
-        override expr.Kind = { new ExpressionKindTransformation() with
-            override __.ExpressionTransformation ex = expr.Transform ex
-            override __.TypeTransformation t = t
+    override this.Expression = { new ExpressionTransformationBase() with
+        override expr.ExpressionKinds = { new ExpressionKindTransformationBase() with
+            override __.Expressions = expr
 
             override __.onIdentifier (sym, tArgs) =
                 match sym with
@@ -102,8 +101,8 @@ type internal ReferenceCounter() =
 type internal ReplaceTypeParams(typeParams: ImmutableDictionary<_, ResolvedType>) =
     inherit ScopeTransformation()
 
-    override __.Expression = { new ExpressionTransformation() with
-        override __.Type = { new TypeTransformationBase() with
+    override __.Expression = { new ExpressionTransformationBase() with
+        override __.Types = { new TypeTransformationBase() with
             override __.onTypeParameter tp =
                 let key = tp.Origin, tp.TypeName
                 match typeParams.TryGetValue key with 
@@ -131,10 +130,9 @@ type internal SideEffectChecker() =
     /// Whether the transformed code might output any messages to the console
     member __.hasOutput = anyOutput
 
-    override __.Expression = { new ExpressionTransformation() with
-        override expr.Kind = { new ExpressionKindTransformation() with
-            override __.ExpressionTransformation ex = expr.Transform ex
-            override __.TypeTransformation t = t
+    override __.Expression = { new ExpressionTransformationBase() with
+        override expr.ExpressionKinds = { new ExpressionKindTransformationBase() with
+            override __.Expressions = expr
 
             override __.onFunctionCall (method, arg) =
                 anyOutput <- true

@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
         }
 
         private class MonomorphizationValidationExpression :
-            ExpressionTransformation<Core.ExpressionKindTransformation, MonomorphizationValidationExpressionType>
+            ExpressionTransformation<Core.ExpressionKindTransformationBase, MonomorphizationValidationExpressionType>
         {
             public MonomorphizationValidationExpression() :
                 base(expr => new ExpressionKindTransformation<MonomorphizationValidationExpression>(expr as MonomorphizationValidationExpression),

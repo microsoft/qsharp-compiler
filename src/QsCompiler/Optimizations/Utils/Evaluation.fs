@@ -164,24 +164,24 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
 
 /// The ExpressionTransformation used to evaluate constant expressions
 and internal ExpressionEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
-    inherit ExpressionTransformation()
+    inherit ExpressionTransformationBase()
 
-    override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, stmtsLeft) with
-        override __.ExpressionTransformation x = this.Transform x
-        override __.TypeTransformation x = this.Type.Transform x }
+    override this.ExpressionKinds = upcast { new ExpressionKindEvaluator(callables, constants, stmtsLeft) with
+        override __.Expressions = this :> ExpressionTransformationBase
+        override __.Types = this.Types }
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
 and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
-    inherit ExpressionKindTransformation()
+    inherit ExpressionKindTransformationBase()
 
-    member private this.simplify e1 = this.ExpressionTransformation e1
+    member private this.simplify e1 = this.Expressions.Transform e1
 
     member private this.simplify (e1, e2) =
-        (this.ExpressionTransformation e1, this.ExpressionTransformation e2)
+        (this.Expressions.Transform e1, this.Expressions.Transform e2)
 
     member private this.simplify (e1, e2, e3) =
-        (this.ExpressionTransformation e1, this.ExpressionTransformation e2, this.ExpressionTransformation e3)
+        (this.Expressions.Transform e1, this.Expressions.Transform e2, this.Expressions.Transform e3)
 
     member private this.arithBoolBinaryOp qop bigIntOp doubleOp intOp lhs rhs =
         let lhs, rhs = this.simplify (lhs, rhs)

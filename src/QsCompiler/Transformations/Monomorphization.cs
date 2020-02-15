@@ -191,7 +191,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         #region RewriteImplementations
 
         private class ReplaceTypeParamImplementationsSyntax :
-            SyntaxTreeTransformation<ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>>
+            SyntaxTreeTransformation<ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformationBase, ReplaceTypeParamImplementationsExpressionType>>>
         {
             public static Response Apply(Response current)
             {
@@ -210,10 +210,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
 
             public ReplaceTypeParamImplementationsSyntax(ImmutableConcretion typeParams) : base(
-                new ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>(
-                    new ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>(
-                        ex => new ExpressionKindTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>(ex as ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>),
-                        ex => new ReplaceTypeParamImplementationsExpressionType(typeParams, ex as ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>)
+                new ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformationBase, ReplaceTypeParamImplementationsExpressionType>>(
+                    new ExpressionTransformation<Core.ExpressionKindTransformationBase, ReplaceTypeParamImplementationsExpressionType>(
+                        ex => new ExpressionKindTransformation<ExpressionTransformation<Core.ExpressionKindTransformationBase, ReplaceTypeParamImplementationsExpressionType>>(ex as ExpressionTransformation<Core.ExpressionKindTransformationBase, ReplaceTypeParamImplementationsExpressionType>),
+                        ex => new ReplaceTypeParamImplementationsExpressionType(typeParams, ex as ExpressionTransformation<Core.ExpressionKindTransformationBase, ReplaceTypeParamImplementationsExpressionType>)
                         )))
             { }
 
@@ -231,11 +231,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         }
 
         private class ReplaceTypeParamImplementationsExpressionType :
-                ExpressionTypeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>
+                ExpressionTypeTransformation<ExpressionTransformation<Core.ExpressionKindTransformationBase, ReplaceTypeParamImplementationsExpressionType>>
         {
             ImmutableConcretion TypeParams;
 
-            public ReplaceTypeParamImplementationsExpressionType(ImmutableConcretion typeParams, ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType> expr) : base(expr)
+            public ReplaceTypeParamImplementationsExpressionType(ImmutableConcretion typeParams, ExpressionTransformation<Core.ExpressionKindTransformationBase, ReplaceTypeParamImplementationsExpressionType> expr) : base(expr)
             {
                 TypeParams = typeParams;
             }
@@ -293,13 +293,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 var typeParamResolutions = this.onTypeParamResolutions(ex.TypeParameterResolutions)
                     .Select(kv => new Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>(kv.Key.Item1, kv.Key.Item2, kv.Value))
                     .ToImmutableArray();
-                var exType = this.Type.Transform(ex.ResolvedType);
+                var exType = this.Types.Transform(ex.ResolvedType);
                 var inferredInfo = this.onExpressionInformation(ex.InferredInformation);
                 // Change the order so that Kind is transformed last.
                 // This matters because the onTypeParamResolutions method builds up type param mappings in
                 // the CurrentParamTypes dictionary that are then used, and removed from the
                 // dictionary, in the next global callable identifier found under the Kind transformations.
-                var kind = this.Kind.Transform(ex.Expression);
+                var kind = this.ExpressionKinds.Transform(ex.Expression);
                 return new TypedExpression(kind, typeParamResolutions, exType, inferredInfo, range);
             }
 

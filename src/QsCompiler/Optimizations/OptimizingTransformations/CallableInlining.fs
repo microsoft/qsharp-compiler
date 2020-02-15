@@ -85,7 +85,7 @@ type private InliningInfo = {
             let! functors, callable, arg = InliningInfo.TrySplitCall callables expr.Expression
             let! specArgs, body = InliningInfo.TryGetProvidedImpl callable functors
             let body = ReplaceTypeParams(expr.TypeParameterResolutions).Transform body
-            let returnType = ReplaceTypeParams(expr.TypeParameterResolutions).Expression.Type.Transform callable.Signature.ReturnType
+            let returnType = ReplaceTypeParams(expr.TypeParameterResolutions).Expression.Types.Transform callable.Signature.ReturnType
             return { functors = functors; callable = callable; arg = arg; specArgs = specArgs; body = body; returnType = returnType }
         }
 

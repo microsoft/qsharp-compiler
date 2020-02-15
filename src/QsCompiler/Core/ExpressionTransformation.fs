@@ -115,27 +115,24 @@ type TypeTransformationBase() =
 
 type ExpressionKindTransformationBase internal (expressionTransformation : unit -> ExpressionTransformationBase, typeTransformation : unit -> TypeTransformationBase) =
 
-    let mutable _Types = typeTransformation
-    let mutable _Expressions = expressionTransformation
+    member val internal TypeTransformationHandle = typeTransformation with get, set
+    member val internal ExpressionTransformationHandle = expressionTransformation with get, set
 
-    member this.Types
-        with private get () = _Types()
-        and internal set value = _Types <- fun _ -> value
-
-    member this.Expressions 
-        with private get () = _Expressions()
-        and internal set value = _Expressions <- fun _ -> value 
-
-    /// After construction, the transformations for Types and Expressions need to be set by the invoking piece. 
-    /// If these are not set, then the transformation will fail on execution.  
-    internal new (unsafe) = 
-        let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
-        new ExpressionKindTransformationBase(missingTransformation "expression", missingTransformation "type") 
+    // TODO: this should be a private member
+    abstract member Types : TypeTransformationBase
+    default this.Types = this.TypeTransformationHandle()
+    
+    // TODO: this should be a private member
+    abstract member Expressions : ExpressionTransformationBase
+    default this.Expressions = this.ExpressionTransformationHandle()
 
     new () as this = 
-        new ExpressionKindTransformationBase() then 
-            this.Types <- new TypeTransformationBase()
-            this.Expressions <- new ExpressionTransformationBase((fun _ -> this), (fun _ -> this.Types))
+        let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
+        new ExpressionKindTransformationBase(missingTransformation "expression", missingTransformation "type") then 
+            let typeTransformation = new TypeTransformationBase()
+            let expressionTransformation = new ExpressionTransformationBase((fun _ -> this), (fun _ -> this.Types))
+            this.TypeTransformationHandle <- fun _ -> typeTransformation
+            this.ExpressionTransformationHandle <- fun _ -> expressionTransformation
 
 
     abstract member beforeCallLike : TypedExpression * TypedExpression -> TypedExpression * TypedExpression
@@ -354,28 +351,24 @@ type ExpressionKindTransformationBase internal (expressionTransformation : unit 
 
 and ExpressionTransformationBase internal (exkindTransformation : unit -> ExpressionKindTransformationBase, typeTransformation : unit -> TypeTransformationBase) = 
 
-    let mutable _Types = typeTransformation
-    let mutable _ExpressionKinds = exkindTransformation
+    member val internal TypeTransformationHandle = typeTransformation with get, set
+    member val internal ExpressionKindTransformationHandle = exkindTransformation with get, set
 
-    member this.Types
-        with private get () = _Types()
-        and internal set value = _Types <- fun _ -> value
+    // TODO: this should be a private member
+    abstract member Types : TypeTransformationBase
+    default this.Types = this.TypeTransformationHandle()
 
-    member this.ExpressionKinds 
-        with private get () = _ExpressionKinds()
-        and internal set value = _ExpressionKinds <- fun _ -> value 
-
-    /// After construction, the transformations for Types and ExpressionKinds need to be set by the invoking piece. 
-    /// If these are not set, then the transformation will fail on execution.  
-    new (unsafe) = 
-        let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
-        new ExpressionTransformationBase(missingTransformation "expression kind", missingTransformation "type")
+    // TODO: this should be a private member
+    abstract member ExpressionKinds : ExpressionKindTransformationBase
+    default this.ExpressionKinds = this.ExpressionKindTransformationHandle()
 
     new () as this = 
         let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
         new ExpressionTransformationBase(missingTransformation "expression kind", missingTransformation "type") then
-            this.Types <- new TypeTransformationBase()
-            this.ExpressionKinds <- new ExpressionKindTransformationBase((fun _ -> this), (fun _ -> this.Types))
+            let typeTransformation = new TypeTransformationBase()
+            let exprKindTransformation = new ExpressionKindTransformationBase((fun _ -> this), (fun _ -> this.Types))
+            this.TypeTransformationHandle <- fun _ -> typeTransformation
+            this.ExpressionKindTransformationHandle <- fun _ -> exprKindTransformation
 
 
     abstract member onRangeInformation : QsNullable<QsPositionInfo*QsPositionInfo> -> QsNullable<QsPositionInfo*QsPositionInfo>

@@ -54,11 +54,11 @@ type SyntaxTreeTransformation() =
         match tItem with 
         | QsTuple items -> (items |> Seq.map this.onTypeItems).ToImmutableArray() |> QsTuple
         | QsTupleItem (Anonymous itemType) -> 
-            let t = this.Scope.Expression.Type.Transform itemType
+            let t = this.Scope.Expression.Types.Transform itemType
             Anonymous t |> QsTupleItem
         | QsTupleItem (Named item) -> 
             let loc  = item.Position, item.Range
-            let t    = this.Scope.Expression.Type.Transform item.Type
+            let t    = this.Scope.Expression.Types.Transform item.Type
             let info = this.Scope.Expression.onExpressionInformation item.InferredInformation
             LocalVariableDeclaration<_>.New info.IsMutable (loc, item.VariableName, t, info.HasLocalQuantumDependency) |> Named |> QsTupleItem
             
@@ -68,16 +68,16 @@ type SyntaxTreeTransformation() =
         | QsTuple items -> (items |> Seq.map this.onArgumentTuple).ToImmutableArray() |> QsTuple
         | QsTupleItem item -> 
             let loc  = item.Position, item.Range
-            let t    = this.Scope.Expression.Type.Transform item.Type
+            let t    = this.Scope.Expression.Types.Transform item.Type
             let info = this.Scope.Expression.onExpressionInformation item.InferredInformation
             LocalVariableDeclaration<_>.New info.IsMutable (loc, item.VariableName, t, info.HasLocalQuantumDependency) |> QsTupleItem
 
     abstract member onSignature : ResolvedSignature -> ResolvedSignature
     default this.onSignature (s : ResolvedSignature) = 
         let typeParams = s.TypeParameters 
-        let argType = this.Scope.Expression.Type.Transform s.ArgumentType
-        let returnType = this.Scope.Expression.Type.Transform s.ReturnType
-        let info = this.Scope.Expression.Type.onCallableInformation s.Information
+        let argType = this.Scope.Expression.Types.Transform s.ArgumentType
+        let returnType = this.Scope.Expression.Types.Transform s.ReturnType
+        let info = this.Scope.Expression.Types.onCallableInformation s.Information
         ResolvedSignature.New ((argType, returnType), info, typeParams)
     
 
@@ -125,7 +125,7 @@ type SyntaxTreeTransformation() =
         let source = this.onSourceFile spec.SourceFile
         let loc = this.onLocation spec.Location
         let attributes = spec.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> (args |> Seq.map this.Scope.Expression.Type.Transform).ToImmutableArray())
+        let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> (args |> Seq.map this.Scope.Expression.Types.Transform).ToImmutableArray())
         let signature = this.onSignature spec.Signature
         let impl = this.dispatchSpecializationImplementation spec.Implementation 
         let doc = this.onDocumentation spec.Documentation
@@ -158,7 +158,7 @@ type SyntaxTreeTransformation() =
         let source = this.onSourceFile t.SourceFile 
         let loc = this.onLocation t.Location
         let attributes = t.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let underlyingType = this.Scope.Expression.Type.Transform t.Type
+        let underlyingType = this.Scope.Expression.Types.Transform t.Type
         let typeItems = this.onTypeItems t.TypeItems
         let doc = this.onDocumentation t.Documentation
         let comments = t.Comments

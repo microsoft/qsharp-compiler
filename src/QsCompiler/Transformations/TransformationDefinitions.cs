@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             this._Scope.Expression.Transform(value);
 
         public override ResolvedType TypeTransformation(ResolvedType value) =>
-            this._Scope.Expression.Type.Transform(value);
+            this._Scope.Expression.Types.Transform(value);
 
         public override QsNullable<QsLocation> LocationTransformation(QsNullable<QsLocation> value) =>
             this._Scope.onLocation(value);
@@ -57,15 +57,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     public class ScopeTransformation<K, E> : 
         Core.ScopeTransformation
         where K : Core.StatementKindTransformation
-        where E : Core.ExpressionTransformation
+        where E : Core.ExpressionTransformationBase
     {
         public readonly K _StatementKind;
         private readonly Core.StatementKindTransformation DefaultStatementKind;
         public override Core.StatementKindTransformation StatementKind => _StatementKind ?? DefaultStatementKind;
 
         public readonly E _Expression;
-        private readonly Core.ExpressionTransformation DefaultExpression;
-        public override Core.ExpressionTransformation Expression => _Expression ?? DefaultExpression;
+        private readonly Core.ExpressionTransformationBase DefaultExpression;
+        public override Core.ExpressionTransformationBase Expression => _Expression ?? DefaultExpression;
 
         public ScopeTransformation(Func<ScopeTransformation<K, E>, K> statementKind, E expression) :
             base(expression != null) // default kind transformations are enabled only if there are expression transformations
@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// </summary>
     public class ScopeTransformation<E> : 
         ScopeTransformation<Core.StatementKindTransformation, E>
-        where E : Core.ExpressionTransformation
+        where E : Core.ExpressionTransformationBase
     {
         public ScopeTransformation(E expression) : 
             base(null, expression) { }
@@ -93,7 +93,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// Does not do any transformations, and can be use as no-op if a ScopeTransformation is required as argument. 
     /// </summary>
     public class NoScopeTransformations : 
-        ScopeTransformation<Core.ExpressionTransformation>
+        ScopeTransformation<Core.ExpressionTransformationBase>
     {
         public NoScopeTransformations() : 
             base(null) { }
@@ -109,12 +109,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// </summary>
     public class ExpressionTypeTransformation<E> :
         Core.TypeTransformationBase
-        where E : Core.ExpressionTransformation
+        where E : Core.ExpressionTransformationBase
     {
         public readonly E _Expression;
 
         public ExpressionTypeTransformation(E expression) :
-            base(true) =>
+            base() =>
             this._Expression = expression ?? throw new ArgumentNullException(nameof(expression));
     }
 
@@ -122,45 +122,45 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// Base class for all ExpressionKindTransformations.
     /// </summary>
     public class ExpressionKindTransformation<E> :
-        Core.ExpressionKindTransformation
-        where E : Core.ExpressionTransformation
+        Core.ExpressionKindTransformationBase
+        where E : Core.ExpressionTransformationBase
     {
         public readonly E _Expression;
 
         public ExpressionKindTransformation(E expression) :
-            base(true) =>
+            base() =>
             this._Expression = expression ?? throw new ArgumentNullException(nameof(expression));
 
-        public override TypedExpression ExpressionTransformation(TypedExpression value) =>
-            this._Expression.Transform(value);
+        public override Core.ExpressionTransformationBase Expressions =>
+            this._Expression;
 
-        public override ResolvedType TypeTransformation(ResolvedType value) =>
-            this._Expression.Type.Transform(value);
+        public override Core.TypeTransformationBase Types =>
+            this._Expression.Types;
     }
 
     /// <summary>
     /// Base class for all ExpressionTransformations.
     /// </summary>
     public class ExpressionTransformation<K, T> : 
-        Core.ExpressionTransformation
-        where K : Core.ExpressionKindTransformation
+        Core.ExpressionTransformationBase
+        where K : Core.ExpressionKindTransformationBase
         where T : Core.TypeTransformationBase
     {
         public readonly K _Kind;
-        private readonly Core.ExpressionKindTransformation DefaultKind;
-        public override Core.ExpressionKindTransformation Kind => _Kind ?? DefaultKind;
+        private readonly Core.ExpressionKindTransformationBase DefaultKind;
+        public override Core.ExpressionKindTransformationBase ExpressionKinds => _Kind ?? DefaultKind;
 
         public readonly T _Type;
         private readonly Core.TypeTransformationBase DefaultType;
-        public override Core.TypeTransformationBase Type => _Type ?? DefaultType;
+        public override Core.TypeTransformationBase Types => _Type ?? DefaultType;
 
         public ExpressionTransformation(Func<ExpressionTransformation<K, T>, K> kind, Func<ExpressionTransformation<K, T>, T> type) : 
-            base(false) // disable transformations by default
+            base() // disable transformations by default
         {
-            this.DefaultKind = base.Kind;
+            this.DefaultKind = base.ExpressionKinds;
             this._Kind = kind?.Invoke(this);
 
-            this.DefaultType = new Core.TypeTransformationBase(false); // disabled by default
+            this.DefaultType = new Core.TypeTransformationBase(); // disabled by default
             this._Type = type?.Invoke(this);
         }
     }
@@ -170,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// </summary>
     public class ExpressionTransformation<K> :
         ExpressionTransformation<K, Core.TypeTransformationBase>
-        where K : Core.ExpressionKindTransformation
+        where K : Core.ExpressionKindTransformationBase
     {
         public ExpressionTransformation(Func<ExpressionTransformation<K, Core.TypeTransformationBase>, K> kind) : 
             base(kind, null) { }
@@ -192,7 +192,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// Disables all expression transformations, and can be use as no-op if an ExpressionTransformation is required as argument.
     /// </summary>
     public class NoExpressionTransformations : 
-        ExpressionTransformation<Core.ExpressionKindTransformation>
+        ExpressionTransformation<Core.ExpressionKindTransformationBase>
     {
         public NoExpressionTransformations() : 
             base(null) { }

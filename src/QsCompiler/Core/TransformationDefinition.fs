@@ -4,7 +4,7 @@
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
-type QsSyntaxTreeTransformation<'T> private (state : 'T, dummy) =
+type QsSyntaxTreeTransformation<'T> private (state : 'T, unsafe) =
 
     let mutable _Types           = new TypeTransformation<'T>(None)
     let mutable _ExpressionKinds = new ExpressionKindTransformation<'T>(None)
@@ -85,13 +85,18 @@ and TypeTransformation<'T> internal (parentTransformation) =
             }
 
 
-and ExpressionKindTransformation<'T> internal (parentTransformation) =
-    inherit ExpressionKindTransformation()
-    let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = parentTransformation
+and ExpressionKindTransformation<'T> internal (parentTransformation : QsSyntaxTreeTransformation<'T> option) =
+    inherit ExpressionKindTransformationBase(
+        (fun _ -> parentTransformation.Value.Expressions :> ExpressionTransformationBase),
+        (fun _ -> parentTransformation.Value.Types :> TypeTransformationBase)) 
+    let mutable _Transformation = parentTransformation
 
     member this.Transformation
         with get () = _Transformation.Value
-        and private set value = _Transformation <- Some value
+        and private set value = 
+            _Transformation <- Some value
+            this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
+            this.TypeTransformationHandle <- fun _ -> value.Types :> TypeTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>) = ExpressionKindTransformation<'T>(Some parentTransformation)
     new (sharedInternalState : 'T) as this =
@@ -101,17 +106,19 @@ and ExpressionKindTransformation<'T> internal (parentTransformation) =
                     override parent.NewExpressionKindTransformation () = this
             }
 
-    override this.ExpressionTransformation ex = this.Transformation.Expressions.Transform ex
-    override this.TypeTransformation t = this.Transformation.Types.Transform t
 
-
-and ExpressionTransformation<'T> internal (parentTransformation) =
-    inherit ExpressionTransformation()
-    let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = parentTransformation
+and ExpressionTransformation<'T> internal (parentTransformation : QsSyntaxTreeTransformation<'T> option) =
+    inherit ExpressionTransformationBase(
+        (fun _ -> parentTransformation.Value.ExpressionKinds :> ExpressionKindTransformationBase),
+        (fun _ -> parentTransformation.Value.Types :> TypeTransformationBase))
+    let mutable _Transformation = parentTransformation
 
     member this.Transformation
         with get () = _Transformation.Value
-        and private set value = _Transformation <- Some value
+        and private set value = 
+            _Transformation <- Some value
+            this.ExpressionKindTransformationHandle <- fun _ -> value.ExpressionKinds :> ExpressionKindTransformationBase
+            this.TypeTransformationHandle <- fun _ -> value.Types :> TypeTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>) = ExpressionTransformation<'T>(Some parentTransformation)
     new (sharedInternalState : 'T) as this =
@@ -120,9 +127,6 @@ and ExpressionTransformation<'T> internal (parentTransformation) =
                 new QsSyntaxTreeTransformation<'T>(sharedInternalState) with
                     override parent.NewExpressionTransformation () = this
             }
-
-    override this.Kind = upcast this.Transformation.ExpressionKinds
-    override this.Type = upcast this.Transformation.Types
 
 
 and StatementKindTransformation<'T> internal (parentTransformation) =

@@ -66,10 +66,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         /// The default values used for auto-generation will be used for the additional functor arguments.  
         /// </summary>
         public class ApplyToExpressionKind : 
-            ExpressionKindTransformation<Core.ExpressionTransformation> 
+            ExpressionKindTransformation<Core.ExpressionTransformationBase> 
         {
             public readonly QsFunctor FunctorToApply;
-            public ApplyToExpressionKind(Core.ExpressionTransformation expression, QsFunctor functor) : 
+            public ApplyToExpressionKind(Core.ExpressionTransformationBase expression, QsFunctor functor) : 
                 base(expression) =>
                 this.FunctorToApply = functor ?? throw new ArgumentNullException(nameof(functor));
 

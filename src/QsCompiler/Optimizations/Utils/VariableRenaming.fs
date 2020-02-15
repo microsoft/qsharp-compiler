@@ -93,10 +93,9 @@ type VariableRenaming() =
                 renamingStack <- exitScope renamingStack
                 result
 
-        override __.Expression = { new ExpressionTransformation() with
-            override expr.Kind = { new ExpressionKindTransformation() with
-                override __.ExpressionTransformation ex = expr.Transform ex
-                override __.TypeTransformation t = t
+        override __.Expression = { new ExpressionTransformationBase() with
+            override expr.ExpressionKinds = { new ExpressionKindTransformationBase() with
+                override __.Expressions = expr
 
                 override __.onIdentifier (sym, tArgs) =
                     maybe {
