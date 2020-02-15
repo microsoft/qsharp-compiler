@@ -15,27 +15,27 @@ type QsSyntaxTreeTransformation<'T> private (state : 'T, unsafe) =
 
     member this.Types
         with get() = _Types
-        and private set value = _Types <- value
+        and set value = _Types <- value
 
     member this.ExpressionKinds
         with get() = _ExpressionKinds
-        and private set value = _ExpressionKinds <- value
+        and set value = _ExpressionKinds <- value
 
     member this.Expressions
         with get() = _Expressions
-        and private set value = _Expressions <- value
+        and set value = _Expressions <- value
 
     member this.StatementKinds
         with get() = _StatementKinds
-        and private set value = _StatementKinds <- value
+        and set value = _StatementKinds <- value
 
     member this.Statements
         with get() = _Statements
-        and private set value = _Statements <- value
+        and set value = _Statements <- value
 
     member this.Namespaces
         with get() = _Namespaces
-        and private set value = _Namespaces <- value
+        and set value = _Namespaces <- value
 
 
     member this.InternalState = state
