@@ -34,7 +34,7 @@ type private DistinctQubitsStatementKinds (parent : QsSyntaxTreeTransformation<_
 
 /// A SyntaxTreeTransformation that finds identifiers in each implementation that represent distict qubit values.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
-type private FindDistinctQubits(unsafe) =
+type internal FindDistinctQubits private (unsafe) =
     inherit QsSyntaxTreeTransformation<HashSet<NonNullable<string>>>(new HashSet<_>())
 
     internal new () as this = 
@@ -73,7 +73,7 @@ type private MutationCheckerStatementKinds(parent : QsSyntaxTreeTransformation<_
 
 /// A transformation that tracks what variables the transformed code could mutate.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
-type private MutationChecker(unsafe) =
+type internal MutationChecker private (unsafe) =
     inherit QsSyntaxTreeTransformation<MutationCheckerState>(new MutationCheckerState())
 
     internal new () as this = 
@@ -93,7 +93,7 @@ type private ReferenceCounterExpressionKinds(parent : ReferenceCounter) =
 
 /// A transformation that counts how many times each local variable is referenced.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
-and internal ReferenceCounter(unsafe) =
+and internal ReferenceCounter private (unsafe) =
     inherit QsSyntaxTreeTransformation<Dictionary<NonNullable<string>, int>>(new Dictionary<_,_>())
 
     /// Returns the number of times the variable with the given name is referenced
@@ -120,7 +120,7 @@ type private ReplaceTypeParamsTypes(parent : QsSyntaxTreeTransformation<_>) =
 /// A transformation that substitutes type parameters according to the given dictionary
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 /// Does *not* update the type paremeter resolution dictionaries. 
-type internal ReplaceTypeParams(typeParams: ImmutableDictionary<_, ResolvedType>, unsafe) =
+type internal ReplaceTypeParams private (typeParams: ImmutableDictionary<_, ResolvedType>, unsafe) =
     inherit QsSyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(typeParams)
 
     internal new (typeParams: ImmutableDictionary<_, ResolvedType>) as this = 
@@ -128,58 +128,55 @@ type internal ReplaceTypeParams(typeParams: ImmutableDictionary<_, ResolvedType>
             this.Types <- new ReplaceTypeParamsTypes(this)
 
 
-/// A ScopeTransformation that tracks what side effects the transformed code could cause
-type internal SideEffectChecker() =
-    inherit ScopeTransformation()
-
-    let mutable anyQuantum = false
-    let mutable anyMutation = false
-    let mutable anyInterrupts = false
-    let mutable anyOutput = false
-
+/// private helper class for SideEffectChecker representing the shared transformation state
+type private SideEffectCheckerState() = 
     /// Whether the transformed code might have any quantum side effects (such as calling operations)
-    member __.hasQuantum = anyQuantum
+    member val AnyQuantum = false with get, set
     /// Whether the transformed code might change the value of any mutable variable
-    member __.hasMutation = anyMutation
+    member val AnyMutation = false with get, set
     /// Whether the transformed code has any statements that interrupt normal control flow (such as returns)
-    member __.hasInterrupts = anyInterrupts
+    member val AnyInterrupts = false with get, set
     /// Whether the transformed code might output any messages to the console
-    member __.hasOutput = anyOutput
+    member val AnyOutput = false with get, set
 
-    override __.Expression = { new ExpressionTransformationBase() with
-        override expr.ExpressionKinds = { new ExpressionKindTransformationBase() with
-            override __.Expressions = expr
+/// private helper class for SideEffectChecker
+type private SideEffectCheckerExpressionKinds(parent : QsSyntaxTreeTransformation<_>) = 
+    inherit ExpressionKindTransformation<SideEffectCheckerState>(parent)
 
-            override __.onFunctionCall (method, arg) =
-                anyOutput <- true
-                base.onFunctionCall (method, arg)
+    override this.onFunctionCall (method, arg) =
+        this.Transformation.InternalState.AnyOutput <- true
+        base.onFunctionCall (method, arg)
 
-            override __.onOperationCall (method, arg) =
-                anyQuantum <- true
-                anyOutput <- true
-                base.onOperationCall (method, arg)
-        }
-    }
+    override this.onOperationCall (method, arg) =
+        this.Transformation.InternalState.AnyQuantum <- true
+        this.Transformation.InternalState.AnyOutput <- true
+        base.onOperationCall (method, arg)
 
-    override this.StatementKind = { new StatementKindTransformation() with
-        override __.ScopeTransformation s = this.Transform s
-        override __.ExpressionTransformation ex = this.Expression.Transform ex
-        override __.TypeTransformation t = t
-        override __.LocationTransformation l = l
+/// private helper class for SideEffectChecker
+type private SideEffectCheckerStatementKinds(parent : QsSyntaxTreeTransformation<_>) = 
+    inherit StatementKindTransformation<SideEffectCheckerState>(parent)
 
-        override __.onValueUpdate stm =
-            let mutatesState = match stm.Lhs with LocalVarTuple x when isAllDiscarded x -> false | _ -> true
-            anyMutation <- anyMutation || mutatesState
-            base.onValueUpdate stm
+    override this.onValueUpdate stm =
+        let mutatesState = match stm.Lhs with LocalVarTuple x when isAllDiscarded x -> false | _ -> true
+        this.Transformation.InternalState.AnyMutation <- this.Transformation.InternalState.AnyMutation || mutatesState
+        base.onValueUpdate stm
 
-        override __.onReturnStatement stm =
-            anyInterrupts <- true
-            base.onReturnStatement stm
+    override this.onReturnStatement stm =
+        this.Transformation.InternalState.AnyInterrupts <- true
+        base.onReturnStatement stm
 
-        override __.onFailStatement stm =
-            anyInterrupts <- true
-            base.onFailStatement stm
-    }
+    override this.onFailStatement stm =
+        this.Transformation.InternalState.AnyInterrupts <- true
+        base.onFailStatement stm
+
+/// A ScopeTransformation that tracks what side effects the transformed code could cause
+type internal SideEffectChecker private (unsafe) =
+    inherit QsSyntaxTreeTransformation<SideEffectCheckerState>(new SideEffectCheckerState())
+
+    internal new () as this = 
+        new SideEffectChecker("unsafe") then
+            this.ExpressionKinds <- new SideEffectCheckerExpressionKinds(this)
+            this.StatementKinds <- new SideEffectCheckerStatementKinds(this)
 
 
 /// A ScopeTransformation that replaces one statement with zero or more statements
