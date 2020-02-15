@@ -3,43 +3,44 @@
 
 module internal Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 
+open System.Collections.Generic
 open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
-/// A SyntaxTreeTransformation that finds identifiers in each implementation that represent distict values.
-/// Should be called at the QsCallable level, not as the QsNamespace level, as it's meant to operate on a single callable.
-type internal FindDistinctQubits() =
-    inherit SyntaxTreeTransformation()
+/// private helper class for FindDistinctQubits
+type private DistinctQubitsNamespaces (parent : QsSyntaxTreeTransformation<_>) = 
+    inherit NamespaceTransformation<HashSet<NonNullable<string>>>(parent)
 
-    let mutable _distinctNames = Set.empty
-
-    /// A set of identifier names that we expect to represent distinct values
-    member __.distinctNames = _distinctNames
-
-    override __.onProvidedImplementation (argTuple, body) =
+    override this.onProvidedImplementation (argTuple, body) =
         argTuple |> toSymbolTuple |> flatten |> Seq.iter (function
-            | VariableName name -> _distinctNames <- _distinctNames.Add name
+            | VariableName name -> this.Transformation.InternalState.Add name |> ignore
             | _ -> ())
         base.onProvidedImplementation (argTuple, body)
 
-    override __.Scope = { new ScopeTransformation() with
-        override this.StatementKind = { new StatementKindTransformation() with
-            override __.ScopeTransformation s = this.Transform s
-            override __.ExpressionTransformation ex = ex
-            override __.TypeTransformation t = t
-            override __.LocationTransformation l = l
+/// private helper class for FindDistinctQubits
+type private DistinctQubitsStatementKinds (parent : QsSyntaxTreeTransformation<_>) = 
+    inherit StatementKindTransformation<HashSet<NonNullable<string>>>(parent)
 
-            override __.onQubitScope stm =
-                stm.Binding.Lhs |> flatten |> Seq.iter (function
-                | VariableName name -> _distinctNames <- _distinctNames.Add name
-                | _ -> ())
-                base.onQubitScope stm
-        }
-    }
+    override this.onQubitScope stm =
+        stm.Binding.Lhs |> flatten |> Seq.iter (function
+        | VariableName name -> this.Transformation.InternalState.Add name |> ignore
+        | _ -> ())
+        base.onQubitScope stm
+
+/// A SyntaxTreeTransformation that finds identifiers in each implementation that represent distict values.
+/// Should be called at the QsCallable level, not as the QsNamespace level, as it's meant to operate on a single callable.
+type private FindDistinctQubits(unsafe) =
+    inherit QsSyntaxTreeTransformation<HashSet<NonNullable<string>>>(new HashSet<_>())
+
+    internal new () as this = 
+        new FindDistinctQubits("unsafe") then
+            this.Namespaces <- new DistinctQubitsNamespaces(this)
+            this.StatementKinds <- new DistinctQubitsStatementKinds(this)
 
 
 /// A ScopeTransformation that tracks what variables the transformed code could mutate
