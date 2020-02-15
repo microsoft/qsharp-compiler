@@ -35,18 +35,16 @@ and private StripPositionInfoFromNamespace(parent : QsSyntaxTreeTransformation<_
 and public StripPositionInfo() = 
     inherit QsSyntaxTreeTransformation<unit>()
 
-    static let defaultInstance = new StripPositionInfo()
-
     override this.NewTypeTransformation () = upcast new StripPositionInfoFromType(this) 
     override this.NewExpressionTransformation () = upcast new StripPositionInfoFromExpression(this) 
     override this.NewStatementTransformation () = upcast new StripPositionInfoFromStatement(this)
     override this.NewNamespaceTransformation () = upcast new StripPositionInfoFromNamespace(this)
 
-    static member public Default = defaultInstance
-    static member public Apply t = defaultInstance.Types.Transform t
-    static member public Apply e = defaultInstance.Expressions.Transform e
-    static member public Apply s = defaultInstance.Statements.Transform s
-    static member public Apply a = defaultInstance.Namespaces.Transform a
+    static member public Default = new StripPositionInfo()
+    static member public Apply t = StripPositionInfo.Default.Types.Transform t
+    static member public Apply e = StripPositionInfo.Default.Expressions.Transform e
+    static member public Apply s = StripPositionInfo.Default.Statements.Transform s
+    static member public Apply a = StripPositionInfo.Default.Namespaces.Transform a
 
 
 module SyntaxGenerator = 
