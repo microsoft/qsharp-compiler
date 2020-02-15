@@ -12,8 +12,6 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 {
-    // syntax tree transformations
-
     public class GetSourceFiles :
         QsSyntaxTreeTransformation<GetSourceFiles.TransformationState>
     {
@@ -25,8 +23,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
         private GetSourceFiles() :
-            base(new TransformationState()) =>
-            this.Namespaces = new NamespaceTransformation(this);
+            base(new TransformationState())
+        { }
+
+        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
+            new NamespaceTransformation(this);
 
 
         // static methods for convenience
@@ -97,8 +98,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
         public FilterBySourceFile(Func<NonNullable<string>, bool> predicate)
-            : base(new TransformationState(predicate)) =>
-            this.Namespaces = new NamespaceTransformation(this);
+            : base(new TransformationState(predicate))
+        { }
+
+        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
+            new NamespaceTransformation(this);
 
 
         // static methods for convenience
@@ -159,68 +163,96 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     }
 
 
-    // scope transformations
-
     /// <summary>
     /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion.
     /// Calling Transform will build a new Scope that contains only the statements for which the fold of a given condition
     /// over all contained expressions evaluates to true.
     /// If evaluateOnSubexpressions is set to true, the fold is evaluated on all subexpressions as well.
     /// </summary>
-    public class SelectByFoldingOverExpressions<K> :
-        ScopeTransformation<K, FoldOverExpressions<bool>>
-        where K : Core.StatementKindTransformation
+    public class SelectByFoldingOverExpressions :
+        QsSyntaxTreeTransformation<SelectByFoldingOverExpressions.TransformationState>
     {
-        protected readonly Func<TypedExpression, bool> Condition;
-        protected readonly Func<bool, bool, bool> Fold;
-        private readonly bool Seed;
-
-        protected SelectByFoldingOverExpressions<K> SubSelector;
-        protected virtual SelectByFoldingOverExpressions<K> GetSubSelector() =>
-            new SelectByFoldingOverExpressions<K>(this.Condition, this.Fold, this.Seed, this._Expression.recur, null);
-
-        public bool SatisfiesCondition => this._Expression.Result;
-
-        public SelectByFoldingOverExpressions(
-            Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool evaluateOnSubexpressions = true,
-            Func<ScopeTransformation<K, FoldOverExpressions<bool>>, K> statementKind = null) :
-            base(statementKind, new FoldOverExpressions<bool>((ex, current) => fold(condition(ex), current), seed, recur: evaluateOnSubexpressions))
+        public class TransformationState : FoldOverExpressions<TransformationState, bool>.IFoldingState
         {
-            this.Condition = condition ?? throw new ArgumentNullException(nameof(condition));
-            this.Fold = fold ?? throw new ArgumentNullException(nameof(condition));
-            this.Seed = seed;
-        }
+            public bool Recur { get; }
+            public readonly bool Seed;
 
-        protected new Core.StatementKindTransformation _StatementKind => base.StatementKind;
-        public override Core.StatementKindTransformation StatementKind
-        {
-            get
+            internal readonly Func<TypedExpression, bool> Condition;
+            internal readonly Func<bool, bool, bool> ConstructFold;
+
+            public bool Fold(TypedExpression ex, bool current) =>
+                this.ConstructFold(this.Condition(ex), current);
+
+            public bool FoldResult { get; set; }
+            public bool SatisfiesCondition => this.FoldResult;
+
+            public TransformationState(Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool recur = true)
             {
-                this.SubSelector = GetSubSelector();
-                return this.SubSelector._StatementKind; // don't spawn the next one
+                this.Recur = recur;
+                this.Seed = seed;
+                this.FoldResult = seed;
+                this.Condition = condition ?? throw new ArgumentNullException(nameof(condition));
+                this.ConstructFold = fold ?? throw new ArgumentNullException(nameof(fold));
             }
         }
 
-        public override QsStatement onStatement(QsStatement stm)
-        {
-            stm = base.onStatement(stm);
-            this._Expression.Result = this.Fold(this._Expression.Result, this.SubSelector._Expression.Result);
-            return stm;
-        }
 
-        public override QsScope Transform(QsScope scope)
+        public SelectByFoldingOverExpressions(Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool evaluateOnSubexpressions = true)
+            : base(new TransformationState(condition, fold, seed, evaluateOnSubexpressions))
+        { }
+
+        public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
+            new FoldOverExpressions<TransformationState, bool>(this);
+
+        public override Core.StatementTransformation<TransformationState> NewStatementTransformation() =>
+            new StatementTransformation<SelectByFoldingOverExpressions>(
+                state => new SelectByFoldingOverExpressions(state.Condition, state.ConstructFold, state.Seed, state.Recur),
+                this);
+
+
+        // helper classes
+
+        public class StatementTransformation<P> :
+            Core.StatementTransformation<TransformationState>
+            where P : SelectByFoldingOverExpressions
         {
-            var statements = new List<QsStatement>();
-            foreach (var statement in scope.Statements)
+            protected P SubSelector;
+            protected readonly Func<TransformationState, P> CreateSelector;
+
+            /// <summary>
+            /// The given function for creating a new subselector is expected to initialize a new internal state with the same configurations as the one given upon construction.
+            /// Upon initialization, the FoldResult of the internal state should be set to the specified seed rather than the FoldResult of the given constructor argument.
+            /// </summary>
+            public StatementTransformation(Func<TransformationState, P> createSelector, QsSyntaxTreeTransformation<TransformationState> parent)
+                : base(parent) =>
+                this.CreateSelector = createSelector ?? throw new ArgumentNullException(nameof(createSelector));
+
+            public override QsStatement onStatement(QsStatement stm)
             {
-                // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement,
-                // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
-                var transformed = this.onStatement(statement);
-                if (this.SubSelector.SatisfiesCondition) statements.Add(transformed);
+                this.SubSelector = this.CreateSelector(this.Transformation.InternalState);
+                var loc = this.SubSelector.Statements.onLocation(stm.Location);
+                var stmKind = this.SubSelector.StatementKinds.Transform(stm.Statement);
+                var varDecl = this.SubSelector.Statements.onLocalDeclarations(stm.SymbolDeclarations);
+                this.Transformation.InternalState.FoldResult = this.Transformation.InternalState.ConstructFold(
+                    this.Transformation.InternalState.FoldResult, this.SubSelector.InternalState.FoldResult);
+                return new QsStatement(stmKind, varDecl, loc, stm.Comments);
             }
-            return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
+
+            public override QsScope Transform(QsScope scope)
+            {
+                var statements = new List<QsStatement>();
+                foreach (var statement in scope.Statements)
+                {
+                    // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement,
+                    // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
+                    var transformed = this.onStatement(statement);
+                    if (this.SubSelector.InternalState.SatisfiesCondition) statements.Add(transformed);
+                }
+                return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
+            }
         }
     }
+
 
     /// <summary>
     /// Class that allows to transform scopes by keeping only statements that contain certain expressions.
@@ -228,19 +260,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// which contain an expression or subexpression (only if evaluateOnSubexpressions is set to true)
     /// that satisfies the condition given on initialization.
     /// </summary>
-    public class SelectByAnyContainedExpression<K> :
-        SelectByFoldingOverExpressions<K>
-        where K : Core.StatementKindTransformation
+    public class SelectByAnyContainedExpression :
+        SelectByFoldingOverExpressions
     {
-        private readonly Func<SelectByFoldingOverExpressions<K>, K> GetStatementKind;
-        protected override SelectByFoldingOverExpressions<K> GetSubSelector() =>
-            new SelectByAnyContainedExpression<K>(this.Condition, this._Expression.recur, this.GetStatementKind);
-
-        public SelectByAnyContainedExpression(
-            Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true,
-            Func<SelectByFoldingOverExpressions<K>, K> statementKind = null) :
-                base(condition, (a, b) => a || b, false, evaluateOnSubexpressions, s => statementKind(s as SelectByFoldingOverExpressions<K>)) =>
-                this.GetStatementKind = statementKind;
+        public SelectByAnyContainedExpression(Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true)
+            : base(condition, (a, b) => a || b, false, evaluateOnSubexpressions)
+        { }
     }
 
     /// <summary>
@@ -249,56 +274,48 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// for which all contained expressions or subexpressions satisfy the condition given on initialization.
     /// Note that subexpressions will only be verified if evaluateOnSubexpressions is set to true (default value).
     /// </summary>
-    public class SelectByAllContainedExpressions<K> :
-        SelectByFoldingOverExpressions<K>
-        where K : Core.StatementKindTransformation
+    public class SelectByAllContainedExpressions :
+        SelectByFoldingOverExpressions
     {
-        private readonly Func<SelectByFoldingOverExpressions<K>, K> GetStatementKind;
-        protected override SelectByFoldingOverExpressions<K> GetSubSelector() =>
-            new SelectByAllContainedExpressions<K>(this.Condition, this._Expression.recur, this.GetStatementKind);
-
-        public SelectByAllContainedExpressions(
-            Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true,
-            Func<SelectByFoldingOverExpressions<K>, K> statementKind = null) :
-                base(condition, (a, b) => a && b, true, evaluateOnSubexpressions, s => statementKind(s as SelectByFoldingOverExpressions<K>)) =>
-                this.GetStatementKind = statementKind;
+        public SelectByAllContainedExpressions(Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true)
+            : base(condition, (a, b) => a && b, true, evaluateOnSubexpressions)
+        { }
     }
 
 
-    // expression transformations
-
     /// <summary>
-    /// Class that evaluates a fold on Transform.
-    /// If recur is set to true on initialization (default value),
+    /// Class that evaluates a fold on upon transforming an expression.
+    /// If recur is set to true in the internal state of the transformation,
     /// the fold function given on initialization is applied to all subexpressions as well as the expression itself -
     /// i.e. the fold it take starting on inner expressions (from the inside out).
-    /// Otherwise the set Action is only applied to the expression itself.
-    /// The result of the fold is accessible via the Result property.
+    /// Otherwise the specified folder is only applied to the expression itself.
+    /// The result of the fold is accessible via the FoldResult property in the internal state of the transformation.
     /// </summary>
-    public class FoldOverExpressions<T> :
-        ExpressionTransformation<ExpressionKindTransformation<FoldOverExpressions<T>>>
+    public class FoldOverExpressions<T, S> :
+        Core.ExpressionTransformation<T>
+        where T : FoldOverExpressions<T,S>.IFoldingState
     {
-        private static readonly Func<
-            ExpressionTransformation<ExpressionKindTransformation<FoldOverExpressions<T>>, Core.TypeTransformationBase>,
-            ExpressionKindTransformation<FoldOverExpressions<T>>> InitializeKind =
-            e => new ExpressionKindTransformation<FoldOverExpressions<T>>(e as FoldOverExpressions<T>);
-
-        internal readonly bool recur;
-        public readonly Func<TypedExpression, T, T> Fold;
-        public T Result { get; set; }
-
-        public FoldOverExpressions(Func<TypedExpression, T, T> fold, T seed, bool recur = true) :
-            base(recur ? InitializeKind : null) // we need to enable expression kind transformations in order to walk subexpressions
+        public interface IFoldingState
         {
-            this.Fold = fold ?? throw new ArgumentNullException(nameof(fold));
-            this.Result = seed;
-            this.recur = recur;
+            public bool Recur { get; }
+            public S Fold(TypedExpression ex, S current);
+            public S FoldResult { get; set; }
         }
+
+
+        public FoldOverExpressions(QsSyntaxTreeTransformation<T> parent)
+            : base(parent)
+        { }
+
+        public FoldOverExpressions(T state)
+            : base(state)
+        { }
+
 
         public override TypedExpression Transform(TypedExpression ex)
         {
-            ex = recur ? base.Transform(ex) : ex;
-            this.Result = Fold(ex, this.Result);
+            ex = this.Transformation.InternalState.Recur ? base.Transform(ex) : ex;
+            this.Transformation.InternalState.FoldResult = this.Transformation.InternalState.Fold(ex, this.Transformation.InternalState.FoldResult);
             return ex;
         }
     }
