@@ -43,37 +43,41 @@ type private FindDistinctQubits(unsafe) =
             this.StatementKinds <- new DistinctQubitsStatementKinds(this)
 
 
-/// A ScopeTransformation that tracks what variables the transformed code could mutate
-type internal MutationChecker() =
-    inherit ScopeTransformation()
+/// private helper class for MutationChecker representing the shared transformation state
+type private MutationCheckerState () = 
 
-    let mutable declaredVars = Set.empty
-    let mutable mutatedVars = Set.empty
+    member val DeclaredVariables : Set<NonNullable<string>> = Set.empty with get, set
+    member val MutatedVariables : Set<NonNullable<string>> = Set.empty with get, set
 
-    /// The set of variables that this code doesn't declare but does mutate
-    member __.externalMutations = mutatedVars - declaredVars
+    /// Contains the set of variables that this code doesn't declare but does mutate.
+    member this.ExternalMutations = this.MutatedVariables - this.DeclaredVariables
 
-    override this.StatementKind = { new StatementKindTransformation() with
-        override __.ScopeTransformation s = this.Transform s
-        override __.ExpressionTransformation ex = ex
-        override __.TypeTransformation t = t
-        override __.LocationTransformation l = l
+/// private helper class for MutationChecker
+type private MutationCheckerStatementKinds(parent : QsSyntaxTreeTransformation<_>) = 
+    inherit StatementKindTransformation<MutationCheckerState>(parent)
 
-        override __.onVariableDeclaration stm =
-            flatten stm.Lhs |> Seq.iter (function
-                | VariableName name -> declaredVars <- declaredVars.Add name
+    override this.onVariableDeclaration stm =
+        flatten stm.Lhs |> Seq.iter (function
+            | VariableName name -> this.Transformation.InternalState.DeclaredVariables <- this.Transformation.InternalState.DeclaredVariables.Add name
+            | _ -> ())
+        base.onVariableDeclaration stm
+
+    override this.onValueUpdate stm =
+        match stm.Lhs with
+        | LocalVarTuple v ->
+            flatten v |> Seq.iter (function
+                | VariableName name -> this.Transformation.InternalState.MutatedVariables <- this.Transformation.InternalState.MutatedVariables.Add name
                 | _ -> ())
-            base.onVariableDeclaration stm
+        | _ -> ()
+        base.onValueUpdate stm
 
-        override __.onValueUpdate stm =
-            match stm.Lhs with
-            | LocalVarTuple v ->
-                flatten v |> Seq.iter (function
-                    | VariableName name -> mutatedVars <- mutatedVars.Add name
-                    | _ -> ())
-            | _ -> ()
-            base.onValueUpdate stm
-    }
+/// A ScopeTransformation that tracks what variables the transformed code could mutate
+type private MutationChecker(unsafe) =
+    inherit QsSyntaxTreeTransformation<MutationCheckerState>(new MutationCheckerState())
+
+    internal new () as this = 
+        new MutationChecker("unsafe") then
+            this.StatementKinds <- new MutationCheckerStatementKinds(this)
 
 
 /// A ScopeTransformation that counts how many times each variable is referenced
