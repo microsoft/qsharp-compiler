@@ -25,11 +25,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
         private GetSourceFiles() :
-            base(new TransformationState())
-        { }
-
-        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
-            new NamespaceTransformation(this);
+            base(new TransformationState()) =>
+            this.Namespaces = new NamespaceTransformation(this);
 
 
         // static methods for convenience
@@ -100,11 +97,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
         public FilterBySourceFile(Func<NonNullable<string>, bool> predicate)
-            : base(new TransformationState(predicate))
-        { }
-
-        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
-            new NamespaceTransformation(this);
+            : base(new TransformationState(predicate)) =>
+            this.Namespaces = new NamespaceTransformation(this);
 
 
         // static methods for convenience

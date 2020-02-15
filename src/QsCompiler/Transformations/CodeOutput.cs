@@ -104,22 +104,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public SyntaxTreeToQs(TransformationContext context = null)
             : base(new SharedState(context))
-        { }
-
-        public override NamespaceTransformation<SharedState> NewNamespaceTransformation() =>
-            new NamespaceTransformation(this);
-
-        public override StatementTransformation<SharedState> NewStatementTransformation() =>
-            new StatementTransformation(this);
-
-        public override Core.StatementKindTransformation<SharedState> NewStatementKindTransformation() =>
-            new StatementKindTransformation(this);
-
-        public override Core.ExpressionKindTransformation<SharedState> NewExpressionKindTransformation() =>
-            new ExpressionKindTransformation(this);
-
-        public override TypeTransformation<SharedState> NewTypeTransformation() =>
-            new TypeTransformation(this);
+        {
+            this.Types = new TypeTransformation(this);
+            this.ExpressionKinds = new ExpressionKindTransformation(this);
+            this.StatementKinds = new StatementKindTransformation(this);
+            this.Statements = new StatementTransformation(this);
+            this.Namespaces = new NamespaceTransformation(this);
+        }
 
 
         // public methods for convenience
