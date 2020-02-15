@@ -32,8 +32,8 @@ type private DistinctQubitsStatementKinds (parent : QsSyntaxTreeTransformation<_
         | _ -> ())
         base.onQubitScope stm
 
-/// A SyntaxTreeTransformation that finds identifiers in each implementation that represent distict values.
-/// Should be called at the QsCallable level, not as the QsNamespace level, as it's meant to operate on a single callable.
+/// A SyntaxTreeTransformation that finds identifiers in each implementation that represent distict qubit values.
+/// Should be called at the specialization level, as it's meant to operate on a single implementation.
 type private FindDistinctQubits(unsafe) =
     inherit QsSyntaxTreeTransformation<HashSet<NonNullable<string>>>(new HashSet<_>())
 
@@ -71,7 +71,8 @@ type private MutationCheckerStatementKinds(parent : QsSyntaxTreeTransformation<_
         | _ -> ()
         base.onValueUpdate stm
 
-/// A ScopeTransformation that tracks what variables the transformed code could mutate
+/// A transformation that tracks what variables the transformed code could mutate.
+/// Should be called at the specialization level, as it's meant to operate on a single implementation.
 type private MutationChecker(unsafe) =
     inherit QsSyntaxTreeTransformation<MutationCheckerState>(new MutationCheckerState())
 
@@ -90,7 +91,8 @@ type private ReferenceCounterExpressionKinds(parent : ReferenceCounter) =
         | _ -> ()
         base.onIdentifier (sym, tArgs)
 
-/// A ScopeTransformation that counts how many times each variable is referenced
+/// A transformation that counts how many times each local variable is referenced.
+/// Should be called at the specialization level, as it's meant to operate on a single implementation.
 and internal ReferenceCounter(unsafe) =
     inherit QsSyntaxTreeTransformation<Dictionary<NonNullable<string>, int>>(new Dictionary<_,_>())
 
@@ -105,19 +107,25 @@ and internal ReferenceCounter(unsafe) =
             this.ExpressionKinds <- new ReferenceCounterExpressionKinds(this)
 
 
-/// A ScopeTransformation that substitutes type parameters according to the given dictionary
-type internal ReplaceTypeParams(typeParams: ImmutableDictionary<_, ResolvedType>) =
-    inherit ScopeTransformation()
+/// private helper class for ReplaceTypeParams
+type private ReplaceTypeParamsTypes(parent : QsSyntaxTreeTransformation<_>) = 
+    inherit TypeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(parent)
 
-    override __.Expression = { new ExpressionTransformationBase() with
-        override __.Types = { new TypeTransformationBase() with
-            override __.onTypeParameter tp =
-                let key = tp.Origin, tp.TypeName
-                match typeParams.TryGetValue key with 
-                | true, t -> t.Resolution
-                | _ -> TypeKind.TypeParameter tp
-            }
-    }
+    override this.onTypeParameter tp =
+        let key = tp.Origin, tp.TypeName
+        match this.Transformation.InternalState.TryGetValue key with 
+        | true, t -> t.Resolution
+        | _ -> TypeKind.TypeParameter tp
+
+/// A transformation that substitutes type parameters according to the given dictionary
+/// Should be called at the specialization level, as it's meant to operate on a single implementation.
+/// Does *not* update the type paremeter resolution dictionaries. 
+type internal ReplaceTypeParams(typeParams: ImmutableDictionary<_, ResolvedType>, unsafe) =
+    inherit QsSyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(typeParams)
+
+    internal new (typeParams: ImmutableDictionary<_, ResolvedType>) as this = 
+        new ReplaceTypeParams(typeParams, "unsafe") then
+            this.Types <- new ReplaceTypeParamsTypes(this)
 
 
 /// A ScopeTransformation that tracks what side effects the transformed code could cause
