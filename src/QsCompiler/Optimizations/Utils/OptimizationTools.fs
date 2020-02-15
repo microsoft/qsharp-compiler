@@ -80,26 +80,29 @@ type private MutationChecker(unsafe) =
             this.StatementKinds <- new MutationCheckerStatementKinds(this)
 
 
-/// A ScopeTransformation that counts how many times each variable is referenced
-type internal ReferenceCounter() =
-    inherit ScopeTransformation()
+/// private helper class for ReferenceCounter
+type private ReferenceCounterExpressionKinds(parent : ReferenceCounter) = 
+    inherit ExpressionKindTransformation<Dictionary<NonNullable<string>, int>>(parent)
 
-    let mutable numUses = Map.empty
+    override this.onIdentifier (sym, tArgs) =
+        match sym with
+        | LocalVariable name -> this.Transformation.InternalState.[name] <- parent.NumberOfUses name + 1
+        | _ -> ()
+        base.onIdentifier (sym, tArgs)
+
+/// A ScopeTransformation that counts how many times each variable is referenced
+and internal ReferenceCounter(unsafe) =
+    inherit QsSyntaxTreeTransformation<Dictionary<NonNullable<string>, int>>(new Dictionary<_,_>())
 
     /// Returns the number of times the variable with the given name is referenced
-    member __.getNumUses name = numUses.TryFind name |? 0
+    member this.NumberOfUses name = 
+        match this.InternalState.TryGetValue name with
+        | true, nr -> nr
+        | _ -> 0
 
-    override this.Expression = { new ExpressionTransformationBase() with
-        override expr.ExpressionKinds = { new ExpressionKindTransformationBase() with
-            override __.Expressions = expr
-
-            override __.onIdentifier (sym, tArgs) =
-                match sym with
-                | LocalVariable name -> numUses <- numUses.Add (name, this.getNumUses name + 1)
-                | _ -> ()
-                base.onIdentifier (sym, tArgs)
-        }
-    }
+    internal new () as this = 
+        new ReferenceCounter("unsafe") then
+            this.ExpressionKinds <- new ReferenceCounterExpressionKinds(this)
 
 
 /// A ScopeTransformation that substitutes type parameters according to the given dictionary
