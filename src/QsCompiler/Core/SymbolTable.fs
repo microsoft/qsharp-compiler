@@ -826,7 +826,7 @@ and NamespaceManager
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
     /// consistent with the defined callables.
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations. 
-    /// Throws a NonSupportedException if the QsType to resolve contains a MissingType.
+    /// Throws a NotSupportedException if the QsType to resolve contains a MissingType.
     let resolveType (parent : QsQualifiedName, tpNames, source) qsType checkUdt =
         let processUDT = TryResolveTypeName (parent.Namespace, source) >> function
             | Some (udt, _, modifiers), errs -> UserDefinedType udt, Array.append errs (checkUdt (udt, modifiers))

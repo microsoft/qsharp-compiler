@@ -273,7 +273,7 @@ module SymbolResolution =
     /// Returns the resolved type as well as an array with diagnostics.
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is inconsistent with the defined callables. 
     /// May throw an ArgumentException if no namespace with the given name exists, or the given source file is not listed as source of that namespace. 
-    /// Throws a NonSupportedException if the QsType to resolve contains a MissingType. 
+    /// Throws a NotSupportedException if the QsType to resolve contains a MissingType. 
     let rec internal ResolveType (processUDT, processTypeParameter) (qsType : QsType) = 
         let resolve = ResolveType (processUDT, processTypeParameter)
         let asResolvedType t = ResolvedType.New (true, t)
