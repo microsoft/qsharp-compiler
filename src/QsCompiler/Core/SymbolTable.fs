@@ -975,7 +975,7 @@ and NamespaceManager
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
     /// consistent with the defined callables.
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations. 
-    /// Throws a NonSupportedException if the QsType to resolve contains a MissingType.
+    /// Throws a NotSupportedException if the QsType to resolve contains a MissingType.
     member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>)
                             (qsType : QsType)
                             : ResolvedType * QsCompilerDiagnostic[] =
@@ -1599,4 +1599,3 @@ and NamespaceManager
             let importsHash = imports |> Seq.toList |> hash
             hash (callablesHash, typesHash), importsHash
         finally syncRoot.ExitReadLock() 
-
