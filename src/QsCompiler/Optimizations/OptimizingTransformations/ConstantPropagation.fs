@@ -24,7 +24,7 @@ type ConstantPropagation private (unsafe : string) =
         new ConstantPropagation("unsafe") then
             this.Namespaces <- new ConstantPropagationNamespaces(this)
             this.StatementKinds <- new ConstantPropagationStatementKinds(this, callables)
-            this.Expressions <- (new ExpressionEvaluator(callables, this.Constants, 1000)).Expressions
+            this.Expressions <- (new ExpressionEvaluator(callables, this.Constants, 1000)).Expressions // FIXME: THIS NEEDS TO BE RECONSTRUCTED EVERY TIME - POSSIBLY SIMILAR FOR OTHER THINGS...
 
 /// private helper class for ConstantPropagation
 and private ConstantPropagationNamespaces(parent : ConstantPropagation) = 
