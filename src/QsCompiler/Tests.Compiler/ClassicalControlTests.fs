@@ -66,10 +66,10 @@ type ClassicalControlTests () =
         specialization
         |> fun x -> match x.Implementation with | Provided (_, body) -> Some body | _ -> None
         |> Option.get
-        |> writer.Scope.Transform
+        |> writer.Statements.Transform
         |> ignore
 
-        (writer.Scope :?> ScopeToQs).Output.Split(Environment.NewLine)
+        writer.InternalState.StatementOutputHandle |> Seq.toArray
         |> Array.filter (fun str -> str <> String.Empty)
 
     let CheckIfLineIsCall ``namespace`` name input =
