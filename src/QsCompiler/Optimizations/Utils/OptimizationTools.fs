@@ -130,12 +130,12 @@ type private SideEffectCheckerExpressionKinds(parent : SideEffectChecker) =
     inherit ExpressionKindTransformation<unit>(parent)
 
     override this.onFunctionCall (method, arg) =
-        parent.AnyOutput <- true
+        parent.HasOutput <- true
         base.onFunctionCall (method, arg)
 
     override this.onOperationCall (method, arg) =
-        parent.AnyQuantum <- true
-        parent.AnyOutput <- true
+        parent.HasQuantum <- true
+        parent.HasOutput <- true
         base.onOperationCall (method, arg)
 
 /// private helper class for SideEffectChecker
@@ -144,15 +144,15 @@ and private SideEffectCheckerStatementKinds(parent : SideEffectChecker) =
 
     override this.onValueUpdate stm =
         let mutatesState = match stm.Lhs with LocalVarTuple x when isAllDiscarded x -> false | _ -> true
-        parent.AnyMutation <- parent.AnyMutation || mutatesState
+        parent.HasMutation <- parent.HasMutation || mutatesState
         base.onValueUpdate stm
 
     override this.onReturnStatement stm =
-        parent.AnyInterrupts <- true
+        parent.HasInterrupts <- true
         base.onReturnStatement stm
 
     override this.onFailStatement stm =
-        parent.AnyInterrupts <- true
+        parent.HasInterrupts <- true
         base.onFailStatement stm
 
 /// A ScopeTransformation that tracks what side effects the transformed code could cause
@@ -160,13 +160,13 @@ and internal SideEffectChecker private (unsafe) =
     inherit QsSyntaxTreeTransformation<unit>()
 
     /// Whether the transformed code might have any quantum side effects (such as calling operations)
-    member val AnyQuantum = false with get, set
+    member val HasQuantum = false with get, set
     /// Whether the transformed code might change the value of any mutable variable
-    member val AnyMutation = false with get, set
+    member val HasMutation = false with get, set
     /// Whether the transformed code has any statements that interrupt normal control flow (such as returns)
-    member val AnyInterrupts = false with get, set
+    member val HasInterrupts = false with get, set
     /// Whether the transformed code might output any messages to the console
-    member val AnyOutput = false with get, set
+    member val HasOutput = false with get, set
 
     internal new () as this = 
         new SideEffectChecker("unsafe") then

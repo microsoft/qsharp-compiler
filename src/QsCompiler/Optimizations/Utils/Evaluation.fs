@@ -163,11 +163,11 @@ type internal FunctionEvaluator(callables : ImmutableDictionary<QsQualifiedName,
 
 
 /// The ExpressionTransformation used to evaluate constant expressions
-and internal ExpressionEvaluator private () =
+and internal ExpressionEvaluator private (unsafe) =
     inherit QsSyntaxTreeTransformation<unit>() 
 
     internal new (callables : ImmutableDictionary<QsQualifiedName, QsCallable>, constants : Map<string, TypedExpression>, stmtsLeft : int) as this = 
-        new ExpressionEvaluator() then
+        new ExpressionEvaluator("unsafe") then
             this.ExpressionKinds <- new ExpressionKindEvaluator(this, callables, constants, stmtsLeft)
    
 
