@@ -11,34 +11,39 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
 /// The SyntaxTreeTransformation used to remove useless statements
-type VariableRemoval() =
-    inherit OptimizingTransformation()
+type VariableRemoval(unsafe) =
+    inherit OptimizingTransformation<unit>()
 
-    let mutable referenceCounter = None
+    member val internal ReferenceCounter = None with get, set
+
+    new () as this = 
+        new VariableRemoval("unsafe") then
+            this.Namespaces <- new VariableRemovalNamespaces(this)
+            this.StatementKinds <- new VariableRemovalStatementKinds(this)
+
+/// private helper class for VariableRemoval
+and private VariableRemovalNamespaces (parent : VariableRemoval) = 
+    inherit OptimizingTransformationNamespaces<unit>(parent)
 
     override __.onProvidedImplementation (argTuple, body) =
         let r = ReferenceCounter()
-        r.Transform body |> ignore
-        referenceCounter <- Some r
+        r.Statements.Transform body |> ignore
+        parent.ReferenceCounter <- Some r
         base.onProvidedImplementation (argTuple, body)
 
-    override __.Scope = { new ScopeTransformation() with
-        override this.StatementKind = { new StatementKindTransformation() with
-            override __.ExpressionTransformation x = x
-            override __.LocationTransformation x = x
-            override __.ScopeTransformation x = this.Transform x
-            override __.TypeTransformation x = x
+/// private helper class for VariableRemoval
+and private VariableRemovalStatementKinds (parent : VariableRemoval) = 
+    inherit StatementKindTransformation<unit>(parent)
 
-            override stmtKind.onSymbolTuple syms =
-                match syms with
-                | VariableName item ->
-                    maybe {
-                        let! r = referenceCounter
-                        let uses = r.getNumUses item
-                        do! check (uses = 0)
-                        return DiscardedItem
-                    } |? syms
-                | VariableNameTuple items -> Seq.map stmtKind.onSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
-                | InvalidItem | DiscardedItem -> syms
-        }
-    }
+    override stmtKind.onSymbolTuple syms =
+        match syms with
+        | VariableName item ->
+            maybe {
+                let! r = parent.ReferenceCounter
+                let uses = r.NumberOfUses item
+                do! check (uses = 0)
+                return DiscardedItem
+            } |? syms
+        | VariableNameTuple items -> Seq.map stmtKind.onSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
+        | InvalidItem | DiscardedItem -> syms
+

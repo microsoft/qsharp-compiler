@@ -175,8 +175,8 @@ and internal SideEffectChecker private (unsafe) =
 
 
 /// A ScopeTransformation that replaces one statement with zero or more statements
-type [<AbstractClass>] internal StatementCollectorTransformation<'T>(parent : QsSyntaxTreeTransformation<_>) =
-    inherit StatementTransformation<'T>(parent)
+type [<AbstractClass>] internal StatementCollectorTransformation(parent : QsSyntaxTreeTransformation<_>) =
+    inherit StatementTransformation<unit>(parent)
 
     abstract member CollectStatements: QsStatementKind -> QsStatementKind seq
 
