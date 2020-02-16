@@ -513,7 +513,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 _NewName = newName;
             }
 
-            private class UpdateGeneratedOpExpression : ExpressionTransformation<Core.ExpressionKindTransformation, UpdateGeneratedOpExpressionType>
+            private class UpdateGeneratedOpExpression : ExpressionTransformation<Core.ExpressionKindTransformationBase, UpdateGeneratedOpExpressionType>
             {
                 private UpdateGeneratedOpTransformation _super;
 
@@ -525,7 +525,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
                 {
                     // Prevent keys from having their names updated
-                    return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Type.Transform(kvp.Value));
+                    return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.Transform(kvp.Value));
                 }
 
                 public override TypedExpression Transform(TypedExpression ex)
@@ -949,14 +949,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 public override QsStatementKind onValueUpdate(QsValueUpdate stm)
                 {
                     // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
-                    var lhs = this.ExpressionTransformation(stm.Lhs);
+                    var lhs = this.Expressions.Transform(stm.Lhs);
 
                     if (_super._ContainsHoistParamRef)
                     {
                         _super._IsValidScope = false;
                     }
 
-                    var rhs = this.ExpressionTransformation(stm.Rhs);
+                    var rhs = this.Expressions.Transform(stm.Rhs);
                     return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
                 }
 
