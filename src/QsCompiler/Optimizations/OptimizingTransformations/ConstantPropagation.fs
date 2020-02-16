@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+open System.Collections.Generic
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Experimental.Evaluation
@@ -18,7 +19,7 @@ type ConstantPropagation private (unsafe : string) =
     inherit OptimizingTransformation<unit>()
 
     /// The current dictionary that maps variables to the values we substitute for them
-    member val internal Constants = Map.empty with get, set
+    member val Constants = new Dictionary<string, TypedExpression>()
 
     new (callables) as this = 
         new ConstantPropagation("unsafe") then
@@ -31,7 +32,7 @@ and private ConstantPropagationNamespaces(parent : ConstantPropagation) =
     inherit OptimizingTransformationNamespaces<unit>(parent)
 
     override __.onProvidedImplementation (argTuple, body) =
-        parent.Constants <- Map.empty
+        parent.Constants.Clear()
         base.onProvidedImplementation (argTuple, body)
 
 /// private helper class for ConstantPropagation
@@ -58,7 +59,7 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
         let lhs = so.onSymbolTuple stm.Lhs
         let rhs = so.Expressions.Transform stm.Rhs
         if stm.Kind = ImmutableBinding then
-            parent.Constants <- defineVarTuple (shouldPropagate callables) parent.Constants (lhs, rhs)
+            defineVarTuple (shouldPropagate callables) parent.Constants (lhs, rhs)
         QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
 
     override this.onConditionalStatement stm =
@@ -96,7 +97,7 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
                 let arrayIden = Identifier (LocalVariable name, Null) |> wrapExpr (ArrayType (ResolvedType.New Qubit))
                 let elemI = fun i -> ArrayItem (arrayIden, IntLiteral (int64 i) |> wrapExpr Int)
                 let expr = Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray |> wrapExpr (ArrayType (ResolvedType.New Qubit))
-                parent.Constants <- defineVar (fun _ -> true) parent.Constants (name.Value, expr)
+                defineVar (fun _ -> true) parent.Constants (name.Value, expr)
             | _ -> ())
 
         let body = this.Statements.Transform stm.Body

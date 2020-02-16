@@ -4,6 +4,7 @@
 module internal Microsoft.Quantum.QsCompiler.Experimental.Utils
 
 open System
+open System.Collections.Generic
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler
@@ -31,7 +32,7 @@ let internal check x = if x then Some () else None
 
 
 /// Returns whether a given expression is a literal (and thus a constant)
-let rec internal isLiteral (callables: ImmutableDictionary<QsQualifiedName, QsCallable>) (expr: TypedExpression): bool =
+let rec internal isLiteral (callables: IDictionary<QsQualifiedName, QsCallable>) (expr: TypedExpression): bool =
     let folder ex sub = 
         match ex.Expression with
         | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ | StringLiteral _
@@ -50,19 +51,22 @@ let rec internal isLiteral (callables: ImmutableDictionary<QsQualifiedName, QsCa
 /// Otherwise, returns constants without any changes.
 /// If the given variable is already defined, its name is shadowed in the current scope.
 /// Throws an InvalidOperationException if there aren't any scopes on the stack.
-let internal defineVar check constants (name, value) =
-    if not (check value) then constants else constants |> Map.add name value
+let internal defineVar check (constants : IDictionary<_,_>) (name, value) =
+    //if not (check value) then constants else constants |> Map.add name value
+    if check value then constants.[name] <- value
 
 /// Applies the given function op on a SymbolTuple, ValueTuple pair
-let rec private onTuple op constants (names, values) =
+let rec private onTuple op constants (names, values) : unit =
     match names, values with
     | VariableName name, _ ->
         op constants (name.Value, values)
     | VariableNameTuple namesTuple, Tuple valuesTuple ->
         if namesTuple.Length <> valuesTuple.Length then
             ArgumentException "names and values have different lengths" |> raise
-        Seq.zip namesTuple valuesTuple |> Seq.fold (onTuple op) constants
-    | _ -> constants
+        for sym, value in Seq.zip namesTuple valuesTuple do
+            onTuple op constants (sym, value)
+        //Seq.zip namesTuple valuesTuple |> Seq.fold (onTuple op) constants
+    | _ -> ()
 
 /// Returns a Constants<Expr> with the given variables defined as the given values
 let internal defineVarTuple check = onTuple (defineVar check)

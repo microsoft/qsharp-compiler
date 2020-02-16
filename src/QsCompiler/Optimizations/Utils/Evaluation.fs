@@ -4,6 +4,7 @@
 module internal Microsoft.Quantum.QsCompiler.Experimental.Evaluation
 
 open System
+open System.Collections.Generic
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler
@@ -18,7 +19,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 /// Represents the internal state of a function evaluation.
 /// The first element is a map that stores the current values of all the local variables.
 /// The second element is a counter that stores the remaining number of statements we evaluate.
-type private EvalState = Map<string, TypedExpression> * int
+type private EvalState = Dictionary<string, TypedExpression> * int
 
 /// Represents any interrupt to the normal control flow of a function evaluation.
 /// Includes return statements, errors, and (if they were added) break/continue statements.
@@ -37,7 +38,7 @@ type private Imp<'t> = Imperative<EvalState, 't, FunctionInterrupt>
 
 
 /// Evaluates functions by stepping through their code
-type internal FunctionEvaluator(callables : ImmutableDictionary<QsQualifiedName, QsCallable>) =
+type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCallable>) =
 
     /// Represents a computation that decreases the remaining statements counter by 1.
     /// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
@@ -50,7 +51,8 @@ type internal FunctionEvaluator(callables : ImmutableDictionary<QsQualifiedName,
     /// Represents a computation that sets the given variables to the given values
     let setVars callables entry : Imp<Unit> = imperative {
         let! vars, counter = getState
-        do! putState (defineVarTuple (isLiteral callables) vars entry, counter)
+        defineVarTuple (isLiteral callables) vars entry
+        do! putState (vars, counter)
     }
 
     /// Casts a BoolLiteral to the corresponding bool
@@ -151,7 +153,8 @@ type internal FunctionEvaluator(callables : ImmutableDictionary<QsQualifiedName,
         let impl = (Seq.exactlyOne callable.Specializations).Implementation
         match impl with
         | Provided (specArgs, scope) ->
-            let vars = defineVarTuple (isLiteral callables) Map.empty (toSymbolTuple specArgs, arg)
+            let vars = new Dictionary<_,_>()
+            defineVarTuple (isLiteral callables) vars (toSymbolTuple specArgs, arg)
             match this.EvaluateScope scope (vars, stmtsLeft) with
             | Normal _ ->  None
             | Break _ -> None
@@ -166,13 +169,13 @@ type internal FunctionEvaluator(callables : ImmutableDictionary<QsQualifiedName,
 and internal ExpressionEvaluator private (unsafe) =
     inherit QsSyntaxTreeTransformation<unit>() 
 
-    internal new (callables : ImmutableDictionary<QsQualifiedName, QsCallable>, constants : Map<string, TypedExpression>, stmtsLeft : int) as this = 
+    internal new (callables : IDictionary<QsQualifiedName, QsCallable>, constants : IDictionary<string, TypedExpression>, stmtsLeft : int) as this = 
         new ExpressionEvaluator("unsafe") then
             this.ExpressionKinds <- new ExpressionKindEvaluator(this, callables, constants, stmtsLeft)
    
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and private ExpressionKindEvaluator(parent, callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
+and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedName, QsCallable>, constants: IDictionary<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionKindTransformation<unit>(parent)
 
     member private this.simplify e1 = this.Expressions.Transform e1
@@ -207,7 +210,10 @@ and private ExpressionKindEvaluator(parent, callables: ImmutableDictionary<QsQua
 
     override this.onIdentifier (sym, tArgs) =
         match sym with
-        | LocalVariable name -> Map.tryFind name.Value constants |> Option.map (fun x -> x.Expression) |? Identifier (sym, tArgs)
+        | LocalVariable name -> 
+            match constants.TryGetValue name.Value with 
+            | true, ex -> ex.Expression
+            | _ -> Identifier (sym, tArgs)
         | _ -> Identifier (sym, tArgs)
 
     override this.onFunctionCall (method, arg) =
