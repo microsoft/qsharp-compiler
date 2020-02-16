@@ -10,22 +10,30 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
 /// The SyntaxTreeTransformation used to reorder statements depending on how they impact the program state. 
-type StatementGrouping() =
-    inherit OptimizingTransformation()
+type StatementGrouping private (unsafe : string) =
+    inherit OptimizingTransformation<unit>()
+
+    new () as this = 
+        new StatementGrouping("unsafe") then
+            this.Statements <- new StatementGroupingStatements(this)
+
+/// private helper class for StatementGrouping
+and private StatementGroupingStatements (parent : StatementGrouping) = 
+    inherit StatementTransformation<unit>(parent)
 
     /// Returns whether a statements is purely classical.
     /// The statement must have no classical or quantum side effects other than defining a variable.
     let isPureClassical stmt =
         let c = SideEffectChecker()
-        c.onStatement stmt |> ignore
-        not c.hasQuantum && not c.hasMutation && not c.hasInterrupts
+        c.Statements.onStatement stmt |> ignore
+        not c.HasQuantum && not c.HasMutation && not c.HasInterrupts
 
     /// Returns whether a statement is purely quantum.
     /// The statement must have no classical side effects, but can have quantum side effects.
     let isPureQuantum stmt =
         let c = SideEffectChecker()
-        c.onStatement stmt |> ignore
-        c.hasQuantum && not c.hasMutation && not c.hasInterrupts
+        c.Statements.onStatement stmt |> ignore
+        c.HasQuantum && not c.HasMutation && not c.HasInterrupts
 
     /// Reorders a list of statements such that the pure classical statements occur before the pure quantum statements
     let rec reorderStatements = function
@@ -35,10 +43,9 @@ type StatementGrouping() =
             else a :: reorderStatements (b :: tail)
         | x -> x
 
+    override this.Transform scope =
+        let parentSymbols = scope.KnownSymbols
+        let statements = scope.Statements |> Seq.map this.onStatement |> List.ofSeq |> reorderStatements
+        QsScope.New (statements, parentSymbols)
 
-    override __.Scope = { new ScopeTransformation() with
-        override this.Transform scope =
-            let parentSymbols = scope.KnownSymbols
-            let statements = scope.Statements |> Seq.map this.onStatement |> List.ofSeq |> reorderStatements
-            QsScope.New (statements, parentSymbols)
-    }
+

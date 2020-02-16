@@ -18,10 +18,10 @@ type StatementRemoval private (unsafe : string) =
 
     new (removeFunctions : bool) as this = 
         new StatementRemoval("unsafe") then
-            this.Statements <- new VariableRemovalStatementKinds(this, removeFunctions)
+            this.Statements <- new VariableRemovalStatements(this, removeFunctions)
 
 /// private helper class for StatementRemoval
-and private VariableRemovalStatementKinds (parent : StatementRemoval, removeFunctions) = 
+and private VariableRemovalStatements (parent : StatementRemoval, removeFunctions) = 
     inherit StatementCollectorTransformation(parent)
 
     /// Given a statement, returns a sequence of statements to replace this statement with.
