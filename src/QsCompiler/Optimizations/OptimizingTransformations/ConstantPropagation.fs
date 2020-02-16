@@ -41,7 +41,7 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
 
     /// Returns whether the given expression should be propagated as a constant.
     /// For a statement of the form "let x = [expr];", if shouldPropagate(expr) is true,
-    /// then we should substitute [expr] for x wherever x occurs in future code.
+    /// then we should substitute x with [expr] wherever x occurs in future code.
     let rec shouldPropagate callables (expr : TypedExpression) =
         let folder ex sub = 
             isLiteral callables ex ||

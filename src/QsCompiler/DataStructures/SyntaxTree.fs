@@ -364,6 +364,17 @@ type TypedExpression = {
     member this.TypeParameterResolutions = 
         this.TypeArguments.ToImmutableDictionary((fun (origin, name, _) -> origin, name), (fun (_,_,t) -> t))
 
+    /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
+    /// Returns false otherwise.
+    static member public IsPartialApplication kind =
+        let rec containsMissing ex = 
+            match ex.Expression with
+            | MissingExpr -> true
+            | ValueTuple items -> items |> Seq.exists containsMissing
+            | _ -> false
+        match kind with
+        | CallLikeExpression (_, args) -> args |> containsMissing
+        | _ -> false
 
 
 /// Fully resolved Q# initializer expression.
