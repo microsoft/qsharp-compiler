@@ -3,7 +3,6 @@
 
 module internal Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 
-open System.Collections.Generic
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
