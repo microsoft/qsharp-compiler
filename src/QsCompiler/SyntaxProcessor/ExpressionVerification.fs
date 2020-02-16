@@ -381,11 +381,11 @@ let private VerifyIdentifier addDiagnostic (symbols : SymbolTracker<_>) (sym, tA
 
 /// Verifies whether an expression of the given argument type can be used as argument to a method (function, operation, or setter)
 /// that expects an argument of the given target type. The given target type may contain a missing type (valid for a setter). 
-/// Accumulates and returns an array with error codes for the cases where this is not the case, and returns an empyt array otherwise. 
+/// Accumulates and returns an array with error codes for the cases where this is not the case, and returns an empty array otherwise. 
 /// Note that MissingTypes in the argument type should not occur aside from possibly as array base type of the expression.
 /// A missing type in the given argument type will cause a verification failure in QsCompilerError.
 /// For each type parameter in the target type, calls addTypeParameterResolution with a tuple of the type parameter and the type that is substituted for it.  
-/// IMPORTANT: The consistent (i.e. non-ambiguous and non-contraining) resolution of type parameters is *not* verified by this routine 
+/// IMPORTANT: The consistent (i.e. non-ambiguous and non-constraining) resolution of type parameters is *not* verified by this routine 
 /// and needs to be verified in a separate step!
 let internal TypeMatchArgument addTypeParameterResolution targetType argType =  
     let givenAndExpectedType = [argType |> toString; targetType |> toString]

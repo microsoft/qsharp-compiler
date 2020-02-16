@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler
             // We therefore need to generate unique variable names before reordering the statements.
             scope = new UniqueVariableNames().Statements.Transform(scope);
             scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
-            scope = new ReverseOrderOfOperationCalls().Transform(scope);
+            scope = new ReverseOrderOfOperationCalls().Statements.Transform(scope);
             return StripPositionInfo.Apply(scope);
         }
 
@@ -58,9 +58,9 @@ namespace Microsoft.Quantum.QsCompiler
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             var inline = new InlineConjugations(onException);
-            var namespaces = compilation.Namespaces.Select(inline.Transform).ToImmutableArray();
+            var namespaces = compilation.Namespaces.Select(inline.Namespaces.Transform).ToImmutableArray();
             inlined = new QsCompilation(namespaces, compilation.EntryPoints);
-            return inline.Success;
+            return inline.InternalState.Success;
         }
 
         /// <summary>

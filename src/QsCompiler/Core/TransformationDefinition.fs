@@ -184,5 +184,3 @@ and NamespaceTransformation<'T> internal (parentTransformation) =
         and private set value = _Transformation <- Some value
 
     override this.Scope = upcast this.Transformation.Statements
-
-

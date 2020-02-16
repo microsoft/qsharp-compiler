@@ -10,6 +10,7 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
@@ -19,68 +20,67 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// with a call to the operation after application of the functor given on initialization. 
     /// The default values used for auto-generation will be used for the additional functor arguments.  
     /// </summary>
-    public class ApplyFunctorToOperationCalls : 
-        ScopeTransformation<
-            ApplyFunctorToOperationCalls.IgnoreOuterBlockInConjugations<ApplyFunctorToOperationCalls>, 
-            ExpressionTransformation <ApplyFunctorToOperationCalls.ApplyToExpressionKind>>
+    public class ApplyFunctorToOperationCalls :
+        QsSyntaxTreeTransformation<ApplyFunctorToOperationCalls.TransformationsState>
     {
-        public ApplyFunctorToOperationCalls(QsFunctor functor) : base(
-            s => new IgnoreOuterBlockInConjugations<ApplyFunctorToOperationCalls>(s as ApplyFunctorToOperationCalls),
-            new ExpressionTransformation<ApplyToExpressionKind>(e => new ApplyToExpressionKind(e, functor)))
+        public class TransformationsState
+        {
+            public readonly QsFunctor FunctorToApply;
+
+            public TransformationsState(QsFunctor functor) =>
+                this.FunctorToApply = functor ?? throw new ArgumentNullException(nameof(functor));
+        }
+
+
+        public ApplyFunctorToOperationCalls(QsFunctor functor)
+            : base(new TransformationsState(functor))
         { }
+
+        public override Core.StatementKindTransformation<TransformationsState> NewStatementKindTransformation() =>
+            new IgnoreOuterBlockInConjugations<TransformationsState>(this);
+
+        public override Core.ExpressionKindTransformation<TransformationsState> NewExpressionKindTransformation() =>
+            new ExpressionKindTransformation(this);
+
+
+        // static methods for convenience
 
         private static readonly TypedExpression ControlQubits =
             SyntaxGenerator.ImmutableQubitArrayWithName(NonNullable<string>.New(InternalUse.ControlQubitsName));
 
         public static readonly Func<QsScope, QsScope> ApplyAdjoint =
-            new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Transform;
+            new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Statements.Transform;
 
         public static readonly Func<QsScope, QsScope> ApplyControlled =
-            new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Transform;
+            new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Statements.Transform;
 
 
-        // helper class
-
-        /// <summary>
-        /// Ignores outer blocks of conjugations, transforming only the inner one. 
-        /// </summary>
-        public class IgnoreOuterBlockInConjugations<S> :
-            StatementKindTransformation<S>
-            where S : Core.ScopeTransformation
-        {
-            public IgnoreOuterBlockInConjugations(S scope)
-                : base(scope)
-            { }
-
-            public override QsStatementKind onConjugation(QsConjugation stm)
-            {
-                var inner = stm.InnerTransformation;
-                var innerLoc = this._Scope.onLocation(inner.Location);
-                var transformedInner = new QsPositionedBlock(this._Scope.Transform(inner.Body), innerLoc, inner.Comments);
-                return QsStatementKind.NewQsConjugation(new QsConjugation(stm.OuterTransformation, transformedInner));
-            }
-        }
+        // helper classes
 
         /// <summary>
         /// Replaces each operation call with a call to the operation after application of the given functor. 
         /// The default values used for auto-generation will be used for the additional functor arguments.  
         /// </summary>
-        public class ApplyToExpressionKind : 
-            ExpressionKindTransformation<Core.ExpressionTransformation> 
+        public class ExpressionKindTransformation :
+            Core.ExpressionKindTransformation<TransformationsState>
         {
-            public readonly QsFunctor FunctorToApply;
-            public ApplyToExpressionKind(Core.ExpressionTransformation expression, QsFunctor functor) : 
-                base(expression) =>
-                this.FunctorToApply = functor ?? throw new ArgumentNullException(nameof(functor));
+            public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationsState> parent)
+                : base(parent)
+            { }
+
+            public ExpressionKindTransformation(QsFunctor functor)
+                : base(new TransformationsState(functor))
+            { }
+
 
             public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> onOperationCall(TypedExpression method, TypedExpression arg)
             {
-                if (this.FunctorToApply.IsControlled)
+                if (this.Transformation.InternalState.FunctorToApply.IsControlled)
                 {
                     method = SyntaxGenerator.ControlledOperation(method);
                     arg = SyntaxGenerator.ArgumentWithControlQubits(arg, ControlQubits);
                 }
-                else if (this.FunctorToApply.IsAdjoint)
+                else if (this.Transformation.InternalState.FunctorToApply.IsAdjoint)
                 {
                     method = SyntaxGenerator.AdjointOperation(method);
                 }
@@ -92,49 +92,86 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
 
     /// <summary>
+    /// Ensures that the outer block of conjugations is ignored during transformation. 
+    /// </summary>
+    public class IgnoreOuterBlockInConjugations<T> :
+        Core.StatementKindTransformation<T>
+    {
+        public IgnoreOuterBlockInConjugations(QsSyntaxTreeTransformation<T> parent)
+            : base(parent)
+        { }
+
+        public IgnoreOuterBlockInConjugations(T sharedInternalState)
+            : base(sharedInternalState)
+        { }
+
+        public override QsStatementKind onConjugation(QsConjugation stm)
+        {
+            var inner = stm.InnerTransformation;
+            var innerLoc = this.Transformation.Statements.onLocation(inner.Location);
+            var transformedInner = new QsPositionedBlock(this.Transformation.Statements.Transform(inner.Body), innerLoc, inner.Comments);
+            return QsStatementKind.NewQsConjugation(new QsConjugation(stm.OuterTransformation, transformedInner));
+        }
+    }
+
+
+    /// <summary>
     /// Scope transformation that reverses the order of execution for operation calls within a given scope, 
-    /// unless these calls occur within the outer block of a conjugation. Outer tranformations of conjugations are left unchanged.
+    /// unless these calls occur within the outer block of a conjugation. Outer transformations of conjugations are left unchanged.
     /// Note that the transformed scope is only guaranteed to be valid if operation calls only occur within expression statements! 
     /// Otherwise the transformation will succeed, but the generated scope is not necessarily valid. 
     /// Throws an InvalidOperationException if the scope to transform contains while-loops. 
     /// </summary>
     internal class ReverseOrderOfOperationCalls :
-        SelectByAllContainedExpressions<ReverseOrderOfOperationCalls.ReverseLoops>
+        SelectByAllContainedExpressions 
     {
         public ReverseOrderOfOperationCalls() :
-            base(ex => !ex.InferredInformation.HasLocalQuantumDependency, false, s => new ReverseLoops(s as ReverseOrderOfOperationCalls)) // no need to evaluate subexpressions
+            base(ex => !ex.InferredInformation.HasLocalQuantumDependency, false) // no need to evaluate subexpressions
         { }
 
-        protected override SelectByFoldingOverExpressions<ReverseLoops> GetSubSelector() =>
-            new ReverseOrderOfOperationCalls();
+        public override Core.StatementKindTransformation<TransformationState> NewStatementKindTransformation() =>
+            new ReverseLoops(this);
 
-        public override QsScope Transform(QsScope scope)
+        public override Core.StatementTransformation<TransformationState> NewStatementTransformation() =>
+            new StatementTransformation(this);
+
+
+        // helper classes
+
+        private class StatementTransformation
+            : StatementTransformation<ReverseOrderOfOperationCalls>
         {
-            var topStatements = ImmutableArray.CreateBuilder<QsStatement>();
-            var bottomStatements = new List<QsStatement>();
-            foreach (var statement in scope.Statements)
+            public StatementTransformation(ReverseOrderOfOperationCalls parent)
+                : base(state => new ReverseOrderOfOperationCalls(), parent)
+            { }
+
+            public override QsScope Transform(QsScope scope)
             {
-                var transformed = this.onStatement(statement);
-                if (this.SubSelector.SatisfiesCondition) topStatements.Add(statement);
-                else bottomStatements.Add(transformed);
+                var topStatements = ImmutableArray.CreateBuilder<QsStatement>();
+                var bottomStatements = new List<QsStatement>();
+                foreach (var statement in scope.Statements)
+                {
+                    var transformed = this.onStatement(statement);
+                    if (this.SubSelector.InternalState.SatisfiesCondition) topStatements.Add(statement);
+                    else bottomStatements.Add(transformed);
+                }
+                bottomStatements.Reverse();
+                return new QsScope(topStatements.Concat(bottomStatements).ToImmutableArray(), scope.KnownSymbols);
             }
-            bottomStatements.Reverse();
-            return new QsScope(topStatements.Concat(bottomStatements).ToImmutableArray(), scope.KnownSymbols);
         }
 
-
-        // helper class
-
         /// <summary>
-        /// Helper class for the scope transformation that reverses the order of all operation calls
-        /// unless these calls occur within the outer block of a conjugation. Outer tranformations of conjugations are left unchanged.
+        /// Helper class to reverse the order of all operation calls
+        /// unless these calls occur within the outer block of a conjugation. 
+        /// Outer transformations of conjugations are left unchanged.
         /// Throws an InvalidOperationException upon while-loops. 
         /// </summary>
-        internal class ReverseLoops : 
-            ApplyFunctorToOperationCalls.IgnoreOuterBlockInConjugations<ReverseOrderOfOperationCalls>
+        private class ReverseLoops : 
+            IgnoreOuterBlockInConjugations<TransformationState>
         {
-            internal ReverseLoops(ReverseOrderOfOperationCalls scope) :
-                base(scope) { }
+            internal ReverseLoops(ReverseOrderOfOperationCalls parent) :
+                base(parent) 
+            { }
 
             public override QsStatementKind onForStatement(QsForStatement stm)
             {
