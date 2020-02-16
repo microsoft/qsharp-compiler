@@ -40,7 +40,7 @@ and private VariableRemovalStatementKinds (parent : StatementRemoval, removeFunc
         match stmt with
         | QsVariableDeclaration {Lhs = lhs}
         | QsValueUpdate {Lhs = LocalVarTuple lhs}
-            when isAllDiscarded lhs && not c.AnyQuantum -> Seq.empty
+            when isAllDiscarded lhs && not c.HasQuantum -> Seq.empty
         | QsVariableDeclaration s ->
             jointFlatten (s.Lhs, s.Rhs) |> Seq.map (QsBinding.New s.Kind >> QsVariableDeclaration)
         | QsValueUpdate s ->
@@ -72,6 +72,6 @@ and private VariableRemovalStatementKinds (parent : StatementRemoval, removeFunc
                 let newBody = QsScope.New (s.Body.Statements.InsertRange (0, newStatements), s.Body.KnownSymbols)
                 QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
         | ScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
-        | _ when not c.AnyQuantum && c2.ExternalMutations.IsEmpty && not c.AnyInterrupts && (not c.AnyOutput || removeFunctions) -> Seq.empty
+        | _ when not c.HasQuantum && c2.ExternalMutations.IsEmpty && not c.HasInterrupts && (not c.HasOutput || removeFunctions) -> Seq.empty
         | a -> Seq.singleton a
 
