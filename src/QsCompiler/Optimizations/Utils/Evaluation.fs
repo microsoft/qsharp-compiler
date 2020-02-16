@@ -172,7 +172,7 @@ and internal ExpressionEvaluator(callables: ImmutableDictionary<QsQualifiedName,
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
+and private ExpressionKindEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionKindTransformationBase()
 
     member private this.simplify e1 = this.Expressions.Transform e1
