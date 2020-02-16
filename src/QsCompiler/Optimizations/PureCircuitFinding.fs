@@ -21,6 +21,7 @@ type PureCircuitFinder private (unsafe : string) =
 
     new (callables) as this = 
         new PureCircuitFinder("unsafe") then
+            this.Namespaces <- new PureCircuitFinderNamespaces(this)
             this.Statements <- new PureCircuitFinderStatements(this, callables)
 
 /// private helper class for PureCircuitFinder
