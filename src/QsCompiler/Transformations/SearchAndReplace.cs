@@ -343,7 +343,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsStatement onStatement(QsStatement stm)
             {
                 this.Transformation.InternalState.StatementLocation = stm.Location.IsNull ? null : stm.Location.Item;
-                this.StatementKind.Transform(stm.Statement);
+                this.StatementKinds.Transform(stm.Statement);
                 return stm;
             }
         }
@@ -358,7 +358,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsStatementKind onValueUpdate(QsValueUpdate stm)
             {
                 this.Transformation.InternalState.UpdatedExpression(stm.Lhs);
-                this.ExpressionTransformation(stm.Rhs);
+                this.Expressions.Transform(stm.Rhs);
                 return QsStatementKind.NewQsValueUpdate(stm);
             }
         }
