@@ -17,11 +17,11 @@ type StatementKindTransformationBase internal (unsafe) =
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
 
-    // TODO: this should be a private member
+    // TODO: this should be just a member
     abstract member Expressions : ExpressionTransformationBase
     default this.Expressions = this.ExpressionTransformationHandle()
 
-    // TODO: this should be a private member
+    // TODO: this should be just a member
     abstract member Statements : StatementTransformationBase
     default this.Statements = this.StatementTransformationHandle()
 
@@ -164,11 +164,11 @@ and StatementTransformationBase internal (unsafe) =
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
     member val internal StatementKindTransformationHandle = missingTransformation "statement kind" with get, set
 
-    // TODO: this should be a private member
+    // TODO: this should be just a member
     abstract member Expressions : ExpressionTransformationBase
     default this.Expressions = this.ExpressionTransformationHandle()
 
-    // TODO: this should be a private member
+    // TODO: this should be just a member
     abstract member StatementKinds : StatementKindTransformationBase
     default this.StatementKinds = this.StatementKindTransformationHandle()
 

@@ -21,11 +21,11 @@ type ExpressionKindTransformationBase internal (unsafe) =
     member val internal TypeTransformationHandle = missingTransformation "type" with get, set
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
 
-    // TODO: this should be a private member
+    // TODO: this should be just a member
     abstract member Types : TypeTransformationBase
     default this.Types = this.TypeTransformationHandle()
     
-    // TODO: this should be a private member
+    // TODO: this should be just a member
     abstract member Expressions : ExpressionTransformationBase
     default this.Expressions = this.ExpressionTransformationHandle()
 
@@ -262,11 +262,11 @@ and ExpressionTransformationBase internal (unsafe) =
     member val internal TypeTransformationHandle = missingTransformation "type" with get, set
     member val internal ExpressionKindTransformationHandle = missingTransformation "expression kind" with get, set
 
-    // TODO: this should be a private member
+    // TODO: this should be just a member
     abstract member Types : TypeTransformationBase
     default this.Types = this.TypeTransformationHandle()
 
-    // TODO: this should be a private member
+    // TODO: this should be just a member
     abstract member ExpressionKinds : ExpressionKindTransformationBase
     default this.ExpressionKinds = this.ExpressionKindTransformationHandle()
 
