@@ -69,9 +69,8 @@ type ClassicalControlTests () =
         |> writer.Statements.Transform
         |> ignore
 
-        writer.InternalState.StatementOutputHandle 
-        |> Seq.filter (not << String.IsNullOrWhiteSpace)
-        |> Seq.toArray
+        (writer.Statements :?> ScopeToQs).Output.Split(Environment.NewLine)
+        |> Array.filter (fun str -> str <> String.Empty)
 
     let CheckIfLineIsCall ``namespace`` name input =
         let call = sprintf @"(%s\.)?%s" <| Regex.Escape ``namespace`` <| Regex.Escape name

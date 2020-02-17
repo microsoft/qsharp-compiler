@@ -86,7 +86,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
     let makeArgsString (args : ResolvedType) =
         match args.Resolution with
         | QsTypeKind.UnitType -> "()"
-        | _ -> args |> SyntaxTreeToQs.Default.ToCode 
+        | _ -> args |> (ExpressionToQs () |> ExpressionTypeToQs).Apply
 
     let removeAt i lst =
         Seq.append

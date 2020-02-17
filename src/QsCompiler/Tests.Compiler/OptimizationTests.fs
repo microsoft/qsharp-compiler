@@ -26,7 +26,9 @@ let private buildCompilation code =
 let private optimize code =
     let mutable compilation = buildCompilation code
     compilation <- PreEvaluation.All compilation
-    String.Join(Environment.NewLine, compilation.Namespaces |> Seq.map SyntaxTreeToQs.Default.ToCode)
+    let toQs = SyntaxTreeToQs()
+    compilation.Namespaces |> Seq.iter (toQs.Transform >> ignore)
+    toQs.Output
 
 /// Helper function that saves the compiler output as a test case (in the bin directory)
 let private createTestCase path =

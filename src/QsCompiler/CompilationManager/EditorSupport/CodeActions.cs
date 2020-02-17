@@ -218,10 +218,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // update deprecated operation characteristics syntax
 
+            var typeToQs = new ExpressionTypeToQs(new ExpressionToQs());
             string CharacteristicsAnnotation(Characteristics c)
             {
-                var charEx = SyntaxTreeToQs.CharacteristicsExpression(SymbolResolution.ResolveCharacteristics(c));
-                return charEx == null ? "" : $"{Keywords.qsCharacteristics.id} {charEx}";
+                typeToQs.onCharacteristicsExpression(SymbolResolution.ResolveCharacteristics(c));
+                return $"{Keywords.qsCharacteristics.id} {typeToQs.Output}";
             }
 
             var suggestionsForOpCharacteristics = deprecatedOpCharacteristics.SelectMany(d =>
