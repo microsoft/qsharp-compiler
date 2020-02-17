@@ -18,7 +18,7 @@
     <Compile Include="ExpressionTransformation.fs" />
     <Compile Include="StatementTransformation.fs" />
     <Compile Include="NamespaceTransformation.fs" />
-    <Compile Include="TransformationDefinition.fs" />
+    <Compile Include="SyntaxTreeTransformation.fs" />
     <Compile Include="ExpressionWalker.fs" />
     <Compile Include="StatementWalker.fs" />
     <Compile Include="TreeWalker.fs" />
