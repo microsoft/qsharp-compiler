@@ -9,6 +9,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation
 {
@@ -28,8 +29,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
         {
             compilation = HoistTransformation.Apply(compilation);
 
-            var filter = new ClassicallyControlledSyntax(compilation);
-            return new QsCompilation(compilation.Namespaces.Select(ns => filter.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
+            return ConvertConditions.Apply(compilation);
         }
 
         private static TypedExpression CreateIdentifierExpression(Identifier id,
@@ -97,390 +97,409 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             return (false, null, null, null, null);
         }
 
-        private class ClassicallyControlledSyntax : SyntaxTreeTransformation<ClassicallyControlledScope>
+        private class ConvertConditions : QsSyntaxTreeTransformation<ConvertConditions.TransformationState>
         {
-            public ClassicallyControlledSyntax(QsCompilation compilation, ClassicallyControlledScope scope = null) : base(scope ?? new ClassicallyControlledScope(compilation)) { }
-
-            public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being considered
-        }
-
-        private class ClassicallyControlledScope : ScopeTransformation<NoExpressionTransformations>
-        {
-            private QsCompilation _Compilation;
-
-            public ClassicallyControlledScope(QsCompilation compilation, NoExpressionTransformations expr = null) : base(expr ?? new NoExpressionTransformations())
+            public static QsCompilation Apply(QsCompilation compilation)
             {
-                _Compilation = compilation;
+                var filter = new ConvertConditions(compilation);
+
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
 
-            private TypeArgsResolution GetCombinedType(TypeArgsResolution outer, TypeArgsResolution inner)
+            public class TransformationState
             {
-                var outerDict = outer.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
-                return inner.Select(innerRes =>
+                public readonly QsCompilation Compilation;
+
+                public TransformationState(QsCompilation compilation)
                 {
-                    if (innerRes.Item3.Resolution is ResolvedTypeKind.TypeParameter typeParam &&
-                        outerDict.TryGetValue((typeParam.Item.Origin, typeParam.Item.TypeName), out var outerRes))
-                    {
-                        outerDict.Remove((typeParam.Item.Origin, typeParam.Item.TypeName));
-                        return Tuple.Create(innerRes.Item1, innerRes.Item2, outerRes);
-                    }
-                    else
-                    {
-                        return innerRes;
-                    }
-                }).Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
-            }
-
-            private (bool, TypedExpression, TypedExpression) IsValidScope(QsScope scope)
-            {
-                // if the scope has exactly one statement in it and that statement is a call like expression statement
-                if (scope != null
-                    && scope.Statements.Length == 1
-                    && scope.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr
-                    && expr.Item.ResolvedType.Resolution.IsUnitType
-                    && expr.Item.Expression is ExpressionKind.CallLikeExpression call
-                    && !TypedExpression.IsPartialApplication(expr.Item.Expression)
-                    && call.Item1.Expression is ExpressionKind.Identifier)
-                {
-                    // We are dissolving the application of arguments here, so the call's type argument
-                    // resolutions have to be moved to the 'identifier' sub expression.
-
-                    var callTypeArguments = expr.Item.TypeArguments;
-                    var idTypeArguments = call.Item1.TypeArguments;
-                    var combinedTypeArguments = GetCombinedType(callTypeArguments, idTypeArguments);
-
-                    // This relies on anything having type parameters must be a global callable.
-                    var newExpr1 = call.Item1;
-                    if (combinedTypeArguments.Any()
-                        && newExpr1.Expression is ExpressionKind.Identifier id
-                        && id.Item1 is Identifier.GlobalCallable global)
-                    {
-                        var globalCallable = _Compilation.Namespaces
-                            .Where(ns => ns.Name.Equals(global.Item.Namespace))
-                            .Callables()
-                            .FirstOrDefault(c => c.FullName.Name.Equals(global.Item.Name));
-
-                        QsCompilerError.Verify(globalCallable != null, $"Could not find the global reference {global.Item.Namespace.Value + "." + global.Item.Name.Value}");
-
-                        var callableTypeParameters = globalCallable.Signature.TypeParameters
-                            .Select(x => x as QsLocalSymbol.ValidName);
-
-                        QsCompilerError.Verify(callableTypeParameters.All(x => x != null), $"Invalid type parameter names.");
-
-                        newExpr1 = new TypedExpression(
-                            ExpressionKind.NewIdentifier(
-                                id.Item1,
-                                QsNullable<ImmutableArray<ResolvedType>>.NewValue(
-                                    callableTypeParameters
-                                    .Select(x => combinedTypeArguments.First(y => y.Item2.Equals(x.Item)).Item3).ToImmutableArray())),
-                            combinedTypeArguments,
-                            call.Item1.ResolvedType,
-                            call.Item1.InferredInformation,
-                            call.Item1.Range);
-                    }
-
-                    return (true, newExpr1, call.Item2);
-                }
-
-                return (false, null, null);
-            }
-
-            private TypedExpression CreateApplyIfCall(TypedExpression id, TypedExpression args, TypeArgsResolution typeRes) =>
-                new TypedExpression
-                (
-                    ExpressionKind.NewCallLikeExpression(id, args),
-                    typeRes,
-                    ResolvedType.New(ResolvedTypeKind.UnitType),
-                    new InferredExpressionInformation(false, true),
-                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                );
-
-            private QsStatement CreateApplyIfStatement(QsStatement statement, QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
-            {
-                var controlCall = GetApplyIfExpression(result, conditionExpression, conditionScope, defaultScope);
-
-                if (controlCall != null)
-                {
-                    return new QsStatement(
-                        QsStatementKind.NewQsExpressionStatement(controlCall),
-                        statement.SymbolDeclarations,
-                        QsNullable<QsLocation>.Null,
-                        statement.Comments);
-                }
-                else
-                {
-                    // ToDo: add diagnostic message here
-                    return statement; // If the blocks can't be converted, return the original
+                    Compilation = compilation;
                 }
             }
 
-            private static ResolvedType GetApplyIfResolvedType(IEnumerable<OpProperty> props, ResolvedType argumentType)
-            {
-                var characteristics = new CallableInformation(
-                    ResolvedCharacteristics.FromProperties(props),
-                    InferredCallableInformation.NoInformation);
+            private ConvertConditions(QsCompilation compilation) : base(new TransformationState(compilation)) { }
 
-                return ResolvedType.New(ResolvedTypeKind.NewOperation(
-                    Tuple.Create(argumentType, ResolvedType.New(ResolvedTypeKind.UnitType)),
-                    characteristics));
+            public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
+            private class NamespaceTransformation : NamespaceTransformation<TransformationState>
+            {
+                public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+                public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being considered
             }
 
-            private TypedExpression GetApplyIfExpression(QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
+            public override StatementTransformation<TransformationState> NewStatementTransformation() => new StatementTransformation(this);
+            private class StatementTransformation : StatementTransformation<TransformationState>
             {
-                var (isCondValid, condId, condArgs) = IsValidScope(conditionScope);
-                var (isDefaultValid, defaultId, defaultArgs) = IsValidScope(defaultScope);
+                public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                BuiltIn controlOpInfo;
-                TypedExpression controlArgs;
-                ImmutableArray<ResolvedType> targetArgs;
-
-                var props = ImmutableHashSet<OpProperty>.Empty;
-
-                if (isCondValid)
+                private TypeArgsResolution GetCombinedType(TypeArgsResolution outer, TypeArgsResolution inner)
                 {
-                    // Get characteristic properties from global id
-                    if (condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
+                    var outerDict = outer.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
+                    return inner.Select(innerRes =>
                     {
-                        props = op.Item2.Characteristics.GetProperties();
-                    }
-
-                    (bool adj, bool ctl) = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable));
-
-                    if (isDefaultValid)
-                    {
-                        if (adj && ctl)
+                        if (innerRes.Item3.Resolution is ResolvedTypeKind.TypeParameter typeParam &&
+                            outerDict.TryGetValue((typeParam.Item.Origin, typeParam.Item.TypeName), out var outerRes))
                         {
-                            controlOpInfo = BuiltIn.ApplyIfElseRCA;
-                        }
-                        else if (adj)
-                        {
-                            controlOpInfo = BuiltIn.ApplyIfElseRA;
-                        }
-                        else if (ctl)
-                        {
-                            controlOpInfo = BuiltIn.ApplyIfElseRC;
+                            outerDict.Remove((typeParam.Item.Origin, typeParam.Item.TypeName));
+                            return Tuple.Create(innerRes.Item1, innerRes.Item2, outerRes);
                         }
                         else
                         {
-                            controlOpInfo = BuiltIn.ApplyIfElseR;
+                            return innerRes;
                         }
+                    }).Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
+                }
 
-                        var (zeroOpArg, oneOpArg) = (result == QsResult.Zero)
-                            ? (CreateValueTupleExpression(condId, condArgs), CreateValueTupleExpression(defaultId, defaultArgs))
-                            : (CreateValueTupleExpression(defaultId, defaultArgs), CreateValueTupleExpression(condId, condArgs));
-
-                        controlArgs = CreateValueTupleExpression(conditionExpression, zeroOpArg, oneOpArg);
-
-                        targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
-                    }
-                    else if (defaultScope == null)
+                private (bool, TypedExpression, TypedExpression) IsValidScope(QsScope scope)
+                {
+                    // if the scope has exactly one statement in it and that statement is a call like expression statement
+                    if (scope != null
+                        && scope.Statements.Length == 1
+                        && scope.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr
+                        && expr.Item.ResolvedType.Resolution.IsUnitType
+                        && expr.Item.Expression is ExpressionKind.CallLikeExpression call
+                        && !TypedExpression.IsPartialApplication(expr.Item.Expression)
+                        && call.Item1.Expression is ExpressionKind.Identifier)
                     {
-                        if (adj && ctl)
+                        // We are dissolving the application of arguments here, so the call's type argument
+                        // resolutions have to be moved to the 'identifier' sub expression.
+
+                        var callTypeArguments = expr.Item.TypeArguments;
+                        var idTypeArguments = call.Item1.TypeArguments;
+                        var combinedTypeArguments = GetCombinedType(callTypeArguments, idTypeArguments);
+
+                        // This relies on anything having type parameters must be a global callable.
+                        var newExpr1 = call.Item1;
+                        if (combinedTypeArguments.Any()
+                            && newExpr1.Expression is ExpressionKind.Identifier id
+                            && id.Item1 is Identifier.GlobalCallable global)
                         {
-                            controlOpInfo = (result == QsResult.Zero)
-                            ? BuiltIn.ApplyIfZeroCA
-                            : BuiltIn.ApplyIfOneCA;
-                        }
-                        else if (adj)
-                        {
-                            controlOpInfo = (result == QsResult.Zero)
-                            ? BuiltIn.ApplyIfZeroA
-                            : BuiltIn.ApplyIfOneA;
-                        }
-                        else if (ctl)
-                        {
-                            controlOpInfo = (result == QsResult.Zero)
-                            ? BuiltIn.ApplyIfZeroC
-                            : BuiltIn.ApplyIfOneC;
-                        }
-                        else
-                        {
-                            controlOpInfo = (result == QsResult.Zero)
-                            ? BuiltIn.ApplyIfZero
-                            : BuiltIn.ApplyIfOne;
+                            var globalCallable = Transformation.InternalState.Compilation.Namespaces
+                                .Where(ns => ns.Name.Equals(global.Item.Namespace))
+                                .Callables()
+                                .FirstOrDefault(c => c.FullName.Name.Equals(global.Item.Name));
+
+                            QsCompilerError.Verify(globalCallable != null, $"Could not find the global reference {global.Item.Namespace.Value + "." + global.Item.Name.Value}");
+
+                            var callableTypeParameters = globalCallable.Signature.TypeParameters
+                                .Select(x => x as QsLocalSymbol.ValidName);
+
+                            QsCompilerError.Verify(callableTypeParameters.All(x => x != null), $"Invalid type parameter names.");
+
+                            newExpr1 = new TypedExpression(
+                                ExpressionKind.NewIdentifier(
+                                    id.Item1,
+                                    QsNullable<ImmutableArray<ResolvedType>>.NewValue(
+                                        callableTypeParameters
+                                        .Select(x => combinedTypeArguments.First(y => y.Item2.Equals(x.Item)).Item3).ToImmutableArray())),
+                                combinedTypeArguments,
+                                call.Item1.ResolvedType,
+                                call.Item1.InferredInformation,
+                                call.Item1.Range);
                         }
 
-                        controlArgs = CreateValueTupleExpression(
-                            conditionExpression,
-                            CreateValueTupleExpression(condId, condArgs));
+                        return (true, newExpr1, call.Item2);
+                    }
 
-                        targetArgs = ImmutableArray.Create(condArgs.ResolvedType);
+                    return (false, null, null);
+                }
+
+                private TypedExpression CreateApplyIfCall(TypedExpression id, TypedExpression args, TypeArgsResolution typeRes) =>
+                    new TypedExpression
+                    (
+                        ExpressionKind.NewCallLikeExpression(id, args),
+                        typeRes,
+                        ResolvedType.New(ResolvedTypeKind.UnitType),
+                        new InferredExpressionInformation(false, true),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                    );
+
+                private QsStatement CreateApplyIfStatement(QsStatement statement, QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
+                {
+                    var controlCall = GetApplyIfExpression(result, conditionExpression, conditionScope, defaultScope);
+
+                    if (controlCall != null)
+                    {
+                        return new QsStatement(
+                            QsStatementKind.NewQsExpressionStatement(controlCall),
+                            statement.SymbolDeclarations,
+                            QsNullable<QsLocation>.Null,
+                            statement.Comments);
                     }
                     else
                     {
-                        return null; // ToDo: Diagnostic message - default body exists, but is not valid
+                        // ToDo: add diagnostic message here
+                        return statement; // If the blocks can't be converted, return the original
+                    }
+                }
+
+                private static ResolvedType GetApplyIfResolvedType(IEnumerable<OpProperty> props, ResolvedType argumentType)
+                {
+                    var characteristics = new CallableInformation(
+                        ResolvedCharacteristics.FromProperties(props),
+                        InferredCallableInformation.NoInformation);
+
+                    return ResolvedType.New(ResolvedTypeKind.NewOperation(
+                        Tuple.Create(argumentType, ResolvedType.New(ResolvedTypeKind.UnitType)),
+                        characteristics));
+                }
+
+                private TypedExpression GetApplyIfExpression(QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
+                {
+                    var (isCondValid, condId, condArgs) = IsValidScope(conditionScope);
+                    var (isDefaultValid, defaultId, defaultArgs) = IsValidScope(defaultScope);
+
+                    BuiltIn controlOpInfo;
+                    TypedExpression controlArgs;
+                    ImmutableArray<ResolvedType> targetArgs;
+
+                    var props = ImmutableHashSet<OpProperty>.Empty;
+
+                    if (isCondValid)
+                    {
+                        // Get characteristic properties from global id
+                        if (condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
+                        {
+                            props = op.Item2.Characteristics.GetProperties();
+                        }
+
+                        (bool adj, bool ctl) = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable));
+
+                        if (isDefaultValid)
+                        {
+                            if (adj && ctl)
+                            {
+                                controlOpInfo = BuiltIn.ApplyIfElseRCA;
+                            }
+                            else if (adj)
+                            {
+                                controlOpInfo = BuiltIn.ApplyIfElseRA;
+                            }
+                            else if (ctl)
+                            {
+                                controlOpInfo = BuiltIn.ApplyIfElseRC;
+                            }
+                            else
+                            {
+                                controlOpInfo = BuiltIn.ApplyIfElseR;
+                            }
+
+                            var (zeroOpArg, oneOpArg) = (result == QsResult.Zero)
+                                ? (CreateValueTupleExpression(condId, condArgs), CreateValueTupleExpression(defaultId, defaultArgs))
+                                : (CreateValueTupleExpression(defaultId, defaultArgs), CreateValueTupleExpression(condId, condArgs));
+
+                            controlArgs = CreateValueTupleExpression(conditionExpression, zeroOpArg, oneOpArg);
+
+                            targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
+                        }
+                        else if (defaultScope == null)
+                        {
+                            if (adj && ctl)
+                            {
+                                controlOpInfo = (result == QsResult.Zero)
+                                ? BuiltIn.ApplyIfZeroCA
+                                : BuiltIn.ApplyIfOneCA;
+                            }
+                            else if (adj)
+                            {
+                                controlOpInfo = (result == QsResult.Zero)
+                                ? BuiltIn.ApplyIfZeroA
+                                : BuiltIn.ApplyIfOneA;
+                            }
+                            else if (ctl)
+                            {
+                                controlOpInfo = (result == QsResult.Zero)
+                                ? BuiltIn.ApplyIfZeroC
+                                : BuiltIn.ApplyIfOneC;
+                            }
+                            else
+                            {
+                                controlOpInfo = (result == QsResult.Zero)
+                                ? BuiltIn.ApplyIfZero
+                                : BuiltIn.ApplyIfOne;
+                            }
+
+                            controlArgs = CreateValueTupleExpression(
+                                conditionExpression,
+                                CreateValueTupleExpression(condId, condArgs));
+
+                            targetArgs = ImmutableArray.Create(condArgs.ResolvedType);
+                        }
+                        else
+                        {
+                            return null; // ToDo: Diagnostic message - default body exists, but is not valid
+                        }
+
+                    }
+                    else
+                    {
+                        return null; // ToDo: Diagnostic message - cond body not valid
                     }
 
+                    // Build the surrounding apply-if call
+                    var controlOpId = CreateIdentifierExpression(
+                        Identifier.NewGlobalCallable(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name)),
+                        targetArgs
+                            .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
+                            .ToImmutableArray(),
+                        GetApplyIfResolvedType(props, controlArgs.ResolvedType));
+
+                    // Creates identity resolutions for the call expression
+                    var opTypeArgResolutions = targetArgs
+                        .SelectMany(x =>
+                            x.Resolution is ResolvedTypeKind.TupleType tup
+                            ? tup.Item
+                            : ImmutableArray.Create(x))
+                        .Where(x => x.Resolution.IsTypeParameter)
+                        .Select(x => (x.Resolution as ResolvedTypeKind.TypeParameter).Item)
+                        .GroupBy(x => (x.Origin, x.TypeName))
+                        .Select(group =>
+                        {
+                            var typeParam = group.First();
+                            return Tuple.Create(typeParam.Origin, typeParam.TypeName, ResolvedType.New(ResolvedTypeKind.NewTypeParameter(typeParam)));
+                        })
+                        .ToImmutableArray();
+
+                    return CreateApplyIfCall(controlOpId, controlArgs, opTypeArgResolutions);
                 }
-                else
+
+                private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement cond)
                 {
-                    return null; // ToDo: Diagnostic message - cond body not valid
-                }
+                    if (cond.ConditionalBlocks.Length < 2) return (false, cond);
 
-                // Build the surrounding apply-if call
-                var controlOpId = CreateIdentifierExpression(
-                    Identifier.NewGlobalCallable(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name)),
-                    targetArgs
-                        .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
-                        .ToImmutableArray(),
-                    GetApplyIfResolvedType(props, controlArgs.ResolvedType));
+                    var subCond = new QsConditionalStatement(cond.ConditionalBlocks.RemoveAt(0), cond.Default);
+                    var secondCondBlock = cond.ConditionalBlocks[1].Item2;
 
-                // Creates identity resolutions for the call expression
-                var opTypeArgResolutions = targetArgs
-                    .SelectMany(x =>
-                        x.Resolution is ResolvedTypeKind.TupleType tup
-                        ? tup.Item
-                        : ImmutableArray.Create(x))
-                    .Where(x => x.Resolution.IsTypeParameter)
-                    .Select(x => (x.Resolution as ResolvedTypeKind.TypeParameter).Item)
-                    .GroupBy(x => (x.Origin, x.TypeName))
-                    .Select(group =>
-                    {
-                        var typeParam = group.First();
-                        return Tuple.Create(typeParam.Origin, typeParam.TypeName, ResolvedType.New(ResolvedTypeKind.NewTypeParameter(typeParam)));
-                    })
-                    .ToImmutableArray();
-
-                return CreateApplyIfCall(controlOpId, controlArgs, opTypeArgResolutions);
-            }
-
-            private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement cond)
-            {
-                if (cond.ConditionalBlocks.Length < 2) return (false, cond);
-
-                var subCond = new QsConditionalStatement(cond.ConditionalBlocks.RemoveAt(0), cond.Default);
-                var secondCondBlock = cond.ConditionalBlocks[1].Item2;
-
-                var subIfStatment = new QsStatement
-                (
-                    QsStatementKind.NewQsConditionalStatement(subCond),
-                    LocalDeclarations.Empty,
-                    secondCondBlock.Location,
-                    secondCondBlock.Comments
-                );
-
-                var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
-                    new QsScope(ImmutableArray.Create(subIfStatment), secondCondBlock.Body.KnownSymbols),
-                    secondCondBlock.Location,
-                    QsComments.Empty));
-
-                return (true, new QsConditionalStatement(ImmutableArray.Create(cond.ConditionalBlocks[0]), newDefault));
-            }
-
-            private (bool, QsConditionalStatement) ProcessOR(QsConditionalStatement cond)
-            {
-                // This method expects elif blocks to have been abstracted out
-                if (cond.ConditionalBlocks.Length != 1) return (false, cond);
-
-                var (condition, block) = cond.ConditionalBlocks[0];
-
-                if (condition.Expression is ExpressionKind.OR orCond)
-                {
-                    var subCond = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCond.Item2, block)), cond.Default);
                     var subIfStatment = new QsStatement
                     (
                         QsStatementKind.NewQsConditionalStatement(subCond),
                         LocalDeclarations.Empty,
-                        block.Location,
-                        QsComments.Empty
+                        secondCondBlock.Location,
+                        secondCondBlock.Comments
                     );
+
                     var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
-                        new QsScope(ImmutableArray.Create(subIfStatment), block.Body.KnownSymbols),
-                        block.Location,
+                        new QsScope(ImmutableArray.Create(subIfStatment), secondCondBlock.Body.KnownSymbols),
+                        secondCondBlock.Location,
                         QsComments.Empty));
 
-                    return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCond.Item1, block)), newDefault));
+                    return (true, new QsConditionalStatement(ImmutableArray.Create(cond.ConditionalBlocks[0]), newDefault));
                 }
-                else
+
+                private (bool, QsConditionalStatement) ProcessOR(QsConditionalStatement cond)
                 {
-                    return (false, cond);
-                }
-            }
+                    // This method expects elif blocks to have been abstracted out
+                    if (cond.ConditionalBlocks.Length != 1) return (false, cond);
 
-            private (bool, QsConditionalStatement) ProcessAND(QsConditionalStatement cond)
-            {
-                // This method expects elif blocks to have been abstracted out
-                if (cond.ConditionalBlocks.Length != 1) return (false, cond);
+                    var (condition, block) = cond.ConditionalBlocks[0];
 
-                var (condition, block) = cond.ConditionalBlocks[0];
-
-                if (condition.Expression is ExpressionKind.AND andCond)
-                {
-                    var subCond = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCond.Item2, block)), cond.Default);
-                    var subIfStatment = new QsStatement
-                    (
-                        QsStatementKind.NewQsConditionalStatement(subCond),
-                        LocalDeclarations.Empty,
-                        block.Location,
-                        QsComments.Empty
-                    );
-                    var newBlock = new QsPositionedBlock(
-                        new QsScope(ImmutableArray.Create(subIfStatment), block.Body.KnownSymbols),
-                        block.Location,
-                        QsComments.Empty);
-
-                    return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCond.Item1, newBlock)), cond.Default));
-                }
-                else
-                {
-                    return (false, cond);
-                }
-            }
-
-            private QsStatement ReshapeConditional(QsStatement statement)
-            {
-                if (statement.Statement is QsStatementKind.QsConditionalStatement cond)
-                {
-                    var stm = cond.Item;
-                    (_, stm) = ProcessElif(stm);
-                    bool wasOrProcessed, wasAndProcessed;
-                    do
+                    if (condition.Expression is ExpressionKind.OR orCond)
                     {
-                        (wasOrProcessed, stm) = ProcessOR(stm);
-                        (wasAndProcessed, stm) = ProcessAND(stm);
-                    } while (wasOrProcessed || wasAndProcessed);
+                        var subCond = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCond.Item2, block)), cond.Default);
+                        var subIfStatment = new QsStatement
+                        (
+                            QsStatementKind.NewQsConditionalStatement(subCond),
+                            LocalDeclarations.Empty,
+                            block.Location,
+                            QsComments.Empty
+                        );
+                        var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
+                            new QsScope(ImmutableArray.Create(subIfStatment), block.Body.KnownSymbols),
+                            block.Location,
+                            QsComments.Empty));
 
-                    return new QsStatement
-                    (
-                        QsStatementKind.NewQsConditionalStatement(stm),
-                        statement.SymbolDeclarations,
-                        statement.Location,
-                        statement.Comments
-                    );
-                }
-                return statement;
-            }
-
-            public override QsScope Transform(QsScope scope)
-            {
-                var parentSymbols = this.onLocalDeclarations(scope.KnownSymbols);
-                var statements = new List<QsStatement>();
-
-                foreach (var statement in scope.Statements)
-                {
-                    if (statement.Statement is QsStatementKind.QsConditionalStatement)
-                    {
-                        var stm = ReshapeConditional(statement);
-                        stm = this.onStatement(stm);
-
-                        var (isCondition, result, conditionExpression, conditionScope, defaultScope) = IsConditionedOnResultLiteralStatement(stm);
-                        
-                        if (isCondition)
-                        {
-                            statements.Add(CreateApplyIfStatement(stm, result, conditionExpression, conditionScope, defaultScope));
-                        }
-                        else
-                        {
-                            statements.Add(stm);
-                        }
+                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCond.Item1, block)), newDefault));
                     }
                     else
                     {
-                        statements.Add(this.onStatement(statement));
+                        return (false, cond);
                     }
                 }
 
-                return new QsScope(statements.ToImmutableArray(), parentSymbols);
+                private (bool, QsConditionalStatement) ProcessAND(QsConditionalStatement cond)
+                {
+                    // This method expects elif blocks to have been abstracted out
+                    if (cond.ConditionalBlocks.Length != 1) return (false, cond);
+
+                    var (condition, block) = cond.ConditionalBlocks[0];
+
+                    if (condition.Expression is ExpressionKind.AND andCond)
+                    {
+                        var subCond = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCond.Item2, block)), cond.Default);
+                        var subIfStatment = new QsStatement
+                        (
+                            QsStatementKind.NewQsConditionalStatement(subCond),
+                            LocalDeclarations.Empty,
+                            block.Location,
+                            QsComments.Empty
+                        );
+                        var newBlock = new QsPositionedBlock(
+                            new QsScope(ImmutableArray.Create(subIfStatment), block.Body.KnownSymbols),
+                            block.Location,
+                            QsComments.Empty);
+
+                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCond.Item1, newBlock)), cond.Default));
+                    }
+                    else
+                    {
+                        return (false, cond);
+                    }
+                }
+
+                private QsStatement ReshapeConditional(QsStatement statement)
+                {
+                    if (statement.Statement is QsStatementKind.QsConditionalStatement cond)
+                    {
+                        var stm = cond.Item;
+                        (_, stm) = ProcessElif(stm);
+                        bool wasOrProcessed, wasAndProcessed;
+                        do
+                        {
+                            (wasOrProcessed, stm) = ProcessOR(stm);
+                            (wasAndProcessed, stm) = ProcessAND(stm);
+                        } while (wasOrProcessed || wasAndProcessed);
+
+                        return new QsStatement
+                        (
+                            QsStatementKind.NewQsConditionalStatement(stm),
+                            statement.SymbolDeclarations,
+                            statement.Location,
+                            statement.Comments
+                        );
+                    }
+                    return statement;
+                }
+
+                public override QsScope Transform(QsScope scope)
+                {
+                    var parentSymbols = this.onLocalDeclarations(scope.KnownSymbols);
+                    var statements = new List<QsStatement>();
+
+                    foreach (var statement in scope.Statements)
+                    {
+                        if (statement.Statement is QsStatementKind.QsConditionalStatement)
+                        {
+                            var stm = ReshapeConditional(statement);
+                            stm = this.onStatement(stm);
+
+                            var (isCondition, result, conditionExpression, conditionScope, defaultScope) = IsConditionedOnResultLiteralStatement(stm);
+
+                            if (isCondition)
+                            {
+                                statements.Add(CreateApplyIfStatement(stm, result, conditionExpression, conditionScope, defaultScope));
+                            }
+                            else
+                            {
+                                statements.Add(stm);
+                            }
+                        }
+                        else
+                        {
+                            statements.Add(this.onStatement(statement));
+                        }
+                    }
+
+                    return new QsScope(statements.ToImmutableArray(), parentSymbols);
+                }
             }
         }
 
@@ -504,18 +523,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 public class TransformationState
                 {
                     public bool IsRecursiveIdentifier = false;
-                    public ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> Parameters;
-                    public QsQualifiedName OldName;
-                    public QsQualifiedName NewName;
+                    public readonly ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> Parameters;
+                    public readonly QsQualifiedName OldName;
+                    public readonly QsQualifiedName NewName;
+
+                    public TransformationState(ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+                    {
+                        Parameters = parameters;
+                        OldName = oldName;
+                        NewName = newName;
+                    }
                 }
 
                 private UpdateGeneratedOp(ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
-                : base(new TransformationState
-                {
-                    Parameters = parameters,
-                    OldName = oldName,
-                    NewName = newName
-                }) { }
+                : base(new TransformationState(parameters, oldName, newName)) { }
 
                 public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() => new ExpressionTransformation(this);
                 private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
