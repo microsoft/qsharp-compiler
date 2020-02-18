@@ -120,6 +120,9 @@
     <None Include="TestCases\FunctorGeneration.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\AccessModifiers.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Compile Include="..\..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
@@ -136,6 +139,7 @@
     <Compile Include="CommandLineTests.fs" />
     <Compile Include="SymbolManagementTests.fs" />
     <Compile Include="OptimizationTests.fs" />
+    <Compile Include="AccessModifierTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
