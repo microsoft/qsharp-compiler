@@ -10,6 +10,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
@@ -197,8 +198,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         private class ExpressionTypeTransformation :
             Core.ExpressionTypeTransformation<TransformationState>
         {
-            private readonly QsCodeOutput.ExpressionTypeToQs CodeOutput = new QsCodeOutput.ExpressionToQs()._Type;
-
             public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) :
                 base(parent)
             { }
@@ -212,10 +211,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override QsTypeKind onTypeParameter(QsTypeParameter tp)
             {
-                this.CodeOutput.onTypeParameter(tp);
-                var id = Identifier.NewLocalVariable(NonNullable<string>.New(this.CodeOutput.Output ?? ""));
+                var resT = ResolvedType.New(QsTypeKind.NewTypeParameter(tp));
+                var id = Identifier.NewLocalVariable(NonNullable<string>.New(SyntaxTreeToQs.Default.ToCode(resT) ?? ""));
                 this.Transformation.InternalState.LogIdentifierLocation(id, tp.Range);
-                return QsTypeKind.NewTypeParameter(tp);
+                return resT.Resolution;
             }
         }
 
