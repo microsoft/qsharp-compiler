@@ -60,10 +60,10 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
     abstract member onQubitInitializer : ResolvedInitializer -> ResolvedInitializer 
     default this.onQubitInitializer init = 
         let transformed = init.Resolution |> function 
-            | SingleQubitAllocation      -> SingleQubitAllocation
-            | QubitRegisterAllocation ex -> QubitRegisterAllocation (this.Expressions.Transform ex)
-            | QubitTupleAllocation is    -> QubitTupleAllocation ((is |> Seq.map this.onQubitInitializer).ToImmutableArray())
-            | InvalidInitializer         -> InvalidInitializer
+            | SingleQubitAllocation              -> SingleQubitAllocation
+            | QubitRegisterAllocation ex as orig -> QubitRegisterAllocation |> Node.BuildOr orig (this.Expressions.Transform ex)
+            | QubitTupleAllocation is as orig    -> QubitTupleAllocation |> Node.BuildOr orig (is |> Seq.map this.onQubitInitializer |> ImmutableArray.CreateRange)
+            | InvalidInitializer                 -> InvalidInitializer
         ResolvedInitializer.New |> Node.BuildOr init transformed
 
     abstract member onPositionedBlock : QsNullable<TypedExpression> * QsPositionedBlock -> QsNullable<TypedExpression> * QsPositionedBlock
@@ -250,8 +250,7 @@ and StatementTransformationBase internal (options : TransformationOptions, unsaf
         let comments = stm.Comments
         let kind = this.StatementKinds.Transform stm.Statement
         let varDecl = this.onLocalDeclarations stm.SymbolDeclarations
-        let Statement (kind, varDecl, location, comments) = QsStatement.New comments location (kind, varDecl)
-        Statement |> Node.BuildOr stm (kind, varDecl, location, comments)
+        QsStatement.New comments location |> Node.BuildOr stm (kind, varDecl)
 
     abstract member Transform : QsScope -> QsScope 
     default this.Transform scope = 

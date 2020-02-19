@@ -52,15 +52,18 @@ type TypeTransformationBase(options : TransformationOptions) =
 
     abstract member onOperation : (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
     default this.onOperation ((it, ot), info) = 
-        ExpressionType.Operation |> Node.BuildOr InvalidType ((this.Transform it, this.Transform ot), this.onCallableInformation info)
+        let transformed = (this.Transform it, this.Transform ot), this.onCallableInformation info
+        ExpressionType.Operation |> Node.BuildOr InvalidType transformed
 
     abstract member onFunction : ResolvedType * ResolvedType -> ExpressionType
     default this.onFunction (it, ot) = 
-        ExpressionType.Function |> Node.BuildOr InvalidType (this.Transform it, this.Transform ot)
+        let transformed = this.Transform it, this.Transform ot
+        ExpressionType.Function |> Node.BuildOr InvalidType transformed
 
     abstract member onTupleType : ImmutableArray<ResolvedType> -> ExpressionType
     default this.onTupleType ts = 
-        ExpressionType.TupleType |> Node.BuildOr InvalidType ((ts |> Seq.map this.Transform).ToImmutableArray())
+        let transformed = ts |> Seq.map this.Transform |> ImmutableArray.CreateRange
+        ExpressionType.TupleType |> Node.BuildOr InvalidType transformed
 
     abstract member onArrayType : ResolvedType -> ExpressionType
     default this.onArrayType b = 
