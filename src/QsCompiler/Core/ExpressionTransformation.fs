@@ -4,6 +4,7 @@
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open System
+open System.Collections.Generic
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -40,7 +41,7 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
     new (options : TransformationOptions) as this = 
         new ExpressionKindTransformationBase(options, "unsafe") then 
             let typeTransformation = new TypeTransformationBase(options)
-            let expressionTransformation = new ExpressionTransformationBase((fun _ -> this), (fun _ -> this.Types))
+            let expressionTransformation = new ExpressionTransformationBase((fun _ -> this), (fun _ -> this.Types), options)
             this.TypeTransformationHandle <- fun _ -> typeTransformation
             this.ExpressionTransformationHandle <- fun _ -> expressionTransformation
 
@@ -313,8 +314,10 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
         id |> Node.BuildOr kind transformed
 
 
-and ExpressionTransformationBase internal (unsafe) = 
+and ExpressionTransformationBase internal (options : TransformationOptions, unsafe) = 
+    
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
+    let Node = if options.DisableRebuild then Walk else Fold
 
     member val internal TypeTransformationHandle = missingTransformation "type" with get, set
     member val internal ExpressionKindTransformationHandle = missingTransformation "expression kind" with get, set
@@ -327,24 +330,34 @@ and ExpressionTransformationBase internal (unsafe) =
     abstract member ExpressionKinds : ExpressionKindTransformationBase
     default this.ExpressionKinds = this.ExpressionKindTransformationHandle()
 
-    new (exkindTransformation : unit -> ExpressionKindTransformationBase, typeTransformation : unit -> TypeTransformationBase) as this = 
-        new ExpressionTransformationBase("unsafe") then 
+    new (exkindTransformation : unit -> ExpressionKindTransformationBase, typeTransformation : unit -> TypeTransformationBase, options : TransformationOptions) as this = 
+        new ExpressionTransformationBase(options, "unsafe") then 
             this.TypeTransformationHandle <- typeTransformation
             this.ExpressionKindTransformationHandle <- exkindTransformation
 
-    new () as this = 
-        new ExpressionTransformationBase("unsafe") then
-            let typeTransformation = new TypeTransformationBase()
-            let exprKindTransformation = new ExpressionKindTransformationBase((fun _ -> this), (fun _ -> this.Types))
+    new (options : TransformationOptions) as this = 
+        new ExpressionTransformationBase(options, "unsafe") then
+            let typeTransformation = new TypeTransformationBase(options)
+            let exprKindTransformation = new ExpressionKindTransformationBase((fun _ -> this), (fun _ -> this.Types), options)
             this.TypeTransformationHandle <- fun _ -> typeTransformation
             this.ExpressionKindTransformationHandle <- fun _ -> exprKindTransformation
 
+    new (exkindTransformation : unit -> ExpressionKindTransformationBase, typeTransformation : unit -> TypeTransformationBase) =
+        new ExpressionTransformationBase(exkindTransformation, typeTransformation, TransformationOptions.Default)
+
+    new () = new ExpressionTransformationBase(TransformationOptions.Default)
+
+
+    // supplementary expression information 
 
     abstract member onRangeInformation : QsNullable<QsPositionInfo*QsPositionInfo> -> QsNullable<QsPositionInfo*QsPositionInfo>
     default this.onRangeInformation r = r
 
     abstract member onExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
     default this.onExpressionInformation info = info
+
+
+    // nodes containing subexpressions or subtypes
 
     abstract member onTypeParamResolutions : ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType> -> ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType>
     default this.onTypeParamResolutions typeParams =
@@ -353,13 +366,18 @@ and ExpressionTransformationBase internal (unsafe) =
             typeParams 
             |> Seq.map (fun kv -> this.Types.onTypeParameter (kv.Key |> asTypeParameter), kv.Value)
             |> Seq.choose (function | TypeParameter tp, value -> Some ((tp.Origin, tp.TypeName), this.Types.Transform value) | _ -> None)
-        filteredTypeParams.ToImmutableDictionary (fst,snd)
+            |> Seq.map (fun (key, value) -> new KeyValuePair<_,_>(key, value))
+        ImmutableDictionary.CreateRange |> Node.BuildOr ImmutableDictionary.Empty filteredTypeParams
+
+
+    // transformation root called on each node
 
     abstract member Transform : TypedExpression -> TypedExpression
     default this.Transform (ex : TypedExpression) =
+        if options.Disable then ex else
         let range                = this.onRangeInformation ex.Range
         let typeParamResolutions = this.onTypeParamResolutions ex.TypeParameterResolutions
         let kind                 = this.ExpressionKinds.Transform ex.Expression
         let exType               = this.Types.Transform ex.ResolvedType
         let inferredInfo         = this.onExpressionInformation ex.InferredInformation
-        TypedExpression.New (kind, typeParamResolutions, exType, inferredInfo, range)
+        TypedExpression.New |> Node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)
