@@ -16,12 +16,8 @@ type private ExpressionType =
 type private TypeBase(?enableTransformation) = 
     let enableTransformation = defaultArg enableTransformation true
 
-    static member private Walk<'a,'b> (_ : 'a -> 'b) (_ : 'a) (original : 'b) : 'b = original
-    static member private Fold<'a,'b> (builder : 'a -> 'b) (arg : 'a) (_ : 'b) : 'b = builder arg
-
     member private this.Build<'a,'b> (builder : 'a -> 'b) (arg : 'a) (original : 'b) = 
-        if enableTransformation then TypeBase.Fold builder arg original
-        else TypeBase.Walk builder arg original
+        if enableTransformation then builder arg else original
 
 
     abstract member onRangeInformation : QsRangeInfo -> QsRangeInfo
