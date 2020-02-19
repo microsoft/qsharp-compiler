@@ -14,6 +14,7 @@
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="ConstructorExtensions.fs" />
+    <Compile Include="TransformationOptions.fs" />
     <Compile Include="TypeTransformation.fs" />    
     <Compile Include="ExpressionTransformation.fs" />
     <Compile Include="StatementTransformation.fs" />

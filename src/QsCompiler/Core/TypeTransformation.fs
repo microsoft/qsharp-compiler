@@ -12,15 +12,8 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 type private ExpressionType = 
     QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
-type private IRecursion =
-    abstract member Recur<'a, 'b> : ('a -> 'b) -> 'a -> 'b -> 'b
 
-
-type TypeTransformationBase(?enableTransformations) = 
-
-    let Fold = { new IRecursion with member __.Recur builder arg _ = builder arg}
-    let Walk = { new IRecursion with member __.Recur _ _ original = original}
-    let Node = if defaultArg enableTransformations true then Fold else Walk
+type TypeTransformationBase() = 
 
     abstract member onRangeInformation : QsRangeInfo -> QsRangeInfo
     default this.onRangeInformation r = r
@@ -32,13 +25,13 @@ type TypeTransformationBase(?enableTransformations) =
     default this.onCallableInformation opInfo = 
         let characteristics = this.onCharacteristicsExpression opInfo.Characteristics
         let inferred = opInfo.InferredInformation
-        opInfo |> Node.Recur CallableInformation.New (characteristics, inferred)
+        CallableInformation.New (characteristics, inferred)
 
     abstract member onUserDefinedType : UserDefinedType -> ExpressionType
     default this.onUserDefinedType udt = 
         let ns, name = udt.Namespace, udt.Name
         let range = this.onRangeInformation udt.Range
-        ExpressionType.UserDefinedType udt |> Node.Recur (ExpressionType.UserDefinedType << UserDefinedType.New) (ns, name, range)
+        UserDefinedType.New (ns, name, range) |> ExpressionType.UserDefinedType
 
     abstract member onTypeParameter : QsTypeParameter -> ExpressionType
     default this.onTypeParameter tp = 
