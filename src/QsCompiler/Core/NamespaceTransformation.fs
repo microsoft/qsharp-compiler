@@ -19,7 +19,7 @@ type NamespaceTransformationBase internal (unsafe) =
 
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
 
-    // TODO: this should be just a member
+    // TODO: this should be a protected member
     abstract member Statements : StatementTransformationBase
     default this.Statements = this.StatementTransformationHandle()
 
