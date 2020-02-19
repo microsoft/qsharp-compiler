@@ -110,7 +110,7 @@ type TypeTransformationBase(options : TransformationOptions) =
 
     member this.Transform (t : ResolvedType) =
         if options.Disable then t else
-        let typeKind = t.Resolution |> function
+        let transformed = t.Resolution |> function
             | ExpressionType.UnitType                    -> this.onUnitType ()
             | ExpressionType.Operation ((it, ot), fs)    -> this.onOperation ((it, ot), fs)
             | ExpressionType.Function (it, ot)           -> this.onFunction (it, ot)
@@ -129,4 +129,4 @@ type TypeTransformationBase(options : TransformationOptions) =
             | ExpressionType.Result                      -> this.onResult ()
             | ExpressionType.Pauli                       -> this.onPauli ()
             | ExpressionType.Range                       -> this.onRange ()
-        ResolvedType.New |> Node.BuildOr t typeKind
+        ResolvedType.New |> Node.BuildOr t transformed
