@@ -5,7 +5,10 @@
 namespace Microsoft.Quantum.Testing.TypeChecking {
     open Microsoft.Quantum.Testing.TypeChecking.A;
     open Microsoft.Quantum.Testing.TypeChecking.B as B;
+    open Microsoft.Quantum.Testing.TypeChecking.C;
     
+    // Redefine inaccessible symbols in reference
+
     private newtype T1 = Unit;
 
     internal newtype T2 = Unit;
@@ -31,6 +34,14 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         B.BF1();
     }
 
+    function CallableReferencePrivateInaccessible () : Unit {
+        CF1();
+	}
+
+    function CallableReferenceInternalInaccessible () : Unit {
+        CF2();
+	}
+
     // Types with access modifiers
 
     function TypeUseOK () : Unit {
@@ -47,6 +58,14 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     function TypeQualifiedUsePrivateInaccessible () : Unit {
         let bt1 = new B.BT1[1];
     }
+
+    function TypeReferencePrivateInaccessible () : Unit {
+        let ct1 = new CT1[1];
+	}
+
+    function TypeReferenceInternalInaccessible () : Unit {
+        let ct2 = new CT2[1];
+	}
 
     // Callable signatures
 

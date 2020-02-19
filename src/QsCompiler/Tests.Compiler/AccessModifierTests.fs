@@ -9,10 +9,15 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
+open System.IO
+open System.Linq
 
 
 type AccessModifierTests (output) =
-    inherit CompilerTests (CompilerTests.Compile "TestCases" ["AccessModifiers.qs"], output)
+    inherit CompilerTests (CompilerTests.Compile "TestCases"
+                                                 ["AccessModifiers.qs"]
+                                                 [File.ReadAllLines("ReferenceTargets.txt").ElementAt(1)],
+                           output)
 
     member private this.Expect name (diagnostics : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.TypeChecking" |> NonNullable<_>.New
@@ -20,16 +25,27 @@ type AccessModifierTests (output) =
         this.Verify (QsQualifiedName.New (ns, name), diagnostics)
 
     [<Fact>]
+    member this.``Redefine inaccessible symbols in reference`` () =
+        this.Expect "T1" []
+        this.Expect "T2" []
+        this.Expect "F1" []
+        this.Expect "F2" []
+
+    [<Fact>]
     member this.``Callables with access modifiers`` () =
         this.Expect "CallableUseOK" []
         this.Expect "CallableUnqualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
         this.Expect "CallableQualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallableInNamespace]
+        this.Expect "CallableReferencePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
+        this.Expect "CallableReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
 
     [<Fact>]
     member this.``Types with access modifiers`` () =
         this.Expect "TypeUseOK" []
         this.Expect "TypeUnqualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleType]
         this.Expect "TypeQualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleTypeInNamespace]
+        this.Expect "TypeReferencePrivateInaccessible" [Error ErrorCode.InaccessibleType]
+        this.Expect "TypeReferenceInternalInaccessible" [Error ErrorCode.InaccessibleType]
 
     [<Fact>]
     member this.``Callable signatures`` () =
