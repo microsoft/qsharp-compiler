@@ -13,7 +13,16 @@ type private ExpressionType =
     QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
 
-type TypeTransformationBase() = 
+type private TypeBase(?enableTransformation) = 
+    let enableTransformation = defaultArg enableTransformation true
+
+    static member private Walk<'a,'b> (_ : 'a -> 'b) (_ : 'a) (original : 'b) : 'b = original
+    static member private Fold<'a,'b> (builder : 'a -> 'b) (arg : 'a) (_ : 'b) : 'b = builder arg
+
+    member private this.Build<'a,'b> (builder : 'a -> 'b) (arg : 'a) (original : 'b) = 
+        if enableTransformation then TypeBase.Fold builder arg original
+        else TypeBase.Walk builder arg original
+
 
     abstract member onRangeInformation : QsRangeInfo -> QsRangeInfo
     default this.onRangeInformation r = r
@@ -25,13 +34,13 @@ type TypeTransformationBase() =
     default this.onCallableInformation opInfo = 
         let characteristics = this.onCharacteristicsExpression opInfo.Characteristics
         let inferred = opInfo.InferredInformation
-        CallableInformation.New (characteristics, inferred)
+        opInfo |> this.Build CallableInformation.New (characteristics, inferred)
 
     abstract member onUserDefinedType : UserDefinedType -> ExpressionType
     default this.onUserDefinedType udt = 
         let ns, name = udt.Namespace, udt.Name
         let range = this.onRangeInformation udt.Range
-        UserDefinedType.New (ns, name, range) |> ExpressionType.UserDefinedType
+        ExpressionType.UserDefinedType udt |> this.Build (ExpressionType.UserDefinedType << UserDefinedType.New) (ns, name, range)
 
     abstract member onTypeParameter : QsTypeParameter -> ExpressionType
     default this.onTypeParameter tp = 
