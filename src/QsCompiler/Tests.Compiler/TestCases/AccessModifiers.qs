@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 /// This namespace contains test cases for access modifiers.
-namespace Microsoft.Quantum.Testing.TypeChecking {
-    open Microsoft.Quantum.Testing.TypeChecking.A;
-    open Microsoft.Quantum.Testing.TypeChecking.B as B;
-    open Microsoft.Quantum.Testing.TypeChecking.C;
+namespace Microsoft.Quantum.Testing.AccessModifiers {
+    open Microsoft.Quantum.Testing.AccessModifiers.A;
+    open Microsoft.Quantum.Testing.AccessModifiers.B as B;
+    open Microsoft.Quantum.Testing.AccessModifiers.C;
     
     // Redefine inaccessible symbols in reference
 
@@ -125,8 +125,8 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
 }
 
 /// This namespace contains additional definitions of types and callables meant to be used by the
-/// Microsoft.Quantum.Testing.TypeChecking namespace.
-namespace Microsoft.Quantum.Testing.TypeChecking.A {
+/// Microsoft.Quantum.Testing.AccessModifiers namespace.
+namespace Microsoft.Quantum.Testing.AccessModifiers.A {
     private function AF1 () : Unit {}
 
     internal function AF2 () : Unit {}
@@ -137,8 +137,8 @@ namespace Microsoft.Quantum.Testing.TypeChecking.A {
 }
 
 /// This namespace contains additional definitions of types and callables meant to be used by the
-/// Microsoft.Quantum.Testing.TypeChecking namespace.
-namespace Microsoft.Quantum.Testing.TypeChecking.B {
+/// Microsoft.Quantum.Testing.AccessModifiers namespace.
+namespace Microsoft.Quantum.Testing.AccessModifiers.B {
     private function BF1 () : Unit {}
 
     internal function BF2 () : Unit {}

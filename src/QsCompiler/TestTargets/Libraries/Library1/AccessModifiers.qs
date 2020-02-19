@@ -1,5 +1,5 @@
 ﻿/// This namespace contains additional definitions used by the test cases for access modifiers.
-namespace Microsoft.Quantum.Testing.TypeChecking {
+namespace Microsoft.Quantum.Testing.AccessModifiers {
     private newtype T1 = Unit;
 
     internal newtype T2 = Unit;
@@ -10,8 +10,8 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
 }
 
 /// This namespace contains additional definitions of types and callables meant to be used by the
-/// Microsoft.Quantum.Testing.TypeChecking namespace.
-namespace Microsoft.Quantum.Testing.TypeChecking.C {
+/// Microsoft.Quantum.Testing.AccessModifiers namespace.
+namespace Microsoft.Quantum.Testing.AccessModifiers.C {
     private function CF1 () : Unit {}
 
     internal function CF2 () : Unit {}
