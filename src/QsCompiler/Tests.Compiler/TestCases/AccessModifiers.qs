@@ -45,26 +45,46 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
     // Types with access modifiers
 
     function TypeUseOK () : Unit {
-        let t1 = new T1[1];
-        let t2 = new T2[1];
-        let at2 = new AT2[1];
-        let bt2 = new B.BT2[1];
+        let t1 = T1();
+        let t1s = new T1[1];
+        let t2 = T2();
+        let t2s = new T2[1];
+        let at2 = AT2();
+        let at2s = new AT2[1];
+        let bt2 = BT2();
+        let bt2s = new B.BT2[1];
     }
 
     function TypeUnqualifiedUsePrivateInaccessible () : Unit {
-        let at1 = new AT1[1];
+        let at1s = new AT1[1];
+    }
+
+    function TypeConstructorUnqualifiedUsePrivateInaccessible () : Unit {
+        let at1 = AT1();
     }
 
     function TypeQualifiedUsePrivateInaccessible () : Unit {
-        let bt1 = new B.BT1[1];
+        let bt1s = new B.BT1[1];
+    }
+
+    function TypeConstructorQualifiedUsePrivateInaccessible () : Unit {
+        let bt1 = B.BT1();
     }
 
     function TypeReferencePrivateInaccessible () : Unit {
-        let ct1 = new CT1[1];
+        let ct1s = new CT1[1];
+	}
+
+    function TypeConstructorReferencePrivateInaccessible () : Unit {
+        let ct1 = CT1();
 	}
 
     function TypeReferenceInternalInaccessible () : Unit {
-        let ct2 = new CT2[1];
+        let ct2s = new CT2[1];
+	}
+
+    function TypeConstructorReferenceInternalInaccessible () : Unit {
+        let ct2 = CT2();
 	}
 
     // Callable signatures

@@ -43,9 +43,13 @@ type AccessModifierTests (output) =
     member this.``Types with access modifiers`` () =
         this.Expect "TypeUseOK" []
         this.Expect "TypeUnqualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleType]
+        this.Expect "TypeConstructorUnqualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
         this.Expect "TypeQualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleTypeInNamespace]
+        this.Expect "TypeConstructorQualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallableInNamespace]
         this.Expect "TypeReferencePrivateInaccessible" [Error ErrorCode.InaccessibleType]
+        this.Expect "TypeConstructorReferencePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
         this.Expect "TypeReferenceInternalInaccessible" [Error ErrorCode.InaccessibleType]
+        this.Expect "TypeConstructorReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
 
     [<Fact(Skip = "Needs support for re-using private/internal names in references")>]
     member this.``Callable signatures`` () =
