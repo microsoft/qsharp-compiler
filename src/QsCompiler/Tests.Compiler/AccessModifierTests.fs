@@ -33,8 +33,10 @@ type AccessModifierTests (output) =
 
     [<Fact>]
     member this.``Callable signatures`` () =
-        this.Expect "PublicCallableLeaksPrivateTypeIn" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
-        this.Expect "PublicCallableLeaksPrivateTypeOut" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
+        this.Expect "PublicCallableLeaksPrivateTypeIn1" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
+        this.Expect "PublicCallableLeaksPrivateTypeIn2" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
+        this.Expect "PublicCallableLeaksPrivateTypeOut1" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
+        this.Expect "PublicCallableLeaksPrivateTypeOut2" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
         this.Expect "InternalCallableLeaksPrivateTypeIn" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
         this.Expect "InternalCallableLeaksPrivateTypeOut" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
         this.Expect "CallablePrivateTypeOK" []
@@ -45,7 +47,9 @@ type AccessModifierTests (output) =
 
     [<Fact>]
     member this.``Underlying types`` () =
-        this.Expect "PublicTypeLeaksPrivateType" [Error ErrorCode.TypeLessAccessibleThanParentType]
+        this.Expect "PublicTypeLeaksPrivateType1" [Error ErrorCode.TypeLessAccessibleThanParentType]
+        this.Expect "PublicTypeLeaksPrivateType2" [Error ErrorCode.TypeLessAccessibleThanParentType]
+        this.Expect "PublicTypeLeaksPrivateType3" [Error ErrorCode.TypeLessAccessibleThanParentType]
         this.Expect "InternalTypeLeaksPrivateType" [Error ErrorCode.TypeLessAccessibleThanParentType]
         this.Expect "PrivateTypePrivateTypeOK" []
         this.Expect "PublicTypeLeaksInternalType" [Error ErrorCode.TypeLessAccessibleThanParentType]

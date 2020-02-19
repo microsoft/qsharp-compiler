@@ -50,10 +50,16 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
 
     // Callable signatures
 
-    function PublicCallableLeaksPrivateTypeIn (x : T1) : Unit {}
+    function PublicCallableLeaksPrivateTypeIn1 (x : T1) : Unit {}
+    
+    function PublicCallableLeaksPrivateTypeIn2 (x : (Int, (T1, Bool))) : Unit {}
 
-    function PublicCallableLeaksPrivateTypeOut () : T1 {
+    function PublicCallableLeaksPrivateTypeOut1 () : T1 {
         return T1();
+    }
+
+    function PublicCallableLeaksPrivateTypeOut2 () : (Double, ((Result, T1), Bool)) {
+        return (1.0, ((Zero, T1()), true));
     }
 
     internal function InternalCallableLeaksPrivateTypeIn (x : T1) : Unit {}
@@ -82,7 +88,11 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
 
     // Underlying types
 
-    newtype PublicTypeLeaksPrivateType = T1;
+    newtype PublicTypeLeaksPrivateType1 = T1;
+
+    newtype PublicTypeLeaksPrivateType2 = (Int, T1);
+
+    newtype PublicTypeLeaksPrivateType3 = (Int, (T1, Bool));
 
     internal newtype InternalTypeLeaksPrivateType = T1;
 
