@@ -51,7 +51,7 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
     new () = new ExpressionKindTransformationBase (TransformationOptions.Default)
 
 
-    // methods invoked before selected nodes
+    // methods invoked before selective expressions
 
     abstract member beforeCallLike : TypedExpression * TypedExpression -> TypedExpression * TypedExpression
     default this.beforeCallLike (method, arg) = (method, arg)
