@@ -20,9 +20,6 @@
     <Compile Include="StatementTransformation.fs" />
     <Compile Include="NamespaceTransformation.fs" />
     <Compile Include="SyntaxTreeTransformation.fs" />
-    <Compile Include="ExpressionWalker.fs" />
-    <Compile Include="StatementWalker.fs" />
-    <Compile Include="TreeWalker.fs" />
     <Compile Include="Dependencies.fs" />
     <Compile Include="SyntaxGenerator.fs" />
     <Compile Include="DeclarationHeaders.fs" />

@@ -132,6 +132,7 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
             yield CouldNotEvaluate "Cannot allocate qubits in function"
         | QsConjugation _ ->
             yield CouldNotEvaluate "Cannot conjugate in function"
+        | EmptyStatement -> ()
     }
 
     /// Evaluates a list of Q# statements
