@@ -9,7 +9,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using Transformations;
+
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation
 {
