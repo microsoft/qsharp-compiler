@@ -335,7 +335,3 @@ and NamespaceTransformation internal (unsafe : string) =
         NamespaceTransformation("unsafe") then
             this.Transformation <- new QsSyntaxTreeTransformation()
             this.Transformation.Namespaces <- this
-
-
-
-

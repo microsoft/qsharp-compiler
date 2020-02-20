@@ -51,9 +51,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            private ConvertConditions(QsCompilation compilation) : base(new TransformationState(compilation)) { }
+            private ConvertConditions(QsCompilation compilation) : base(new TransformationState(compilation))
+            {
+                this.Namespaces = new NamespaceTransformation(this);
+                this.Statements = new StatementTransformation(this);
+            }
 
-            public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
                 public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -61,7 +64,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being considered
             }
 
-            public override StatementTransformation<TransformationState> NewStatementTransformation() => new StatementTransformation(this);
             private class StatementTransformation : StatementTransformation<TransformationState>
             {
                 public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -648,9 +650,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            private HoistContents() : base(new TransformationState()) { }
+            private HoistContents() : base(new TransformationState())
+            {
+                this.Namespaces = new NamespaceTransformation(this);
+                this.StatementKinds = new StatementKindTransformation(this);
+                this.Expressions = new ExpressionTransformation(this);
+                this.ExpressionKinds = new ExpressionKindTransformation(this);
+            }
 
-            public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
                 public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -696,7 +703,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            public override Core.StatementKindTransformation<TransformationState> NewStatementKindTransformation() => new StatementKindTransformation(this);
             private class StatementKindTransformation : Core.StatementKindTransformation<TransformationState>
             {
                 public StatementKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -799,14 +805,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 public override QsStatementKind onValueUpdate(QsValueUpdate stm)
                 {
                     // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
-                    var lhs = this.ExpressionTransformation(stm.Lhs);
+                    var lhs = this.Expressions.Transform(stm.Lhs);
 
                     if (Transformation.InternalState.ContainsHoistParamRef)
                     {
                         Transformation.InternalState.IsValidScope = false;
                     }
 
-                    var rhs = this.ExpressionTransformation(stm.Rhs);
+                    var rhs = this.Expressions.Transform(stm.Rhs);
                     return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
                 }
 
@@ -898,7 +904,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() => new ExpressionTransformation(this);
             private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
             {
                 public ExpressionTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -920,7 +925,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            public override Core.ExpressionKindTransformation<TransformationState> NewExpressionKindTransformation() => new ExpressionKindTransformation(this);
             private class ExpressionKindTransformation : Core.ExpressionKindTransformation<TransformationState>
             {
                 public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -965,9 +969,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             }
 
             private UpdateGeneratedOp(ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
-            : base(new TransformationState(parameters, oldName, newName)) { }
+            : base(new TransformationState(parameters, oldName, newName))
+            {
+                this.Expressions = new ExpressionTransformation(this);
+                this.ExpressionKinds = new ExpressionKindTransformation(this);
+                this.Types = new TypeTransformation(this);
+            }
 
-            public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() => new ExpressionTransformation(this);
             private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
             {
                 public ExpressionTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -975,7 +983,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
                 {
                     // Prevent keys from having their names updated
-                    return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Type.Transform(kvp.Value));
+                    return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.Transform(kvp.Value));
                 }
 
                 public override TypedExpression Transform(TypedExpression ex)
@@ -1003,7 +1011,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            public override Core.ExpressionKindTransformation<TransformationState> NewExpressionKindTransformation() => new ExpressionKindTransformation(this);
             private class ExpressionKindTransformation : Core.ExpressionKindTransformation<TransformationState>
             {
                 public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -1025,10 +1032,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() => new ExpressionTypeTransformation(this);
-            private class ExpressionTypeTransformation : Core.ExpressionTypeTransformation<TransformationState>
+            private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public TypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
                 public override ResolvedTypeKind onTypeParameter(QsTypeParameter tp)
                 {
