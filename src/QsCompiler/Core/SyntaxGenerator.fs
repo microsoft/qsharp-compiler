@@ -16,24 +16,24 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 // transformations used to strip range information for auto-generated syntax
 
-type private StripPositionInfoFromType (parent : QsSyntaxTreeTransformation<_>) = 
-    inherit TypeTransformation<unit>(parent)
+type private StripPositionInfoFromType (parent : StripPositionInfo) = 
+    inherit TypeTransformation(parent)
     override this.onRangeInformation _ = Null
 
-and private StripPositionInfoFromExpression (parent : QsSyntaxTreeTransformation<_>) = 
-    inherit ExpressionTransformation<unit>(parent)
+and private StripPositionInfoFromExpression (parent : StripPositionInfo) = 
+    inherit ExpressionTransformation(parent)
     override this.onRangeInformation _ = Null
 
-and private StripPositionInfoFromStatement(parent : QsSyntaxTreeTransformation<_>) = 
-    inherit StatementTransformation<unit>(parent)
+and private StripPositionInfoFromStatement(parent : StripPositionInfo) = 
+    inherit StatementTransformation(parent)
     override this.onLocation _ = Null
 
-and private StripPositionInfoFromNamespace(parent : QsSyntaxTreeTransformation<_>) = 
-    inherit NamespaceTransformation<unit>(parent)
+and private StripPositionInfoFromNamespace(parent : StripPositionInfo) = 
+    inherit NamespaceTransformation(parent)
     override this.onLocation _ = Null
 
 and public StripPositionInfo private (unsafe) = 
-    inherit QsSyntaxTreeTransformation<unit>()
+    inherit QsSyntaxTreeTransformation()
     static let defaultInstance = new StripPositionInfo()
 
     new () as this =
