@@ -230,6 +230,7 @@ and StatementTransformationBase internal (options : TransformationOptions, unsaf
     abstract member onLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.onLocation loc = loc
 
+    /// If DisableRebuild is set to true, this method won't walk the local variables declared by the statement.
     abstract member onLocalDeclarations : LocalDeclarations -> LocalDeclarations
     default this.onLocalDeclarations decl = 
         let onLocalVariableDeclaration (local : LocalVariableDeclaration<NonNullable<string>>) = 
