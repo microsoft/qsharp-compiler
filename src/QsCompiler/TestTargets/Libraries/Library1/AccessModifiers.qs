@@ -3,23 +3,23 @@
 namespace Microsoft.Quantum.Testing.AccessModifiers {
     // TODO: Uncomment these definitions when re-using names of inaccessible declarations in references is supported.
 
-    // private newtype T1 = Unit;
+    // private newtype PrivateType = Unit;
 
-    // internal newtype T2 = Unit;
+    // internal newtype InternalType = Unit;
 
-    // private function F1 () : Unit {}
+    // private function PrivateFunction () : Unit {}
 
-    // internal function F2 () : Unit {}
+    // internal function InternalFunction () : Unit {}
 }
 
 /// This namespace contains additional definitions of types and callables meant to be used by the
 /// Microsoft.Quantum.Testing.AccessModifiers namespace.
 namespace Microsoft.Quantum.Testing.AccessModifiers.C {
-    private function CF1 () : Unit {}
+    private newtype PrivateTypeC = Unit;
 
-    internal function CF2 () : Unit {}
+    internal newtype InternalTypeC = Unit;
 
-    private newtype CT1 = Unit;
+    private function PrivateFunctionC () : Unit {}
 
-    internal newtype CT2 = Unit;
+    internal function InternalFunctionC () : Unit {}
 }

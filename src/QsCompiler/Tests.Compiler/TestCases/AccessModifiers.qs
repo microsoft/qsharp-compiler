@@ -9,163 +9,163 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
     
     // Redefine inaccessible references (see TestTargets\Libraries\Library1\AccessModifiers.qs)
 
-    private newtype T1 = Unit;
+    private newtype PrivateType = Unit;
 
-    internal newtype T2 = Unit;
+    internal newtype InternalType = Unit;
 
-    private function F1 () : Unit {}
+    private function PrivateFunction () : Unit {}
 
-    internal function F2 () : Unit {}
+    internal function InternalFunction () : Unit {}
 
     // Callables
 
     function CallableUseOK () : Unit {
-        F1();
-        F2();
-        AF2();
-        B.BF2();
+        PrivateFunction();
+        InternalFunction();
+        InternalFunctionA();
+        B.InternalFunctionB();
     }
 
     function CallableUnqualifiedUsePrivateInaccessible () : Unit {
-        AF1();
+        PrivateFunctionA();
     }
 
     function CallableQualifiedUsePrivateInaccessible () : Unit {
-        B.BF1();
+        B.PrivateFunctionB();
     }
 
     // Types
 
     function TypeUseOK () : Unit {
-        let t1 = T1();
-        let t1s = new T1[1];
-        let t2 = T2();
-        let t2s = new T2[1];
-        let at2 = AT2();
-        let at2s = new AT2[1];
-        let bt2 = B.BT2();
-        let bt2s = new B.BT2[1];
+        let pt = PrivateType();
+        let pts = new PrivateType[1];
+        let it = InternalType();
+        let its = new InternalType[1];
+        let ita = InternalTypeA();
+        let itas = new InternalTypeA[1];
+        let itb = B.InternalTypeB();
+        let itbs = new B.InternalTypeB[1];
     }
 
     function TypeUnqualifiedUsePrivateInaccessible () : Unit {
-        let at1s = new AT1[1];
+        let ptas = new PrivateTypeA[1];
     }
 
     function TypeConstructorUnqualifiedUsePrivateInaccessible () : Unit {
-        let at1 = AT1();
+        let pta = PrivateTypeA();
     }
 
     function TypeQualifiedUsePrivateInaccessible () : Unit {
-        let bt1s = new B.BT1[1];
+        let ptbs = new B.PrivateTypeB[1];
     }
 
     function TypeConstructorQualifiedUsePrivateInaccessible () : Unit {
-        let bt1 = B.BT1();
+        let ptb = B.PrivateTypeB();
     }
 
     // Callable signatures
 
-    function PublicCallableLeaksPrivateTypeIn1 (x : T1) : Unit {}
+    function PublicCallableLeaksPrivateTypeIn1 (x : PrivateType) : Unit {}
     
-    function PublicCallableLeaksPrivateTypeIn2 (x : (Int, (T1, Bool))) : Unit {}
+    function PublicCallableLeaksPrivateTypeIn2 (x : (Int, (PrivateType, Bool))) : Unit {}
 
-    function PublicCallableLeaksPrivateTypeOut1 () : T1 {
-        return T1();
+    function PublicCallableLeaksPrivateTypeOut1 () : PrivateType {
+        return PrivateType();
     }
 
-    function PublicCallableLeaksPrivateTypeOut2 () : (Double, ((Result, T1), Bool)) {
-        return (1.0, ((Zero, T1()), true));
+    function PublicCallableLeaksPrivateTypeOut2 () : (Double, ((Result, PrivateType), Bool)) {
+        return (1.0, ((Zero, PrivateType()), true));
     }
 
-    internal function InternalCallableLeaksPrivateTypeIn (x : T1) : Unit {}
+    internal function InternalCallableLeaksPrivateTypeIn (x : PrivateType) : Unit {}
 
-    internal function InternalCallableLeaksPrivateTypeOut () : T1 {
-        return T1();
+    internal function InternalCallableLeaksPrivateTypeOut () : PrivateType {
+        return PrivateType();
     }
 
-    private function CallablePrivateTypeOK (x : T1) : T1 {
-        return T1();
+    private function CallablePrivateTypeOK (x : PrivateType) : PrivateType {
+        return PrivateType();
     }
 
-    function CallableLeaksInternalTypeIn (x : T2) : Unit {}
+    function CallableLeaksInternalTypeIn (x : InternalType) : Unit {}
 
-    function CallableLeaksInternalTypeOut () : T2 {
-        return T2();
+    function CallableLeaksInternalTypeOut () : InternalType {
+        return InternalType();
     }
 
-    internal function InternalCallableInternalTypeOK (x : T2) : T2 {
-        return T2();
+    internal function InternalCallableInternalTypeOK (x : InternalType) : InternalType {
+        return InternalType();
     }
 
-    private function PrivateCallableInternalTypeOK (x : T1) : T1 {
-        return T1();
+    private function PrivateCallableInternalTypeOK (x : PrivateType) : PrivateType {
+        return PrivateType();
     }
 
     // Underlying types
 
-    newtype PublicTypeLeaksPrivateType1 = T1;
+    newtype PublicTypeLeaksPrivateType1 = PrivateType;
 
-    newtype PublicTypeLeaksPrivateType2 = (Int, T1);
+    newtype PublicTypeLeaksPrivateType2 = (Int, PrivateType);
 
-    newtype PublicTypeLeaksPrivateType3 = (Int, (T1, Bool));
+    newtype PublicTypeLeaksPrivateType3 = (Int, (PrivateType, Bool));
 
-    internal newtype InternalTypeLeaksPrivateType = T1;
+    internal newtype InternalTypeLeaksPrivateType = PrivateType;
 
-    private newtype PrivateTypePrivateTypeOK = T1;
+    private newtype PrivateTypePrivateTypeOK = PrivateType;
 
-    newtype PublicTypeLeaksInternalType = T2;
+    newtype PublicTypeLeaksInternalType = InternalType;
 
-    internal newtype InternalTypeInternalTypeOK = T2;
+    internal newtype InternalTypeInternalTypeOK = InternalType;
 
-    private newtype PrivateTypeInternalTypeOK = T2;
+    private newtype PrivateTypeInternalTypeOK = InternalType;
 
     // References
 
     function CallableReferencePrivateInaccessible () : Unit {
-        CF1();
+        PrivateFunctionC();
     }
 
     function CallableReferenceInternalInaccessible () : Unit {
-        CF2();
+        InternalFunctionC();
     }
 
     function TypeReferencePrivateInaccessible () : Unit {
-        let ct1s = new CT1[1];
+        let ptcs = new PrivateTypeC[1];
     }
 
     function TypeConstructorReferencePrivateInaccessible () : Unit {
-        let ct1 = CT1();
+        let ptc = PrivateTypeC();
     }
 
     function TypeReferenceInternalInaccessible () : Unit {
-        let ct2s = new CT2[1];
+        let itcs = new InternalTypeC[1];
     }
 
     function TypeConstructorReferenceInternalInaccessible () : Unit {
-        let ct2 = CT2();
+        let itc = InternalTypeC();
     }
 }
 
 /// This namespace contains additional definitions of types and callables meant to be used by the
 /// Microsoft.Quantum.Testing.AccessModifiers namespace.
 namespace Microsoft.Quantum.Testing.AccessModifiers.A {
-    private function AF1 () : Unit {}
+    private function PrivateFunctionA () : Unit {}
 
-    internal function AF2 () : Unit {}
+    internal function InternalFunctionA () : Unit {}
 
-    private newtype AT1 = Unit;
+    private newtype PrivateTypeA = Unit;
 
-    internal newtype AT2 = Unit;
+    internal newtype InternalTypeA = Unit;
 }
 
 /// This namespace contains additional definitions of types and callables meant to be used by the
 /// Microsoft.Quantum.Testing.AccessModifiers namespace.
 namespace Microsoft.Quantum.Testing.AccessModifiers.B {
-    private function BF1 () : Unit {}
+    private function PrivateFunctionB () : Unit {}
 
-    internal function BF2 () : Unit {}
+    internal function InternalFunctionB () : Unit {}
 
-    private newtype BT1 = Unit;
+    private newtype PrivateTypeB = Unit;
 
-    internal newtype BT2 = Unit;
+    internal newtype InternalTypeB = Unit;
 }
