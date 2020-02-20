@@ -10,7 +10,7 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
+//open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
 /// Represents all the functors applied to an operation call
@@ -34,7 +34,7 @@ type private InliningInfo = {
     functors: Functors
     callable: QsCallable
     arg: TypedExpression
-    specArgs: QsArgumentTuple
+    specArgs: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
     body: QsScope
     returnType: ResolvedType
 } with 
@@ -92,7 +92,7 @@ type private InliningInfo = {
 
 /// The SyntaxTreeTransformation used to inline callables
 type CallableInlining private (unsafe : string) =
-    inherit OptimizingTransformation<unit>()
+    inherit TransformationBase()
 
     // The current callable we're in the process of transforming
     member val CurrentCallable: QsCallable option = None with get, set
@@ -105,7 +105,7 @@ type CallableInlining private (unsafe : string) =
 
 /// private helper class for CallableInlining
 and private CallableInliningNamespaces (parent : CallableInlining) = 
-    inherit OptimizingTransformationNamespaces<unit>(parent)
+    inherit NamespaceTransformationBase(parent)
 
     override __.Transform x =
         let x = base.Transform x

@@ -14,7 +14,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 /// The SyntaxTreeTransformation used to remove useless statements
 type StatementRemoval private (unsafe : string) =
-    inherit OptimizingTransformation<unit>()
+    inherit TransformationBase()
 
     new (removeFunctions : bool) as this = 
         new StatementRemoval("unsafe") then

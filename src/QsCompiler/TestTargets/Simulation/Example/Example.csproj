@@ -6,7 +6,7 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <IncludeQsharpCorePackages>false</IncludeQsharpCorePackages>
     <CsharpGeneration>false</CsharpGeneration> <!--we provide our own C# generation for the sake of also generating C# for all references-->
-    <NoWarn>0219</NoWarn> <!-- suppress C# warning for unused variables -->
+    <NoWarn>0168</NoWarn> <!-- suppress C# warning for unused variables -->
   </PropertyGroup>
 
   <PropertyGroup>

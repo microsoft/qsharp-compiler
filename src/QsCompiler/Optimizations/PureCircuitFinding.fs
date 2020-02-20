@@ -10,12 +10,12 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to find and optimize pure circuits
 type PureCircuitFinder private (unsafe : string) =
-    inherit OptimizingTransformation<unit>()
+    inherit TransformationBase()
 
     member val internal DistinctQubitFinder = None with get, set
 
@@ -26,7 +26,7 @@ type PureCircuitFinder private (unsafe : string) =
 
 /// private helper class for PureCircuitFinder
 and private PureCircuitFinderNamespaces (parent : PureCircuitFinder) = 
-    inherit NamespaceTransformation<unit>(parent)
+    inherit Core.NamespaceTransformation(parent)
 
     override __.onCallableImplementation c =
         let r = FindDistinctQubits()
@@ -36,7 +36,7 @@ and private PureCircuitFinderNamespaces (parent : PureCircuitFinder) =
 
 /// private helper class for PureCircuitFinder
 and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables : ImmutableDictionary<_,_>) = 
-    inherit StatementTransformation<unit>(parent)
+    inherit Core.StatementTransformation(parent)
 
     /// Returns whether an expression is an operation call
     let isOperation expr =

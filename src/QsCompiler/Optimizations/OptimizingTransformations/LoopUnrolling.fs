@@ -7,12 +7,12 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to unroll loops
 type LoopUnrolling private (unsafe : string) =
-    inherit OptimizingTransformation<unit>()
+    inherit TransformationBase()
 
     new (callables, maxSize) as this = 
         new LoopUnrolling("unsafe") then
@@ -21,7 +21,7 @@ type LoopUnrolling private (unsafe : string) =
 
 /// private helper class for LoopUnrolling
 and private LoopUnrollingNamespaces (parent : LoopUnrolling) = 
-    inherit OptimizingTransformationNamespaces<unit>(parent)
+    inherit NamespaceTransformationBase(parent)
 
     override __.Transform x =
         let x = base.Transform x
@@ -29,7 +29,7 @@ and private LoopUnrollingNamespaces (parent : LoopUnrolling) =
 
 /// private helper class for LoopUnrolling
 and private LoopUnrollingStatementKinds (parent : LoopUnrolling, callables, maxSize) = 
-    inherit StatementKindTransformation<unit>(parent)
+    inherit Core.StatementKindTransformation(parent)
 
     override this.onForStatement stm =
         let loopVar = fst stm.LoopItem |> this.onSymbolTuple

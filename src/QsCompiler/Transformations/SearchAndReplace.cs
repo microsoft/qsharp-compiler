@@ -193,8 +193,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         private class TypeTransformation :
             TypeTransformation<TransformationState>
         {
-            private readonly ExpressionTypeToQs CodeOutput = new ExpressionToQs()._Type;
-
             public TypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) :
                 base(parent)
             { }
@@ -209,8 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsTypeKind onTypeParameter(QsTypeParameter tp)
             {
                 var resT = ResolvedType.New(QsTypeKind.NewTypeParameter(tp));
-                this.CodeOutput.onTypeParameter(tp);
-                var id = Identifier.NewLocalVariable(NonNullable<string>.New(this.CodeOutput.Output ?? ""));
+                var id = Identifier.NewLocalVariable(NonNullable<string>.New(SyntaxTreeToQs.Default.ToCode(resT) ?? ""));
                 this.Transformation.InternalState.LogIdentifierLocation(id, tp.Range);
                 return resT.Resolution;
             }

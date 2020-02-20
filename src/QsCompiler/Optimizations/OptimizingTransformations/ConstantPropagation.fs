@@ -11,12 +11,12 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to evaluate constants
 type ConstantPropagation private (unsafe : string) =
-    inherit OptimizingTransformation<unit>()
+    inherit TransformationBase()
 
     /// The current dictionary that maps variables to the values we substitute for them
     member val Constants = new Dictionary<string, TypedExpression>()
@@ -29,7 +29,7 @@ type ConstantPropagation private (unsafe : string) =
 
 /// private helper class for ConstantPropagation
 and private ConstantPropagationNamespaces(parent : ConstantPropagation) = 
-    inherit OptimizingTransformationNamespaces<unit>(parent)
+    inherit NamespaceTransformationBase(parent)
 
     override __.onProvidedImplementation (argTuple, body) =
         parent.Constants.Clear()
@@ -37,7 +37,7 @@ and private ConstantPropagationNamespaces(parent : ConstantPropagation) =
 
 /// private helper class for ConstantPropagation
 and private ConstantPropagationStatementKinds (parent : ConstantPropagation, callables) = 
-    inherit StatementKindTransformation<unit>(parent)
+    inherit Core.StatementKindTransformation(parent)
 
     /// Returns whether the given expression should be propagated as a constant.
     /// For a statement of the form "let x = [expr];", if shouldPropagate(expr) is true,

@@ -8,13 +8,13 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// A SyntaxTreeTransformation that finds identifiers in each implementation that represent distict qubit values.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 type internal FindDistinctQubits private (unsafe) =
-    inherit QsSyntaxTreeTransformation<unit>()
+    inherit Core.QsSyntaxTreeTransformation()
 
     member val DistinctNames : Set<NonNullable<string>> = Set.empty with get, set
 
@@ -25,7 +25,7 @@ type internal FindDistinctQubits private (unsafe) =
 
 /// private helper class for FindDistinctQubits
 and private DistinctQubitsNamespaces (parent : FindDistinctQubits) = 
-    inherit NamespaceTransformation<unit>(parent)
+    inherit Core.NamespaceTransformation(parent)
 
     override this.onProvidedImplementation (argTuple, body) =
         argTuple |> toSymbolTuple |> flatten |> Seq.iter (function
@@ -35,7 +35,7 @@ and private DistinctQubitsNamespaces (parent : FindDistinctQubits) =
 
 /// private helper class for FindDistinctQubits
 and private DistinctQubitsStatementKinds (parent : FindDistinctQubits) = 
-    inherit StatementKindTransformation<unit>(parent)
+    inherit Core.StatementKindTransformation(parent)
 
     override this.onQubitScope stm =
         stm.Binding.Lhs |> flatten |> Seq.iter (function
@@ -47,7 +47,7 @@ and private DistinctQubitsStatementKinds (parent : FindDistinctQubits) =
 /// A transformation that tracks what variables the transformed code could mutate.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 type internal MutationChecker private (unsafe) =
-    inherit QsSyntaxTreeTransformation<unit>()
+    inherit Core.QsSyntaxTreeTransformation()
 
     member val DeclaredVariables : Set<NonNullable<string>> = Set.empty with get, set
     member val MutatedVariables : Set<NonNullable<string>> = Set.empty with get, set
@@ -61,7 +61,7 @@ type internal MutationChecker private (unsafe) =
 
 /// private helper class for MutationChecker
 and private MutationCheckerStatementKinds(parent : MutationChecker) = 
-    inherit StatementKindTransformation<unit>(parent)
+    inherit Core.StatementKindTransformation(parent)
 
     override this.onVariableDeclaration stm =
         flatten stm.Lhs |> Seq.iter (function
@@ -82,7 +82,7 @@ and private MutationCheckerStatementKinds(parent : MutationChecker) =
 /// A transformation that counts how many times each local variable is referenced.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 type internal ReferenceCounter private (unsafe) =
-    inherit QsSyntaxTreeTransformation<unit>()
+    inherit Core.QsSyntaxTreeTransformation()
 
     member val internal UsedVariables = Map.empty with get, set
 
@@ -95,7 +95,7 @@ type internal ReferenceCounter private (unsafe) =
 
 /// private helper class for ReferenceCounter
 and private ReferenceCounterExpressionKinds(parent : ReferenceCounter) = 
-    inherit ExpressionKindTransformation<unit>(parent)
+    inherit Core.ExpressionKindTransformation(parent)
 
     override this.onIdentifier (sym, tArgs) =
         match sym with
@@ -105,8 +105,8 @@ and private ReferenceCounterExpressionKinds(parent : ReferenceCounter) =
 
 
 /// private helper class for ReplaceTypeParams
-type private ReplaceTypeParamsTypes(parent : QsSyntaxTreeTransformation<_>) = 
-    inherit TypeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(parent)
+type private ReplaceTypeParamsTypes(parent : Core.QsSyntaxTreeTransformation<_>) = 
+    inherit Core.TypeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(parent)
 
     override this.onTypeParameter tp =
         let key = tp.Origin, tp.TypeName
@@ -118,7 +118,7 @@ type private ReplaceTypeParamsTypes(parent : QsSyntaxTreeTransformation<_>) =
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 /// Does *not* update the type paremeter resolution dictionaries. 
 type internal ReplaceTypeParams private (typeParams: ImmutableDictionary<_, ResolvedType>, unsafe) =
-    inherit QsSyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(typeParams)
+    inherit Core.QsSyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(typeParams)
 
     internal new (typeParams: ImmutableDictionary<_, ResolvedType>) as this = 
         new ReplaceTypeParams(typeParams, "unsafe") then
@@ -127,7 +127,7 @@ type internal ReplaceTypeParams private (typeParams: ImmutableDictionary<_, Reso
 
 /// private helper class for SideEffectChecker
 type private SideEffectCheckerExpressionKinds(parent : SideEffectChecker) = 
-    inherit ExpressionKindTransformation<unit>(parent)
+    inherit Core.ExpressionKindTransformation(parent)
 
     override this.onFunctionCall (method, arg) =
         parent.HasOutput <- true
@@ -140,7 +140,7 @@ type private SideEffectCheckerExpressionKinds(parent : SideEffectChecker) =
 
 /// private helper class for SideEffectChecker
 and private SideEffectCheckerStatementKinds(parent : SideEffectChecker) = 
-    inherit StatementKindTransformation<unit>(parent)
+    inherit Core.StatementKindTransformation(parent)
 
     override this.onValueUpdate stm =
         let mutatesState = match stm.Lhs with LocalVarTuple x when isAllDiscarded x -> false | _ -> true
@@ -157,7 +157,7 @@ and private SideEffectCheckerStatementKinds(parent : SideEffectChecker) =
 
 /// A ScopeTransformation that tracks what side effects the transformed code could cause
 and internal SideEffectChecker private (unsafe) =
-    inherit QsSyntaxTreeTransformation<unit>()
+    inherit Core.QsSyntaxTreeTransformation()
 
     /// Whether the transformed code might have any quantum side effects (such as calling operations)
     member val HasQuantum = false with get, set
@@ -175,8 +175,8 @@ and internal SideEffectChecker private (unsafe) =
 
 
 /// A ScopeTransformation that replaces one statement with zero or more statements
-type [<AbstractClass>] internal StatementCollectorTransformation(parent : QsSyntaxTreeTransformation<_>) =
-    inherit StatementTransformation<unit>(parent)
+type [<AbstractClass>] internal StatementCollectorTransformation(parent : Core.QsSyntaxTreeTransformation) =
+    inherit Core.StatementTransformation(parent)
 
     abstract member CollectStatements: QsStatementKind -> QsStatementKind seq
 
@@ -193,7 +193,7 @@ type [<AbstractClass>] internal StatementCollectorTransformation(parent : QsSynt
 
 /// A SyntaxTreeTransformation that removes all known symbols from anywhere in the AST
 type internal StripAllKnownSymbols(unsafe) =
-    inherit QsSyntaxTreeTransformation<unit>()
+    inherit Core.QsSyntaxTreeTransformation()
 
     internal new () as this = 
         new StripAllKnownSymbols("unsafe") then
@@ -201,7 +201,7 @@ type internal StripAllKnownSymbols(unsafe) =
 
 /// private helper class for StripAllKnownSymbols
 and private StripAllKnownSymbolsStatements(parent : StripAllKnownSymbols) = 
-    inherit StatementTransformation<unit>(parent)
+    inherit Core.StatementTransformation(parent)
 
     override this.Transform scope =
         QsScope.New (scope.Statements |> Seq.map this.onStatement, LocalDeclarations.Empty)
