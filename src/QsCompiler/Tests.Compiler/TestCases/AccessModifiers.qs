@@ -123,27 +123,27 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
 
     function CallableReferencePrivateInaccessible () : Unit {
         CF1();
-	}
+    }
 
     function CallableReferenceInternalInaccessible () : Unit {
         CF2();
-	}
+    }
 
     function TypeReferencePrivateInaccessible () : Unit {
         let ct1s = new CT1[1];
-	}
+    }
 
     function TypeConstructorReferencePrivateInaccessible () : Unit {
         let ct1 = CT1();
-	}
+    }
 
     function TypeReferenceInternalInaccessible () : Unit {
         let ct2s = new CT2[1];
-	}
+    }
 
     function TypeConstructorReferenceInternalInaccessible () : Unit {
         let ct2 = CT2();
-	}
+    }
 }
 
 /// This namespace contains additional definitions of types and callables meant to be used by the
