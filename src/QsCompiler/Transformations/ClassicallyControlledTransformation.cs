@@ -32,44 +32,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             return ConvertConditions.Apply(compilation);
         }
 
-        private static (bool, QsResult, TypedExpression) IsConditionedOnResultLiteralExpression(TypedExpression expression)
-        {
-            if (expression.Expression is ExpressionKind.EQ eq)
-            {
-                if (eq.Item1.Expression is ExpressionKind.ResultLiteral exp1)
-                {
-                    return (true, exp1.Item, eq.Item2);
-                }
-                else if (eq.Item2.Expression is ExpressionKind.ResultLiteral exp2)
-                {
-                    return (true, exp2.Item, eq.Item1);
-                }
-            }
-
-            return (false, null, null);
-        }
-
-        private static (bool, QsResult, TypedExpression, QsScope, QsScope) IsConditionedOnResultLiteralStatement(QsStatement statement)
-        {
-            if (statement.Statement is QsStatementKind.QsConditionalStatement cond)
-            {
-                if (cond.Item.ConditionalBlocks.Length == 1 && (cond.Item.ConditionalBlocks[0].Item1.Expression is ExpressionKind.EQ expression))
-                {
-                    var scope = cond.Item.ConditionalBlocks[0].Item2.Body;
-                    var defaultScope = cond.Item.Default.ValueOr(null)?.Body;
-
-                    var (success, literal, expr) = IsConditionedOnResultLiteralExpression(cond.Item.ConditionalBlocks[0].Item1);
-
-                    if (success)
-                    {
-                        return (true, literal, expr, scope, defaultScope);
-                    }
-                }
-            }
-
-            return (false, null, null, null, null);
-        }
-
         private class ConvertConditions : QsSyntaxTreeTransformation<ConvertConditions.TransformationState>
         {
             public static QsCompilation Apply(QsCompilation compilation)
@@ -104,24 +66,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                private TypeArgsResolution GetCombinedType(TypeArgsResolution outer, TypeArgsResolution inner)
-                {
-                    var outerDict = outer.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
-                    return inner.Select(innerRes =>
-                    {
-                        if (innerRes.Item3.Resolution is ResolvedTypeKind.TypeParameter typeParam &&
-                            outerDict.TryGetValue((typeParam.Item.Origin, typeParam.Item.TypeName), out var outerRes))
-                        {
-                            outerDict.Remove((typeParam.Item.Origin, typeParam.Item.TypeName));
-                            return Tuple.Create(innerRes.Item1, innerRes.Item2, outerRes);
-                        }
-                        else
-                        {
-                            return innerRes;
-                        }
-                    }).Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
-                }
-
                 private (bool, TypedExpression, TypedExpression) IsValidScope(QsScope scope)
                 {
                     // if the scope has exactly one statement in it and that statement is a call like expression statement
@@ -138,12 +82,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                         var callTypeArguments = expr.Item.TypeArguments;
                         var idTypeArguments = call.Item1.TypeArguments;
-                        var combinedTypeArguments = GetCombinedType(callTypeArguments, idTypeArguments);
+                        var combinedTypeArguments = Utilities.GetCombinedType(callTypeArguments, idTypeArguments);
 
                         // This relies on anything having type parameters must be a global callable.
-                        var newExpr1 = call.Item1;
+                        var newCallIdentifier = call.Item1;
                         if (combinedTypeArguments.Any()
-                            && newExpr1.Expression is ExpressionKind.Identifier id
+                            && newCallIdentifier.Expression is ExpressionKind.Identifier id
                             && id.Item1 is Identifier.GlobalCallable global)
                         {
                             var globalCallable = Transformation.InternalState.Compilation.Namespaces
@@ -158,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                             QsCompilerError.Verify(callableTypeParameters.All(x => x != null), $"Invalid type parameter names.");
 
-                            newExpr1 = new TypedExpression(
+                            newCallIdentifier = new TypedExpression(
                                 ExpressionKind.NewIdentifier(
                                     id.Item1,
                                     QsNullable<ImmutableArray<ResolvedType>>.NewValue(
@@ -170,53 +114,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                                 call.Item1.Range);
                         }
 
-                        return (true, newExpr1, call.Item2);
+                        return (true, newCallIdentifier, call.Item2);
                     }
 
                     return (false, null, null);
                 }
 
-                private TypedExpression CreateApplyIfCall(TypedExpression id, TypedExpression args, TypeArgsResolution typeRes) =>
-                    new TypedExpression
-                    (
-                        ExpressionKind.NewCallLikeExpression(id, args),
-                        typeRes,
-                        ResolvedType.New(ResolvedTypeKind.UnitType),
-                        new InferredExpressionInformation(false, true),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                    );
+                #region Apply If
 
-                private QsStatement CreateApplyIfStatement(QsStatement statement, QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
-                {
-                    var controlCall = GetApplyIfExpression(result, conditionExpression, conditionScope, defaultScope);
-
-                    if (controlCall != null)
-                    {
-                        return new QsStatement(
-                            QsStatementKind.NewQsExpressionStatement(controlCall),
-                            statement.SymbolDeclarations,
-                            QsNullable<QsLocation>.Null,
-                            statement.Comments);
-                    }
-                    else
-                    {
-                        // ToDo: add diagnostic message here
-                        return statement; // If the blocks can't be converted, return the original
-                    }
-                }
-
-                private static ResolvedType GetApplyIfResolvedType(IEnumerable<OpProperty> props, ResolvedType argumentType)
-                {
-                    var characteristics = new CallableInformation(
-                        ResolvedCharacteristics.FromProperties(props),
-                        InferredCallableInformation.NoInformation);
-
-                    return ResolvedType.New(ResolvedTypeKind.NewOperation(
-                        Tuple.Create(argumentType, ResolvedType.New(ResolvedTypeKind.UnitType)),
-                        characteristics));
-                }
-
-                private TypedExpression GetApplyIfExpression(QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
+                private TypedExpression CreateApplyIfExpression(QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
                 {
                     var (isCondValid, condId, condArgs) = IsValidScope(conditionScope);
                     var (isDefaultValid, defaultId, defaultArgs) = IsValidScope(defaultScope);
@@ -314,7 +220,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         targetArgs
                             .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
                             .ToImmutableArray(),
-                        GetApplyIfResolvedType(props, controlArgs.ResolvedType));
+                        Utilities.GetOperatorResolvedType(props, controlArgs.ResolvedType));
 
                     // Creates identity resolutions for the call expression
                     var opTypeArgResolutions = targetArgs
@@ -332,8 +238,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         })
                         .ToImmutableArray();
 
-                    return CreateApplyIfCall(controlOpId, controlArgs, opTypeArgResolutions);
+                    return Utilities.CreateCallLike(controlOpId, controlArgs, opTypeArgResolutions);
                 }
+
+                private QsStatement CreateApplyIfStatement(QsStatement statement, QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
+                {
+                    var controlCall = CreateApplyIfExpression(result, conditionExpression, conditionScope, defaultScope);
+
+                    if (controlCall != null)
+                    {
+                        return new QsStatement(
+                            QsStatementKind.NewQsExpressionStatement(controlCall),
+                            statement.SymbolDeclarations,
+                            QsNullable<QsLocation>.Null,
+                            statement.Comments);
+                    }
+                    else
+                    {
+                        // ToDo: add diagnostic message here
+                        return statement; // If the blocks can't be converted, return the original
+                    }
+                }
+
+                #endregion
+
+                #region Condition Reshaping Logic
 
                 private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement cond)
                 {
@@ -442,6 +371,39 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     return statement;
                 }
 
+                #endregion
+
+                #region Condition Checking Logic
+
+                private (bool, TypedExpression, QsScope, QsScope) IsConditionWtihSingleBlock(QsStatement statement)
+                {
+                    if (statement.Statement is QsStatementKind.QsConditionalStatement cond && cond.Item.ConditionalBlocks.Length == 1)
+                    {
+                        return (true, cond.Item.ConditionalBlocks[0].Item1, cond.Item.ConditionalBlocks[0].Item2.Body, cond.Item.Default.ValueOr(null)?.Body);
+                    }
+
+                    return (false, null, null, null);
+                }
+
+                private (bool, QsResult, TypedExpression) IsConditionedOnResultLiteralExpression(TypedExpression expression)
+                {
+                    if (expression.Expression is ExpressionKind.EQ eq)
+                    {
+                        if (eq.Item1.Expression is ExpressionKind.ResultLiteral exp1)
+                        {
+                            return (true, exp1.Item, eq.Item2);
+                        }
+                        else if (eq.Item2.Expression is ExpressionKind.ResultLiteral exp2)
+                        {
+                            return (true, exp2.Item, eq.Item1);
+                        }
+                    }
+
+                    return (false, null, null);
+                }
+
+                #endregion
+
                 public override QsScope Transform(QsScope scope)
                 {
                     var parentSymbols = this.onLocalDeclarations(scope.KnownSymbols);
@@ -454,15 +416,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             var stm = ReshapeConditional(statement);
                             stm = this.onStatement(stm);
 
-                            var (isCondition, result, conditionExpression, conditionScope, defaultScope) = IsConditionedOnResultLiteralStatement(stm);
+                            var (isCondition, cond, conditionScope, defaultScope) = IsConditionWtihSingleBlock(stm);
 
                             if (isCondition)
                             {
-                                statements.Add(CreateApplyIfStatement(stm, result, conditionExpression, conditionScope, defaultScope));
-                            }
-                            else
-                            {
-                                statements.Add(stm);
+                                /*ToDo: this could be a separate function.*/
+                                var (isCompareLiteral, literal, nonLiteral) = IsConditionedOnResultLiteralExpression(cond);
+                                if (isCompareLiteral)
+                                {
+                                    statements.Add(CreateApplyIfStatement(stm, literal, nonLiteral, conditionScope, defaultScope));
+                                }
+                                else
+                                {
+                                    statements.Add(stm);
+                                }
+                                /**/
                             }
                         }
                         else
