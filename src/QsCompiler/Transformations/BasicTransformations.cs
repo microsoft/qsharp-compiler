@@ -23,11 +23,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
         private GetSourceFiles() :
-            base(new TransformationState())
-        { }
-
-        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
-            new NamespaceTransformation(this);
+            base(new TransformationState()) => 
+            this.Namespaces = new NamespaceTransformation(this);
 
 
         // static methods for convenience
@@ -98,11 +95,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
         public FilterBySourceFile(Func<NonNullable<string>, bool> predicate)
-            : base(new TransformationState(predicate))
-        { }
-
-        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
-            new NamespaceTransformation(this);
+            : base(new TransformationState(predicate)) => 
+            this.Namespaces = new NamespaceTransformation(this);
 
 
         // static methods for convenience
@@ -199,15 +193,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         public SelectByFoldingOverExpressions(Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool evaluateOnSubexpressions = true)
             : base(new TransformationState(condition, fold, seed, evaluateOnSubexpressions))
-        { }
-
-        public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
-            new FoldOverExpressions<TransformationState, bool>(this);
-
-        public override Core.StatementTransformation<TransformationState> NewStatementTransformation() =>
-            new StatementTransformation<SelectByFoldingOverExpressions>(
+        { 
+            this.Expressions = new FoldOverExpressions<TransformationState, bool>(this);
+            this.Statements = new StatementTransformation<SelectByFoldingOverExpressions>(
                 state => new SelectByFoldingOverExpressions(state.Condition, state.ConstructFold, state.Seed, state.Recur),
                 this);
+        }
 
 
         // helper classes

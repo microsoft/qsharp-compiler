@@ -4,6 +4,7 @@
 module internal Microsoft.Quantum.QsCompiler.Experimental.Evaluation
 
 open System
+open System.Collections.Generic
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler
@@ -18,7 +19,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 /// Represents the internal state of a function evaluation.
 /// The first element is a map that stores the current values of all the local variables.
 /// The second element is a counter that stores the remaining number of statements we evaluate.
-type private EvalState = Map<string, TypedExpression> * int
+type private EvalState = Dictionary<string, TypedExpression> * int
 
 /// Represents any interrupt to the normal control flow of a function evaluation.
 /// Includes return statements, errors, and (if they were added) break/continue statements.
@@ -37,7 +38,7 @@ type private Imp<'t> = Imperative<EvalState, 't, FunctionInterrupt>
 
 
 /// Evaluates functions by stepping through their code
-type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>) =
+type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCallable>) =
 
     /// Represents a computation that decreases the remaining statements counter by 1.
     /// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
@@ -48,9 +49,10 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
     }
 
     /// Represents a computation that sets the given variables to the given values
-    let setVars callables entry: Imp<Unit> = imperative {
+    let setVars callables entry : Imp<Unit> = imperative {
         let! vars, counter = getState
-        do! putState (defineVarTuple (isLiteral callables) vars entry, counter)
+        defineVarTuple (isLiteral callables) vars entry
+        do! putState (vars, counter)
     }
 
     /// Casts a BoolLiteral to the corresponding bool
@@ -60,15 +62,15 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
         | _ -> ArgumentException ("Not a BoolLiteral: " + x.Expression.ToString()) |> raise
 
     /// Evaluates and simplifies a single Q# expression
-    member internal __.evaluateExpression expr: Imp<TypedExpression> = imperative {
+    member internal this.EvaluateExpression expr : Imp<TypedExpression> = imperative {
         let! vars, counter = getState
-        let result = ExpressionEvaluator(callables, vars, counter / 2).Transform expr
+        let result = ExpressionEvaluator(callables, vars, counter / 2).Expressions.Transform expr
         if isLiteral callables result then return result
         else yield CouldNotEvaluate ("Not a literal: " + result.Expression.ToString())
     }
 
     /// Evaluates a single Q# statement
-    member private this.evaluateStatement (statement: QsStatement): Imp<Unit> = imperative {
+    member private this.EvaluateStatement (statement : QsStatement) = imperative {
         do! incrementState
 
         match statement.Statement with
@@ -77,34 +79,34 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
             // statements inside functions never have side effects, so we can skip evaluating them.
             ()
         | QsReturnStatement expr ->
-            let! value = this.evaluateExpression expr
+            let! value = this.EvaluateExpression expr
             yield Returned value
         | QsFailStatement expr ->
-            let! value = this.evaluateExpression expr
+            let! value = this.EvaluateExpression expr
             yield Failed value
         | QsVariableDeclaration s ->
-            let! value = this.evaluateExpression s.Rhs
+            let! value = this.EvaluateExpression s.Rhs
             do! setVars callables (s.Lhs, value)
         | QsValueUpdate s ->
             match s.Lhs with
             | LocalVarTuple vt ->
-                let! value = this.evaluateExpression s.Rhs
+                let! value = this.EvaluateExpression s.Rhs
                 do! setVars callables (vt, value)
             | _ -> yield CouldNotEvaluate ("Unknown LHS of value update statement: " + s.Lhs.Expression.ToString())
         | QsConditionalStatement s ->
             let mutable evalElseCase = true
             for cond, block in s.ConditionalBlocks do
-                let! value = this.evaluateExpression cond <&> castToBool
+                let! value = this.EvaluateExpression cond <&> castToBool
                 if value then
-                    do! this.evaluateScope block.Body
+                    do! this.EvaluateScope block.Body
                     evalElseCase <- false
                     do! Break
             if evalElseCase then
                 match s.Default with
-                | Value block -> do! this.evaluateScope block.Body
+                | Value block -> do! this.EvaluateScope block.Body
                 | _ -> ()
         | QsForStatement stmt ->
-            let! iterExpr = this.evaluateExpression stmt.IterationValues
+            let! iterExpr = this.EvaluateExpression stmt.IterationValues
             let! iterSeq = imperative {
                 match iterExpr.Expression with
                 | RangeLiteral _ when isLiteral callables iterExpr ->
@@ -116,16 +118,16 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
             }
             for loopValue in iterSeq do
                 do! setVars callables (fst stmt.LoopItem, loopValue)
-                do! this.evaluateScope stmt.Body
+                do! this.EvaluateScope stmt.Body
         | QsWhileStatement stmt ->
-            while this.evaluateExpression stmt.Condition <&> castToBool do
-                do! this.evaluateScope stmt.Body
+            while this.EvaluateExpression stmt.Condition <&> castToBool do
+                do! this.EvaluateScope stmt.Body
         | QsRepeatStatement stmt ->
             while true do
-                do! this.evaluateScope stmt.RepeatBlock.Body
-                let! value = this.evaluateExpression stmt.SuccessCondition <&> castToBool
+                do! this.EvaluateScope stmt.RepeatBlock.Body
+                let! value = this.EvaluateExpression stmt.SuccessCondition <&> castToBool
                 if value then do! Break
-                do! this.evaluateScope stmt.FixupBlock.Body
+                do! this.EvaluateScope stmt.FixupBlock.Body
         | QsQubitScope _ ->
             yield CouldNotEvaluate "Cannot allocate qubits in function"
         | QsConjugation _ ->
@@ -133,16 +135,16 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
     }
 
     /// Evaluates a list of Q# statements
-    member private this.evaluateScope (scope: QsScope): Imp<Unit> = imperative {
+    member private this.EvaluateScope (scope : QsScope) = imperative {
         for stmt in scope.Statements do
-            do! this.evaluateStatement stmt
+            do! this.EvaluateStatement stmt
     }
 
     /// Evaluates the given Q# function on the given argument.
     /// Returns Some ([expr]) if we successfully evaluate the function as [expr].
     /// Returns None if we were unable to evaluate the function.
     /// Throws an ArgumentException if the input is not a function, or if the function is invalid.
-    member internal this.evaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (types: QsNullable<ImmutableArray<ResolvedType>>) (stmtsLeft: int): TypedExpression option =
+    member internal this.EvaluateFunction (name : QsQualifiedName) (arg : TypedExpression) (stmtsLeft : int) =
         let callable = callables.[name]
         if callable.Kind = Operation then
             ArgumentException "Input is not a function" |> raise
@@ -151,37 +153,38 @@ type internal FunctionEvaluator(callables: ImmutableDictionary<QsQualifiedName, 
         let impl = (Seq.exactlyOne callable.Specializations).Implementation
         match impl with
         | Provided (specArgs, scope) ->
-            let vars = defineVarTuple (isLiteral callables) Map.empty (toSymbolTuple specArgs, arg)
-            match this.evaluateScope scope (vars, stmtsLeft) with
+            let vars = new Dictionary<_,_>()
+            defineVarTuple (isLiteral callables) vars (toSymbolTuple specArgs, arg)
+            match this.EvaluateScope scope (vars, stmtsLeft) with
             | Normal _ ->  None
             | Break _ -> None
             | Interrupt (Returned expr) -> Some expr
             | Interrupt (Failed _) -> None
             | Interrupt TooManyStatements -> None
-            | Interrupt (CouldNotEvaluate reason) -> None
+            | Interrupt (CouldNotEvaluate _) -> None
         | _ -> None
 
 
 /// The ExpressionTransformation used to evaluate constant expressions
-and internal ExpressionEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
-    inherit ExpressionTransformation()
+and internal ExpressionEvaluator private (unsafe) =
+    inherit QsSyntaxTreeTransformation() 
 
-    override this.Kind = upcast { new ExpressionKindEvaluator(callables, constants, stmtsLeft) with
-        override __.ExpressionTransformation x = this.Transform x
-        override __.TypeTransformation x = this.Type.Transform x }
-
+    internal new (callables : IDictionary<QsQualifiedName, QsCallable>, constants : IDictionary<string, TypedExpression>, stmtsLeft : int) as this = 
+        new ExpressionEvaluator("unsafe") then
+            this.ExpressionKinds <- new ExpressionKindEvaluator(this, callables, constants, stmtsLeft)
+   
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictionary<QsQualifiedName, QsCallable>, constants: Map<string, TypedExpression>, stmtsLeft: int) =
-    inherit ExpressionKindTransformation()
+and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedName, QsCallable>, constants: IDictionary<string, TypedExpression>, stmtsLeft: int) =
+    inherit ExpressionKindTransformation(parent)
 
-    member private this.simplify e1 = this.ExpressionTransformation e1
+    member private this.simplify e1 = this.Expressions.Transform e1
 
     member private this.simplify (e1, e2) =
-        (this.ExpressionTransformation e1, this.ExpressionTransformation e2)
+        (this.Expressions.Transform e1, this.Expressions.Transform e2)
 
     member private this.simplify (e1, e2, e3) =
-        (this.ExpressionTransformation e1, this.ExpressionTransformation e2, this.ExpressionTransformation e3)
+        (this.Expressions.Transform e1, this.Expressions.Transform e2, this.Expressions.Transform e3)
 
     member private this.arithBoolBinaryOp qop bigIntOp doubleOp intOp lhs rhs =
         let lhs, rhs = this.simplify (lhs, rhs)
@@ -207,17 +210,20 @@ and [<AbstractClass>] private ExpressionKindEvaluator(callables: ImmutableDictio
 
     override this.onIdentifier (sym, tArgs) =
         match sym with
-        | LocalVariable name -> Map.tryFind name.Value constants |> Option.map (fun x -> x.Expression) |? Identifier (sym, tArgs)
+        | LocalVariable name -> 
+            match constants.TryGetValue name.Value with 
+            | true, ex -> ex.Expression
+            | _ -> Identifier (sym, tArgs)
         | _ -> Identifier (sym, tArgs)
 
     override this.onFunctionCall (method, arg) =
         let method, arg = this.simplify (method, arg)
         maybe {
             match method.Expression with
-            | Identifier (GlobalCallable qualName, types) ->
+            | Identifier (GlobalCallable qualName, _) ->
                 do! check (stmtsLeft > 0 && isLiteral callables arg)
                 let fe = FunctionEvaluator (callables)
-                return! fe.evaluateFunction qualName arg types stmtsLeft |> Option.map (fun x -> x.Expression)
+                return! fe.EvaluateFunction qualName arg stmtsLeft |> Option.map (fun x -> x.Expression)
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.IsPartialApplication method.Expression)
                 return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))

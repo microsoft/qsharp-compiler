@@ -10,12 +10,33 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to find and optimize pure circuits
-type PureCircuitFinder(callables) =
-    inherit OptimizingTransformation()
+type PureCircuitFinder private (unsafe : string) =
+    inherit TransformationBase()
+
+    member val internal DistinctQubitFinder = None with get, set
+
+    new (callables) as this = 
+        new PureCircuitFinder("unsafe") then
+            this.Namespaces <- new PureCircuitFinderNamespaces(this)
+            this.Statements <- new PureCircuitFinderStatements(this, callables)
+
+/// private helper class for PureCircuitFinder
+and private PureCircuitFinderNamespaces (parent : PureCircuitFinder) = 
+    inherit Core.NamespaceTransformation(parent)
+
+    override __.onCallableImplementation c =
+        let r = FindDistinctQubits()
+        r.Namespaces.onCallableImplementation c |> ignore
+        parent.DistinctQubitFinder <- Some r
+        base.onCallableImplementation c
+
+/// private helper class for PureCircuitFinder
+and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables : ImmutableDictionary<_,_>) = 
+    inherit Core.StatementTransformation(parent)
 
     /// Returns whether an expression is an operation call
     let isOperation expr =
@@ -27,39 +48,32 @@ type PureCircuitFinder(callables) =
             | _ -> false
         | _ -> false
 
-    let mutable distinctQubitFinder = None
+    override this.Transform scope =
+        let mutable circuit = ImmutableArray.Empty
+        let mutable newStatements = ImmutableArray.Empty
 
-    override __.onCallableImplementation c =
-        let r = FindDistinctQubits()
-        r.onCallableImplementation c |> ignore
-        distinctQubitFinder <- Some r
-        base.onCallableImplementation c
+        let finishCircuit () =
+            if circuit.Length <> 0 then
+                let newCircuit = optimizeExprList callables parent.DistinctQubitFinder.Value.DistinctNames circuit
+                (*if newCircuit <> circuit then
+                    printfn "Removed %d gates" (circuit.Length - newCircuit.Length)
+                    printfn "Old: %O" (List.map (fun x -> printExpr x.Expression) circuit)
+                    printfn "New: %O" (List.map (fun x -> printExpr x.Expression) newCircuit)
+                    printfn ""*)
+                newStatements <- newStatements.AddRange (Seq.map (QsExpressionStatement >> wrapStmt) newCircuit)
+                circuit <- ImmutableArray.Empty
 
-    override __.Scope = { new ScopeTransformation() with
+        for stmt in scope.Statements do
+            match stmt.Statement with
+            | QsExpressionStatement expr when isOperation expr ->
+                circuit <- circuit.Add expr
+            | _ ->
+                finishCircuit()
+                newStatements <- newStatements.Add (this.onStatement stmt)
+        finishCircuit()
 
-        override this.Transform scope =
-            let mutable circuit = ImmutableArray.Empty
-            let mutable newStatements = ImmutableArray.Empty
+        QsScope.New (newStatements, scope.KnownSymbols)
 
-            let finishCircuit () =
-                if circuit.Length <> 0 then
-                    let newCircuit = optimizeExprList callables distinctQubitFinder.Value.distinctNames circuit
-                    (*if newCircuit <> circuit then
-                        printfn "Removed %d gates" (circuit.Length - newCircuit.Length)
-                        printfn "Old: %O" (List.map (fun x -> printExpr x.Expression) circuit)
-                        printfn "New: %O" (List.map (fun x -> printExpr x.Expression) newCircuit)
-                        printfn ""*)
-                    newStatements <- newStatements.AddRange (Seq.map (QsExpressionStatement >> wrapStmt) newCircuit)
-                    circuit <- ImmutableArray.Empty
 
-            for stmt in scope.Statements do
-                match stmt.Statement with
-                | QsExpressionStatement expr when isOperation expr ->
-                    circuit <- circuit.Add expr
-                | _ ->
-                    finishCircuit()
-                    newStatements <- newStatements.Add (this.onStatement stmt)
-            finishCircuit()
 
-            QsScope.New (newStatements, scope.KnownSymbols)
-    }
+

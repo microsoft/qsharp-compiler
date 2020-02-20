@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+open System
 open System.Collections.Immutable
 open System.Linq
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -13,15 +14,23 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 
 
-/// Convention: 
-/// All methods starting with "on" implement the transformation syntax tree element.
-/// All methods starting with "before" group a set of elements, and are called before applying the transformation
-/// even if the corresponding transformation routine (starting with "on") is overridden.
-type SyntaxTreeTransformation() =
-    let scopeTransformation = new ScopeTransformation()
+type NamespaceTransformationBase internal (unsafe) =
+    let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
 
-    abstract member Scope : ScopeTransformation
-    default this.Scope = scopeTransformation
+    member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
+
+    // TODO: this should be a protected member
+    abstract member Statements : StatementTransformationBase
+    default this.Statements = this.StatementTransformationHandle()
+
+    new (statementTransformation : unit -> StatementTransformationBase) as this = 
+        new NamespaceTransformationBase("unsafe") then 
+            this.StatementTransformationHandle <- statementTransformation
+
+    new () as this = 
+        new NamespaceTransformationBase("unsafe") then
+            let statementTransformation = new StatementTransformationBase()
+            this.StatementTransformationHandle <- fun _ -> statementTransformation
 
 
     abstract member beforeNamespaceElement : QsNamespaceElement -> QsNamespaceElement
@@ -54,12 +63,12 @@ type SyntaxTreeTransformation() =
         match tItem with 
         | QsTuple items -> (items |> Seq.map this.onTypeItems).ToImmutableArray() |> QsTuple
         | QsTupleItem (Anonymous itemType) -> 
-            let t = this.Scope.Expression.Type.Transform itemType
+            let t = this.Statements.Expressions.Types.Transform itemType
             Anonymous t |> QsTupleItem
         | QsTupleItem (Named item) -> 
             let loc  = item.Position, item.Range
-            let t    = this.Scope.Expression.Type.Transform item.Type
-            let info = this.Scope.Expression.onExpressionInformation item.InferredInformation
+            let t    = this.Statements.Expressions.Types.Transform item.Type
+            let info = this.Statements.Expressions.onExpressionInformation item.InferredInformation
             LocalVariableDeclaration<_>.New info.IsMutable (loc, item.VariableName, t, info.HasLocalQuantumDependency) |> Named |> QsTupleItem
             
     abstract member onArgumentTuple : QsArgumentTuple -> QsArgumentTuple
@@ -68,16 +77,16 @@ type SyntaxTreeTransformation() =
         | QsTuple items -> (items |> Seq.map this.onArgumentTuple).ToImmutableArray() |> QsTuple
         | QsTupleItem item -> 
             let loc  = item.Position, item.Range
-            let t    = this.Scope.Expression.Type.Transform item.Type
-            let info = this.Scope.Expression.onExpressionInformation item.InferredInformation
+            let t    = this.Statements.Expressions.Types.Transform item.Type
+            let info = this.Statements.Expressions.onExpressionInformation item.InferredInformation
             LocalVariableDeclaration<_>.New info.IsMutable (loc, item.VariableName, t, info.HasLocalQuantumDependency) |> QsTupleItem
 
     abstract member onSignature : ResolvedSignature -> ResolvedSignature
     default this.onSignature (s : ResolvedSignature) = 
         let typeParams = s.TypeParameters 
-        let argType = this.Scope.Expression.Type.Transform s.ArgumentType
-        let returnType = this.Scope.Expression.Type.Transform s.ReturnType
-        let info = this.Scope.Expression.Type.onCallableInformation s.Information
+        let argType = this.Statements.Expressions.Types.Transform s.ArgumentType
+        let returnType = this.Statements.Expressions.Types.Transform s.ReturnType
+        let info = this.Statements.Expressions.Types.onCallableInformation s.Information
         ResolvedSignature.New ((argType, returnType), info, typeParams)
     
 
@@ -90,7 +99,7 @@ type SyntaxTreeTransformation() =
     abstract member onProvidedImplementation : QsArgumentTuple * QsScope -> QsArgumentTuple * QsScope
     default this.onProvidedImplementation (argTuple, body) = 
         let argTuple = this.onArgumentTuple argTuple
-        let body = this.Scope.Transform body
+        let body = this.Statements.Transform body
         argTuple, body
 
     abstract member onSelfInverseDirective : unit -> unit
@@ -125,7 +134,7 @@ type SyntaxTreeTransformation() =
         let source = this.onSourceFile spec.SourceFile
         let loc = this.onLocation spec.Location
         let attributes = spec.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> (args |> Seq.map this.Scope.Expression.Type.Transform).ToImmutableArray())
+        let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> (args |> Seq.map this.Statements.Expressions.Types.Transform).ToImmutableArray())
         let signature = this.onSignature spec.Signature
         let impl = this.dispatchSpecializationImplementation spec.Implementation 
         let doc = this.onDocumentation spec.Documentation
@@ -158,7 +167,7 @@ type SyntaxTreeTransformation() =
         let source = this.onSourceFile t.SourceFile 
         let loc = this.onLocation t.Location
         let attributes = t.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let underlyingType = this.Scope.Expression.Type.Transform t.Type
+        let underlyingType = this.Statements.Expressions.Types.Transform t.Type
         let typeItems = this.onTypeItems t.TypeItems
         let doc = this.onDocumentation t.Documentation
         let comments = t.Comments

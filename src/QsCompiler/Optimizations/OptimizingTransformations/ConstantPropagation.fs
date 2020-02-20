@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+open System.Collections.Generic
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Experimental.Evaluation
@@ -10,15 +11,33 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to evaluate constants
-type ConstantPropagation(callables) =
-    inherit OptimizingTransformation()
+type ConstantPropagation private (unsafe : string) =
+    inherit TransformationBase()
 
     /// The current dictionary that maps variables to the values we substitute for them
-    let mutable constants = Map.empty
+    member val Constants = new Dictionary<string, TypedExpression>()
+
+    new (callables) as this = 
+        new ConstantPropagation("unsafe") then
+            this.Namespaces <- new ConstantPropagationNamespaces(this)
+            this.StatementKinds <- new ConstantPropagationStatementKinds(this, callables)
+            this.Expressions <- (new ExpressionEvaluator(callables, this.Constants, 1000)).Expressions 
+
+/// private helper class for ConstantPropagation
+and private ConstantPropagationNamespaces(parent : ConstantPropagation) = 
+    inherit NamespaceTransformationBase(parent)
+
+    override __.onProvidedImplementation (argTuple, body) =
+        parent.Constants.Clear()
+        base.onProvidedImplementation (argTuple, body)
+
+/// private helper class for ConstantPropagation
+and private ConstantPropagationStatementKinds (parent : ConstantPropagation, callables) = 
+    inherit Core.StatementKindTransformation(parent)
 
     /// Returns whether the given expression should be propagated as a constant.
     /// For a statement of the form "let x = [expr];", if shouldPropagate(expr) is true,
@@ -36,70 +55,51 @@ type ConstantPropagation(callables) =
             && Seq.forall id sub)
         expr.Fold folder
 
+    override so.onVariableDeclaration stm =
+        let lhs = so.onSymbolTuple stm.Lhs
+        let rhs = so.Expressions.Transform stm.Rhs
+        if stm.Kind = ImmutableBinding then
+            defineVarTuple (shouldPropagate callables) parent.Constants (lhs, rhs)
+        QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
 
-    override __.onProvidedImplementation (argTuple, body) =
-        constants <- Map.empty
-        base.onProvidedImplementation (argTuple, body)
+    override this.onConditionalStatement stm =
+        let cbList, cbListEnd =
+            stm.ConditionalBlocks |> Seq.fold (fun s (cond, block) ->
+                let newCond = this.Expressions.Transform cond
+                match newCond.Expression with
+                | BoolLiteral true -> s @ [Null, block]
+                | BoolLiteral false -> s
+                | _ -> s @ [Value cond, block]
+            ) [] |> List.ofSeq |> takeWhilePlus1 (fun (c, _) -> c <> Null)
+        let newDefault = cbListEnd |> Option.map (snd >> Value) |? stm.Default
 
-    /// The ScopeTransformation used to evaluate constants
-    override __.Scope = { new ScopeTransformation() with
+        let cbList = cbList |> List.map (fun (c, b) -> this.onPositionedBlock (c, b))
+        let newDefault = match newDefault with Value x -> this.onPositionedBlock (Null, x) |> snd |> Value | Null -> Null
 
-        /// The ExpressionTransformation used to evaluate constant expressions
-        override __.Expression = upcast ExpressionEvaluator(callables, constants, 1000)
+        match cbList, newDefault with
+        | [], Value x ->
+            x.Body |> newScopeStatement
+        | [], Null ->
+            QsScope.New ([], LocalDeclarations.New []) |> newScopeStatement
+        | _ ->
+            let invalidCondition () = failwith "missing condition"
+            let cases = cbList |> Seq.map (fun (c, b) -> (c.ValueOrApply invalidCondition, b))
+            QsConditionalStatement.New (cases, newDefault) |> QsConditionalStatement
 
-        /// The StatementKindTransformation used to evaluate constants
-        override scope.StatementKind = { new StatementKindTransformation() with
-            override __.ExpressionTransformation x = scope.Expression.Transform x
-            override __.LocationTransformation x = x
-            override __.ScopeTransformation x = scope.Transform x
-            override __.TypeTransformation x = x
+    override this.onQubitScope (stm : QsQubitScope) =
+        let kind = stm.Kind
+        let lhs = this.onSymbolTuple stm.Binding.Lhs
+        let rhs = this.onQubitInitializer stm.Binding.Rhs
 
-            override so.onVariableDeclaration stm =
-                let lhs = so.onSymbolTuple stm.Lhs
-                let rhs = so.ExpressionTransformation stm.Rhs
-                if stm.Kind = ImmutableBinding then
-                    constants <- defineVarTuple (shouldPropagate callables) constants (lhs, rhs)
-                QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
+        jointFlatten (lhs, rhs) |> Seq.iter (fun (l, r) ->
+            match l, r.Resolution with
+            | VariableName name, QubitRegisterAllocation {Expression = IntLiteral num} ->
+                let arrayIden = Identifier (LocalVariable name, Null) |> wrapExpr (ArrayType (ResolvedType.New Qubit))
+                let elemI = fun i -> ArrayItem (arrayIden, IntLiteral (int64 i) |> wrapExpr Int)
+                let expr = Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray |> wrapExpr (ArrayType (ResolvedType.New Qubit))
+                defineVar (fun _ -> true) parent.Constants (name.Value, expr)
+            | _ -> ())
 
-            override this.onConditionalStatement stm =
-                let cbList, cbListEnd =
-                    stm.ConditionalBlocks |> Seq.fold (fun s (cond, block) ->
-                        let newCond = this.ExpressionTransformation cond
-                        match newCond.Expression with
-                        | BoolLiteral true -> s @ [Null, block]
-                        | BoolLiteral false -> s
-                        | _ -> s @ [Value cond, block]
-                    ) [] |> List.ofSeq |> takeWhilePlus1 (fun (c, _) -> c <> Null)
-                let newDefault = cbListEnd |> Option.map (snd >> Value) |? stm.Default
+        let body = this.Statements.Transform stm.Body
+        QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
 
-                let cbList = cbList |> List.map (fun (c, b) -> this.onPositionedBlock (c, b))
-                let newDefault = match newDefault with Value x -> this.onPositionedBlock (Null, x) |> snd |> Value | Null -> Null
-
-                match cbList, newDefault with
-                | [], Value x ->
-                    x.Body |> newScopeStatement
-                | [], Null ->
-                    QsScope.New ([], LocalDeclarations.New []) |> newScopeStatement
-                | _ ->
-                    let invalidCondition () = failwith "missing condition"
-                    let cases = cbList |> Seq.map (fun (c, b) -> (c.ValueOrApply invalidCondition, b))
-                    QsConditionalStatement.New (cases, newDefault) |> QsConditionalStatement
-
-            override this.onQubitScope (stm : QsQubitScope) =
-                let kind = stm.Kind
-                let lhs = this.onSymbolTuple stm.Binding.Lhs
-                let rhs = this.onQubitInitializer stm.Binding.Rhs
-
-                jointFlatten (lhs, rhs) |> Seq.iter (fun (l, r) ->
-                    match l, r.Resolution with
-                    | VariableName name, QubitRegisterAllocation {Expression = IntLiteral num} ->
-                        let arrayIden = Identifier (LocalVariable name, Null) |> wrapExpr (ArrayType (ResolvedType.New Qubit))
-                        let elemI = fun i -> ArrayItem (arrayIden, IntLiteral (int64 i) |> wrapExpr Int)
-                        let expr = Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit) |> ImmutableArray.CreateRange |> ValueArray |> wrapExpr (ArrayType (ResolvedType.New Qubit))
-                        constants <- defineVar (fun _ -> true) constants (name.Value, expr)
-                    | _ -> ())
-
-                let body = this.ScopeTransformation stm.Body
-                QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
-        }
-    }
