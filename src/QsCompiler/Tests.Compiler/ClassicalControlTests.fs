@@ -5,15 +5,15 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
 open System.IO
+open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation
-open Xunit
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
-open System.Text.RegularExpressions
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
+open Xunit
 
 
 type ClassicalControlTests () =
