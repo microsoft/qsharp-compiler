@@ -22,7 +22,7 @@ type PreEvaluation =
     /// function that takes as input such a dictionary of callables.
     ///
     /// Disclaimer: This is an experimental feature.
-    static member WithScript (script : Func<ImmutableDictionary<QsQualifiedName, QsCallable>, OptimizingTransformation<unit> seq>) (arg : QsCompilation) =
+    static member WithScript (script : Func<ImmutableDictionary<QsQualifiedName, QsCallable>, TransformationBase seq>) (arg : QsCompilation) =
 
         // TODO: this should actually only evaluate everything for each entry point
         let rec evaluate (tree : _ list) = 
@@ -40,7 +40,7 @@ type PreEvaluation =
         QsCompilation.New (namespaces.ToImmutableArray(), arg.EntryPoints)
 
     /// Default sequence of optimizing transformations
-    static member DefaultScript removeFunctions maxSize : Func<_, OptimizingTransformation<unit> seq> = 
+    static member DefaultScript removeFunctions maxSize : Func<_, TransformationBase seq> = 
         new Func<_,_> (fun callables -> seq {
             VariableRemoval()
             StatementRemoval(removeFunctions)

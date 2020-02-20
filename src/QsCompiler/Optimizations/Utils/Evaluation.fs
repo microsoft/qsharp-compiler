@@ -167,7 +167,7 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
 
 /// The ExpressionTransformation used to evaluate constant expressions
 and internal ExpressionEvaluator private (unsafe) =
-    inherit QsSyntaxTreeTransformation<unit>() 
+    inherit QsSyntaxTreeTransformation() 
 
     internal new (callables : IDictionary<QsQualifiedName, QsCallable>, constants : IDictionary<string, TypedExpression>, stmtsLeft : int) as this = 
         new ExpressionEvaluator("unsafe") then
@@ -176,7 +176,7 @@ and internal ExpressionEvaluator private (unsafe) =
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
 and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedName, QsCallable>, constants: IDictionary<string, TypedExpression>, stmtsLeft: int) =
-    inherit ExpressionKindTransformation<unit>(parent)
+    inherit ExpressionKindTransformation(parent)
 
     member private this.simplify e1 = this.Expressions.Transform e1
 

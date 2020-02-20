@@ -11,8 +11,8 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 /// It provides a function called `checkChanged` which returns true, if
 /// the transformation leads to a change in any of the namespaces' syntax
 /// tree, except for changes in the namespaces' documentation string.
-type OptimizingTransformation<'T> private (state : 'T, unsafe) =
-    inherit QsSyntaxTreeTransformation<'T>(state)
+type TransformationBase private (unsafe) =
+    inherit QsSyntaxTreeTransformation()
 
     member val Changed = false with get, set
 
@@ -22,13 +22,13 @@ type OptimizingTransformation<'T> private (state : 'T, unsafe) =
         this.Changed <- false
         res
 
-    new (state : 'T) as this = 
-        new OptimizingTransformation<_>(state, "unsafe") then
-            this.Namespaces <- new OptimizingTransformationNamespaces<_>(this)
+    new () as this = 
+        new TransformationBase("unsafe") then
+            this.Namespaces <- new NamespaceTransformationBase(this)
 
 /// private helper class for OptimizingTransformation
-and private OptimizingTransformationNamespaces<'T> (parent : OptimizingTransformation<'T>) = 
-    inherit NamespaceTransformation<'T>(parent)
+and private NamespaceTransformationBase (parent : TransformationBase) = 
+    inherit NamespaceTransformation(parent)
 
     /// Checks whether the syntax tree changed at all
     override this.Transform x =

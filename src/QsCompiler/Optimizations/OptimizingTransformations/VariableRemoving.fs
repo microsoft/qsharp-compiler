@@ -7,12 +7,12 @@ open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to remove useless statements
 type VariableRemoval(unsafe) =
-    inherit OptimizingTransformation<unit>()
+    inherit TransformationBase()
 
     member val internal ReferenceCounter = None with get, set
 
@@ -23,7 +23,7 @@ type VariableRemoval(unsafe) =
 
 /// private helper class for VariableRemoval
 and private VariableRemovalNamespaces (parent : VariableRemoval) = 
-    inherit OptimizingTransformationNamespaces<unit>(parent)
+    inherit NamespaceTransformationBase(parent)
 
     override __.onProvidedImplementation (argTuple, body) =
         let r = ReferenceCounter()
@@ -33,7 +33,7 @@ and private VariableRemovalNamespaces (parent : VariableRemoval) =
 
 /// private helper class for VariableRemoval
 and private VariableRemovalStatementKinds (parent : VariableRemoval) = 
-    inherit StatementKindTransformation<unit>(parent)
+    inherit Core.StatementKindTransformation(parent)
 
     override stmtKind.onSymbolTuple syms =
         match syms with

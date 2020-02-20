@@ -6,12 +6,12 @@ namespace Microsoft.Quantum.QsCompiler.Experimental
 open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to reorder statements depending on how they impact the program state. 
 type StatementGrouping private (unsafe : string) =
-    inherit OptimizingTransformation<unit>()
+    inherit TransformationBase()
 
     new () as this = 
         new StatementGrouping("unsafe") then
@@ -19,7 +19,7 @@ type StatementGrouping private (unsafe : string) =
 
 /// private helper class for StatementGrouping
 and private StatementGroupingStatements (parent : StatementGrouping) = 
-    inherit StatementTransformation<unit>(parent)
+    inherit Core.StatementTransformation(parent)
 
     /// Returns whether a statements is purely classical.
     /// The statement must have no classical or quantum side effects other than defining a variable.
