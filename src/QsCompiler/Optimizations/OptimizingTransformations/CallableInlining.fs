@@ -10,7 +10,6 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-//open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
 /// Represents all the functors applied to an operation call
@@ -212,5 +211,4 @@ and private CallableInliningStatements (parent : CallableInlining, callables : I
                 return Seq.append stmts [QsValueUpdate {s with Rhs = returnExpr}]
             | _ -> return! None
         } |? Seq.singleton stmt
-
 
