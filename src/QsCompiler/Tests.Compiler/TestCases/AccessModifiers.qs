@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
     open Microsoft.Quantum.Testing.AccessModifiers.B as B;
     open Microsoft.Quantum.Testing.AccessModifiers.C;
     
-    // Redefine inaccessible symbols in reference
+    // Redefine inaccessible references (see TestTargets\Libraries\Library1\AccessModifiers.qs)
 
     private newtype T1 = Unit;
 
@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
 
     internal function F2 () : Unit {}
 
-    // Callables with access modifiers
+    // Callables
 
     function CallableUseOK () : Unit {
         F1();
@@ -34,15 +34,7 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
         B.BF1();
     }
 
-    function CallableReferencePrivateInaccessible () : Unit {
-        CF1();
-	}
-
-    function CallableReferenceInternalInaccessible () : Unit {
-        CF2();
-	}
-
-    // Types with access modifiers
+    // Types
 
     function TypeUseOK () : Unit {
         let t1 = T1();
@@ -51,7 +43,7 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
         let t2s = new T2[1];
         let at2 = AT2();
         let at2s = new AT2[1];
-        let bt2 = BT2();
+        let bt2 = B.BT2();
         let bt2s = new B.BT2[1];
     }
 
@@ -70,22 +62,6 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
     function TypeConstructorQualifiedUsePrivateInaccessible () : Unit {
         let bt1 = B.BT1();
     }
-
-    function TypeReferencePrivateInaccessible () : Unit {
-        let ct1s = new CT1[1];
-	}
-
-    function TypeConstructorReferencePrivateInaccessible () : Unit {
-        let ct1 = CT1();
-	}
-
-    function TypeReferenceInternalInaccessible () : Unit {
-        let ct2s = new CT2[1];
-	}
-
-    function TypeConstructorReferenceInternalInaccessible () : Unit {
-        let ct2 = CT2();
-	}
 
     // Callable signatures
 
@@ -142,6 +118,32 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
     internal newtype InternalTypeInternalTypeOK = T2;
 
     private newtype PrivateTypeInternalTypeOK = T2;
+
+    // References
+
+    function CallableReferencePrivateInaccessible () : Unit {
+        CF1();
+	}
+
+    function CallableReferenceInternalInaccessible () : Unit {
+        CF2();
+	}
+
+    function TypeReferencePrivateInaccessible () : Unit {
+        let ct1s = new CT1[1];
+	}
+
+    function TypeConstructorReferencePrivateInaccessible () : Unit {
+        let ct1 = CT1();
+	}
+
+    function TypeReferenceInternalInaccessible () : Unit {
+        let ct2s = new CT2[1];
+	}
+
+    function TypeConstructorReferenceInternalInaccessible () : Unit {
+        let ct2 = CT2();
+	}
 }
 
 /// This namespace contains additional definitions of types and callables meant to be used by the

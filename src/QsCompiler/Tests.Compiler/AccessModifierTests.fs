@@ -24,34 +24,21 @@ type AccessModifierTests (output) =
         let name = name |> NonNullable<_>.New
         this.Verify (QsQualifiedName.New (ns, name), diagnostics)
 
-    [<Fact(Skip = "Needs support for re-using private/internal names in references")>]
-    member this.``Redefine inaccessible symbols in reference`` () =
-        this.Expect "T1" []
-        this.Expect "T2" []
-        this.Expect "F1" []
-        this.Expect "F2" []
-
-    [<Fact(Skip = "Needs support for re-using private/internal names in references")>]
-    member this.``Callables with access modifiers`` () =
+    [<Fact>]
+    member this.``Callables`` () =
         this.Expect "CallableUseOK" []
         this.Expect "CallableUnqualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
         this.Expect "CallableQualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallableInNamespace]
-        this.Expect "CallableReferencePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
-        this.Expect "CallableReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
 
-    [<Fact(Skip = "Needs support for re-using private/internal names in references")>]
-    member this.``Types with access modifiers`` () =
+    [<Fact>]
+    member this.``Types`` () =
         this.Expect "TypeUseOK" []
         this.Expect "TypeUnqualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleType]
         this.Expect "TypeConstructorUnqualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
         this.Expect "TypeQualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleTypeInNamespace]
         this.Expect "TypeConstructorQualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallableInNamespace]
-        this.Expect "TypeReferencePrivateInaccessible" [Error ErrorCode.InaccessibleType]
-        this.Expect "TypeConstructorReferencePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
-        this.Expect "TypeReferenceInternalInaccessible" [Error ErrorCode.InaccessibleType]
-        this.Expect "TypeConstructorReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
 
-    [<Fact(Skip = "Needs support for re-using private/internal names in references")>]
+    [<Fact>]
     member this.``Callable signatures`` () =
         this.Expect "PublicCallableLeaksPrivateTypeIn1" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
         this.Expect "PublicCallableLeaksPrivateTypeIn2" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
@@ -65,7 +52,7 @@ type AccessModifierTests (output) =
         this.Expect "InternalCallableInternalTypeOK" []
         this.Expect "PrivateCallableInternalTypeOK" []
 
-    [<Fact(Skip = "Needs support for re-using private/internal names in references")>]
+    [<Fact>]
     member this.``Underlying types`` () =
         this.Expect "PublicTypeLeaksPrivateType1" [Error ErrorCode.TypeLessAccessibleThanParentType]
         this.Expect "PublicTypeLeaksPrivateType2" [Error ErrorCode.TypeLessAccessibleThanParentType]
@@ -75,3 +62,12 @@ type AccessModifierTests (output) =
         this.Expect "PublicTypeLeaksInternalType" [Error ErrorCode.TypeLessAccessibleThanParentType]
         this.Expect "InternalTypeInternalTypeOK" []
         this.Expect "PrivateTypeInternalTypeOK" []
+
+    [<Fact>]
+    member this.``References`` () =
+        this.Expect "CallableReferencePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
+        this.Expect "CallableReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
+        this.Expect "TypeReferencePrivateInaccessible" [Error ErrorCode.InaccessibleType]
+        this.Expect "TypeConstructorReferencePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
+        this.Expect "TypeReferenceInternalInaccessible" [Error ErrorCode.InaccessibleType]
+        this.Expect "TypeConstructorReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]

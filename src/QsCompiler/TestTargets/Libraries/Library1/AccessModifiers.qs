@@ -1,12 +1,15 @@
-﻿/// This namespace contains additional definitions used by the test cases for access modifiers.
+﻿/// This file contains redefinitions of types and callables declared in Tests.Compiler\TestCases\AccessModifiers.qs. It
+/// is used as an assembly reference to test support for re-using names of inaccessible declarations in references.
 namespace Microsoft.Quantum.Testing.AccessModifiers {
-    private newtype T1 = Unit;
+    // TODO: Uncomment these definitions when re-using names of inaccessible declarations in references is supported.
 
-    internal newtype T2 = Unit;
+    // private newtype T1 = Unit;
 
-    private function F1 () : Unit {}
+    // internal newtype T2 = Unit;
 
-    internal function F2 () : Unit {}
+    // private function F1 () : Unit {}
+
+    // internal function F2 () : Unit {}
 }
 
 /// This namespace contains additional definitions of types and callables meant to be used by the
