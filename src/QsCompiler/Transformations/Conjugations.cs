@@ -42,14 +42,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
 
 
         public InlineConjugations(Action<Exception> onException = null)
-            : base(new TransformationState())
-        { }
-
-        public override StatementTransformation<TransformationState> NewStatementTransformation() =>
-            new StatementTransformation(this);
-
-        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
-            new NamespaceTransformation(this);
+            : base(new TransformationState(onException))
+        { 
+            this.Statements = new StatementTransformation(this);
+            this.Namespaces = new NamespaceTransformation(this);
+        }
 
 
         // helper classes

@@ -16,35 +16,38 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 // transformations used to strip range information for auto-generated syntax
 
-type private StripPositionInfoFromType () = 
-    inherit ExpressionTypeTransformation(true)
+type private StripPositionInfoFromType (parent : QsSyntaxTreeTransformation<_>) = 
+    inherit TypeTransformation<unit>(parent)
     override this.onRangeInformation _ = Null
 
-type private StripPositionInfoFromExpression () = 
-    inherit ExpressionTransformation()
-    let typeTransformation = new StripPositionInfoFromType() :> ExpressionTypeTransformation
+and private StripPositionInfoFromExpression (parent : QsSyntaxTreeTransformation<_>) = 
+    inherit ExpressionTransformation<unit>(parent)
     override this.onRangeInformation _ = Null
-    override this.Type = typeTransformation
 
-type private StripPositionInfoFromScope() = 
-    inherit ScopeTransformation()
-    let expressionTransformation = new StripPositionInfoFromExpression()
+and private StripPositionInfoFromStatement(parent : QsSyntaxTreeTransformation<_>) = 
+    inherit StatementTransformation<unit>(parent)
     override this.onLocation _ = Null
-    override this.Expression = expressionTransformation :> ExpressionTransformation
 
-type public StripPositionInfo() = 
-    inherit SyntaxTreeTransformation()
-    let scopeTransformation = new StripPositionInfoFromScope()
+and private StripPositionInfoFromNamespace(parent : QsSyntaxTreeTransformation<_>) = 
+    inherit NamespaceTransformation<unit>(parent)
+    override this.onLocation _ = Null
+
+and public StripPositionInfo private (unsafe) = 
+    inherit QsSyntaxTreeTransformation<unit>()
     static let defaultInstance = new StripPositionInfo()
-    
-    override this.Scope = scopeTransformation :> ScopeTransformation
-    override this.onLocation loc = Null 
+
+    new () as this =
+        StripPositionInfo("unsafe") then 
+            this.Types <- new StripPositionInfoFromType(this) 
+            this.Expressions <- new StripPositionInfoFromExpression(this)
+            this.Statements <- new StripPositionInfoFromStatement(this)
+            this.Namespaces <- new StripPositionInfoFromNamespace(this)
 
     static member public Default = defaultInstance
-    static member public Apply t = defaultInstance.Scope.Expression.Type.Transform t
-    static member public Apply e = defaultInstance.Scope.Expression.Transform e
-    static member public Apply s = defaultInstance.Scope.Transform s
-    static member public Apply a = defaultInstance.Transform a
+    static member public Apply t = defaultInstance.Types.Transform t
+    static member public Apply e = defaultInstance.Expressions.Transform e
+    static member public Apply s = defaultInstance.Statements.Transform s
+    static member public Apply a = defaultInstance.Namespaces.Transform a
 
 
 module SyntaxGenerator = 

@@ -147,28 +147,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
+        public IdentifierReferences(TransformationState state) : base(state)
+        { 
+            this.Types = new TypeTransformation(this);
+            this.Expressions = new TypedExpressionWalker<TransformationState>(this.InternalState.LogIdentifierLocation, this);
+            this.Statements = new StatementTransformation(this);
+            this.Namespaces = new NamespaceTransformation(this);
+        }
 
         public IdentifierReferences(NonNullable<string> idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) :
-            base(new TransformationState(id => id is Identifier.LocalVariable varName && varName.Item.Value == idName.Value, defaultOffset, limitToSourceFiles))
+            this(new TransformationState(id => id is Identifier.LocalVariable varName && varName.Item.Value == idName.Value, defaultOffset, limitToSourceFiles))
         { }
 
         public IdentifierReferences(QsQualifiedName idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) :
-            base(new TransformationState(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset, limitToSourceFiles))
+            this(new TransformationState(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset, limitToSourceFiles))
         {
             if (idName == null) throw new ArgumentNullException(nameof(idName));
         }
-
-        public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() =>
-            new ExpressionTypeTransformation(this);
-
-        public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
-            new TypedExpressionWalker<TransformationState>(this.InternalState.LogIdentifierLocation, this);
-
-        public override StatementTransformation<TransformationState> NewStatementTransformation() =>
-            new StatementTransformation(this);
-
-        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() =>
-            new NamespaceTransformation(this);
 
 
         // static methods for convenience
@@ -195,10 +190,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // helper classes
 
-        private class ExpressionTypeTransformation :
-            Core.ExpressionTypeTransformation<TransformationState>
+        private class TypeTransformation :
+            TypeTransformation<TransformationState>
         {
-            public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) :
+            public TypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) :
                 base(parent)
             { }
 
@@ -329,16 +324,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         public AccumulateIdentifiers() :
             base(new TransformationState())
-        { }
-
-        public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() =>
-            new TypedExpressionWalker<TransformationState>(this.InternalState.UsedLocal, this);
-
-        public override Core.StatementKindTransformation<TransformationState> NewStatementKindTransformation() =>
-            new StatementKindTransformation(this);
-
-        public override StatementTransformation<TransformationState> NewStatementTransformation() =>
-            new StatementTransformation(this);
+        {
+            this.Expressions = new TypedExpressionWalker<TransformationState>(this.InternalState.UsedLocal, this);
+            this.StatementKinds = new StatementKindTransformation(this);
+            this.Statements = new StatementTransformation(this);
+        }
 
 
         // helper classes
@@ -353,7 +343,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsStatement onStatement(QsStatement stm)
             {
                 this.Transformation.InternalState.StatementLocation = stm.Location.IsNull ? null : stm.Location.Item;
-                this.StatementKind.Transform(stm.Statement);
+                this.StatementKinds.Transform(stm.Statement);
                 return stm;
             }
         }
@@ -368,7 +358,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsStatementKind onValueUpdate(QsValueUpdate stm)
             {
                 this.Transformation.InternalState.UpdatedExpression(stm.Lhs);
-                this.ExpressionTransformation(stm.Rhs);
+                this.Expressions.Transform(stm.Rhs);
                 return QsStatementKind.NewQsValueUpdate(stm);
             }
         }
@@ -421,13 +411,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         public UniqueVariableNames() :
             base(new TransformationState())
-        { }
-
-        public override Core.ExpressionKindTransformation<TransformationState> NewExpressionKindTransformation() =>
-            new ExpressionKindTransformation(this);
-
-        public override Core.StatementKindTransformation<TransformationState> NewStatementKindTransformation() =>
-            new StatementKindTransformation(this);
+        {
+            this.ExpressionKinds = new ExpressionKindTransformation(this);
+            this.StatementKinds = new StatementKindTransformation(this);
+        }
 
 
         // helper classes

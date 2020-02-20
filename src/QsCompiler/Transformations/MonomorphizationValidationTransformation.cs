@@ -26,9 +26,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 
         public class TransformationState { }
 
-        public MonomorphizationValidationTransformation() : base(new TransformationState()) { }
+        public MonomorphizationValidationTransformation() : base(new TransformationState()) 
+        { 
+            this.Namespaces = new NamespaceTransformation(this);
+            this.Expressions = new ExpressionTransformation(this);
+            this.Types = new TypeTransformation(this);
+        }
 
-        public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
         private class NamespaceTransformation : NamespaceTransformation<TransformationState>
         {
             public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -44,7 +48,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             }
         }
 
-        public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() => new ExpressionTransformation(this);
         private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
         {
             public ExpressionTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -60,10 +63,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             }
         }
 
-        public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() => new ExpressionTypeTransformation(this);
-        private class ExpressionTypeTransformation : Core.ExpressionTypeTransformation<TransformationState>
+        private class TypeTransformation : TypeTransformation<TransformationState>
         {
-            public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+            public TypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
             public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
             {

@@ -180,9 +180,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
             /// </summary>
             /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            private ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables)) { }
+            private ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables)) 
+            { 
+                this.Namespaces = new NamespaceTransformation(this);
+            }
 
-            public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
                 public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -234,9 +236,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 }
             }
 
-            private ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams)) { }
+            private ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams)) 
+            { 
+                this.Namespaces = new NamespaceTransformation(this);
+                this.Types = new TypeTransformation(this);
+            }
 
-            public override NamespaceTransformation<TransformationState> NewNamespaceTransformation() => new NamespaceTransformation(this);
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
                 public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -254,10 +259,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 }
             }
 
-            public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() => new ExpressionTypeTransformation(this);
-            private class ExpressionTypeTransformation : Core.ExpressionTypeTransformation<TransformationState>
+            private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public TypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
                 public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
                 {
@@ -301,9 +305,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 }
             }
 
-            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier) : base(new TransformationState(getConcreteIdentifier)) { }
+            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier) : base(new TransformationState(getConcreteIdentifier)) 
+            { 
+                this.Expressions = new ExpressionTransformation(this);
+                this.ExpressionKinds = new ExpressionKindTransformation(this);
+                this.Types = new TypeTransformation(this);
+            }
 
-            public override Core.ExpressionTransformation<TransformationState> NewExpressionTransformation() => new ExpressionTransformation(this);
             private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
             {
                 public ExpressionTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -314,13 +322,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                     var typeParamResolutions = this.onTypeParamResolutions(ex.TypeParameterResolutions)
                         .Select(kv => new Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>(kv.Key.Item1, kv.Key.Item2, kv.Value))
                         .ToImmutableArray();
-                    var exType = this.Type.Transform(ex.ResolvedType);
+                    var exType = this.Types.Transform(ex.ResolvedType);
                     var inferredInfo = this.onExpressionInformation(ex.InferredInformation);
                     // Change the order so that Kind is transformed last.
                     // This matters because the onTypeParamResolutions method builds up type param mappings in
                     // the CurrentParamTypes dictionary that are then used, and removed from the
                     // dictionary, in the next global callable identifier found under the Kind transformations.
-                    var kind = this.Kind.Transform(ex.Expression);
+                    var kind = this.ExpressionKinds.Transform(ex.Expression);
                     return new TypedExpression(kind, typeParamResolutions, exType, inferredInfo, range);
                 }
 
@@ -336,7 +344,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 }
             }
 
-            public override Core.ExpressionKindTransformation<TransformationState> NewExpressionKindTransformation() => new ExpressionKindTransformation(this);
             private class ExpressionKindTransformation : Core.ExpressionKindTransformation<TransformationState>
             {
                 public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
@@ -368,10 +375,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 }
             }
 
-            public override Core.ExpressionTypeTransformation<TransformationState> NewExpressionTypeTransformation() => new ExpressionTypeTransformation(this);
-            private class ExpressionTypeTransformation : Core.ExpressionTypeTransformation<TransformationState>
+            private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public ExpressionTypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public TypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
                 public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
                 {
