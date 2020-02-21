@@ -1204,6 +1204,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             return base.onControlledAdjointSpecialization(spec); 
         }
 
+        /// <summary>
+        /// Converts the modifiers into a string containing keywords for all the applied modifiers, or an empty string
+        /// if all modifiers have default values. The string ends in a blank space if it is not empty.
+        /// </summary>
+        /// <param name="modifiers">The modifiers to convert into a keyword string.</param>
+        /// <returns>A string containing keywords for all of the applied modifiers.</returns>
+        private static string GetModifierKeywords(Modifiers modifiers) => modifiers.Access.Tag switch
+        {
+            AccessModifier.Tags.Internal => Keywords.qsInternal.id + " ",
+            AccessModifier.Tags.Private => Keywords.qsPrivate.id + " ",
+            _ => ""
+        };
+
         private QsCallable onCallable(QsCallable c, string declHeader)
         {
             if (!c.Kind.IsTypeConstructor)
@@ -1245,7 +1258,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             c = c.WithSpecializations(specs => specs.Where(NeedsToBeExplicit).ToImmutableArray());
             this.nrSpecialzations = c.Specializations.Length;
 
-            this.AddToOutput($"{declHeader} {signature}");
+            this.AddToOutput($"{GetModifierKeywords(c.Modifiers)}{declHeader} {signature}");
             if (!String.IsNullOrWhiteSpace(characteristics)) this.AddToOutput($"{Keywords.qsCharacteristics.id} {characteristics}");
             this.AddBlock(() => c.Specializations.Select(dispatchSpecialization).ToImmutableArray());
             this.AddToOutput("");
@@ -1275,8 +1288,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 else if (item is QsTypeItem.Anonymous type) return (null, type.Item);
                 else throw new NotImplementedException("unknown case for type item");
             }
-            var udtTuple = ArgumentTuple<QsTypeItem>(t.TypeItems, GetItemNameAndType, this.Type); 
-            this.AddDirective($"{Keywords.typeDeclHeader.id} {t.FullName.Name.Value} = {udtTuple}");
+            var modifiers = GetModifierKeywords(t.Modifiers);
+            var udtTuple = ArgumentTuple<QsTypeItem>(t.TypeItems, GetItemNameAndType, this.Type);
+            this.AddDirective($"{modifiers}{Keywords.typeDeclHeader.id} {t.FullName.Name.Value} = {udtTuple}");
             return t;
         }
 
