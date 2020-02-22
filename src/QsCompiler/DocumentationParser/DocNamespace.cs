@@ -3,11 +3,11 @@
 
 #nullable enable
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using YamlDotNet.RepresentationModel;
 
@@ -34,11 +34,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal DocNamespace(QsNamespace ns, IEnumerable<string>? sourceFiles = null)
         {
             var sourceFileSet = sourceFiles == null ? null : new HashSet<string>(sourceFiles);
-            bool IsVisible(NonNullable<string> qualifiedName, NonNullable<string> source)
+            bool IsVisible(NonNullable<string> source, AccessModifier access, NonNullable<string> qualifiedName)
             {
                 var name = qualifiedName.Value;
                 var includeInDocs = sourceFileSet == null || sourceFileSet.Contains(source.Value);
-                return includeInDocs && !(name.StartsWith("_") || name.EndsWith("_") 
+                return includeInDocs && access.IsDefaultAccess && !(name.StartsWith("_") || name.EndsWith("_")
                         || name.EndsWith("Impl", StringComparison.InvariantCultureIgnoreCase)
                         || name.EndsWith("ImplA", StringComparison.InvariantCultureIgnoreCase)
                         || name.EndsWith("ImplC", StringComparison.InvariantCultureIgnoreCase)
@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 if (item is QsNamespaceElement.QsCallable c)
                 {
                     var callable = c.Item;
-                    if (IsVisible(callable.FullName.Name, callable.SourceFile) &&
+                    if (IsVisible(callable.SourceFile, callable.Modifiers.Access, callable.FullName.Name) &&
                         (callable.Kind != QsCallableKind.TypeConstructor))
                     {
                         items.Add(new DocCallable(name, callable));
@@ -74,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 else if (item is QsNamespaceElement.QsCustomType u)
                 {
                     var udt = u.Item;
-                    if (IsVisible(udt.FullName.Name, udt.SourceFile))
+                    if (IsVisible(udt.SourceFile, udt.Modifiers.Access, udt.FullName.Name))
                     {
                         items.Add(new DocUdt(name, udt));
                     }
