@@ -154,7 +154,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
         #region ResolveGenerics
 
-        private class ResolveGenerics : QsSyntaxTreeTransformation<ResolveGenerics.TransformationState>
+        private class ResolveGenerics : SyntaxTreeTransformation<ResolveGenerics.TransformationState>
         {
             public static QsCompilation Apply(QsCompilation compilation, List<Response> responses)
             {
@@ -186,7 +186,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
                 public override QsNamespace Transform(QsNamespace ns)
                 {
@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
         #region RewriteImplementations
 
         private class ReplaceTypeParamImplementations :
-            QsSyntaxTreeTransformation<ReplaceTypeParamImplementations.TransformationState>
+            SyntaxTreeTransformation<ReplaceTypeParamImplementations.TransformationState>
         {
             public static Response Apply(Response current)
             {
@@ -243,7 +243,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
                 public override ResolvedSignature onSignature(ResolvedSignature s)
                 {
@@ -260,7 +260,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public TypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
                 public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
                 {
@@ -278,7 +278,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
         #region RewriteCalls
 
         private class ReplaceTypeParamCalls :
-            QsSyntaxTreeTransformation<ReplaceTypeParamCalls.TransformationState>
+            SyntaxTreeTransformation<ReplaceTypeParamCalls.TransformationState>
         {
             public static Response Apply(Response current, GetConcreteIdentifierFunc getConcreteIdentifier)
             {
@@ -313,7 +313,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
             private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
             {
-                public ExpressionTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
                 public override TypedExpression Transform(TypedExpression ex)
                 {
@@ -345,7 +345,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
             private class ExpressionKindTransformation : Core.ExpressionKindTransformation<TransformationState>
             {
-                public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
                 public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
                 {
@@ -376,7 +376,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
             private class TypeTransformation : TypeTransformation<TransformationState>
             {
-                public TypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
                 public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
                 {

@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// If a set of source file names is given on initialization, the search is limited to callables and specializations in those files.
     /// </summary>
     public class IdentifierReferences
-         : QsSyntaxTreeTransformation<IdentifierReferences.TransformationState>
+         : SyntaxTreeTransformation<IdentifierReferences.TransformationState>
     {
         public class Location : IEquatable<Location>
         {
@@ -193,7 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         private class TypeTransformation :
             TypeTransformation<TransformationState>
         {
-            public TypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) :
+            public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) :
                 base(parent)
             { }
 
@@ -216,7 +216,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         private class StatementTransformation :
             StatementTransformation<TransformationState>
         {
-            public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+            public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -231,7 +231,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             NamespaceTransformation<TransformationState>
         {
 
-            public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -287,7 +287,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// Note that the location information is relative to the root node, i.e. the start position of the containing specialization declaration.
     /// </summary>
     public class AccumulateIdentifiers
-         : QsSyntaxTreeTransformation<AccumulateIdentifiers.TransformationState>
+         : SyntaxTreeTransformation<AccumulateIdentifiers.TransformationState>
     {
         public class TransformationState
         {
@@ -336,7 +336,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         private class StatementTransformation :
             StatementTransformation<TransformationState>
         {
-            public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+            public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -351,7 +351,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         private class StatementKindTransformation :
             Core.StatementKindTransformation<TransformationState>
         {
-            public StatementKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+            public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -373,7 +373,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// This class is *not* threadsafe.
     /// </summary>
     public class UniqueVariableNames
-         : QsSyntaxTreeTransformation<UniqueVariableNames.TransformationState>
+         : SyntaxTreeTransformation<UniqueVariableNames.TransformationState>
     {
         public class TransformationState
         {
@@ -422,7 +422,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         private class StatementKindTransformation
             : Core.StatementKindTransformation<TransformationState>
         {
-            public StatementKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+            public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -437,7 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         private class ExpressionKindTransformation
             : Core.ExpressionKindTransformation<TransformationState>
         {
-            public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+            public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -456,7 +456,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     public class TypedExpressionWalker<T> :
         Core.ExpressionTransformation<T>
     {
-        public TypedExpressionWalker(Action<TypedExpression> onExpression, QsSyntaxTreeTransformation<T> parent)
+        public TypedExpressionWalker(Action<TypedExpression> onExpression, SyntaxTreeTransformation<T> parent)
             : base(parent) =>
             this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
 

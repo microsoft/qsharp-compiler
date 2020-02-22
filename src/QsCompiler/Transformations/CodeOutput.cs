@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given namespace.
     /// </summary>
     public class SyntaxTreeToQs
-        : QsSyntaxTreeTransformation<SyntaxTreeToQs.SharedState>
+        : SyntaxTreeTransformation<SyntaxTreeToQs.SharedState>
     {
         public const string InvalidType = "__UnknownType__";
         public const string InvalidSet = "__UnknownSet__";
@@ -1046,7 +1046,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public class StatementTransformation
             : StatementTransformation<SharedState>
         {
-            public StatementTransformation(QsSyntaxTreeTransformation<SharedState> parent)
+            public StatementTransformation(SyntaxTreeTransformation<SharedState> parent)
                 : base(parent)
             { }
 

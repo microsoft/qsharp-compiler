@@ -33,7 +33,7 @@ and private StripPositionInfoFromNamespace(parent : StripPositionInfo) =
     override this.onLocation _ = Null
 
 and public StripPositionInfo private (_internal_) = 
-    inherit QsSyntaxTreeTransformation()
+    inherit SyntaxTreeTransformation()
     static let defaultInstance = new StripPositionInfo()
 
     new () as this =

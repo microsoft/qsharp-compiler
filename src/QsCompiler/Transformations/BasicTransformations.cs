@@ -13,7 +13,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 {
     public class GetSourceFiles :
-        QsSyntaxTreeTransformation<GetSourceFiles.TransformationState>
+        SyntaxTreeTransformation<GetSourceFiles.TransformationState>
     {
         public class TransformationState
         {
@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             NamespaceTransformation<TransformationState>
         {
 
-            public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -81,7 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// the location at which they are defined in the file. Auto-generated declarations will be ordered alphabetically.
     /// </summary>
     public class FilterBySourceFile :
-        QsSyntaxTreeTransformation<FilterBySourceFile.TransformationState>
+        SyntaxTreeTransformation<FilterBySourceFile.TransformationState>
     {
         public class TransformationState
         {
@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         public class NamespaceTransformation :
             NamespaceTransformation<TransformationState>
         {
-            public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -164,7 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// If evaluateOnSubexpressions is set to true, the fold is evaluated on all subexpressions as well.
     /// </summary>
     public class SelectByFoldingOverExpressions :
-        QsSyntaxTreeTransformation<SelectByFoldingOverExpressions.TransformationState>
+        SyntaxTreeTransformation<SelectByFoldingOverExpressions.TransformationState>
     {
         public class TransformationState : FoldOverExpressions<TransformationState, bool>.IFoldingState
         {
@@ -214,7 +214,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             /// The given function for creating a new subselector is expected to initialize a new internal state with the same configurations as the one given upon construction.
             /// Upon initialization, the FoldResult of the internal state should be set to the specified seed rather than the FoldResult of the given constructor argument.
             /// </summary>
-            public StatementTransformation(Func<TransformationState, P> createSelector, QsSyntaxTreeTransformation<TransformationState> parent)
+            public StatementTransformation(Func<TransformationState, P> createSelector, SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent) =>
                 this.CreateSelector = createSelector ?? throw new ArgumentNullException(nameof(createSelector));
 
@@ -294,7 +294,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         }
 
 
-        public FoldOverExpressions(QsSyntaxTreeTransformation<T> parent)
+        public FoldOverExpressions(SyntaxTreeTransformation<T> parent)
             : base(parent)
         { }
 

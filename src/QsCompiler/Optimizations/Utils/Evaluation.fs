@@ -168,7 +168,7 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
 
 /// The ExpressionTransformation used to evaluate constant expressions
 and internal ExpressionEvaluator private (_private_) =
-    inherit QsSyntaxTreeTransformation() 
+    inherit SyntaxTreeTransformation() 
 
     internal new (callables : IDictionary<QsQualifiedName, QsCallable>, constants : IDictionary<string, TypedExpression>, stmtsLeft : int) as this = 
         new ExpressionEvaluator("_private_") then

@@ -14,7 +14,7 @@ open Microsoft.Quantum.QsCompiler.Transformations
 /// A SyntaxTreeTransformation that finds identifiers in each implementation that represent distict qubit values.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 type internal FindDistinctQubits private (_private_) =
-    inherit Core.QsSyntaxTreeTransformation()
+    inherit Core.SyntaxTreeTransformation()
 
     member val DistinctNames : Set<NonNullable<string>> = Set.empty with get, set
 
@@ -47,7 +47,7 @@ and private DistinctQubitsStatementKinds (parent : FindDistinctQubits) =
 /// A transformation that tracks what variables the transformed code could mutate.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 type internal MutationChecker private (_private_) =
-    inherit Core.QsSyntaxTreeTransformation()
+    inherit Core.SyntaxTreeTransformation()
 
     member val DeclaredVariables : Set<NonNullable<string>> = Set.empty with get, set
     member val MutatedVariables : Set<NonNullable<string>> = Set.empty with get, set
@@ -82,7 +82,7 @@ and private MutationCheckerStatementKinds(parent : MutationChecker) =
 /// A transformation that counts how many times each local variable is referenced.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 type internal ReferenceCounter private (_private_) =
-    inherit Core.QsSyntaxTreeTransformation()
+    inherit Core.SyntaxTreeTransformation()
 
     member val internal UsedVariables = Map.empty with get, set
 
@@ -105,7 +105,7 @@ and private ReferenceCounterExpressionKinds(parent : ReferenceCounter) =
 
 
 /// private helper class for ReplaceTypeParams
-type private ReplaceTypeParamsTypes(parent : Core.QsSyntaxTreeTransformation<_>) = 
+type private ReplaceTypeParamsTypes(parent : Core.SyntaxTreeTransformation<_>) = 
     inherit Core.TypeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(parent)
 
     override this.onTypeParameter tp =
@@ -118,7 +118,7 @@ type private ReplaceTypeParamsTypes(parent : Core.QsSyntaxTreeTransformation<_>)
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 /// Does *not* update the type paremeter resolution dictionaries. 
 type internal ReplaceTypeParams private (typeParams: ImmutableDictionary<_, ResolvedType>, _private_) =
-    inherit Core.QsSyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(typeParams)
+    inherit Core.SyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(typeParams)
 
     internal new (typeParams: ImmutableDictionary<_, ResolvedType>) as this = 
         new ReplaceTypeParams(typeParams, "_private_") then
@@ -157,7 +157,7 @@ and private SideEffectCheckerStatementKinds(parent : SideEffectChecker) =
 
 /// A ScopeTransformation that tracks what side effects the transformed code could cause
 and internal SideEffectChecker private (_private_) =
-    inherit Core.QsSyntaxTreeTransformation()
+    inherit Core.SyntaxTreeTransformation()
 
     /// Whether the transformed code might have any quantum side effects (such as calling operations)
     member val HasQuantum = false with get, set
@@ -175,7 +175,7 @@ and internal SideEffectChecker private (_private_) =
 
 
 /// A ScopeTransformation that replaces one statement with zero or more statements
-type [<AbstractClass>] internal StatementCollectorTransformation(parent : Core.QsSyntaxTreeTransformation) =
+type [<AbstractClass>] internal StatementCollectorTransformation(parent : Core.SyntaxTreeTransformation) =
     inherit Core.StatementTransformation(parent)
 
     abstract member CollectStatements: QsStatementKind -> QsStatementKind seq
@@ -193,7 +193,7 @@ type [<AbstractClass>] internal StatementCollectorTransformation(parent : Core.Q
 
 /// A SyntaxTreeTransformation that removes all known symbols from anywhere in the AST
 type internal StripAllKnownSymbols(_private_) =
-    inherit Core.QsSyntaxTreeTransformation()
+    inherit Core.SyntaxTreeTransformation()
 
     internal new () as this = 
         new StripAllKnownSymbols("_private_") then

@@ -12,7 +12,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidationTransformation
 {
-    public class MonomorphizationValidationTransformation : QsSyntaxTreeTransformation<MonomorphizationValidationTransformation.TransformationState>
+    public class MonomorphizationValidationTransformation : SyntaxTreeTransformation<MonomorphizationValidationTransformation.TransformationState>
     {
         public static void Apply(QsCompilation compilation)
         {
@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 
         private class NamespaceTransformation : NamespaceTransformation<TransformationState>
         {
-            public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
             public override ResolvedSignature onSignature(ResolvedSignature s)
             {
@@ -50,7 +50,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 
         private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
         {
-            public ExpressionTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
             public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
             {
@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 
         private class TypeTransformation : TypeTransformation<TransformationState>
         {
-            public TypeTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+            public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
             public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
             {

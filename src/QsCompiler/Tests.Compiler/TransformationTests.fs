@@ -28,7 +28,7 @@ type private Counter () =
 
 
 type private SyntaxCounter private(counter : Counter, ?options) = 
-    inherit QsSyntaxTreeTransformation(defaultArg options TransformationOptions.Default)
+    inherit SyntaxTreeTransformation(defaultArg options TransformationOptions.Default)
 
     member this.Counter = counter
 

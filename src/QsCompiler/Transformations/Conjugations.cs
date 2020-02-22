@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
     /// throws an InvalidOperationException if the outer block contains while-loops. 
     /// </summary>
     public class InlineConjugations 
-        : QsSyntaxTreeTransformation<InlineConjugations.TransformationState> 
+        : SyntaxTreeTransformation<InlineConjugations.TransformationState> 
     {
         public class TransformationState
         {
@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
         private class StatementTransformation :
             StatementTransformation<TransformationState>
         {
-            public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+            public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 
@@ -86,7 +86,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
         private class NamespaceTransformation :
             NamespaceTransformation<TransformationState>
         {
-            public NamespaceTransformation(QsSyntaxTreeTransformation<TransformationState> parent)
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             { }
 

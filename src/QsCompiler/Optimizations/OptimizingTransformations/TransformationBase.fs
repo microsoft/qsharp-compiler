@@ -12,7 +12,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 /// the transformation leads to a change in any of the namespaces' syntax
 /// tree, except for changes in the namespaces' documentation string.
 type TransformationBase private (_private_) =
-    inherit QsSyntaxTreeTransformation()
+    inherit SyntaxTreeTransformation()
 
     member val Changed = false with get, set
 
