@@ -90,7 +90,7 @@ type private InliningInfo = {
 
 
 /// The SyntaxTreeTransformation used to inline callables
-type CallableInlining private (unsafe : string) =
+type CallableInlining private (_private_ : string) =
     inherit TransformationBase()
 
     // The current callable we're in the process of transforming
@@ -98,7 +98,7 @@ type CallableInlining private (unsafe : string) =
     member val Renamer: VariableRenaming option = None with get, set
 
     new (callables) as this = 
-        new CallableInlining("unsafe") then
+        new CallableInlining("_private_") then
             this.Namespaces <- new CallableInliningNamespaces(this)
             this.Statements <- new CallableInliningStatements(this, callables)
 

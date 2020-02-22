@@ -6,14 +6,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
 // setup for syntax tree transformations with internal state
 
-type QsSyntaxTreeTransformation<'T> private (state : 'T, unsafe : string) =
+type QsSyntaxTreeTransformation<'T> private (state : 'T, _internal_ : string) =
 
-    let mutable _Types           = new TypeTransformation<'T>(TransformationOptions.Default, unsafe)
-    let mutable _ExpressionKinds = new ExpressionKindTransformation<'T>(TransformationOptions.Default, unsafe)
-    let mutable _Expressions     = new ExpressionTransformation<'T>(TransformationOptions.Default, unsafe)
-    let mutable _StatementKinds  = new StatementKindTransformation<'T>(TransformationOptions.Default, unsafe)
-    let mutable _Statements      = new StatementTransformation<'T>(TransformationOptions.Default, unsafe)
-    let mutable _Namespaces      = new NamespaceTransformation<'T>(TransformationOptions.Default, unsafe)
+    let mutable _Types           = new TypeTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _ExpressionKinds = new ExpressionKindTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _Expressions     = new ExpressionTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _StatementKinds  = new StatementKindTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _Statements      = new StatementTransformation<'T>(TransformationOptions.Default, _internal_)
+    let mutable _Namespaces      = new NamespaceTransformation<'T>(TransformationOptions.Default, _internal_)
 
     member this.Types
         with get() = _Types
@@ -43,7 +43,7 @@ type QsSyntaxTreeTransformation<'T> private (state : 'T, unsafe : string) =
     member this.InternalState = state
 
     new (state : 'T, options : TransformationOptions) as this =
-        QsSyntaxTreeTransformation<'T>(state, "unsafe") then
+        QsSyntaxTreeTransformation<'T>(state, "_internal_") then
             this.Types           <- new TypeTransformation<'T>(this, options)
             this.ExpressionKinds <- new ExpressionKindTransformation<'T>(this, options)
             this.Expressions     <- new ExpressionTransformation<'T>(this, options)
@@ -54,7 +54,7 @@ type QsSyntaxTreeTransformation<'T> private (state : 'T, unsafe : string) =
     new (state : 'T) = new QsSyntaxTreeTransformation<'T>(state, TransformationOptions.Default)
 
 
-and TypeTransformation<'T> internal (options, unsafe) =
+and TypeTransformation<'T> internal (options, _internal_) =
     inherit TypeTransformationBase(options)
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = None
 
@@ -63,11 +63,11 @@ and TypeTransformation<'T> internal (options, unsafe) =
         and private set value = _Transformation <- Some value
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>, options : TransformationOptions) as this = 
-        new TypeTransformation<'T>(options, "unsafe") then
+        new TypeTransformation<'T>(options, "_internal_") then
             this.Transformation <- parentTransformation
 
     new (sharedInternalState : 'T, options : TransformationOptions) as this =
-        TypeTransformation<'T>(options, "unsafe") then
+        TypeTransformation<'T>(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation<'T>(sharedInternalState)
             this.Transformation.Types <- this
 
@@ -78,8 +78,8 @@ and TypeTransformation<'T> internal (options, unsafe) =
         new TypeTransformation<'T>(sharedInternalState, TransformationOptions.Default)
 
 
-and ExpressionKindTransformation<'T> internal (options, unsafe) =
-    inherit ExpressionKindTransformationBase(options, unsafe)
+and ExpressionKindTransformation<'T> internal (options, _internal_) =
+    inherit ExpressionKindTransformationBase(options, _internal_)
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = None
 
     member this.Transformation
@@ -90,11 +90,11 @@ and ExpressionKindTransformation<'T> internal (options, unsafe) =
             this.TypeTransformationHandle <- fun _ -> value.Types :> TypeTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>, options : TransformationOptions) as this = 
-        ExpressionKindTransformation<'T>(options, "unsafe") then 
+        ExpressionKindTransformation<'T>(options, "_internal_") then 
             this.Transformation <- parentTransformation
 
     new (sharedInternalState : 'T, options : TransformationOptions) as this =
-        ExpressionKindTransformation<'T>(options, "unsafe") then
+        ExpressionKindTransformation<'T>(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation<'T>(sharedInternalState)
             this.Transformation.ExpressionKinds <- this
 
@@ -105,8 +105,8 @@ and ExpressionKindTransformation<'T> internal (options, unsafe) =
         new ExpressionKindTransformation<'T>(sharedInternalState, TransformationOptions.Default)
 
 
-and ExpressionTransformation<'T> internal (options, unsafe) =
-    inherit ExpressionTransformationBase(options, unsafe)
+and ExpressionTransformation<'T> internal (options, _internal_) =
+    inherit ExpressionTransformationBase(options, _internal_)
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = None
 
     member this.Transformation
@@ -117,11 +117,11 @@ and ExpressionTransformation<'T> internal (options, unsafe) =
             this.TypeTransformationHandle <- fun _ -> value.Types :> TypeTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>, options : TransformationOptions) as this = 
-        ExpressionTransformation<'T>(options, "unsafe") then
+        ExpressionTransformation<'T>(options, "_internal_") then
             this.Transformation <- parentTransformation
 
     new (sharedInternalState : 'T, options : TransformationOptions) as this =
-        ExpressionTransformation<'T>(options, "unsafe") then
+        ExpressionTransformation<'T>(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation<'T>(sharedInternalState)
             this.Transformation.Expressions <- this
 
@@ -132,8 +132,8 @@ and ExpressionTransformation<'T> internal (options, unsafe) =
         new ExpressionTransformation<'T>(sharedInternalState, TransformationOptions.Default)
 
 
-and StatementKindTransformation<'T> internal (options, unsafe) =
-    inherit StatementKindTransformationBase(options, unsafe)
+and StatementKindTransformation<'T> internal (options, _internal_) =
+    inherit StatementKindTransformationBase(options, _internal_)
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = None
 
     member this.Transformation
@@ -144,11 +144,11 @@ and StatementKindTransformation<'T> internal (options, unsafe) =
             this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>, options : TransformationOptions) as this = 
-        StatementKindTransformation<'T>(options, "unsafe") then
+        StatementKindTransformation<'T>(options, "_internal_") then
             this.Transformation <- parentTransformation
         
     new (sharedInternalState : 'T, options : TransformationOptions) as this =
-        StatementKindTransformation<'T>(options, "unsafe") then
+        StatementKindTransformation<'T>(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation<'T>(sharedInternalState)
             this.Transformation.StatementKinds <- this
 
@@ -159,8 +159,8 @@ and StatementKindTransformation<'T> internal (options, unsafe) =
         new StatementKindTransformation<'T>(sharedInternalState, TransformationOptions.Default)
 
 
-and StatementTransformation<'T> internal (options, unsafe) =
-    inherit StatementTransformationBase(options, unsafe)
+and StatementTransformation<'T> internal (options, _internal_) =
+    inherit StatementTransformationBase(options, _internal_)
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = None
 
     member this.Transformation
@@ -171,11 +171,11 @@ and StatementTransformation<'T> internal (options, unsafe) =
             this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>, options : TransformationOptions) as this = 
-        StatementTransformation<'T>(options, "unsafe") then
+        StatementTransformation<'T>(options, "_internal_") then
             this.Transformation <- parentTransformation
 
     new (sharedInternalState : 'T, options : TransformationOptions) as this =
-        StatementTransformation<'T>(options, "unsafe") then
+        StatementTransformation<'T>(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation<'T>(sharedInternalState)
             this.Transformation.Statements <- this
 
@@ -186,8 +186,8 @@ and StatementTransformation<'T> internal (options, unsafe) =
         new StatementTransformation<'T>(sharedInternalState, TransformationOptions.Default)
 
 
-and NamespaceTransformation<'T> internal (options, unsafe : string) =
-    inherit NamespaceTransformationBase(options, unsafe)
+and NamespaceTransformation<'T> internal (options, _internal_ : string) =
+    inherit NamespaceTransformationBase(options, _internal_)
     let mutable _Transformation : QsSyntaxTreeTransformation<'T> option = None
 
     member this.Transformation
@@ -197,11 +197,11 @@ and NamespaceTransformation<'T> internal (options, unsafe : string) =
             this.StatementTransformationHandle <- fun _ -> value.Statements :> StatementTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation<'T>, options : TransformationOptions) as this = 
-        NamespaceTransformation<'T>(options, "unsafe") then
+        NamespaceTransformation<'T>(options, "_internal_") then
             this.Transformation <- parentTransformation
 
     new (sharedInternalState : 'T, options : TransformationOptions) as this =
-        NamespaceTransformation<'T>(options, "unsafe") then
+        NamespaceTransformation<'T>(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation<'T>(sharedInternalState)
             this.Transformation.Namespaces <- this
 
@@ -214,14 +214,14 @@ and NamespaceTransformation<'T> internal (options, unsafe : string) =
 
 // setup for syntax tree transformations without internal state
 
-type QsSyntaxTreeTransformation private (unsafe : string) =
+type QsSyntaxTreeTransformation private (_internal_ : string) =
 
-    let mutable _Types           = new TypeTransformation(TransformationOptions.Default, unsafe)
-    let mutable _ExpressionKinds = new ExpressionKindTransformation(TransformationOptions.Default, unsafe)
-    let mutable _Expressions     = new ExpressionTransformation(TransformationOptions.Default, unsafe)
-    let mutable _StatementKinds  = new StatementKindTransformation(TransformationOptions.Default, unsafe)
-    let mutable _Statements      = new StatementTransformation(TransformationOptions.Default, unsafe)
-    let mutable _Namespaces      = new NamespaceTransformation(TransformationOptions.Default, unsafe)
+    let mutable _Types           = new TypeTransformation(TransformationOptions.Default, _internal_)
+    let mutable _ExpressionKinds = new ExpressionKindTransformation(TransformationOptions.Default, _internal_)
+    let mutable _Expressions     = new ExpressionTransformation(TransformationOptions.Default, _internal_)
+    let mutable _StatementKinds  = new StatementKindTransformation(TransformationOptions.Default, _internal_)
+    let mutable _Statements      = new StatementTransformation(TransformationOptions.Default, _internal_)
+    let mutable _Namespaces      = new NamespaceTransformation(TransformationOptions.Default, _internal_)
 
     member this.Types
         with get() = _Types
@@ -249,7 +249,7 @@ type QsSyntaxTreeTransformation private (unsafe : string) =
 
 
     new (options : TransformationOptions) as this =
-        QsSyntaxTreeTransformation("unsafe") then
+        QsSyntaxTreeTransformation("_internal_") then
             this.Types           <- new TypeTransformation(this, options)
             this.ExpressionKinds <- new ExpressionKindTransformation(this, options)
             this.Expressions     <- new ExpressionTransformation(this, options)
@@ -260,7 +260,7 @@ type QsSyntaxTreeTransformation private (unsafe : string) =
     new () = new QsSyntaxTreeTransformation(TransformationOptions.Default)
 
 
-and TypeTransformation internal (options, unsafe) =
+and TypeTransformation internal (options, _internal_) =
     inherit TypeTransformationBase(options)
     let mutable _Transformation : QsSyntaxTreeTransformation option = None
 
@@ -269,11 +269,11 @@ and TypeTransformation internal (options, unsafe) =
         and private set value = _Transformation <- Some value
 
     new (parentTransformation : QsSyntaxTreeTransformation, options : TransformationOptions) as this = 
-        new TypeTransformation(options, "unsafe") then
+        new TypeTransformation(options, "_internal_") then
             this.Transformation <- parentTransformation
 
     new (options : TransformationOptions) as this =
-        TypeTransformation(options, "unsafe") then
+        TypeTransformation(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation()
             this.Transformation.Types <- this
 
@@ -283,8 +283,8 @@ and TypeTransformation internal (options, unsafe) =
     new () = new TypeTransformation(TransformationOptions.Default)
 
 
-and ExpressionKindTransformation internal (options, unsafe) =
-    inherit ExpressionKindTransformationBase(options, unsafe)
+and ExpressionKindTransformation internal (options, _internal_) =
+    inherit ExpressionKindTransformationBase(options, _internal_)
     let mutable _Transformation : QsSyntaxTreeTransformation option = None
 
     member this.Transformation
@@ -295,11 +295,11 @@ and ExpressionKindTransformation internal (options, unsafe) =
             this.TypeTransformationHandle <- fun _ -> value.Types :> TypeTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation, options : TransformationOptions) as this = 
-        ExpressionKindTransformation(options, "unsafe") then 
+        ExpressionKindTransformation(options, "_internal_") then 
             this.Transformation <- parentTransformation
 
     new (options : TransformationOptions) as this =
-        ExpressionKindTransformation(options, "unsafe") then
+        ExpressionKindTransformation(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation()
             this.Transformation.ExpressionKinds <- this
 
@@ -309,8 +309,8 @@ and ExpressionKindTransformation internal (options, unsafe) =
     new () = new ExpressionKindTransformation(TransformationOptions.Default)
 
 
-and ExpressionTransformation internal (options, unsafe) =
-    inherit ExpressionTransformationBase(options, unsafe)
+and ExpressionTransformation internal (options, _internal_) =
+    inherit ExpressionTransformationBase(options, _internal_)
     let mutable _Transformation : QsSyntaxTreeTransformation option = None
 
     member this.Transformation
@@ -321,11 +321,11 @@ and ExpressionTransformation internal (options, unsafe) =
             this.TypeTransformationHandle <- fun _ -> value.Types :> TypeTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation, options : TransformationOptions) as this = 
-        ExpressionTransformation(options, "unsafe") then
+        ExpressionTransformation(options, "_internal_") then
             this.Transformation <- parentTransformation
 
     new (options : TransformationOptions) as this =
-        ExpressionTransformation(options, "unsafe") then
+        ExpressionTransformation(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation()
             this.Transformation.Expressions <- this
 
@@ -335,8 +335,8 @@ and ExpressionTransformation internal (options, unsafe) =
     new () = new ExpressionTransformation(TransformationOptions.Default)
 
 
-and StatementKindTransformation internal (options, unsafe) =
-    inherit StatementKindTransformationBase(options, unsafe)
+and StatementKindTransformation internal (options, _internal_) =
+    inherit StatementKindTransformationBase(options, _internal_)
     let mutable _Transformation : QsSyntaxTreeTransformation option = None
 
     member this.Transformation
@@ -347,11 +347,11 @@ and StatementKindTransformation internal (options, unsafe) =
             this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation, options : TransformationOptions) as this = 
-        StatementKindTransformation(options, "unsafe") then
+        StatementKindTransformation(options, "_internal_") then
             this.Transformation <- parentTransformation
         
     new (options : TransformationOptions) as this =
-        StatementKindTransformation(options, "unsafe") then
+        StatementKindTransformation(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation()
             this.Transformation.StatementKinds <- this
 
@@ -361,8 +361,8 @@ and StatementKindTransformation internal (options, unsafe) =
     new () = new StatementKindTransformation(TransformationOptions.Default)
 
 
-and StatementTransformation internal (options, unsafe) =
-    inherit StatementTransformationBase(options, unsafe)
+and StatementTransformation internal (options, _internal_) =
+    inherit StatementTransformationBase(options, _internal_)
     let mutable _Transformation : QsSyntaxTreeTransformation option = None
 
     member this.Transformation
@@ -373,11 +373,11 @@ and StatementTransformation internal (options, unsafe) =
             this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation, options : TransformationOptions) as this = 
-        StatementTransformation(options, "unsafe") then
+        StatementTransformation(options, "_internal_") then
             this.Transformation <- parentTransformation
 
     new (options : TransformationOptions) as this =
-        StatementTransformation(options, "unsafe") then
+        StatementTransformation(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation()
             this.Transformation.Statements <- this
 
@@ -387,8 +387,8 @@ and StatementTransformation internal (options, unsafe) =
     new () = new StatementTransformation(TransformationOptions.Default)
 
 
-and NamespaceTransformation internal (options, unsafe : string) =
-    inherit NamespaceTransformationBase(options, unsafe)
+and NamespaceTransformation internal (options, _internal_ : string) =
+    inherit NamespaceTransformationBase(options, _internal_)
     let mutable _Transformation : QsSyntaxTreeTransformation option = None
 
     member this.Transformation
@@ -398,11 +398,11 @@ and NamespaceTransformation internal (options, unsafe : string) =
             this.StatementTransformationHandle <- fun _ -> value.Statements :> StatementTransformationBase
 
     new (parentTransformation : QsSyntaxTreeTransformation, options : TransformationOptions) as this = 
-        NamespaceTransformation(options, "unsafe") then
+        NamespaceTransformation(options, "_internal_") then
             this.Transformation <- parentTransformation
 
     new (options : TransformationOptions) as this =
-        NamespaceTransformation(options, "unsafe") then
+        NamespaceTransformation(options, "_internal_") then
             this.Transformation <- new QsSyntaxTreeTransformation()
             this.Transformation.Namespaces <- this
 

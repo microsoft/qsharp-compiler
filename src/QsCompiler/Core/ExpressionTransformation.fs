@@ -17,7 +17,7 @@ type private ExpressionKind =
     QsExpressionKind<TypedExpression,Identifier,ResolvedType>
 
 
-type ExpressionKindTransformationBase internal (options : TransformationOptions, unsafe) =
+type ExpressionKindTransformationBase internal (options : TransformationOptions, _internal_) =
     
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
     let Node = if options.DisableRebuild then Walk else Fold
@@ -34,12 +34,12 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
     default this.Expressions = this.ExpressionTransformationHandle()
 
     new (expressionTransformation : unit -> ExpressionTransformationBase, typeTransformation : unit -> TypeTransformationBase, options) as this = 
-        new ExpressionKindTransformationBase(options, "unsafe") then 
+        new ExpressionKindTransformationBase(options, "_internal_") then 
             this.TypeTransformationHandle <- typeTransformation
             this.ExpressionTransformationHandle <- expressionTransformation
 
     new (options : TransformationOptions) as this = 
-        new ExpressionKindTransformationBase(options, "unsafe") then 
+        new ExpressionKindTransformationBase(options, "_internal_") then 
             let typeTransformation = new TypeTransformationBase(options)
             let expressionTransformation = new ExpressionTransformationBase((fun _ -> this), (fun _ -> this.Types), options)
             this.TypeTransformationHandle <- fun _ -> typeTransformation
@@ -352,7 +352,7 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
         id |> Node.BuildOr kind transformed
 
 
-and ExpressionTransformationBase internal (options : TransformationOptions, unsafe) = 
+and ExpressionTransformationBase internal (options : TransformationOptions, _internal_) = 
     
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
     let Node = if options.DisableRebuild then Walk else Fold
@@ -369,12 +369,12 @@ and ExpressionTransformationBase internal (options : TransformationOptions, unsa
     default this.ExpressionKinds = this.ExpressionKindTransformationHandle()
 
     new (exkindTransformation : unit -> ExpressionKindTransformationBase, typeTransformation : unit -> TypeTransformationBase, options : TransformationOptions) as this = 
-        new ExpressionTransformationBase(options, "unsafe") then 
+        new ExpressionTransformationBase(options, "_internal_") then 
             this.TypeTransformationHandle <- typeTransformation
             this.ExpressionKindTransformationHandle <- exkindTransformation
 
     new (options : TransformationOptions) as this = 
-        new ExpressionTransformationBase(options, "unsafe") then
+        new ExpressionTransformationBase(options, "_internal_") then
             let typeTransformation = new TypeTransformationBase(options)
             let exprKindTransformation = new ExpressionKindTransformationBase((fun _ -> this), (fun _ -> this.Types), options)
             this.TypeTransformationHandle <- fun _ -> typeTransformation

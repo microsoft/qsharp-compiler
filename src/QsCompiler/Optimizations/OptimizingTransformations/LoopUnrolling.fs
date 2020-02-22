@@ -11,11 +11,11 @@ open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to unroll loops
-type LoopUnrolling private (unsafe : string) =
+type LoopUnrolling private (_private_ : string) =
     inherit TransformationBase()
 
     new (callables, maxSize) as this = 
-        new LoopUnrolling("unsafe") then
+        new LoopUnrolling("_private_") then
             this.Namespaces <- new LoopUnrollingNamespaces(this)
             this.StatementKinds <- new LoopUnrollingStatementKinds(this, callables, maxSize)
 

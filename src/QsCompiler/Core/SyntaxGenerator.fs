@@ -32,12 +32,12 @@ and private StripPositionInfoFromNamespace(parent : StripPositionInfo) =
     inherit NamespaceTransformation(parent)
     override this.onLocation _ = Null
 
-and public StripPositionInfo private (unsafe) = 
+and public StripPositionInfo private (_internal_) = 
     inherit QsSyntaxTreeTransformation()
     static let defaultInstance = new StripPositionInfo()
 
     new () as this =
-        StripPositionInfo("unsafe") then 
+        StripPositionInfo("_internal_") then 
             this.Types <- new StripPositionInfoFromType(this) 
             this.Expressions <- new StripPositionInfoFromExpression(this)
             this.Statements <- new StripPositionInfoFromStatement(this)

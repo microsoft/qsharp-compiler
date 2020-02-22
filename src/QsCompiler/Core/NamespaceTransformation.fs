@@ -15,7 +15,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 
 
-type NamespaceTransformationBase internal (options : TransformationOptions, unsafe) =
+type NamespaceTransformationBase internal (options : TransformationOptions, _internal_) =
 
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
     let Node = if options.DisableRebuild then Walk else Fold
@@ -27,11 +27,11 @@ type NamespaceTransformationBase internal (options : TransformationOptions, unsa
     default this.Statements = this.StatementTransformationHandle()
 
     new (statementTransformation : unit -> StatementTransformationBase, options : TransformationOptions) as this = 
-        new NamespaceTransformationBase(options, "unsafe") then 
+        new NamespaceTransformationBase(options, "_internal_") then 
             this.StatementTransformationHandle <- statementTransformation
 
     new (options : TransformationOptions) as this = 
-        new NamespaceTransformationBase(options, "unsafe") then
+        new NamespaceTransformationBase(options, "_internal_") then
             let statementTransformation = new StatementTransformationBase(options)
             this.StatementTransformationHandle <- fun _ -> statementTransformation
 

@@ -12,7 +12,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
 
-type StatementKindTransformationBase internal (options : TransformationOptions, unsafe) =
+type StatementKindTransformationBase internal (options : TransformationOptions, _internal_) =
 
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
     let Node = if options.DisableRebuild then Walk else Fold
@@ -29,12 +29,12 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
     default this.Statements = this.StatementTransformationHandle()
 
     new (statementTransformation : unit -> StatementTransformationBase, expressionTransformation : unit -> ExpressionTransformationBase, options : TransformationOptions) as this = 
-        new StatementKindTransformationBase(options, "unsafe") then 
+        new StatementKindTransformationBase(options, "_internal_") then 
             this.ExpressionTransformationHandle <- expressionTransformation
             this.StatementTransformationHandle <- statementTransformation
 
     new (options : TransformationOptions) as this = 
-        new StatementKindTransformationBase(options, "unsafe") then
+        new StatementKindTransformationBase(options, "_internal_") then
             let expressionTransformation = new ExpressionTransformationBase(options)
             let statementTransformation = new StatementTransformationBase((fun _ -> this), (fun _ -> this.Expressions), options)
             this.ExpressionTransformationHandle <- fun _ -> expressionTransformation
@@ -191,7 +191,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
         id |> Node.BuildOr kind transformed
 
 
-and StatementTransformationBase internal (options : TransformationOptions, unsafe) =
+and StatementTransformationBase internal (options : TransformationOptions, _internal_) =
 
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
     let Node = if options.DisableRebuild then Walk else Fold
@@ -208,12 +208,12 @@ and StatementTransformationBase internal (options : TransformationOptions, unsaf
     default this.StatementKinds = this.StatementKindTransformationHandle()
 
     new (statementKindTransformation : unit -> StatementKindTransformationBase, expressionTransformation : unit -> ExpressionTransformationBase, options : TransformationOptions) as this = 
-        new StatementTransformationBase(options, "unsafe") then 
+        new StatementTransformationBase(options, "_internal_") then 
             this.ExpressionTransformationHandle <- expressionTransformation
             this.StatementKindTransformationHandle <- statementKindTransformation
 
     new (options : TransformationOptions) as this = 
-        new StatementTransformationBase(options, "unsafe") then
+        new StatementTransformationBase(options, "_internal_") then
             let expressionTransformation = new ExpressionTransformationBase(options)
             let statementTransformation = new StatementKindTransformationBase((fun _ -> this), (fun _ -> this.Expressions), options)
             this.ExpressionTransformationHandle <- fun _ -> expressionTransformation
