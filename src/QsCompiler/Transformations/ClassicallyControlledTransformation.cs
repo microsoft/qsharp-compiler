@@ -122,136 +122,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     return (false, null, null);
                 }
 
-                private (TypedExpression, TypedExpression) GetNoOp()
-                {
-                    var identifier = Utilities.CreateIdentifierExpression(
-                        Identifier.NewGlobalCallable(new QsQualifiedName(BuiltIn.NoOp.Namespace, BuiltIn.NoOp.Name)),
-                        BuiltIn.NoOp.TypeParameters
-                            .Select(param => Tuple.Create(new QsQualifiedName(BuiltIn.NoOp.Namespace, BuiltIn.NoOp.Name), param, ResolvedType.New(ResolvedTypeKind.UnitType)))
-                            .ToImmutableArray(),
-                        Utilities.GetOperatorResolvedType(new[] { OpProperty.Adjointable, OpProperty.Controllable }, ResolvedType.New(ResolvedTypeKind.UnitType)));
-
-                    var args = new TypedExpression
-                    (
-                        ExpressionKind.UnitValue,
-                        TypeArgsResolution.Empty,
-                        ResolvedType.New(ResolvedTypeKind.UnitType),
-                        new InferredExpressionInformation(false, false),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                    );
-
-                    return (identifier, args);
-                }
-
-                #region Apply Conditionally
-
-                private TypedExpression CreateApplyConditionallyExpression(TypedExpression condExpr1, TypedExpression condExpr2, QsScope conditionScope, QsScope defaultScope)
-                {
-                    var (isCondValid, condId, condArgs) = IsValidScope(conditionScope);
-                    var (isDefaultValid, defaultId, defaultArgs) = IsValidScope(defaultScope);
-
-                    if (!isDefaultValid && defaultScope != null)
-                    {
-                        return null; // ToDo: Diagnostic message - default body exists, but is not valid
-                    }
-
-                    BuiltIn controlOpInfo;
-                    TypedExpression controlArgs;
-                    ImmutableArray<ResolvedType> targetArgs;
-
-                    var props = ImmutableHashSet<OpProperty>.Empty;
-
-                    if (isCondValid)
-                    {
-                        if (defaultScope == null)
-                        {
-                            (defaultId, defaultArgs) = GetNoOp();
-                        }
-
-                        // Get characteristic properties from global id
-                        if (condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
-                        {
-                            props = op.Item2.Characteristics.GetProperties();
-                        }
-
-                        (bool adj, bool ctl) = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable));
-                        if (adj && ctl)
-                        {
-                            controlOpInfo = BuiltIn.ApplyConditionallyCA;
-                        }
-                        else if (adj)
-                        {
-                            controlOpInfo = BuiltIn.ApplyConditionallyA;
-                        }
-                        else if (ctl)
-                        {
-                            controlOpInfo = BuiltIn.ApplyConditionallyC;
-                        }
-                        else
-                        {
-                            controlOpInfo = BuiltIn.ApplyConditionally;
-                        }
-
-                        var equality = Utilities.CreateValueTupleExpression(condId, condArgs);
-                        var inequality = Utilities.CreateValueTupleExpression(defaultId, defaultArgs);
-
-                        controlArgs = Utilities.CreateValueTupleExpression(Utilities.CreateValueArray(condExpr1), Utilities.CreateValueArray(condExpr2), equality, inequality);
-
-                        targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
-                    }
-                    else
-                    {
-                        return null; // ToDo: Diagnostic message - cond body not valid
-                    }
-
-                    // Build the surrounding apply-if call
-                    var controlOpId = Utilities.CreateIdentifierExpression(
-                        Identifier.NewGlobalCallable(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name)),
-                        targetArgs
-                            .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
-                            .ToImmutableArray(),
-                        Utilities.GetOperatorResolvedType(props, controlArgs.ResolvedType));
-
-                    // Creates identity resolutions for the call expression
-                    var opTypeArgResolutions = targetArgs
-                        .SelectMany(x =>
-                            x.Resolution is ResolvedTypeKind.TupleType tup
-                            ? tup.Item
-                            : ImmutableArray.Create(x))
-                        .Where(x => x.Resolution.IsTypeParameter)
-                        .Select(x => (x.Resolution as ResolvedTypeKind.TypeParameter).Item)
-                        .GroupBy(x => (x.Origin, x.TypeName))
-                        .Select(group =>
-                        {
-                            var typeParam = group.First();
-                            return Tuple.Create(typeParam.Origin, typeParam.TypeName, ResolvedType.New(ResolvedTypeKind.NewTypeParameter(typeParam)));
-                        })
-                        .ToImmutableArray();
-
-                    return Utilities.CreateCallLike(controlOpId, controlArgs, opTypeArgResolutions);
-                }
-
-                private QsStatement CreateApplyConditionallyStatement(QsStatement statement, TypedExpression condExpr1, TypedExpression condExpr2, QsScope conditionScope, QsScope defaultScope)
-                {
-                    var controlCall = CreateApplyConditionallyExpression(condExpr1, condExpr2, conditionScope, defaultScope);
-
-                    if (controlCall != null)
-                    {
-                        return new QsStatement(
-                            QsStatementKind.NewQsExpressionStatement(controlCall),
-                            statement.SymbolDeclarations,
-                            QsNullable<QsLocation>.Null,
-                            statement.Comments);
-                    }
-                    else
-                    {
-                        // ToDo: add diagnostic message here
-                        return statement; // If the blocks can't be converted, return the original
-                    }
-                }
-
-                #endregion
-
                 #region Apply If
 
                 private TypedExpression CreateApplyIfExpression(QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
@@ -544,18 +414,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     return (false, null, null);
                 }
 
-                private (bool, TypedExpression, TypedExpression) IsConditionedOnResultEqualityExpression(TypedExpression expression)
-                {
-                    if (expression.Expression is ExpressionKind.EQ eq
-                        && eq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
-                        && eq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
-                    {
-                        return (true, eq.Item1, eq.Item2);
-                    }
-
-                    return (false, null, null);
-                }
-
                 #endregion
 
                 public override QsScope Transform(QsScope scope)
@@ -582,15 +440,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                                 }
                                 else
                                 {
-                                    var (isCompareNonLiteral, condExpr1, condExpr2) = IsConditionedOnResultEqualityExpression(cond);
-                                    if (isCompareNonLiteral)
-                                    {
-                                        statements.Add(CreateApplyConditionallyStatement(stm, condExpr1, condExpr2, conditionScope, defaultScope));
-                                    }
-                                    else
-                                    {
-                                        statements.Add(stm);
-                                    }
+                                    statements.Add(stm);
                                 }
                                 /**/
                             }

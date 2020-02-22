@@ -55,30 +55,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
             );
 
-        // All of the resolved types of the given expression must match.
-        public static TypedExpression CreateValueArray(params TypedExpression[] expressions)
-        {
-            ResolvedType type = null;
-            if (expressions.Any())
-            {
-                type = expressions.First().ResolvedType;
-                QsCompilerError.Verify(expressions.All(expr => expr.ResolvedType.Equals(type)));
-            }
-            else
-            {
-                type = ResolvedType.New(ResolvedTypeKind.UnitType);
-            }
-
-            return new TypedExpression
-            (
-                ExpressionKind.NewValueArray(expressions.ToImmutableArray()),
-                TypeArgsResolution.Empty,
-                ResolvedType.New(ResolvedTypeKind.NewArrayType(type)),
-                new InferredExpressionInformation(false, false),
-                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-            );
-        }
-
         public static ResolvedType GetOperatorResolvedType(IEnumerable<OpProperty> props, ResolvedType argumentType)
         {
             var characteristics = new CallableInformation(
