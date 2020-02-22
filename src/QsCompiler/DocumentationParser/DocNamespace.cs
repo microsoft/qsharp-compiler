@@ -185,10 +185,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         }
 
         /// <summary>
-        /// Writes the YAML file for this namespace.
+        /// Writes the YAML file for this namespace to a stream.
         /// </summary>
-        /// <param name="directoryPath">The directory to write the file to</param>
-        internal void WriteToFile(string directoryPath)
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="rootNode">The preexisting YAML mapping node.</param>
+        internal void WriteToStream(Stream stream, YamlMappingNode? rootNode = null)
         {
             string ToSequenceKey(string itemTypeName)
             {
@@ -211,8 +212,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 return "";
             }
 
-            var rootNode = Utils.ReadYamlFile(directoryPath, name) as YamlMappingNode ?? new YamlMappingNode();
-
+            rootNode ??= new YamlMappingNode();
             rootNode.AddStringMapping(Utils.UidKey, uid);
             rootNode.AddStringMapping(Utils.NameKey, name);
             if (!String.IsNullOrEmpty(summary))
@@ -223,7 +223,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             var itemTypeNodes = new Dictionary<string, SortedDictionary<string, YamlNode>>();
 
             // Collect existing items
-            foreach (var itemType in new []{Utils.FunctionKind, Utils.OperationKind, Utils.UdtKind})
+            foreach (var itemType in new[] { Utils.FunctionKind, Utils.OperationKind, Utils.UdtKind })
             {
                 var seqKey = ToSequenceKey(itemType);
                 var thisList = new SortedDictionary<string, YamlNode>();
@@ -280,14 +280,22 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
 
             var doc = new YamlDocument(rootNode);
-            var stream = new YamlStream(doc);
+            var yamlStream = new YamlStream(doc);
 
+            using var output = new StreamWriter(stream);
+            output.WriteLine("### " + Utils.QsNamespaceYamlMime);
+            yamlStream.Save(output, false);
+        }
+
+        /// <summary>
+        /// Writes the YAML file for this namespace.
+        /// </summary>
+        /// <param name="directoryPath">The directory to write the file to</param>
+        internal void WriteToFile(string directoryPath)
+        {
+            var rootNode = Utils.ReadYamlFile(directoryPath, name) as YamlMappingNode;
             var tocFileName = Path.Combine(directoryPath, name + Utils.YamlExtension);
-            using (var text = new StreamWriter(File.Open(tocFileName, FileMode.Create)))
-            {
-                text.WriteLine("### " + Utils.QsNamespaceYamlMime);
-                stream.Save(text, false);
-            }
+            WriteToStream(File.Open(tocFileName, FileMode.Create), rootNode);
         }
     }
 }
