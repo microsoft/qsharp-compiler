@@ -857,10 +857,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 // =================================
 
 // Hoist One Not Both
-// If hoisting is not needed on one of the blocks, it should not
-// prevent the other blocks from being hoisted, as it would in
-// the All-Or-Nothing test where a block is *invalid* for
-// hoisting due to a set statement or return statement.
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 

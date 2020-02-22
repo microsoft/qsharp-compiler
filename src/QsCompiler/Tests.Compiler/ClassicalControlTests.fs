@@ -14,7 +14,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
-open System.Collections.Immutable
 
 
 type ClassicalControlTests () =
@@ -1220,4 +1219,8 @@ type ClassicalControlTests () =
     [<Fact>]
     [<Trait("Category","Content Hoisting")>]
     member this.``Hoist One Not Both`` () =
+        // If hoisting is not needed on one of the blocks, it should not
+        // prevent the other blocks from being hoisted, as it would in
+        // the All-Or-Nothing test where a block is *invalid* for
+        // hoisting due to a set statement or return statement.
         CompileClassicalControlTest 28 |> ignore
