@@ -19,6 +19,7 @@ type BuiltIn = {
 }
     with 
     static member CoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
+    static member CanonNamespace = NonNullable<string>.New "Microsoft.Quantum.Canon"
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
     static member DiagnosticsNamespace = NonNullable<string>.New "Microsoft.Quantum.Diagnostics"
@@ -87,7 +88,43 @@ type BuiltIn = {
         TypeParameters = ImmutableArray.Empty
     }
 
+    // hard dependencies in Microsoft.Quantum.Canon
+
+    static member NoOp = {
+        Name = "NoOp" |> NonNullable<string>.New
+        Namespace = BuiltIn.CanonNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
+    }
+
     // hard dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions
+
+    // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit), 'T) , (('U => Unit), 'U)) => Unit)
+    static member ApplyConditionally = {
+        Name = "ApplyConditionally" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
+    }
+
+    // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit is Adj), 'T) , (('U => Unit is Adj), 'U)) => Unit is Adj)
+    static member ApplyConditionallyA = {
+        Name = "ApplyConditionallyA" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
+    }
+
+    // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit is Ctl), 'T) , (('U => Unit is Ctl), 'U)) => Unit is Ctl)
+    static member ApplyConditionallyC = {
+        Name = "ApplyConditionallyC" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
+    }
+
+    // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit is Adj + Ctl), 'T) , (('U => Unit is Adj + Ctl), 'U)) => Unit is Adj + Ctl)
+    static member ApplyConditionallyCA = {
+        Name = "ApplyConditionallyCA" |> NonNullable<string>.New
+        Namespace = BuiltIn.ClassicallyControlledNamespace
+        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New)
+    }
 
     // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
     static member ApplyIfZero = {
