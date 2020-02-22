@@ -188,7 +188,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// Writes the YAML file for this namespace to a stream.
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
-        /// <param name="rootNode">The preexisting YAML mapping node.</param>
+        /// <param name="rootNode">
+        /// The mapping node representing the preexisting contents of this namespace's YAML file.
+        /// </param>
         internal void WriteToStream(Stream stream, YamlMappingNode? rootNode = null)
         {
             string ToSequenceKey(string itemTypeName)
