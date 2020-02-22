@@ -381,5 +381,9 @@ let public ClassicalControlSignatures =
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "_Foo", [|"SubOp1Type[]";"Result"|], "Unit"
         |])
+        (_DefaultTypes, [| // Hoist One Not Both
+            ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
+        |])
     |]
     |> _MakeSignatures

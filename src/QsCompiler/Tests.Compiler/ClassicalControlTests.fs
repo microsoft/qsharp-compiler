@@ -1216,3 +1216,8 @@ type ClassicalControlTests () =
     [<Trait("Category","Content Hoisting")>]
     member this.``Hoist Array Item Call`` () =
         CompileClassicalControlTest 27 |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Hoist One Not Both`` () =
+        CompileClassicalControlTest 28 |> ignore
