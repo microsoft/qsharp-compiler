@@ -190,7 +190,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
                 public override QsNamespace Transform(QsNamespace ns)
                 {
-                    Transformation.InternalState.NamespaceCallables.TryGetValue(ns.Name, out IEnumerable<QsCallable> concretesInNs);
+                    SharedState.NamespaceCallables.TryGetValue(ns.Name, out IEnumerable<QsCallable> concretesInNs);
 
                     // Removes unused or generic callables from the namespace
                     // Adds in the used concrete callables
@@ -264,7 +264,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
                 public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
                 {
-                    if (Transformation.InternalState.TypeParams.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
+                    if (SharedState.TypeParams.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
                     {
                         return typeParam.Resolution;
                     }
@@ -336,7 +336,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                     // Merge the type params into the current dictionary
                     foreach (var kvp in typeParams)
                     {
-                        Transformation.InternalState.CurrentParamTypes.Add(kvp.Key, kvp.Value);
+                        SharedState.CurrentParamTypes.Add(kvp.Key, kvp.Value);
                     }
 
                     return ImmutableConcretion.Empty;
@@ -351,18 +351,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 {
                     if (sym is Identifier.GlobalCallable global)
                     {
-                        ImmutableConcretion applicableParams = Transformation.InternalState.CurrentParamTypes
+                        ImmutableConcretion applicableParams = SharedState.CurrentParamTypes
                             .Where(kvp => kvp.Key.Item1.Equals(global.Item))
                             .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                         // Create a new identifier
-                        sym = Transformation.InternalState.GetConcreteIdentifier(global, applicableParams);
+                        sym = SharedState.GetConcreteIdentifier(global, applicableParams);
                         tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
 
                         // Remove Type Params used from the CurrentParamTypes
                         foreach (var key in applicableParams.Keys)
                         {
-                            Transformation.InternalState.CurrentParamTypes.Remove(key);
+                            SharedState.CurrentParamTypes.Remove(key);
                         }
                     }
                     else if (sym is Identifier.LocalVariable && tArgs.IsValue && tArgs.Item.Any())
@@ -380,7 +380,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
                 public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
                 {
-                    if (Transformation.InternalState.CurrentParamTypes.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
+                    if (SharedState.CurrentParamTypes.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
                     {
                         return typeParam.Resolution;
                     }

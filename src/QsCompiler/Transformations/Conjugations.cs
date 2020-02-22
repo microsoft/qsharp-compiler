@@ -68,8 +68,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
                     {
                         // since we are eliminating scopes, 
                         // we need to make sure that the variables defined within the inlined scopes do not clash with other defined variables.
-                        var outer = this.Transformation.InternalState.ResolveNames(this.Transform(conj.Item.OuterTransformation.Body));
-                        var inner = this.Transformation.InternalState.ResolveNames(this.Transform(conj.Item.InnerTransformation.Body));
+                        var outer = this.SharedState.ResolveNames(this.Transform(conj.Item.OuterTransformation.Body));
+                        var inner = this.SharedState.ResolveNames(this.Transform(conj.Item.InnerTransformation.Body));
                         var adjOuter = outer.GenerateAdjoint(); // will add a unique name wrapper
 
                         statements.AddRange(outer.Statements);
@@ -94,12 +94,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> onProvidedImplementation
                 (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
             {
-                this.Transformation.InternalState.Reset();
+                this.SharedState.Reset();
                 try { body = this.Transformation.Statements.Transform(body); }
                 catch (Exception ex)
                 {
-                    this.Transformation.InternalState.OnException?.Invoke(ex);
-                    this.Transformation.InternalState.Success = false;
+                    this.SharedState.OnException?.Invoke(ex);
+                    this.SharedState.Success = false;
                 }
                 return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
             }

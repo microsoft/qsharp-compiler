@@ -72,12 +72,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
             public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> onOperationCall(TypedExpression method, TypedExpression arg)
             {
-                if (this.Transformation.InternalState.FunctorToApply.IsControlled)
+                if (this.SharedState.FunctorToApply.IsControlled)
                 {
                     method = SyntaxGenerator.ControlledOperation(method);
                     arg = SyntaxGenerator.ArgumentWithControlQubits(arg, ControlQubits);
                 }
-                else if (this.Transformation.InternalState.FunctorToApply.IsAdjoint)
+                else if (this.SharedState.FunctorToApply.IsAdjoint)
                 {
                     method = SyntaxGenerator.AdjointOperation(method);
                 }
@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 foreach (var statement in scope.Statements)
                 {
                     var transformed = this.onStatement(statement);
-                    if (this.SubSelector.InternalState.SatisfiesCondition) topStatements.Add(statement);
+                    if (this.SubSelector.SharedState.SatisfiesCondition) topStatements.Add(statement);
                     else bottomStatements.Add(transformed);
                 }
                 bottomStatements.Reverse();

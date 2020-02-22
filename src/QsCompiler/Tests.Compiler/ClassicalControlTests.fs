@@ -69,7 +69,7 @@ type ClassicalControlTests () =
         |> writer.Statements.Transform
         |> ignore
 
-        writer.InternalState.StatementOutputHandle 
+        writer.SharedState.StatementOutputHandle 
         |> Seq.filter (not << String.IsNullOrWhiteSpace)
         |> Seq.toArray
 

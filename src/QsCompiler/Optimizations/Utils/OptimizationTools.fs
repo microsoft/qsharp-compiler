@@ -110,7 +110,7 @@ type private ReplaceTypeParamsTypes(parent : Core.SyntaxTreeTransformation<_>) =
 
     override this.onTypeParameter tp =
         let key = tp.Origin, tp.TypeName
-        match this.Transformation.InternalState.TryGetValue key with 
+        match this.SharedState.TryGetValue key with 
         | true, t -> t.Resolution
         | _ -> TypeKind.TypeParameter tp
 

@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
             var filter = new GetSourceFiles();
             foreach (var ns in namespaces) filter.Namespaces.Transform(ns);
-            return filter.InternalState.SourceFiles.ToImmutableHashSet();
+            return filter.SharedState.SourceFiles.ToImmutableHashSet();
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
             public override NonNullable<string> onSourceFile(NonNullable<string> f)
             {
-                this.Transformation.InternalState.SourceFiles.Add(f);
+                this.SharedState.SourceFiles.Add(f);
                 return base.onSourceFile(f);
             }
         }
@@ -128,15 +128,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
             public override QsCustomType onType(QsCustomType t)
             {
-                if (this.Transformation.InternalState.Predicate(t.SourceFile))
-                { this.Transformation.InternalState.Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t))); }
+                if (this.SharedState.Predicate(t.SourceFile))
+                { this.SharedState.Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t))); }
                 return t;
             }
 
             public override QsCallable onCallableImplementation(QsCallable c)
             {
-                if (this.Transformation.InternalState.Predicate(c.SourceFile))
-                { this.Transformation.InternalState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
+                if (this.SharedState.Predicate(c.SourceFile))
+                { this.SharedState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
                 return c;
             }
 
@@ -148,10 +148,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                     if (!x.Item1.HasValue && !y.Item1.HasValue) return Comparer<string>.Default.Compare(x.Item2.GetFullName().ToString(), y.Item2.GetFullName().ToString());
                     return x.Item1.HasValue ? -1 : 1;
                 }
-                this.Transformation.InternalState.Elements.Clear();
+                this.SharedState.Elements.Clear();
                 base.Transform(ns);
-                this.Transformation.InternalState.Elements.Sort(SortComparison);
-                return new QsNamespace(ns.Name, this.Transformation.InternalState.Elements.Select(e => e.Item2).ToImmutableArray(), ns.Documentation);
+                this.SharedState.Elements.Sort(SortComparison);
+                return new QsNamespace(ns.Name, this.SharedState.Elements.Select(e => e.Item2).ToImmutableArray(), ns.Documentation);
             }
         }
     }
@@ -220,12 +220,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
             public override QsStatement onStatement(QsStatement stm)
             {
-                this.SubSelector = this.CreateSelector(this.Transformation.InternalState);
+                this.SubSelector = this.CreateSelector(this.SharedState);
                 var loc = this.SubSelector.Statements.onLocation(stm.Location);
                 var stmKind = this.SubSelector.StatementKinds.Transform(stm.Statement);
                 var varDecl = this.SubSelector.Statements.onLocalDeclarations(stm.SymbolDeclarations);
-                this.Transformation.InternalState.FoldResult = this.Transformation.InternalState.ConstructFold(
-                    this.Transformation.InternalState.FoldResult, this.SubSelector.InternalState.FoldResult);
+                this.SharedState.FoldResult = this.SharedState.ConstructFold(
+                    this.SharedState.FoldResult, this.SubSelector.SharedState.FoldResult);
                 return new QsStatement(stmKind, varDecl, loc, stm.Comments);
             }
 
@@ -237,7 +237,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                     // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement,
                     // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
                     var transformed = this.onStatement(statement);
-                    if (this.SubSelector.InternalState.SatisfiesCondition) statements.Add(transformed);
+                    if (this.SubSelector.SharedState.SatisfiesCondition) statements.Add(transformed);
                 }
                 return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
             }
@@ -305,8 +305,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         public override TypedExpression Transform(TypedExpression ex)
         {
-            ex = this.Transformation.InternalState.Recur ? base.Transform(ex) : ex;
-            this.Transformation.InternalState.FoldResult = this.Transformation.InternalState.Fold(ex, this.Transformation.InternalState.FoldResult);
+            ex = this.SharedState.Recur ? base.Transform(ex) : ex;
+            this.SharedState.FoldResult = this.SharedState.Fold(ex, this.SharedState.FoldResult);
             return ex;
         }
     }

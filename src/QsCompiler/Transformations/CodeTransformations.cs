@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler
             var inline = new InlineConjugations(onException);
             var namespaces = compilation.Namespaces.Select(inline.Namespaces.Transform).ToImmutableArray();
             inlined = new QsCompilation(namespaces, compilation.EntryPoints);
-            return inline.InternalState.Success;
+            return inline.SharedState.Success;
         }
 
         /// <summary>
