@@ -116,6 +116,7 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsRange)) warnO
         | QsSymbolKind.Symbol name -> tryBuildDeclaration (name, sym.RangeOrDefault) (exType, rhsRange) |> function
             | Some decl, errs -> VariableName name, [|decl|], errs
             | None, errs -> VariableName name, [||], errs
+        | QsSymbolKind.SymbolTuple syms when syms.Length = 1 -> GetBindings (syms.[0], exType)
         | QsSymbolKind.SymbolTuple syms -> exType |> function 
             | Tuple ts when syms.Length = ts.Length ->
                 let (symItems, declarations, errs) = Seq.zip syms ts |> Seq.map GetBindings |> Seq.toList |> List.unzip3
