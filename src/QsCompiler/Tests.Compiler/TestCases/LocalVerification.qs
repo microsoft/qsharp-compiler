@@ -9,6 +9,49 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     open Microsoft.Quantum.Testing.TypeChecking;
 
 
+    // variable declarations 
+
+    operation VariableDeclaration1 () : Unit {
+        using (q = Qubit()) {}
+    }
+
+    operation VariableDeclaration2 () : Unit {
+        using (q = (Qubit())) {}
+    }
+
+    operation VariableDeclaration3 () : Unit {
+        using ((q) = Qubit()) {}
+    }
+
+    operation VariableDeclaration4 () : Unit {
+        using ((q) = (Qubit())) {}
+    }
+
+    operation VariableDeclaration5 () : Unit {
+        using ((q1, q2) = (Qubit(), Qubit())) {}
+    }
+
+    operation VariableDeclaration6 () : Unit {
+        using ((q1, (q2)) = (Qubit(), Qubit())) {}
+    }
+
+    operation VariableDeclaration7 () : Unit {
+        using ((qs) = (Qubit(), Qubit())) {}
+    }
+
+    operation VariableDeclaration8 () : Unit {
+        using (qs = (Qubit(), Qubit())) {}
+    }
+
+    operation VariableDeclaration9 () : Unit {
+        using ((q1, q2) = (Qubit())) {}
+    }
+
+    operation VariableDeclaration10 () : Unit {
+        using ((q1, q2, q3) = (Qubit(), (Qubit(), Qubit()))) {}
+    }
+
+
     // copy-and-update array
 
     function CopyAndUpdateArray1 (arr : Int[]) : Int[] {
