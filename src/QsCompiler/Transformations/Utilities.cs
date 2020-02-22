@@ -108,6 +108,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             }).Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
         }
 
+        public static (TypedExpression, TypedExpression) GetNoOp()
+        {
+            var identifier = Utilities.CreateIdentifierExpression(
+                Identifier.NewGlobalCallable(new QsQualifiedName(BuiltIn.NoOp.Namespace, BuiltIn.NoOp.Name)),
+                BuiltIn.NoOp.TypeParameters
+                    .Select(param => Tuple.Create(new QsQualifiedName(BuiltIn.NoOp.Namespace, BuiltIn.NoOp.Name), param, ResolvedType.New(ResolvedTypeKind.UnitType)))
+                    .ToImmutableArray(),
+                Utilities.GetOperatorResolvedType(new[] { OpProperty.Adjointable, OpProperty.Controllable }, ResolvedType.New(ResolvedTypeKind.UnitType)));
+
+            var args = new TypedExpression
+            (
+                ExpressionKind.UnitValue,
+                TypeArgsResolution.Empty,
+                ResolvedType.New(ResolvedTypeKind.UnitType),
+                new InferredExpressionInformation(false, false),
+                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+            );
+
+            return (identifier, args);
+        }
+
         public static QsQualifiedName AddGuid(QsQualifiedName original) =>
             new QsQualifiedName(original.Namespace, NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + original.Name.Value));
     }
