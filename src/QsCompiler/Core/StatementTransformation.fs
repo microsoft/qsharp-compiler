@@ -90,7 +90,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
         let cases = stm.ConditionalBlocks |> Seq.map (fun (c, b) -> 
             let cond, block = this.onPositionedBlock (Value c, b)
             let invalidCondition () = failwith "missing condition in if-statement"
-            cond.ValueOrApply invalidCondition, block)
+            cond.ValueOrApply invalidCondition, block) |> ImmutableArray.CreateRange
         let defaultCase = stm.Default |> QsNullable<_>.Map (fun b -> this.onPositionedBlock (Null, b) |> snd)
         QsConditionalStatement << QsConditionalStatement.New |> Node.BuildOr EmptyStatement (cases, defaultCase)
 

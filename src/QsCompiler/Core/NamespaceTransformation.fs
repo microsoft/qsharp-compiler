@@ -74,7 +74,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     default this.onTypeItems tItem = 
         match tItem with 
         | QsTuple items as original -> 
-            let transformed = (items |> Seq.map this.onTypeItems).ToImmutableArray()
+            let transformed = items |> Seq.map this.onTypeItems |> ImmutableArray.CreateRange
             QsTuple |> Node.BuildOr original transformed
         | QsTupleItem (Anonymous itemType) as original -> 
             let t = this.Statements.Expressions.Types.Transform itemType
@@ -89,7 +89,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     default this.onArgumentTuple arg = 
         match arg with 
         | QsTuple items as original -> 
-            let transformed = (items |> Seq.map this.onArgumentTuple).ToImmutableArray()
+            let transformed = items |> Seq.map this.onArgumentTuple |> ImmutableArray.CreateRange
             QsTuple |> Node.BuildOr original transformed 
         | QsTupleItem item as original -> 
             let loc  = item.Position, item.Range
@@ -152,7 +152,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let source = this.onSourceFile spec.SourceFile
         let loc = this.onLocation spec.Location
         let attributes = spec.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> (args |> Seq.map this.Statements.Expressions.Types.Transform).ToImmutableArray())
+        let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> args |> Seq.map this.Statements.Expressions.Types.Transform |> ImmutableArray.CreateRange)
         let signature = this.onSignature spec.Signature
         let impl = this.dispatchSpecializationImplementation spec.Implementation 
         let doc = this.onDocumentation spec.Documentation
@@ -200,7 +200,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let attributes = c.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
         let signature = this.onSignature c.Signature
         let argTuple = this.onArgumentTuple c.ArgumentTuple
-        let specializations = c.Specializations |> Seq.map this.dispatchSpecialization
+        let specializations = c.Specializations |> Seq.sortBy (fun c -> c.Kind) |> Seq.map this.dispatchSpecialization |> ImmutableArray.CreateRange
         let doc = this.onDocumentation c.Documentation
         let comments = c.Comments
         QsCallable.New c.Kind (source, loc) |> Node.BuildOr c (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
@@ -235,6 +235,6 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let name = ns.Name
         let doc = ns.Documentation.AsEnumerable().SelectMany(fun entry -> 
             entry |> Seq.map (fun doc -> entry.Key, this.onDocumentation doc)).ToLookup(fst, snd)
-        let elements = ns.Elements |> Seq.map this.dispatchNamespaceElement
+        let elements = ns.Elements |> Seq.map this.dispatchNamespaceElement |> ImmutableArray.CreateRange
         QsNamespace.New |> Node.BuildOr ns (name, elements, doc)
 
