@@ -25,13 +25,8 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
     member val internal TypeTransformationHandle = missingTransformation "type" with get, set
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
 
-    // TODO: this should be a protected member
-    abstract member Types : TypeTransformationBase
-    default this.Types = this.TypeTransformationHandle()
-    
-    // TODO: this should be a protected member
-    abstract member Expressions : ExpressionTransformationBase
-    default this.Expressions = this.ExpressionTransformationHandle()
+    member this.Types = this.TypeTransformationHandle()
+    member this.Expressions = this.ExpressionTransformationHandle()
 
     new (expressionTransformation : unit -> ExpressionTransformationBase, typeTransformation : unit -> TypeTransformationBase, options) as this = 
         new ExpressionKindTransformationBase(options, "_internal_") then 
@@ -360,13 +355,8 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
     member val internal TypeTransformationHandle = missingTransformation "type" with get, set
     member val internal ExpressionKindTransformationHandle = missingTransformation "expression kind" with get, set
 
-    // TODO: this should be a protected member
-    abstract member Types : TypeTransformationBase
-    default this.Types = this.TypeTransformationHandle()
-
-    // TODO: this should be a protected member
-    abstract member ExpressionKinds : ExpressionKindTransformationBase
-    default this.ExpressionKinds = this.ExpressionKindTransformationHandle()
+    member this.Types = this.TypeTransformationHandle()
+    member this.ExpressionKinds = this.ExpressionKindTransformationHandle()
 
     new (exkindTransformation : unit -> ExpressionKindTransformationBase, typeTransformation : unit -> TypeTransformationBase, options : TransformationOptions) as this = 
         new ExpressionTransformationBase(options, "_internal_") then 

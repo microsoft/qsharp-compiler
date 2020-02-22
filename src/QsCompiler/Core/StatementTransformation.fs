@@ -20,13 +20,8 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
 
-    // TODO: this should be a protected member
-    abstract member Expressions : ExpressionTransformationBase
-    default this.Expressions = this.ExpressionTransformationHandle()
-
-    // TODO: this should be a protected member
-    abstract member Statements : StatementTransformationBase
-    default this.Statements = this.StatementTransformationHandle()
+    member this.Expressions = this.ExpressionTransformationHandle()
+    member this.Statements = this.StatementTransformationHandle()
 
     new (statementTransformation : unit -> StatementTransformationBase, expressionTransformation : unit -> ExpressionTransformationBase, options : TransformationOptions) as this = 
         new StatementKindTransformationBase(options, "_internal_") then 
@@ -199,13 +194,8 @@ and StatementTransformationBase internal (options : TransformationOptions, _inte
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
     member val internal StatementKindTransformationHandle = missingTransformation "statement kind" with get, set
 
-    // TODO: this should be a protected member
-    abstract member Expressions : ExpressionTransformationBase
-    default this.Expressions = this.ExpressionTransformationHandle()
-
-    // TODO: this should be a protected member
-    abstract member StatementKinds : StatementKindTransformationBase
-    default this.StatementKinds = this.StatementKindTransformationHandle()
+    member this.Expressions = this.ExpressionTransformationHandle()
+    member this.StatementKinds = this.StatementKindTransformationHandle()
 
     new (statementKindTransformation : unit -> StatementKindTransformationBase, expressionTransformation : unit -> ExpressionTransformationBase, options : TransformationOptions) as this = 
         new StatementTransformationBase(options, "_internal_") then 

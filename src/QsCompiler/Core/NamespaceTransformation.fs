@@ -21,10 +21,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     let Node = if options.DisableRebuild then Walk else Fold
 
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
-
-    // TODO: this should be a protected member
-    abstract member Statements : StatementTransformationBase
-    default this.Statements = this.StatementTransformationHandle()
+    member this.Statements = this.StatementTransformationHandle()
 
     new (statementTransformation : unit -> StatementTransformationBase, options : TransformationOptions) as this = 
         new NamespaceTransformationBase(options, "_internal_") then 
