@@ -3,9 +3,13 @@
 
 
 namespace SubOps {
-    operation SubOp1() : Unit is Adj + Ctl { }
-    operation SubOp2() : Unit is Adj + Ctl { }
-    operation SubOp3() : Unit is Adj + Ctl { }
+    operation SubOp1() : Unit { }
+    operation SubOp2() : Unit { }
+    operation SubOp3() : Unit { }
+
+    operation SubOpCA1() : Unit is Ctl + Adj { }
+    operation SubOpCA2() : Unit is Ctl + Adj { }
+    operation SubOpCA3() : Unit is Ctl + Adj { }
 }
 
 // =================================
@@ -27,7 +31,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             }
         }
     }
-
 }
 
 // =================================
@@ -51,7 +54,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             }
         }
     }
-
 }
 
 // =================================
@@ -66,7 +68,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             SubOp1();
         }
     }
-
 }
 
 // =================================
@@ -82,7 +83,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let temp = 2;
         }
     }
-
 }
 
 // =================================
@@ -98,7 +98,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             return ();
         }
     }
-
 }
 
 // =================================
@@ -143,7 +142,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             return ();
         }
     }
-
 }
 
 // =================================
@@ -157,19 +155,14 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
         if (r == Zero) {
             SubOp1();
-            SubOp2();
-            SubOp3();
         }
 
         let temp = 0;
 
         if (r == One) {
             SubOp2();
-            SubOp3();
-            SubOp1();
         }
     }
-
 }
 
 // =================================
@@ -178,18 +171,17 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
+    operation Bar(r : Result) : Unit { }
+
     operation Foo() : Unit {
         let r = Zero;
 
         if (r == Zero) {
-            SubOp1();
-            SubOp2();
+            Bar(r);
         } else {
-            SubOp2();
-            SubOp3();
+            SubOp1();
         }
     }
-
 }
 
 // =================================
@@ -198,18 +190,17 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
+    operation Bar(r : Result) : Unit { }
+
     operation Foo() : Unit {
         let r = One;
 
         if (r == One) {
-            SubOp1();
-            SubOp2();
+            Bar(r);
         } else {
-            SubOp2();
-            SubOp3();
+            SubOp1();
         }
     }
-
 }
 
 // =================================
@@ -223,16 +214,12 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
         if (r == Zero) {
             SubOp1();
-            SubOp2();
         } elif (r == One) {
-            SubOp3();
-            SubOp1();
-        } else {
             SubOp2();
+        } else {
             SubOp3();
         }
     }
-
 }
 
 // =================================
@@ -246,13 +233,10 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
         if (r == Zero and r == One) {
             SubOp1();
-            SubOp2();
         } else {
             SubOp2();
-            SubOp3();
         }
     }
-
 }
 
 // =================================
@@ -266,13 +250,10 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
         if (r == Zero or r == One) {
             SubOp1();
-            SubOp2();
         } else {
             SubOp2();
-            SubOp3();
         }
     }
-
 }
 
 // =================================
@@ -293,7 +274,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     function SubFunc1() : Unit { }
     function SubFunc2() : Unit { }
     function SubFunc3() : Unit { }
-
 }
 
 // =================================
@@ -310,7 +290,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             set temp = 4;
         }
     }
-
 }
 
 // =================================
@@ -327,7 +306,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             set temp = 4;
         }
     }
-
 }
 
 // =================================
@@ -344,7 +322,6 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             SubOp2();
         }
     }
-
 }
 
 // =================================
@@ -358,8 +335,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
 
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -367,8 +344,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
 
             if (w == One) {
-                SubOp2();
-                SubOp3();
+                SubOpCA2();
+                SubOpCA3();
             }
         }
     }
@@ -378,8 +355,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
 
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -391,14 +368,13 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
 
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
         adjoint invert;
     }
-
 }
 
 // =================================
@@ -412,8 +388,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
 
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -421,8 +397,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
 
             if (w == One) {
-                SubOp2();
-                SubOp3();
+                SubOpCA2();
+                SubOpCA3();
             }
         }
     }
@@ -432,14 +408,13 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
 
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
         controlled distribute;
     }
-
 }
 
 // =================================
@@ -453,8 +428,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -462,8 +437,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let y = One;
     
             if (y == One) {
-                SubOp2();
-                SubOp3();
+                SubOpCA2();
+                SubOpCA3();
             }
         }
     }
@@ -473,8 +448,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -482,8 +457,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
 
             if (w == One) {
-                SubOp3();
-                SubOp1();
+                SubOpCA3();
+                SubOpCA1();
             }
         }
 
@@ -491,8 +466,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let y = One;
     
             if (y == One) {
-                SubOp2();
-                SubOp3();
+                SubOpCA2();
+                SubOpCA3();
             }
         }
     }
@@ -502,8 +477,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -511,8 +486,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
 
             if (w == One) {
-                SubOp3();
-                SubOp1();
+                SubOpCA3();
+                SubOpCA1();
             }
         }
 
@@ -520,8 +495,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let y = One;
     
             if (y == One) {
-                SubOp2();
-                SubOp3();
+                SubOpCA2();
+                SubOpCA3();
             }
         }
     }
@@ -531,8 +506,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -540,8 +515,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
 
             if (w == One) {
-                SubOp3();
-                SubOp1();
+                SubOpCA3();
+                SubOpCA1();
             }
         }
 
@@ -549,8 +524,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let y = One;
     
             if (y == One) {
-                SubOp2();
-                SubOp3();
+                SubOpCA2();
+                SubOpCA3();
             }
         }
 
@@ -560,11 +535,10 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             if (b == One) {
                 let temp1 = 0;
                 let temp2 = 0;
-                SubOp3();
+                SubOpCA3();
             }
         }
     }
-
 }
 
 // =================================
@@ -578,8 +552,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -591,8 +565,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -600,8 +574,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
 
             if (w == One) {
-                SubOp3();
-                SubOp1();
+                SubOpCA3();
+                SubOpCA1();
             }
         }
 
@@ -613,8 +587,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -622,8 +596,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
 
             if (w == One) {
-                SubOp3();
-                SubOp1();
+                SubOpCA3();
+                SubOpCA1();
             }
         }
 
@@ -635,8 +609,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
 
@@ -644,8 +618,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
 
             if (w == One) {
-                SubOp3();
-                SubOp1();
+                SubOpCA3();
+                SubOpCA1();
             }
         }
 
@@ -653,14 +627,13 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let y = One;
     
             if (y == One) {
-                SubOp2();
-                SubOp3();
+                SubOpCA2();
+                SubOpCA3();
             }
         }
 
         controlled adjoint distribute;
     }
-
 }
 
 // =================================
@@ -674,8 +647,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
     
@@ -687,8 +660,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
     
@@ -696,8 +669,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
     
             if (w == One) {
-                SubOp3();
-                SubOp1();
+                SubOpCA3();
+                SubOpCA1();
             }
         }
     
@@ -709,8 +682,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
     
@@ -718,8 +691,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
     
             if (w == One) {
-                SubOp3();
-                SubOp1();
+                SubOpCA3();
+                SubOpCA1();
             }
         }
     
@@ -731,8 +704,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
     
@@ -740,8 +713,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
     
             if (w == One) {
-                SubOp3();
-                SubOp1();
+                SubOpCA3();
+                SubOpCA1();
             }
         }
     
@@ -749,14 +722,13 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let y = One;
     
             if (y == One) {
-                SubOp2();
-                SubOp3();
+                SubOpCA2();
+                SubOpCA3();
             }
         }
     
         controlled adjoint invert;
     }
-
 }
 
 // =================================
@@ -770,8 +742,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
     
@@ -783,8 +755,8 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let r = Zero;
     
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         }
     
@@ -792,14 +764,13 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             let w = One;
     
             if (w == One) {
-                SubOp3();
-                SubOp1();
+                SubOpCA3();
+                SubOpCA1();
             }
         }
     
         controlled adjoint self;
     }
-
 }
 
 // =================================
@@ -812,17 +783,16 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         let r = One;
         within {
             if (r == Zero) {
-                SubOp1();
-                SubOp2();
+                SubOpCA1();
+                SubOpCA2();
             }
         } apply {
             if (r == One) {
-                SubOp2();
-                SubOp3();
+                SubOpCA2();
+                SubOpCA3();
             }
         }
     }
-
 }
 
 // =================================
@@ -849,7 +819,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     operation Foo() : Unit {
         let r = Zero;
         if (r == Zero) {
-            Adjoint SubOp1();
+            Adjoint SubOpCA1();
         }
     }
 }

@@ -271,6 +271,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         if (condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
                         {
                             props = op.Item2.Characteristics.GetProperties();
+                            if (defaultId != null && defaultId.ResolvedType.Resolution is ResolvedTypeKind.Operation defaultOp)
+                            {
+                                props = props.Intersect(defaultOp.Item2.Characteristics.GetProperties());
+                            }
                         }
 
                         (bool adj, bool ctl) = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable));

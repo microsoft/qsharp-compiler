@@ -208,7 +208,7 @@ let private _TypeParameterTypes = _MakeTypeMap [|
 
 let private _DefaultWithOperation = _MakeTypeMap [|
     "SubOp1Type[]", ((ResolvedType.New UnitType, ResolvedType.New UnitType), {
-        Characteristics = (ResolvedCharacteristics.FromProperties [OpProperty.Adjointable; OpProperty.Controllable])
+        Characteristics = ResolvedCharacteristics.Empty
         InferredInformation = InferredCallableInformation.NoInformation
     }) |> QsTypeKind.Operation |> ResolvedType.New |> ArrayType
 |]
@@ -241,34 +241,23 @@ let public ClassicalControlSignatures =
         |])
         (_DefaultTypes, [| // ApplyIfZero And ApplyIfOne
             ClassicalControlNs, "Foo", [||], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"; "Int"|], "Unit"
         |])
         (_DefaultTypes, [| // Apply If Zero Else One
+            ClassicalControlNs, "Bar", [|"Result"|], "Unit"
             ClassicalControlNs, "Foo", [||], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // Apply If One Else Zero
+            ClassicalControlNs, "Bar", [|"Result"|], "Unit"
             ClassicalControlNs, "Foo", [||], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // If Elif
             ClassicalControlNs, "Foo", [||], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // And Condition
             ClassicalControlNs, "Foo", [||], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // Or Condition
             ClassicalControlNs, "Foo", [||], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
-            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // Don't Hoist Functions
             ClassicalControlNs, "Foo", [||], "Unit"
