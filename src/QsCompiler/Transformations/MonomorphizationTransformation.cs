@@ -134,8 +134,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 if (!typesHashSet.IsEmpty)
                 {
                     // Create new name
-                    name = "_" + Guid.NewGuid().ToString("N") + "_" + globalCallable.Item.Name.Value;
-                    concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name));
+                    concreteName = Utilities.AddGuid(globalCallable.Item);
                 }
 
                 requests.Push(new Request()
@@ -168,7 +167,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
             public class TransformationState
             {
-                internal readonly ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> NamespaceCallables;
+                public readonly ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> NamespaceCallables;
 
                 public TransformationState(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables)
                 {
@@ -228,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
             public class TransformationState
             {
-                internal readonly ImmutableConcretion TypeParams;
+                public readonly ImmutableConcretion TypeParams;
 
                 public TransformationState(ImmutableConcretion typeParams)
                 {
@@ -296,8 +295,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
 
             public class TransformationState
             {
-                internal readonly Concretion CurrentParamTypes = new Concretion();
-                internal readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
+                public readonly Concretion CurrentParamTypes = new Concretion();
+                public readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
 
                 public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier)
                 {
