@@ -19,6 +19,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 
     public class DocWritingTests
     {
+        /// <summary>
+        /// Tests that internal and private items are skipped when generating documentation for a namespace.
+        /// </summary>
         [Fact]
         public void ExcludeInaccessible()
         {
