@@ -262,7 +262,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             {
                 public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
+                public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp)
                 {
                     if (SharedState.TypeParams.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
                     {
@@ -321,7 +321,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                     var typeParamResolutions = this.OnTypeParamResolutions(ex.TypeParameterResolutions)
                         .Select(kv => new Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>(kv.Key.Item1, kv.Key.Item2, kv.Value))
                         .ToImmutableArray();
-                    var exType = this.Types.onType(ex.ResolvedType);
+                    var exType = this.Types.OnType(ex.ResolvedType);
                     var inferredInfo = this.OnExpressionInformation(ex.InferredInformation);
                     // Change the order so that Kind is transformed last.
                     // This matters because the onTypeParamResolutions method builds up type param mappings in
@@ -378,7 +378,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             {
                 public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
+                public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp)
                 {
                     if (SharedState.CurrentParamTypes.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
                     {

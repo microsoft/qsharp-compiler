@@ -197,14 +197,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 base(parent)
             { }
 
-            public override QsTypeKind onUserDefinedType(UserDefinedType udt)
+            public override QsTypeKind OnUserDefinedType(UserDefinedType udt)
             {
                 var id = Identifier.NewGlobalCallable(new QsQualifiedName(udt.Namespace, udt.Name));
                 this.SharedState.LogIdentifierLocation(id, udt.Range);
                 return QsTypeKind.NewUserDefinedType(udt);
             }
 
-            public override QsTypeKind onTypeParameter(QsTypeParameter tp)
+            public override QsTypeKind OnTypeParameter(QsTypeParameter tp)
             {
                 var resT = ResolvedType.New(QsTypeKind.NewTypeParameter(tp));
                 var id = Identifier.NewLocalVariable(NonNullable<string>.New(SyntaxTreeToQs.Default.ToCode(resT) ?? ""));
@@ -255,7 +255,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             {
                 var declRoot = this.SharedState.DeclarationOffset;
                 this.SharedState.DeclarationOffset = att.Offset;
-                if (att.TypeId.IsValue) this.Transformation.Types.onUserDefinedType(att.TypeId.Item);
+                if (att.TypeId.IsValue) this.Transformation.Types.OnUserDefinedType(att.TypeId.Item);
                 this.Transformation.Expressions.OnTypedExpression(att.Argument);
                 this.SharedState.DeclarationOffset = declRoot;
                 return att;

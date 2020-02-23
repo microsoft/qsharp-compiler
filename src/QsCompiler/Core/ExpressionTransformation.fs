@@ -68,7 +68,7 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
 
     abstract member OnIdentifier : Identifier * QsNullable<ImmutableArray<ResolvedType>> -> ExpressionKind
     default this.OnIdentifier (sym, tArgs) = 
-        let tArgs =  tArgs |> QsNullable<_>.Map (fun ts -> ts |> Seq.map this.Types.onType |> ImmutableArray.CreateRange)
+        let tArgs =  tArgs |> QsNullable<_>.Map (fun ts -> ts |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
         Identifier |> Node.BuildOr InvalidExpr (sym, tArgs)
 
     abstract member OnOperationCall : TypedExpression * TypedExpression -> ExpressionKind
@@ -123,7 +123,7 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
 
     abstract member OnNewArray : ResolvedType * TypedExpression -> ExpressionKind
     default this.OnNewArray (bt, idx) = 
-        let bt, idx = this.Types.onType bt, this.Expressions.OnTypedExpression idx
+        let bt, idx = this.Types.OnType bt, this.Expressions.OnTypedExpression idx
         NewArray |> Node.BuildOr InvalidExpr (bt, idx)
 
     abstract member OnStringLiteral : NonNullable<string> * ImmutableArray<TypedExpression> -> ExpressionKind
@@ -393,8 +393,8 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
         let asTypeParameter (key) = QsTypeParameter.New (fst key, snd key, Null)
         let filteredTypeParams = 
             typeParams 
-            |> Seq.map (fun kv -> this.Types.onTypeParameter (kv.Key |> asTypeParameter), kv.Value)
-            |> Seq.choose (function | TypeParameter tp, value -> Some ((tp.Origin, tp.TypeName), this.Types.onType value) | _ -> None)
+            |> Seq.map (fun kv -> this.Types.OnTypeParameter (kv.Key |> asTypeParameter), kv.Value)
+            |> Seq.choose (function | TypeParameter tp, value -> Some ((tp.Origin, tp.TypeName), this.Types.OnType value) | _ -> None)
             |> Seq.map (fun (key, value) -> new KeyValuePair<_,_>(key, value))
         ImmutableDictionary.CreateRange |> Node.BuildOr typeParams filteredTypeParams
 
@@ -407,6 +407,6 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
         let range                = this.OnRangeInformation ex.Range
         let typeParamResolutions = this.OnTypeParamResolutions ex.TypeParameterResolutions
         let kind                 = this.ExpressionKinds.OnExpressionKind ex.Expression
-        let exType               = this.Types.onType ex.ResolvedType
+        let exType               = this.Types.OnType ex.ResolvedType
         let inferredInfo         = this.OnExpressionInformation ex.InferredInformation
         TypedExpression.New |> Node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)

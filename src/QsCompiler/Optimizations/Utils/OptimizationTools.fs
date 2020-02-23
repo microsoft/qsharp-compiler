@@ -108,7 +108,7 @@ and private ReferenceCounterExpressionKinds(parent : ReferenceCounter) =
 type private ReplaceTypeParamsTypes(parent : Core.SyntaxTreeTransformation<_>) = 
     inherit Core.TypeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(parent)
 
-    override this.onTypeParameter tp =
+    override this.OnTypeParameter tp =
         let key = tp.Origin, tp.TypeName
         match this.SharedState.TryGetValue key with 
         | true, t -> t.Resolution

@@ -983,7 +983,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
                 {
                     // Prevent keys from having their names updated
-                    return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.onType(kvp.Value));
+                    return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.OnType(kvp.Value));
                 }
 
                 public override TypedExpression OnTypedExpression(TypedExpression ex)
@@ -1036,7 +1036,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override ResolvedTypeKind onTypeParameter(QsTypeParameter tp)
+                public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
                 {
                     // Reroute a type parameter's origin to the newly generated operation
                     if (!SharedState.IsRecursiveIdentifier && SharedState.OldName.Equals(tp.Origin))
@@ -1044,7 +1044,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         tp = new QsTypeParameter(SharedState.NewName, tp.TypeName, tp.Range);
                     }
 
-                    return base.onTypeParameter(tp);
+                    return base.OnTypeParameter(tp);
                 }
             }
         }

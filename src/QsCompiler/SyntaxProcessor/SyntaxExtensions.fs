@@ -261,17 +261,17 @@ let private namespaceDocumentation (docs : ILookup<NonNullable<string>, Immutabl
 
 type private TName () = 
     inherit SyntaxTreeToQs.TypeTransformation() 
-    override this.onCharacteristicsExpression characteristics =
+    override this.OnCharacteristicsExpression characteristics =
         if characteristics.AreInvalid then this.Output <- "?"; characteristics
-        else base.onCharacteristicsExpression characteristics
-    override this.onInvalidType() = 
+        else base.OnCharacteristicsExpression characteristics
+    override this.OnInvalidType() = 
         this.Output <- "?"
         InvalidType
-    override this.onUserDefinedType udt = 
+    override this.OnUserDefinedType udt = 
         this.Output <- udt.Name.Value
         UserDefinedType udt
     member this.Apply t = 
-        this.onType t |> ignore
+        this.OnType t |> ignore
         this.Output
 let private TypeString = new TName()
 let private TypeName = TypeString.Apply

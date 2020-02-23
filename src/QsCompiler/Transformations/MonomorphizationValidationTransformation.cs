@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
         {
             public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-            public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
+            public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp)
             {
                 throw new Exception("Type Parameter types must be resolved");
             }

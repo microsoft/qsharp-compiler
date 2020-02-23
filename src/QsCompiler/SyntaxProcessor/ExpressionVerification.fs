@@ -25,11 +25,11 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 type private StripInferredInfoFromType () = 
     inherit TypeTransformationBase()
-    default this.onCallableInformation opInfo = 
-        let characteristics = this.onCharacteristicsExpression opInfo.Characteristics
+    default this.OnCallableInformation opInfo = 
+        let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         CallableInformation.New (characteristics, InferredCallableInformation.NoInformation)
-    override this.onRangeInformation _ = QsRangeInfo.Null
-let private StripInferredInfoFromType = (new StripInferredInfoFromType()).onType
+    override this.OnRangeInformation _ = QsRangeInfo.Null
+let private StripInferredInfoFromType = (new StripInferredInfoFromType()).OnType
 
 /// used for type matching arguments in call-like expressions
 type private Variance = 

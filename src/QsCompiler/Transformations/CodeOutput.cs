@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public string ToCode(ResolvedType t)
         {
-            this.Types.onType(t);
+            this.Types.OnType(t);
             return this.SharedState.TypeOutputHandle;
         }
 
@@ -250,7 +250,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             public TypeTransformation() : base(new TransformationState()) =>
                 this.TypeToQs = t =>
                 {
-                    this.Transformation.Types.onType(t);
+                    this.Transformation.Types.OnType(t);
                     return this.SharedState.TypeOutputHandle;
                 };
 
@@ -303,104 +303,104 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             // overrides 
 
-            public override QsTypeKind onArrayType(ResolvedType b)
+            public override QsTypeKind OnArrayType(ResolvedType b)
             {
                 this.Output = $"{this.TypeToQs(b)}[]";
                 return QsTypeKind.NewArrayType(b);
             }
 
-            public override QsTypeKind onBool()
+            public override QsTypeKind OnBool()
             {
                 this.Output = Keywords.qsBool.id;
                 return QsTypeKind.Bool;
             }
 
-            public override QsTypeKind onDouble()
+            public override QsTypeKind OnDouble()
             {
                 this.Output = Keywords.qsDouble.id;
                 return QsTypeKind.Double;
             }
 
-            public override QsTypeKind onFunction(ResolvedType it, ResolvedType ot)
+            public override QsTypeKind OnFunction(ResolvedType it, ResolvedType ot)
             {
                 this.Output = $"({this.TypeToQs(it)} -> {this.TypeToQs(ot)})";
                 return QsTypeKind.NewFunction(it, ot);
             }
 
-            public override QsTypeKind onInt()
+            public override QsTypeKind OnInt()
             {
                 this.Output = Keywords.qsInt.id;
                 return QsTypeKind.Int;
             }
 
-            public override QsTypeKind onBigInt()
+            public override QsTypeKind OnBigInt()
             {
                 this.Output = Keywords.qsBigInt.id;
                 return QsTypeKind.BigInt;
             }
 
-            public override QsTypeKind onInvalidType()
+            public override QsTypeKind OnInvalidType()
             {
                 this.SharedState.BeforeInvalidType?.Invoke();
                 this.Output = InvalidType;
                 return QsTypeKind.InvalidType;
             }
 
-            public override QsTypeKind onMissingType()
+            public override QsTypeKind OnMissingType()
             {
                 this.Output = "_"; // needs to be underscore, since this is valid as type argument specifier
                 return QsTypeKind.MissingType;
             }
 
-            public override QsTypeKind onPauli()
+            public override QsTypeKind OnPauli()
             {
                 this.Output = Keywords.qsPauli.id;
                 return QsTypeKind.Pauli;
             }
 
-            public override QsTypeKind onQubit()
+            public override QsTypeKind OnQubit()
             {
                 this.Output = Keywords.qsQubit.id;
                 return QsTypeKind.Qubit;
             }
 
-            public override QsTypeKind onRange()
+            public override QsTypeKind OnRange()
             {
                 this.Output = Keywords.qsRange.id;
                 return QsTypeKind.Range;
             }
 
-            public override QsTypeKind onResult()
+            public override QsTypeKind OnResult()
             {
                 this.Output = Keywords.qsResult.id;
                 return QsTypeKind.Result;
             }
 
-            public override QsTypeKind onString()
+            public override QsTypeKind OnString()
             {
                 this.Output = Keywords.qsString.id;
                 return QsTypeKind.String;
             }
 
-            public override QsTypeKind onTupleType(ImmutableArray<ResolvedType> ts)
+            public override QsTypeKind OnTupleType(ImmutableArray<ResolvedType> ts)
             {
                 this.Output = $"({String.Join(", ", ts.Select(this.TypeToQs))})";
                 return QsTypeKind.NewTupleType(ts);
             }
 
-            public override QsTypeKind onTypeParameter(QsTypeParameter tp)
+            public override QsTypeKind OnTypeParameter(QsTypeParameter tp)
             {
                 this.Output = $"'{tp.TypeName.Value}";
                 return QsTypeKind.NewTypeParameter(tp);
             }
 
-            public override QsTypeKind onUnitType()
+            public override QsTypeKind OnUnitType()
             {
                 this.Output = Keywords.qsUnit.id;
                 return QsTypeKind.UnitType;
             }
 
-            public override QsTypeKind onUserDefinedType(UserDefinedType udt)
+            public override QsTypeKind OnUserDefinedType(UserDefinedType udt)
             {
                 var isInCurrentNamespace = udt.Namespace.Value == this.SharedState.Context.CurrentNamespace;
                 var isInOpenNamespace = this.SharedState.Context.OpenedNamespaces.Contains(udt.Namespace) && !this.SharedState.Context.SymbolsInCurrentNamespace.Contains(udt.Name);
@@ -411,15 +411,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsTypeKind.NewUserDefinedType(udt);
             }
 
-            public override ResolvedCharacteristics onCharacteristicsExpression(ResolvedCharacteristics set)
+            public override ResolvedCharacteristics OnCharacteristicsExpression(ResolvedCharacteristics set)
             {
                 this.Output = CharacteristicsExpression(set, onInvalidSet: this.SharedState.BeforeInvalidSet);
                 return set;
             }
 
-            public override QsTypeKind onOperation(Tuple<ResolvedType, ResolvedType> sign, CallableInformation info)
+            public override QsTypeKind OnOperation(Tuple<ResolvedType, ResolvedType> sign, CallableInformation info)
             {
-                info = base.onCallableInformation(info);
+                info = base.OnCallableInformation(info);
                 var characteristics = String.IsNullOrWhiteSpace(this.Output) ? "" : $" {Keywords.qsCharacteristics.id} {this.Output}";
                 this.Output = $"({this.TypeToQs(sign.Item1)} => {this.TypeToQs(sign.Item2)}{characteristics})";
                 return QsTypeKind.NewOperation(sign, info);
@@ -1276,7 +1276,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 { this.OnAttribute(attribute); }
 
                 var signature = DeclarationSignature(c, this.TypeToQs, this.SharedState.BeforeInvalidSymbol);
-                this.Transformation.Types.onCharacteristicsExpression(c.Signature.Information.Characteristics);
+                this.Transformation.Types.OnCharacteristicsExpression(c.Signature.Information.Characteristics);
                 var characteristics = this.SharedState.TypeOutputHandle;
 
                 var userDefinedSpecs = c.Specializations.Where(spec => spec.Implementation.IsProvided);
