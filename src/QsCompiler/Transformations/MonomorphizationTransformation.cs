@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                     .GroupBy(res => res.concreteCallable.FullName.Namespace)
                     .ToImmutableDictionary(group => group.Key, group => group.Select(res => res.concreteCallable)));
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.onNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
 
             public class TransformationState
@@ -188,7 +188,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override QsNamespace Transform(QsNamespace ns)
+                public override QsNamespace onNamespace(QsNamespace ns)
                 {
                     SharedState.NamespaceCallables.TryGetValue(ns.Name, out IEnumerable<QsCallable> concretesInNs);
 

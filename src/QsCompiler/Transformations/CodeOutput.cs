@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public string ToCode(QsNamespace ns)
         {
             var nrPreexistingLines = this.SharedState.NamespaceOutputHandle.Count;
-            this.Namespaces.Transform(ns);
+            this.Namespaces.onNamespace(ns);
             return String.Join(Environment.NewLine, this.SharedState.NamespaceOutputHandle.Skip(nrPreexistingLines));
         }
 
@@ -215,7 +215,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     var generator = new  SyntaxTreeToQs(context);
                     generator.SharedState.InvokeOnInvalid(() => ++totNrInvalid);
                     generator.SharedState.NamespaceDocumentation = docComments.Count() == 1 ? docComments.Single() : ImmutableArray<string>.Empty; // let's drop the doc if it is ambiguous
-                    generator.Namespaces.Transform(tree);
+                    generator.Namespaces.onNamespace(tree);
 
                     if (totNrInvalid > 0) success = false;
                     nsInFile.Add(ns.Name, String.Join(Environment.NewLine, generator.SharedState.NamespaceOutputHandle));
@@ -1351,7 +1351,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return att;
             }
 
-            public override QsNamespace Transform(QsNamespace ns)
+            public override QsNamespace onNamespace(QsNamespace ns)
             {
                 if (this.SharedState.Context.CurrentNamespace != ns.Name.Value)
                 {

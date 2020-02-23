@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 
             foreach (var ns in compilation.Namespaces)
             {
-                filter.Namespaces.Transform(ns);
+                filter.Namespaces.onNamespace(ns);
             }
         }
 

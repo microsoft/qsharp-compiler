@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 var filter = new ConvertConditions(compilation);
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.onNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
 
             public class TransformationState
@@ -466,7 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 var filter = new HoistContents();
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.onNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
 
             public class CallableDetails
@@ -694,11 +694,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being hoisted
 
-                public override QsNamespace Transform(QsNamespace ns)
+                public override QsNamespace onNamespace(QsNamespace ns)
                 {
                     // Control operations list will be populated in the transform
                     SharedState.ControlOperations = new List<QsCallable>();
-                    return base.Transform(ns)
+                    return base.onNamespace(ns)
                         .WithElements(elems => elems.AddRange(SharedState.ControlOperations.Select(op => QsNamespaceElement.NewQsCallable(op))));
                 }
             }

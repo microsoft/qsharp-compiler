@@ -229,8 +229,8 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         | QsCustomType t    -> t |> this.onType           |> QsCustomType
         | QsCallable c      -> c |> this.dispatchCallable |> QsCallable
 
-    abstract member Transform : QsNamespace -> QsNamespace 
-    default this.Transform ns = 
+    abstract member onNamespace : QsNamespace -> QsNamespace 
+    default this.onNamespace ns = 
         if options.Disable then ns else
         let name = ns.Name
         let doc = ns.Documentation.AsEnumerable().SelectMany(fun entry -> 

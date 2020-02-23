@@ -87,7 +87,7 @@ let private buildSyntaxTree code =
 let ``basic walk`` () = 
     let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
     let walker = new SyntaxCounter(TransformationOptions.NoRebuild)
-    tree |> Seq.iter (walker.Namespaces.Transform >> ignore)
+    tree |> Seq.iter (walker.Namespaces.onNamespace >> ignore)
         
     Assert.Equal (4, walker.Counter.udtCount)
     Assert.Equal (1, walker.Counter.funCount)
@@ -100,7 +100,7 @@ let ``basic walk`` () =
 let ``basic transformation`` () = 
     let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
     let walker = new SyntaxCounter()
-    tree |> Seq.iter (walker.Namespaces.Transform >> ignore)
+    tree |> Seq.iter (walker.Namespaces.onNamespace >> ignore)
         
     Assert.Equal (4, walker.Counter.udtCount)
     Assert.Equal (1, walker.Counter.funCount)

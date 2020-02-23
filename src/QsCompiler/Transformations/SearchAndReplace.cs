@@ -182,7 +182,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             out Tuple<NonNullable<string>, QsLocation> declarationLocation, IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
             var finder = new IdentifierReferences(idName, defaultOffset, limitToSourceFiles);
-            finder.Namespaces.Transform(ns ?? throw new ArgumentNullException(nameof(ns)));
+            finder.Namespaces.onNamespace(ns ?? throw new ArgumentNullException(nameof(ns)));
             declarationLocation = finder.SharedState.DeclarationLocation;
             return finder.SharedState.Locations;
         }
