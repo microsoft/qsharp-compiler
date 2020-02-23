@@ -15,26 +15,32 @@ type SyntaxTreeTransformation<'T> private (state : 'T, _internal_ : string) =
     let mutable _Statements      = new StatementTransformation<'T>(TransformationOptions.Default, _internal_)
     let mutable _Namespaces      = new NamespaceTransformation<'T>(TransformationOptions.Default, _internal_)
 
+    /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
     member this.Types
         with get() = _Types
         and set value = _Types <- value
 
+    /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
     member this.ExpressionKinds
         with get() = _ExpressionKinds
         and set value = _ExpressionKinds <- value
 
+    /// Transformation invoked for all expressions encountered when traversing (parts of) the syntax tree.
     member this.Expressions
         with get() = _Expressions
         and set value = _Expressions <- value
 
+    /// Transformation invoked for all statement kinds encountered when traversing (parts of) the syntax tree.
     member this.StatementKinds
         with get() = _StatementKinds
         and set value = _StatementKinds <- value
 
+    /// Transformation invoked for all statements encountered when traversing (parts of) the syntax tree.
     member this.Statements
         with get() = _Statements
         and set value = _Statements <- value
 
+    /// Transformation invoked for all namespaces encountered when traversing (parts of) the syntax tree.
     member this.Namespaces
         with get() = _Namespaces
         and set value = _Namespaces <- value
@@ -56,8 +62,11 @@ type SyntaxTreeTransformation<'T> private (state : 'T, _internal_ : string) =
 
 and TypeTransformation<'T> internal (options, _internal_) =
     inherit TypeTransformationBase(options)
-    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None
+    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = _Transformation <- Some value
@@ -82,8 +91,11 @@ and TypeTransformation<'T> internal (options, _internal_) =
 
 and ExpressionKindTransformation<'T> internal (options, _internal_) =
     inherit ExpressionKindTransformationBase(options, _internal_)
-    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None
+    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = 
@@ -112,8 +124,11 @@ and ExpressionKindTransformation<'T> internal (options, _internal_) =
 
 and ExpressionTransformation<'T> internal (options, _internal_) =
     inherit ExpressionTransformationBase(options, _internal_)
-    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None
+    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = 
@@ -142,8 +157,11 @@ and ExpressionTransformation<'T> internal (options, _internal_) =
 
 and StatementKindTransformation<'T> internal (options, _internal_) =
     inherit StatementKindTransformationBase(options, _internal_)
-    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None
+    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = 
@@ -173,8 +191,11 @@ and StatementKindTransformation<'T> internal (options, _internal_) =
 
 and StatementTransformation<'T> internal (options, _internal_) =
     inherit StatementTransformationBase(options, _internal_)
-    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None
+    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = 
@@ -204,8 +225,11 @@ and StatementTransformation<'T> internal (options, _internal_) =
 
 and NamespaceTransformation<'T> internal (options, _internal_ : string) =
     inherit NamespaceTransformationBase(options, _internal_)
-    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None
+    let mutable _Transformation : SyntaxTreeTransformation<'T> option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = 
@@ -283,8 +307,11 @@ type SyntaxTreeTransformation private (_internal_ : string) =
 
 and TypeTransformation internal (options, _internal_) =
     inherit TypeTransformationBase(options)
-    let mutable _Transformation : SyntaxTreeTransformation option = None
+    let mutable _Transformation : SyntaxTreeTransformation option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = _Transformation <- Some value
@@ -306,8 +333,11 @@ and TypeTransformation internal (options, _internal_) =
 
 and ExpressionKindTransformation internal (options, _internal_) =
     inherit ExpressionKindTransformationBase(options, _internal_)
-    let mutable _Transformation : SyntaxTreeTransformation option = None
+    let mutable _Transformation : SyntaxTreeTransformation option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = 
@@ -333,8 +363,11 @@ and ExpressionKindTransformation internal (options, _internal_) =
 
 and ExpressionTransformation internal (options, _internal_) =
     inherit ExpressionTransformationBase(options, _internal_)
-    let mutable _Transformation : SyntaxTreeTransformation option = None
+    let mutable _Transformation : SyntaxTreeTransformation option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = 
@@ -360,8 +393,11 @@ and ExpressionTransformation internal (options, _internal_) =
 
 and StatementKindTransformation internal (options, _internal_) =
     inherit StatementKindTransformationBase(options, _internal_)
-    let mutable _Transformation : SyntaxTreeTransformation option = None
+    let mutable _Transformation : SyntaxTreeTransformation option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = 
@@ -388,8 +424,11 @@ and StatementKindTransformation internal (options, _internal_) =
 
 and StatementTransformation internal (options, _internal_) =
     inherit StatementTransformationBase(options, _internal_)
-    let mutable _Transformation : SyntaxTreeTransformation option = None
+    let mutable _Transformation : SyntaxTreeTransformation option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = 
@@ -416,8 +455,11 @@ and StatementTransformation internal (options, _internal_) =
 
 and NamespaceTransformation internal (options, _internal_ : string) =
     inherit NamespaceTransformationBase(options, _internal_)
-    let mutable _Transformation : SyntaxTreeTransformation option = None
+    let mutable _Transformation : SyntaxTreeTransformation option = None // will be set to a suitable Some value once construction is complete
 
+    /// Handle to the parent SyntaxTreeTransformation. 
+    /// This handle is always safe to access and will be set to a suitable value
+    /// even if no parent transformation has been specified upon construction. 
     member this.Transformation
         with get () = _Transformation.Value
         and private set value = 
