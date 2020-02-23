@@ -131,7 +131,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                     BuiltIn controlOpInfo;
                     TypedExpression controlArgs;
-                    ImmutableArray<ResolvedType> targetArgs;
+                    ImmutableArray<ResolvedType> targetArgsTypes;
 
                     var props = ImmutableHashSet<OpProperty>.Empty;
 
@@ -141,6 +141,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         if (condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
                         {
                             props = op.Item2.Characteristics.GetProperties();
+                            if (defaultId != null && defaultId.ResolvedType.Resolution is ResolvedTypeKind.Operation defaultOp)
+                            {
+                                props = props.Intersect(defaultOp.Item2.Characteristics.GetProperties());
+                            }
                         }
 
                         (bool adj, bool ctl) = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable));
@@ -164,13 +168,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                                 controlOpInfo = BuiltIn.ApplyIfElseR;
                             }
 
-                            var (zeroOpArg, oneOpArg) = (result == QsResult.Zero)
-                                ? (Utilities.CreateValueTupleExpression(condId, condArgs), Utilities.CreateValueTupleExpression(defaultId, defaultArgs))
-                                : (Utilities.CreateValueTupleExpression(defaultId, defaultArgs), Utilities.CreateValueTupleExpression(condId, condArgs));
+                            (TypedExpression, ImmutableArray<ResolvedType>) GetArgs(TypedExpression zeroId, TypedExpression zeroArgs, TypedExpression oneId, TypedExpression oneArgs) =>
+                            (
+                                Utilities.CreateValueTupleExpression(
+                                    conditionExpression,
+                                    Utilities.CreateValueTupleExpression(zeroId, zeroArgs),
+                                    Utilities.CreateValueTupleExpression(oneId, oneArgs)),
 
-                            controlArgs = Utilities.CreateValueTupleExpression(conditionExpression, zeroOpArg, oneOpArg);
+                                ImmutableArray.Create(zeroArgs.ResolvedType, oneArgs.ResolvedType)
+                            );
 
-                            targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
+                            (controlArgs, targetArgsTypes) = (result == QsResult.Zero)
+                                ? GetArgs(condId, condArgs, defaultId, defaultArgs)
+                                : GetArgs(defaultId, defaultArgs, condId, condArgs);
                         }
                         else if (defaultScope == null)
                         {
@@ -203,7 +213,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                                 conditionExpression,
                                 Utilities.CreateValueTupleExpression(condId, condArgs));
 
-                            targetArgs = ImmutableArray.Create(condArgs.ResolvedType);
+                            targetArgsTypes = ImmutableArray.Create(condArgs.ResolvedType);
                         }
                         else
                         {
@@ -219,13 +229,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     // Build the surrounding apply-if call
                     var controlOpId = Utilities.CreateIdentifierExpression(
                         Identifier.NewGlobalCallable(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name)),
-                        targetArgs
+                        targetArgsTypes
                             .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
                             .ToImmutableArray(),
                         Utilities.GetOperatorResolvedType(props, controlArgs.ResolvedType));
 
                     // Creates identity resolutions for the call expression
-                    var opTypeArgResolutions = targetArgs
+                    var opTypeArgResolutions = targetArgsTypes
                         .SelectMany(x =>
                             x.Resolution is ResolvedTypeKind.TupleType tup
                             ? tup.Item
@@ -838,16 +848,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         // the condition logic for the conversion and using that condition here
                         //var (isExprCond, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
 
-                        if (block.Body.Statements.Length > 0 /*&& isExprCond*/ && Transformation.InternalState.IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
+                        if (Transformation.InternalState.IsValidScope) // if sub-scope is valid, hoist content
                         {
-                            // Hoist the scope to its own operation
-                            var (callable, call) = HoistBody(block.Body);
-                            block = new QsPositionedBlock(
-                                new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
-                                block.Location,
-                                block.Comments);
-                            newConditionBlocks.Add(Tuple.Create(expr.Item, block));
-                            generatedOperations.Add(callable);
+                            if (/*isExprCond &&*/ !IsScopeSingleCall(block.Body))
+                            {
+                                // Hoist the scope to its own operation
+                                var (callable, call) = HoistBody(block.Body);
+                                block = new QsPositionedBlock(
+                                    new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
+                                    block.Location,
+                                    block.Comments);
+                                newConditionBlocks.Add(Tuple.Create(expr.Item, block));
+                                generatedOperations.Add(callable);
+                            }
+                            else if(block.Body.Statements.Length > 0)
+                            {
+                                newConditionBlocks.Add(Tuple.Create(expr.Item, block));
+                            }
                         }
                         else
                         {
@@ -865,16 +882,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             : stm.Default.Item.Body.KnownSymbols.Variables;
 
                         var (_, block) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
-                        if (block.Body.Statements.Length > 0 && Transformation.InternalState.IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
+                        if (Transformation.InternalState.IsValidScope)
                         {
-                            // Hoist the scope to its own operation
-                            var (callable, call) = HoistBody(block.Body);
-                            block = new QsPositionedBlock(
-                                new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
-                                block.Location,
-                                block.Comments);
-                            newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
-                            generatedOperations.Add(callable);
+                            if (!IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
+                            {
+                                // Hoist the scope to its own operation
+                                var (callable, call) = HoistBody(block.Body);
+                                block = new QsPositionedBlock(
+                                    new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
+                                    block.Location,
+                                    block.Comments);
+                                newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                                generatedOperations.Add(callable);
+                            }
+                            else if(block.Body.Statements.Length > 0)
+                            {
+                                newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                            }
                         }
                         else
                         {

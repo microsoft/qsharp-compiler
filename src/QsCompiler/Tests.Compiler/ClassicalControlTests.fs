@@ -5,15 +5,15 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
 open System.IO
+open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation
-open Xunit
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
-open System.Text.RegularExpressions
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
+open Xunit
 
 
 type ClassicalControlTests () =
@@ -88,7 +88,7 @@ type ClassicalControlTests () =
     let MakeApplicationRegex (opName : QsQualifiedName) =
         let call = sprintf @"(%s\.)?%s" <| Regex.Escape opName.Namespace.Value <| Regex.Escape opName.Name.Value
         let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?"  // Does not support nested type args
-        let args = @"\(\s*(.*[^\s])?\s*\)"
+        let args = @"\(?\s*(.*[^\s])?\s*\)?"
 
         sprintf @"\(%s\s*%s,\s*%s\)" <| call <| typeArgs <| args
 
@@ -111,6 +111,8 @@ type ClassicalControlTests () =
             (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value, regexMatch.Groups.[7].Value, regexMatch.Groups.[8].Value)
         else
             (false, "", "", "", "")
+
+    let IsTypeArgsMatch input targs = Regex.Match(input, sprintf @"^%s$" <| Regex.Escape targs).Success
 
     let CheckIfSpecializationHasCalls specialization (calls : seq<int * string * string>) =
         let lines = GetLinesFromSpecialization specialization
@@ -160,34 +162,17 @@ type ClassicalControlTests () =
         |> Seq.find (fun x -> x.Key.Name.Value = name)
         |> (fun x -> x.Value)
 
-    let ApplyIfElseTest compilation =
-        let generated = GetCallablesWithSuffix compilation Signatures.ClassicalControlNs "_Foo"
-
-        Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
-
-        let ifContent =
-            [
-                (0, "SubOps", "SubOp1");
-                (1, "SubOps", "SubOp2");
-            ]
-        let elseContent =
-            [
-                (0, "SubOps", "SubOp2");
-                (1, "SubOps", "SubOp3");
-            ]
-
-        let orderedGens = IdentifyGeneratedByCalls generated [ifContent; elseContent]
-        let ifOp, elseOp = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
-
+    let ApplyIfElseTest  compilation =
+        
         let original = GetCallableWithName compilation Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
         Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.Namespace.Value BuiltIn.ApplyIfElseR.Name.Value lines.[1]
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.Namespace.Value BuiltIn.ApplyIfElseR.Name.Value lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
-        args, ifOp.FullName, elseOp.FullName
+        targs, args
 
     let DoesCallSupportFunctors expectedFunctors call =
         let hasAdjoint = expectedFunctors |> Seq.contains QsFunctor.Adjoint
@@ -285,67 +270,55 @@ type ClassicalControlTests () =
     [<Fact>]
     [<Trait("Category","Apply If Calls")>]
     member this.``Apply If Zero Else One`` () =
-        let (args, ifOp, elseOp) = CompileClassicalControlTest 8 |> ApplyIfElseTest
-        IsApplyIfElseArgsMatch args "r" ifOp elseOp
+        let (targs, args) = CompileClassicalControlTest 8 |> ApplyIfElseTest
+        
+        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
+        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        
+        IsApplyIfElseArgsMatch args "r" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
+
+        Assert.True(IsTypeArgsMatch targs "Result, Unit", "ApplyIfElse did not have the correct type arguments")
 
     [<Fact>]
     [<Trait("Category","Apply If Calls")>]
     member this.``Apply If One Else Zero`` () =
-        let (args, ifOp, elseOp) = CompileClassicalControlTest 9 |> ApplyIfElseTest
+        let (targs, args) = CompileClassicalControlTest 9 |> ApplyIfElseTest
+
+        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
+        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+
         // The operation arguments should be swapped from the previous test
-        IsApplyIfElseArgsMatch args "r" elseOp ifOp
+        IsApplyIfElseArgsMatch args "r" SubOp1 Bar
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
+
+        Assert.True(IsTypeArgsMatch targs "Unit, Result", "ApplyIfElse did not have the correct type arguments")
 
     [<Fact>]
     [<Trait("Category","If Structure Reshape")>]
     member this.``If Elif`` () =
-        let result = CompileClassicalControlTest 10
+        let (_, args) = CompileClassicalControlTest 10 |> ApplyIfElseTest
 
-        let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
-
-        Assert.True(3 = Seq.length generated) // Should already be asserted by the signature check
-
-        let ifContent =
-            [
-                (0, "SubOps", "SubOp1");
-                (1, "SubOps", "SubOp2");
-            ]
-        let elifContent =
-            [
-                (0, "SubOps", "SubOp3");
-                (1, "SubOps", "SubOp1");
-            ]
-        let elseContent =
-            [
-                (0, "SubOps", "SubOp2");
-                (1, "SubOps", "SubOp3");
-            ]
-
-        let orderedGens = IdentifyGeneratedByCalls generated [ifContent; elifContent; elseContent]
-        let ifOp, elifOp, elseOp = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
-
-        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
-        let lines = original |> GetLinesFromSpecialization
-
-        Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
-
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.Namespace.Value BuiltIn.ApplyIfElseR.Name.Value lines.[1]
-        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
+        let ifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        let elifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
+        let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp3"}
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
-        let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp.FullName { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
+        let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
         Assert.True(success, errorMsg)
-        IsApplyIfElseArgsMatch subArgs "r" elseOp.FullName elifOp.FullName // elif and else are swapped because second condition is against One
+        IsApplyIfElseArgsMatch subArgs "r" elseOp elifOp // elif and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
     [<Fact>]
     [<Trait("Category","If Structure Reshape")>]
     member this.``And Condition`` () =
-        let (args, ifOp, elseOp) = CompileClassicalControlTest 11 |> ApplyIfElseTest
+        let (_, args) = CompileClassicalControlTest 11 |> ApplyIfElseTest
+
+        let ifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
-        let (success, _, subArgs, _, _) = IsApplyIfElseArgsMatch args "r" { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name } elseOp
+        let (success, _, subArgs, _, _) = IsApplyIfElseArgsMatch args "r" { Namespace = BuiltIn.ApplyIfElseRCA.Namespace; Name = BuiltIn.ApplyIfElseR.Name } elseOp
         Assert.True(success, errorMsg)
         IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
@@ -353,7 +326,10 @@ type ClassicalControlTests () =
     [<Fact>]
     [<Trait("Category","If Structure Reshape")>]
     member this.``Or Condition`` () =
-        let (args, ifOp, elseOp) = CompileClassicalControlTest 12 |> ApplyIfElseTest
+        let (_, args) = CompileClassicalControlTest 12 |> ApplyIfElseTest
+
+        let ifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
         let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
@@ -462,13 +438,13 @@ type ClassicalControlTests () =
 
         let bodyContent =
             [
-                (0, "SubOps", "SubOp1");
-                (1, "SubOps", "SubOp2");
+                (0, "SubOps", "SubOpCA1");
+                (1, "SubOps", "SubOpCA2");
             ]
         let adjointContent =
             [
-                (0, "SubOps", "SubOp2");
-                (1, "SubOps", "SubOp3");
+                (0, "SubOps", "SubOpCA2");
+                (1, "SubOps", "SubOpCA3");
             ]
 
         let orderedGens = IdentifyGeneratedByCalls _providedOps [bodyContent; adjointContent]
@@ -514,13 +490,13 @@ type ClassicalControlTests () =
 
         let bodyContent =
             [
-                (0, "SubOps", "SubOp1");
-                (1, "SubOps", "SubOp2");
+                (0, "SubOps", "SubOpCA1");
+                (1, "SubOps", "SubOpCA2");
             ]
         let controlledContent =
             [
-                (0, "SubOps", "SubOp2");
-                (1, "SubOps", "SubOp3");
+                (0, "SubOps", "SubOpCA2");
+                (1, "SubOps", "SubOpCA3");
             ]
 
         let orderedGens = IdentifyGeneratedByCalls _providedOps [bodyContent; controlledContent]
@@ -562,13 +538,13 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let ctlAdjContent =
                 [
-                    (0, "SubOps", "SubOp2");
-                    (1, "SubOps", "SubOp3");
+                    (0, "SubOps", "SubOpCA2");
+                    (1, "SubOps", "SubOpCA3");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlAdjContent]
@@ -607,18 +583,18 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let ctlContent =
                 [
-                    (0, "SubOps", "SubOp3");
-                    (1, "SubOps", "SubOp1");
+                    (0, "SubOps", "SubOpCA3");
+                    (1, "SubOps", "SubOpCA1");
                 ]
             let ctlAdjContent =
                 [
-                    (0, "SubOps", "SubOp2");
-                    (1, "SubOps", "SubOp3");
+                    (0, "SubOps", "SubOpCA2");
+                    (1, "SubOps", "SubOpCA3");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent; ctlAdjContent]
@@ -658,18 +634,18 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let adjContent =
                 [
-                    (0, "SubOps", "SubOp3");
-                    (1, "SubOps", "SubOp1");
+                    (0, "SubOps", "SubOpCA3");
+                    (1, "SubOps", "SubOpCA1");
                 ]
             let ctlAdjContent =
                 [
-                    (0, "SubOps", "SubOp2");
-                    (1, "SubOps", "SubOp3");
+                    (0, "SubOps", "SubOpCA2");
+                    (1, "SubOps", "SubOpCA3");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; adjContent; ctlAdjContent]
@@ -713,22 +689,22 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let ctlContent =
                 [
-                    (0, "SubOps", "SubOp3");
-                    (1, "SubOps", "SubOp1");
+                    (0, "SubOps", "SubOpCA3");
+                    (1, "SubOps", "SubOpCA1");
                 ]
             let adjContent =
                 [
-                    (0, "SubOps", "SubOp2");
-                    (1, "SubOps", "SubOp3");
+                    (0, "SubOps", "SubOpCA2");
+                    (1, "SubOps", "SubOpCA3");
                 ]
             let ctlAdjContent =
                 [
-                    (2, "SubOps", "SubOp3");
+                    (2, "SubOps", "SubOpCA3");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent; adjContent; ctlAdjContent]
@@ -770,8 +746,8 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
 
             let bodyGen = (Seq.item 0 generated)
@@ -805,13 +781,13 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let ctlContent =
                 [
-                    (0, "SubOps", "SubOp3");
-                    (1, "SubOps", "SubOp1");
+                    (0, "SubOps", "SubOpCA3");
+                    (1, "SubOps", "SubOpCA1");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent]
@@ -846,13 +822,13 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let adjContent =
                 [
-                    (0, "SubOps", "SubOp3");
-                    (1, "SubOps", "SubOp1");
+                    (0, "SubOps", "SubOpCA3");
+                    (1, "SubOps", "SubOpCA1");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; adjContent]
@@ -891,18 +867,18 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let ctlContent =
                 [
-                    (0, "SubOps", "SubOp3");
-                    (1, "SubOps", "SubOp1");
+                    (0, "SubOps", "SubOpCA3");
+                    (1, "SubOps", "SubOpCA1");
                 ]
             let adjContent =
                 [
-                    (0, "SubOps", "SubOp2");
-                    (1, "SubOps", "SubOp3");
+                    (0, "SubOps", "SubOpCA2");
+                    (1, "SubOps", "SubOpCA3");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent; adjContent]
@@ -943,8 +919,8 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
 
             let bodyGen = (Seq.item 0 generated)
@@ -978,13 +954,13 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let ctlContent =
                 [
-                    (0, "SubOps", "SubOp3");
-                    (1, "SubOps", "SubOp1");
+                    (0, "SubOps", "SubOpCA3");
+                    (1, "SubOps", "SubOpCA1");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent]
@@ -1019,13 +995,13 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let adjContent =
                 [
-                    (0, "SubOps", "SubOp3");
-                    (1, "SubOps", "SubOp1");
+                    (0, "SubOps", "SubOpCA3");
+                    (1, "SubOps", "SubOpCA1");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; adjContent]
@@ -1064,18 +1040,18 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let ctlContent =
                 [
-                    (0, "SubOps", "SubOp3");
-                    (1, "SubOps", "SubOp1");
+                    (0, "SubOps", "SubOpCA3");
+                    (1, "SubOps", "SubOpCA1");
                 ]
             let adjContent =
                 [
-                    (0, "SubOps", "SubOp2");
-                    (1, "SubOps", "SubOp3");
+                    (0, "SubOps", "SubOpCA2");
+                    (1, "SubOps", "SubOpCA3");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent; adjContent]
@@ -1116,8 +1092,8 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
 
             let bodyGen = (Seq.item 0 generated)
@@ -1151,13 +1127,13 @@ type ClassicalControlTests () =
 
             let bodyContent =
                 [
-                    (0, "SubOps", "SubOp1");
-                    (1, "SubOps", "SubOp2");
+                    (0, "SubOps", "SubOpCA1");
+                    (1, "SubOps", "SubOpCA2");
                 ]
             let ctlContent =
                 [
-                    (0, "SubOps", "SubOp3");
-                    (1, "SubOps", "SubOp1");
+                    (0, "SubOps", "SubOpCA3");
+                    (1, "SubOps", "SubOpCA1");
                 ]
 
             let orderedGens = IdentifyGeneratedByCalls generated [bodyContent; ctlContent]
@@ -1186,13 +1162,13 @@ type ClassicalControlTests () =
             ] |> Seq.map ExpandBuiltInQualifiedSymbol
         let outerContent =
             [
-                (0, "SubOps", "SubOp1");
-                (1, "SubOps", "SubOp2");
+                (0, "SubOps", "SubOpCA1");
+                (1, "SubOps", "SubOpCA2");
             ]
         let innerContent =
             [
-                (0, "SubOps", "SubOp2");
-                (1, "SubOps", "SubOp3");
+                (0, "SubOps", "SubOpCA2");
+                (1, "SubOps", "SubOpCA3");
             ]
 
         AssertSpecializationHasCalls original originalContent
@@ -1239,3 +1215,12 @@ type ClassicalControlTests () =
     [<Trait("Category","Content Hoisting")>]
     member this.``Hoist Array Item Call`` () =
         CompileClassicalControlTest 27 |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Content Hoisting")>]
+    member this.``Hoist One Not Both`` () =
+        // If hoisting is not needed on one of the blocks, it should not
+        // prevent the other blocks from being hoisted, as it would in
+        // the All-Or-Nothing test where a block is *invalid* for
+        // hoisting due to a set statement or return statement.
+        CompileClassicalControlTest 28 |> ignore
