@@ -97,11 +97,11 @@ type internal ReferenceCounter private (_private_) =
 and private ReferenceCounterExpressionKinds(parent : ReferenceCounter) = 
     inherit Core.ExpressionKindTransformation(parent)
 
-    override this.onIdentifier (sym, tArgs) =
+    override this.OnIdentifier (sym, tArgs) =
         match sym with
         | LocalVariable name -> parent.UsedVariables <- parent.UsedVariables.Add (name, parent.NumberOfUses name + 1)
         | _ -> ()
-        base.onIdentifier (sym, tArgs)
+        base.OnIdentifier (sym, tArgs)
 
 
 /// private helper class for ReplaceTypeParams
@@ -129,14 +129,14 @@ type internal ReplaceTypeParams private (typeParams: ImmutableDictionary<_, Reso
 type private SideEffectCheckerExpressionKinds(parent : SideEffectChecker) = 
     inherit Core.ExpressionKindTransformation(parent)
 
-    override this.onFunctionCall (method, arg) =
+    override this.OnFunctionCall (method, arg) =
         parent.HasOutput <- true
-        base.onFunctionCall (method, arg)
+        base.OnFunctionCall (method, arg)
 
-    override this.onOperationCall (method, arg) =
+    override this.OnOperationCall (method, arg) =
         parent.HasQuantum <- true
         parent.HasOutput <- true
-        base.onOperationCall (method, arg)
+        base.OnOperationCall (method, arg)
 
 /// private helper class for SideEffectChecker
 and private SideEffectCheckerStatementKinds(parent : SideEffectChecker) = 

@@ -82,7 +82,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         | QsTupleItem (Named item) as original -> 
             let loc  = item.Position, item.Range
             let t    = this.Statements.Expressions.Types.onType item.Type
-            let info = this.Statements.Expressions.onExpressionInformation item.InferredInformation
+            let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
             QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable |> Node.BuildOr original (loc, item.VariableName, t, info.HasLocalQuantumDependency)
             
     abstract member OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
@@ -94,7 +94,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         | QsTupleItem item as original -> 
             let loc  = item.Position, item.Range
             let t    = this.Statements.Expressions.Types.onType item.Type
-            let info = this.Statements.Expressions.onExpressionInformation item.InferredInformation
+            let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
             QsTupleItem << LocalVariableDeclaration<_>.New info.IsMutable |> Node.BuildOr original (loc, item.VariableName, t, info.HasLocalQuantumDependency)
 
     abstract member OnSignature : ResolvedSignature -> ResolvedSignature

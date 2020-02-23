@@ -52,7 +52,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
         {
             public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-            public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
+            public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
             {
                 if (typeParams.Any())
                 {

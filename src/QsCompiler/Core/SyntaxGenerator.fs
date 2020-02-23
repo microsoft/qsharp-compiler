@@ -22,7 +22,7 @@ type private StripPositionInfoFromType (parent : StripPositionInfo) =
 
 and private StripPositionInfoFromExpression (parent : StripPositionInfo) = 
     inherit ExpressionTransformation(parent)
-    override this.onRangeInformation _ = Null
+    override this.OnRangeInformation _ = Null
 
 and private StripPositionInfoFromStatement(parent : StripPositionInfo) = 
     inherit StatementTransformation(parent)
@@ -45,7 +45,7 @@ and public StripPositionInfo private (_internal_) =
 
     static member public Default = defaultInstance
     static member public Apply t = defaultInstance.Types.onType t
-    static member public Apply e = defaultInstance.Expressions.onTypedExpression e
+    static member public Apply e = defaultInstance.Expressions.OnTypedExpression e
     static member public Apply s = defaultInstance.Statements.OnScope s
     static member public Apply a = defaultInstance.Namespaces.OnNamespace a
 

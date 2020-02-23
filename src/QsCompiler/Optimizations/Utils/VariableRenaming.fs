@@ -126,7 +126,7 @@ and private VariableRenamingExpressionKinds (parent : VariableRenaming) =
     /// Returns None if the key isn't associated with any values.
     let tryGet key = List.tryPick (Map.tryFind key)
 
-    override this.onIdentifier (sym, tArgs) =
+    override this.OnIdentifier (sym, tArgs) =
         maybe {
             let! name =
                 match sym with

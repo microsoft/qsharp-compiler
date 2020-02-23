@@ -57,7 +57,7 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
 
     override so.OnVariableDeclaration stm =
         let lhs = so.OnSymbolTuple stm.Lhs
-        let rhs = so.Expressions.onTypedExpression stm.Rhs
+        let rhs = so.Expressions.OnTypedExpression stm.Rhs
         if stm.Kind = ImmutableBinding then
             defineVarTuple (shouldPropagate callables) parent.Constants (lhs, rhs)
         QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
@@ -65,7 +65,7 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
     override this.OnConditionalStatement stm =
         let cbList, cbListEnd =
             stm.ConditionalBlocks |> Seq.fold (fun s (cond, block) ->
-                let newCond = this.Expressions.onTypedExpression cond
+                let newCond = this.Expressions.OnTypedExpression cond
                 match newCond.Expression with
                 | BoolLiteral true -> s @ [Null, block]
                 | BoolLiteral false -> s

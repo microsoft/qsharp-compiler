@@ -56,7 +56,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
     default this.OnQubitInitializer init = 
         let transformed = init.Resolution |> function 
             | SingleQubitAllocation              -> SingleQubitAllocation
-            | QubitRegisterAllocation ex as orig -> QubitRegisterAllocation |> Node.BuildOr orig (this.Expressions.onTypedExpression ex)
+            | QubitRegisterAllocation ex as orig -> QubitRegisterAllocation |> Node.BuildOr orig (this.Expressions.OnTypedExpression ex)
             | QubitTupleAllocation is as orig    -> QubitTupleAllocation |> Node.BuildOr orig (is |> Seq.map this.OnQubitInitializer |> ImmutableArray.CreateRange)
             | InvalidInitializer                 -> InvalidInitializer
         ResolvedInitializer.New |> Node.BuildOr init transformed
@@ -65,7 +65,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
     default this.OnPositionedBlock (intro : QsNullable<TypedExpression>, block : QsPositionedBlock) = 
         let location = this.Statements.OnLocation block.Location
         let comments = block.Comments
-        let expr = intro |> QsNullable<_>.Map this.Expressions.onTypedExpression
+        let expr = intro |> QsNullable<_>.Map this.Expressions.OnTypedExpression
         let body = this.Statements.OnScope block.Body
         let PositionedBlock (expr,  body, location, comments) = expr, QsPositionedBlock.New comments location body
         PositionedBlock |> Node.BuildOr (intro, block) (expr, body, location, comments)
@@ -75,14 +75,14 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
 
     abstract member OnVariableDeclaration : QsBinding<TypedExpression> -> QsStatementKind
     default this.OnVariableDeclaration stm = 
-        let rhs = this.Expressions.onTypedExpression stm.Rhs
+        let rhs = this.Expressions.OnTypedExpression stm.Rhs
         let lhs = this.OnSymbolTuple stm.Lhs
         QsVariableDeclaration << QsBinding<TypedExpression>.New stm.Kind |> Node.BuildOr EmptyStatement (lhs, rhs) 
 
     abstract member OnValueUpdate : QsValueUpdate -> QsStatementKind
     default this.OnValueUpdate stm = 
-        let rhs = this.Expressions.onTypedExpression stm.Rhs
-        let lhs = this.Expressions.onTypedExpression stm.Lhs
+        let rhs = this.Expressions.OnTypedExpression stm.Rhs
+        let lhs = this.Expressions.OnTypedExpression stm.Lhs
         QsValueUpdate << QsValueUpdate.New |> Node.BuildOr EmptyStatement (lhs, rhs) 
 
     abstract member OnConditionalStatement : QsConditionalStatement -> QsStatementKind
@@ -96,7 +96,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
 
     abstract member OnForStatement : QsForStatement -> QsStatementKind
     default this.OnForStatement stm = 
-        let iterVals = this.Expressions.onTypedExpression stm.IterationValues
+        let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
         let loopVar = fst stm.LoopItem |> this.OnSymbolTuple
         let loopVarType = this.Expressions.Types.onType (snd stm.LoopItem)
         let body = this.Statements.OnScope stm.Body
@@ -104,7 +104,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
 
     abstract member OnWhileStatement : QsWhileStatement -> QsStatementKind
     default this.OnWhileStatement stm = 
-        let condition = this.Expressions.onTypedExpression stm.Condition
+        let condition = this.Expressions.OnTypedExpression stm.Condition
         let body = this.Statements.OnScope stm.Body
         QsWhileStatement << QsWhileStatement.New |> Node.BuildOr EmptyStatement (condition, body)
 
@@ -123,17 +123,17 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
 
     abstract member OnExpressionStatement : TypedExpression -> QsStatementKind
     default this.OnExpressionStatement ex = 
-        let transformed = this.Expressions.onTypedExpression ex 
+        let transformed = this.Expressions.OnTypedExpression ex 
         QsExpressionStatement |> Node.BuildOr EmptyStatement transformed
 
     abstract member OnReturnStatement : TypedExpression -> QsStatementKind
     default this.OnReturnStatement ex = 
-        let transformed = this.Expressions.onTypedExpression ex 
+        let transformed = this.Expressions.OnTypedExpression ex 
         QsReturnStatement |> Node.BuildOr EmptyStatement transformed
 
     abstract member OnFailStatement : TypedExpression -> QsStatementKind
     default this.OnFailStatement ex = 
-        let transformed = this.Expressions.onTypedExpression ex
+        let transformed = this.Expressions.OnTypedExpression ex
         QsFailStatement |> Node.BuildOr EmptyStatement transformed
 
     abstract member OnQubitScope : QsQubitScope -> QsStatementKind
@@ -225,7 +225,7 @@ and StatementTransformationBase internal (options : TransformationOptions, _inte
     default this.OnLocalDeclarations decl = 
         let onLocalVariableDeclaration (local : LocalVariableDeclaration<NonNullable<string>>) = 
             let loc = local.Position, local.Range
-            let info = this.Expressions.onExpressionInformation local.InferredInformation
+            let info = this.Expressions.OnExpressionInformation local.InferredInformation
             let varType = this.Expressions.Types.onType local.Type 
             LocalVariableDeclaration.New info.IsMutable (loc, local.VariableName, varType, info.HasLocalQuantumDependency)
         let variableDeclarations = decl.Variables |> Seq.map onLocalVariableDeclaration 

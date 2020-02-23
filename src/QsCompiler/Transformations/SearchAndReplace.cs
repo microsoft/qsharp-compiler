@@ -256,7 +256,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 var declRoot = this.SharedState.DeclarationOffset;
                 this.SharedState.DeclarationOffset = att.Offset;
                 if (att.TypeId.IsValue) this.Transformation.Types.onUserDefinedType(att.TypeId.Item);
-                this.Transformation.Expressions.onTypedExpression(att.Argument);
+                this.Transformation.Expressions.OnTypedExpression(att.Argument);
                 this.SharedState.DeclarationOffset = declRoot;
                 return att;
             }
@@ -298,7 +298,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             private readonly List<(NonNullable<string>, QsLocation)> UsedLocals = new List<(NonNullable<string>, QsLocation)>();
 
             internal TransformationState() =>
-                this.UpdatedExpression = new TypedExpressionWalker<TransformationState>(this.UpdatedLocal, this).onTypedExpression;
+                this.UpdatedExpression = new TypedExpressionWalker<TransformationState>(this.UpdatedLocal, this).OnTypedExpression;
 
             public ILookup<NonNullable<string>, QsLocation> ReassignedVariables =>
                 this.UpdatedLocals.ToLookup(var => var.Item1, var => var.Item2);
@@ -358,7 +358,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
             {
                 this.SharedState.UpdatedExpression(stm.Lhs);
-                this.Expressions.onTypedExpression(stm.Rhs);
+                this.Expressions.OnTypedExpression(stm.Rhs);
                 return QsStatementKind.NewQsValueUpdate(stm);
             }
         }
@@ -441,7 +441,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 : base(parent)
             { }
 
-            public override QsExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
+            public override QsExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
                 this.SharedState.AdaptIdentifier(sym, tArgs);
         }
     }
@@ -465,10 +465,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
 
         public readonly Action<TypedExpression> OnExpression;
-        public override TypedExpression onTypedExpression(TypedExpression ex)
+        public override TypedExpression OnTypedExpression(TypedExpression ex)
         {
             this.OnExpression(ex);
-            return base.onTypedExpression(ex);
+            return base.OnTypedExpression(ex);
         }
     }
 }

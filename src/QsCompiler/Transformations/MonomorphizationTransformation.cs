@@ -315,23 +315,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             {
                 public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override TypedExpression onTypedExpression(TypedExpression ex)
+                public override TypedExpression OnTypedExpression(TypedExpression ex)
                 {
-                    var range = this.onRangeInformation(ex.Range);
-                    var typeParamResolutions = this.onTypeParamResolutions(ex.TypeParameterResolutions)
+                    var range = this.OnRangeInformation(ex.Range);
+                    var typeParamResolutions = this.OnTypeParamResolutions(ex.TypeParameterResolutions)
                         .Select(kv => new Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>(kv.Key.Item1, kv.Key.Item2, kv.Value))
                         .ToImmutableArray();
                     var exType = this.Types.onType(ex.ResolvedType);
-                    var inferredInfo = this.onExpressionInformation(ex.InferredInformation);
+                    var inferredInfo = this.OnExpressionInformation(ex.InferredInformation);
                     // Change the order so that Kind is transformed last.
                     // This matters because the onTypeParamResolutions method builds up type param mappings in
                     // the CurrentParamTypes dictionary that are then used, and removed from the
                     // dictionary, in the next global callable identifier found under the Kind transformations.
-                    var kind = this.ExpressionKinds.onExpressionKind(ex.Expression);
+                    var kind = this.ExpressionKinds.OnExpressionKind(ex.Expression);
                     return new TypedExpression(kind, typeParamResolutions, exType, inferredInfo, range);
                 }
 
-                public override ImmutableConcretion onTypeParamResolutions(ImmutableConcretion typeParams)
+                public override ImmutableConcretion OnTypeParamResolutions(ImmutableConcretion typeParams)
                 {
                     // Merge the type params into the current dictionary
                     foreach (var kvp in typeParams)
@@ -347,7 +347,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             {
                 public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+                public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
                 {
                     if (sym is Identifier.GlobalCallable global)
                     {
@@ -370,7 +370,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                         throw new ArgumentException($"Local variables cannot have type arguments.");
                     }
 
-                    return base.onIdentifier(sym, tArgs);
+                    return base.OnIdentifier(sym, tArgs);
                 }
             }
 

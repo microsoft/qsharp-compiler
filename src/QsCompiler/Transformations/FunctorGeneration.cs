@@ -70,7 +70,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             { }
 
 
-            public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> onOperationCall(TypedExpression method, TypedExpression arg)
+            public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> OnOperationCall(TypedExpression method, TypedExpression arg)
             {
                 if (this.SharedState.FunctorToApply.IsControlled)
                 {
@@ -82,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                     method = SyntaxGenerator.AdjointOperation(method);
                 }
                 else throw new NotImplementedException("unsupported functor");
-                return base.onOperationCall(method, arg);
+                return base.OnOperationCall(method, arg);
             }
         }
     }

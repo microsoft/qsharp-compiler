@@ -303,9 +303,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         { }
 
 
-        public override TypedExpression onTypedExpression(TypedExpression ex)
+        public override TypedExpression OnTypedExpression(TypedExpression ex)
         {
-            ex = this.SharedState.Recur ? base.onTypedExpression(ex) : ex;
+            ex = this.SharedState.Recur ? base.OnTypedExpression(ex) : ex;
             this.SharedState.FoldResult = this.SharedState.Fold(ex, this.SharedState.FoldResult);
             return ex;
         }
