@@ -98,7 +98,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
     default this.onForStatement stm = 
         let iterVals = this.Expressions.onTypedExpression stm.IterationValues
         let loopVar = fst stm.LoopItem |> this.onSymbolTuple
-        let loopVarType = this.Expressions.Types.Transform (snd stm.LoopItem)
+        let loopVarType = this.Expressions.Types.onType (snd stm.LoopItem)
         let body = this.Statements.onScope stm.Body
         QsForStatement << QsForStatement.New |> Node.BuildOr EmptyStatement ((loopVar, loopVarType), iterVals, body)
 
@@ -226,7 +226,7 @@ and StatementTransformationBase internal (options : TransformationOptions, _inte
         let onLocalVariableDeclaration (local : LocalVariableDeclaration<NonNullable<string>>) = 
             let loc = local.Position, local.Range
             let info = this.Expressions.onExpressionInformation local.InferredInformation
-            let varType = this.Expressions.Types.Transform local.Type 
+            let varType = this.Expressions.Types.onType local.Type 
             LocalVariableDeclaration.New info.IsMutable (loc, local.VariableName, varType, info.HasLocalQuantumDependency)
         let variableDeclarations = decl.Variables |> Seq.map onLocalVariableDeclaration 
         LocalDeclarations.New << ImmutableArray.CreateRange |> Node.BuildOr decl variableDeclarations

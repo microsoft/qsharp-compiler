@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public string ToCode(ResolvedType t)
         {
-            this.Types.Transform(t);
+            this.Types.onType(t);
             return this.SharedState.TypeOutputHandle;
         }
 
@@ -250,7 +250,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             public TypeTransformation() : base(new TransformationState()) =>
                 this.TypeToQs = t =>
                 {
-                    this.Transformation.Types.Transform(t);
+                    this.Transformation.Types.onType(t);
                     return this.SharedState.TypeOutputHandle;
                 };
 

@@ -77,11 +77,11 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
             let transformed = items |> Seq.map this.onTypeItems |> ImmutableArray.CreateRange
             QsTuple |> Node.BuildOr original transformed
         | QsTupleItem (Anonymous itemType) as original -> 
-            let t = this.Statements.Expressions.Types.Transform itemType
+            let t = this.Statements.Expressions.Types.onType itemType
             QsTupleItem << Anonymous |> Node.BuildOr original t
         | QsTupleItem (Named item) as original -> 
             let loc  = item.Position, item.Range
-            let t    = this.Statements.Expressions.Types.Transform item.Type
+            let t    = this.Statements.Expressions.Types.onType item.Type
             let info = this.Statements.Expressions.onExpressionInformation item.InferredInformation
             QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable |> Node.BuildOr original (loc, item.VariableName, t, info.HasLocalQuantumDependency)
             
@@ -93,15 +93,15 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
             QsTuple |> Node.BuildOr original transformed 
         | QsTupleItem item as original -> 
             let loc  = item.Position, item.Range
-            let t    = this.Statements.Expressions.Types.Transform item.Type
+            let t    = this.Statements.Expressions.Types.onType item.Type
             let info = this.Statements.Expressions.onExpressionInformation item.InferredInformation
             QsTupleItem << LocalVariableDeclaration<_>.New info.IsMutable |> Node.BuildOr original (loc, item.VariableName, t, info.HasLocalQuantumDependency)
 
     abstract member onSignature : ResolvedSignature -> ResolvedSignature
     default this.onSignature (s : ResolvedSignature) = 
         let typeParams = s.TypeParameters 
-        let argType = this.Statements.Expressions.Types.Transform s.ArgumentType
-        let returnType = this.Statements.Expressions.Types.Transform s.ReturnType
+        let argType = this.Statements.Expressions.Types.onType s.ArgumentType
+        let returnType = this.Statements.Expressions.Types.onType s.ReturnType
         let info = this.Statements.Expressions.Types.onCallableInformation s.Information
         ResolvedSignature.New |> Node.BuildOr s ((argType, returnType), info, typeParams)
 
@@ -152,7 +152,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let source = this.onSourceFile spec.SourceFile
         let loc = this.onLocation spec.Location
         let attributes = spec.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> args |> Seq.map this.Statements.Expressions.Types.Transform |> ImmutableArray.CreateRange)
+        let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> args |> Seq.map this.Statements.Expressions.Types.onType |> ImmutableArray.CreateRange)
         let signature = this.onSignature spec.Signature
         let impl = this.dispatchSpecializationImplementation spec.Implementation 
         let doc = this.onDocumentation spec.Documentation
@@ -187,7 +187,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let source = this.onSourceFile t.SourceFile 
         let loc = this.onLocation t.Location
         let attributes = t.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let underlyingType = this.Statements.Expressions.Types.Transform t.Type
+        let underlyingType = this.Statements.Expressions.Types.onType t.Type
         let typeItems = this.onTypeItems t.TypeItems
         let doc = this.onDocumentation t.Documentation
         let comments = t.Comments

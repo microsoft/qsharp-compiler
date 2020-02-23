@@ -29,7 +29,7 @@ type private StripInferredInfoFromType () =
         let characteristics = this.onCharacteristicsExpression opInfo.Characteristics
         CallableInformation.New (characteristics, InferredCallableInformation.NoInformation)
     override this.onRangeInformation _ = QsRangeInfo.Null
-let private StripInferredInfoFromType = (new StripInferredInfoFromType()).Transform
+let private StripInferredInfoFromType = (new StripInferredInfoFromType()).onType
 
 /// used for type matching arguments in call-like expressions
 type private Variance = 

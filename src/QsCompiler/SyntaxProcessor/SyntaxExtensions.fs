@@ -271,7 +271,7 @@ type private TName () =
         this.Output <- udt.Name.Value
         UserDefinedType udt
     member this.Apply t = 
-        this.Transform t |> ignore
+        this.onType t |> ignore
         this.Output
 let private TypeString = new TName()
 let private TypeName = TypeString.Apply

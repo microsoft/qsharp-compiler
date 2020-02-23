@@ -983,7 +983,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
                 {
                     // Prevent keys from having their names updated
-                    return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.Transform(kvp.Value));
+                    return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.onType(kvp.Value));
                 }
 
                 public override TypedExpression onTypedExpression(TypedExpression ex)

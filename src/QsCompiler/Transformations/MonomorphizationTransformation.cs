@@ -321,7 +321,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                     var typeParamResolutions = this.onTypeParamResolutions(ex.TypeParameterResolutions)
                         .Select(kv => new Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>(kv.Key.Item1, kv.Key.Item2, kv.Value))
                         .ToImmutableArray();
-                    var exType = this.Types.Transform(ex.ResolvedType);
+                    var exType = this.Types.onType(ex.ResolvedType);
                     var inferredInfo = this.onExpressionInformation(ex.InferredInformation);
                     // Change the order so that Kind is transformed last.
                     // This matters because the onTypeParamResolutions method builds up type param mappings in

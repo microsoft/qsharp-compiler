@@ -44,7 +44,7 @@ and public StripPositionInfo private (_internal_) =
             this.Namespaces <- new StripPositionInfoFromNamespace(this)
 
     static member public Default = defaultInstance
-    static member public Apply t = defaultInstance.Types.Transform t
+    static member public Apply t = defaultInstance.Types.onType t
     static member public Apply e = defaultInstance.Expressions.onTypedExpression e
     static member public Apply s = defaultInstance.Statements.onScope s
     static member public Apply a = defaultInstance.Namespaces.onNamespace a

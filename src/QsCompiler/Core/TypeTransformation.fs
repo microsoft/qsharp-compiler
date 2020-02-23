@@ -52,22 +52,22 @@ type TypeTransformationBase(options : TransformationOptions) =
 
     abstract member onOperation : (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
     default this.onOperation ((it, ot), info) = 
-        let transformed = (this.Transform it, this.Transform ot), this.onCallableInformation info
+        let transformed = (this.onType it, this.onType ot), this.onCallableInformation info
         ExpressionType.Operation |> Node.BuildOr InvalidType transformed
 
     abstract member onFunction : ResolvedType * ResolvedType -> ExpressionType
     default this.onFunction (it, ot) = 
-        let transformed = this.Transform it, this.Transform ot
+        let transformed = this.onType it, this.onType ot
         ExpressionType.Function |> Node.BuildOr InvalidType transformed
 
     abstract member onTupleType : ImmutableArray<ResolvedType> -> ExpressionType
     default this.onTupleType ts = 
-        let transformed = ts |> Seq.map this.Transform |> ImmutableArray.CreateRange
+        let transformed = ts |> Seq.map this.onType |> ImmutableArray.CreateRange
         ExpressionType.TupleType |> Node.BuildOr InvalidType transformed
 
     abstract member onArrayType : ResolvedType -> ExpressionType
     default this.onArrayType b = 
-        ExpressionType.ArrayType |> Node.BuildOr InvalidType (this.Transform b)
+        ExpressionType.ArrayType |> Node.BuildOr InvalidType (this.onType b)
 
 
     // leaf nodes
@@ -111,7 +111,7 @@ type TypeTransformationBase(options : TransformationOptions) =
 
     // transformation root called on each node
 
-    member this.Transform (t : ResolvedType) =
+    member this.onType (t : ResolvedType) =
         if options.Disable then t else
         let transformed = t.Resolution |> function
             | ExpressionType.UnitType                    -> this.onUnitType ()
