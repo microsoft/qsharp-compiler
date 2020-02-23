@@ -227,7 +227,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
                 return! fe.EvaluateFunction qualName arg stmtsLeft |> Option.map (fun x -> x.Expression)
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.IsPartialApplication method.Expression)
-                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+                return this.onExpressionKind (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
@@ -237,7 +237,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
             match method.Expression with
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.IsPartialApplication method.Expression)
-                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+                return this.onExpressionKind (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
@@ -247,7 +247,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
             match method.Expression with
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.IsPartialApplication method.Expression)
-                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+                return this.onExpressionKind (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
 

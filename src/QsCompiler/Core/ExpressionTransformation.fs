@@ -295,8 +295,8 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
             | ExpressionType.Operation _                                                     -> this.onOperationCall (method, arg)
             | _                                                                              -> this.onFunctionCall (method, arg)
 
-    abstract member Transform : ExpressionKind -> ExpressionKind
-    default this.Transform kind = 
+    abstract member onExpressionKind : ExpressionKind -> ExpressionKind
+    default this.onExpressionKind kind = 
         if options.Disable then kind else
         let transformed = kind |> function
             | Identifier (sym, tArgs)                          -> this.onIdentifier                 (sym, tArgs)
@@ -406,7 +406,7 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
         if options.Disable then ex else
         let range                = this.onRangeInformation ex.Range
         let typeParamResolutions = this.onTypeParamResolutions ex.TypeParameterResolutions
-        let kind                 = this.ExpressionKinds.Transform ex.Expression
+        let kind                 = this.ExpressionKinds.onExpressionKind ex.Expression
         let exType               = this.Types.Transform ex.ResolvedType
         let inferredInfo         = this.onExpressionInformation ex.InferredInformation
         TypedExpression.New |> Node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)

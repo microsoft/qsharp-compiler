@@ -126,7 +126,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public string ToCode(QsExpressionKind k)
         {
-            this.ExpressionKinds.Transform(k);
+            this.ExpressionKinds.onExpressionKind(k);
             return this.SharedState.ExpressionOutputHandle;
         }
 

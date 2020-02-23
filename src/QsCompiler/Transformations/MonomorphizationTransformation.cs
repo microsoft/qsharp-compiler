@@ -327,7 +327,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                     // This matters because the onTypeParamResolutions method builds up type param mappings in
                     // the CurrentParamTypes dictionary that are then used, and removed from the
                     // dictionary, in the next global callable identifier found under the Kind transformations.
-                    var kind = this.ExpressionKinds.Transform(ex.Expression);
+                    var kind = this.ExpressionKinds.onExpressionKind(ex.Expression);
                     return new TypedExpression(kind, typeParamResolutions, exType, inferredInfo, range);
                 }
 
