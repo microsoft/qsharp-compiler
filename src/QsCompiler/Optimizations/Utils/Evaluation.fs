@@ -64,7 +64,7 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
     /// Evaluates and simplifies a single Q# expression
     member internal this.EvaluateExpression expr : Imp<TypedExpression> = imperative {
         let! vars, counter = getState
-        let result = ExpressionEvaluator(callables, vars, counter / 2).Expressions.Transform expr
+        let result = ExpressionEvaluator(callables, vars, counter / 2).Expressions.onTypedExpression expr
         if isLiteral callables result then return result
         else yield CouldNotEvaluate ("Not a literal: " + result.Expression.ToString())
     }
@@ -179,13 +179,13 @@ and internal ExpressionEvaluator private (_private_) =
 and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedName, QsCallable>, constants: IDictionary<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionKindTransformation(parent)
 
-    member private this.simplify e1 = this.Expressions.Transform e1
+    member private this.simplify e1 = this.Expressions.onTypedExpression e1
 
     member private this.simplify (e1, e2) =
-        (this.Expressions.Transform e1, this.Expressions.Transform e2)
+        (this.Expressions.onTypedExpression e1, this.Expressions.onTypedExpression e2)
 
     member private this.simplify (e1, e2, e3) =
-        (this.Expressions.Transform e1, this.Expressions.Transform e2, this.Expressions.Transform e3)
+        (this.Expressions.onTypedExpression e1, this.Expressions.onTypedExpression e2, this.Expressions.onTypedExpression e3)
 
     member private this.arithBoolBinaryOp qop bigIntOp doubleOp intOp lhs rhs =
         let lhs, rhs = this.simplify (lhs, rhs)

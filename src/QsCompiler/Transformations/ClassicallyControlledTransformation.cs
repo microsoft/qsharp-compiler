@@ -805,14 +805,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 public override QsStatementKind onValueUpdate(QsValueUpdate stm)
                 {
                     // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
-                    var lhs = this.Expressions.Transform(stm.Lhs);
+                    var lhs = this.Expressions.onTypedExpression(stm.Lhs);
 
                     if (SharedState.ContainsHoistParamRef)
                     {
                         SharedState.IsValidScope = false;
                     }
 
-                    var rhs = this.Expressions.Transform(stm.Rhs);
+                    var rhs = this.Expressions.onTypedExpression(stm.Rhs);
                     return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
                 }
 
@@ -908,11 +908,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override TypedExpression Transform(TypedExpression ex)
+                public override TypedExpression onTypedExpression(TypedExpression ex)
                 {
                     var contextContainsHoistParamRef = SharedState.ContainsHoistParamRef;
                     SharedState.ContainsHoistParamRef = false;
-                    var rtrn = base.Transform(ex);
+                    var rtrn = base.onTypedExpression(ex);
 
                     // If the sub context contains a reference, then the super context contains a reference,
                     // otherwise return the super context to its original value
@@ -986,7 +986,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.Transform(kvp.Value));
                 }
 
-                public override TypedExpression Transform(TypedExpression ex)
+                public override TypedExpression onTypedExpression(TypedExpression ex)
                 {
                     // Checks if expression is mutable identifier that is in parameter list
                     if (ex.InferredInformation.IsMutable &&
@@ -1005,7 +1005,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                     // Prevent IsRecursiveIdentifier from propagating beyond the typed expression it is referring to
                     var isRecursiveIdentifier = SharedState.IsRecursiveIdentifier;
-                    var rtrn = base.Transform(ex);
+                    var rtrn = base.onTypedExpression(ex);
                     SharedState.IsRecursiveIdentifier = isRecursiveIdentifier;
                     return rtrn;
                 }

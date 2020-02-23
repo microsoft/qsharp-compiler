@@ -315,7 +315,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             {
                 public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override TypedExpression Transform(TypedExpression ex)
+                public override TypedExpression onTypedExpression(TypedExpression ex)
                 {
                     var range = this.onRangeInformation(ex.Range);
                     var typeParamResolutions = this.onTypeParamResolutions(ex.TypeParameterResolutions)

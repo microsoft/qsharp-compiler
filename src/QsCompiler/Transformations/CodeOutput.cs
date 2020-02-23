@@ -465,7 +465,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             private string Recur(int prec, TypedExpression ex)
             {
-                this.Transformation.Expressions.Transform(ex);
+                this.Transformation.Expressions.onTypedExpression(ex);
                 return prec < this.CurrentPrecedence || this.CurrentPrecedence == int.MaxValue // need to cover the case where prec = currentPrec = MaxValue
                     ? this.Output
                     : $"({this.Output})";
@@ -1339,7 +1339,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
             {
                 // do *not* set DeclarationComments!
-                this.Transformation.Expressions.Transform(att.Argument);
+                this.Transformation.Expressions.onTypedExpression(att.Argument);
                 var arg = this.SharedState.ExpressionOutputHandle;
                 var argStr = att.Argument.Expression.IsValueTuple || att.Argument.Expression.IsUnitValue ? arg : $"({arg})";
                 var id = att.TypeId.IsValue
