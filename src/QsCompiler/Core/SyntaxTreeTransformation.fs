@@ -70,7 +70,7 @@ and TypeTransformation<'T> internal (options, _internal_) =
 
     new (sharedState : 'T, options : TransformationOptions) as this =
         TypeTransformation<'T>(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState)
+            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState, options)
             this.Transformation.Types <- this
 
     new (parentTransformation : SyntaxTreeTransformation<'T>) = 
@@ -99,7 +99,8 @@ and ExpressionKindTransformation<'T> internal (options, _internal_) =
 
     new (sharedState : 'T, options : TransformationOptions) as this =
         ExpressionKindTransformation<'T>(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState)
+            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState, options)
+            this.Transformation.Types <- new TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
             this.Transformation.ExpressionKinds <- this
 
     new (parentTransformation : SyntaxTreeTransformation<'T>) = 
@@ -128,7 +129,8 @@ and ExpressionTransformation<'T> internal (options, _internal_) =
 
     new (sharedState : 'T, options : TransformationOptions) as this =
         ExpressionTransformation<'T>(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState)
+            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState, options)
+            this.Transformation.Types <- new TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
             this.Transformation.Expressions <- this
 
     new (parentTransformation : SyntaxTreeTransformation<'T>) = 
@@ -157,7 +159,9 @@ and StatementKindTransformation<'T> internal (options, _internal_) =
         
     new (sharedState : 'T, options : TransformationOptions) as this =
         StatementKindTransformation<'T>(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState)
+            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState, options)
+            this.Transformation.Types <- new TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.Expressions <- new ExpressionTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
             this.Transformation.StatementKinds <- this
 
     new (parentTransformation : SyntaxTreeTransformation<'T>) = 
@@ -186,7 +190,9 @@ and StatementTransformation<'T> internal (options, _internal_) =
 
     new (sharedState : 'T, options : TransformationOptions) as this =
         StatementTransformation<'T>(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState)
+            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState, options)
+            this.Transformation.Types <- new TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.Expressions <- new ExpressionTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
             this.Transformation.Statements <- this
 
     new (parentTransformation : SyntaxTreeTransformation<'T>) = 
@@ -214,7 +220,10 @@ and NamespaceTransformation<'T> internal (options, _internal_ : string) =
 
     new (sharedState : 'T, options : TransformationOptions) as this =
         NamespaceTransformation<'T>(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState)
+            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState, options)
+            this.Transformation.Types <- new TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.Expressions <- new ExpressionTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.Statements <- new StatementTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
             this.Transformation.Namespaces <- this
 
     new (parentTransformation : SyntaxTreeTransformation<'T>) = 
@@ -286,7 +295,7 @@ and TypeTransformation internal (options, _internal_) =
 
     new (options : TransformationOptions) as this =
         TypeTransformation(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation()
+            this.Transformation <- new SyntaxTreeTransformation(options)
             this.Transformation.Types <- this
 
     new (parentTransformation : SyntaxTreeTransformation) = 
@@ -312,7 +321,8 @@ and ExpressionKindTransformation internal (options, _internal_) =
 
     new (options : TransformationOptions) as this =
         ExpressionKindTransformation(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation()
+            this.Transformation <- new SyntaxTreeTransformation(options)
+            this.Transformation.Types <- new TypeTransformation(this.Transformation, TransformationOptions.Disabled)
             this.Transformation.ExpressionKinds <- this
 
     new (parentTransformation : SyntaxTreeTransformation) = 
@@ -338,7 +348,8 @@ and ExpressionTransformation internal (options, _internal_) =
 
     new (options : TransformationOptions) as this =
         ExpressionTransformation(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation()
+            this.Transformation <- new SyntaxTreeTransformation(options)
+            this.Transformation.Types <- new TypeTransformation(this.Transformation, TransformationOptions.Disabled)
             this.Transformation.Expressions <- this
 
     new (parentTransformation : SyntaxTreeTransformation) = 
@@ -364,7 +375,9 @@ and StatementKindTransformation internal (options, _internal_) =
         
     new (options : TransformationOptions) as this =
         StatementKindTransformation(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation()
+            this.Transformation <- new SyntaxTreeTransformation(options)
+            this.Transformation.Types <- new TypeTransformation(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.Expressions <- new ExpressionTransformation(this.Transformation, TransformationOptions.Disabled)
             this.Transformation.StatementKinds <- this
 
     new (parentTransformation : SyntaxTreeTransformation) = 
@@ -390,7 +403,9 @@ and StatementTransformation internal (options, _internal_) =
 
     new (options : TransformationOptions) as this =
         StatementTransformation(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation()
+            this.Transformation <- new SyntaxTreeTransformation(options)
+            this.Transformation.Types <- new TypeTransformation(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.Expressions <- new ExpressionTransformation(this.Transformation, TransformationOptions.Disabled)
             this.Transformation.Statements <- this
 
     new (parentTransformation : SyntaxTreeTransformation) = 
@@ -415,7 +430,10 @@ and NamespaceTransformation internal (options, _internal_ : string) =
 
     new (options : TransformationOptions) as this =
         NamespaceTransformation(options, "_internal_") then
-            this.Transformation <- new SyntaxTreeTransformation()
+            this.Transformation <- new SyntaxTreeTransformation(options)
+            this.Transformation.Types <- new TypeTransformation(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.Expressions <- new ExpressionTransformation(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.Statements <- new StatementTransformation(this.Transformation, TransformationOptions.Disabled)
             this.Transformation.Namespaces <- this
 
     new (parentTransformation : SyntaxTreeTransformation) = 
