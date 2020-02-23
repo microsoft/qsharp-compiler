@@ -10,6 +10,7 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// Represents all the functors applied to an operation call
@@ -84,7 +85,7 @@ type private InliningInfo = {
             let! functors, callable, arg = InliningInfo.TrySplitCall callables expr.Expression
             let! specArgs, body = InliningInfo.TryGetProvidedImpl callable functors
             let body = ReplaceTypeParams(expr.TypeParameterResolutions).Statements.OnScope body
-            let returnType = ReplaceTypeParams(expr.TypeParameterResolutions).Expressions.Types.OnType callable.Signature.ReturnType
+            let returnType = ReplaceTypeParams(expr.TypeParameterResolutions).Types.OnType callable.Signature.ReturnType
             return { functors = functors; callable = callable; arg = arg; specArgs = specArgs; body = body; returnType = returnType }
         }
 
@@ -101,6 +102,8 @@ type CallableInlining private (_private_ : string) =
         new CallableInlining("_private_") then
             this.Namespaces <- new CallableInliningNamespaces(this)
             this.Statements <- new CallableInliningStatements(this, callables)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for CallableInlining
 and private CallableInliningNamespaces (parent : CallableInlining) = 

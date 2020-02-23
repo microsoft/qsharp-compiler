@@ -20,6 +20,8 @@ type VariableRemoval(_private_) =
         new VariableRemoval("_private_") then
             this.Namespaces <- new VariableRemovalNamespaces(this)
             this.StatementKinds <- new VariableRemovalStatementKinds(this)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for VariableRemoval
 and private VariableRemovalNamespaces (parent : VariableRemoval) = 

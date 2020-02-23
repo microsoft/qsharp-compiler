@@ -23,6 +23,8 @@ type PureCircuitFinder private (_private_ : string) =
         new PureCircuitFinder("_private_") then
             this.Namespaces <- new PureCircuitFinderNamespaces(this)
             this.Statements <- new PureCircuitFinderStatements(this, callables)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for PureCircuitFinder
 and private PureCircuitFinderNamespaces (parent : PureCircuitFinder) = 

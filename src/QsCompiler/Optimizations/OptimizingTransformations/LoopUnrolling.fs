@@ -18,6 +18,8 @@ type LoopUnrolling private (_private_ : string) =
         new LoopUnrolling("_private_") then
             this.Namespaces <- new LoopUnrollingNamespaces(this)
             this.StatementKinds <- new LoopUnrollingStatementKinds(this, callables, maxSize)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for LoopUnrolling
 and private LoopUnrollingNamespaces (parent : LoopUnrolling) = 

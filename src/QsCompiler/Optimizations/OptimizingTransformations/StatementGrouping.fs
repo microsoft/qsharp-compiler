@@ -16,6 +16,8 @@ type StatementGrouping private (_private_ : string) =
     new () as this = 
         new StatementGrouping("_private_") then
             this.Statements <- new StatementGroupingStatements(this)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for StatementGrouping
 and private StatementGroupingStatements (parent : StatementGrouping) = 

@@ -173,7 +173,8 @@ and internal ExpressionEvaluator private (_private_) =
     internal new (callables : IDictionary<QsQualifiedName, QsCallable>, constants : IDictionary<string, TypedExpression>, stmtsLeft : int) as this = 
         new ExpressionEvaluator("_private_") then
             this.ExpressionKinds <- new ExpressionKindEvaluator(this, callables, constants, stmtsLeft)
-   
+            this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
+
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
 and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedName, QsCallable>, constants: IDictionary<string, TypedExpression>, stmtsLeft: int) =

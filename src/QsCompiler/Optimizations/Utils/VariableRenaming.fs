@@ -70,6 +70,7 @@ type VariableRenaming private (_private_) =
             this.Statements <- new VariableRenamingStatements(this)
             this.StatementKinds <- new VariableRenamingStatementKinds(this)
             this.ExpressionKinds <- new VariableRenamingExpressionKinds(this)
+            this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
 
 /// private helper class for VariableRenaming
 and private VariableRenamingNamespaces (parent : VariableRenaming) = 
