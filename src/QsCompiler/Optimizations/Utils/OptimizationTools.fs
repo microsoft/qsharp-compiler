@@ -22,6 +22,8 @@ type internal FindDistinctQubits private (_private_) =
         new FindDistinctQubits("_private_") then
             this.Namespaces <- new DistinctQubitsNamespaces(this)
             this.StatementKinds <- new DistinctQubitsStatementKinds(this)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for FindDistinctQubits
 and private DistinctQubitsNamespaces (parent : FindDistinctQubits) = 
@@ -58,6 +60,8 @@ type internal MutationChecker private (_private_) =
     internal new () as this = 
         new MutationChecker("_private_") then
             this.StatementKinds <- new MutationCheckerStatementKinds(this)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for MutationChecker
 and private MutationCheckerStatementKinds(parent : MutationChecker) = 
@@ -92,6 +96,7 @@ type internal ReferenceCounter private (_private_) =
     internal new () as this = 
         new ReferenceCounter("_private_") then
             this.ExpressionKinds <- new ReferenceCounterExpressionKinds(this)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for ReferenceCounter
 and private ReferenceCounterExpressionKinds(parent : ReferenceCounter) = 
@@ -172,6 +177,7 @@ and internal SideEffectChecker private (_private_) =
         new SideEffectChecker("_private_") then
             this.ExpressionKinds <- new SideEffectCheckerExpressionKinds(this)
             this.StatementKinds <- new SideEffectCheckerStatementKinds(this)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 
 /// A ScopeTransformation that replaces one statement with zero or more statements
@@ -198,6 +204,8 @@ type internal StripAllKnownSymbols(_private_) =
     internal new () as this = 
         new StripAllKnownSymbols("_private_") then
             this.Statements <- new StripAllKnownSymbolsStatements(this)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for StripAllKnownSymbols
 and private StripAllKnownSymbolsStatements(parent : StripAllKnownSymbols) = 
