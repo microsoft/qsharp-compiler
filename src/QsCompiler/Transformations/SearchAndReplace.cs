@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
             finder.SharedState.Source = sourceFile;
             finder.SharedState.DeclarationOffset = rootLoc; // will throw if null
-            finder.Statements.Transform(scope ?? throw new ArgumentNullException(nameof(scope)));
+            finder.Statements.onScope(scope ?? throw new ArgumentNullException(nameof(scope)));
             return finder.SharedState.Locations;
         }
 

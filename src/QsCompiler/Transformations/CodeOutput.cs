@@ -897,7 +897,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this.AddComments(comments.OpeningComments);
                 this.AddToOutput($"{intro} {"{"}");
                 ++this.CurrentIndendation;
-                this.Transformation.Statements.Transform(statements);
+                this.Transformation.Statements.onScope(statements);
                 this.AddComments(comments.ClosingComments);
                 --this.CurrentIndendation;
                 this.AddToOutput("}");
@@ -1185,7 +1185,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 void ProcessContent()
                 {
                     this.SharedState.StatementOutputHandle.Clear();
-                    this.Transformation.Statements.Transform(body);
+                    this.Transformation.Statements.onScope(body);
                     foreach (var line in this.SharedState.StatementOutputHandle)
                     { this.AddToOutput(line); }
                 }

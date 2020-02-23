@@ -66,7 +66,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
         let location = this.Statements.onLocation block.Location
         let comments = block.Comments
         let expr = intro |> QsNullable<_>.Map this.Expressions.Transform
-        let body = this.Statements.Transform block.Body
+        let body = this.Statements.onScope block.Body
         let PositionedBlock (expr,  body, location, comments) = expr, QsPositionedBlock.New comments location body
         PositionedBlock |> Node.BuildOr (intro, block) (expr, body, location, comments)
 
@@ -99,13 +99,13 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
         let iterVals = this.Expressions.Transform stm.IterationValues
         let loopVar = fst stm.LoopItem |> this.onSymbolTuple
         let loopVarType = this.Expressions.Types.Transform (snd stm.LoopItem)
-        let body = this.Statements.Transform stm.Body
+        let body = this.Statements.onScope stm.Body
         QsForStatement << QsForStatement.New |> Node.BuildOr EmptyStatement ((loopVar, loopVarType), iterVals, body)
 
     abstract member onWhileStatement : QsWhileStatement -> QsStatementKind
     default this.onWhileStatement stm = 
         let condition = this.Expressions.Transform stm.Condition
-        let body = this.Statements.Transform stm.Body
+        let body = this.Statements.onScope stm.Body
         QsWhileStatement << QsWhileStatement.New |> Node.BuildOr EmptyStatement (condition, body)
 
     abstract member onRepeatStatement : QsRepeatStatement -> QsStatementKind
@@ -141,7 +141,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
         let kind = stm.Kind
         let rhs = this.onQubitInitializer stm.Binding.Rhs
         let lhs = this.onSymbolTuple stm.Binding.Lhs
-        let body = this.Statements.Transform stm.Body
+        let body = this.Statements.onScope stm.Body
         QsQubitScope << QsQubitScope.New kind |> Node.BuildOr EmptyStatement ((lhs, rhs), body)
 
     abstract member onAllocateQubits : QsQubitScope -> QsStatementKind
@@ -243,8 +243,8 @@ and StatementTransformationBase internal (options : TransformationOptions, _inte
         let varDecl = this.onLocalDeclarations stm.SymbolDeclarations
         QsStatement.New comments location |> Node.BuildOr stm (kind, varDecl)
 
-    abstract member Transform : QsScope -> QsScope 
-    default this.Transform scope = 
+    abstract member onScope : QsScope -> QsScope 
+    default this.onScope scope = 
         if options.Disable then scope else
         let parentSymbols = this.onLocalDeclarations scope.KnownSymbols
         let statements = scope.Statements |> Seq.map this.onStatement |> ImmutableArray.CreateRange

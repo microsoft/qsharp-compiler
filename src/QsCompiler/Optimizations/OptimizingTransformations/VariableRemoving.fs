@@ -27,7 +27,7 @@ and private VariableRemovalNamespaces (parent : VariableRemoval) =
 
     override __.onProvidedImplementation (argTuple, body) =
         let r = ReferenceCounter()
-        r.Statements.Transform body |> ignore
+        r.Statements.onScope body |> ignore
         parent.ReferenceCounter <- Some r
         base.onProvidedImplementation (argTuple, body)
 

@@ -90,13 +90,13 @@ and private VariableRenamingNamespaces (parent : VariableRenaming) =
 and private VariableRenamingStatements (parent : VariableRenaming) = 
     inherit StatementTransformation(parent)
 
-    override this.Transform x =
+    override this.onScope x =
         if parent.SkipScope then
             parent.SkipScope <- false
-            base.Transform x
+            base.onScope x
         else
             parent.RenamingStack <- parent.EnterScope parent.RenamingStack
-            let result = base.Transform x
+            let result = base.onScope x
             parent.RenamingStack <- parent.ExitScope parent.RenamingStack
             result
 

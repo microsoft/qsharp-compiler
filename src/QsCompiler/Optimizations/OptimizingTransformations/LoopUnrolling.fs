@@ -35,7 +35,7 @@ and private LoopUnrollingStatementKinds (parent : LoopUnrolling, callables, maxS
         let loopVar = fst stm.LoopItem |> this.onSymbolTuple
         let iterVals = this.Expressions.Transform stm.IterationValues
         let loopVarType = this.Expressions.Types.Transform (snd stm.LoopItem)
-        let body = this.Statements.Transform stm.Body
+        let body = this.Statements.onScope stm.Body
         maybe {
             let! iterValsList =
                 match iterVals.Expression with

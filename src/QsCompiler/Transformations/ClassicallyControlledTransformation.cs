@@ -406,7 +406,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 #endregion
 
-                public override QsScope Transform(QsScope scope)
+                public override QsScope onScope(QsScope scope)
                 {
                     var parentSymbols = this.onLocalDeclarations(scope.KnownSymbols);
                     var statements = new List<QsStatement>();

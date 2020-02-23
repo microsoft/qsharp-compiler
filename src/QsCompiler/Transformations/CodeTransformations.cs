@@ -28,9 +28,9 @@ namespace Microsoft.Quantum.QsCompiler
         {
             // Since we are pulling purely classical statements up, we are potentially changing the order of declarations.
             // We therefore need to generate unique variable names before reordering the statements.
-            scope = new UniqueVariableNames().Statements.Transform(scope);
+            scope = new UniqueVariableNames().Statements.onScope(scope);
             scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
-            scope = new ReverseOrderOfOperationCalls().Statements.Transform(scope);
+            scope = new ReverseOrderOfOperationCalls().Statements.onScope(scope);
             return StripPositionInfo.Apply(scope);
         }
 

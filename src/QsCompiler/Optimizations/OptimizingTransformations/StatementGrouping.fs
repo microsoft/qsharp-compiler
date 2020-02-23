@@ -43,7 +43,7 @@ and private StatementGroupingStatements (parent : StatementGrouping) =
             else a :: reorderStatements (b :: tail)
         | x -> x
 
-    override this.Transform scope =
+    override this.onScope scope =
         let parentSymbols = scope.KnownSymbols
         let statements = scope.Statements |> Seq.map this.onStatement |> List.ofSeq |> reorderStatements
         QsScope.New (statements, parentSymbols)

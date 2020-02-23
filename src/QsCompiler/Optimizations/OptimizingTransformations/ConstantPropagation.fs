@@ -100,6 +100,6 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
                 defineVar (fun _ -> true) parent.Constants (name.Value, expr)
             | _ -> ())
 
-        let body = this.Statements.Transform stm.Body
+        let body = this.Statements.onScope stm.Body
         QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
 

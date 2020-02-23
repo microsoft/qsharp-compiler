@@ -229,7 +229,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 return new QsStatement(stmKind, varDecl, loc, stm.Comments);
             }
 
-            public override QsScope Transform(QsScope scope)
+            public override QsScope onScope(QsScope scope)
             {
                 var statements = new List<QsStatement>();
                 foreach (var statement in scope.Statements)

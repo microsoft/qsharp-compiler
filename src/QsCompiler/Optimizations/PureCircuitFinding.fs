@@ -48,7 +48,7 @@ and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables :
             | _ -> false
         | _ -> false
 
-    override this.Transform scope =
+    override this.onScope scope =
         let mutable circuit = ImmutableArray.Empty
         let mutable newStatements = ImmutableArray.Empty
 

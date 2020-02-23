@@ -46,10 +46,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             SyntaxGenerator.ImmutableQubitArrayWithName(NonNullable<string>.New(InternalUse.ControlQubitsName));
 
         public static readonly Func<QsScope, QsScope> ApplyAdjoint =
-            new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Statements.Transform;
+            new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Statements.onScope;
 
         public static readonly Func<QsScope, QsScope> ApplyControlled =
-            new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Statements.Transform;
+            new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Statements.onScope;
 
 
         // helper classes
@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         {
             var inner = stm.InnerTransformation;
             var innerLoc = this.Transformation.Statements.onLocation(inner.Location);
-            var transformedInner = new QsPositionedBlock(this.Transformation.Statements.Transform(inner.Body), innerLoc, inner.Comments);
+            var transformedInner = new QsPositionedBlock(this.Transformation.Statements.onScope(inner.Body), innerLoc, inner.Comments);
             return QsStatementKind.NewQsConjugation(new QsConjugation(stm.OuterTransformation, transformedInner));
         }
     }
@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 : base(state => new ReverseOrderOfOperationCalls(), parent)
             { }
 
-            public override QsScope Transform(QsScope scope)
+            public override QsScope onScope(QsScope scope)
             {
                 var topStatements = ImmutableArray.CreateBuilder<QsStatement>();
                 var bottomStatements = new List<QsStatement>();

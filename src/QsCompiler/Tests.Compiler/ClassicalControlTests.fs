@@ -66,7 +66,7 @@ type ClassicalControlTests () =
         specialization
         |> fun x -> match x.Implementation with | Provided (_, body) -> Some body | _ -> None
         |> Option.get
-        |> writer.Statements.Transform
+        |> writer.Statements.onScope
         |> ignore
 
         writer.SharedState.StatementOutputHandle 

@@ -180,7 +180,7 @@ type [<AbstractClass>] internal StatementCollectorTransformation(parent : Core.S
 
     abstract member CollectStatements: QsStatementKind -> QsStatementKind seq
 
-    override this.Transform scope =
+    override this.onScope scope =
         let parentSymbols = scope.KnownSymbols
         let statements =
             scope.Statements
@@ -203,6 +203,6 @@ type internal StripAllKnownSymbols(_private_) =
 and private StripAllKnownSymbolsStatements(parent : StripAllKnownSymbols) = 
     inherit Core.StatementTransformation(parent)
 
-    override this.Transform scope =
+    override this.onScope scope =
         QsScope.New (scope.Statements |> Seq.map this.onStatement, LocalDeclarations.Empty)
 
