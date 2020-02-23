@@ -21,7 +21,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// The default values used for auto-generation will be used for the additional functor arguments.  
     /// </summary>
     public class ApplyFunctorToOperationCalls :
-        QsSyntaxTreeTransformation<ApplyFunctorToOperationCalls.TransformationsState>
+        SyntaxTreeTransformation<ApplyFunctorToOperationCalls.TransformationsState>
     {
         public class TransformationsState
         {
@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         public class ExpressionKindTransformation :
             Core.ExpressionKindTransformation<TransformationsState>
         {
-            public ExpressionKindTransformation(QsSyntaxTreeTransformation<TransformationsState> parent)
+            public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationsState> parent)
                 : base(parent)
             { }
 
@@ -72,12 +72,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
             public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> onOperationCall(TypedExpression method, TypedExpression arg)
             {
-                if (this.Transformation.InternalState.FunctorToApply.IsControlled)
+                if (this.SharedState.FunctorToApply.IsControlled)
                 {
                     method = SyntaxGenerator.ControlledOperation(method);
                     arg = SyntaxGenerator.ArgumentWithControlQubits(arg, ControlQubits);
                 }
-                else if (this.Transformation.InternalState.FunctorToApply.IsAdjoint)
+                else if (this.SharedState.FunctorToApply.IsAdjoint)
                 {
                     method = SyntaxGenerator.AdjointOperation(method);
                 }
@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     public class IgnoreOuterBlockInConjugations<T> :
         Core.StatementKindTransformation<T>
     {
-        public IgnoreOuterBlockInConjugations(QsSyntaxTreeTransformation<T> parent)
+        public IgnoreOuterBlockInConjugations(SyntaxTreeTransformation<T> parent)
             : base(parent)
         { }
 
@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 foreach (var statement in scope.Statements)
                 {
                     var transformed = this.onStatement(statement);
-                    if (this.SubSelector.InternalState.SatisfiesCondition) topStatements.Add(statement);
+                    if (this.SubSelector.SharedState.SatisfiesCondition) topStatements.Add(statement);
                     else bottomStatements.Add(transformed);
                 }
                 bottomStatements.Reverse();

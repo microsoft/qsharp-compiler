@@ -132,6 +132,7 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
             yield CouldNotEvaluate "Cannot allocate qubits in function"
         | QsConjugation _ ->
             yield CouldNotEvaluate "Cannot conjugate in function"
+        | EmptyStatement -> ()
     }
 
     /// Evaluates a list of Q# statements
@@ -166,11 +167,11 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
 
 
 /// The ExpressionTransformation used to evaluate constant expressions
-and internal ExpressionEvaluator private (unsafe) =
-    inherit QsSyntaxTreeTransformation() 
+and internal ExpressionEvaluator private (_private_) =
+    inherit SyntaxTreeTransformation() 
 
     internal new (callables : IDictionary<QsQualifiedName, QsCallable>, constants : IDictionary<string, TypedExpression>, stmtsLeft : int) as this = 
-        new ExpressionEvaluator("unsafe") then
+        new ExpressionEvaluator("_private_") then
             this.ExpressionKinds <- new ExpressionKindEvaluator(this, callables, constants, stmtsLeft)
    
 

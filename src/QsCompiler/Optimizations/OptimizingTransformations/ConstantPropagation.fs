@@ -15,14 +15,14 @@ open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to evaluate constants
-type ConstantPropagation private (unsafe : string) =
+type ConstantPropagation private (_private_ : string) =
     inherit TransformationBase()
 
     /// The current dictionary that maps variables to the values we substitute for them
     member val Constants = new Dictionary<string, TypedExpression>()
 
     new (callables) as this = 
-        new ConstantPropagation("unsafe") then
+        new ConstantPropagation("_private_") then
             this.Namespaces <- new ConstantPropagationNamespaces(this)
             this.StatementKinds <- new ConstantPropagationStatementKinds(this, callables)
             this.Expressions <- (new ExpressionEvaluator(callables, this.Constants, 1000)).Expressions 

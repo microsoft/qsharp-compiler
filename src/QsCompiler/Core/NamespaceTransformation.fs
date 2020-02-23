@@ -10,28 +10,35 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
 type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 
 
-type NamespaceTransformationBase internal (unsafe) =
+type NamespaceTransformationBase internal (options : TransformationOptions, _internal_) =
+
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
+    let Node = if options.DisableRebuild then Walk else Fold
 
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
+    member this.Statements = this.StatementTransformationHandle()
 
-    // TODO: this should be a protected member
-    abstract member Statements : StatementTransformationBase
-    default this.Statements = this.StatementTransformationHandle()
-
-    new (statementTransformation : unit -> StatementTransformationBase) as this = 
-        new NamespaceTransformationBase("unsafe") then 
+    new (statementTransformation : unit -> StatementTransformationBase, options : TransformationOptions) as this = 
+        new NamespaceTransformationBase(options, "_internal_") then 
             this.StatementTransformationHandle <- statementTransformation
 
-    new () as this = 
-        new NamespaceTransformationBase("unsafe") then
-            let statementTransformation = new StatementTransformationBase()
+    new (options : TransformationOptions) as this = 
+        new NamespaceTransformationBase(options, "_internal_") then
+            let statementTransformation = new StatementTransformationBase(options)
             this.StatementTransformationHandle <- fun _ -> statementTransformation
 
+    new (statementTransformation : unit -> StatementTransformationBase) =
+        new NamespaceTransformationBase(statementTransformation, TransformationOptions.Default)
+
+    new () = new NamespaceTransformationBase(TransformationOptions.Default)
+
+
+    // methods invoked before selective nodes
 
     abstract member beforeNamespaceElement : QsNamespaceElement -> QsNamespaceElement
     default this.beforeNamespaceElement e = e
@@ -49,6 +56,8 @@ type NamespaceTransformationBase internal (unsafe) =
     default this.beforeGeneratedImplementation dir = dir
 
 
+    // subconstructs used within declarations 
+
     abstract member onLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.onLocation l = l
 
@@ -58,28 +67,35 @@ type NamespaceTransformationBase internal (unsafe) =
     abstract member onSourceFile : NonNullable<string> -> NonNullable<string>
     default this.onSourceFile f = f
 
+    abstract member onAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
+    default this.onAttribute att = att 
+
     abstract member onTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
     default this.onTypeItems tItem = 
         match tItem with 
-        | QsTuple items -> (items |> Seq.map this.onTypeItems).ToImmutableArray() |> QsTuple
-        | QsTupleItem (Anonymous itemType) -> 
+        | QsTuple items as original -> 
+            let transformed = items |> Seq.map this.onTypeItems |> ImmutableArray.CreateRange
+            QsTuple |> Node.BuildOr original transformed
+        | QsTupleItem (Anonymous itemType) as original -> 
             let t = this.Statements.Expressions.Types.Transform itemType
-            Anonymous t |> QsTupleItem
-        | QsTupleItem (Named item) -> 
+            QsTupleItem << Anonymous |> Node.BuildOr original t
+        | QsTupleItem (Named item) as original -> 
             let loc  = item.Position, item.Range
             let t    = this.Statements.Expressions.Types.Transform item.Type
             let info = this.Statements.Expressions.onExpressionInformation item.InferredInformation
-            LocalVariableDeclaration<_>.New info.IsMutable (loc, item.VariableName, t, info.HasLocalQuantumDependency) |> Named |> QsTupleItem
+            QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable |> Node.BuildOr original (loc, item.VariableName, t, info.HasLocalQuantumDependency)
             
     abstract member onArgumentTuple : QsArgumentTuple -> QsArgumentTuple
     default this.onArgumentTuple arg = 
         match arg with 
-        | QsTuple items -> (items |> Seq.map this.onArgumentTuple).ToImmutableArray() |> QsTuple
-        | QsTupleItem item -> 
+        | QsTuple items as original -> 
+            let transformed = items |> Seq.map this.onArgumentTuple |> ImmutableArray.CreateRange
+            QsTuple |> Node.BuildOr original transformed 
+        | QsTupleItem item as original -> 
             let loc  = item.Position, item.Range
             let t    = this.Statements.Expressions.Types.Transform item.Type
             let info = this.Statements.Expressions.onExpressionInformation item.InferredInformation
-            LocalVariableDeclaration<_>.New info.IsMutable (loc, item.VariableName, t, info.HasLocalQuantumDependency) |> QsTupleItem
+            QsTupleItem << LocalVariableDeclaration<_>.New info.IsMutable |> Node.BuildOr original (loc, item.VariableName, t, info.HasLocalQuantumDependency)
 
     abstract member onSignature : ResolvedSignature -> ResolvedSignature
     default this.onSignature (s : ResolvedSignature) = 
@@ -87,14 +103,10 @@ type NamespaceTransformationBase internal (unsafe) =
         let argType = this.Statements.Expressions.Types.Transform s.ArgumentType
         let returnType = this.Statements.Expressions.Types.Transform s.ReturnType
         let info = this.Statements.Expressions.Types.onCallableInformation s.Information
-        ResolvedSignature.New ((argType, returnType), info, typeParams)
+        ResolvedSignature.New |> Node.BuildOr s ((argType, returnType), info, typeParams)
+
     
-
-    abstract member onExternalImplementation : unit -> unit
-    default this.onExternalImplementation () = ()
-
-    abstract member onIntrinsicImplementation : unit -> unit
-    default this.onIntrinsicImplementation () = ()
+    // specialization declarations and implementations
 
     abstract member onProvidedImplementation : QsArgumentTuple * QsScope -> QsArgumentTuple * QsScope
     default this.onProvidedImplementation (argTuple, body) = 
@@ -114,6 +126,12 @@ type NamespaceTransformationBase internal (unsafe) =
     abstract member onInvalidGeneratorDirective : unit -> unit
     default this.onInvalidGeneratorDirective () = ()
 
+    abstract member onExternalImplementation : unit -> unit
+    default this.onExternalImplementation () = ()
+
+    abstract member onIntrinsicImplementation : unit -> unit
+    default this.onIntrinsicImplementation () = ()
+
     member this.dispatchGeneratedImplementation (dir : QsGeneratorDirective) = 
         match this.beforeGeneratedImplementation dir with 
         | SelfInverse      -> this.onSelfInverseDirective ();     SelfInverse     
@@ -122,24 +140,24 @@ type NamespaceTransformationBase internal (unsafe) =
         | InvalidGenerator -> this.onInvalidGeneratorDirective(); InvalidGenerator
 
     member this.dispatchSpecializationImplementation (impl : SpecializationImplementation) = 
+        let Build kind transformed = kind |> Node.BuildOr impl transformed
         match this.beforeSpecializationImplementation impl with 
         | External                  -> this.onExternalImplementation();                  External
         | Intrinsic                 -> this.onIntrinsicImplementation();                 Intrinsic
-        | Generated dir             -> this.dispatchGeneratedImplementation dir       |> Generated
-        | Provided (argTuple, body) -> this.onProvidedImplementation (argTuple, body) |> Provided
-
+        | Generated dir             -> this.dispatchGeneratedImplementation dir       |> Build Generated
+        | Provided (argTuple, body) -> this.onProvidedImplementation (argTuple, body) |> Build Provided
 
     abstract member onSpecializationImplementation : QsSpecialization -> QsSpecialization
     default this.onSpecializationImplementation (spec : QsSpecialization) = 
         let source = this.onSourceFile spec.SourceFile
         let loc = this.onLocation spec.Location
         let attributes = spec.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
-        let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> (args |> Seq.map this.Statements.Expressions.Types.Transform).ToImmutableArray())
+        let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> args |> Seq.map this.Statements.Expressions.Types.Transform |> ImmutableArray.CreateRange)
         let signature = this.onSignature spec.Signature
         let impl = this.dispatchSpecializationImplementation spec.Implementation 
         let doc = this.onDocumentation spec.Documentation
         let comments = spec.Comments
-        QsSpecialization.New spec.Kind (source, loc) (spec.Parent, attributes, typeArgs, signature, impl, doc, comments)
+        QsSpecialization.New spec.Kind (source, loc) |> Node.BuildOr spec (spec.Parent, attributes, typeArgs, signature, impl, doc, comments)
 
     abstract member onBodySpecialization : QsSpecialization -> QsSpecialization
     default this.onBodySpecialization spec = this.onSpecializationImplementation spec
@@ -161,6 +179,8 @@ type NamespaceTransformationBase internal (unsafe) =
         | QsSpecializationKind.QsControlled         -> this.onControlledSpecialization spec
         | QsSpecializationKind.QsControlledAdjoint  -> this.onControlledAdjointSpecialization spec
 
+    
+    // type and callable declarations and implementations
 
     abstract member onType : QsCustomType -> QsCustomType
     default this.onType t =
@@ -171,7 +191,7 @@ type NamespaceTransformationBase internal (unsafe) =
         let typeItems = this.onTypeItems t.TypeItems
         let doc = this.onDocumentation t.Documentation
         let comments = t.Comments
-        QsCustomType.New (source, loc) (t.FullName, attributes, typeItems, underlyingType, doc, comments)
+        QsCustomType.New (source, loc) |> Node.BuildOr t (t.FullName, attributes, typeItems, underlyingType, doc, comments)
 
     abstract member onCallableImplementation : QsCallable -> QsCallable
     default this.onCallableImplementation (c : QsCallable) = 
@@ -180,10 +200,10 @@ type NamespaceTransformationBase internal (unsafe) =
         let attributes = c.Attributes |> Seq.map this.onAttribute |> ImmutableArray.CreateRange
         let signature = this.onSignature c.Signature
         let argTuple = this.onArgumentTuple c.ArgumentTuple
-        let specializations = c.Specializations |> Seq.map this.dispatchSpecialization
+        let specializations = c.Specializations |> Seq.sortBy (fun c -> c.Kind) |> Seq.map this.dispatchSpecialization |> ImmutableArray.CreateRange
         let doc = this.onDocumentation c.Documentation
         let comments = c.Comments
-        QsCallable.New c.Kind (source, loc) (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
+        QsCallable.New c.Kind (source, loc) |> Node.BuildOr c (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
 
     abstract member onOperation : QsCallable -> QsCallable
     default this.onOperation c = this.onCallableImplementation c
@@ -202,8 +222,7 @@ type NamespaceTransformationBase internal (unsafe) =
         | QsCallableKind.TypeConstructor    -> this.onTypeConstructor c
 
 
-    abstract member onAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
-    default this.onAttribute att = att 
+    // transformation roots called on each namespace
 
     member this.dispatchNamespaceElement element = 
         match this.beforeNamespaceElement element with
@@ -212,9 +231,10 @@ type NamespaceTransformationBase internal (unsafe) =
 
     abstract member Transform : QsNamespace -> QsNamespace 
     default this.Transform ns = 
+        if options.Disable then ns else
         let name = ns.Name
         let doc = ns.Documentation.AsEnumerable().SelectMany(fun entry -> 
             entry |> Seq.map (fun doc -> entry.Key, this.onDocumentation doc)).ToLookup(fst, snd)
-        let elements = ns.Elements |> Seq.map this.dispatchNamespaceElement
-        QsNamespace.New (name, elements, doc)
+        let elements = ns.Elements |> Seq.map this.dispatchNamespaceElement |> ImmutableArray.CreateRange
+        QsNamespace.New |> Node.BuildOr ns (name, elements, doc)
 

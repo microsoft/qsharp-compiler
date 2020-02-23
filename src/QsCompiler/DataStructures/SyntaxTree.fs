@@ -564,6 +564,7 @@ and QsStatementKind =
 | QsRepeatStatement      of QsRepeatStatement
 | QsConjugation          of QsConjugation
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
+| EmptyStatement 
 
 
 and QsStatement = {

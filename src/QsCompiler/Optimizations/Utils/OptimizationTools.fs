@@ -13,13 +13,13 @@ open Microsoft.Quantum.QsCompiler.Transformations
 
 /// A SyntaxTreeTransformation that finds identifiers in each implementation that represent distict qubit values.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
-type internal FindDistinctQubits private (unsafe) =
-    inherit Core.QsSyntaxTreeTransformation()
+type internal FindDistinctQubits private (_private_) =
+    inherit Core.SyntaxTreeTransformation()
 
     member val DistinctNames : Set<NonNullable<string>> = Set.empty with get, set
 
     internal new () as this = 
-        new FindDistinctQubits("unsafe") then
+        new FindDistinctQubits("_private_") then
             this.Namespaces <- new DistinctQubitsNamespaces(this)
             this.StatementKinds <- new DistinctQubitsStatementKinds(this)
 
@@ -46,8 +46,8 @@ and private DistinctQubitsStatementKinds (parent : FindDistinctQubits) =
 
 /// A transformation that tracks what variables the transformed code could mutate.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
-type internal MutationChecker private (unsafe) =
-    inherit Core.QsSyntaxTreeTransformation()
+type internal MutationChecker private (_private_) =
+    inherit Core.SyntaxTreeTransformation()
 
     member val DeclaredVariables : Set<NonNullable<string>> = Set.empty with get, set
     member val MutatedVariables : Set<NonNullable<string>> = Set.empty with get, set
@@ -56,7 +56,7 @@ type internal MutationChecker private (unsafe) =
     member this.ExternalMutations = this.MutatedVariables - this.DeclaredVariables
 
     internal new () as this = 
-        new MutationChecker("unsafe") then
+        new MutationChecker("_private_") then
             this.StatementKinds <- new MutationCheckerStatementKinds(this)
 
 /// private helper class for MutationChecker
@@ -81,8 +81,8 @@ and private MutationCheckerStatementKinds(parent : MutationChecker) =
 
 /// A transformation that counts how many times each local variable is referenced.
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
-type internal ReferenceCounter private (unsafe) =
-    inherit Core.QsSyntaxTreeTransformation()
+type internal ReferenceCounter private (_private_) =
+    inherit Core.SyntaxTreeTransformation()
 
     member val internal UsedVariables = Map.empty with get, set
 
@@ -90,7 +90,7 @@ type internal ReferenceCounter private (unsafe) =
     member this.NumberOfUses name = this.UsedVariables.TryFind name |? 0
 
     internal new () as this = 
-        new ReferenceCounter("unsafe") then
+        new ReferenceCounter("_private_") then
             this.ExpressionKinds <- new ReferenceCounterExpressionKinds(this)
 
 /// private helper class for ReferenceCounter
@@ -105,23 +105,23 @@ and private ReferenceCounterExpressionKinds(parent : ReferenceCounter) =
 
 
 /// private helper class for ReplaceTypeParams
-type private ReplaceTypeParamsTypes(parent : Core.QsSyntaxTreeTransformation<_>) = 
+type private ReplaceTypeParamsTypes(parent : Core.SyntaxTreeTransformation<_>) = 
     inherit Core.TypeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(parent)
 
     override this.onTypeParameter tp =
         let key = tp.Origin, tp.TypeName
-        match this.Transformation.InternalState.TryGetValue key with 
+        match this.SharedState.TryGetValue key with 
         | true, t -> t.Resolution
         | _ -> TypeKind.TypeParameter tp
 
 /// A transformation that substitutes type parameters according to the given dictionary
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 /// Does *not* update the type paremeter resolution dictionaries. 
-type internal ReplaceTypeParams private (typeParams: ImmutableDictionary<_, ResolvedType>, unsafe) =
-    inherit Core.QsSyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(typeParams)
+type internal ReplaceTypeParams private (typeParams: ImmutableDictionary<_, ResolvedType>, _private_) =
+    inherit Core.SyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * NonNullable<string>, ResolvedType>>(typeParams)
 
     internal new (typeParams: ImmutableDictionary<_, ResolvedType>) as this = 
-        new ReplaceTypeParams(typeParams, "unsafe") then
+        new ReplaceTypeParams(typeParams, "_private_") then
             this.Types <- new ReplaceTypeParamsTypes(this)
 
 
@@ -156,8 +156,8 @@ and private SideEffectCheckerStatementKinds(parent : SideEffectChecker) =
         base.onFailStatement stm
 
 /// A ScopeTransformation that tracks what side effects the transformed code could cause
-and internal SideEffectChecker private (unsafe) =
-    inherit Core.QsSyntaxTreeTransformation()
+and internal SideEffectChecker private (_private_) =
+    inherit Core.SyntaxTreeTransformation()
 
     /// Whether the transformed code might have any quantum side effects (such as calling operations)
     member val HasQuantum = false with get, set
@@ -169,13 +169,13 @@ and internal SideEffectChecker private (unsafe) =
     member val HasOutput = false with get, set
 
     internal new () as this = 
-        new SideEffectChecker("unsafe") then
+        new SideEffectChecker("_private_") then
             this.ExpressionKinds <- new SideEffectCheckerExpressionKinds(this)
             this.StatementKinds <- new SideEffectCheckerStatementKinds(this)
 
 
 /// A ScopeTransformation that replaces one statement with zero or more statements
-type [<AbstractClass>] internal StatementCollectorTransformation(parent : Core.QsSyntaxTreeTransformation) =
+type [<AbstractClass>] internal StatementCollectorTransformation(parent : Core.SyntaxTreeTransformation) =
     inherit Core.StatementTransformation(parent)
 
     abstract member CollectStatements: QsStatementKind -> QsStatementKind seq
@@ -192,11 +192,11 @@ type [<AbstractClass>] internal StatementCollectorTransformation(parent : Core.Q
 
 
 /// A SyntaxTreeTransformation that removes all known symbols from anywhere in the AST
-type internal StripAllKnownSymbols(unsafe) =
-    inherit Core.QsSyntaxTreeTransformation()
+type internal StripAllKnownSymbols(_private_) =
+    inherit Core.SyntaxTreeTransformation()
 
     internal new () as this = 
-        new StripAllKnownSymbols("unsafe") then
+        new StripAllKnownSymbols("_private_") then
             this.Statements <- new StripAllKnownSymbolsStatements(this)
 
 /// private helper class for StripAllKnownSymbols

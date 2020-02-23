@@ -13,11 +13,11 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
 /// The SyntaxTreeTransformation used to remove useless statements
-type StatementRemoval private (unsafe : string) =
+type StatementRemoval private (_private_ : string) =
     inherit TransformationBase()
 
     new (removeFunctions : bool) as this = 
-        new StatementRemoval("unsafe") then
+        new StatementRemoval("_private_") then
             this.Statements <- new VariableRemovalStatements(this, removeFunctions)
 
 /// private helper class for StatementRemoval
