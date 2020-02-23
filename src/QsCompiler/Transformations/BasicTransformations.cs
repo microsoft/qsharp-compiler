@@ -222,7 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             {
                 this.SubSelector = this.CreateSelector(this.SharedState);
                 var loc = this.SubSelector.Statements.onLocation(stm.Location);
-                var stmKind = this.SubSelector.StatementKinds.Transform(stm.Statement);
+                var stmKind = this.SubSelector.StatementKinds.onStatementKind(stm.Statement);
                 var varDecl = this.SubSelector.Statements.onLocalDeclarations(stm.SymbolDeclarations);
                 this.SharedState.FoldResult = this.SharedState.ConstructFold(
                     this.SharedState.FoldResult, this.SubSelector.SharedState.FoldResult);

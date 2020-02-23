@@ -343,7 +343,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsStatement onStatement(QsStatement stm)
             {
                 this.SharedState.StatementLocation = stm.Location.IsNull ? null : stm.Location.Item;
-                this.StatementKinds.Transform(stm.Statement);
+                this.StatementKinds.onStatementKind(stm.Statement);
                 return stm;
             }
         }

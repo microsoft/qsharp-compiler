@@ -136,7 +136,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public string ToCode(QsStatementKind stmKind)
         {
             var nrPreexistingLines = this.SharedState.StatementOutputHandle.Count;
-            this.StatementKinds.Transform(stmKind);
+            this.StatementKinds.onStatementKind(stmKind);
             return String.Join(Environment.NewLine, this.SharedState.StatementOutputHandle.Skip(nrPreexistingLines));
         }
 

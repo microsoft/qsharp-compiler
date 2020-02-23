@@ -164,8 +164,8 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
         | Allocate -> this.onAllocateQubits stm
         | Borrow   -> this.onBorrowQubits stm
 
-    abstract member Transform : QsStatementKind -> QsStatementKind
-    default this.Transform kind = 
+    abstract member onStatementKind : QsStatementKind -> QsStatementKind
+    default this.onStatementKind kind = 
         if options.Disable then kind else
         let beforeBinding (stm : QsBinding<TypedExpression>) = { stm with Lhs = this.beforeVariableDeclaration stm.Lhs }
         let beforeForStatement (stm : QsForStatement) = {stm with LoopItem = (this.beforeVariableDeclaration (fst stm.LoopItem), snd stm.LoopItem)} 
@@ -239,7 +239,7 @@ and StatementTransformationBase internal (options : TransformationOptions, _inte
         if options.Disable then stm else
         let location = this.onLocation stm.Location
         let comments = stm.Comments
-        let kind = this.StatementKinds.Transform stm.Statement
+        let kind = this.StatementKinds.onStatementKind stm.Statement
         let varDecl = this.onLocalDeclarations stm.SymbolDeclarations
         QsStatement.New comments location |> Node.BuildOr stm (kind, varDecl)
 

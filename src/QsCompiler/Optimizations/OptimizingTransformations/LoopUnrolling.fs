@@ -49,7 +49,7 @@ and private LoopUnrollingStatementKinds (parent : LoopUnrolling, callables, maxS
                 let innerScope = { stm.Body with Statements = stm.Body.Statements.Insert(0, variableDecl) }
                 innerScope |> newScopeStatement |> wrapStmt)
             let outerScope = QsScope.New (iterRange, stm.Body.KnownSymbols)
-            return outerScope |> newScopeStatement |> this.Transform
+            return outerScope |> newScopeStatement |> this.onStatementKind
         }
         |? (QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement)
 

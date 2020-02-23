@@ -897,10 +897,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                           new QsConditionalStatement(stm.ConditionalBlocks, stm.Default));
                 }
 
-                public override QsStatementKind Transform(QsStatementKind kind)
+                public override QsStatementKind onStatementKind(QsStatementKind kind)
                 {
                     SharedState.ContainsHoistParamRef = false; // Every statement kind starts off false
-                    return base.Transform(kind);
+                    return base.onStatementKind(kind);
                 }
             }
 

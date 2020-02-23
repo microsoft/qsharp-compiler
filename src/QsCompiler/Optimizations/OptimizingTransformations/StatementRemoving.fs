@@ -32,10 +32,10 @@ and private VariableRemovalStatements (parent : StatementRemoval, removeFunction
     override __.CollectStatements stmt =
 
         let c = SideEffectChecker()
-        c.StatementKinds.Transform stmt |> ignore
+        c.StatementKinds.onStatementKind stmt |> ignore
 
         let c2 = MutationChecker()
-        c2.StatementKinds.Transform stmt |> ignore
+        c2.StatementKinds.onStatementKind stmt |> ignore
 
         match stmt with
         | QsVariableDeclaration {Lhs = lhs}
