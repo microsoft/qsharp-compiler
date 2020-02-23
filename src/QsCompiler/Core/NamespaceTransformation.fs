@@ -111,7 +111,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     abstract member OnProvidedImplementation : QsArgumentTuple * QsScope -> QsArgumentTuple * QsScope
     default this.OnProvidedImplementation (argTuple, body) = 
         let argTuple = this.OnArgumentTuple argTuple
-        let body = this.Statements.onScope body
+        let body = this.Statements.OnScope body
         argTuple, body
 
     abstract member OnSelfInverseDirective : unit -> unit

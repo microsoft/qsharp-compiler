@@ -46,10 +46,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             SyntaxGenerator.ImmutableQubitArrayWithName(NonNullable<string>.New(InternalUse.ControlQubitsName));
 
         public static readonly Func<QsScope, QsScope> ApplyAdjoint =
-            new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Statements.onScope;
+            new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Statements.OnScope;
 
         public static readonly Func<QsScope, QsScope> ApplyControlled =
-            new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Statements.onScope;
+            new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Statements.OnScope;
 
 
         // helper classes
@@ -102,11 +102,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             : base(sharedInternalState)
         { }
 
-        public override QsStatementKind onConjugation(QsConjugation stm)
+        public override QsStatementKind OnConjugation(QsConjugation stm)
         {
             var inner = stm.InnerTransformation;
-            var innerLoc = this.Transformation.Statements.onLocation(inner.Location);
-            var transformedInner = new QsPositionedBlock(this.Transformation.Statements.onScope(inner.Body), innerLoc, inner.Comments);
+            var innerLoc = this.Transformation.Statements.OnLocation(inner.Location);
+            var transformedInner = new QsPositionedBlock(this.Transformation.Statements.OnScope(inner.Body), innerLoc, inner.Comments);
             return QsStatementKind.NewQsConjugation(new QsConjugation(stm.OuterTransformation, transformedInner));
         }
     }
@@ -139,13 +139,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 : base(state => new ReverseOrderOfOperationCalls(), parent)
             { }
 
-            public override QsScope onScope(QsScope scope)
+            public override QsScope OnScope(QsScope scope)
             {
                 var topStatements = ImmutableArray.CreateBuilder<QsStatement>();
                 var bottomStatements = new List<QsStatement>();
                 foreach (var statement in scope.Statements)
                 {
-                    var transformed = this.onStatement(statement);
+                    var transformed = this.OnStatement(statement);
                     if (this.SubSelector.SharedState.SatisfiesCondition) topStatements.Add(statement);
                     else bottomStatements.Add(transformed);
                 }
@@ -167,14 +167,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 base(parent) 
             { }
 
-            public override QsStatementKind onForStatement(QsForStatement stm)
+            public override QsStatementKind OnForStatement(QsForStatement stm)
             {
                 var reversedIterable = SyntaxGenerator.ReverseIterable(stm.IterationValues);
                 stm = new QsForStatement(stm.LoopItem, reversedIterable, stm.Body);
-                return base.onForStatement(stm);
+                return base.OnForStatement(stm);
             }
 
-            public override QsStatementKind onWhileStatement(QsWhileStatement stm) =>
+            public override QsStatementKind OnWhileStatement(QsWhileStatement stm) =>
                 throw new InvalidOperationException("cannot reverse while-loops");
         }
     }

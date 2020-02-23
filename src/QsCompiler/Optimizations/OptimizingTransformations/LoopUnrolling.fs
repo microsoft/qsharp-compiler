@@ -31,11 +31,11 @@ and private LoopUnrollingNamespaces (parent : LoopUnrolling) =
 and private LoopUnrollingStatementKinds (parent : LoopUnrolling, callables, maxSize) = 
     inherit Core.StatementKindTransformation(parent)
 
-    override this.onForStatement stm =
-        let loopVar = fst stm.LoopItem |> this.onSymbolTuple
+    override this.OnForStatement stm =
+        let loopVar = fst stm.LoopItem |> this.OnSymbolTuple
         let iterVals = this.Expressions.onTypedExpression stm.IterationValues
         let loopVarType = this.Expressions.Types.onType (snd stm.LoopItem)
-        let body = this.Statements.onScope stm.Body
+        let body = this.Statements.OnScope stm.Body
         maybe {
             let! iterValsList =
                 match iterVals.Expression with
@@ -49,7 +49,7 @@ and private LoopUnrollingStatementKinds (parent : LoopUnrolling, callables, maxS
                 let innerScope = { stm.Body with Statements = stm.Body.Statements.Insert(0, variableDecl) }
                 innerScope |> newScopeStatement |> wrapStmt)
             let outerScope = QsScope.New (iterRange, stm.Body.KnownSymbols)
-            return outerScope |> newScopeStatement |> this.onStatementKind
+            return outerScope |> newScopeStatement |> this.OnStatementKind
         }
         |? (QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement)
 

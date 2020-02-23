@@ -27,7 +27,7 @@ and private VariableRemovalNamespaces (parent : VariableRemoval) =
 
     override __.OnProvidedImplementation (argTuple, body) =
         let r = ReferenceCounter()
-        r.Statements.onScope body |> ignore
+        r.Statements.OnScope body |> ignore
         parent.ReferenceCounter <- Some r
         base.OnProvidedImplementation (argTuple, body)
 
@@ -35,7 +35,7 @@ and private VariableRemovalNamespaces (parent : VariableRemoval) =
 and private VariableRemovalStatementKinds (parent : VariableRemoval) = 
     inherit Core.StatementKindTransformation(parent)
 
-    override stmtKind.onSymbolTuple syms =
+    override stmtKind.OnSymbolTuple syms =
         match syms with
         | VariableName item ->
             maybe {
@@ -44,6 +44,6 @@ and private VariableRemovalStatementKinds (parent : VariableRemoval) =
                 do! check (uses = 0)
                 return DiscardedItem
             } |? syms
-        | VariableNameTuple items -> Seq.map stmtKind.onSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
+        | VariableNameTuple items -> Seq.map stmtKind.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
         | InvalidItem | DiscardedItem -> syms
 

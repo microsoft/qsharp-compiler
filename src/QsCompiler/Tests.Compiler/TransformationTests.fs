@@ -55,13 +55,13 @@ and private SyntaxCounterNamespaces(parent : SyntaxCounter) =
 and private SyntaxCounterStatementKinds(parent : SyntaxCounter) = 
     inherit StatementKindTransformation(parent)
 
-    override this.onConditionalStatement (node:QsConditionalStatement) =
+    override this.OnConditionalStatement (node:QsConditionalStatement) =
         parent.Counter.ifsCount <- parent.Counter.ifsCount + 1
-        base.onConditionalStatement node
+        base.OnConditionalStatement node
     
-    override this.onForStatement (node:QsForStatement) =
+    override this.OnForStatement (node:QsForStatement) =
         parent.Counter.forCount <- parent.Counter.forCount + 1
-        base.onForStatement node
+        base.OnForStatement node
 
 and private SyntaxCounterExpressionKinds(parent : SyntaxCounter) = 
     inherit ExpressionKindTransformation(parent)

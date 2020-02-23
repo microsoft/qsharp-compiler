@@ -218,25 +218,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 : base(parent) =>
                 this.CreateSelector = createSelector ?? throw new ArgumentNullException(nameof(createSelector));
 
-            public override QsStatement onStatement(QsStatement stm)
+            public override QsStatement OnStatement(QsStatement stm)
             {
                 this.SubSelector = this.CreateSelector(this.SharedState);
-                var loc = this.SubSelector.Statements.onLocation(stm.Location);
-                var stmKind = this.SubSelector.StatementKinds.onStatementKind(stm.Statement);
-                var varDecl = this.SubSelector.Statements.onLocalDeclarations(stm.SymbolDeclarations);
+                var loc = this.SubSelector.Statements.OnLocation(stm.Location);
+                var stmKind = this.SubSelector.StatementKinds.OnStatementKind(stm.Statement);
+                var varDecl = this.SubSelector.Statements.OnLocalDeclarations(stm.SymbolDeclarations);
                 this.SharedState.FoldResult = this.SharedState.ConstructFold(
                     this.SharedState.FoldResult, this.SubSelector.SharedState.FoldResult);
                 return new QsStatement(stmKind, varDecl, loc, stm.Comments);
             }
 
-            public override QsScope onScope(QsScope scope)
+            public override QsScope OnScope(QsScope scope)
             {
                 var statements = new List<QsStatement>();
                 foreach (var statement in scope.Statements)
                 {
                     // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement,
                     // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
-                    var transformed = this.onStatement(statement);
+                    var transformed = this.OnStatement(statement);
                     if (this.SubSelector.SharedState.SatisfiesCondition) statements.Add(transformed);
                 }
                 return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);

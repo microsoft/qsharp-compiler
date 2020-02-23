@@ -266,11 +266,11 @@ let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) =
         | Value loc -> loc
     let usedInOuter = 
         let accumulate = new AccumulateIdentifiers()
-        accumulate.Statements.onScope outer.Body |> ignore
+        accumulate.Statements.OnScope outer.Body |> ignore
         accumulate.SharedState.UsedLocalVariables
     let updatedInInner = 
         let accumulate = new AccumulateIdentifiers()
-        accumulate.Statements.onScope inner.Body |> ignore
+        accumulate.Statements.OnScope inner.Body |> ignore
         accumulate.SharedState.ReassignedVariables
     let updateErrs = 
         updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id

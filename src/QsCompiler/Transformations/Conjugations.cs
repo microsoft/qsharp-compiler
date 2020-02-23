@@ -28,10 +28,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             internal readonly Action<Exception> OnException;
 
             internal Func<QsScope, QsScope> ResolveNames = 
-                new UniqueVariableNames().Statements.onScope;
+                new UniqueVariableNames().Statements.OnScope;
 
             public void Reset() => 
-                this.ResolveNames = new UniqueVariableNames().Statements.onScope;
+                this.ResolveNames = new UniqueVariableNames().Statements.OnScope;
 
             public TransformationState(Action<Exception> onException = null)
             {
@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             { }
 
 
-            public override QsScope onScope(QsScope scope)
+            public override QsScope OnScope(QsScope scope)
             {
                 var statements = ImmutableArray.CreateBuilder<QsStatement>();
                 foreach (var statement in scope.Statements)
@@ -68,15 +68,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
                     {
                         // since we are eliminating scopes, 
                         // we need to make sure that the variables defined within the inlined scopes do not clash with other defined variables.
-                        var outer = this.SharedState.ResolveNames(this.onScope(conj.Item.OuterTransformation.Body));
-                        var inner = this.SharedState.ResolveNames(this.onScope(conj.Item.InnerTransformation.Body));
+                        var outer = this.SharedState.ResolveNames(this.OnScope(conj.Item.OuterTransformation.Body));
+                        var inner = this.SharedState.ResolveNames(this.OnScope(conj.Item.InnerTransformation.Body));
                         var adjOuter = outer.GenerateAdjoint(); // will add a unique name wrapper
 
                         statements.AddRange(outer.Statements);
                         statements.AddRange(inner.Statements);
                         statements.AddRange(adjOuter.Statements);
                     }
-                    else statements.Add(this.onStatement(statement));
+                    else statements.Add(this.OnStatement(statement));
                 }
                 return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
             }
@@ -95,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
                 (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
             {
                 this.SharedState.Reset();
-                try { body = this.Transformation.Statements.onScope(body); }
+                try { body = this.Transformation.Statements.OnScope(body); }
                 catch (Exception ex)
                 {
                     this.SharedState.OnException?.Invoke(ex);

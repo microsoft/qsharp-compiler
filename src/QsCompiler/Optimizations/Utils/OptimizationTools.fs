@@ -37,11 +37,11 @@ and private DistinctQubitsNamespaces (parent : FindDistinctQubits) =
 and private DistinctQubitsStatementKinds (parent : FindDistinctQubits) = 
     inherit Core.StatementKindTransformation(parent)
 
-    override this.onQubitScope stm =
+    override this.OnQubitScope stm =
         stm.Binding.Lhs |> flatten |> Seq.iter (function
         | VariableName name -> parent.DistinctNames <- parent.DistinctNames.Add name 
         | _ -> ())
-        base.onQubitScope stm
+        base.OnQubitScope stm
 
 
 /// A transformation that tracks what variables the transformed code could mutate.
@@ -63,20 +63,20 @@ type internal MutationChecker private (_private_) =
 and private MutationCheckerStatementKinds(parent : MutationChecker) = 
     inherit Core.StatementKindTransformation(parent)
 
-    override this.onVariableDeclaration stm =
+    override this.OnVariableDeclaration stm =
         flatten stm.Lhs |> Seq.iter (function
             | VariableName name -> parent.DeclaredVariables <- parent.DeclaredVariables.Add name
             | _ -> ())
-        base.onVariableDeclaration stm
+        base.OnVariableDeclaration stm
 
-    override this.onValueUpdate stm =
+    override this.OnValueUpdate stm =
         match stm.Lhs with
         | LocalVarTuple v ->
             flatten v |> Seq.iter (function
                 | VariableName name -> parent.MutatedVariables <- parent.MutatedVariables.Add name
                 | _ -> ())
         | _ -> ()
-        base.onValueUpdate stm
+        base.OnValueUpdate stm
 
 
 /// A transformation that counts how many times each local variable is referenced.
@@ -142,18 +142,18 @@ type private SideEffectCheckerExpressionKinds(parent : SideEffectChecker) =
 and private SideEffectCheckerStatementKinds(parent : SideEffectChecker) = 
     inherit Core.StatementKindTransformation(parent)
 
-    override this.onValueUpdate stm =
+    override this.OnValueUpdate stm =
         let mutatesState = match stm.Lhs with LocalVarTuple x when isAllDiscarded x -> false | _ -> true
         parent.HasMutation <- parent.HasMutation || mutatesState
-        base.onValueUpdate stm
+        base.OnValueUpdate stm
 
-    override this.onReturnStatement stm =
+    override this.OnReturnStatement stm =
         parent.HasInterrupts <- true
-        base.onReturnStatement stm
+        base.OnReturnStatement stm
 
-    override this.onFailStatement stm =
+    override this.OnFailStatement stm =
         parent.HasInterrupts <- true
-        base.onFailStatement stm
+        base.OnFailStatement stm
 
 /// A ScopeTransformation that tracks what side effects the transformed code could cause
 and internal SideEffectChecker private (_private_) =
@@ -180,11 +180,11 @@ type [<AbstractClass>] internal StatementCollectorTransformation(parent : Core.S
 
     abstract member CollectStatements: QsStatementKind -> QsStatementKind seq
 
-    override this.onScope scope =
+    override this.OnScope scope =
         let parentSymbols = scope.KnownSymbols
         let statements =
             scope.Statements
-            |> Seq.map this.onStatement
+            |> Seq.map this.OnStatement
             |> Seq.map (fun x -> x.Statement)
             |> Seq.collect this.CollectStatements
             |> Seq.map wrapStmt
@@ -203,6 +203,6 @@ type internal StripAllKnownSymbols(_private_) =
 and private StripAllKnownSymbolsStatements(parent : StripAllKnownSymbols) = 
     inherit Core.StatementTransformation(parent)
 
-    override this.onScope scope =
-        QsScope.New (scope.Statements |> Seq.map this.onStatement, LocalDeclarations.Empty)
+    override this.OnScope scope =
+        QsScope.New (scope.Statements |> Seq.map this.OnStatement, LocalDeclarations.Empty)
 

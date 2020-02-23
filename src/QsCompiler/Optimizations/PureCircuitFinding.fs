@@ -48,7 +48,7 @@ and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables :
             | _ -> false
         | _ -> false
 
-    override this.onScope scope =
+    override this.OnScope scope =
         let mutable circuit = ImmutableArray.Empty
         let mutable newStatements = ImmutableArray.Empty
 
@@ -69,7 +69,7 @@ and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables :
                 circuit <- circuit.Add expr
             | _ ->
                 finishCircuit()
-                newStatements <- newStatements.Add (this.onStatement stmt)
+                newStatements <- newStatements.Add (this.OnStatement stmt)
         finishCircuit()
 
         QsScope.New (newStatements, scope.KnownSymbols)

@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
             finder.SharedState.Source = sourceFile;
             finder.SharedState.DeclarationOffset = rootLoc; // will throw if null
-            finder.Statements.onScope(scope ?? throw new ArgumentNullException(nameof(scope)));
+            finder.Statements.OnScope(scope ?? throw new ArgumentNullException(nameof(scope)));
             return finder.SharedState.Locations;
         }
 
@@ -220,7 +220,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 : base(parent)
             { }
 
-            public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> loc)
+            public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
             {
                 this.SharedState.CurrentLocation = loc.IsValue ? loc.Item : null;
                 return loc;
@@ -340,10 +340,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 : base(parent)
             { }
 
-            public override QsStatement onStatement(QsStatement stm)
+            public override QsStatement OnStatement(QsStatement stm)
             {
                 this.SharedState.StatementLocation = stm.Location.IsNull ? null : stm.Location.Item;
-                this.StatementKinds.onStatementKind(stm.Statement);
+                this.StatementKinds.OnStatementKind(stm.Statement);
                 return stm;
             }
         }
@@ -355,7 +355,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 : base(parent)
             { }
 
-            public override QsStatementKind onValueUpdate(QsValueUpdate stm)
+            public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
             {
                 this.SharedState.UpdatedExpression(stm.Lhs);
                 this.Expressions.onTypedExpression(stm.Rhs);
@@ -426,9 +426,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 : base(parent)
             { }
 
-            public override SymbolTuple onSymbolTuple(SymbolTuple syms) =>
+            public override SymbolTuple OnSymbolTuple(SymbolTuple syms) =>
                 syms is SymbolTuple.VariableNameTuple tuple
-                    ? SymbolTuple.NewVariableNameTuple(tuple.Item.Select(this.onSymbolTuple).ToImmutableArray())
+                    ? SymbolTuple.NewVariableNameTuple(tuple.Item.Select(this.OnSymbolTuple).ToImmutableArray())
                     : syms is SymbolTuple.VariableName varName
                     ? SymbolTuple.NewVariableName(this.SharedState.GenerateUniqueName(varName.Item))
                     : syms;

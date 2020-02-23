@@ -83,7 +83,7 @@ type private InliningInfo = {
         maybe {
             let! functors, callable, arg = InliningInfo.TrySplitCall callables expr.Expression
             let! specArgs, body = InliningInfo.TryGetProvidedImpl callable functors
-            let body = ReplaceTypeParams(expr.TypeParameterResolutions).Statements.onScope body
+            let body = ReplaceTypeParams(expr.TypeParameterResolutions).Statements.OnScope body
             let returnType = ReplaceTypeParams(expr.TypeParameterResolutions).Expressions.Types.onType callable.Signature.ReturnType
             return { functors = functors; callable = callable; arg = arg; specArgs = specArgs; body = body; returnType = returnType }
         }
@@ -160,7 +160,7 @@ and private CallableInliningStatements (parent : CallableInlining, callables : I
             let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
             let newStatements =
                 ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
-                |> Seq.map renamer.Statements.onStatement
+                |> Seq.map renamer.Statements.OnStatement
                 |> Seq.map (fun s -> s.Statement)
                 |> ImmutableArray.CreateRange
             return ii, newStatements

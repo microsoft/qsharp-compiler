@@ -406,9 +406,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 #endregion
 
-                public override QsScope onScope(QsScope scope)
+                public override QsScope OnScope(QsScope scope)
                 {
-                    var parentSymbols = this.onLocalDeclarations(scope.KnownSymbols);
+                    var parentSymbols = this.OnLocalDeclarations(scope.KnownSymbols);
                     var statements = new List<QsStatement>();
 
                     foreach (var statement in scope.Statements)
@@ -416,7 +416,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         if (statement.Statement is QsStatementKind.QsConditionalStatement)
                         {
                             var stm = ReshapeConditional(statement);
-                            stm = this.onStatement(stm);
+                            stm = this.OnStatement(stm);
 
                             var (isCondition, cond, conditionScope, defaultScope) = IsConditionWtihSingleBlock(stm);
 
@@ -437,7 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         }
                         else
                         {
-                            statements.Add(this.onStatement(statement));
+                            statements.Add(this.OnStatement(statement));
                         }
                     }
 
@@ -784,25 +784,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                            && call.Item1.Expression is ExpressionKind.Identifier;
                 }
 
-                public override QsStatementKind onConjugation(QsConjugation stm)
+                public override QsStatementKind OnConjugation(QsConjugation stm)
                 {
                     var superInWithinBlock = SharedState.InWithinBlock;
                     SharedState.InWithinBlock = true;
-                    var (_, outer) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
+                    var (_, outer) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
                     SharedState.InWithinBlock = superInWithinBlock;
 
-                    var (_, inner) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
+                    var (_, inner) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
 
                     return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
                 }
 
-                public override QsStatementKind onReturnStatement(TypedExpression ex)
+                public override QsStatementKind OnReturnStatement(TypedExpression ex)
                 {
                     SharedState.IsValidScope = false;
-                    return base.onReturnStatement(ex);
+                    return base.OnReturnStatement(ex);
                 }
 
-                public override QsStatementKind onValueUpdate(QsValueUpdate stm)
+                public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
                 {
                     // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
                     var lhs = this.Expressions.onTypedExpression(stm.Lhs);
@@ -816,7 +816,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
                 }
 
-                public override QsStatementKind onConditionalStatement(QsConditionalStatement stm)
+                public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
                 {
                     var contextValidScope = SharedState.IsValidScope;
                     var contextHoistParams = SharedState.CurrentHoistParams;
@@ -832,7 +832,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
                         : condBlock.Item2.Body.KnownSymbols.Variables;
 
-                        var (expr, block) = this.onPositionedBlock(QsNullable<TypedExpression>.NewValue(condBlock.Item1), condBlock.Item2);
+                        var (expr, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.NewValue(condBlock.Item1), condBlock.Item2);
 
                         // ToDo: Reduce the number of unnecessary generated operations by generalizing
                         // the condition logic for the conversion and using that condition here
@@ -864,7 +864,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
                             : stm.Default.Item.Body.KnownSymbols.Variables;
 
-                        var (_, block) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
+                        var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
                         if (block.Body.Statements.Length > 0 && SharedState.IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
                         {
                             // Hoist the scope to its own operation
@@ -897,10 +897,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                           new QsConditionalStatement(stm.ConditionalBlocks, stm.Default));
                 }
 
-                public override QsStatementKind onStatementKind(QsStatementKind kind)
+                public override QsStatementKind OnStatementKind(QsStatementKind kind)
                 {
                     SharedState.ContainsHoistParamRef = false; // Every statement kind starts off false
-                    return base.onStatementKind(kind);
+                    return base.OnStatementKind(kind);
                 }
             }
 
