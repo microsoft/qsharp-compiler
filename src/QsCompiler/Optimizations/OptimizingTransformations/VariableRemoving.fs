@@ -25,11 +25,11 @@ type VariableRemoval(_private_) =
 and private VariableRemovalNamespaces (parent : VariableRemoval) = 
     inherit NamespaceTransformationBase(parent)
 
-    override __.onProvidedImplementation (argTuple, body) =
+    override __.OnProvidedImplementation (argTuple, body) =
         let r = ReferenceCounter()
         r.Statements.onScope body |> ignore
         parent.ReferenceCounter <- Some r
-        base.onProvidedImplementation (argTuple, body)
+        base.OnProvidedImplementation (argTuple, body)
 
 /// private helper class for VariableRemoval
 and private VariableRemovalStatementKinds (parent : VariableRemoval) = 

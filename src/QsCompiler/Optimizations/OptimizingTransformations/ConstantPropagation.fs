@@ -31,9 +31,9 @@ type ConstantPropagation private (_private_ : string) =
 and private ConstantPropagationNamespaces(parent : ConstantPropagation) = 
     inherit NamespaceTransformationBase(parent)
 
-    override __.onProvidedImplementation (argTuple, body) =
+    override __.OnProvidedImplementation (argTuple, body) =
         parent.Constants.Clear()
-        base.onProvidedImplementation (argTuple, body)
+        base.OnProvidedImplementation (argTuple, body)
 
 /// private helper class for ConstantPropagation
 and private ConstantPropagationStatementKinds (parent : ConstantPropagation, callables) = 

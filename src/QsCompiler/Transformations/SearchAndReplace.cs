@@ -182,7 +182,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             out Tuple<NonNullable<string>, QsLocation> declarationLocation, IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
             var finder = new IdentifierReferences(idName, defaultOffset, limitToSourceFiles);
-            finder.Namespaces.onNamespace(ns ?? throw new ArgumentNullException(nameof(ns)));
+            finder.Namespaces.OnNamespace(ns ?? throw new ArgumentNullException(nameof(ns)));
             declarationLocation = finder.SharedState.DeclarationLocation;
             return finder.SharedState.Locations;
         }
@@ -235,23 +235,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 : base(parent)
             { }
 
-            public override QsCustomType onType(QsCustomType t)
+            public override QsCustomType OnType(QsCustomType t)
             {
                 if (!this.SharedState.IsRelevant(t.SourceFile) || t.Location.IsNull) return t;
                 if (this.SharedState.TrackIdentifier(Identifier.NewGlobalCallable(t.FullName)))
                 { this.SharedState.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(t.SourceFile, t.Location.Item); }
-                return base.onType(t);
+                return base.OnType(t);
             }
 
-            public override QsCallable onCallableImplementation(QsCallable c)
+            public override QsCallable OnCallableImplementation(QsCallable c)
             {
                 if (!this.SharedState.IsRelevant(c.SourceFile) || c.Location.IsNull) return c;
                 if (this.SharedState.TrackIdentifier(Identifier.NewGlobalCallable(c.FullName)))
                 { this.SharedState.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(c.SourceFile, c.Location.Item); }
-                return base.onCallableImplementation(c);
+                return base.OnCallableImplementation(c);
             }
 
-            public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
+            public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute att)
             {
                 var declRoot = this.SharedState.DeclarationOffset;
                 this.SharedState.DeclarationOffset = att.Offset;
@@ -261,16 +261,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 return att;
             }
 
-            public override QsSpecialization onSpecializationImplementation(QsSpecialization spec) =>
-                this.SharedState.IsRelevant(spec.SourceFile) ? base.onSpecializationImplementation(spec) : spec;
+            public override QsSpecialization OnSpecializationImplementation(QsSpecialization spec) =>
+                this.SharedState.IsRelevant(spec.SourceFile) ? base.OnSpecializationImplementation(spec) : spec;
 
-            public override QsNullable<QsLocation> onLocation(QsNullable<QsLocation> loc)
+            public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
             {
                 this.SharedState.DeclarationOffset = loc.IsValue ? loc.Item.Offset : null;
                 return loc;
             }
 
-            public override NonNullable<string> onSourceFile(NonNullable<string> source)
+            public override NonNullable<string> OnSourceFile(NonNullable<string> source)
             {
                 this.SharedState.Source = source;
                 return source;

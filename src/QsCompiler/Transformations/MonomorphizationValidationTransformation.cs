@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 
             foreach (var ns in compilation.Namespaces)
             {
-                filter.Namespaces.onNamespace(ns);
+                filter.Namespaces.OnNamespace(ns);
             }
         }
 
@@ -37,14 +37,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
         {
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-            public override ResolvedSignature onSignature(ResolvedSignature s)
+            public override ResolvedSignature OnSignature(ResolvedSignature s)
             {
                 if (s.TypeParameters.Any())
                 {
                     throw new Exception("Signatures cannot contains type parameters");
                 }
 
-                return base.onSignature(s);
+                return base.OnSignature(s);
             }
         }
 

@@ -41,16 +41,16 @@ type private SyntaxCounter private(counter : Counter, ?options) =
 and private SyntaxCounterNamespaces(parent : SyntaxCounter) = 
     inherit NamespaceTransformation(parent)
 
-    override this.beforeCallable (node:QsCallable) =
+    override this.BeforeCallable (node:QsCallable) =
         match node.Kind with
         | Operation ->       parent.Counter.opsCount <- parent.Counter.opsCount + 1
         | Function  ->       parent.Counter.funCount <- parent.Counter.funCount + 1
         | TypeConstructor -> ()
         node
 
-    override this.onType (udt:QsCustomType) =
+    override this.OnType (udt:QsCustomType) =
         parent.Counter.udtCount <- parent.Counter.udtCount + 1
-        base.onType udt
+        base.OnType udt
 
 and private SyntaxCounterStatementKinds(parent : SyntaxCounter) = 
     inherit StatementKindTransformation(parent)
@@ -87,7 +87,7 @@ let private buildSyntaxTree code =
 let ``basic walk`` () = 
     let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
     let walker = new SyntaxCounter(TransformationOptions.NoRebuild)
-    tree |> Seq.iter (walker.Namespaces.onNamespace >> ignore)
+    tree |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
         
     Assert.Equal (4, walker.Counter.udtCount)
     Assert.Equal (1, walker.Counter.funCount)
@@ -100,7 +100,7 @@ let ``basic walk`` () =
 let ``basic transformation`` () = 
     let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
     let walker = new SyntaxCounter()
-    tree |> Seq.iter (walker.Namespaces.onNamespace >> ignore)
+    tree |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
         
     Assert.Equal (4, walker.Counter.udtCount)
     Assert.Equal (1, walker.Counter.funCount)

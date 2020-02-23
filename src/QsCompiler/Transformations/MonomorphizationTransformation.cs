@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                     .GroupBy(res => res.concreteCallable.FullName.Namespace)
                     .ToImmutableDictionary(group => group.Key, group => group.Select(res => res.concreteCallable)));
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.onNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
 
             public class TransformationState
@@ -188,7 +188,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override QsNamespace onNamespace(QsNamespace ns)
+                public override QsNamespace OnNamespace(QsNamespace ns)
                 {
                     SharedState.NamespaceCallables.TryGetValue(ns.Name, out IEnumerable<QsCallable> concretesInNs);
 
@@ -221,7 +221,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 {
                     originalName = current.originalName,
                     typeResolutions = current.typeResolutions,
-                    concreteCallable = filter.Namespaces.onCallableImplementation(current.concreteCallable)
+                    concreteCallable = filter.Namespaces.OnCallableImplementation(current.concreteCallable)
                 };
             }
 
@@ -245,7 +245,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override ResolvedSignature onSignature(ResolvedSignature s)
+                public override ResolvedSignature OnSignature(ResolvedSignature s)
                 {
                     // Remove the type parameters from the signature
                     s = new ResolvedSignature(
@@ -254,7 +254,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                         s.ReturnType,
                         s.Information
                         );
-                    return base.onSignature(s);
+                    return base.OnSignature(s);
                 }
             }
 
@@ -289,7 +289,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 {
                     originalName = current.originalName,
                     typeResolutions = current.typeResolutions,
-                    concreteCallable = filter.Namespaces.onCallableImplementation(current.concreteCallable)
+                    concreteCallable = filter.Namespaces.OnCallableImplementation(current.concreteCallable)
                 };
             }
 

@@ -81,10 +81,10 @@ and private VariableRenamingNamespaces (parent : VariableRenaming) =
         | QsTupleItem {VariableName = InvalidName} -> ()
         | QsTuple items -> Seq.iter processArgTuple items
 
-    override __.onProvidedImplementation (argTuple, body) =
+    override __.OnProvidedImplementation (argTuple, body) =
         parent.Clear()
         do processArgTuple argTuple
-        base.onProvidedImplementation (argTuple, body)
+        base.OnProvidedImplementation (argTuple, body)
 
 /// private helper class for VariableRenaming
 and private VariableRenamingStatements (parent : VariableRenaming) = 

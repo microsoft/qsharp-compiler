@@ -27,11 +27,11 @@ type internal FindDistinctQubits private (_private_) =
 and private DistinctQubitsNamespaces (parent : FindDistinctQubits) = 
     inherit Core.NamespaceTransformation(parent)
 
-    override this.onProvidedImplementation (argTuple, body) =
+    override this.OnProvidedImplementation (argTuple, body) =
         argTuple |> toSymbolTuple |> flatten |> Seq.iter (function
             | VariableName name -> parent.DistinctNames <- parent.DistinctNames.Add name 
             | _ -> ())
-        base.onProvidedImplementation (argTuple, body)
+        base.OnProvidedImplementation (argTuple, body)
 
 /// private helper class for FindDistinctQubits
 and private DistinctQubitsStatementKinds (parent : FindDistinctQubits) = 

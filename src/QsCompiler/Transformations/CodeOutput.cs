@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public string ToCode(QsNamespace ns)
         {
             var nrPreexistingLines = this.SharedState.NamespaceOutputHandle.Count;
-            this.Namespaces.onNamespace(ns);
+            this.Namespaces.OnNamespace(ns);
             return String.Join(Environment.NewLine, this.SharedState.NamespaceOutputHandle.Skip(nrPreexistingLines));
         }
 
@@ -215,7 +215,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     var generator = new  SyntaxTreeToQs(context);
                     generator.SharedState.InvokeOnInvalid(() => ++totNrInvalid);
                     generator.SharedState.NamespaceDocumentation = docComments.Count() == 1 ? docComments.Single() : ImmutableArray<string>.Empty; // let's drop the doc if it is ambiguous
-                    generator.Namespaces.onNamespace(tree);
+                    generator.Namespaces.OnNamespace(tree);
 
                     if (totNrInvalid > 0) success = false;
                     nsInFile.Add(ns.Name, String.Join(Environment.NewLine, generator.SharedState.NamespaceOutputHandle));
@@ -1125,11 +1125,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 var callables = elements.Where(e => e.IsQsCallable);
 
                 foreach (var t in types)
-                { this.dispatchNamespaceElement(t); }
+                { this.DispatchNamespaceElement(t); }
                 if (types.Any()) this.AddToOutput("");
 
                 foreach (var c in callables)
-                { this.dispatchNamespaceElement(c); }
+                { this.DispatchNamespaceElement(c); }
             }
 
 
@@ -1170,7 +1170,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             // overrides
 
-            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> onProvidedImplementation
+            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> OnProvidedImplementation
                 (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
             {
                 var functorArg = "(...)";
@@ -1203,55 +1203,55 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
             }
 
-            public override void onInvalidGeneratorDirective()
+            public override void OnInvalidGeneratorDirective()
             {
                 this.SharedState.BeforeInvalidFunctorGenerator?.Invoke();
                 this.AddDirective($"{this.CurrentSpecialization} {InvalidFunctorGenerator}");
             }
 
-            public override void onDistributeDirective() =>
+            public override void OnDistributeDirective() =>
                 this.AddDirective($"{this.CurrentSpecialization} {Keywords.distributeFunctorGenDirective.id}");
 
-            public override void onInvertDirective() =>
+            public override void OnInvertDirective() =>
                 this.AddDirective($"{this.CurrentSpecialization} {Keywords.invertFunctorGenDirective.id}");
 
-            public override void onSelfInverseDirective() =>
+            public override void OnSelfInverseDirective() =>
                 this.AddDirective($"{this.CurrentSpecialization} {Keywords.selfFunctorGenDirective.id}");
 
-            public override void onIntrinsicImplementation() =>
+            public override void OnIntrinsicImplementation() =>
                 this.AddDirective($"{this.CurrentSpecialization} {Keywords.intrinsicFunctorGenDirective.id}");
 
-            public override void onExternalImplementation()
+            public override void OnExternalImplementation()
             {
                 this.SharedState.BeforeExternalImplementation?.Invoke();
                 this.AddDirective($"{this.CurrentSpecialization} {ExternalImplementation}");
             }
 
-            public override QsSpecialization onBodySpecialization(QsSpecialization spec)
+            public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
             {
                 this.CurrentSpecialization = Keywords.bodyDeclHeader.id;
-                return base.onBodySpecialization(spec);
+                return base.OnBodySpecialization(spec);
             }
 
-            public override QsSpecialization onAdjointSpecialization(QsSpecialization spec)
+            public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
             {
                 this.CurrentSpecialization = Keywords.adjDeclHeader.id;
-                return base.onAdjointSpecialization(spec);
+                return base.OnAdjointSpecialization(spec);
             }
 
-            public override QsSpecialization onControlledSpecialization(QsSpecialization spec)
+            public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
             {
                 this.CurrentSpecialization = Keywords.ctrlDeclHeader.id;
-                return base.onControlledSpecialization(spec);
+                return base.OnControlledSpecialization(spec);
             }
 
-            public override QsSpecialization onControlledAdjointSpecialization(QsSpecialization spec)
+            public override QsSpecialization OnControlledAdjointSpecialization(QsSpecialization spec)
             {
                 this.CurrentSpecialization = Keywords.ctrlAdjDeclHeader.id;
-                return base.onControlledAdjointSpecialization(spec);
+                return base.OnControlledAdjointSpecialization(spec);
             }
 
-            public override QsSpecialization beforeSpecialization(QsSpecialization spec)
+            public override QsSpecialization BeforeSpecialization(QsSpecialization spec)
             {
                 var precededByCode = TransformationState.PrecededByCode(this.Output);
                 var precededByBlock = TransformationState.PrecededByBlock(this.Output);
@@ -1263,7 +1263,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return spec;
             }
 
-            public override QsCallable onCallableImplementation(QsCallable c)
+            public override QsCallable OnCallableImplementation(QsCallable c)
             {
                 if (c.Kind.IsTypeConstructor) return c; // no code for these
 
@@ -1273,7 +1273,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 if (c.Comments.OpeningComments.Any() && c.Documentation.Any()) this.AddToOutput("");
                 this.AddDocumentation(c.Documentation);
                 foreach (var attribute in c.Attributes)
-                { this.onAttribute(attribute); }
+                { this.OnAttribute(attribute); }
 
                 var signature = DeclarationSignature(c, this.TypeToQs, this.SharedState.BeforeInvalidSymbol);
                 this.Transformation.Types.onCharacteristicsExpression(c.Signature.Information.Characteristics);
@@ -1310,12 +1310,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 
                 this.AddToOutput($"{declHeader} {signature}");
                 if (!String.IsNullOrWhiteSpace(characteristics)) this.AddToOutput($"{Keywords.qsCharacteristics.id} {characteristics}");
-                this.AddBlock(() => c.Specializations.Select(dispatchSpecialization).ToImmutableArray());
+                this.AddBlock(() => c.Specializations.Select(DispatchSpecialization).ToImmutableArray());
                 this.AddToOutput("");
                 return c;
             }
 
-            public override QsCustomType onType(QsCustomType t)
+            public override QsCustomType OnType(QsCustomType t)
             {
                 this.AddToOutput("");
                 this.DeclarationComments = t.Comments; // no need to deal with closing comments (can't exist), but need to make sure DeclarationComments is up to date
@@ -1323,7 +1323,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 if (t.Comments.OpeningComments.Any() && t.Documentation.Any()) this.AddToOutput("");
                 this.AddDocumentation(t.Documentation);
                 foreach (var attribute in t.Attributes)
-                { this.onAttribute(attribute); }
+                { this.OnAttribute(attribute); }
 
                 (string, ResolvedType) GetItemNameAndType(QsTypeItem item)
                 {
@@ -1336,7 +1336,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return t;
             }
 
-            public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
+            public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute att)
             {
                 // do *not* set DeclarationComments!
                 this.Transformation.Expressions.onTypedExpression(att.Argument);
@@ -1351,7 +1351,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return att;
             }
 
-            public override QsNamespace onNamespace(QsNamespace ns)
+            public override QsNamespace OnNamespace(QsNamespace ns)
             {
                 if (this.SharedState.Context.CurrentNamespace != ns.Name.Value)
                 {

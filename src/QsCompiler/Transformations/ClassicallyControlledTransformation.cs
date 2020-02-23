@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 var filter = new ConvertConditions(compilation);
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.onNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
 
             public class TransformationState
@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being considered
+                public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being considered
             }
 
             private class StatementTransformation : StatementTransformation<TransformationState>
@@ -466,7 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 var filter = new HoistContents();
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.onNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
 
             public class CallableDetails
@@ -662,43 +662,43 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override QsCallable onCallableImplementation(QsCallable c)
+                public override QsCallable OnCallableImplementation(QsCallable c)
                 {
                     SharedState.CurrentCallable = new CallableDetails(c);
-                    return base.onCallableImplementation(c);
+                    return base.OnCallableImplementation(c);
                 }
 
-                public override QsSpecialization onBodySpecialization(QsSpecialization spec)
+                public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
                 {
                     SharedState.InBody = true;
-                    var rtrn = base.onBodySpecialization(spec);
+                    var rtrn = base.OnBodySpecialization(spec);
                     SharedState.InBody = false;
                     return rtrn;
                 }
 
-                public override QsSpecialization onAdjointSpecialization(QsSpecialization spec)
+                public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
                 {
                     SharedState.InAdjoint = true;
-                    var rtrn = base.onAdjointSpecialization(spec);
+                    var rtrn = base.OnAdjointSpecialization(spec);
                     SharedState.InAdjoint = false;
                     return rtrn;
                 }
 
-                public override QsSpecialization onControlledSpecialization(QsSpecialization spec)
+                public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
                 {
                     SharedState.InControlled = true;
-                    var rtrn = base.onControlledSpecialization(spec);
+                    var rtrn = base.OnControlledSpecialization(spec);
                     SharedState.InControlled = false;
                     return rtrn;
                 }
 
-                public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being hoisted
+                public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being hoisted
 
-                public override QsNamespace onNamespace(QsNamespace ns)
+                public override QsNamespace OnNamespace(QsNamespace ns)
                 {
                     // Control operations list will be populated in the transform
                     SharedState.ControlOperations = new List<QsCallable>();
-                    return base.onNamespace(ns)
+                    return base.OnNamespace(ns)
                         .WithElements(elems => elems.AddRange(SharedState.ControlOperations.Select(op => QsNamespaceElement.NewQsCallable(op))));
                 }
             }
@@ -950,7 +950,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 var filter = new UpdateGeneratedOp(parameters, oldName, newName);
 
-                return filter.Namespaces.onCallableImplementation(qsCallable);
+                return filter.Namespaces.OnCallableImplementation(qsCallable);
             }
 
             public class TransformationState

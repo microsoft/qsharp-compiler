@@ -28,11 +28,11 @@ type PureCircuitFinder private (_private_ : string) =
 and private PureCircuitFinderNamespaces (parent : PureCircuitFinder) = 
     inherit Core.NamespaceTransformation(parent)
 
-    override __.onCallableImplementation c =
+    override __.OnCallableImplementation c =
         let r = FindDistinctQubits()
-        r.Namespaces.onCallableImplementation c |> ignore
+        r.Namespaces.OnCallableImplementation c |> ignore
         parent.DistinctQubitFinder <- Some r
-        base.onCallableImplementation c
+        base.OnCallableImplementation c
 
 /// private helper class for PureCircuitFinder
 and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables : ImmutableDictionary<_,_>) = 

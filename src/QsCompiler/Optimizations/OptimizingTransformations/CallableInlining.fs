@@ -106,16 +106,16 @@ type CallableInlining private (_private_ : string) =
 and private CallableInliningNamespaces (parent : CallableInlining) = 
     inherit NamespaceTransformationBase(parent)
 
-    override __.onNamespace x =
-        let x = base.onNamespace x
-        VariableRenaming().Namespaces.onNamespace x
+    override __.OnNamespace x =
+        let x = base.OnNamespace x
+        VariableRenaming().Namespaces.OnNamespace x
 
-    override __.onCallableImplementation c =
+    override __.OnCallableImplementation c =
         let renamerVal = VariableRenaming()
-        let c = renamerVal.Namespaces.onCallableImplementation c
+        let c = renamerVal.Namespaces.OnCallableImplementation c
         parent.CurrentCallable <- Some c
         parent.Renamer <- Some renamerVal
-        base.onCallableImplementation c
+        base.OnCallableImplementation c
 
 /// private helper class for CallableInlining
 and private CallableInliningStatements (parent : CallableInlining, callables : ImmutableDictionary<_,_>) = 

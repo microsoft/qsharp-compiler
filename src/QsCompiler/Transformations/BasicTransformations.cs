@@ -37,7 +37,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         {
             if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
             var filter = new GetSourceFiles();
-            foreach (var ns in namespaces) filter.Namespaces.onNamespace(ns);
+            foreach (var ns in namespaces) filter.Namespaces.OnNamespace(ns);
             return filter.SharedState.SourceFiles.ToImmutableHashSet();
         }
 
@@ -59,16 +59,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 : base(parent)
             { }
 
-            public override QsSpecialization onSpecializationImplementation(QsSpecialization spec) // short cut to avoid further evaluation
+            public override QsSpecialization OnSpecializationImplementation(QsSpecialization spec) // short cut to avoid further evaluation
             {
-                this.onSourceFile(spec.SourceFile);
+                this.OnSourceFile(spec.SourceFile);
                 return spec;
             }
 
-            public override NonNullable<string> onSourceFile(NonNullable<string> f)
+            public override NonNullable<string> OnSourceFile(NonNullable<string> f)
             {
                 this.SharedState.SourceFiles.Add(f);
-                return base.onSourceFile(f);
+                return base.OnSourceFile(f);
             }
         }
     }
@@ -105,7 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         {
             if (ns == null) throw new ArgumentNullException(nameof(ns));
             var filter = new FilterBySourceFile(predicate);
-            return filter.Namespaces.onNamespace(ns);
+            return filter.Namespaces.OnNamespace(ns);
         }
 
         public static QsNamespace Apply(QsNamespace ns, params NonNullable<string>[] fileIds)
@@ -126,21 +126,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
             // TODO: these overrides needs to be adapted once we support external specializations
 
-            public override QsCustomType onType(QsCustomType t)
+            public override QsCustomType OnType(QsCustomType t)
             {
                 if (this.SharedState.Predicate(t.SourceFile))
                 { this.SharedState.Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t))); }
                 return t;
             }
 
-            public override QsCallable onCallableImplementation(QsCallable c)
+            public override QsCallable OnCallableImplementation(QsCallable c)
             {
                 if (this.SharedState.Predicate(c.SourceFile))
                 { this.SharedState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
                 return c;
             }
 
-            public override QsNamespace onNamespace(QsNamespace ns)
+            public override QsNamespace OnNamespace(QsNamespace ns)
             {
                 static int SortComparison((int?, QsNamespaceElement) x, (int?, QsNamespaceElement) y)
                 {
@@ -149,7 +149,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                     return x.Item1.HasValue ? -1 : 1;
                 }
                 this.SharedState.Elements.Clear();
-                base.onNamespace(ns);
+                base.OnNamespace(ns);
                 this.SharedState.Elements.Sort(SortComparison);
                 return new QsNamespace(ns.Name, this.SharedState.Elements.Select(e => e.Item2).ToImmutableArray(), ns.Documentation);
             }

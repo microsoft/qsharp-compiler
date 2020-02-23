@@ -23,9 +23,9 @@ type LoopUnrolling private (_private_ : string) =
 and private LoopUnrollingNamespaces (parent : LoopUnrolling) = 
     inherit NamespaceTransformationBase(parent)
 
-    override __.onNamespace x =
-        let x = base.onNamespace x
-        VariableRenaming().Namespaces.onNamespace x
+    override __.OnNamespace x =
+        let x = base.OnNamespace x
+        VariableRenaming().Namespaces.OnNamespace x
 
 /// private helper class for LoopUnrolling
 and private LoopUnrollingStatementKinds (parent : LoopUnrolling, callables, maxSize) = 
