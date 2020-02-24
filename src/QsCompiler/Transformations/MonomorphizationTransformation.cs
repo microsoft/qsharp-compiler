@@ -311,7 +311,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 this.Types = new TypeTransformation(this);
             }
 
-            private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
+            private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
                 public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
@@ -343,7 +343,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 }
             }
 
-            private class ExpressionKindTransformation : Core.ExpressionKindTransformation<TransformationState>
+            private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
             {
                 public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 

@@ -349,7 +349,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
         private class StatementKindTransformation :
-            Core.StatementKindTransformation<TransformationState>
+            StatementKindTransformation<TransformationState>
         {
             public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
@@ -420,7 +420,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         // helper classes
 
         private class StatementKindTransformation
-            : Core.StatementKindTransformation<TransformationState>
+            : StatementKindTransformation<TransformationState>
         {
             public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
@@ -435,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
         private class ExpressionKindTransformation
-            : Core.ExpressionKindTransformation<TransformationState>
+            : ExpressionKindTransformation<TransformationState>
         {
             public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
@@ -454,7 +454,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// The action to apply is specified upon construction, and will be applied before recurring into subexpressions.
     /// </summary>
     public class TypedExpressionWalker<T> :
-        Core.ExpressionTransformation<T>
+        ExpressionTransformation<T>
     {
         public TypedExpressionWalker(Action<TypedExpression> onExpression, SyntaxTreeTransformation<T> parent)
             : base(parent) =>

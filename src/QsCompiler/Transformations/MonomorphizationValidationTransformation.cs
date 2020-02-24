@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             }
         }
 
-        private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
+        private class ExpressionTransformation : ExpressionTransformation<TransformationState>
         {
             public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 

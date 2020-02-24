@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         /// The default values used for auto-generation will be used for the additional functor arguments.  
         /// </summary>
         public class ExpressionKindTransformation :
-            Core.ExpressionKindTransformation<TransformationsState>
+            ExpressionKindTransformation<TransformationsState>
         {
             public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationsState> parent)
                 : base(parent)
@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// Ensures that the outer block of conjugations is ignored during transformation. 
     /// </summary>
     public class IgnoreOuterBlockInConjugations<T> :
-        Core.StatementKindTransformation<T>
+        StatementKindTransformation<T>
     {
         public IgnoreOuterBlockInConjugations(SyntaxTreeTransformation<T> parent)
             : base(parent)

@@ -432,7 +432,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// Upon calling Transform, the Output property is set to the Q# code corresponding to an expression of the given kind. 
         /// </summary>
         public class ExpressionKindTransformation
-            : Core.ExpressionKindTransformation<TransformationState>
+            : ExpressionKindTransformation<TransformationState>
         {
             // allows to omit unnecessary parentheses
             private int CurrentPrecedence = 0;
@@ -849,7 +849,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// is set to the Q# code corresponding to a statement of the given kind. 
         /// </summary>
         public class StatementKindTransformation
-            : Core.StatementKindTransformation<TransformationState>
+            : StatementKindTransformation<TransformationState>
         {
             private int CurrentIndendation = 0;
 
