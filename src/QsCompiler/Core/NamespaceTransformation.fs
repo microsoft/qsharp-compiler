@@ -138,8 +138,9 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         | Generated dir             -> this.DispatchGeneratedImplementation dir       |> Build Generated
         | Provided (argTuple, body) -> this.OnProvidedImplementation (argTuple, body) |> Build Provided
 
-    abstract member OnSpecializationImplementation : QsSpecialization -> QsSpecialization
-    default this.OnSpecializationImplementation (spec : QsSpecialization) = 
+    /// This method is defined for the sole purpose of eliminating any code duplication for each of the specialization kinds. 
+    /// It is hence not intended and should never be needed for public use. 
+    member private this.OnSpecializationKind (spec : QsSpecialization) = 
         let source = this.OnSourceFile spec.SourceFile
         let loc = this.OnLocation spec.Location
         let attributes = spec.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
@@ -151,16 +152,16 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         QsSpecialization.New spec.Kind (source, loc) |> Node.BuildOr spec (spec.Parent, attributes, typeArgs, signature, impl, doc, comments)
 
     abstract member OnBodySpecialization : QsSpecialization -> QsSpecialization
-    default this.OnBodySpecialization spec = this.OnSpecializationImplementation spec
+    default this.OnBodySpecialization spec = this.OnSpecializationKind spec
     
     abstract member OnAdjointSpecialization : QsSpecialization -> QsSpecialization
-    default this.OnAdjointSpecialization spec = this.OnSpecializationImplementation spec
+    default this.OnAdjointSpecialization spec = this.OnSpecializationKind spec
 
     abstract member OnControlledSpecialization : QsSpecialization -> QsSpecialization
-    default this.OnControlledSpecialization spec = this.OnSpecializationImplementation spec
+    default this.OnControlledSpecialization spec = this.OnSpecializationKind spec
 
     abstract member OnControlledAdjointSpecialization : QsSpecialization -> QsSpecialization
-    default this.OnControlledAdjointSpecialization spec = this.OnSpecializationImplementation spec
+    default this.OnControlledAdjointSpecialization spec = this.OnSpecializationKind spec
 
     abstract member OnSpecializationDeclaration : QsSpecialization -> QsSpecialization
     default this.OnSpecializationDeclaration (spec : QsSpecialization) = 

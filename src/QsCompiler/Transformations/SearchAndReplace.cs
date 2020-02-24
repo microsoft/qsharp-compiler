@@ -258,8 +258,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 return att;
             }
 
-            public override QsSpecialization OnSpecializationImplementation(QsSpecialization spec) =>
-                this.SharedState.IsRelevant(spec.SourceFile) ? base.OnSpecializationImplementation(spec) : spec;
+            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
+                this.SharedState.IsRelevant(spec.SourceFile) ? base.OnSpecializationDeclaration(spec) : spec;
 
             public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
             {

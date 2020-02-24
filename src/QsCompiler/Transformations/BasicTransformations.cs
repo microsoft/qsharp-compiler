@@ -62,7 +62,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
             : base(parent, TransformationOptions.NoRebuild) { }
 
-            public override QsSpecialization OnSpecializationImplementation(QsSpecialization spec) // short cut to avoid further evaluation
+            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) // short cut to avoid further evaluation
             {
                 this.OnSourceFile(spec.SourceFile);
                 return spec;
