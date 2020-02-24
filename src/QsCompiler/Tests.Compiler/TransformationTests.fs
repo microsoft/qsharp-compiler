@@ -66,9 +66,9 @@ and private SyntaxCounterStatementKinds(parent : SyntaxCounter) =
 and private SyntaxCounterExpressionKinds(parent : SyntaxCounter) = 
     inherit ExpressionKindTransformation(parent)
 
-    override this.beforeCallLike (op,args) =
+    override this.OnCallLikeExpression (op,args) =
         parent.Counter.callsCount <- parent.Counter.callsCount + 1
-        base.beforeCallLike (op, args)
+        base.OnCallLikeExpression (op, args)
 
 
 let private buildSyntaxTree code =

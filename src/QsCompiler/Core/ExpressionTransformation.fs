@@ -46,24 +46,6 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
     new () = new ExpressionKindTransformationBase (TransformationOptions.Default)
 
 
-    // methods invoked before selective expressions
-
-    abstract member beforeCallLike : TypedExpression * TypedExpression -> TypedExpression * TypedExpression
-    default this.beforeCallLike (method, arg) = (method, arg)
-
-    abstract member beforeFunctorApplication : TypedExpression -> TypedExpression
-    default this.beforeFunctorApplication ex = ex
-
-    abstract member beforeModifierApplication : TypedExpression -> TypedExpression
-    default this.beforeModifierApplication ex = ex
-
-    abstract member beforeBinaryOperatorExpression : TypedExpression * TypedExpression -> TypedExpression * TypedExpression
-    default this.beforeBinaryOperatorExpression (lhs, rhs) = (lhs, rhs)
-
-    abstract member beforeUnaryOperatorExpression : TypedExpression -> TypedExpression
-    default this.beforeUnaryOperatorExpression ex = ex
-
-
     // nodes containing subexpressions or subtypes
 
     abstract member OnIdentifier : Identifier * QsNullable<ImmutableArray<ResolvedType>> -> ExpressionKind
@@ -85,6 +67,13 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
     default this.OnPartialApplication (method, arg) = 
         let method, arg = this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
         CallLikeExpression |> Node.BuildOr InvalidExpr (method, arg)
+
+    abstract member OnCallLikeExpression : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnCallLikeExpression (method, arg) = 
+        match method.ResolvedType.Resolution with
+        | _ when TypedExpression.IsPartialApplication (CallLikeExpression (method, arg)) -> this.OnPartialApplication (method, arg) 
+        | ExpressionType.Operation _                                                     -> this.OnOperationCall (method, arg)
+        | _                                                                              -> this.OnFunctionCall (method, arg)
 
     abstract member OnAdjointApplication : TypedExpression -> ExpressionKind
     default this.OnAdjointApplication ex = 
@@ -289,21 +278,15 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
 
     // transformation root called on each node
 
-    member private this.DispatchCallLikeExpression (method, arg) = 
-        match method.ResolvedType.Resolution with
-            | _ when TypedExpression.IsPartialApplication (CallLikeExpression (method, arg)) -> this.OnPartialApplication (method, arg) 
-            | ExpressionType.Operation _                                                     -> this.OnOperationCall (method, arg)
-            | _                                                                              -> this.OnFunctionCall (method, arg)
-
     abstract member OnExpressionKind : ExpressionKind -> ExpressionKind
     default this.OnExpressionKind kind = 
         if options.Disable then kind else
         let transformed = kind |> function
             | Identifier (sym, tArgs)                          -> this.OnIdentifier                 (sym, tArgs)
-            | CallLikeExpression (method,arg)                  -> this.DispatchCallLikeExpression   ((method, arg)        |> this.beforeCallLike)
-            | AdjointApplication ex                            -> this.OnAdjointApplication         (ex                   |> (this.beforeFunctorApplication >> this.beforeModifierApplication))
-            | ControlledApplication ex                         -> this.OnControlledApplication      (ex                   |> (this.beforeFunctorApplication >> this.beforeModifierApplication))
-            | UnwrapApplication ex                             -> this.OnUnwrapApplication          (ex                   |> this.beforeModifierApplication)
+            | CallLikeExpression (method,arg)                  -> this.OnCallLikeExpression         (method, arg)
+            | AdjointApplication ex                            -> this.OnAdjointApplication         (ex)
+            | ControlledApplication ex                         -> this.OnControlledApplication      (ex)
+            | UnwrapApplication ex                             -> this.OnUnwrapApplication          (ex)
             | UnitValue                                        -> this.OnUnitValue                  ()
             | MissingExpr                                      -> this.OnMissingExpression          ()
             | InvalidExpr                                      -> this.OnInvalidExpression          () 
@@ -322,28 +305,28 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
             | RangeLiteral (lhs, rhs)                          -> this.OnRangeLiteral               (lhs, rhs)
             | CopyAndUpdate (lhs, accEx, rhs)                  -> this.OnCopyAndUpdateExpression    (lhs, accEx, rhs)
             | CONDITIONAL (cond, ifTrue, ifFalse)              -> this.OnConditionalExpression      (cond, ifTrue, ifFalse)
-            | EQ (lhs,rhs)                                     -> this.OnEquality                   ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | NEQ (lhs,rhs)                                    -> this.OnInequality                 ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | LT (lhs,rhs)                                     -> this.OnLessThan                   ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | LTE (lhs,rhs)                                    -> this.OnLessThanOrEqual            ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | GT (lhs,rhs)                                     -> this.OnGreaterThan                ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | GTE (lhs,rhs)                                    -> this.OnGreaterThanOrEqual         ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | AND (lhs,rhs)                                    -> this.OnLogicalAnd                 ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | OR (lhs,rhs)                                     -> this.OnLogicalOr                  ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | ADD (lhs,rhs)                                    -> this.OnAddition                   ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | SUB (lhs,rhs)                                    -> this.OnSubtraction                ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | MUL (lhs,rhs)                                    -> this.OnMultiplication             ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | DIV (lhs,rhs)                                    -> this.OnDivision                   ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | POW (lhs,rhs)                                    -> this.OnExponentiate               ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | MOD (lhs,rhs)                                    -> this.OnModulo                     ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | LSHIFT (lhs,rhs)                                 -> this.OnLeftShift                  ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | RSHIFT (lhs,rhs)                                 -> this.OnRightShift                 ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | BXOR (lhs,rhs)                                   -> this.OnBitwiseExclusiveOr         ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | BOR (lhs,rhs)                                    -> this.OnBitwiseOr                  ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | BAND (lhs,rhs)                                   -> this.OnBitwiseAnd                 ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | NOT ex                                           -> this.OnLogicalNot                 (ex                  |> this.beforeUnaryOperatorExpression)
-            | NEG ex                                           -> this.OnNegative                   (ex                  |> this.beforeUnaryOperatorExpression)
-            | BNOT ex                                          -> this.OnBitwiseNot                 (ex                  |> this.beforeUnaryOperatorExpression)
+            | EQ (lhs,rhs)                                     -> this.OnEquality                   (lhs, rhs)
+            | NEQ (lhs,rhs)                                    -> this.OnInequality                 (lhs, rhs)
+            | LT (lhs,rhs)                                     -> this.OnLessThan                   (lhs, rhs)
+            | LTE (lhs,rhs)                                    -> this.OnLessThanOrEqual            (lhs, rhs)
+            | GT (lhs,rhs)                                     -> this.OnGreaterThan                (lhs, rhs)
+            | GTE (lhs,rhs)                                    -> this.OnGreaterThanOrEqual         (lhs, rhs)
+            | AND (lhs,rhs)                                    -> this.OnLogicalAnd                 (lhs, rhs)
+            | OR (lhs,rhs)                                     -> this.OnLogicalOr                  (lhs, rhs)
+            | ADD (lhs,rhs)                                    -> this.OnAddition                   (lhs, rhs)
+            | SUB (lhs,rhs)                                    -> this.OnSubtraction                (lhs, rhs)
+            | MUL (lhs,rhs)                                    -> this.OnMultiplication             (lhs, rhs)
+            | DIV (lhs,rhs)                                    -> this.OnDivision                   (lhs, rhs)
+            | POW (lhs,rhs)                                    -> this.OnExponentiate               (lhs, rhs)
+            | MOD (lhs,rhs)                                    -> this.OnModulo                     (lhs, rhs)
+            | LSHIFT (lhs,rhs)                                 -> this.OnLeftShift                  (lhs, rhs)
+            | RSHIFT (lhs,rhs)                                 -> this.OnRightShift                 (lhs, rhs)
+            | BXOR (lhs,rhs)                                   -> this.OnBitwiseExclusiveOr         (lhs, rhs)
+            | BOR (lhs,rhs)                                    -> this.OnBitwiseOr                  (lhs, rhs)
+            | BAND (lhs,rhs)                                   -> this.OnBitwiseAnd                 (lhs, rhs)
+            | NOT ex                                           -> this.OnLogicalNot                 (ex)
+            | NEG ex                                           -> this.OnNegative                   (ex)
+            | BNOT ex                                          -> this.OnBitwiseNot                 (ex)
         id |> Node.BuildOr kind transformed
 
 
