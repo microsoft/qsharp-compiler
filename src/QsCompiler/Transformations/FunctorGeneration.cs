@@ -122,11 +122,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     {
         public ReverseOrderOfOperationCalls() 
         : base(ex => !ex.InferredInformation.HasLocalQuantumDependency, false) // no need to evaluate subexpressions
-        { 
+        {
+            // Do *not* disable transformations; the base class takes care of that!
             this.StatementKinds = new ReverseLoops(this);
             this.Statements = new StatementTransformation(this);
-            this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
-            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
 
