@@ -9,7 +9,7 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation
+open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 open Xunit
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open System.Text.RegularExpressions

@@ -398,19 +398,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         private const string OrigVarName = "origVarName";
         private static readonly Regex WrappedVarName = new Regex($"^__{Prefix}[0-9]*__(?<{OrigVarName}>.*)__$");
 
-        public NonNullable<string> StripUniqueName(NonNullable<string> uniqueName)
-        {
-            var matched = WrappedVarName.Match(uniqueName.Value).Groups[OrigVarName];
-            return matched.Success ? NonNullable<string>.New(matched.Value) : uniqueName;
-        }
-
-
         public UniqueVariableNames() 
         : base(new TransformationState())
         {
             this.StatementKinds = new StatementKindTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+        }
+
+
+        // static methods for convenience
+
+        internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
+            new QsQualifiedName(original.Namespace, NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + original.Name.Value));
+
+        public static NonNullable<string> StripUniqueName(NonNullable<string> uniqueName)
+        {
+            var matched = WrappedVarName.Match(uniqueName.Value).Groups[OrigVarName];
+            return matched.Success ? NonNullable<string>.New(matched.Value) : uniqueName;
         }
 
 

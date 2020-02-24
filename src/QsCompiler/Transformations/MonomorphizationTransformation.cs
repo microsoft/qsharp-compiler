@@ -10,6 +10,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransformation
@@ -134,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
                 if (!typesHashSet.IsEmpty)
                 {
                     // Create new name
-                    concreteName = Utilities.AddGuid(globalCallable.Item);
+                    concreteName = UniqueVariableNames.PrependGuid(globalCallable.Item);
                 }
 
                 requests.Push(new Request()

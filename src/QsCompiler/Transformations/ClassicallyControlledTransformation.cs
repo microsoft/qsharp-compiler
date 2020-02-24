@@ -9,20 +9,23 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation
+namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
 
-    // This transformation works in two passes.
-    // 1st Pass: Hoist the contents of conditional statements into separate operations, where possible.
-    // 2nd Pass: On the way down the tree, reshape conditional statements to replace Elif's and
-    // top level OR and AND conditions with equivalent nested if-else statements. One the way back up
-    // the tree, convert conditional statements into ApplyIf calls, where possible.
-    // This relies on anything having type parameters must be a global callable.
+    /// <summary>
+    /// This transformation works in two passes.
+    /// 1st Pass: Hoist the contents of conditional statements into separate operations, where possible.
+    /// 2nd Pass: On the way down the tree, reshape conditional statements to replace Elif's and
+    /// top level OR and AND conditions with equivalent nested if-else statements. One the way back up
+    /// the tree, convert conditional statements into ApplyIf calls, where possible.
+    /// This relies on anything having type parameters must be a global callable.
+    /// </summary>
     public static class ClassicallyControlledTransformation
     {
         public static QsCompilation Apply(QsCompilation compilation)
@@ -86,7 +89,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                         var callTypeArguments = expr.Item.TypeArguments;
                         var idTypeArguments = call.Item1.TypeArguments;
-                        var combinedTypeArguments = Utilities.GetCombinedType(callTypeArguments, idTypeArguments);
+                        var combinedTypeArguments = Utils.GetCombinedTypeResolution(callTypeArguments, idTypeArguments);
 
                         // This relies on anything having type parameters must be a global callable.
                         var newCallIdentifier = call.Item1;
@@ -167,10 +170,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             }
 
                             var (zeroOpArg, oneOpArg) = (result == QsResult.Zero)
-                                ? (Utilities.CreateValueTupleExpression(condId, condArgs), Utilities.CreateValueTupleExpression(defaultId, defaultArgs))
-                                : (Utilities.CreateValueTupleExpression(defaultId, defaultArgs), Utilities.CreateValueTupleExpression(condId, condArgs));
+                                ? (Utils.CreateValueTupleExpression(condId, condArgs), Utils.CreateValueTupleExpression(defaultId, defaultArgs))
+                                : (Utils.CreateValueTupleExpression(defaultId, defaultArgs), Utils.CreateValueTupleExpression(condId, condArgs));
 
-                            controlArgs = Utilities.CreateValueTupleExpression(conditionExpression, zeroOpArg, oneOpArg);
+                            controlArgs = Utils.CreateValueTupleExpression(conditionExpression, zeroOpArg, oneOpArg);
 
                             targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
                         }
@@ -201,9 +204,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                                 : BuiltIn.ApplyIfOne;
                             }
 
-                            controlArgs = Utilities.CreateValueTupleExpression(
+                            controlArgs = Utils.CreateValueTupleExpression(
                                 conditionExpression,
-                                Utilities.CreateValueTupleExpression(condId, condArgs));
+                                Utils.CreateValueTupleExpression(condId, condArgs));
 
                             targetArgs = ImmutableArray.Create(condArgs.ResolvedType);
                         }
@@ -219,12 +222,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     }
 
                     // Build the surrounding apply-if call
-                    var controlOpId = Utilities.CreateIdentifierExpression(
+                    var controlOpId = Utils.CreateIdentifierExpression(
                         Identifier.NewGlobalCallable(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name)),
                         targetArgs
                             .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
                             .ToImmutableArray(),
-                        Utilities.GetOperatorResolvedType(props, controlArgs.ResolvedType));
+                        Utils.GetOperationType(props, controlArgs.ResolvedType));
 
                     // Creates identity resolutions for the call expression
                     var opTypeArgResolutions = targetArgs
@@ -242,7 +245,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         })
                         .ToImmutableArray();
 
-                    return Utilities.CreateCallLike(controlOpId, controlArgs, opTypeArgResolutions);
+                    return Utils.CreateCallLikeExpression(controlOpId, controlArgs, opTypeArgResolutions);
                 }
 
                 private QsStatement CreateApplyIfStatement(QsStatement statement, QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
@@ -449,18 +452,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
         }
     }
 
-    // Transformation handling the first pass task of hoisting of the contents of conditional statements.
-    // If blocks are first validated to see if they can safely be hoisted into their own operation.
-    // Validation requirements are that there are no return statements and that there are no set statements
-    // on mutables declared outside the block. Setting mutables declared inside the block is valid.
-    // If the block is valid, and there is more than one statement in the block, a new operation with the
-    // block's contents is generated, having all the same type parameters as the calling context
-    // and all known variables at the start of the block become parameters to the new operation.
-    // The contents of the conditional block are then replaced with a call to the new operation with all
-    // the type parameters and known variables being forwarded to the new operation as arguments.
-    public static class HoistTransformation
+
+    /// <summary>
+    /// Transformation handling the first pass task of hoisting of the contents of conditional statements.
+    /// If blocks are first validated to see if they can safely be hoisted into their own operation.
+    /// Validation requirements are that there are no return statements and that there are no set statements
+    /// on mutables declared outside the block. Setting mutables declared inside the block is valid.
+    /// If the block is valid, and there is more than one statement in the block, a new operation with the
+    /// block's contents is generated, having all the same type parameters as the calling context
+    /// and all known variables at the start of the block become parameters to the new operation.
+    /// The contents of the conditional block are then replaced with a call to the new operation with all
+    /// the type parameters and known variables being forwarded to the new operation as arguments.
+    /// </summary>
+    internal static class HoistTransformation // this class can be made public once its functionality is no longer tied to the classically-controlled transformation 
     {
-        public static QsCompilation Apply(QsCompilation compilation) => HoistContents.Apply(compilation);
+        internal static QsCompilation Apply(QsCompilation compilation) => HoistContents.Apply(compilation);
 
         private class HoistContents : SyntaxTreeTransformation<HoistContents.TransformationState>
         {
@@ -605,7 +611,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public (QsCallable, ResolvedType) GenerateOperation(QsScope contents)
                 {
-                    var newName = Utilities.AddGuid(CurrentCallable.Callable.FullName);
+                    var newName = UniqueVariableNames.PrependGuid(CurrentCallable.Callable.FullName);
 
                     var knownVariables = contents.KnownSymbols.IsEmpty
                         ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
@@ -738,7 +744,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     TypedExpression targetArgs = null;
                     if (knownSymbols.Any())
                     {
-                        targetArgs = Utilities.CreateValueTupleExpression(knownSymbols.Select(var => Utilities.CreateIdentifierExpression(
+                        targetArgs = Utils.CreateValueTupleExpression(knownSymbols.Select(var => Utils.CreateIdentifierExpression(
                             Identifier.NewLocalVariable(var.VariableName),
                             TypeArgsResolution.Empty,
                             var.Type))
@@ -944,9 +950,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             }
         }
 
-        // Transformation that updates the contents of newly generated operations by:
-        // 1. Rerouting the origins of type parameter references to the new operation
-        // 2. Changes the IsMutable info on variable that used to be mutable, but are now immutable params to the operation
+        /// <summary>
+        /// Transformation that updates the contents of newly generated operations by:
+        /// 1. Rerouting the origins of type parameter references to the new operation
+        /// 2. Changes the IsMutable info on variable that used to be mutable, but are now immutable params to the operation
+        /// </summary>
         private class UpdateGeneratedOp : SyntaxTreeTransformation<UpdateGeneratedOp.TransformationState>
         {
             public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
