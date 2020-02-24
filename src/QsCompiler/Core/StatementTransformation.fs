@@ -130,8 +130,9 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
         let transformed = this.Expressions.OnTypedExpression ex
         QsFailStatement |> Node.BuildOr EmptyStatement transformed
 
-    abstract member OnQubitScope : QsQubitScope -> QsStatementKind
-    default this.OnQubitScope (stm : QsQubitScope) = 
+    /// This method is defined for the sole purpose of eliminating code duplication for each of the specialization kinds. 
+    /// It is hence not intended and should never be needed for public use. 
+    member private this.OnQubitScopeKind (stm : QsQubitScope) = 
         let kind = stm.Kind
         let rhs = this.OnQubitInitializer stm.Binding.Rhs
         let lhs = this.OnSymbolTuple stm.Binding.Lhs
@@ -139,12 +140,13 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
         QsQubitScope << QsQubitScope.New kind |> Node.BuildOr EmptyStatement ((lhs, rhs), body)
 
     abstract member OnAllocateQubits : QsQubitScope -> QsStatementKind
-    default this.OnAllocateQubits stm = this.OnQubitScope stm
+    default this.OnAllocateQubits stm = this.OnQubitScopeKind stm
 
     abstract member OnBorrowQubits : QsQubitScope -> QsStatementKind
-    default this.OnBorrowQubits stm = this.OnQubitScope stm
+    default this.OnBorrowQubits stm = this.OnQubitScopeKind stm
 
-    member private this.DispatchQubitScope (stm : QsQubitScope) = 
+    abstract member OnQubitScope : QsQubitScope -> QsStatementKind
+    default this.OnQubitScope (stm : QsQubitScope) = 
         match stm.Kind with 
         | Allocate -> this.OnAllocateQubits stm
         | Borrow   -> this.OnBorrowQubits stm
@@ -172,7 +174,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
             | QsWhileStatement stm       -> this.OnWhileStatement       stm
             | QsRepeatStatement stm      -> this.OnRepeatStatement      stm
             | QsConjugation stm          -> this.OnConjugation          stm
-            | QsQubitScope stm           -> this.DispatchQubitScope     stm
+            | QsQubitScope stm           -> this.OnQubitScope           stm
             | EmptyStatement             -> this.OnEmptyStatement       ()
         id |> Node.BuildOr kind transformed
 

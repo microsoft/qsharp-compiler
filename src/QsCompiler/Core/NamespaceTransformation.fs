@@ -131,7 +131,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         | Generated dir             -> this.OnGeneratedImplementation dir             |> Build Generated
         | Provided (argTuple, body) -> this.OnProvidedImplementation (argTuple, body) |> Build Provided
 
-    /// This method is defined for the sole purpose of eliminating any code duplication for each of the specialization kinds. 
+    /// This method is defined for the sole purpose of eliminating code duplication for each of the specialization kinds. 
     /// It is hence not intended and should never be needed for public use. 
     member private this.OnSpecializationKind (spec : QsSpecialization) = 
         let source = this.OnSourceFile spec.SourceFile
@@ -167,7 +167,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     
     // type and callable declarations
 
-    /// This method is defined for the sole purpose of eliminating any code duplication for each of the callable kinds. 
+    /// This method is defined for the sole purpose of eliminating code duplication for each of the callable kinds. 
     /// It is hence not intended and should never be needed for public use. 
     member private this.OnCallableKind (c : QsCallable) = 
         let source = this.OnSourceFile c.SourceFile
