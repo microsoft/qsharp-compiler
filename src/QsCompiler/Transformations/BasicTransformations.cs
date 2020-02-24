@@ -12,8 +12,8 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 {
-    public class GetSourceFiles :
-        SyntaxTreeTransformation<GetSourceFiles.TransformationState>
+    public class GetSourceFiles 
+    : SyntaxTreeTransformation<GetSourceFiles.TransformationState>
     {
         public class TransformationState
         {
@@ -22,10 +22,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         }
 
 
-        private GetSourceFiles() :
-            base(new TransformationState()) => 
+        private GetSourceFiles()
+        : base(new TransformationState(), TransformationOptions.NoRebuild)
+        {
             this.Namespaces = new NamespaceTransformation(this);
-
+            this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+        }
 
         // static methods for convenience
 
@@ -51,13 +55,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         // helper classes
 
-        private class NamespaceTransformation :
-            NamespaceTransformation<TransformationState>
+        private class NamespaceTransformation 
+        : NamespaceTransformation<TransformationState>
         {
 
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent, TransformationOptions.NoRebuild) { }
 
             public override QsSpecialization OnSpecializationImplementation(QsSpecialization spec) // short cut to avoid further evaluation
             {
@@ -80,8 +83,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// The transformation also ensures that the elements in each namespace are ordered according to
     /// the location at which they are defined in the file. Auto-generated declarations will be ordered alphabetically.
     /// </summary>
-    public class FilterBySourceFile :
-        SyntaxTreeTransformation<FilterBySourceFile.TransformationState>
+    public class FilterBySourceFile 
+    : SyntaxTreeTransformation<FilterBySourceFile.TransformationState>
     {
         public class TransformationState
         {
@@ -94,10 +97,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         }
 
 
-        public FilterBySourceFile(Func<NonNullable<string>, bool> predicate)
-            : base(new TransformationState(predicate)) => 
+        public FilterBySourceFile(Func<NonNullable<string>, bool> predicate) 
+        : base(new TransformationState(predicate))
+        {
             this.Namespaces = new NamespaceTransformation(this);
-
+            this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+        }
 
         // static methods for convenience
 
@@ -117,12 +124,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         // helper classes
 
-        public class NamespaceTransformation :
-            NamespaceTransformation<TransformationState>
+        public class NamespaceTransformation 
+        : NamespaceTransformation<TransformationState>
         {
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent) { }
 
             // TODO: these overrides needs to be adapted once we support external specializations
 
@@ -163,10 +169,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// over all contained expressions evaluates to true.
     /// If evaluateOnSubexpressions is set to true, the fold is evaluated on all subexpressions as well.
     /// </summary>
-    public class SelectByFoldingOverExpressions :
-        SyntaxTreeTransformation<SelectByFoldingOverExpressions.TransformationState>
+    public class SelectByFoldingOverExpressions 
+    : SyntaxTreeTransformation<SelectByFoldingOverExpressions.TransformationState>
     {
-        public class TransformationState : FoldOverExpressions<TransformationState, bool>.IFoldingState
+        public class TransformationState 
+        : FoldOverExpressions<TransformationState, bool>.IFoldingState
         {
             public bool Recur { get; }
             public readonly bool Seed;
@@ -192,8 +199,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
         public SelectByFoldingOverExpressions(Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool evaluateOnSubexpressions = true)
-            : base(new TransformationState(condition, fold, seed, evaluateOnSubexpressions))
-        { 
+        : base(new TransformationState(condition, fold, seed, evaluateOnSubexpressions))
+        {
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
             this.Expressions = new FoldOverExpressions<TransformationState, bool>(this);
             this.Statements = new StatementTransformation<SelectByFoldingOverExpressions>(
                 state => new SelectByFoldingOverExpressions(state.Condition, state.ConstructFold, state.Seed, state.Recur),
@@ -203,9 +211,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
         // helper classes
 
-        public class StatementTransformation<P> :
-            Core.StatementTransformation<TransformationState>
-            where P : SelectByFoldingOverExpressions
+        public class StatementTransformation<P> 
+        : Core.StatementTransformation<TransformationState> where P : SelectByFoldingOverExpressions
         {
             protected P SubSelector;
             protected readonly Func<TransformationState, P> CreateSelector;
@@ -215,7 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             /// Upon initialization, the FoldResult of the internal state should be set to the specified seed rather than the FoldResult of the given constructor argument.
             /// </summary>
             public StatementTransformation(Func<TransformationState, P> createSelector, SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent) =>
+            : base(parent) =>
                 this.CreateSelector = createSelector ?? throw new ArgumentNullException(nameof(createSelector));
 
             public override QsStatement OnStatement(QsStatement stm)
@@ -251,12 +258,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// which contain an expression or subexpression (only if evaluateOnSubexpressions is set to true)
     /// that satisfies the condition given on initialization.
     /// </summary>
-    public class SelectByAnyContainedExpression :
-        SelectByFoldingOverExpressions
+    public class SelectByAnyContainedExpression 
+    : SelectByFoldingOverExpressions
     {
         public SelectByAnyContainedExpression(Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true)
-            : base(condition, (a, b) => a || b, false, evaluateOnSubexpressions)
-        { }
+        : base(condition, (a, b) => a || b, false, evaluateOnSubexpressions) { }
     }
 
     /// <summary>
@@ -265,12 +271,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// for which all contained expressions or subexpressions satisfy the condition given on initialization.
     /// Note that subexpressions will only be verified if evaluateOnSubexpressions is set to true (default value).
     /// </summary>
-    public class SelectByAllContainedExpressions :
-        SelectByFoldingOverExpressions
+    public class SelectByAllContainedExpressions 
+    : SelectByFoldingOverExpressions
     {
         public SelectByAllContainedExpressions(Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true)
-            : base(condition, (a, b) => a && b, true, evaluateOnSubexpressions)
-        { }
+        : base(condition, (a, b) => a && b, true, evaluateOnSubexpressions) { }
     }
 
 
@@ -281,10 +286,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     /// i.e. the fold it take starting on inner expressions (from the inside out).
     /// Otherwise the specified folder is only applied to the expression itself.
     /// The result of the fold is accessible via the FoldResult property in the internal state of the transformation.
+    /// The transformation itself merely walks expressions and rebuilding is disabled. 
     /// </summary>
-    public class FoldOverExpressions<T, S> :
-        Core.ExpressionTransformation<T>
-        where T : FoldOverExpressions<T,S>.IFoldingState
+    public class FoldOverExpressions<T, S> 
+    : ExpressionTransformation<T> where T : FoldOverExpressions<T,S>.IFoldingState
     {
         public interface IFoldingState
         {
@@ -294,13 +299,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         }
 
 
-        public FoldOverExpressions(SyntaxTreeTransformation<T> parent)
-            : base(parent)
-        { }
+        public FoldOverExpressions(SyntaxTreeTransformation<T> parent) 
+        : base(parent, TransformationOptions.NoRebuild) { }
 
-        public FoldOverExpressions(T state)
-            : base(state)
-        { }
+        public FoldOverExpressions(T state) 
+        : base(state)  { }
 
 
         public override TypedExpression OnTypedExpression(TypedExpression ex)
