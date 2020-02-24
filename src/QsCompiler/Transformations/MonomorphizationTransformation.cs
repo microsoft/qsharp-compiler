@@ -182,6 +182,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransform
             private ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables)) 
             { 
                 this.Namespaces = new NamespaceTransformation(this);
+                this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
             }
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
