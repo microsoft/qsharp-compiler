@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// If a set of source file names is given on initialization, the search is limited to callables and specializations in those files.
     /// </summary>
     public class IdentifierReferences
-         : SyntaxTreeTransformation<IdentifierReferences.TransformationState>
+    : SyntaxTreeTransformation<IdentifierReferences.TransformationState>
     {
         public class Location : IEquatable<Location>
         {
@@ -147,7 +147,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
-        public IdentifierReferences(TransformationState state) : base(state)
+        public IdentifierReferences(TransformationState state) 
+        : base(state, TransformationOptions.NoRebuild)
         { 
             this.Types = new TypeTransformation(this);
             this.Expressions = new TypedExpressionWalker<TransformationState>(this.SharedState.LogIdentifierLocation, this);
@@ -155,12 +156,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             this.Namespaces = new NamespaceTransformation(this);
         }
 
-        public IdentifierReferences(NonNullable<string> idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) :
-            this(new TransformationState(id => id is Identifier.LocalVariable varName && varName.Item.Value == idName.Value, defaultOffset, limitToSourceFiles))
-        { }
+        public IdentifierReferences(NonNullable<string> idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) 
+        : this(new TransformationState(id => id is Identifier.LocalVariable varName && varName.Item.Value == idName.Value, defaultOffset, limitToSourceFiles)) { }
 
-        public IdentifierReferences(QsQualifiedName idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) :
-            this(new TransformationState(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset, limitToSourceFiles))
+        public IdentifierReferences(QsQualifiedName idName, QsLocation defaultOffset, IImmutableSet<NonNullable<string>> limitToSourceFiles = null) 
+        : this(new TransformationState(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset, limitToSourceFiles))
         {
             if (idName == null) throw new ArgumentNullException(nameof(idName));
         }
@@ -190,12 +190,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // helper classes
 
-        private class TypeTransformation :
-            TypeTransformation<TransformationState>
+        private class TypeTransformation 
+        : TypeTransformation<TransformationState>
         {
-            public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) :
-                base(parent)
-            { }
+            public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) 
+            : base(parent, TransformationOptions.NoRebuild) { }
 
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt)
             {
@@ -213,12 +212,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
-        private class StatementTransformation :
-            StatementTransformation<TransformationState>
+        private class StatementTransformation 
+        : StatementTransformation<TransformationState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent, TransformationOptions.NoRebuild) { }
 
             public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
             {
@@ -227,13 +225,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
-        private class NamespaceTransformation :
-            NamespaceTransformation<TransformationState>
+        private class NamespaceTransformation 
+        : NamespaceTransformation<TransformationState>
         {
 
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent, TransformationOptions.NoRebuild) { }
 
             public override QsCustomType OnType(QsCustomType t)
             {
@@ -287,7 +284,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// Note that the location information is relative to the root node, i.e. the start position of the containing specialization declaration.
     /// </summary>
     public class AccumulateIdentifiers
-         : SyntaxTreeTransformation<AccumulateIdentifiers.TransformationState>
+    : SyntaxTreeTransformation<AccumulateIdentifiers.TransformationState>
     {
         public class TransformationState
         {
@@ -322,23 +319,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
 
-        public AccumulateIdentifiers() :
-            base(new TransformationState())
+        public AccumulateIdentifiers() 
+        : base(new TransformationState(), TransformationOptions.NoRebuild)
         {
-            this.Expressions = new TypedExpressionWalker<TransformationState>(this.SharedState.UsedLocal, this);
-            this.StatementKinds = new StatementKindTransformation(this);
             this.Statements = new StatementTransformation(this);
+            this.StatementKinds = new StatementKindTransformation(this);
+            this.Expressions = new TypedExpressionWalker<TransformationState>(this.SharedState.UsedLocal, this);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
 
         // helper classes
 
-        private class StatementTransformation :
-            StatementTransformation<TransformationState>
+        private class StatementTransformation 
+        : StatementTransformation<TransformationState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent, TransformationOptions.NoRebuild) { }
 
             public override QsStatement OnStatement(QsStatement stm)
             {
@@ -348,12 +345,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
-        private class StatementKindTransformation :
-            StatementKindTransformation<TransformationState>
+        private class StatementKindTransformation 
+        : StatementKindTransformation<TransformationState>
         {
             public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent, TransformationOptions.NoRebuild) { }
 
             public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
             {
@@ -373,7 +369,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// This class is *not* threadsafe.
     /// </summary>
     public class UniqueVariableNames
-         : SyntaxTreeTransformation<UniqueVariableNames.TransformationState>
+    : SyntaxTreeTransformation<UniqueVariableNames.TransformationState>
     {
         public class TransformationState
         {
@@ -409,22 +405,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
 
-        public UniqueVariableNames() :
-            base(new TransformationState())
+        public UniqueVariableNames() 
+        : base(new TransformationState())
         {
-            this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.StatementKinds = new StatementKindTransformation(this);
+            this.ExpressionKinds = new ExpressionKindTransformation(this);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
 
         // helper classes
 
         private class StatementKindTransformation
-            : StatementKindTransformation<TransformationState>
+        : StatementKindTransformation<TransformationState>
         {
             public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent) { }
 
             public override SymbolTuple OnSymbolTuple(SymbolTuple syms) =>
                 syms is SymbolTuple.VariableNameTuple tuple
@@ -435,11 +431,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
         private class ExpressionKindTransformation
-            : ExpressionKindTransformation<TransformationState>
+        : ExpressionKindTransformation<TransformationState>
         {
             public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent) { }
 
             public override QsExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
                 this.SharedState.AdaptIdentifier(sym, tArgs);
@@ -452,16 +447,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// <summary>
     /// Upon transformation, applies the specified action to each expression and subexpression.
     /// The action to apply is specified upon construction, and will be applied before recurring into subexpressions.
+    /// The transformation merely walks expressions and rebuilding is disabled. 
     /// </summary>
-    public class TypedExpressionWalker<T> :
-        ExpressionTransformation<T>
+    public class TypedExpressionWalker<T> 
+    : ExpressionTransformation<T>
     {
         public TypedExpressionWalker(Action<TypedExpression> onExpression, SyntaxTreeTransformation<T> parent)
-            : base(parent) =>
+        : base(parent, TransformationOptions.NoRebuild) =>
             this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
 
         public TypedExpressionWalker(Action<TypedExpression> onExpression, T internalState = default)
-            : base(internalState) =>
+        : base(internalState, TransformationOptions.NoRebuild) =>
             this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
 
         public readonly Action<TypedExpression> OnExpression;
