@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given namespace.
     /// </summary>
     public class SyntaxTreeToQs
-        : SyntaxTreeTransformation<SyntaxTreeToQs.TransformationState>
+    : SyntaxTreeTransformation<SyntaxTreeToQs.TransformationState>
     {
         public const string InvalidType = "__UnknownType__";
         public const string InvalidSet = "__UnknownSet__";
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 
         public SyntaxTreeToQs(TransformationContext context = null)
-            : base(new TransformationState(context))
+        : base(new TransformationState(context), TransformationOptions.NoRebuild)
         {
             this.Types = new TypeTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
@@ -234,7 +234,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// that upon calling Transform on a Q# type is set to the Q# code corresponding to that type. 
         /// </summary>
         public class TypeTransformation
-            : TypeTransformation<TransformationState>
+        : TypeTransformation<TransformationState>
         {
             private readonly Func<ResolvedType, string> TypeToQs;
 
@@ -244,10 +244,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 set => SharedState.TypeOutputHandle = value;
             }
 
-            public TypeTransformation(SyntaxTreeToQs parent) : base(parent) =>
+            public TypeTransformation(SyntaxTreeToQs parent) 
+            : base(parent, TransformationOptions.NoRebuild) =>
                 this.TypeToQs = parent.ToCode;
 
-            public TypeTransformation() : base(new TransformationState()) =>
+            public TypeTransformation() 
+            : base(new TransformationState(), TransformationOptions.NoRebuild) =>
                 this.TypeToQs = t =>
                 {
                     this.Transformation.Types.OnType(t);
@@ -419,7 +421,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             public override QsTypeKind OnOperation(Tuple<ResolvedType, ResolvedType> sign, CallableInformation info)
             {
-                info = base.OnCallableInformation(info);
+                info = this.OnCallableInformation(info);
                 var characteristics = String.IsNullOrWhiteSpace(this.Output) ? "" : $" {Keywords.qsCharacteristics.id} {this.Output}";
                 this.Output = $"({this.TypeToQs(sign.Item1)} => {this.TypeToQs(sign.Item2)}{characteristics})";
                 return QsTypeKind.NewOperation(sign, info);
@@ -432,7 +434,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// Upon calling Transform, the Output property is set to the Q# code corresponding to an expression of the given kind. 
         /// </summary>
         public class ExpressionKindTransformation
-            : ExpressionKindTransformation<TransformationState>
+        : ExpressionKindTransformation<TransformationState>
         {
             // allows to omit unnecessary parentheses
             private int CurrentPrecedence = 0;
@@ -450,7 +452,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
             public ExpressionKindTransformation(SyntaxTreeToQs parent)
-                : base(parent) =>
+            : base(parent, TransformationOptions.NoRebuild) =>
                 this.TypeToQs = parent.ToCode;
 
 
@@ -849,7 +851,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// is set to the Q# code corresponding to a statement of the given kind. 
         /// </summary>
         public class StatementKindTransformation
-            : StatementKindTransformation<TransformationState>
+        : StatementKindTransformation<TransformationState>
         {
             private int CurrentIndendation = 0;
 
@@ -862,7 +864,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 TransformationState.PrecededByBlock(this.SharedState.StatementOutputHandle);
 
             public StatementKindTransformation(SyntaxTreeToQs parent)
-                : base(parent) =>
+            : base(parent, TransformationOptions.NoRebuild) =>
                 this.ExpressionToQs = parent.ToCode;
 
 
@@ -1044,11 +1046,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given statement block.
         /// </summary>
         public class StatementTransformation
-            : StatementTransformation<TransformationState>
+        : StatementTransformation<TransformationState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent, TransformationOptions.NoRebuild) { }
 
 
             // overrides
@@ -1062,7 +1063,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 
         public class NamespaceTransformation
-            : NamespaceTransformation<TransformationState>
+        : NamespaceTransformation<TransformationState>
         {
             private int CurrentIndendation = 0;
             private string CurrentSpecialization = null;
@@ -1076,7 +1077,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this.SharedState.NamespaceOutputHandle;
 
             public NamespaceTransformation(SyntaxTreeToQs parent)
-                : base(parent) =>
+            : base(parent, TransformationOptions.NoRebuild) =>
                 this.TypeToQs = parent.ToCode;
 
 
