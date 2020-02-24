@@ -260,7 +260,7 @@ let private namespaceDocumentation (docs : ILookup<NonNullable<string>, Immutabl
     PrintSummary allDoc markdown
 
 type private TName () = 
-    inherit SyntaxTreeToQs.TypeTransformation() 
+    inherit SyntaxTreeToQsharp.TypeTransformation() 
     override this.OnCharacteristicsExpression characteristics =
         if characteristics.AreInvalid then this.Output <- "?"; characteristics
         else base.OnCharacteristicsExpression characteristics
@@ -276,7 +276,7 @@ type private TName () =
 let private TypeString = new TName()
 let private TypeName = TypeString.Apply
 let private CharacteristicsAnnotation (ex, format) = 
-    let charEx = SyntaxTreeToQs.CharacteristicsExpression ex
+    let charEx = SyntaxTreeToQsharp.CharacteristicsExpression ex
     if String.IsNullOrWhiteSpace charEx then "" else sprintf "is %s" charEx |> format
 
 [<Extension>]
@@ -338,14 +338,14 @@ let private printCallableKind capitalize = function
 
 [<Extension>]
 let public PrintArgumentTuple item = 
-    SyntaxTreeToQs.ArgumentTuple (item, new Func<_,_>(TypeName)) // note: needs to match the corresponding part of the output constructed by PrintSignature below!
+    SyntaxTreeToQsharp.ArgumentTuple (item, new Func<_,_>(TypeName)) // note: needs to match the corresponding part of the output constructed by PrintSignature below!
 
 [<Extension>]
 let public PrintSignature (header : CallableDeclarationHeader) = 
     let callable = 
         QsCallable.New header.Kind (header.SourceFile, Null) 
             (header.QualifiedName, header.Attributes, header.ArgumentTuple, header.Signature, ImmutableArray.Empty, ImmutableArray.Empty, QsComments.Empty);
-    let signature = SyntaxTreeToQs.DeclarationSignature (callable, new Func<_,_>(TypeName))
+    let signature = SyntaxTreeToQsharp.DeclarationSignature (callable, new Func<_,_>(TypeName))
     let annotation = CharacteristicsAnnotation (header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
     sprintf "%s%s" signature annotation
 
@@ -393,7 +393,7 @@ let public DeclarationInfo symbolTable (locals : LocalDeclarations) (currentNS, 
         match qsSym |> globalCallableResolution symbolTable (currentNS, source) with 
         | Some decl, _ ->
             let functorSupport characteristics =
-                let charEx = SyntaxTreeToQs.CharacteristicsExpression characteristics
+                let charEx = SyntaxTreeToQsharp.CharacteristicsExpression characteristics
                 if String.IsNullOrWhiteSpace charEx then "(None)" else charEx
             let name = sprintf "%s %s" (printCallableKind false decl.Kind) decl.QualifiedName.Name.Value |> withNewLine
             let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace.Value |> withNewLine 

@@ -206,7 +206,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp)
             {
                 var resT = ResolvedType.New(QsTypeKind.NewTypeParameter(tp));
-                var id = Identifier.NewLocalVariable(NonNullable<string>.New(SyntaxTreeToQs.Default.ToCode(resT) ?? ""));
+                var id = Identifier.NewLocalVariable(NonNullable<string>.New(SyntaxTreeToQsharp.Default.ToCode(resT) ?? ""));
                 this.SharedState.LogIdentifierLocation(id, tp.Range);
                 return resT.Resolution;
             }

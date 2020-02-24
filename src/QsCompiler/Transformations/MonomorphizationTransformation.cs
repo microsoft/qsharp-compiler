@@ -13,13 +13,13 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationTransformation
+namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
     using Concretion = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
     using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
     using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
-    public static class MonomorphizationTransformation
+    public static class Monomorphize
     {
         private struct Request
         {

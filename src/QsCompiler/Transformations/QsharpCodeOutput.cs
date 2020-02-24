@@ -48,8 +48,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     /// Class used to generate Q# code for compiled Q# namespaces. 
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given namespace.
     /// </summary>
-    public class SyntaxTreeToQs
-    : SyntaxTreeTransformation<SyntaxTreeToQs.TransformationState>
+    public class SyntaxTreeToQsharp
+    : SyntaxTreeTransformation<SyntaxTreeToQsharp.TransformationState>
     {
         public const string InvalidType = "__UnknownType__";
         public const string InvalidSet = "__UnknownSet__";
@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         }
 
 
-        public SyntaxTreeToQs(TransformationContext context = null)
+        public SyntaxTreeToQsharp(TransformationContext context = null)
         : base(new TransformationState(context), TransformationOptions.NoRebuild)
         {
             this.Types = new TypeTransformation(this);
@@ -115,8 +115,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         // public methods for convenience
 
-        public static SyntaxTreeToQs Default = 
-            new SyntaxTreeToQs();
+        public static SyntaxTreeToQsharp Default = 
+            new SyntaxTreeToQsharp();
 
         public string ToCode(ResolvedType t)
         {
@@ -212,7 +212,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
                     var totNrInvalid = 0;
                     var docComments = ns.Documentation[sourceFile];
-                    var generator = new  SyntaxTreeToQs(context);
+                    var generator = new SyntaxTreeToQsharp(context);
                     generator.SharedState.InvokeOnInvalid(() => ++totNrInvalid);
                     generator.SharedState.NamespaceDocumentation = docComments.Count() == 1 ? docComments.Single() : ImmutableArray<string>.Empty; // let's drop the doc if it is ambiguous
                     generator.Namespaces.OnNamespace(tree);
@@ -244,7 +244,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 set => SharedState.TypeOutputHandle = value;
             }
 
-            public TypeTransformation(SyntaxTreeToQs parent) 
+            public TypeTransformation(SyntaxTreeToQsharp parent) 
             : base(parent, TransformationOptions.NoRebuild) =>
                 this.TypeToQs = parent.ToCode;
 
@@ -451,7 +451,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 set => SharedState.ExpressionOutputHandle = value;
             }
 
-            public ExpressionKindTransformation(SyntaxTreeToQs parent)
+            public ExpressionKindTransformation(SyntaxTreeToQsharp parent)
             : base(parent, TransformationOptions.NoRebuild) =>
                 this.TypeToQs = parent.ToCode;
 
@@ -863,7 +863,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             private bool PrecededByBlock => 
                 TransformationState.PrecededByBlock(this.SharedState.StatementOutputHandle);
 
-            public StatementKindTransformation(SyntaxTreeToQs parent)
+            public StatementKindTransformation(SyntaxTreeToQsharp parent)
             : base(parent, TransformationOptions.NoRebuild) =>
                 this.ExpressionToQs = parent.ToCode;
 
@@ -1076,7 +1076,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             private List<string> Output => // the sole purpose of this is a shorter name ...
                 this.SharedState.NamespaceOutputHandle;
 
-            public NamespaceTransformation(SyntaxTreeToQs parent)
+            public NamespaceTransformation(SyntaxTreeToQsharp parent)
             : base(parent, TransformationOptions.NoRebuild) =>
                 this.TypeToQs = parent.ToCode;
 

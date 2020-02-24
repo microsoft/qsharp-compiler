@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = ClassicallyControlledTransformation.Apply(compilation);
+            transformed = ReplaceClassicalControl.Apply(compilation);
             return true;
         }
 

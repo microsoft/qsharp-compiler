@@ -133,7 +133,7 @@ let ``generation of open statements`` () =
     let imports = ImmutableDictionary.Empty.Add(ns.Name, openDirectives)
 
     let codeOutput = ref null
-    SyntaxTreeToQs.Apply (codeOutput, tree, struct (source, imports)) |> Assert.True
+    SyntaxTreeToQsharp.Apply (codeOutput, tree, struct (source, imports)) |> Assert.True
     let lines = Utils.SplitLines (codeOutput.Value.Single().[ns.Name])
     Assert.Equal(13, lines.Count())
 

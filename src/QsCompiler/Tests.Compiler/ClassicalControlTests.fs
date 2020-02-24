@@ -50,7 +50,7 @@ type ClassicalControlTests () =
         srcChunks.Length >= testNumber + 1 |> Assert.True
         let shared = srcChunks.[0]
         let compilationDataStructures = BuildContent <| shared + srcChunks.[testNumber]
-        let processedCompilation = ClassicallyControlledTransformation.Apply compilationDataStructures.BuiltCompilation
+        let processedCompilation = ReplaceClassicalControl.Apply compilationDataStructures.BuiltCompilation
         Assert.NotNull processedCompilation
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] processedCompilation
         processedCompilation
@@ -61,7 +61,7 @@ type ClassicalControlTests () =
     let GetCtlAdjFromCallable call = call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlledAdjoint)
 
     let GetLinesFromSpecialization specialization =
-        let writer = new SyntaxTreeToQs()
+        let writer = new SyntaxTreeToQsharp()
 
         specialization
         |> fun x -> match x.Implementation with | Provided (_, body) -> Some body | _ -> None

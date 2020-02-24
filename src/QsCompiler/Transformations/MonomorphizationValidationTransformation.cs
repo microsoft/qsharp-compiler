@@ -10,13 +10,13 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidationTransformation
+namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 {
-    public class MonomorphizationValidationTransformation : SyntaxTreeTransformation<MonomorphizationValidationTransformation.TransformationState>
+    public class ValidateMonomorphization : SyntaxTreeTransformation<ValidateMonomorphization.TransformationState>
     {
         public static void Apply(QsCompilation compilation)
         {
-            var filter = new MonomorphizationValidationTransformation();
+            var filter = new ValidateMonomorphization();
 
             foreach (var ns in compilation.Namespaces)
             {
@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
 
         public class TransformationState { }
 
-        public MonomorphizationValidationTransformation() : base(new TransformationState()) 
+        internal ValidateMonomorphization() : base(new TransformationState()) 
         { 
             this.Namespaces = new NamespaceTransformation(this);
             this.Expressions = new ExpressionTransformation(this);

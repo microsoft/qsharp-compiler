@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
     /// the tree, convert conditional statements into ApplyIf calls, where possible.
     /// This relies on anything having type parameters must be a global callable.
     /// </summary>
-    public static class ClassicallyControlledTransformation
+    public static class ReplaceClassicalControl
     {
         public static QsCompilation Apply(QsCompilation compilation)
         {
