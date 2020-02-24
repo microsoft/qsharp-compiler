@@ -55,6 +55,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation(this);
+                this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
             }
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
@@ -377,7 +379,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 #region Condition Checking Logic
 
-                private (bool, TypedExpression, QsScope, QsScope) IsConditionWtihSingleBlock(QsStatement statement)
+                private (bool, TypedExpression, QsScope, QsScope) IsConditionWithSingleBlock(QsStatement statement)
                 {
                     if (statement.Statement is QsStatementKind.QsConditionalStatement cond && cond.Item.ConditionalBlocks.Length == 1)
                     {
@@ -418,7 +420,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             var stm = ReshapeConditional(statement);
                             stm = this.OnStatement(stm);
 
-                            var (isCondition, cond, conditionScope, defaultScope) = IsConditionWtihSingleBlock(stm);
+                            var (isCondition, cond, conditionScope, defaultScope) = IsConditionWithSingleBlock(stm);
 
                             if (isCondition)
                             {
@@ -656,6 +658,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 this.StatementKinds = new StatementKindTransformation(this);
                 this.Expressions = new ExpressionTransformation(this);
                 this.ExpressionKinds = new ExpressionKindTransformation(this);
+                this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
             }
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
@@ -703,7 +706,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            private class StatementKindTransformation : Core.StatementKindTransformation<TransformationState>
+            private class StatementKindTransformation : StatementKindTransformation<TransformationState>
             {
                 public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
@@ -904,7 +907,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
+            private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
                 public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
@@ -925,7 +928,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            private class ExpressionKindTransformation : Core.ExpressionKindTransformation<TransformationState>
+            private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
             {
                 public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
@@ -976,7 +979,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 this.Types = new TypeTransformation(this);
             }
 
-            private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
+            private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
                 public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
@@ -1011,7 +1014,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            private class ExpressionKindTransformation : Core.ExpressionKindTransformation<TransformationState>
+            private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
             {
                 public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
