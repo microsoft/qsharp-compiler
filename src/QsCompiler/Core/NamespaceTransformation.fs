@@ -207,14 +207,15 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let comments = t.Comments
         QsCustomType.New (source, loc) |> Node.BuildOr t (t.FullName, attributes, typeItems, underlyingType, doc, comments)
 
+
+    // transformation roots called on each namespace or namespace element
+
     abstract member OnNamespaceElement : QsNamespaceElement -> QsNamespaceElement
     default this.OnNamespaceElement element = 
+        if options.Disable then element else
         match element with
         | QsCustomType t    -> t |> this.OnTypeDeclaration     |> QsCustomType
         | QsCallable c      -> c |> this.OnCallableDeclaration |> QsCallable
-
-
-    // transformation roots called on each namespace
 
     abstract member OnNamespace : QsNamespace -> QsNamespace 
     default this.OnNamespace ns = 
