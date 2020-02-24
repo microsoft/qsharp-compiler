@@ -40,9 +40,6 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
 
     // methods invoked before selective nodes
 
-    abstract member BeforeSpecialization : QsSpecialization -> QsSpecialization
-    default this.BeforeSpecialization spec = spec
-
     abstract member BeforeSpecializationImplementation : SpecializationImplementation -> SpecializationImplementation
     default this.BeforeSpecializationImplementation impl = impl
 
@@ -165,8 +162,8 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     abstract member OnControlledAdjointSpecialization : QsSpecialization -> QsSpecialization
     default this.OnControlledAdjointSpecialization spec = this.OnSpecializationImplementation spec
 
-    member this.DispatchSpecialization (spec : QsSpecialization) = 
-        let spec = this.BeforeSpecialization spec
+    abstract member OnSpecializationDeclaration : QsSpecialization -> QsSpecialization
+    default this.OnSpecializationDeclaration (spec : QsSpecialization) = 
         match spec.Kind with 
         | QsSpecializationKind.QsBody               -> this.OnBodySpecialization spec
         | QsSpecializationKind.QsAdjoint            -> this.OnAdjointSpecialization spec
@@ -184,7 +181,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let attributes = c.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let signature = this.OnSignature c.Signature
         let argTuple = this.OnArgumentTuple c.ArgumentTuple
-        let specializations = c.Specializations |> Seq.sortBy (fun c -> c.Kind) |> Seq.map this.DispatchSpecialization |> ImmutableArray.CreateRange
+        let specializations = c.Specializations |> Seq.sortBy (fun c -> c.Kind) |> Seq.map this.OnSpecializationDeclaration |> ImmutableArray.CreateRange
         let doc = this.OnDocumentation c.Documentation
         let comments = c.Comments
         QsCallable.New c.Kind (source, loc) |> Node.BuildOr c (c.FullName, attributes, argTuple, signature, specializations, doc, comments)

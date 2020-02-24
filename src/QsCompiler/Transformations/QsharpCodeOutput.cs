@@ -1252,7 +1252,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return base.OnControlledAdjointSpecialization(spec);
             }
 
-            public override QsSpecialization BeforeSpecialization(QsSpecialization spec)
+            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec)
             {
                 var precededByCode = TransformationState.PrecededByCode(this.Output);
                 var precededByBlock = TransformationState.PrecededByBlock(this.Output);
@@ -1261,7 +1261,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this.AddComments(spec.Comments.OpeningComments);
                 if (spec.Comments.OpeningComments.Any() && spec.Documentation.Any()) this.AddToOutput("");
                 this.AddDocumentation(spec.Documentation);
-                return spec;
+                return base.OnSpecializationDeclaration(spec);
             }
 
             public override QsCallable OnCallableDeclaration(QsCallable c)
@@ -1311,7 +1311,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 
                 this.AddToOutput($"{declHeader} {signature}");
                 if (!String.IsNullOrWhiteSpace(characteristics)) this.AddToOutput($"{Keywords.qsCharacteristics.id} {characteristics}");
-                this.AddBlock(() => c.Specializations.Select(DispatchSpecialization).ToImmutableArray());
+                this.AddBlock(() => c.Specializations.Select(this.OnSpecializationDeclaration).ToImmutableArray());
                 this.AddToOutput("");
                 return c;
             }
