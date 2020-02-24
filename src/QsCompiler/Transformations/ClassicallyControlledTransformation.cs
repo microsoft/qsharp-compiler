@@ -161,12 +161,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                     if (!isCondValid)
                     {
-                        return null; // ToDo: Diagnostic message - cond body not valid
+                        return null; // ToDo: Diagnostic message - condition block not valid
                     }
 
                     if (!isDefaultValid && defaultScope != null)
                     {
-                        return null; // ToDo: Diagnostic message - default body exists, but is not valid
+                        return null; // ToDo: Diagnostic message - default block exists, but is not valid
                     }
 
                     if (defaultScope == null)
@@ -307,13 +307,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         }
                         else
                         {
-                            return null; // ToDo: Diagnostic message - default body exists, but is not valid
+                            return null; // ToDo: Diagnostic message - default block exists, but is not valid
                         }
 
                     }
                     else
                     {
-                        return null; // ToDo: Diagnostic message - cond body not valid
+                        return null; // ToDo: Diagnostic message - condition block not valid
                     }
 
                     return CreateControlCall(controlOpInfo, props, controlArgs, targetArgsTypes);
@@ -338,7 +338,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 private QsStatement ConvertConditionalToControlCall(QsStatement statement)
                 {
-                    var (isCondition, cond, conditionScope, defaultScope) = IsConditionWtihSingleBlock(statement);
+                    var (isCondition, cond, conditionScope, defaultScope) = IsConditionWithSingleBlock(statement);
 
                     if (isCondition)
                     {
@@ -372,7 +372,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 #region Condition Checking Logic
 
-                private (bool, TypedExpression, QsScope, QsScope) IsConditionWtihSingleBlock(QsStatement statement)
+                private (bool, TypedExpression, QsScope, QsScope) IsConditionWithSingleBlock(QsStatement statement)
                 {
                     if (statement.Statement is QsStatementKind.QsConditionalStatement cond && cond.Item.ConditionalBlocks.Length == 1)
                     {
