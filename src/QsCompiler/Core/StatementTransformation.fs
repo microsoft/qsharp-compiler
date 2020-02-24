@@ -41,12 +41,6 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
     new () = new StatementKindTransformationBase(TransformationOptions.Default)
 
 
-    // methods invoked before selective statements
-    
-    abstract member BeforeVariableDeclaration : SymbolTuple -> SymbolTuple
-    default this.BeforeVariableDeclaration syms = syms
-
-
     // subconstructs used within statements 
 
     abstract member OnSymbolTuple : SymbolTuple -> SymbolTuple
@@ -150,6 +144,11 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
     abstract member OnBorrowQubits : QsQubitScope -> QsStatementKind
     default this.OnBorrowQubits stm = this.OnQubitScope stm
 
+    member private this.DispatchQubitScope (stm : QsQubitScope) = 
+        match stm.Kind with 
+        | Allocate -> this.OnAllocateQubits stm
+        | Borrow   -> this.OnBorrowQubits stm
+
 
     // leaf nodes
     
@@ -159,29 +158,21 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
 
     // transformation root called on each statement
 
-    member private this.DispatchQubitScope (stm : QsQubitScope) = 
-        match stm.Kind with 
-        | Allocate -> this.OnAllocateQubits stm
-        | Borrow   -> this.OnBorrowQubits stm
-
     abstract member OnStatementKind : QsStatementKind -> QsStatementKind
     default this.OnStatementKind kind = 
         if options.Disable then kind else
-        let beforeBinding (stm : QsBinding<TypedExpression>) = { stm with Lhs = this.BeforeVariableDeclaration stm.Lhs }
-        let beforeForStatement (stm : QsForStatement) = {stm with LoopItem = (this.BeforeVariableDeclaration (fst stm.LoopItem), snd stm.LoopItem)} 
-        let beforeQubitScope (stm : QsQubitScope) = {stm with Binding = {stm.Binding with Lhs = this.BeforeVariableDeclaration stm.Binding.Lhs}}
         let transformed = kind |> function
-            | QsExpressionStatement ex   -> this.OnExpressionStatement  (ex)
-            | QsReturnStatement ex       -> this.OnReturnStatement      (ex)
-            | QsFailStatement ex         -> this.OnFailStatement        (ex)
-            | QsVariableDeclaration stm  -> this.OnVariableDeclaration  (stm  |> beforeBinding)
-            | QsValueUpdate stm          -> this.OnValueUpdate          (stm)
-            | QsConditionalStatement stm -> this.OnConditionalStatement (stm)
-            | QsForStatement stm         -> this.OnForStatement         (stm  |> beforeForStatement)
-            | QsWhileStatement stm       -> this.OnWhileStatement       (stm)
-            | QsRepeatStatement stm      -> this.OnRepeatStatement      (stm)
-            | QsConjugation stm          -> this.OnConjugation          (stm)
-            | QsQubitScope stm           -> this.DispatchQubitScope     (stm  |> beforeQubitScope)
+            | QsExpressionStatement ex   -> this.OnExpressionStatement  ex
+            | QsReturnStatement ex       -> this.OnReturnStatement      ex
+            | QsFailStatement ex         -> this.OnFailStatement        ex
+            | QsVariableDeclaration stm  -> this.OnVariableDeclaration  stm
+            | QsValueUpdate stm          -> this.OnValueUpdate          stm
+            | QsConditionalStatement stm -> this.OnConditionalStatement stm
+            | QsForStatement stm         -> this.OnForStatement         stm
+            | QsWhileStatement stm       -> this.OnWhileStatement       stm
+            | QsRepeatStatement stm      -> this.OnRepeatStatement      stm
+            | QsConjugation stm          -> this.OnConjugation          stm
+            | QsQubitScope stm           -> this.DispatchQubitScope     stm
             | EmptyStatement             -> this.OnEmptyStatement       ()
         id |> Node.BuildOr kind transformed
 
