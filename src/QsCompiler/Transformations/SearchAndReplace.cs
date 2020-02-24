@@ -232,20 +232,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
             : base(parent, TransformationOptions.NoRebuild) { }
 
-            public override QsCustomType OnType(QsCustomType t)
+            public override QsCustomType OnTypeDeclaration(QsCustomType t)
             {
                 if (!this.SharedState.IsRelevant(t.SourceFile) || t.Location.IsNull) return t;
                 if (this.SharedState.TrackIdentifier(Identifier.NewGlobalCallable(t.FullName)))
                 { this.SharedState.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(t.SourceFile, t.Location.Item); }
-                return base.OnType(t);
+                return base.OnTypeDeclaration(t);
             }
 
-            public override QsCallable OnCallableImplementation(QsCallable c)
+            public override QsCallable OnCallableDeclaration(QsCallable c)
             {
                 if (!this.SharedState.IsRelevant(c.SourceFile) || c.Location.IsNull) return c;
                 if (this.SharedState.TrackIdentifier(Identifier.NewGlobalCallable(c.FullName)))
                 { this.SharedState.DeclarationLocation = new Tuple<NonNullable<string>, QsLocation>(c.SourceFile, c.Location.Item); }
-                return base.OnCallableImplementation(c);
+                return base.OnCallableDeclaration(c);
             }
 
             public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute att)
@@ -258,8 +258,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 return att;
             }
 
-            public override QsSpecialization OnSpecializationImplementation(QsSpecialization spec) =>
-                this.SharedState.IsRelevant(spec.SourceFile) ? base.OnSpecializationImplementation(spec) : spec;
+            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
+                this.SharedState.IsRelevant(spec.SourceFile) ? base.OnSpecializationDeclaration(spec) : spec;
 
             public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
             {

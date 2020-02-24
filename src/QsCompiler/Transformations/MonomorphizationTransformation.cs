@@ -225,7 +225,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     originalName = current.originalName,
                     typeResolutions = current.typeResolutions,
-                    concreteCallable = filter.Namespaces.OnCallableImplementation(current.concreteCallable)
+                    concreteCallable = filter.Namespaces.OnCallableDeclaration(current.concreteCallable)
                 };
             }
 
@@ -293,7 +293,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     originalName = current.originalName,
                     typeResolutions = current.typeResolutions,
-                    concreteCallable = filter.Namespaces.OnCallableImplementation(current.concreteCallable)
+                    concreteCallable = filter.Namespaces.OnCallableDeclaration(current.concreteCallable)
                 };
             }
 

@@ -113,12 +113,12 @@ and private CallableInliningNamespaces (parent : CallableInlining) =
         let x = base.OnNamespace x
         VariableRenaming().Namespaces.OnNamespace x
 
-    override __.OnCallableImplementation c =
+    override __.OnCallableDeclaration c =
         let renamerVal = VariableRenaming()
-        let c = renamerVal.Namespaces.OnCallableImplementation c
+        let c = renamerVal.Namespaces.OnCallableDeclaration c
         parent.CurrentCallable <- Some c
         parent.Renamer <- Some renamerVal
-        base.OnCallableImplementation c
+        base.OnCallableDeclaration c
 
 /// private helper class for CallableInlining
 and private CallableInliningStatements (parent : CallableInlining, callables : ImmutableDictionary<_,_>) = 

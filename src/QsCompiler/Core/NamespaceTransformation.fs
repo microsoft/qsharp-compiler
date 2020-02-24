@@ -38,24 +38,6 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     new () = new NamespaceTransformationBase(TransformationOptions.Default)
 
 
-    // methods invoked before selective nodes
-
-    abstract member BeforeNamespaceElement : QsNamespaceElement -> QsNamespaceElement
-    default this.BeforeNamespaceElement e = e
-
-    abstract member BeforeCallable : QsCallable -> QsCallable
-    default this.BeforeCallable c = c
-
-    abstract member BeforeSpecialization : QsSpecialization -> QsSpecialization
-    default this.BeforeSpecialization spec = spec
-
-    abstract member BeforeSpecializationImplementation : SpecializationImplementation -> SpecializationImplementation
-    default this.BeforeSpecializationImplementation impl = impl
-
-    abstract member BeforeGeneratedImplementation : QsGeneratorDirective -> QsGeneratorDirective
-    default this.BeforeGeneratedImplementation dir = dir
-
-
     // subconstructs used within declarations 
 
     abstract member OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
@@ -132,47 +114,50 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     abstract member OnIntrinsicImplementation : unit -> unit
     default this.OnIntrinsicImplementation () = ()
 
-    member this.DispatchGeneratedImplementation (dir : QsGeneratorDirective) = 
-        match this.BeforeGeneratedImplementation dir with 
+    abstract member OnGeneratedImplementation : QsGeneratorDirective -> QsGeneratorDirective
+    default this.OnGeneratedImplementation (directive : QsGeneratorDirective) = 
+        match directive with 
         | SelfInverse      -> this.OnSelfInverseDirective ();     SelfInverse     
         | Invert           -> this.OnInvertDirective();           Invert          
         | Distribute       -> this.OnDistributeDirective();       Distribute      
         | InvalidGenerator -> this.OnInvalidGeneratorDirective(); InvalidGenerator
 
-    member this.DispatchSpecializationImplementation (impl : SpecializationImplementation) = 
-        let Build kind transformed = kind |> Node.BuildOr impl transformed
-        match this.BeforeSpecializationImplementation impl with 
+    abstract member OnSpecializationImplementation : SpecializationImplementation -> SpecializationImplementation
+    default this.OnSpecializationImplementation (implementation : SpecializationImplementation) = 
+        let Build kind transformed = kind |> Node.BuildOr implementation transformed
+        match implementation with 
         | External                  -> this.OnExternalImplementation();                  External
         | Intrinsic                 -> this.OnIntrinsicImplementation();                 Intrinsic
-        | Generated dir             -> this.DispatchGeneratedImplementation dir       |> Build Generated
+        | Generated dir             -> this.OnGeneratedImplementation dir             |> Build Generated
         | Provided (argTuple, body) -> this.OnProvidedImplementation (argTuple, body) |> Build Provided
 
-    abstract member OnSpecializationImplementation : QsSpecialization -> QsSpecialization
-    default this.OnSpecializationImplementation (spec : QsSpecialization) = 
+    /// This method is defined for the sole purpose of eliminating code duplication for each of the specialization kinds. 
+    /// It is hence not intended and should never be needed for public use. 
+    member private this.OnSpecializationKind (spec : QsSpecialization) = 
         let source = this.OnSourceFile spec.SourceFile
         let loc = this.OnLocation spec.Location
         let attributes = spec.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> args |> Seq.map this.Statements.Expressions.Types.OnType |> ImmutableArray.CreateRange)
         let signature = this.OnSignature spec.Signature
-        let impl = this.DispatchSpecializationImplementation spec.Implementation 
+        let impl = this.OnSpecializationImplementation spec.Implementation 
         let doc = this.OnDocumentation spec.Documentation
         let comments = spec.Comments
         QsSpecialization.New spec.Kind (source, loc) |> Node.BuildOr spec (spec.Parent, attributes, typeArgs, signature, impl, doc, comments)
 
     abstract member OnBodySpecialization : QsSpecialization -> QsSpecialization
-    default this.OnBodySpecialization spec = this.OnSpecializationImplementation spec
+    default this.OnBodySpecialization spec = this.OnSpecializationKind spec
     
     abstract member OnAdjointSpecialization : QsSpecialization -> QsSpecialization
-    default this.OnAdjointSpecialization spec = this.OnSpecializationImplementation spec
+    default this.OnAdjointSpecialization spec = this.OnSpecializationKind spec
 
     abstract member OnControlledSpecialization : QsSpecialization -> QsSpecialization
-    default this.OnControlledSpecialization spec = this.OnSpecializationImplementation spec
+    default this.OnControlledSpecialization spec = this.OnSpecializationKind spec
 
     abstract member OnControlledAdjointSpecialization : QsSpecialization -> QsSpecialization
-    default this.OnControlledAdjointSpecialization spec = this.OnSpecializationImplementation spec
+    default this.OnControlledAdjointSpecialization spec = this.OnSpecializationKind spec
 
-    member this.DispatchSpecialization (spec : QsSpecialization) = 
-        let spec = this.BeforeSpecialization spec
+    abstract member OnSpecializationDeclaration : QsSpecialization -> QsSpecialization
+    default this.OnSpecializationDeclaration (spec : QsSpecialization) = 
         match spec.Kind with 
         | QsSpecializationKind.QsBody               -> this.OnBodySpecialization spec
         | QsSpecializationKind.QsAdjoint            -> this.OnAdjointSpecialization spec
@@ -180,10 +165,39 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         | QsSpecializationKind.QsControlledAdjoint  -> this.OnControlledAdjointSpecialization spec
 
     
-    // type and callable declarations and implementations
+    // type and callable declarations
 
-    abstract member OnType : QsCustomType -> QsCustomType
-    default this.OnType t =
+    /// This method is defined for the sole purpose of eliminating code duplication for each of the callable kinds. 
+    /// It is hence not intended and should never be needed for public use. 
+    member private this.OnCallableKind (c : QsCallable) = 
+        let source = this.OnSourceFile c.SourceFile
+        let loc = this.OnLocation c.Location
+        let attributes = c.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
+        let signature = this.OnSignature c.Signature
+        let argTuple = this.OnArgumentTuple c.ArgumentTuple
+        let specializations = c.Specializations |> Seq.sortBy (fun c -> c.Kind) |> Seq.map this.OnSpecializationDeclaration |> ImmutableArray.CreateRange
+        let doc = this.OnDocumentation c.Documentation
+        let comments = c.Comments
+        QsCallable.New c.Kind (source, loc) |> Node.BuildOr c (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
+
+    abstract member OnOperation : QsCallable -> QsCallable
+    default this.OnOperation c = this.OnCallableKind c
+
+    abstract member OnFunction : QsCallable -> QsCallable
+    default this.OnFunction c = this.OnCallableKind c
+
+    abstract member OnTypeConstructor : QsCallable -> QsCallable
+    default this.OnTypeConstructor c = this.OnCallableKind c
+
+    abstract member OnCallableDeclaration : QsCallable -> QsCallable
+    default this.OnCallableDeclaration (c : QsCallable) = 
+        match c.Kind with 
+        | QsCallableKind.Function           -> this.OnFunction c
+        | QsCallableKind.Operation          -> this.OnOperation c
+        | QsCallableKind.TypeConstructor    -> this.OnTypeConstructor c
+
+    abstract member OnTypeDeclaration : QsCustomType -> QsCustomType
+    default this.OnTypeDeclaration t =
         let source = this.OnSourceFile t.SourceFile 
         let loc = this.OnLocation t.Location
         let attributes = t.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
@@ -193,41 +207,15 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let comments = t.Comments
         QsCustomType.New (source, loc) |> Node.BuildOr t (t.FullName, attributes, typeItems, underlyingType, doc, comments)
 
-    abstract member OnCallableImplementation : QsCallable -> QsCallable
-    default this.OnCallableImplementation (c : QsCallable) = 
-        let source = this.OnSourceFile c.SourceFile
-        let loc = this.OnLocation c.Location
-        let attributes = c.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
-        let signature = this.OnSignature c.Signature
-        let argTuple = this.OnArgumentTuple c.ArgumentTuple
-        let specializations = c.Specializations |> Seq.sortBy (fun c -> c.Kind) |> Seq.map this.DispatchSpecialization |> ImmutableArray.CreateRange
-        let doc = this.OnDocumentation c.Documentation
-        let comments = c.Comments
-        QsCallable.New c.Kind (source, loc) |> Node.BuildOr c (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
 
-    abstract member OnOperation : QsCallable -> QsCallable
-    default this.OnOperation c = this.OnCallableImplementation c
+    // transformation roots called on each namespace or namespace element
 
-    abstract member OnFunction : QsCallable -> QsCallable
-    default this.OnFunction c = this.OnCallableImplementation c
-
-    abstract member OnTypeConstructor : QsCallable -> QsCallable
-    default this.OnTypeConstructor c = this.OnCallableImplementation c
-
-    member this.DispatchCallable (c : QsCallable) = 
-        let c = this.BeforeCallable c
-        match c.Kind with 
-        | QsCallableKind.Function           -> this.OnFunction c
-        | QsCallableKind.Operation          -> this.OnOperation c
-        | QsCallableKind.TypeConstructor    -> this.OnTypeConstructor c
-
-
-    // transformation roots called on each namespace
-
-    member this.DispatchNamespaceElement element = 
-        match this.BeforeNamespaceElement element with
-        | QsCustomType t    -> t |> this.OnType           |> QsCustomType
-        | QsCallable c      -> c |> this.DispatchCallable |> QsCallable
+    abstract member OnNamespaceElement : QsNamespaceElement -> QsNamespaceElement
+    default this.OnNamespaceElement element = 
+        if options.Disable then element else
+        match element with
+        | QsCustomType t    -> t |> this.OnTypeDeclaration     |> QsCustomType
+        | QsCallable c      -> c |> this.OnCallableDeclaration |> QsCallable
 
     abstract member OnNamespace : QsNamespace -> QsNamespace 
     default this.OnNamespace ns = 
@@ -235,6 +223,6 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let name = ns.Name
         let doc = ns.Documentation.AsEnumerable().SelectMany(fun entry -> 
             entry |> Seq.map (fun doc -> entry.Key, this.OnDocumentation doc)).ToLookup(fst, snd)
-        let elements = ns.Elements |> Seq.map this.DispatchNamespaceElement |> ImmutableArray.CreateRange
+        let elements = ns.Elements |> Seq.map this.OnNamespaceElement |> ImmutableArray.CreateRange
         QsNamespace.New |> Node.BuildOr ns (name, elements, doc)
 

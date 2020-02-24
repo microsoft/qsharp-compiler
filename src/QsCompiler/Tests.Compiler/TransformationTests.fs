@@ -41,16 +41,16 @@ type private SyntaxCounter private(counter : Counter, ?options) =
 and private SyntaxCounterNamespaces(parent : SyntaxCounter) = 
     inherit NamespaceTransformation(parent)
 
-    override this.BeforeCallable (node:QsCallable) =
+    override this.OnCallableDeclaration (node:QsCallable) =
         match node.Kind with
         | Operation ->       parent.Counter.opsCount <- parent.Counter.opsCount + 1
         | Function  ->       parent.Counter.funCount <- parent.Counter.funCount + 1
         | TypeConstructor -> ()
-        node
+        base.OnCallableDeclaration node
 
-    override this.OnType (udt:QsCustomType) =
+    override this.OnTypeDeclaration (udt:QsCustomType) =
         parent.Counter.udtCount <- parent.Counter.udtCount + 1
-        base.OnType udt
+        base.OnTypeDeclaration udt
 
 and private SyntaxCounterStatementKinds(parent : SyntaxCounter) = 
     inherit StatementKindTransformation(parent)
@@ -66,9 +66,9 @@ and private SyntaxCounterStatementKinds(parent : SyntaxCounter) =
 and private SyntaxCounterExpressionKinds(parent : SyntaxCounter) = 
     inherit ExpressionKindTransformation(parent)
 
-    override this.beforeCallLike (op,args) =
+    override this.OnCallLikeExpression (op,args) =
         parent.Counter.callsCount <- parent.Counter.callsCount + 1
-        base.beforeCallLike (op, args)
+        base.OnCallLikeExpression (op, args)
 
 
 let private buildSyntaxTree code =

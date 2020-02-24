@@ -62,7 +62,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
             : base(parent, TransformationOptions.NoRebuild) { }
 
-            public override QsSpecialization OnSpecializationImplementation(QsSpecialization spec) // short cut to avoid further evaluation
+            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) // short cut to avoid further evaluation
             {
                 this.OnSourceFile(spec.SourceFile);
                 return spec;
@@ -132,14 +132,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
             // TODO: these overrides needs to be adapted once we support external specializations
 
-            public override QsCustomType OnType(QsCustomType t)
+            public override QsCustomType OnTypeDeclaration(QsCustomType t)
             {
                 if (this.SharedState.Predicate(t.SourceFile))
                 { this.SharedState.Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t))); }
                 return t;
             }
 
-            public override QsCallable OnCallableImplementation(QsCallable c)
+            public override QsCallable OnCallableDeclaration(QsCallable c)
             {
                 if (this.SharedState.Predicate(c.SourceFile))
                 { this.SharedState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
