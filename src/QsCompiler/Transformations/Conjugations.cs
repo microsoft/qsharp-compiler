@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
     /// throws an InvalidOperationException if the outer block contains while-loops. 
     /// </summary>
     public class InlineConjugations 
-        : SyntaxTreeTransformation<InlineConjugations.TransformationState> 
+    : SyntaxTreeTransformation<InlineConjugations.TransformationState> 
     {
         public class TransformationState
         {
@@ -42,21 +42,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
 
 
         public InlineConjugations(Action<Exception> onException = null)
-            : base(new TransformationState(onException))
+        : base(new TransformationState(onException))
         { 
-            this.Statements = new StatementTransformation(this);
             this.Namespaces = new NamespaceTransformation(this);
+            this.Statements = new StatementTransformation(this);
+            this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
 
         // helper classes
 
-        private class StatementTransformation :
-            StatementTransformation<TransformationState>
+        private class StatementTransformation 
+        : StatementTransformation<TransformationState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent) { }
 
 
             public override QsScope OnScope(QsScope scope)
@@ -83,12 +84,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
         }
 
 
-        private class NamespaceTransformation :
-            NamespaceTransformation<TransformationState>
+        private class NamespaceTransformation 
+        : NamespaceTransformation<TransformationState>
         {
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent) { }
 
 
             public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> OnProvidedImplementation
