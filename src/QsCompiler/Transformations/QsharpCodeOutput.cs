@@ -1126,11 +1126,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 var callables = elements.Where(e => e.IsQsCallable);
 
                 foreach (var t in types)
-                { this.DispatchNamespaceElement(t); }
+                { this.OnNamespaceElement(t); }
                 if (types.Any()) this.AddToOutput("");
 
                 foreach (var c in callables)
-                { this.DispatchNamespaceElement(c); }
+                { this.OnNamespaceElement(c); }
             }
 
 
@@ -1264,7 +1264,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return spec;
             }
 
-            public override QsCallable OnCallableImplementation(QsCallable c)
+            public override QsCallable OnCallableDeclaration(QsCallable c)
             {
                 if (c.Kind.IsTypeConstructor) return c; // no code for these
 
@@ -1316,7 +1316,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return c;
             }
 
-            public override QsCustomType OnType(QsCustomType t)
+            public override QsCustomType OnTypeDeclaration(QsCustomType t)
             {
                 this.AddToOutput("");
                 this.DeclarationComments = t.Comments; // no need to deal with closing comments (can't exist), but need to make sure DeclarationComments is up to date

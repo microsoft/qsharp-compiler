@@ -671,10 +671,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override QsCallable OnCallableImplementation(QsCallable c)
+                public override QsCallable OnCallableDeclaration(QsCallable c)
                 {
                     SharedState.CurrentCallable = new CallableDetails(c);
-                    return base.OnCallableImplementation(c);
+                    return base.OnCallableDeclaration(c);
                 }
 
                 public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
@@ -961,7 +961,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             {
                 var filter = new UpdateGeneratedOp(parameters, oldName, newName);
 
-                return filter.Namespaces.OnCallableImplementation(qsCallable);
+                return filter.Namespaces.OnCallableDeclaration(qsCallable);
             }
 
             public class TransformationState

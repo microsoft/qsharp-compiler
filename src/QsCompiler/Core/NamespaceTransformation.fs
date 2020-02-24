@@ -40,12 +40,6 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
 
     // methods invoked before selective nodes
 
-    abstract member BeforeNamespaceElement : QsNamespaceElement -> QsNamespaceElement
-    default this.BeforeNamespaceElement e = e
-
-    abstract member BeforeCallable : QsCallable -> QsCallable
-    default this.BeforeCallable c = c
-
     abstract member BeforeSpecialization : QsSpecialization -> QsSpecialization
     default this.BeforeSpecialization spec = spec
 
@@ -180,21 +174,11 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         | QsSpecializationKind.QsControlledAdjoint  -> this.OnControlledAdjointSpecialization spec
 
     
-    // type and callable declarations and implementations
+    // type and callable declarations
 
-    abstract member OnType : QsCustomType -> QsCustomType
-    default this.OnType t =
-        let source = this.OnSourceFile t.SourceFile 
-        let loc = this.OnLocation t.Location
-        let attributes = t.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
-        let underlyingType = this.Statements.Expressions.Types.OnType t.Type
-        let typeItems = this.OnTypeItems t.TypeItems
-        let doc = this.OnDocumentation t.Documentation
-        let comments = t.Comments
-        QsCustomType.New (source, loc) |> Node.BuildOr t (t.FullName, attributes, typeItems, underlyingType, doc, comments)
-
-    abstract member OnCallableImplementation : QsCallable -> QsCallable
-    default this.OnCallableImplementation (c : QsCallable) = 
+    /// This method is defined for the sole purpose of eliminating any code duplication for each of the callable kinds. 
+    /// It is hence not intended and should never be needed for public use. 
+    member private this.OnCallableKind (c : QsCallable) = 
         let source = this.OnSourceFile c.SourceFile
         let loc = this.OnLocation c.Location
         let attributes = c.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
@@ -206,28 +190,40 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         QsCallable.New c.Kind (source, loc) |> Node.BuildOr c (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
 
     abstract member OnOperation : QsCallable -> QsCallable
-    default this.OnOperation c = this.OnCallableImplementation c
+    default this.OnOperation c = this.OnCallableKind c
 
     abstract member OnFunction : QsCallable -> QsCallable
-    default this.OnFunction c = this.OnCallableImplementation c
+    default this.OnFunction c = this.OnCallableKind c
 
     abstract member OnTypeConstructor : QsCallable -> QsCallable
-    default this.OnTypeConstructor c = this.OnCallableImplementation c
+    default this.OnTypeConstructor c = this.OnCallableKind c
 
-    member this.DispatchCallable (c : QsCallable) = 
-        let c = this.BeforeCallable c
+    abstract member OnCallableDeclaration : QsCallable -> QsCallable
+    default this.OnCallableDeclaration (c : QsCallable) = 
         match c.Kind with 
         | QsCallableKind.Function           -> this.OnFunction c
         | QsCallableKind.Operation          -> this.OnOperation c
         | QsCallableKind.TypeConstructor    -> this.OnTypeConstructor c
 
+    abstract member OnTypeDeclaration : QsCustomType -> QsCustomType
+    default this.OnTypeDeclaration t =
+        let source = this.OnSourceFile t.SourceFile 
+        let loc = this.OnLocation t.Location
+        let attributes = t.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
+        let underlyingType = this.Statements.Expressions.Types.OnType t.Type
+        let typeItems = this.OnTypeItems t.TypeItems
+        let doc = this.OnDocumentation t.Documentation
+        let comments = t.Comments
+        QsCustomType.New (source, loc) |> Node.BuildOr t (t.FullName, attributes, typeItems, underlyingType, doc, comments)
+
+    abstract member OnNamespaceElement : QsNamespaceElement -> QsNamespaceElement
+    default this.OnNamespaceElement element = 
+        match element with
+        | QsCustomType t    -> t |> this.OnTypeDeclaration     |> QsCustomType
+        | QsCallable c      -> c |> this.OnCallableDeclaration |> QsCallable
+
 
     // transformation roots called on each namespace
-
-    member this.DispatchNamespaceElement element = 
-        match this.BeforeNamespaceElement element with
-        | QsCustomType t    -> t |> this.OnType           |> QsCustomType
-        | QsCallable c      -> c |> this.DispatchCallable |> QsCallable
 
     abstract member OnNamespace : QsNamespace -> QsNamespace 
     default this.OnNamespace ns = 
@@ -235,6 +231,6 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let name = ns.Name
         let doc = ns.Documentation.AsEnumerable().SelectMany(fun entry -> 
             entry |> Seq.map (fun doc -> entry.Key, this.OnDocumentation doc)).ToLookup(fst, snd)
-        let elements = ns.Elements |> Seq.map this.DispatchNamespaceElement |> ImmutableArray.CreateRange
+        let elements = ns.Elements |> Seq.map this.OnNamespaceElement |> ImmutableArray.CreateRange
         QsNamespace.New |> Node.BuildOr ns (name, elements, doc)
 
