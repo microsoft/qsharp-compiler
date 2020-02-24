@@ -38,15 +38,6 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     new () = new NamespaceTransformationBase(TransformationOptions.Default)
 
 
-    // methods invoked before selective nodes
-
-    abstract member BeforeSpecializationImplementation : SpecializationImplementation -> SpecializationImplementation
-    default this.BeforeSpecializationImplementation impl = impl
-
-    abstract member BeforeGeneratedImplementation : QsGeneratorDirective -> QsGeneratorDirective
-    default this.BeforeGeneratedImplementation dir = dir
-
-
     // subconstructs used within declarations 
 
     abstract member OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
@@ -123,19 +114,21 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     abstract member OnIntrinsicImplementation : unit -> unit
     default this.OnIntrinsicImplementation () = ()
 
-    member this.DispatchGeneratedImplementation (dir : QsGeneratorDirective) = 
-        match this.BeforeGeneratedImplementation dir with 
+    abstract member OnGeneratedImplementation : QsGeneratorDirective -> QsGeneratorDirective
+    default this.OnGeneratedImplementation (directive : QsGeneratorDirective) = 
+        match directive with 
         | SelfInverse      -> this.OnSelfInverseDirective ();     SelfInverse     
         | Invert           -> this.OnInvertDirective();           Invert          
         | Distribute       -> this.OnDistributeDirective();       Distribute      
         | InvalidGenerator -> this.OnInvalidGeneratorDirective(); InvalidGenerator
 
-    member this.DispatchSpecializationImplementation (impl : SpecializationImplementation) = 
-        let Build kind transformed = kind |> Node.BuildOr impl transformed
-        match this.BeforeSpecializationImplementation impl with 
+    abstract member OnSpecializationImplementation : SpecializationImplementation -> SpecializationImplementation
+    default this.OnSpecializationImplementation (implementation : SpecializationImplementation) = 
+        let Build kind transformed = kind |> Node.BuildOr implementation transformed
+        match implementation with 
         | External                  -> this.OnExternalImplementation();                  External
         | Intrinsic                 -> this.OnIntrinsicImplementation();                 Intrinsic
-        | Generated dir             -> this.DispatchGeneratedImplementation dir       |> Build Generated
+        | Generated dir             -> this.OnGeneratedImplementation dir             |> Build Generated
         | Provided (argTuple, body) -> this.OnProvidedImplementation (argTuple, body) |> Build Provided
 
     /// This method is defined for the sole purpose of eliminating any code duplication for each of the specialization kinds. 
@@ -146,7 +139,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let attributes = spec.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let typeArgs = spec.TypeArguments |> QsNullable<_>.Map (fun args -> args |> Seq.map this.Statements.Expressions.Types.OnType |> ImmutableArray.CreateRange)
         let signature = this.OnSignature spec.Signature
-        let impl = this.DispatchSpecializationImplementation spec.Implementation 
+        let impl = this.OnSpecializationImplementation spec.Implementation 
         let doc = this.OnDocumentation spec.Documentation
         let comments = spec.Comments
         QsSpecialization.New spec.Kind (source, loc) |> Node.BuildOr spec (spec.Parent, attributes, typeArgs, signature, impl, doc, comments)
