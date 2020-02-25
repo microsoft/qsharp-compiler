@@ -10,6 +10,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -39,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns all namespaces in which a callable with the name of the symbol at the given position in the given file belongs to.
-        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location. 
+        /// Returns an empty collection if any of the arguments is null or if no valid unqualified symbol exists at that location. 
         /// Returns the name of the identifier as out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForIdAtPosition
@@ -47,14 +48,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             var variables = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedVariables;
             idName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
-            return idName != null && compilation != null
-                ? compilation.GlobalSymbols.NamespacesContainingCallable(NonNullable<string>.New(idName))
+            var nsName = file.TryGetNamespaceAt(pos);
+            return idName != null && compilation != null && nsName != null
+                ? compilation.GlobalSymbols.NamespacesContainingCallable(NonNullable<string>.New(idName),
+                                                                         NonNullable<string>.New(nsName))
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
 
         /// <summary>
         /// Returns all namespaces in which a type with the name of the symbol at the given position in the given file belongs to.
-        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location. 
+        /// Returns an empty collection if any of the arguments is null or if no valid unqualified symbol exists at that location. 
         /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForTypeAtPosition
@@ -64,8 +67,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             typeName = types != null && types.Any() &&
                 types.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt
                 ? udt.Item.Symbol.AsDeclarationName(null) : null;
-            return typeName != null && compilation != null
-                ? compilation.GlobalSymbols.NamespacesContainingType(NonNullable<string>.New(typeName))
+            var nsName = file.TryGetNamespaceAt(pos);
+            return typeName != null && compilation != null && nsName != null
+                ? compilation.GlobalSymbols.NamespacesContainingType(NonNullable<string>.New(typeName),
+                                                                     NonNullable<string>.New(nsName))
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
 
@@ -294,9 +299,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForIndexRange
             (this FileContentManager file, CompilationUnit compilation, LSP.Range range)
         {
-            if (file == null || compilation == null || range?.Start == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
-            var indexRangeNamespaces = compilation.GlobalSymbols.NamespacesContainingCallable(BuiltIn.IndexRange.Name);
-            if (!indexRangeNamespaces.Contains(BuiltIn.IndexRange.Namespace)) return Enumerable.Empty<(string, WorkspaceEdit)>();
+            if (file == null || compilation == null || range?.Start == null)
+            {
+                return Enumerable.Empty<(string, WorkspaceEdit)>();
+            }
+
+            // Ensure that the IndexRange library function exists in this compilation unit.
+            var indexRange = new QsQualifiedName(BuiltIn.IndexRange.Namespace, BuiltIn.IndexRange.Name);
+            var nsName = file.TryGetNamespaceAt(range.Start);
+            if (nsName == null || !compilation.GlobalSymbols.TryGetCallable(indexRange,
+                                                                            NonNullable<string>.New(nsName),
+                                                                            file.FileName).IsFound)
+            {
+                return Enumerable.Empty<(string, WorkspaceEdit)>();
+            }
+
             var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, BuiltIn.IndexRange.Namespace);
 
             /// Returns true the given expression is of the form "0 .. Length(args) - 1", 
