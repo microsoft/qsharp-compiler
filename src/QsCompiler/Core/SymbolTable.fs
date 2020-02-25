@@ -1492,14 +1492,10 @@ and NamespaceManager
         syncRoot.EnterReadLock()
         try
             let tryFindCallable (ns : Namespace) =
-                // TODO: Add QsNullable<_>.Bind and refactor this.
-                ns.TryFindCallable cName
-                |> QsNullable<_>.Fold
-                    (fun _ (_, _, sameAssembly, modifiers) ->
-                        if IsDeclarationAccessible sameAssembly (nsName = ns.Name) modifiers
-                        then Value ns.Name
-                        else Null)
-                    Null
+                ns.TryFindCallable cName |> QsNullable<_>.Bind (fun (_, _, sameAssembly, modifiers) ->
+                    if IsDeclarationAccessible sameAssembly (nsName = ns.Name) modifiers
+                    then Value ns.Name
+                    else Null)
             (Namespaces.Values |> QsNullable<_>.Choose tryFindCallable).ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
@@ -1510,14 +1506,10 @@ and NamespaceManager
         syncRoot.EnterReadLock()
         try
             let tryFindType (ns : Namespace) =
-                // TODO: Add QsNullable<_>.Bind and refactor this.
-                ns.TryFindType tName
-                |> QsNullable<_>.Fold
-                    (fun _ (_, _, sameAssembly, modifiers) ->
-                        if IsDeclarationAccessible sameAssembly (nsName = ns.Name) modifiers
-                        then Value ns.Name
-                        else Null)
-                    Null
+                ns.TryFindType tName |> QsNullable<_>.Bind (fun (_, _, sameAssembly, modifiers) ->
+                    if IsDeclarationAccessible sameAssembly (nsName = ns.Name) modifiers
+                    then Value ns.Name
+                    else Null)
             (Namespaces.Values |> QsNullable<_>.Choose tryFindType).ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
