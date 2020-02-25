@@ -68,6 +68,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 public StatementTransformation(QsSyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
+                /// <summary>
+                /// Checks if the scope is valid for conversion to an operation call from the conditional control API.
+                /// It is valid if there is exactly one statement in it and that statement is a call like expression statement.
+                /// If valid, returns true with the identifier of the call like expression and the arguments of the
+                /// call like expression, otherwise returns false with nulls.
+                /// </summary>
                 private (bool, TypedExpression, TypedExpression) IsValidScope(QsScope scope)
                 {
                     // if the scope has exactly one statement in it and that statement is a call like expression statement
@@ -124,6 +130,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 #region Condition Converting Logic
 
+                /// <summary>
+                /// Creates an operation call from the conditional control API, given information
+                /// about which operation to call and with what arguments.
+                /// </summary>
                 private TypedExpression CreateControlCall(BuiltIn opInfo, IEnumerable<OpProperty> properties, TypedExpression args, IEnumerable<ResolvedType> typeArgs)
                 {
                     // Build the surrounding control call
@@ -153,12 +163,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     return Utilities.CreateCallLike(identifier, args, opTypeArgResolutions);
                 }
 
-                private TypedExpression CreateApplyConditionallyExpression(TypedExpression condExpr1, TypedExpression condExpr2, QsScope conditionScope, QsScope defaultScope)
+                /// <summary>
+                /// Creates an operation call from the conditional control API for non-literal Result comparisons.
+                /// </summary>
+                private TypedExpression CreateApplyConditionallyExpression(TypedExpression conditionExpr1, TypedExpression conditionExpr2, QsScope conditionScope, QsScope defaultScope)
                 {
-                    var (isCondValid, condId, condArgs) = IsValidScope(conditionScope);
+                    var (isConditionValid, conditionId, conditionArgs) = IsValidScope(conditionScope);
                     var (isDefaultValid, defaultId, defaultArgs) = IsValidScope(defaultScope);
 
-                    if (!isCondValid)
+                    if (!isConditionValid)
                     {
                         return null; // ToDo: Diagnostic message - condition block not valid
                     }
@@ -175,7 +188,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                     // Get characteristic properties from global id
                     var props = ImmutableHashSet<OpProperty>.Empty;
-                    if (condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
+                    if (conditionId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
                     {
                         props = op.Item2.Characteristics.GetProperties();
                         if (defaultId != null && defaultId.ResolvedType.Resolution is ResolvedTypeKind.Operation defaultOp)
@@ -203,19 +216,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         controlOpInfo = BuiltIn.ApplyConditionally;
                     }
 
-                    var equality = Utilities.CreateValueTupleExpression(condId, condArgs);
+                    var equality = Utilities.CreateValueTupleExpression(conditionId, conditionArgs);
                     var inequality = Utilities.CreateValueTupleExpression(defaultId, defaultArgs);
-
-                    var controlArgs = Utilities.CreateValueTupleExpression(Utilities.CreateValueArray(condExpr1), Utilities.CreateValueArray(condExpr2), equality, inequality);
-
-                    var targetArgsTypes = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
+                    var controlArgs = Utilities.CreateValueTupleExpression(Utilities.CreateValueArray(conditionExpr1), Utilities.CreateValueArray(conditionExpr2), equality, inequality);
+                    var targetArgsTypes = ImmutableArray.Create(conditionArgs.ResolvedType, defaultArgs.ResolvedType);
                     
                     return CreateControlCall(controlOpInfo, props, controlArgs, targetArgsTypes);
                 }
 
+                /// <summary>
+                /// Creates an operation call from the conditional control API for Result literal comparisons.
+                /// </summary>
                 private TypedExpression CreateApplyIfExpression(QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
                 {
-                    var (isCondValid, condId, condArgs) = IsValidScope(conditionScope);
+                    var (isConditionValid, conditionId, conditionArgs) = IsValidScope(conditionScope);
                     var (isDefaultValid, defaultId, defaultArgs) = IsValidScope(defaultScope);
 
                     BuiltIn controlOpInfo;
@@ -224,10 +238,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                     var props = ImmutableHashSet<OpProperty>.Empty;
 
-                    if (isCondValid)
+                    if (isConditionValid)
                     {
                         // Get characteristic properties from global id
-                        if (condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
+                        if (conditionId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
                         {
                             props = op.Item2.Characteristics.GetProperties();
                             if (defaultId != null && defaultId.ResolvedType.Resolution is ResolvedTypeKind.Operation defaultOp)
@@ -268,8 +282,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             );
 
                             (controlArgs, targetArgsTypes) = (result == QsResult.Zero)
-                                ? GetArgs(condId, condArgs, defaultId, defaultArgs)
-                                : GetArgs(defaultId, defaultArgs, condId, condArgs);
+                                ? GetArgs(conditionId, conditionArgs, defaultId, defaultArgs)
+                                : GetArgs(defaultId, defaultArgs, conditionId, conditionArgs);
                         }
                         else if (defaultScope == null)
                         {
@@ -300,9 +314,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                             controlArgs = Utilities.CreateValueTupleExpression(
                                 conditionExpression,
-                                Utilities.CreateValueTupleExpression(condId, condArgs));
+                                Utilities.CreateValueTupleExpression(conditionId, conditionArgs));
 
-                            targetArgsTypes = ImmutableArray.Create(condArgs.ResolvedType);
+                            targetArgsTypes = ImmutableArray.Create(conditionArgs.ResolvedType);
                         }
                         else
                         {
@@ -318,12 +332,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     return CreateControlCall(controlOpInfo, props, controlArgs, targetArgsTypes);
                 }
 
-                private QsStatement CreateControlStatement(QsStatement statement, TypedExpression callExpresiion)
+                /// <summary>
+                /// Takes an expression that is the call to a conditional control API operation and the original statement,
+                /// and creates a statement from the given expression.
+                /// </summary>
+                private QsStatement CreateControlStatement(QsStatement statement, TypedExpression callExpression)
                 {
-                    if (callExpresiion != null)
+                    if (callExpression != null)
                     {
                         return new QsStatement(
-                            QsStatementKind.NewQsExpressionStatement(callExpresiion),
+                            QsStatementKind.NewQsExpressionStatement(callExpression),
                             statement.SymbolDeclarations,
                             QsNullable<QsLocation>.Null,
                             statement.Comments);
@@ -335,23 +353,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     }
                 }
 
+                /// <summary>
+                /// Converts a conditional statement to an operation call from the conditional control API.
+                /// </summary>
                 private QsStatement ConvertConditionalToControlCall(QsStatement statement)
                 {
-                    var (isCondition, cond, conditionScope, defaultScope) = IsConditionWithSingleBlock(statement);
+                    var (isCondition, condition, conditionScope, defaultScope) = IsConditionWithSingleBlock(statement);
 
                     if (isCondition)
                     {
-                        var (isCompareLiteral, literal, nonLiteral) = IsConditionedOnResultLiteralExpression(cond);
+                        var (isCompareLiteral, literal, nonLiteral) = IsConditionedOnResultLiteralExpression(condition);
                         if (isCompareLiteral)
                         {
                             return CreateControlStatement(statement, CreateApplyIfExpression(literal, nonLiteral, conditionScope, defaultScope));
                         }
                         else
                         {
-                            var (isCompareNonLiteral, condExpr1, condExpr2) = IsConditionedOnResultEqualityExpression(cond);
+                            var (isCompareNonLiteral, conditionExpr1, conditionExpr2) = IsConditionedOnResultEqualityExpression(condition);
                             if (isCompareNonLiteral)
                             {
-                                return CreateControlStatement(statement, CreateApplyConditionallyExpression(condExpr1, condExpr2, conditionScope, defaultScope));
+                                return CreateControlStatement(statement, CreateApplyConditionallyExpression(conditionExpr1, conditionExpr2, conditionScope, defaultScope));
                             }
                             else
                             {
@@ -371,16 +392,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 #region Condition Checking Logic
 
+                /// <summary>
+                /// Checks if the statement is a condition statement that only has one conditional block in it (default blocks are optional).
+                /// If it is, returns true along with the condition, the body of the conditional block, and, optionally, the body of the
+                /// default block, otherwise returns false with nulls. If there is no default block, the last value of the return tuple will be null.
+                /// </summary>
                 private (bool, TypedExpression, QsScope, QsScope) IsConditionWithSingleBlock(QsStatement statement)
                 {
-                    if (statement.Statement is QsStatementKind.QsConditionalStatement cond && cond.Item.ConditionalBlocks.Length == 1)
+                    if (statement.Statement is QsStatementKind.QsConditionalStatement condition && condition.Item.ConditionalBlocks.Length == 1)
                     {
-                        return (true, cond.Item.ConditionalBlocks[0].Item1, cond.Item.ConditionalBlocks[0].Item2.Body, cond.Item.Default.ValueOr(null)?.Body);
+                        return (true, condition.Item.ConditionalBlocks[0].Item1, condition.Item.ConditionalBlocks[0].Item2.Body, condition.Item.Default.ValueOr(null)?.Body);
                     }
 
                     return (false, null, null, null);
                 }
 
+                /// <summary>
+                /// Checks if the expression is an equality comparison where one side is a Result literal.
+                /// If it is, returns true along with the Result literal and the other expression in the
+                /// equality, otherwise returns false with nulls.
+                /// </summary>
                 private (bool, QsResult, TypedExpression) IsConditionedOnResultLiteralExpression(TypedExpression expression)
                 {
                     if (expression.Expression is ExpressionKind.EQ eq)
@@ -398,6 +429,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     return (false, null, null);
                 }
 
+                /// <summary>
+                /// Checks if the expression is an equality comparison between two Result-typed expressions.
+                /// If it is, returns true along with the two expressions, otherwise returns false with nulls.
+                /// </summary>
                 private (bool, TypedExpression, TypedExpression) IsConditionedOnResultEqualityExpression(TypedExpression expression)
                 {
                     if (expression.Expression is ExpressionKind.EQ eq
@@ -414,42 +449,49 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 #region Condition Reshaping Logic
 
-                private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement cond)
+                /// <summary>
+                /// Converts if-elif-else structures to nested if-else structures.
+                /// </summary>
+                private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement conditionStatment)
                 {
-                    if (cond.ConditionalBlocks.Length < 2) return (false, cond);
+                    if (conditionStatment.ConditionalBlocks.Length < 2) return (false, conditionStatment);
 
-                    var subCond = new QsConditionalStatement(cond.ConditionalBlocks.RemoveAt(0), cond.Default);
-                    var secondCondBlock = cond.ConditionalBlocks[1].Item2;
+                    var subCondition = new QsConditionalStatement(conditionStatment.ConditionalBlocks.RemoveAt(0), conditionStatment.Default);
+                    var secondConditionBlock = conditionStatment.ConditionalBlocks[1].Item2;
 
                     var subIfStatment = new QsStatement
                     (
-                        QsStatementKind.NewQsConditionalStatement(subCond),
+                        QsStatementKind.NewQsConditionalStatement(subCondition),
                         LocalDeclarations.Empty,
-                        secondCondBlock.Location,
-                        secondCondBlock.Comments
+                        secondConditionBlock.Location,
+                        secondConditionBlock.Comments
                     );
 
                     var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
-                        new QsScope(ImmutableArray.Create(subIfStatment), secondCondBlock.Body.KnownSymbols),
-                        secondCondBlock.Location,
+                        new QsScope(ImmutableArray.Create(subIfStatment), secondConditionBlock.Body.KnownSymbols),
+                        secondConditionBlock.Location,
                         QsComments.Empty));
 
-                    return (true, new QsConditionalStatement(ImmutableArray.Create(cond.ConditionalBlocks[0]), newDefault));
+                    return (true, new QsConditionalStatement(ImmutableArray.Create(conditionStatment.ConditionalBlocks[0]), newDefault));
                 }
 
-                private (bool, QsConditionalStatement) ProcessOR(QsConditionalStatement cond)
+                /// <summary>
+                /// Converts conditional statements whose top-most condition is an OR.
+                /// Creates a nested structure without the top-most OR.
+                /// </summary>
+                private (bool, QsConditionalStatement) ProcessOR(QsConditionalStatement conditionStatment)
                 {
                     // This method expects elif blocks to have been abstracted out
-                    if (cond.ConditionalBlocks.Length != 1) return (false, cond);
+                    if (conditionStatment.ConditionalBlocks.Length != 1) return (false, conditionStatment);
 
-                    var (condition, block) = cond.ConditionalBlocks[0];
+                    var (condition, block) = conditionStatment.ConditionalBlocks[0];
 
-                    if (condition.Expression is ExpressionKind.OR orCond)
+                    if (condition.Expression is ExpressionKind.OR orCondition)
                     {
-                        var subCond = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCond.Item2, block)), cond.Default);
+                        var subCondition = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCondition.Item2, block)), conditionStatment.Default);
                         var subIfStatment = new QsStatement
                         (
-                            QsStatementKind.NewQsConditionalStatement(subCond),
+                            QsStatementKind.NewQsConditionalStatement(subCondition),
                             LocalDeclarations.Empty,
                             block.Location,
                             QsComments.Empty
@@ -459,27 +501,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             block.Location,
                             QsComments.Empty));
 
-                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCond.Item1, block)), newDefault));
+                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCondition.Item1, block)), newDefault));
                     }
                     else
                     {
-                        return (false, cond);
+                        return (false, conditionStatment);
                     }
                 }
 
-                private (bool, QsConditionalStatement) ProcessAND(QsConditionalStatement cond)
+                /// <summary>
+                /// Converts conditional statements whose top-most condition is an AND.
+                /// Creates a nested structure without the top-most AND.
+                /// </summary>
+                private (bool, QsConditionalStatement) ProcessAND(QsConditionalStatement conditionStatment)
                 {
                     // This method expects elif blocks to have been abstracted out
-                    if (cond.ConditionalBlocks.Length != 1) return (false, cond);
+                    if (conditionStatment.ConditionalBlocks.Length != 1) return (false, conditionStatment);
 
-                    var (condition, block) = cond.ConditionalBlocks[0];
+                    var (condition, block) = conditionStatment.ConditionalBlocks[0];
 
-                    if (condition.Expression is ExpressionKind.AND andCond)
+                    if (condition.Expression is ExpressionKind.AND andCondition)
                     {
-                        var subCond = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCond.Item2, block)), cond.Default);
+                        var subCondition = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCondition.Item2, block)), conditionStatment.Default);
                         var subIfStatment = new QsStatement
                         (
-                            QsStatementKind.NewQsConditionalStatement(subCond),
+                            QsStatementKind.NewQsConditionalStatement(subCondition),
                             LocalDeclarations.Empty,
                             block.Location,
                             QsComments.Empty
@@ -489,19 +535,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             block.Location,
                             QsComments.Empty);
 
-                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCond.Item1, newBlock)), cond.Default));
+                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCondition.Item1, newBlock)), conditionStatment.Default));
                     }
                     else
                     {
-                        return (false, cond);
+                        return (false, conditionStatment);
                     }
                 }
 
+                /// <summary>
+                /// Converts conditional statements to nested structures so they do not
+                /// have elif blocks or top-most OR or AND conditions.
+                /// </summary>
                 private QsStatement ReshapeConditional(QsStatement statement)
                 {
-                    if (statement.Statement is QsStatementKind.QsConditionalStatement cond)
+                    if (statement.Statement is QsStatementKind.QsConditionalStatement condition)
                     {
-                        var stm = cond.Item;
+                        var stm = condition.Item;
                         (_, stm) = ProcessElif(stm);
                         bool wasOrProcessed, wasAndProcessed;
                         do
@@ -928,22 +978,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                     var newConditionBlocks = new List<Tuple<TypedExpression, QsPositionedBlock>>();
                     var generatedOperations = new List<QsCallable>();
-                    foreach (var condBlock in stm.ConditionalBlocks)
+                    foreach (var conditionBlock in stm.ConditionalBlocks)
                     {
                         Transformation.InternalState.IsValidScope = true;
-                        Transformation.InternalState.CurrentHoistParams = condBlock.Item2.Body.KnownSymbols.IsEmpty
+                        Transformation.InternalState.CurrentHoistParams = conditionBlock.Item2.Body.KnownSymbols.IsEmpty
                         ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
-                        : condBlock.Item2.Body.KnownSymbols.Variables;
+                        : conditionBlock.Item2.Body.KnownSymbols.Variables;
 
-                        var (expr, block) = this.onPositionedBlock(QsNullable<TypedExpression>.NewValue(condBlock.Item1), condBlock.Item2);
+                        var (expr, block) = this.onPositionedBlock(QsNullable<TypedExpression>.NewValue(conditionBlock.Item1), conditionBlock.Item2);
 
                         // ToDo: Reduce the number of unnecessary generated operations by generalizing
                         // the condition logic for the conversion and using that condition here
-                        //var (isExprCond, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
+                        //var (isExprCondition, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
 
                         if (Transformation.InternalState.IsValidScope) // if sub-scope is valid, hoist content
                         {
-                            if (/*isExprCond &&*/ !IsScopeSingleCall(block.Body))
+                            if (/*isExprCondition &&*/ !IsScopeSingleCall(block.Body))
                             {
                                 // Hoist the scope to its own operation
                                 var (callable, call) = HoistBody(block.Body);
