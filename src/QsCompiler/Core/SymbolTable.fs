@@ -1229,6 +1229,18 @@ and NamespaceManager
             defined.ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
+    /// Returns the declaration headers for all callables (either defined in source files or imported from referenced
+    /// assemblies) that are accessible from the given namespace.
+    ///
+    /// Throws an InvalidOperationException if the symbols are not currently resolved.
+    member this.AccessibleCallables nsName =
+        Seq.append
+            (Seq.map (fun callable -> callable, true) (this.DefinedCallables()))
+            (Seq.map (fun callable -> callable, false) (this.ImportedCallables()))
+        |> Seq.filter (fun (callable, sameAssembly) ->
+            IsDeclarationAccessible sameAssembly (nsName = callable.QualifiedName.Namespace) callable.Modifiers)
+        |> Seq.map fst
+
     /// Returns the source file and TypeDeclarationHeader of all types imported from referenced assemblies.
     member this.ImportedTypes() = 
         syncRoot.EnterReadLock()
@@ -1260,6 +1272,18 @@ and NamespaceManager
                     }))
             defined.ToImmutableArray()
         finally syncRoot.ExitReadLock()
+
+    /// Returns the declaration headers for all types (either defined in source files or imported from referenced
+    /// assemblies) that are accessible from the given namespace.
+    ///
+    /// Throws an InvalidOperationException if the symbols are not currently resolved.
+    member this.AccessibleTypes nsName =
+        Seq.append
+            (Seq.map (fun qsType -> qsType, true) (this.DefinedTypes()))
+            (Seq.map (fun qsType -> qsType, false) (this.ImportedTypes()))
+        |> Seq.filter (fun (qsType, sameAssembly) ->
+            IsDeclarationAccessible sameAssembly (nsName = qsType.QualifiedName.Namespace) qsType.Modifiers)
+        |> Seq.map fst
 
     /// removes the given source file and all its content from all namespaces 
     member this.RemoveSource source =
