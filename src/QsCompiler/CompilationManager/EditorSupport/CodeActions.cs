@@ -305,11 +305,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // Ensure that the IndexRange library function exists in this compilation unit.
-            var indexRange = new QsQualifiedName(BuiltIn.IndexRange.Namespace, BuiltIn.IndexRange.Name);
             var nsName = file.TryGetNamespaceAt(range.Start);
-            if (nsName == null || !compilation.GlobalSymbols.TryGetCallable(indexRange,
-                                                                            NonNullable<string>.New(nsName),
-                                                                            file.FileName).IsFound)
+            var indexRange = compilation.GlobalSymbols.TryGetCallable(
+                new QsQualifiedName(BuiltIn.IndexRange.Namespace, BuiltIn.IndexRange.Name),
+                NonNullable<string>.New(nsName),
+                file.FileName);
+            if (nsName == null || !indexRange.IsFound)
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
             }
