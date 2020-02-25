@@ -306,16 +306,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // Ensure that the IndexRange library function exists in this compilation unit.
             var nsName = file.TryGetNamespaceAt(range.Start);
+            if (nsName == null)
+            {
+                return Enumerable.Empty<(string, WorkspaceEdit)>();
+            }
             var indexRange = compilation.GlobalSymbols.TryGetCallable(
                 new QsQualifiedName(BuiltIn.IndexRange.Namespace, BuiltIn.IndexRange.Name),
                 NonNullable<string>.New(nsName),
                 file.FileName);
-            if (nsName == null || !indexRange.IsFound)
+            if (!indexRange.IsFound)
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
             }
-
-            var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, BuiltIn.IndexRange.Namespace);
 
             /// Returns true the given expression is of the form "0 .. Length(args) - 1", 
             /// as well as the range of the entire expression and the argument tuple "(args)" as out parameters. 
@@ -361,6 +363,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var fragments = file.FragmentsOverlappingWithRange(range);
             var edits = fragments.SelectMany(IndexRangeEdits);
+            var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, BuiltIn.IndexRange.Namespace);
             return edits.Any() 
                 ? new[] { ("Use IndexRange to iterate over indices.", file.GetWorkspaceEdit(suggestedOpenDir.Concat(edits).ToArray())) } 
                 : Enumerable.Empty<(string, WorkspaceEdit)>();
