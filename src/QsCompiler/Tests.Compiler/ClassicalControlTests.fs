@@ -1241,7 +1241,7 @@ type ClassicalControlTests () =
         let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
         let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
         
-        IsApplyIfElseArgsMatch args "r" Bar SubOp1
+        IsApplyIfElseArgsMatch args "[r1], [r2]" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
 
         Assert.True(IsTypeArgsMatch targs "Result, Unit", "ApplyConditionally did not have the correct type arguments")
@@ -1262,7 +1262,7 @@ type ClassicalControlTests () =
         let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
         let NoOp = {Namespace = NonNullable<_>.New "Microsoft.Quantum.Canon"; Name = NonNullable<_>.New "NoOp"}
         
-        IsApplyIfElseArgsMatch args "r" Bar NoOp
+        IsApplyIfElseArgsMatch args "[r1], [r2]" Bar NoOp
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
 
         Assert.True(IsTypeArgsMatch targs "Result, Unit", "ApplyConditionally did not have the correct type arguments")
