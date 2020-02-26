@@ -871,3 +871,42 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         }
     }
 }
+
+// =================================
+
+// Apply Conditionally
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Bar(r : Result) : Unit { }
+
+    operation Foo() : Unit {
+        let r1 = Zero;
+        let r2 = Zero;
+
+        if (r1 == r2) {
+            Bar(r1);
+        }
+        else {
+            SubOp1();
+        }
+    }
+}
+
+// =================================
+
+// Apply Conditionally With NoOp
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Bar(r : Result) : Unit { }
+
+    operation Foo() : Unit {
+        let r1 = Zero;
+        let r2 = Zero;
+
+        if (r1 == r2) {
+            Bar(r1);
+        }
+    }
+}
