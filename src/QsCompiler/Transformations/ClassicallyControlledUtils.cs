@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     : QsNullable<ImmutableArray<ResolvedType>>.Null),
                 typeArgsMapping,
                 resolvedType,
-                new InferredExpressionInformation(false, false), 
+                new InferredExpressionInformation(false, false),
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
             );
 
