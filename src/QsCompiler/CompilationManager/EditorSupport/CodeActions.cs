@@ -39,9 +39,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all namespaces in which a callable with the name of the symbol at the given position in the given file belongs to.
-        /// Returns an empty collection if any of the arguments is null or if no valid unqualified symbol exists at that location. 
-        /// Returns the name of the identifier as out parameter if an unqualified symbol exists at that location.
+        /// Returns all namespaces in which a callable with the name of the symbol at the given position in the given
+        /// file belongs to.
+        /// 
+        /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at that
+        /// location, or if the position is not part of a namespace.
+        /// 
+        /// Returns the name of the identifier as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForIdAtPosition
             (this FileContentManager file, Position pos, CompilationUnit compilation, out string idName)
@@ -56,9 +60,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all namespaces in which a type with the name of the symbol at the given position in the given file belongs to.
-        /// Returns an empty collection if any of the arguments is null or if no valid unqualified symbol exists at that location. 
-        /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
+        /// Returns all namespaces in which a type with the name of the symbol at the given position in the given file
+        /// belongs to.
+        /// 
+        /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at that
+        /// location, or if the position is not part of a namespace.
+        /// 
+        /// Returns the name of the type as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForTypeAtPosition
             (this FileContentManager file, Position pos, CompilationUnit compilation, out string typeName)
