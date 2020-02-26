@@ -385,5 +385,13 @@ let public ClassicalControlSignatures =
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
+        (_DefaultTypes, [| // Apply Conditionally
+            ClassicalControlNs, "Bar", [|"Result"|], "Unit"
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
+        (_DefaultTypes, [| // Apply Conditionally With NoOp
+            ClassicalControlNs, "Bar", [|"Result"|], "Unit"
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
     |]
     |> _MakeSignatures
