@@ -83,7 +83,7 @@ let private CommonBaseType addError mismatchErr parent (lhsType : ResolvedType, 
             | Covariant -> CallableInformation.Common [s1; s2]
             | Contravariant -> // no information can ever be inferred in this case, since contravariance only occurs within the type signatures of passed callables
                 CallableInformation.New (Union (s1.Characteristics, s2.Characteristics) |> ResolvedCharacteristics.New, InferredCallableInformation.NoInformation)
-            | Invariant when s1.Characteristics.AreInvalid || s2.Characteristics.AreInvalid || s1.Characteristics = s2.Characteristics -> 
+            | Invariant when s1.Characteristics.AreInvalid || s2.Characteristics.AreInvalid || s1.Characteristics.GetProperties().SetEquals (s2.Characteristics.GetProperties()) -> 
                 let characteristics = if s1.Characteristics.AreInvalid then s2.Characteristics else s1.Characteristics
                 let inferred = InferredCallableInformation.Common [s1.InferredInformation; s2.InferredInformation]
                 CallableInformation.New (characteristics, inferred)
