@@ -11,7 +11,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 {
-    public class ReplaceWithTargetIntrinsics
+    public static class ReplaceWithTargetIntrinsics
     {
         /// <summary>
         /// Merge the environment-specific syntax tree with the target tree. The resulting tree will
