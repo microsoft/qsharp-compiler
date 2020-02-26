@@ -26,14 +26,15 @@ type ConstantPropagation private (_private_ : string) =
             this.Namespaces <- new ConstantPropagationNamespaces(this)
             this.StatementKinds <- new ConstantPropagationStatementKinds(this, callables)
             this.Expressions <- (new ExpressionEvaluator(callables, this.Constants, 1000)).Expressions 
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for ConstantPropagation
 and private ConstantPropagationNamespaces(parent : ConstantPropagation) = 
     inherit NamespaceTransformationBase(parent)
 
-    override __.onProvidedImplementation (argTuple, body) =
+    override __.OnProvidedImplementation (argTuple, body) =
         parent.Constants.Clear()
-        base.onProvidedImplementation (argTuple, body)
+        base.OnProvidedImplementation (argTuple, body)
 
 /// private helper class for ConstantPropagation
 and private ConstantPropagationStatementKinds (parent : ConstantPropagation, callables) = 
@@ -55,17 +56,17 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
             && Seq.forall id sub)
         expr.Fold folder
 
-    override so.onVariableDeclaration stm =
-        let lhs = so.onSymbolTuple stm.Lhs
-        let rhs = so.Expressions.Transform stm.Rhs
+    override so.OnVariableDeclaration stm =
+        let lhs = so.OnSymbolTuple stm.Lhs
+        let rhs = so.Expressions.OnTypedExpression stm.Rhs
         if stm.Kind = ImmutableBinding then
             defineVarTuple (shouldPropagate callables) parent.Constants (lhs, rhs)
         QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
 
-    override this.onConditionalStatement stm =
+    override this.OnConditionalStatement stm =
         let cbList, cbListEnd =
             stm.ConditionalBlocks |> Seq.fold (fun s (cond, block) ->
-                let newCond = this.Expressions.Transform cond
+                let newCond = this.Expressions.OnTypedExpression cond
                 match newCond.Expression with
                 | BoolLiteral true -> s @ [Null, block]
                 | BoolLiteral false -> s
@@ -73,8 +74,8 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
             ) [] |> List.ofSeq |> takeWhilePlus1 (fun (c, _) -> c <> Null)
         let newDefault = cbListEnd |> Option.map (snd >> Value) |? stm.Default
 
-        let cbList = cbList |> List.map (fun (c, b) -> this.onPositionedBlock (c, b))
-        let newDefault = match newDefault with Value x -> this.onPositionedBlock (Null, x) |> snd |> Value | Null -> Null
+        let cbList = cbList |> List.map (fun (c, b) -> this.OnPositionedBlock (c, b))
+        let newDefault = match newDefault with Value x -> this.OnPositionedBlock (Null, x) |> snd |> Value | Null -> Null
 
         match cbList, newDefault with
         | [], Value x ->
@@ -86,10 +87,10 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
             let cases = cbList |> Seq.map (fun (c, b) -> (c.ValueOrApply invalidCondition, b))
             QsConditionalStatement.New (cases, newDefault) |> QsConditionalStatement
 
-    override this.onQubitScope (stm : QsQubitScope) =
+    override this.OnQubitScope (stm : QsQubitScope) =
         let kind = stm.Kind
-        let lhs = this.onSymbolTuple stm.Binding.Lhs
-        let rhs = this.onQubitInitializer stm.Binding.Rhs
+        let lhs = this.OnSymbolTuple stm.Binding.Lhs
+        let rhs = this.OnQubitInitializer stm.Binding.Rhs
 
         jointFlatten (lhs, rhs) |> Seq.iter (fun (l, r) ->
             match l, r.Resolution with
@@ -100,6 +101,6 @@ and private ConstantPropagationStatementKinds (parent : ConstantPropagation, cal
                 defineVar (fun _ -> true) parent.Constants (name.Value, expr)
             | _ -> ())
 
-        let body = this.Statements.Transform stm.Body
+        let body = this.Statements.OnScope stm.Body
         QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
 

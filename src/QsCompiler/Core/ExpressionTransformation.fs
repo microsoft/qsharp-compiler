@@ -46,304 +46,287 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
     new () = new ExpressionKindTransformationBase (TransformationOptions.Default)
 
 
-    // methods invoked before selective expressions
-
-    abstract member beforeCallLike : TypedExpression * TypedExpression -> TypedExpression * TypedExpression
-    default this.beforeCallLike (method, arg) = (method, arg)
-
-    abstract member beforeFunctorApplication : TypedExpression -> TypedExpression
-    default this.beforeFunctorApplication ex = ex
-
-    abstract member beforeModifierApplication : TypedExpression -> TypedExpression
-    default this.beforeModifierApplication ex = ex
-
-    abstract member beforeBinaryOperatorExpression : TypedExpression * TypedExpression -> TypedExpression * TypedExpression
-    default this.beforeBinaryOperatorExpression (lhs, rhs) = (lhs, rhs)
-
-    abstract member beforeUnaryOperatorExpression : TypedExpression -> TypedExpression
-    default this.beforeUnaryOperatorExpression ex = ex
-
-
     // nodes containing subexpressions or subtypes
 
-    abstract member onIdentifier : Identifier * QsNullable<ImmutableArray<ResolvedType>> -> ExpressionKind
-    default this.onIdentifier (sym, tArgs) = 
-        let tArgs =  tArgs |> QsNullable<_>.Map (fun ts -> ts |> Seq.map this.Types.Transform |> ImmutableArray.CreateRange)
+    abstract member OnIdentifier : Identifier * QsNullable<ImmutableArray<ResolvedType>> -> ExpressionKind
+    default this.OnIdentifier (sym, tArgs) = 
+        let tArgs =  tArgs |> QsNullable<_>.Map (fun ts -> ts |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
         Identifier |> Node.BuildOr InvalidExpr (sym, tArgs)
 
-    abstract member onOperationCall : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onOperationCall (method, arg) = 
-        let method, arg = this.Expressions.Transform method, this.Expressions.Transform arg
+    abstract member OnOperationCall : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnOperationCall (method, arg) = 
+        let method, arg = this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
         CallLikeExpression |> Node.BuildOr InvalidExpr (method, arg)
 
-    abstract member onFunctionCall : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onFunctionCall (method, arg) = 
-        let method, arg = this.Expressions.Transform method, this.Expressions.Transform arg
+    abstract member OnFunctionCall : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnFunctionCall (method, arg) = 
+        let method, arg = this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
         CallLikeExpression |> Node.BuildOr InvalidExpr (method, arg)
 
-    abstract member onPartialApplication : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onPartialApplication (method, arg) = 
-        let method, arg = this.Expressions.Transform method, this.Expressions.Transform arg
+    abstract member OnPartialApplication : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnPartialApplication (method, arg) = 
+        let method, arg = this.Expressions.OnTypedExpression method, this.Expressions.OnTypedExpression arg
         CallLikeExpression |> Node.BuildOr InvalidExpr (method, arg)
 
-    abstract member onAdjointApplication : TypedExpression -> ExpressionKind
-    default this.onAdjointApplication ex = 
-        let ex = this.Expressions.Transform ex
+    abstract member OnCallLikeExpression : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnCallLikeExpression (method, arg) = 
+        match method.ResolvedType.Resolution with
+        | _ when TypedExpression.IsPartialApplication (CallLikeExpression (method, arg)) -> this.OnPartialApplication (method, arg) 
+        | ExpressionType.Operation _                                                     -> this.OnOperationCall (method, arg)
+        | _                                                                              -> this.OnFunctionCall (method, arg)
+
+    abstract member OnAdjointApplication : TypedExpression -> ExpressionKind
+    default this.OnAdjointApplication ex = 
+        let ex = this.Expressions.OnTypedExpression ex
         AdjointApplication |> Node.BuildOr InvalidExpr ex
 
-    abstract member onControlledApplication : TypedExpression -> ExpressionKind
-    default this.onControlledApplication ex = 
-        let ex = this.Expressions.Transform ex
+    abstract member OnControlledApplication : TypedExpression -> ExpressionKind
+    default this.OnControlledApplication ex = 
+        let ex = this.Expressions.OnTypedExpression ex
         ControlledApplication |> Node.BuildOr InvalidExpr ex
 
-    abstract member onUnwrapApplication : TypedExpression -> ExpressionKind
-    default this.onUnwrapApplication ex = 
-        let ex = this.Expressions.Transform ex
+    abstract member OnUnwrapApplication : TypedExpression -> ExpressionKind
+    default this.OnUnwrapApplication ex = 
+        let ex = this.Expressions.OnTypedExpression ex
         UnwrapApplication |> Node.BuildOr InvalidExpr ex
 
-    abstract member onValueTuple : ImmutableArray<TypedExpression> -> ExpressionKind
-    default this.onValueTuple vs = 
-        let values = vs |> Seq.map this.Expressions.Transform |> ImmutableArray.CreateRange
+    abstract member OnValueTuple : ImmutableArray<TypedExpression> -> ExpressionKind
+    default this.OnValueTuple vs = 
+        let values = vs |> Seq.map this.Expressions.OnTypedExpression |> ImmutableArray.CreateRange
         ValueTuple |> Node.BuildOr InvalidExpr values
 
-    abstract member onArrayItem : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onArrayItem (arr, idx) = 
-        let arr, idx = this.Expressions.Transform arr, this.Expressions.Transform idx
+    abstract member OnArrayItem : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnArrayItem (arr, idx) = 
+        let arr, idx = this.Expressions.OnTypedExpression arr, this.Expressions.OnTypedExpression idx
         ArrayItem |> Node.BuildOr InvalidExpr (arr, idx)
 
-    abstract member onNamedItem : TypedExpression * Identifier -> ExpressionKind
-    default this.onNamedItem (ex, acc) = 
-        let ex = this.Expressions.Transform ex
+    abstract member OnNamedItem : TypedExpression * Identifier -> ExpressionKind
+    default this.OnNamedItem (ex, acc) = 
+        let ex = this.Expressions.OnTypedExpression ex
         NamedItem |> Node.BuildOr InvalidExpr (ex, acc) 
 
-    abstract member onValueArray : ImmutableArray<TypedExpression> -> ExpressionKind
-    default this.onValueArray vs = 
-        let values = vs |> Seq.map this.Expressions.Transform |> ImmutableArray.CreateRange
+    abstract member OnValueArray : ImmutableArray<TypedExpression> -> ExpressionKind
+    default this.OnValueArray vs = 
+        let values = vs |> Seq.map this.Expressions.OnTypedExpression |> ImmutableArray.CreateRange
         ValueArray |> Node.BuildOr InvalidExpr values
 
-    abstract member onNewArray : ResolvedType * TypedExpression -> ExpressionKind
-    default this.onNewArray (bt, idx) = 
-        let bt, idx = this.Types.Transform bt, this.Expressions.Transform idx
+    abstract member OnNewArray : ResolvedType * TypedExpression -> ExpressionKind
+    default this.OnNewArray (bt, idx) = 
+        let bt, idx = this.Types.OnType bt, this.Expressions.OnTypedExpression idx
         NewArray |> Node.BuildOr InvalidExpr (bt, idx)
 
-    abstract member onStringLiteral : NonNullable<string> * ImmutableArray<TypedExpression> -> ExpressionKind
-    default this.onStringLiteral (s, exs) = 
-        let exs = exs |> Seq.map this.Expressions.Transform |> ImmutableArray.CreateRange
+    abstract member OnStringLiteral : NonNullable<string> * ImmutableArray<TypedExpression> -> ExpressionKind
+    default this.OnStringLiteral (s, exs) = 
+        let exs = exs |> Seq.map this.Expressions.OnTypedExpression |> ImmutableArray.CreateRange
         StringLiteral |> Node.BuildOr InvalidExpr (s, exs)
 
-    abstract member onRangeLiteral : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onRangeLiteral (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnRangeLiteral : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnRangeLiteral (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         RangeLiteral |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onCopyAndUpdateExpression : TypedExpression * TypedExpression * TypedExpression -> ExpressionKind
-    default this.onCopyAndUpdateExpression (lhs, accEx, rhs) = 
-        let lhs, accEx, rhs = this.Expressions.Transform lhs, this.Expressions.Transform accEx, this.Expressions.Transform rhs
+    abstract member OnCopyAndUpdateExpression : TypedExpression * TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnCopyAndUpdateExpression (lhs, accEx, rhs) = 
+        let lhs, accEx, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression accEx, this.Expressions.OnTypedExpression rhs
         CopyAndUpdate |> Node.BuildOr InvalidExpr (lhs, accEx, rhs)
 
-    abstract member onConditionalExpression : TypedExpression * TypedExpression * TypedExpression -> ExpressionKind
-    default this.onConditionalExpression (cond, ifTrue, ifFalse) = 
-        let cond, ifTrue, ifFalse = this.Expressions.Transform cond, this.Expressions.Transform ifTrue, this.Expressions.Transform ifFalse
+    abstract member OnConditionalExpression : TypedExpression * TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnConditionalExpression (cond, ifTrue, ifFalse) = 
+        let cond, ifTrue, ifFalse = this.Expressions.OnTypedExpression cond, this.Expressions.OnTypedExpression ifTrue, this.Expressions.OnTypedExpression ifFalse
         CONDITIONAL |> Node.BuildOr InvalidExpr (cond, ifTrue, ifFalse)
 
-    abstract member onEquality : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onEquality (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnEquality : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnEquality (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         EQ |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onInequality : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onInequality (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnInequality : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnInequality (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         NEQ |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onLessThan : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onLessThan (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnLessThan : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnLessThan (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         LT |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onLessThanOrEqual : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onLessThanOrEqual (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnLessThanOrEqual : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnLessThanOrEqual (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         LTE |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onGreaterThan : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onGreaterThan (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnGreaterThan : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnGreaterThan (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         GT |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onGreaterThanOrEqual : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onGreaterThanOrEqual (lhs, rhs) =
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs    
+    abstract member OnGreaterThanOrEqual : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnGreaterThanOrEqual (lhs, rhs) =
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs    
         GTE |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onLogicalAnd : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onLogicalAnd (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnLogicalAnd : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnLogicalAnd (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         AND |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onLogicalOr : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onLogicalOr (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnLogicalOr : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnLogicalOr (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         OR |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onAddition : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onAddition (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnAddition : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnAddition (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         ADD |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onSubtraction : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onSubtraction (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnSubtraction : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnSubtraction (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         SUB |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onMultiplication : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onMultiplication (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnMultiplication : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnMultiplication (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         MUL |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onDivision : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onDivision (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnDivision : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnDivision (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         DIV |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onExponentiate : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onExponentiate (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnExponentiate : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnExponentiate (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         POW |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onModulo : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onModulo (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnModulo : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnModulo (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         MOD |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onLeftShift : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onLeftShift (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnLeftShift : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnLeftShift (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         LSHIFT |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onRightShift : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onRightShift (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnRightShift : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnRightShift (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         RSHIFT |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onBitwiseExclusiveOr : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onBitwiseExclusiveOr (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnBitwiseExclusiveOr : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnBitwiseExclusiveOr (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         BXOR |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onBitwiseOr : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onBitwiseOr (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnBitwiseOr : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnBitwiseOr (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         BOR |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onBitwiseAnd : TypedExpression * TypedExpression -> ExpressionKind
-    default this.onBitwiseAnd (lhs, rhs) = 
-        let lhs, rhs = this.Expressions.Transform lhs, this.Expressions.Transform rhs
+    abstract member OnBitwiseAnd : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnBitwiseAnd (lhs, rhs) = 
+        let lhs, rhs = this.Expressions.OnTypedExpression lhs, this.Expressions.OnTypedExpression rhs
         BAND |> Node.BuildOr InvalidExpr (lhs, rhs)
 
-    abstract member onLogicalNot : TypedExpression -> ExpressionKind
-    default this.onLogicalNot ex = 
-        let ex = this.Expressions.Transform ex
+    abstract member OnLogicalNot : TypedExpression -> ExpressionKind
+    default this.OnLogicalNot ex = 
+        let ex = this.Expressions.OnTypedExpression ex
         NOT |> Node.BuildOr InvalidExpr ex
 
-    abstract member onNegative : TypedExpression -> ExpressionKind
-    default this.onNegative ex = 
-        let ex = this.Expressions.Transform ex
+    abstract member OnNegative : TypedExpression -> ExpressionKind
+    default this.OnNegative ex = 
+        let ex = this.Expressions.OnTypedExpression ex
         NEG |> Node.BuildOr InvalidExpr ex
 
-    abstract member onBitwiseNot : TypedExpression -> ExpressionKind
-    default this.onBitwiseNot ex = 
-        let ex = this.Expressions.Transform ex
+    abstract member OnBitwiseNot : TypedExpression -> ExpressionKind
+    default this.OnBitwiseNot ex = 
+        let ex = this.Expressions.OnTypedExpression ex
         BNOT |> Node.BuildOr InvalidExpr ex
 
 
     // leaf nodes
 
-    abstract member onUnitValue : unit -> ExpressionKind
-    default this.onUnitValue () = ExpressionKind.UnitValue
+    abstract member OnUnitValue : unit -> ExpressionKind
+    default this.OnUnitValue () = ExpressionKind.UnitValue
 
-    abstract member onMissingExpression : unit -> ExpressionKind
-    default this.onMissingExpression () = MissingExpr
+    abstract member OnMissingExpression : unit -> ExpressionKind
+    default this.OnMissingExpression () = MissingExpr
 
-    abstract member onInvalidExpression : unit -> ExpressionKind
-    default this.onInvalidExpression () = InvalidExpr
+    abstract member OnInvalidExpression : unit -> ExpressionKind
+    default this.OnInvalidExpression () = InvalidExpr
 
-    abstract member onIntLiteral : int64 -> ExpressionKind
-    default this.onIntLiteral i = IntLiteral i
+    abstract member OnIntLiteral : int64 -> ExpressionKind
+    default this.OnIntLiteral i = IntLiteral i
 
-    abstract member onBigIntLiteral : BigInteger -> ExpressionKind
-    default this.onBigIntLiteral b = BigIntLiteral b
+    abstract member OnBigIntLiteral : BigInteger -> ExpressionKind
+    default this.OnBigIntLiteral b = BigIntLiteral b
 
-    abstract member onDoubleLiteral : double -> ExpressionKind
-    default this.onDoubleLiteral d = DoubleLiteral d
+    abstract member OnDoubleLiteral : double -> ExpressionKind
+    default this.OnDoubleLiteral d = DoubleLiteral d
 
-    abstract member onBoolLiteral : bool -> ExpressionKind
-    default this.onBoolLiteral b = BoolLiteral b
+    abstract member OnBoolLiteral : bool -> ExpressionKind
+    default this.OnBoolLiteral b = BoolLiteral b
 
-    abstract member onResultLiteral : QsResult -> ExpressionKind
-    default this.onResultLiteral r = ResultLiteral r
+    abstract member OnResultLiteral : QsResult -> ExpressionKind
+    default this.OnResultLiteral r = ResultLiteral r
 
-    abstract member onPauliLiteral : QsPauli -> ExpressionKind
-    default this.onPauliLiteral p = PauliLiteral p
+    abstract member OnPauliLiteral : QsPauli -> ExpressionKind
+    default this.OnPauliLiteral p = PauliLiteral p
 
 
     // transformation root called on each node
 
-    member private this.dispatchCallLikeExpression (method, arg) = 
-        match method.ResolvedType.Resolution with
-            | _ when TypedExpression.IsPartialApplication (CallLikeExpression (method, arg)) -> this.onPartialApplication (method, arg) 
-            | ExpressionType.Operation _                                                     -> this.onOperationCall (method, arg)
-            | _                                                                              -> this.onFunctionCall (method, arg)
-
-    abstract member Transform : ExpressionKind -> ExpressionKind
-    default this.Transform kind = 
+    abstract member OnExpressionKind : ExpressionKind -> ExpressionKind
+    default this.OnExpressionKind kind = 
         if options.Disable then kind else
         let transformed = kind |> function
-            | Identifier (sym, tArgs)                          -> this.onIdentifier                 (sym, tArgs)
-            | CallLikeExpression (method,arg)                  -> this.dispatchCallLikeExpression   ((method, arg)        |> this.beforeCallLike)
-            | AdjointApplication ex                            -> this.onAdjointApplication         (ex                   |> (this.beforeFunctorApplication >> this.beforeModifierApplication))
-            | ControlledApplication ex                         -> this.onControlledApplication      (ex                   |> (this.beforeFunctorApplication >> this.beforeModifierApplication))
-            | UnwrapApplication ex                             -> this.onUnwrapApplication          (ex                   |> this.beforeModifierApplication)
-            | UnitValue                                        -> this.onUnitValue                  ()
-            | MissingExpr                                      -> this.onMissingExpression          ()
-            | InvalidExpr                                      -> this.onInvalidExpression          () 
-            | ValueTuple vs                                    -> this.onValueTuple                 vs
-            | ArrayItem (arr, idx)                             -> this.onArrayItem                  (arr, idx)
-            | NamedItem (ex, acc)                              -> this.onNamedItem                  (ex, acc)
-            | ValueArray vs                                    -> this.onValueArray                 vs
-            | NewArray (bt, idx)                               -> this.onNewArray                   (bt, idx)
-            | IntLiteral i                                     -> this.onIntLiteral                 i
-            | BigIntLiteral b                                  -> this.onBigIntLiteral              b
-            | DoubleLiteral d                                  -> this.onDoubleLiteral              d
-            | BoolLiteral b                                    -> this.onBoolLiteral                b
-            | ResultLiteral r                                  -> this.onResultLiteral              r
-            | PauliLiteral p                                   -> this.onPauliLiteral               p
-            | StringLiteral (s, exs)                           -> this.onStringLiteral              (s, exs)
-            | RangeLiteral (lhs, rhs)                          -> this.onRangeLiteral               (lhs, rhs)
-            | CopyAndUpdate (lhs, accEx, rhs)                  -> this.onCopyAndUpdateExpression    (lhs, accEx, rhs)
-            | CONDITIONAL (cond, ifTrue, ifFalse)              -> this.onConditionalExpression      (cond, ifTrue, ifFalse)
-            | EQ (lhs,rhs)                                     -> this.onEquality                   ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | NEQ (lhs,rhs)                                    -> this.onInequality                 ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | LT (lhs,rhs)                                     -> this.onLessThan                   ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | LTE (lhs,rhs)                                    -> this.onLessThanOrEqual            ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | GT (lhs,rhs)                                     -> this.onGreaterThan                ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | GTE (lhs,rhs)                                    -> this.onGreaterThanOrEqual         ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | AND (lhs,rhs)                                    -> this.onLogicalAnd                 ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | OR (lhs,rhs)                                     -> this.onLogicalOr                  ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | ADD (lhs,rhs)                                    -> this.onAddition                   ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | SUB (lhs,rhs)                                    -> this.onSubtraction                ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | MUL (lhs,rhs)                                    -> this.onMultiplication             ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | DIV (lhs,rhs)                                    -> this.onDivision                   ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | POW (lhs,rhs)                                    -> this.onExponentiate               ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | MOD (lhs,rhs)                                    -> this.onModulo                     ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | LSHIFT (lhs,rhs)                                 -> this.onLeftShift                  ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | RSHIFT (lhs,rhs)                                 -> this.onRightShift                 ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | BXOR (lhs,rhs)                                   -> this.onBitwiseExclusiveOr         ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | BOR (lhs,rhs)                                    -> this.onBitwiseOr                  ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | BAND (lhs,rhs)                                   -> this.onBitwiseAnd                 ((lhs, rhs)          |> this.beforeBinaryOperatorExpression)
-            | NOT ex                                           -> this.onLogicalNot                 (ex                  |> this.beforeUnaryOperatorExpression)
-            | NEG ex                                           -> this.onNegative                   (ex                  |> this.beforeUnaryOperatorExpression)
-            | BNOT ex                                          -> this.onBitwiseNot                 (ex                  |> this.beforeUnaryOperatorExpression)
+            | Identifier (sym, tArgs)                          -> this.OnIdentifier                 (sym, tArgs)
+            | CallLikeExpression (method,arg)                  -> this.OnCallLikeExpression         (method, arg)
+            | AdjointApplication ex                            -> this.OnAdjointApplication         (ex)
+            | ControlledApplication ex                         -> this.OnControlledApplication      (ex)
+            | UnwrapApplication ex                             -> this.OnUnwrapApplication          (ex)
+            | UnitValue                                        -> this.OnUnitValue                  ()
+            | MissingExpr                                      -> this.OnMissingExpression          ()
+            | InvalidExpr                                      -> this.OnInvalidExpression          () 
+            | ValueTuple vs                                    -> this.OnValueTuple                 vs
+            | ArrayItem (arr, idx)                             -> this.OnArrayItem                  (arr, idx)
+            | NamedItem (ex, acc)                              -> this.OnNamedItem                  (ex, acc)
+            | ValueArray vs                                    -> this.OnValueArray                 vs
+            | NewArray (bt, idx)                               -> this.OnNewArray                   (bt, idx)
+            | IntLiteral i                                     -> this.OnIntLiteral                 i
+            | BigIntLiteral b                                  -> this.OnBigIntLiteral              b
+            | DoubleLiteral d                                  -> this.OnDoubleLiteral              d
+            | BoolLiteral b                                    -> this.OnBoolLiteral                b
+            | ResultLiteral r                                  -> this.OnResultLiteral              r
+            | PauliLiteral p                                   -> this.OnPauliLiteral               p
+            | StringLiteral (s, exs)                           -> this.OnStringLiteral              (s, exs)
+            | RangeLiteral (lhs, rhs)                          -> this.OnRangeLiteral               (lhs, rhs)
+            | CopyAndUpdate (lhs, accEx, rhs)                  -> this.OnCopyAndUpdateExpression    (lhs, accEx, rhs)
+            | CONDITIONAL (cond, ifTrue, ifFalse)              -> this.OnConditionalExpression      (cond, ifTrue, ifFalse)
+            | EQ (lhs,rhs)                                     -> this.OnEquality                   (lhs, rhs)
+            | NEQ (lhs,rhs)                                    -> this.OnInequality                 (lhs, rhs)
+            | LT (lhs,rhs)                                     -> this.OnLessThan                   (lhs, rhs)
+            | LTE (lhs,rhs)                                    -> this.OnLessThanOrEqual            (lhs, rhs)
+            | GT (lhs,rhs)                                     -> this.OnGreaterThan                (lhs, rhs)
+            | GTE (lhs,rhs)                                    -> this.OnGreaterThanOrEqual         (lhs, rhs)
+            | AND (lhs,rhs)                                    -> this.OnLogicalAnd                 (lhs, rhs)
+            | OR (lhs,rhs)                                     -> this.OnLogicalOr                  (lhs, rhs)
+            | ADD (lhs,rhs)                                    -> this.OnAddition                   (lhs, rhs)
+            | SUB (lhs,rhs)                                    -> this.OnSubtraction                (lhs, rhs)
+            | MUL (lhs,rhs)                                    -> this.OnMultiplication             (lhs, rhs)
+            | DIV (lhs,rhs)                                    -> this.OnDivision                   (lhs, rhs)
+            | POW (lhs,rhs)                                    -> this.OnExponentiate               (lhs, rhs)
+            | MOD (lhs,rhs)                                    -> this.OnModulo                     (lhs, rhs)
+            | LSHIFT (lhs,rhs)                                 -> this.OnLeftShift                  (lhs, rhs)
+            | RSHIFT (lhs,rhs)                                 -> this.OnRightShift                 (lhs, rhs)
+            | BXOR (lhs,rhs)                                   -> this.OnBitwiseExclusiveOr         (lhs, rhs)
+            | BOR (lhs,rhs)                                    -> this.OnBitwiseOr                  (lhs, rhs)
+            | BAND (lhs,rhs)                                   -> this.OnBitwiseAnd                 (lhs, rhs)
+            | NOT ex                                           -> this.OnLogicalNot                 (ex)
+            | NEG ex                                           -> this.OnNegative                   (ex)
+            | BNOT ex                                          -> this.OnBitwiseNot                 (ex)
         id |> Node.BuildOr kind transformed
 
 
@@ -378,35 +361,35 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
 
     // supplementary expression information 
 
-    abstract member onRangeInformation : QsNullable<QsPositionInfo*QsPositionInfo> -> QsNullable<QsPositionInfo*QsPositionInfo>
-    default this.onRangeInformation r = r
+    abstract member OnRangeInformation : QsNullable<QsPositionInfo*QsPositionInfo> -> QsNullable<QsPositionInfo*QsPositionInfo>
+    default this.OnRangeInformation r = r
 
-    abstract member onExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
-    default this.onExpressionInformation info = info
+    abstract member OnExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
+    default this.OnExpressionInformation info = info
 
 
     // nodes containing subexpressions or subtypes
 
     /// If DisableRebuild is set to true, this method won't walk the types in the dictionary.
-    abstract member onTypeParamResolutions : ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType> -> ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType>
-    default this.onTypeParamResolutions typeParams =
+    abstract member OnTypeParamResolutions : ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType> -> ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType>
+    default this.OnTypeParamResolutions typeParams =
         let asTypeParameter (key) = QsTypeParameter.New (fst key, snd key, Null)
         let filteredTypeParams = 
             typeParams 
-            |> Seq.map (fun kv -> this.Types.onTypeParameter (kv.Key |> asTypeParameter), kv.Value)
-            |> Seq.choose (function | TypeParameter tp, value -> Some ((tp.Origin, tp.TypeName), this.Types.Transform value) | _ -> None)
+            |> Seq.map (fun kv -> this.Types.OnTypeParameter (kv.Key |> asTypeParameter), kv.Value)
+            |> Seq.choose (function | TypeParameter tp, value -> Some ((tp.Origin, tp.TypeName), this.Types.OnType value) | _ -> None)
             |> Seq.map (fun (key, value) -> new KeyValuePair<_,_>(key, value))
         ImmutableDictionary.CreateRange |> Node.BuildOr typeParams filteredTypeParams
 
 
     // transformation root called on each node
 
-    abstract member Transform : TypedExpression -> TypedExpression
-    default this.Transform (ex : TypedExpression) =
+    abstract member OnTypedExpression : TypedExpression -> TypedExpression
+    default this.OnTypedExpression (ex : TypedExpression) =
         if options.Disable then ex else
-        let range                = this.onRangeInformation ex.Range
-        let typeParamResolutions = this.onTypeParamResolutions ex.TypeParameterResolutions
-        let kind                 = this.ExpressionKinds.Transform ex.Expression
-        let exType               = this.Types.Transform ex.ResolvedType
-        let inferredInfo         = this.onExpressionInformation ex.InferredInformation
+        let range                = this.OnRangeInformation ex.Range
+        let typeParamResolutions = this.OnTypeParamResolutions ex.TypeParameterResolutions
+        let kind                 = this.ExpressionKinds.OnExpressionKind ex.Expression
+        let exType               = this.Types.OnType ex.ResolvedType
+        let inferredInfo         = this.OnExpressionInformation ex.InferredInformation
         TypedExpression.New |> Node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)

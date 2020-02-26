@@ -18,24 +18,26 @@ type LoopUnrolling private (_private_ : string) =
         new LoopUnrolling("_private_") then
             this.Namespaces <- new LoopUnrollingNamespaces(this)
             this.StatementKinds <- new LoopUnrollingStatementKinds(this, callables, maxSize)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for LoopUnrolling
 and private LoopUnrollingNamespaces (parent : LoopUnrolling) = 
     inherit NamespaceTransformationBase(parent)
 
-    override __.Transform x =
-        let x = base.Transform x
-        VariableRenaming().Namespaces.Transform x
+    override __.OnNamespace x =
+        let x = base.OnNamespace x
+        VariableRenaming().Namespaces.OnNamespace x
 
 /// private helper class for LoopUnrolling
 and private LoopUnrollingStatementKinds (parent : LoopUnrolling, callables, maxSize) = 
     inherit Core.StatementKindTransformation(parent)
 
-    override this.onForStatement stm =
-        let loopVar = fst stm.LoopItem |> this.onSymbolTuple
-        let iterVals = this.Expressions.Transform stm.IterationValues
-        let loopVarType = this.Expressions.Types.Transform (snd stm.LoopItem)
-        let body = this.Statements.Transform stm.Body
+    override this.OnForStatement stm =
+        let loopVar = fst stm.LoopItem |> this.OnSymbolTuple
+        let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
+        let loopVarType = this.Expressions.Types.OnType (snd stm.LoopItem)
+        let body = this.Statements.OnScope stm.Body
         maybe {
             let! iterValsList =
                 match iterVals.Expression with
@@ -49,7 +51,7 @@ and private LoopUnrollingStatementKinds (parent : LoopUnrolling, callables, maxS
                 let innerScope = { stm.Body with Statements = stm.Body.Statements.Insert(0, variableDecl) }
                 innerScope |> newScopeStatement |> wrapStmt)
             let outerScope = QsScope.New (iterRange, stm.Body.KnownSymbols)
-            return outerScope |> newScopeStatement |> this.Transform
+            return outerScope |> newScopeStatement |> this.OnStatementKind
         }
         |? (QsForStatement.New ((loopVar, loopVarType), iterVals, body) |> QsForStatement)
 

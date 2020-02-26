@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation;
+using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled;
 
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = ClassicallyControlledTransformation.Apply(compilation);
+            transformed = ReplaceClassicalControl.Apply(compilation);
             return true;
         }
 

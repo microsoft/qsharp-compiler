@@ -18,19 +18,19 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type private StripPositionInfoFromType (parent : StripPositionInfo) = 
     inherit TypeTransformation(parent)
-    override this.onRangeInformation _ = Null
+    override this.OnRangeInformation _ = Null
 
 and private StripPositionInfoFromExpression (parent : StripPositionInfo) = 
     inherit ExpressionTransformation(parent)
-    override this.onRangeInformation _ = Null
+    override this.OnRangeInformation _ = Null
 
 and private StripPositionInfoFromStatement(parent : StripPositionInfo) = 
     inherit StatementTransformation(parent)
-    override this.onLocation _ = Null
+    override this.OnLocation _ = Null
 
 and private StripPositionInfoFromNamespace(parent : StripPositionInfo) = 
     inherit NamespaceTransformation(parent)
-    override this.onLocation _ = Null
+    override this.OnLocation _ = Null
 
 and public StripPositionInfo private (_internal_) = 
     inherit SyntaxTreeTransformation()
@@ -44,10 +44,10 @@ and public StripPositionInfo private (_internal_) =
             this.Namespaces <- new StripPositionInfoFromNamespace(this)
 
     static member public Default = defaultInstance
-    static member public Apply t = defaultInstance.Types.Transform t
-    static member public Apply e = defaultInstance.Expressions.Transform e
-    static member public Apply s = defaultInstance.Statements.Transform s
-    static member public Apply a = defaultInstance.Namespaces.Transform a
+    static member public Apply t = defaultInstance.Types.OnType t
+    static member public Apply e = defaultInstance.Expressions.OnTypedExpression e
+    static member public Apply s = defaultInstance.Statements.OnScope s
+    static member public Apply a = defaultInstance.Namespaces.OnNamespace a
 
 
 module SyntaxGenerator = 

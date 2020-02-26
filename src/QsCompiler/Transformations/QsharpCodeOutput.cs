@@ -48,8 +48,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     /// Class used to generate Q# code for compiled Q# namespaces. 
     /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given namespace.
     /// </summary>
-    public class SyntaxTreeToQs
-        : SyntaxTreeTransformation<SyntaxTreeToQs.TransformationState>
+    public class SyntaxTreeToQsharp
+    : SyntaxTreeTransformation<SyntaxTreeToQsharp.TransformationState>
     {
         public const string InvalidType = "__UnknownType__";
         public const string InvalidSet = "__UnknownSet__";
@@ -102,8 +102,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         }
 
 
-        public SyntaxTreeToQs(TransformationContext context = null)
-            : base(new TransformationState(context))
+        public SyntaxTreeToQsharp(TransformationContext context = null)
+        : base(new TransformationState(context), TransformationOptions.NoRebuild)
         {
             this.Types = new TypeTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
@@ -115,18 +115,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         // public methods for convenience
 
-        public static SyntaxTreeToQs Default = 
-            new SyntaxTreeToQs();
+        public static SyntaxTreeToQsharp Default = 
+            new SyntaxTreeToQsharp();
 
         public string ToCode(ResolvedType t)
         {
-            this.Types.Transform(t);
+            this.Types.OnType(t);
             return this.SharedState.TypeOutputHandle;
         }
 
         public string ToCode(QsExpressionKind k)
         {
-            this.ExpressionKinds.Transform(k);
+            this.ExpressionKinds.OnExpressionKind(k);
             return this.SharedState.ExpressionOutputHandle;
         }
 
@@ -136,7 +136,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public string ToCode(QsStatementKind stmKind)
         {
             var nrPreexistingLines = this.SharedState.StatementOutputHandle.Count;
-            this.StatementKinds.Transform(stmKind);
+            this.StatementKinds.OnStatementKind(stmKind);
             return String.Join(Environment.NewLine, this.SharedState.StatementOutputHandle.Skip(nrPreexistingLines));
         }
 
@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public string ToCode(QsNamespace ns)
         {
             var nrPreexistingLines = this.SharedState.NamespaceOutputHandle.Count;
-            this.Namespaces.Transform(ns);
+            this.Namespaces.OnNamespace(ns);
             return String.Join(Environment.NewLine, this.SharedState.NamespaceOutputHandle.Skip(nrPreexistingLines));
         }
 
@@ -212,10 +212,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
                     var totNrInvalid = 0;
                     var docComments = ns.Documentation[sourceFile];
-                    var generator = new  SyntaxTreeToQs(context);
+                    var generator = new SyntaxTreeToQsharp(context);
                     generator.SharedState.InvokeOnInvalid(() => ++totNrInvalid);
                     generator.SharedState.NamespaceDocumentation = docComments.Count() == 1 ? docComments.Single() : ImmutableArray<string>.Empty; // let's drop the doc if it is ambiguous
-                    generator.Namespaces.Transform(tree);
+                    generator.Namespaces.OnNamespace(tree);
 
                     if (totNrInvalid > 0) success = false;
                     nsInFile.Add(ns.Name, String.Join(Environment.NewLine, generator.SharedState.NamespaceOutputHandle));
@@ -234,7 +234,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// that upon calling Transform on a Q# type is set to the Q# code corresponding to that type. 
         /// </summary>
         public class TypeTransformation
-            : TypeTransformation<TransformationState>
+        : TypeTransformation<TransformationState>
         {
             private readonly Func<ResolvedType, string> TypeToQs;
 
@@ -244,13 +244,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 set => SharedState.TypeOutputHandle = value;
             }
 
-            public TypeTransformation(SyntaxTreeToQs parent) : base(parent) =>
+            public TypeTransformation(SyntaxTreeToQsharp parent) 
+            : base(parent, TransformationOptions.NoRebuild) =>
                 this.TypeToQs = parent.ToCode;
 
-            public TypeTransformation() : base(new TransformationState()) =>
+            public TypeTransformation() 
+            : base(new TransformationState(), TransformationOptions.NoRebuild) =>
                 this.TypeToQs = t =>
                 {
-                    this.Transformation.Types.Transform(t);
+                    this.Transformation.Types.OnType(t);
                     return this.SharedState.TypeOutputHandle;
                 };
 
@@ -303,104 +305,104 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             // overrides 
 
-            public override QsTypeKind onArrayType(ResolvedType b)
+            public override QsTypeKind OnArrayType(ResolvedType b)
             {
                 this.Output = $"{this.TypeToQs(b)}[]";
                 return QsTypeKind.NewArrayType(b);
             }
 
-            public override QsTypeKind onBool()
+            public override QsTypeKind OnBool()
             {
                 this.Output = Keywords.qsBool.id;
                 return QsTypeKind.Bool;
             }
 
-            public override QsTypeKind onDouble()
+            public override QsTypeKind OnDouble()
             {
                 this.Output = Keywords.qsDouble.id;
                 return QsTypeKind.Double;
             }
 
-            public override QsTypeKind onFunction(ResolvedType it, ResolvedType ot)
+            public override QsTypeKind OnFunction(ResolvedType it, ResolvedType ot)
             {
                 this.Output = $"({this.TypeToQs(it)} -> {this.TypeToQs(ot)})";
                 return QsTypeKind.NewFunction(it, ot);
             }
 
-            public override QsTypeKind onInt()
+            public override QsTypeKind OnInt()
             {
                 this.Output = Keywords.qsInt.id;
                 return QsTypeKind.Int;
             }
 
-            public override QsTypeKind onBigInt()
+            public override QsTypeKind OnBigInt()
             {
                 this.Output = Keywords.qsBigInt.id;
                 return QsTypeKind.BigInt;
             }
 
-            public override QsTypeKind onInvalidType()
+            public override QsTypeKind OnInvalidType()
             {
                 this.SharedState.BeforeInvalidType?.Invoke();
                 this.Output = InvalidType;
                 return QsTypeKind.InvalidType;
             }
 
-            public override QsTypeKind onMissingType()
+            public override QsTypeKind OnMissingType()
             {
                 this.Output = "_"; // needs to be underscore, since this is valid as type argument specifier
                 return QsTypeKind.MissingType;
             }
 
-            public override QsTypeKind onPauli()
+            public override QsTypeKind OnPauli()
             {
                 this.Output = Keywords.qsPauli.id;
                 return QsTypeKind.Pauli;
             }
 
-            public override QsTypeKind onQubit()
+            public override QsTypeKind OnQubit()
             {
                 this.Output = Keywords.qsQubit.id;
                 return QsTypeKind.Qubit;
             }
 
-            public override QsTypeKind onRange()
+            public override QsTypeKind OnRange()
             {
                 this.Output = Keywords.qsRange.id;
                 return QsTypeKind.Range;
             }
 
-            public override QsTypeKind onResult()
+            public override QsTypeKind OnResult()
             {
                 this.Output = Keywords.qsResult.id;
                 return QsTypeKind.Result;
             }
 
-            public override QsTypeKind onString()
+            public override QsTypeKind OnString()
             {
                 this.Output = Keywords.qsString.id;
                 return QsTypeKind.String;
             }
 
-            public override QsTypeKind onTupleType(ImmutableArray<ResolvedType> ts)
+            public override QsTypeKind OnTupleType(ImmutableArray<ResolvedType> ts)
             {
                 this.Output = $"({String.Join(", ", ts.Select(this.TypeToQs))})";
                 return QsTypeKind.NewTupleType(ts);
             }
 
-            public override QsTypeKind onTypeParameter(QsTypeParameter tp)
+            public override QsTypeKind OnTypeParameter(QsTypeParameter tp)
             {
                 this.Output = $"'{tp.TypeName.Value}";
                 return QsTypeKind.NewTypeParameter(tp);
             }
 
-            public override QsTypeKind onUnitType()
+            public override QsTypeKind OnUnitType()
             {
                 this.Output = Keywords.qsUnit.id;
                 return QsTypeKind.UnitType;
             }
 
-            public override QsTypeKind onUserDefinedType(UserDefinedType udt)
+            public override QsTypeKind OnUserDefinedType(UserDefinedType udt)
             {
                 var isInCurrentNamespace = udt.Namespace.Value == this.SharedState.Context.CurrentNamespace;
                 var isInOpenNamespace = this.SharedState.Context.OpenedNamespaces.Contains(udt.Namespace) && !this.SharedState.Context.SymbolsInCurrentNamespace.Contains(udt.Name);
@@ -411,15 +413,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsTypeKind.NewUserDefinedType(udt);
             }
 
-            public override ResolvedCharacteristics onCharacteristicsExpression(ResolvedCharacteristics set)
+            public override ResolvedCharacteristics OnCharacteristicsExpression(ResolvedCharacteristics set)
             {
                 this.Output = CharacteristicsExpression(set, onInvalidSet: this.SharedState.BeforeInvalidSet);
                 return set;
             }
 
-            public override QsTypeKind onOperation(Tuple<ResolvedType, ResolvedType> sign, CallableInformation info)
+            public override QsTypeKind OnOperation(Tuple<ResolvedType, ResolvedType> sign, CallableInformation info)
             {
-                info = base.onCallableInformation(info);
+                info = this.OnCallableInformation(info);
                 var characteristics = String.IsNullOrWhiteSpace(this.Output) ? "" : $" {Keywords.qsCharacteristics.id} {this.Output}";
                 this.Output = $"({this.TypeToQs(sign.Item1)} => {this.TypeToQs(sign.Item2)}{characteristics})";
                 return QsTypeKind.NewOperation(sign, info);
@@ -432,7 +434,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// Upon calling Transform, the Output property is set to the Q# code corresponding to an expression of the given kind. 
         /// </summary>
         public class ExpressionKindTransformation
-            : Core.ExpressionKindTransformation<TransformationState>
+        : ExpressionKindTransformation<TransformationState>
         {
             // allows to omit unnecessary parentheses
             private int CurrentPrecedence = 0;
@@ -449,8 +451,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 set => SharedState.ExpressionOutputHandle = value;
             }
 
-            public ExpressionKindTransformation(SyntaxTreeToQs parent)
-                : base(parent) =>
+            public ExpressionKindTransformation(SyntaxTreeToQsharp parent)
+            : base(parent, TransformationOptions.NoRebuild) =>
                 this.TypeToQs = parent.ToCode;
 
 
@@ -465,7 +467,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             private string Recur(int prec, TypedExpression ex)
             {
-                this.Transformation.Expressions.Transform(ex);
+                this.Transformation.Expressions.OnTypedExpression(ex);
                 return prec < this.CurrentPrecedence || this.CurrentPrecedence == int.MaxValue // need to cover the case where prec = currentPrec = MaxValue
                     ? this.Output
                     : $"({this.Output})";
@@ -503,166 +505,166 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             // overrides
 
-            public override QsExpressionKind onCopyAndUpdateExpression(TypedExpression lhs, TypedExpression acc, TypedExpression rhs)
+            public override QsExpressionKind OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression acc, TypedExpression rhs)
             {
                 TernaryOperator(Keywords.qsCopyAndUpdateOp, lhs, acc, rhs);
                 return QsExpressionKind.NewCopyAndUpdate(lhs, acc, rhs);
             }
 
-            public override QsExpressionKind onConditionalExpression(TypedExpression cond, TypedExpression ifTrue, TypedExpression ifFalse)
+            public override QsExpressionKind OnConditionalExpression(TypedExpression cond, TypedExpression ifTrue, TypedExpression ifFalse)
             {
                 TernaryOperator(Keywords.qsConditionalOp, cond, ifTrue, ifFalse);
                 return QsExpressionKind.NewCONDITIONAL(cond, ifTrue, ifFalse);
             }
 
-            public override QsExpressionKind onAddition(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnAddition(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsADDop, lhs, rhs);
                 return QsExpressionKind.NewADD(lhs, rhs);
             }
 
-            public override QsExpressionKind onBitwiseAnd(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnBitwiseAnd(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsBANDop, lhs, rhs);
                 return QsExpressionKind.NewBAND(lhs, rhs);
             }
 
-            public override QsExpressionKind onBitwiseExclusiveOr(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnBitwiseExclusiveOr(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsBXORop, lhs, rhs);
                 return QsExpressionKind.NewBXOR(lhs, rhs);
             }
 
-            public override QsExpressionKind onBitwiseOr(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnBitwiseOr(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsBORop, lhs, rhs);
                 return QsExpressionKind.NewBOR(lhs, rhs);
             }
 
-            public override QsExpressionKind onDivision(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnDivision(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsDIVop, lhs, rhs);
                 return QsExpressionKind.NewDIV(lhs, rhs);
             }
 
-            public override QsExpressionKind onEquality(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnEquality(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsEQop, lhs, rhs);
                 return QsExpressionKind.NewEQ(lhs, rhs);
             }
 
-            public override QsExpressionKind onExponentiate(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnExponentiate(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsPOWop, lhs, rhs);
                 return QsExpressionKind.NewPOW(lhs, rhs);
             }
 
-            public override QsExpressionKind onGreaterThan(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnGreaterThan(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsGTop, lhs, rhs);
                 return QsExpressionKind.NewGT(lhs, rhs);
             }
 
-            public override QsExpressionKind onGreaterThanOrEqual(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnGreaterThanOrEqual(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsGTEop, lhs, rhs);
                 return QsExpressionKind.NewGTE(lhs, rhs);
             }
 
-            public override QsExpressionKind onInequality(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnInequality(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsNEQop, lhs, rhs);
                 return QsExpressionKind.NewNEQ(lhs, rhs);
             }
 
-            public override QsExpressionKind onLeftShift(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnLeftShift(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsLSHIFTop, lhs, rhs);
                 return QsExpressionKind.NewLSHIFT(lhs, rhs);
             }
 
-            public override QsExpressionKind onLessThan(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnLessThan(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsLTop, lhs, rhs);
                 return QsExpressionKind.NewLT(lhs, rhs);
             }
 
-            public override QsExpressionKind onLessThanOrEqual(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnLessThanOrEqual(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsLTEop, lhs, rhs);
                 return QsExpressionKind.NewLTE(lhs, rhs);
             }
 
-            public override QsExpressionKind onLogicalAnd(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnLogicalAnd(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsANDop, lhs, rhs);
                 return QsExpressionKind.NewAND(lhs, rhs);
             }
 
-            public override QsExpressionKind onLogicalOr(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnLogicalOr(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsORop, lhs, rhs);
                 return QsExpressionKind.NewOR(lhs, rhs);
             }
 
-            public override QsExpressionKind onModulo(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnModulo(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsMODop, lhs, rhs);
                 return QsExpressionKind.NewMOD(lhs, rhs);
             }
 
-            public override QsExpressionKind onMultiplication(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnMultiplication(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsMULop, lhs, rhs);
                 return QsExpressionKind.NewMUL(lhs, rhs);
             }
 
-            public override QsExpressionKind onRightShift(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnRightShift(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsRSHIFTop, lhs, rhs);
                 return QsExpressionKind.NewRSHIFT(lhs, rhs);
             }
 
-            public override QsExpressionKind onSubtraction(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnSubtraction(TypedExpression lhs, TypedExpression rhs)
             {
                 BinaryOperator(Keywords.qsSUBop, lhs, rhs);
                 return QsExpressionKind.NewSUB(lhs, rhs);
             }
 
-            public override QsExpressionKind onNegative(TypedExpression ex)
+            public override QsExpressionKind OnNegative(TypedExpression ex)
             {
                 UnaryOperator(Keywords.qsNEGop, ex);
                 return QsExpressionKind.NewNEG(ex);
             }
 
-            public override QsExpressionKind onLogicalNot(TypedExpression ex)
+            public override QsExpressionKind OnLogicalNot(TypedExpression ex)
             {
                 UnaryOperator(Keywords.qsNOTop, ex);
                 return QsExpressionKind.NewNOT(ex);
             }
 
-            public override QsExpressionKind onBitwiseNot(TypedExpression ex)
+            public override QsExpressionKind OnBitwiseNot(TypedExpression ex)
             {
                 UnaryOperator(Keywords.qsBNOTop, ex);
                 return QsExpressionKind.NewBNOT(ex);
             }
 
-            public override QsExpressionKind onOperationCall(TypedExpression method, TypedExpression arg)
+            public override QsExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)
             {
                 return this.CallLike(method, arg);
             }
 
-            public override QsExpressionKind onFunctionCall(TypedExpression method, TypedExpression arg)
+            public override QsExpressionKind OnFunctionCall(TypedExpression method, TypedExpression arg)
             {
                 return this.CallLike(method, arg);
             }
 
-            public override QsExpressionKind onPartialApplication(TypedExpression method, TypedExpression arg)
+            public override QsExpressionKind OnPartialApplication(TypedExpression method, TypedExpression arg)
             {
                 return this.CallLike(method, arg);
             }
 
-            public override QsExpressionKind onAdjointApplication(TypedExpression ex)
+            public override QsExpressionKind OnAdjointApplication(TypedExpression ex)
             {
                 var op = Keywords.qsAdjointModifier;
                 this.Output = $"{op.op} {this.Recur(op.prec, ex)}";
@@ -670,7 +672,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.NewAdjointApplication(ex);
             }
 
-            public override QsExpressionKind onControlledApplication(TypedExpression ex)
+            public override QsExpressionKind OnControlledApplication(TypedExpression ex)
             {
                 var op = Keywords.qsControlledModifier;
                 this.Output = $"{op.op} {this.Recur(op.prec, ex)}";
@@ -678,7 +680,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.NewControlledApplication(ex);
             }
 
-            public override QsExpressionKind onUnwrapApplication(TypedExpression ex)
+            public override QsExpressionKind OnUnwrapApplication(TypedExpression ex)
             {
                 var op = Keywords.qsUnwrapModifier;
                 this.Output = $"{this.Recur(op.prec, ex)}{op.op}";
@@ -686,21 +688,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.NewUnwrapApplication(ex);
             }
 
-            public override QsExpressionKind onUnitValue()
+            public override QsExpressionKind OnUnitValue()
             {
                 this.Output = "()";
                 this.CurrentPrecedence = int.MaxValue;
                 return QsExpressionKind.UnitValue;
             }
 
-            public override QsExpressionKind onMissingExpression()
+            public override QsExpressionKind OnMissingExpression()
             {
                 this.Output = "_";
                 this.CurrentPrecedence = int.MaxValue;
                 return QsExpressionKind.MissingExpr;
             }
 
-            public override QsExpressionKind onInvalidExpression()
+            public override QsExpressionKind OnInvalidExpression()
             {
                 this.SharedState.BeforeInvalidExpression?.Invoke();
                 this.Output = InvalidExpression;
@@ -708,28 +710,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.InvalidExpr;
             }
 
-            public override QsExpressionKind onValueTuple(ImmutableArray<TypedExpression> vs)
+            public override QsExpressionKind OnValueTuple(ImmutableArray<TypedExpression> vs)
             {
                 this.Output = $"({String.Join(", ", vs.Select(v => this.Recur(int.MinValue, v)))})";
                 this.CurrentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewValueTuple(vs);
             }
 
-            public override QsExpressionKind onValueArray(ImmutableArray<TypedExpression> vs)
+            public override QsExpressionKind OnValueArray(ImmutableArray<TypedExpression> vs)
             {
                 this.Output = $"[{String.Join(", ", vs.Select(v => this.Recur(int.MinValue, v)))}]";
                 this.CurrentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewValueArray(vs);
             }
 
-            public override QsExpressionKind onNewArray(ResolvedType bt, TypedExpression idx)
+            public override QsExpressionKind OnNewArray(ResolvedType bt, TypedExpression idx)
             {
                 this.Output = $"{Keywords.arrayDecl.id} {this.TypeToQs(bt)}[{this.Recur(int.MinValue, idx)}]";
                 this.CurrentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewNewArray(bt, idx);
             }
 
-            public override QsExpressionKind onArrayItem(TypedExpression arr, TypedExpression idx)
+            public override QsExpressionKind OnArrayItem(TypedExpression arr, TypedExpression idx)
             {
                 var prec = Keywords.qsArrayAccessCombinator.prec;
                 this.Output = $"{this.Recur(prec, arr)}[{this.Recur(int.MinValue, idx)}]"; // Todo: generate contextual open range expression when appropriate
@@ -737,29 +739,29 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.NewArrayItem(arr, idx);
             }
 
-            public override QsExpressionKind onNamedItem(TypedExpression ex, Identifier acc)
+            public override QsExpressionKind OnNamedItem(TypedExpression ex, Identifier acc)
             {
-                this.onIdentifier(acc, QsNullable<ImmutableArray<ResolvedType>>.Null);
+                this.OnIdentifier(acc, QsNullable<ImmutableArray<ResolvedType>>.Null);
                 var (op, itemName) = (Keywords.qsNamedItemCombinator, this.Output);
                 this.Output = $"{this.Recur(op.prec, ex)}{op.op}{itemName}";
-                return base.onNamedItem(ex, acc);
+                return QsExpressionKind.NewNamedItem(ex, acc);
             }
 
-            public override QsExpressionKind onIntLiteral(long i)
+            public override QsExpressionKind OnIntLiteral(long i)
             {
                 this.Output = i.ToString(CultureInfo.InvariantCulture);
                 this.CurrentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewIntLiteral(i);
             }
 
-            public override QsExpressionKind onBigIntLiteral(BigInteger b)
+            public override QsExpressionKind OnBigIntLiteral(BigInteger b)
             {
                 this.Output = b.ToString("R", CultureInfo.InvariantCulture) + "L";
                 this.CurrentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewBigIntLiteral(b);
             }
 
-            public override QsExpressionKind onDoubleLiteral(double d)
+            public override QsExpressionKind OnDoubleLiteral(double d)
             {
                 this.Output = d.ToString("R", CultureInfo.InvariantCulture);
                 if ((int)d == d) this.Output = $"{this.Output}.0";
@@ -767,7 +769,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.NewDoubleLiteral(d);
             }
 
-            public override QsExpressionKind onBoolLiteral(bool b)
+            public override QsExpressionKind OnBoolLiteral(bool b)
             {
                 if (b) this.Output = Keywords.qsTrue.id;
                 else this.Output = Keywords.qsFalse.id;
@@ -775,7 +777,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.NewBoolLiteral(b);
             }
 
-            public override QsExpressionKind onStringLiteral(NonNullable<string> s, ImmutableArray<TypedExpression> exs)
+            public override QsExpressionKind OnStringLiteral(NonNullable<string> s, ImmutableArray<TypedExpression> exs)
             {
                 string InterpolatedArg(int index) => $"{{{this.Recur(int.MinValue, exs[index])}}}";
                 this.Output = exs.Length == 0 ? $"\"{s.Value}\"" : $"$\"{ReplaceInterpolatedArgs(s.Value, InterpolatedArg)}\"";
@@ -783,7 +785,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.NewStringLiteral(s, exs);
             }
 
-            public override QsExpressionKind onRangeLiteral(TypedExpression lhs, TypedExpression rhs)
+            public override QsExpressionKind OnRangeLiteral(TypedExpression lhs, TypedExpression rhs)
             {
                 var op = Keywords.qsRangeOp;
                 var lhsStr = lhs.Expression.IsRangeLiteral ? this.Recur(int.MinValue, lhs) : this.Recur(op.prec, lhs);
@@ -792,7 +794,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.NewRangeLiteral(lhs, rhs);
             }
 
-            public override QsExpressionKind onResultLiteral(QsResult r)
+            public override QsExpressionKind OnResultLiteral(QsResult r)
             {
                 if (r.IsZero) this.Output = Keywords.qsZero.id;
                 else if (r.IsOne) this.Output = Keywords.qsOne.id;
@@ -801,7 +803,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.NewResultLiteral(r);
             }
 
-            public override QsExpressionKind onPauliLiteral(QsPauli p)
+            public override QsExpressionKind OnPauliLiteral(QsPauli p)
             {
                 if (p.IsPauliI) this.Output = Keywords.qsPauliI.id;
                 else if (p.IsPauliX) this.Output = Keywords.qsPauliX.id;
@@ -812,7 +814,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsExpressionKind.NewPauliLiteral(p);
             }
 
-            public override QsExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+            public override QsExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
             {
                 if (sym is Identifier.LocalVariable loc)
                 { this.Output = loc.Item.Value; }
@@ -849,7 +851,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// is set to the Q# code corresponding to a statement of the given kind. 
         /// </summary>
         public class StatementKindTransformation
-            : Core.StatementKindTransformation<TransformationState>
+        : StatementKindTransformation<TransformationState>
         {
             private int CurrentIndendation = 0;
 
@@ -861,8 +863,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             private bool PrecededByBlock => 
                 TransformationState.PrecededByBlock(this.SharedState.StatementOutputHandle);
 
-            public StatementKindTransformation(SyntaxTreeToQs parent)
-                : base(parent) =>
+            public StatementKindTransformation(SyntaxTreeToQsharp parent)
+            : base(parent, TransformationOptions.NoRebuild) =>
                 this.ExpressionToQs = parent.ToCode;
 
 
@@ -897,7 +899,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this.AddComments(comments.OpeningComments);
                 this.AddToOutput($"{intro} {"{"}");
                 ++this.CurrentIndendation;
-                this.Transformation.Statements.Transform(statements);
+                this.Transformation.Statements.OnScope(statements);
                 this.AddComments(comments.ClosingComments);
                 --this.CurrentIndendation;
                 this.AddToOutput("}");
@@ -934,7 +936,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             // overrides
 
-            public override QsStatementKind onQubitScope(QsQubitScope stm)
+            public override QsStatementKind OnQubitScope(QsQubitScope stm)
             {
                 var symbols = this.SymbolTuple(stm.Binding.Lhs);
                 var initializers = this.InitializerTuple(stm.Binding.Rhs);
@@ -948,7 +950,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsStatementKind.NewQsQubitScope(stm);
             }
 
-            public override QsStatementKind onForStatement(QsForStatement stm)
+            public override QsStatementKind OnForStatement(QsForStatement stm)
             {
                 var symbols = this.SymbolTuple(stm.LoopItem.Item1);
                 var intro = $"{Keywords.qsFor.id} ({symbols} {Keywords.qsRangeIter.id} {this.ExpressionToQs(stm.IterationValues)})";
@@ -956,14 +958,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsStatementKind.NewQsForStatement(stm);
             }
 
-            public override QsStatementKind onWhileStatement(QsWhileStatement stm)
+            public override QsStatementKind OnWhileStatement(QsWhileStatement stm)
             {
                 var intro = $"{Keywords.qsWhile.id} ({this.ExpressionToQs(stm.Condition)})";
                 this.AddBlockStatement(intro, stm.Body);
                 return QsStatementKind.NewQsWhileStatement(stm);
             }
 
-            public override QsStatementKind onRepeatStatement(QsRepeatStatement stm)
+            public override QsStatementKind OnRepeatStatement(QsRepeatStatement stm)
             {
                 this.SharedState.StatementComments = stm.RepeatBlock.Comments;
                 this.AddBlockStatement(Keywords.qsRepeat.id, stm.RepeatBlock.Body);
@@ -973,7 +975,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsStatementKind.NewQsRepeatStatement(stm);
             }
 
-            public override QsStatementKind onConditionalStatement(QsConditionalStatement stm)
+            public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
             {
                 var header = Keywords.qsIf.id;
                 if (this.PrecededByCode) this.AddToOutput("");
@@ -992,7 +994,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsStatementKind.NewQsConditionalStatement(stm);
             }
 
-            public override QsStatementKind onConjugation(QsConjugation stm)
+            public override QsStatementKind OnConjugation(QsConjugation stm)
             {
                 this.SharedState.StatementComments = stm.OuterTransformation.Comments;
                 this.AddBlockStatement(Keywords.qsWithin.id, stm.OuterTransformation.Body, true);
@@ -1002,25 +1004,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
 
-            public override QsStatementKind onExpressionStatement(TypedExpression ex)
+            public override QsStatementKind OnExpressionStatement(TypedExpression ex)
             {
                 this.AddStatement(this.ExpressionToQs(ex));
                 return QsStatementKind.NewQsExpressionStatement(ex);
             }
 
-            public override QsStatementKind onFailStatement(TypedExpression ex)
+            public override QsStatementKind OnFailStatement(TypedExpression ex)
             {
                 this.AddStatement($"{Keywords.qsFail.id} {this.ExpressionToQs(ex)}");
                 return QsStatementKind.NewQsFailStatement(ex);
             }
 
-            public override QsStatementKind onReturnStatement(TypedExpression ex)
+            public override QsStatementKind OnReturnStatement(TypedExpression ex)
             {
                 this.AddStatement($"{Keywords.qsReturn.id} {this.ExpressionToQs(ex)}");
                 return QsStatementKind.NewQsReturnStatement(ex);
             }
 
-            public override QsStatementKind onVariableDeclaration(QsBinding<TypedExpression> stm)
+            public override QsStatementKind OnVariableDeclaration(QsBinding<TypedExpression> stm)
             {
                 string header;
                 if (stm.Kind.IsImmutableBinding) header = Keywords.qsImmutableBinding.id;
@@ -1031,7 +1033,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return QsStatementKind.NewQsVariableDeclaration(stm);
             }
 
-            public override QsStatementKind onValueUpdate(QsValueUpdate stm)
+            public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
             {
                 this.AddStatement($"{Keywords.qsValueUpdate.id} {this.ExpressionToQs(stm.Lhs)} = {this.ExpressionToQs(stm.Rhs)}");
                 return QsStatementKind.NewQsValueUpdate(stm);
@@ -1044,25 +1046,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         /// Upon calling Transform, the Output property is set to the Q# code corresponding to the given statement block.
         /// </summary>
         public class StatementTransformation
-            : StatementTransformation<TransformationState>
+        : StatementTransformation<TransformationState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent, TransformationOptions.NoRebuild) { }
 
 
             // overrides
 
-            public override QsStatement onStatement(QsStatement stm)
+            public override QsStatement OnStatement(QsStatement stm)
             {
                 this.SharedState.StatementComments = stm.Comments;
-                return base.onStatement(stm);
+                return base.OnStatement(stm);
             }
         }
 
 
         public class NamespaceTransformation
-            : NamespaceTransformation<TransformationState>
+        : NamespaceTransformation<TransformationState>
         {
             private int CurrentIndendation = 0;
             private string CurrentSpecialization = null;
@@ -1075,8 +1076,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             private List<string> Output => // the sole purpose of this is a shorter name ...
                 this.SharedState.NamespaceOutputHandle;
 
-            public NamespaceTransformation(SyntaxTreeToQs parent)
-                : base(parent) =>
+            public NamespaceTransformation(SyntaxTreeToQsharp parent)
+            : base(parent, TransformationOptions.NoRebuild) =>
                 this.TypeToQs = parent.ToCode;
 
 
@@ -1125,11 +1126,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 var callables = elements.Where(e => e.IsQsCallable);
 
                 foreach (var t in types)
-                { this.dispatchNamespaceElement(t); }
+                { this.OnNamespaceElement(t); }
                 if (types.Any()) this.AddToOutput("");
 
                 foreach (var c in callables)
-                { this.dispatchNamespaceElement(c); }
+                { this.OnNamespaceElement(c); }
             }
 
 
@@ -1170,7 +1171,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
             // overrides
 
-            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> onProvidedImplementation
+            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> OnProvidedImplementation
                 (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
             {
                 var functorArg = "(...)";
@@ -1185,7 +1186,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 void ProcessContent()
                 {
                     this.SharedState.StatementOutputHandle.Clear();
-                    this.Transformation.Statements.Transform(body);
+                    this.Transformation.Statements.OnScope(body);
                     foreach (var line in this.SharedState.StatementOutputHandle)
                     { this.AddToOutput(line); }
                 }
@@ -1203,55 +1204,55 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
             }
 
-            public override void onInvalidGeneratorDirective()
+            public override void OnInvalidGeneratorDirective()
             {
                 this.SharedState.BeforeInvalidFunctorGenerator?.Invoke();
                 this.AddDirective($"{this.CurrentSpecialization} {InvalidFunctorGenerator}");
             }
 
-            public override void onDistributeDirective() =>
+            public override void OnDistributeDirective() =>
                 this.AddDirective($"{this.CurrentSpecialization} {Keywords.distributeFunctorGenDirective.id}");
 
-            public override void onInvertDirective() =>
+            public override void OnInvertDirective() =>
                 this.AddDirective($"{this.CurrentSpecialization} {Keywords.invertFunctorGenDirective.id}");
 
-            public override void onSelfInverseDirective() =>
+            public override void OnSelfInverseDirective() =>
                 this.AddDirective($"{this.CurrentSpecialization} {Keywords.selfFunctorGenDirective.id}");
 
-            public override void onIntrinsicImplementation() =>
+            public override void OnIntrinsicImplementation() =>
                 this.AddDirective($"{this.CurrentSpecialization} {Keywords.intrinsicFunctorGenDirective.id}");
 
-            public override void onExternalImplementation()
+            public override void OnExternalImplementation()
             {
                 this.SharedState.BeforeExternalImplementation?.Invoke();
                 this.AddDirective($"{this.CurrentSpecialization} {ExternalImplementation}");
             }
 
-            public override QsSpecialization onBodySpecialization(QsSpecialization spec)
+            public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
             {
                 this.CurrentSpecialization = Keywords.bodyDeclHeader.id;
-                return base.onBodySpecialization(spec);
+                return base.OnBodySpecialization(spec);
             }
 
-            public override QsSpecialization onAdjointSpecialization(QsSpecialization spec)
+            public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
             {
                 this.CurrentSpecialization = Keywords.adjDeclHeader.id;
-                return base.onAdjointSpecialization(spec);
+                return base.OnAdjointSpecialization(spec);
             }
 
-            public override QsSpecialization onControlledSpecialization(QsSpecialization spec)
+            public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
             {
                 this.CurrentSpecialization = Keywords.ctrlDeclHeader.id;
-                return base.onControlledSpecialization(spec);
+                return base.OnControlledSpecialization(spec);
             }
 
-            public override QsSpecialization onControlledAdjointSpecialization(QsSpecialization spec)
+            public override QsSpecialization OnControlledAdjointSpecialization(QsSpecialization spec)
             {
                 this.CurrentSpecialization = Keywords.ctrlAdjDeclHeader.id;
-                return base.onControlledAdjointSpecialization(spec);
+                return base.OnControlledAdjointSpecialization(spec);
             }
 
-            public override QsSpecialization beforeSpecialization(QsSpecialization spec)
+            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec)
             {
                 var precededByCode = TransformationState.PrecededByCode(this.Output);
                 var precededByBlock = TransformationState.PrecededByBlock(this.Output);
@@ -1260,10 +1261,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this.AddComments(spec.Comments.OpeningComments);
                 if (spec.Comments.OpeningComments.Any() && spec.Documentation.Any()) this.AddToOutput("");
                 this.AddDocumentation(spec.Documentation);
-                return spec;
+                return base.OnSpecializationDeclaration(spec);
             }
 
-            public override QsCallable onCallableImplementation(QsCallable c)
+            public override QsCallable OnCallableDeclaration(QsCallable c)
             {
                 if (c.Kind.IsTypeConstructor) return c; // no code for these
 
@@ -1273,10 +1274,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 if (c.Comments.OpeningComments.Any() && c.Documentation.Any()) this.AddToOutput("");
                 this.AddDocumentation(c.Documentation);
                 foreach (var attribute in c.Attributes)
-                { this.onAttribute(attribute); }
+                { this.OnAttribute(attribute); }
 
                 var signature = DeclarationSignature(c, this.TypeToQs, this.SharedState.BeforeInvalidSymbol);
-                this.Transformation.Types.onCharacteristicsExpression(c.Signature.Information.Characteristics);
+                this.Transformation.Types.OnCharacteristicsExpression(c.Signature.Information.Characteristics);
                 var characteristics = this.SharedState.TypeOutputHandle;
 
                 var userDefinedSpecs = c.Specializations.Where(spec => spec.Implementation.IsProvided);
@@ -1310,12 +1311,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 
                 this.AddToOutput($"{declHeader} {signature}");
                 if (!String.IsNullOrWhiteSpace(characteristics)) this.AddToOutput($"{Keywords.qsCharacteristics.id} {characteristics}");
-                this.AddBlock(() => c.Specializations.Select(dispatchSpecialization).ToImmutableArray());
+                this.AddBlock(() => c.Specializations.Select(this.OnSpecializationDeclaration).ToImmutableArray());
                 this.AddToOutput("");
                 return c;
             }
 
-            public override QsCustomType onType(QsCustomType t)
+            public override QsCustomType OnTypeDeclaration(QsCustomType t)
             {
                 this.AddToOutput("");
                 this.DeclarationComments = t.Comments; // no need to deal with closing comments (can't exist), but need to make sure DeclarationComments is up to date
@@ -1323,7 +1324,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 if (t.Comments.OpeningComments.Any() && t.Documentation.Any()) this.AddToOutput("");
                 this.AddDocumentation(t.Documentation);
                 foreach (var attribute in t.Attributes)
-                { this.onAttribute(attribute); }
+                { this.OnAttribute(attribute); }
 
                 (string, ResolvedType) GetItemNameAndType(QsTypeItem item)
                 {
@@ -1336,22 +1337,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return t;
             }
 
-            public override QsDeclarationAttribute onAttribute(QsDeclarationAttribute att)
+            public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute att)
             {
                 // do *not* set DeclarationComments!
-                this.Transformation.Expressions.Transform(att.Argument);
+                this.Transformation.Expressions.OnTypedExpression(att.Argument);
                 var arg = this.SharedState.ExpressionOutputHandle;
                 var argStr = att.Argument.Expression.IsValueTuple || att.Argument.Expression.IsUnitValue ? arg : $"({arg})";
                 var id = att.TypeId.IsValue
                     ? Identifier.NewGlobalCallable(new QsQualifiedName(att.TypeId.Item.Namespace, att.TypeId.Item.Name))
                     : Identifier.InvalidIdentifier;
-                this.Transformation.ExpressionKinds.onIdentifier(id, QsNullable<ImmutableArray<ResolvedType>>.Null);
+                this.Transformation.ExpressionKinds.OnIdentifier(id, QsNullable<ImmutableArray<ResolvedType>>.Null);
                 this.AddComments(att.Comments.OpeningComments);
                 this.AddToOutput($"@ {this.SharedState.ExpressionOutputHandle}{argStr}");
                 return att;
             }
 
-            public override QsNamespace Transform(QsNamespace ns)
+            public override QsNamespace OnNamespace(QsNamespace ns)
             {
                 if (this.SharedState.Context.CurrentNamespace != ns.Name.Value)
                 {

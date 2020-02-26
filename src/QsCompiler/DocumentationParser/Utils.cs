@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="t">The resolved type</param>
         /// <returns>A string containing the source representation of the type</returns>
         internal static string ResolvedTypeToString(ResolvedType t) =>
-            SyntaxTreeToQs.Default.ToCode(t);
+            SyntaxTreeToQsharp.Default.ToCode(t);
 
         /// <summary>
         /// Populates a YAML mapping node with information describing a Q# resolved type.

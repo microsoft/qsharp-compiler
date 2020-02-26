@@ -64,7 +64,7 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
     /// Evaluates and simplifies a single Q# expression
     member internal this.EvaluateExpression expr : Imp<TypedExpression> = imperative {
         let! vars, counter = getState
-        let result = ExpressionEvaluator(callables, vars, counter / 2).Expressions.Transform expr
+        let result = ExpressionEvaluator(callables, vars, counter / 2).Expressions.OnTypedExpression expr
         if isLiteral callables result then return result
         else yield CouldNotEvaluate ("Not a literal: " + result.Expression.ToString())
     }
@@ -173,19 +173,20 @@ and internal ExpressionEvaluator private (_private_) =
     internal new (callables : IDictionary<QsQualifiedName, QsCallable>, constants : IDictionary<string, TypedExpression>, stmtsLeft : int) as this = 
         new ExpressionEvaluator("_private_") then
             this.ExpressionKinds <- new ExpressionKindEvaluator(this, callables, constants, stmtsLeft)
-   
+            this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
+
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
 and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedName, QsCallable>, constants: IDictionary<string, TypedExpression>, stmtsLeft: int) =
     inherit ExpressionKindTransformation(parent)
 
-    member private this.simplify e1 = this.Expressions.Transform e1
+    member private this.simplify e1 = this.Expressions.OnTypedExpression e1
 
     member private this.simplify (e1, e2) =
-        (this.Expressions.Transform e1, this.Expressions.Transform e2)
+        (this.Expressions.OnTypedExpression e1, this.Expressions.OnTypedExpression e2)
 
     member private this.simplify (e1, e2, e3) =
-        (this.Expressions.Transform e1, this.Expressions.Transform e2, this.Expressions.Transform e3)
+        (this.Expressions.OnTypedExpression e1, this.Expressions.OnTypedExpression e2, this.Expressions.OnTypedExpression e3)
 
     member private this.arithBoolBinaryOp qop bigIntOp doubleOp intOp lhs rhs =
         let lhs, rhs = this.simplify (lhs, rhs)
@@ -209,7 +210,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
         | IntLiteral a, IntLiteral b -> IntLiteral (intOp a b)
         | _ -> qop (lhs, rhs)
 
-    override this.onIdentifier (sym, tArgs) =
+    override this.OnIdentifier (sym, tArgs) =
         match sym with
         | LocalVariable name -> 
             match constants.TryGetValue name.Value with 
@@ -217,7 +218,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
             | _ -> Identifier (sym, tArgs)
         | _ -> Identifier (sym, tArgs)
 
-    override this.onFunctionCall (method, arg) =
+    override this.OnFunctionCall (method, arg) =
         let method, arg = this.simplify (method, arg)
         maybe {
             match method.Expression with
@@ -227,31 +228,31 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
                 return! fe.EvaluateFunction qualName arg stmtsLeft |> Option.map (fun x -> x.Expression)
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.IsPartialApplication method.Expression)
-                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+                return this.OnExpressionKind (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
-    override this.onOperationCall (method, arg) =
+    override this.OnOperationCall (method, arg) =
         let method, arg = this.simplify (method, arg)
         maybe {
             match method.Expression with
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.IsPartialApplication method.Expression)
-                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+                return this.OnExpressionKind (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
-    override this.onPartialApplication (method, arg) =
+    override this.OnPartialApplication (method, arg) =
         let method, arg = this.simplify (method, arg)
         maybe {
             match method.Expression with
             | CallLikeExpression (baseMethod, partialArg) ->
                 do! check (TypedExpression.IsPartialApplication method.Expression)
-                return this.Transform (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
+                return this.OnExpressionKind (CallLikeExpression (baseMethod, fillPartialArg (partialArg, arg)))
             | _ -> return! None
         } |? CallLikeExpression (method, arg)
 
-    override this.onUnwrapApplication ex =
+    override this.OnUnwrapApplication ex =
         let ex = this.simplify ex
         match ex.Expression with
         | CallLikeExpression ({Expression = Identifier (GlobalCallable qualName, types)}, arg)
@@ -266,7 +267,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
                 arg.Expression
         | _ -> UnwrapApplication ex
 
-    override this.onArrayItem (arr, idx) =
+    override this.OnArrayItem (arr, idx) =
         let arr, idx = this.simplify (arr, idx)
         match arr.Expression, idx.Expression with
         | ValueArray va, IntLiteral i -> va.[safeCastInt64 i].Expression
@@ -274,13 +275,13 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
             rangeLiteralToSeq idx.Expression |> Seq.map (fun i -> va.[safeCastInt64 i]) |> ImmutableArray.CreateRange |> ValueArray
         | _ -> ArrayItem (arr, idx)
 
-    override this.onNewArray (bt, idx) =
+    override this.OnNewArray (bt, idx) =
         let idx = this.simplify idx
         match idx.Expression with
         | IntLiteral i -> constructNewArray bt.Resolution (safeCastInt64 i) |? NewArray (bt, idx)
         | _ -> NewArray (bt, idx)
 
-    override this.onCopyAndUpdateExpression (lhs, accEx, rhs) =
+    override this.OnCopyAndUpdateExpression (lhs, accEx, rhs) =
         let lhs, accEx, rhs = this.simplify (lhs, accEx, rhs)
         match lhs.Expression, accEx.Expression, rhs.Expression with
         | ValueArray va, IntLiteral i, _ -> ValueArray (va.SetItem(safeCastInt64 i, rhs))
@@ -290,44 +291,44 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
         // TODO - handle named items in user-defined types
         | _ -> CopyAndUpdate (lhs, accEx, rhs)
 
-    override this.onConditionalExpression (e1, e2, e3) =
+    override this.OnConditionalExpression (e1, e2, e3) =
         let e1 = this.simplify e1
         match e1.Expression with
         | BoolLiteral a -> if a then (this.simplify e2).Expression else (this.simplify e3).Expression
         | _ -> CONDITIONAL (e1, this.simplify e2, this.simplify e3)
 
-    override this.onEquality (lhs, rhs) =
+    override this.OnEquality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match isLiteral callables lhs && isLiteral callables rhs with
         | true -> BoolLiteral (lhs.Expression = rhs.Expression)
         | false -> EQ (lhs, rhs)
 
-    override this.onInequality (lhs, rhs) =
+    override this.OnInequality (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match isLiteral callables lhs && isLiteral callables rhs with
         | true -> BoolLiteral (lhs.Expression <> rhs.Expression)
         | false -> NEQ (lhs, rhs)
 
-    override this.onLessThan (lhs, rhs) =
+    override this.OnLessThan (lhs, rhs) =
         this.arithBoolBinaryOp LT (<) (<) (<) lhs rhs
 
-    override this.onLessThanOrEqual (lhs, rhs) =
+    override this.OnLessThanOrEqual (lhs, rhs) =
         this.arithBoolBinaryOp LTE (<=) (<=) (<=) lhs rhs
 
-    override this.onGreaterThan (lhs, rhs) =
+    override this.OnGreaterThan (lhs, rhs) =
         this.arithBoolBinaryOp GT (>) (>) (>) lhs rhs
 
-    override this.onGreaterThanOrEqual (lhs, rhs) =
+    override this.OnGreaterThanOrEqual (lhs, rhs) =
         this.arithBoolBinaryOp GTE (>=) (>=) (>=) lhs rhs
 
-    override this.onLogicalAnd (lhs, rhs) =
+    override this.OnLogicalAnd (lhs, rhs) =
         let lhs = this.simplify lhs
         match lhs.Expression with
         | BoolLiteral true -> (this.simplify rhs).Expression
         | BoolLiteral false -> BoolLiteral false
         | _ -> AND (lhs, this.simplify rhs)
 
-    override this.onLogicalOr (lhs, rhs) =
+    override this.OnLogicalOr (lhs, rhs) =
         let lhs = this.simplify lhs
         match lhs.Expression with
         | BoolLiteral true -> BoolLiteral true
@@ -339,7 +340,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
     // - rewrites (integers, big integers, and doubles):
     //     0 + x = x
     //     x + 0 = x
-    override this.onAddition (lhs, rhs) =
+    override this.OnAddition (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | ValueArray a, ValueArray b -> ValueArray (a.AddRange b)
@@ -358,7 +359,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
     //     x - 0 = x
     //     0 - x = -x
     //     x - x = 0
-    override this.onSubtraction (lhs, rhs) =
+    override this.OnSubtraction (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | op, BigIntLiteral zero when zero.IsZero -> op
@@ -381,7 +382,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
     //     0 * x = 0
     //     x * 1 = x
     //     1 * x = x
-    override this.onMultiplication (lhs, rhs) =
+    override this.OnMultiplication (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | _, (BigIntLiteral zero)
@@ -399,7 +400,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
         | _ -> this.arithNumBinaryOp MUL (*) (*) (*) lhs rhs
 
     // - simplifies multiplication of two constants into single constant
-    override this.onDivision (lhs, rhs) =
+    override this.OnDivision (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | op, (BigIntLiteral one) when one.IsOne -> op
@@ -407,7 +408,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
         | op, (IntLiteral 1L) -> op
         | _ -> this.arithNumBinaryOp DIV (/) (/) (/) lhs rhs
 
-    override this.onExponentiate (lhs, rhs) =
+    override this.OnExponentiate (lhs, rhs) =
         let lhs, rhs = this.simplify (lhs, rhs)
         match lhs.Expression, rhs.Expression with
         | BigIntLiteral a, IntLiteral b -> BigIntLiteral (BigInteger.Pow(a, safeCastInt64 b))
@@ -415,31 +416,31 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
         | IntLiteral a, IntLiteral b -> IntLiteral (longPow a b)
         | _ -> POW (lhs, rhs)
 
-    override this.onModulo (lhs, rhs) =
+    override this.OnModulo (lhs, rhs) =
         this.intBinaryOp MOD (%) (%) lhs rhs
 
-    override this.onLeftShift (lhs, rhs) =
+    override this.OnLeftShift (lhs, rhs) =
         this.intBinaryOp LSHIFT (fun l r -> l <<< safeCastBigInt r) (fun l r -> l <<< safeCastInt64 r) lhs rhs
 
-    override this.onRightShift (lhs, rhs) =
+    override this.OnRightShift (lhs, rhs) =
         this.intBinaryOp RSHIFT (fun l r -> l >>> safeCastBigInt r) (fun l r -> l >>> safeCastInt64 r) lhs rhs
 
-    override this.onBitwiseExclusiveOr (lhs, rhs) =
+    override this.OnBitwiseExclusiveOr (lhs, rhs) =
         this.intBinaryOp BXOR (^^^) (^^^) lhs rhs
 
-    override this.onBitwiseOr (lhs, rhs) =
+    override this.OnBitwiseOr (lhs, rhs) =
         this.intBinaryOp BOR (|||) (|||) lhs rhs
 
-    override this.onBitwiseAnd (lhs, rhs) =
+    override this.OnBitwiseAnd (lhs, rhs) =
         this.intBinaryOp BAND (&&&) (&&&) lhs rhs
 
-    override this.onLogicalNot expr =
+    override this.OnLogicalNot expr =
         let expr = this.simplify expr
         match expr.Expression with
         | BoolLiteral a -> BoolLiteral (not a)
         | _ -> NOT expr
 
-    override this.onNegative expr =
+    override this.OnNegative expr =
         let expr = this.simplify expr
         match expr.Expression with
         | BigIntLiteral a -> BigIntLiteral (-a)
@@ -447,7 +448,7 @@ and private ExpressionKindEvaluator(parent, callables: IDictionary<QsQualifiedNa
         | IntLiteral a -> IntLiteral (-a)
         | _ -> NEG expr
 
-    override this.onBitwiseNot expr =
+    override this.OnBitwiseNot expr =
         let expr = this.simplify expr
         match expr.Expression with
         | IntLiteral a -> IntLiteral (~~~a)

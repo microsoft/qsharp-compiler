@@ -41,34 +41,34 @@ type private SyntaxCounter private(counter : Counter, ?options) =
 and private SyntaxCounterNamespaces(parent : SyntaxCounter) = 
     inherit NamespaceTransformation(parent)
 
-    override this.beforeCallable (node:QsCallable) =
+    override this.OnCallableDeclaration (node:QsCallable) =
         match node.Kind with
         | Operation ->       parent.Counter.opsCount <- parent.Counter.opsCount + 1
         | Function  ->       parent.Counter.funCount <- parent.Counter.funCount + 1
         | TypeConstructor -> ()
-        node
+        base.OnCallableDeclaration node
 
-    override this.onType (udt:QsCustomType) =
+    override this.OnTypeDeclaration (udt:QsCustomType) =
         parent.Counter.udtCount <- parent.Counter.udtCount + 1
-        base.onType udt
+        base.OnTypeDeclaration udt
 
 and private SyntaxCounterStatementKinds(parent : SyntaxCounter) = 
     inherit StatementKindTransformation(parent)
 
-    override this.onConditionalStatement (node:QsConditionalStatement) =
+    override this.OnConditionalStatement (node:QsConditionalStatement) =
         parent.Counter.ifsCount <- parent.Counter.ifsCount + 1
-        base.onConditionalStatement node
+        base.OnConditionalStatement node
     
-    override this.onForStatement (node:QsForStatement) =
+    override this.OnForStatement (node:QsForStatement) =
         parent.Counter.forCount <- parent.Counter.forCount + 1
-        base.onForStatement node
+        base.OnForStatement node
 
 and private SyntaxCounterExpressionKinds(parent : SyntaxCounter) = 
     inherit ExpressionKindTransformation(parent)
 
-    override this.beforeCallLike (op,args) =
+    override this.OnCallLikeExpression (op,args) =
         parent.Counter.callsCount <- parent.Counter.callsCount + 1
-        base.beforeCallLike (op, args)
+        base.OnCallLikeExpression (op, args)
 
 
 let private buildSyntaxTree code =
@@ -87,7 +87,7 @@ let private buildSyntaxTree code =
 let ``basic walk`` () = 
     let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
     let walker = new SyntaxCounter(TransformationOptions.NoRebuild)
-    tree |> Seq.iter (walker.Namespaces.Transform >> ignore)
+    tree |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
         
     Assert.Equal (4, walker.Counter.udtCount)
     Assert.Equal (1, walker.Counter.funCount)
@@ -100,7 +100,7 @@ let ``basic walk`` () =
 let ``basic transformation`` () = 
     let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
     let walker = new SyntaxCounter()
-    tree |> Seq.iter (walker.Namespaces.Transform >> ignore)
+    tree |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
         
     Assert.Equal (4, walker.Counter.udtCount)
     Assert.Equal (1, walker.Counter.funCount)
@@ -133,7 +133,7 @@ let ``generation of open statements`` () =
     let imports = ImmutableDictionary.Empty.Add(ns.Name, openDirectives)
 
     let codeOutput = ref null
-    SyntaxTreeToQs.Apply (codeOutput, tree, struct (source, imports)) |> Assert.True
+    SyntaxTreeToQsharp.Apply (codeOutput, tree, struct (source, imports)) |> Assert.True
     let lines = Utils.SplitLines (codeOutput.Value.Single().[ns.Name])
     Assert.Equal(13, lines.Count())
 

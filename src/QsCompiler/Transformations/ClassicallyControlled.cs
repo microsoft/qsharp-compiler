@@ -9,21 +9,24 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation
+namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
 
-    // This transformation works in two passes.
-    // 1st Pass: Hoist the contents of conditional statements into separate operations, where possible.
-    // 2nd Pass: On the way down the tree, reshape conditional statements to replace Elif's and
-    // top level OR and AND conditions with equivalent nested if-else statements. One the way back up
-    // the tree, convert conditional statements into ApplyIf calls, where possible.
-    // This relies on anything having type parameters must be a global callable.
-    public static class ClassicallyControlledTransformation
+    /// <summary>
+    /// This transformation works in two passes.
+    /// 1st Pass: Hoist the contents of conditional statements into separate operations, where possible.
+    /// 2nd Pass: On the way down the tree, reshape conditional statements to replace Elif's and
+    /// top level OR and AND conditions with equivalent nested if-else statements. One the way back up
+    /// the tree, convert conditional statements into ApplyIf calls, where possible.
+    /// This relies on anything having type parameters must be a global callable.
+    /// </summary>
+    public static class ReplaceClassicalControl
     {
         public static QsCompilation Apply(QsCompilation compilation)
         {
@@ -38,7 +41,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 var filter = new ConvertConditions(compilation);
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
 
             public class TransformationState
@@ -55,13 +58,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation(this);
+                this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
             }
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being considered
+                public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being considered
             }
 
             private class StatementTransformation : StatementTransformation<TransformationState>
@@ -84,7 +89,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                         var callTypeArguments = expr.Item.TypeArguments;
                         var idTypeArguments = call.Item1.TypeArguments;
-                        var combinedTypeArguments = Utilities.GetCombinedType(callTypeArguments, idTypeArguments);
+                        var combinedTypeArguments = Utils.GetCombinedTypeResolution(callTypeArguments, idTypeArguments);
 
                         // This relies on anything having type parameters must be a global callable.
                         var newCallIdentifier = call.Item1;
@@ -165,10 +170,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             }
 
                             var (zeroOpArg, oneOpArg) = (result == QsResult.Zero)
-                                ? (Utilities.CreateValueTupleExpression(condId, condArgs), Utilities.CreateValueTupleExpression(defaultId, defaultArgs))
-                                : (Utilities.CreateValueTupleExpression(defaultId, defaultArgs), Utilities.CreateValueTupleExpression(condId, condArgs));
+                                ? (Utils.CreateValueTupleExpression(condId, condArgs), Utils.CreateValueTupleExpression(defaultId, defaultArgs))
+                                : (Utils.CreateValueTupleExpression(defaultId, defaultArgs), Utils.CreateValueTupleExpression(condId, condArgs));
 
-                            controlArgs = Utilities.CreateValueTupleExpression(conditionExpression, zeroOpArg, oneOpArg);
+                            controlArgs = Utils.CreateValueTupleExpression(conditionExpression, zeroOpArg, oneOpArg);
 
                             targetArgs = ImmutableArray.Create(condArgs.ResolvedType, defaultArgs.ResolvedType);
                         }
@@ -199,9 +204,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                                 : BuiltIn.ApplyIfOne;
                             }
 
-                            controlArgs = Utilities.CreateValueTupleExpression(
+                            controlArgs = Utils.CreateValueTupleExpression(
                                 conditionExpression,
-                                Utilities.CreateValueTupleExpression(condId, condArgs));
+                                Utils.CreateValueTupleExpression(condId, condArgs));
 
                             targetArgs = ImmutableArray.Create(condArgs.ResolvedType);
                         }
@@ -217,12 +222,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     }
 
                     // Build the surrounding apply-if call
-                    var controlOpId = Utilities.CreateIdentifierExpression(
+                    var controlOpId = Utils.CreateIdentifierExpression(
                         Identifier.NewGlobalCallable(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name)),
                         targetArgs
                             .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
                             .ToImmutableArray(),
-                        Utilities.GetOperatorResolvedType(props, controlArgs.ResolvedType));
+                        Utils.GetOperationType(props, controlArgs.ResolvedType));
 
                     // Creates identity resolutions for the call expression
                     var opTypeArgResolutions = targetArgs
@@ -240,7 +245,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         })
                         .ToImmutableArray();
 
-                    return Utilities.CreateCallLike(controlOpId, controlArgs, opTypeArgResolutions);
+                    return Utils.CreateCallLikeExpression(controlOpId, controlArgs, opTypeArgResolutions);
                 }
 
                 private QsStatement CreateApplyIfStatement(QsStatement statement, QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
@@ -377,7 +382,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 #region Condition Checking Logic
 
-                private (bool, TypedExpression, QsScope, QsScope) IsConditionWtihSingleBlock(QsStatement statement)
+                private (bool, TypedExpression, QsScope, QsScope) IsConditionWithSingleBlock(QsStatement statement)
                 {
                     if (statement.Statement is QsStatementKind.QsConditionalStatement cond && cond.Item.ConditionalBlocks.Length == 1)
                     {
@@ -406,9 +411,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 #endregion
 
-                public override QsScope Transform(QsScope scope)
+                public override QsScope OnScope(QsScope scope)
                 {
-                    var parentSymbols = this.onLocalDeclarations(scope.KnownSymbols);
+                    var parentSymbols = this.OnLocalDeclarations(scope.KnownSymbols);
                     var statements = new List<QsStatement>();
 
                     foreach (var statement in scope.Statements)
@@ -416,9 +421,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         if (statement.Statement is QsStatementKind.QsConditionalStatement)
                         {
                             var stm = ReshapeConditional(statement);
-                            stm = this.onStatement(stm);
+                            stm = this.OnStatement(stm);
 
-                            var (isCondition, cond, conditionScope, defaultScope) = IsConditionWtihSingleBlock(stm);
+                            var (isCondition, cond, conditionScope, defaultScope) = IsConditionWithSingleBlock(stm);
 
                             if (isCondition)
                             {
@@ -437,7 +442,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         }
                         else
                         {
-                            statements.Add(this.onStatement(statement));
+                            statements.Add(this.OnStatement(statement));
                         }
                     }
 
@@ -447,18 +452,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
         }
     }
 
-    // Transformation handling the first pass task of hoisting of the contents of conditional statements.
-    // If blocks are first validated to see if they can safely be hoisted into their own operation.
-    // Validation requirements are that there are no return statements and that there are no set statements
-    // on mutables declared outside the block. Setting mutables declared inside the block is valid.
-    // If the block is valid, and there is more than one statement in the block, a new operation with the
-    // block's contents is generated, having all the same type parameters as the calling context
-    // and all known variables at the start of the block become parameters to the new operation.
-    // The contents of the conditional block are then replaced with a call to the new operation with all
-    // the type parameters and known variables being forwarded to the new operation as arguments.
-    public static class HoistTransformation
+
+    /// <summary>
+    /// Transformation handling the first pass task of hoisting of the contents of conditional statements.
+    /// If blocks are first validated to see if they can safely be hoisted into their own operation.
+    /// Validation requirements are that there are no return statements and that there are no set statements
+    /// on mutables declared outside the block. Setting mutables declared inside the block is valid.
+    /// If the block is valid, and there is more than one statement in the block, a new operation with the
+    /// block's contents is generated, having all the same type parameters as the calling context
+    /// and all known variables at the start of the block become parameters to the new operation.
+    /// The contents of the conditional block are then replaced with a call to the new operation with all
+    /// the type parameters and known variables being forwarded to the new operation as arguments.
+    /// </summary>
+    internal static class HoistTransformation // this class can be made public once its functionality is no longer tied to the classically-controlled transformation 
     {
-        public static QsCompilation Apply(QsCompilation compilation) => HoistContents.Apply(compilation);
+        internal static QsCompilation Apply(QsCompilation compilation) => HoistContents.Apply(compilation);
 
         private class HoistContents : SyntaxTreeTransformation<HoistContents.TransformationState>
         {
@@ -466,7 +474,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 var filter = new HoistContents();
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
 
             public class CallableDetails
@@ -603,7 +611,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                 public (QsCallable, ResolvedType) GenerateOperation(QsScope contents)
                 {
-                    var newName = Utilities.AddGuid(CurrentCallable.Callable.FullName);
+                    var newName = UniqueVariableNames.PrependGuid(CurrentCallable.Callable.FullName);
 
                     var knownVariables = contents.KnownSymbols.IsEmpty
                         ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
@@ -656,54 +664,55 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 this.StatementKinds = new StatementKindTransformation(this);
                 this.Expressions = new ExpressionTransformation(this);
                 this.ExpressionKinds = new ExpressionKindTransformation(this);
+                this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
             }
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override QsCallable onCallableImplementation(QsCallable c)
+                public override QsCallable OnCallableDeclaration(QsCallable c)
                 {
                     SharedState.CurrentCallable = new CallableDetails(c);
-                    return base.onCallableImplementation(c);
+                    return base.OnCallableDeclaration(c);
                 }
 
-                public override QsSpecialization onBodySpecialization(QsSpecialization spec)
+                public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
                 {
                     SharedState.InBody = true;
-                    var rtrn = base.onBodySpecialization(spec);
+                    var rtrn = base.OnBodySpecialization(spec);
                     SharedState.InBody = false;
                     return rtrn;
                 }
 
-                public override QsSpecialization onAdjointSpecialization(QsSpecialization spec)
+                public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
                 {
                     SharedState.InAdjoint = true;
-                    var rtrn = base.onAdjointSpecialization(spec);
+                    var rtrn = base.OnAdjointSpecialization(spec);
                     SharedState.InAdjoint = false;
                     return rtrn;
                 }
 
-                public override QsSpecialization onControlledSpecialization(QsSpecialization spec)
+                public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
                 {
                     SharedState.InControlled = true;
-                    var rtrn = base.onControlledSpecialization(spec);
+                    var rtrn = base.OnControlledSpecialization(spec);
                     SharedState.InControlled = false;
                     return rtrn;
                 }
 
-                public override QsCallable onFunction(QsCallable c) => c; // Prevent anything in functions from being hoisted
+                public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being hoisted
 
-                public override QsNamespace Transform(QsNamespace ns)
+                public override QsNamespace OnNamespace(QsNamespace ns)
                 {
                     // Control operations list will be populated in the transform
                     SharedState.ControlOperations = new List<QsCallable>();
-                    return base.Transform(ns)
+                    return base.OnNamespace(ns)
                         .WithElements(elems => elems.AddRange(SharedState.ControlOperations.Select(op => QsNamespaceElement.NewQsCallable(op))));
                 }
             }
 
-            private class StatementKindTransformation : Core.StatementKindTransformation<TransformationState>
+            private class StatementKindTransformation : StatementKindTransformation<TransformationState>
             {
                 public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
@@ -735,7 +744,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                     TypedExpression targetArgs = null;
                     if (knownSymbols.Any())
                     {
-                        targetArgs = Utilities.CreateValueTupleExpression(knownSymbols.Select(var => Utilities.CreateIdentifierExpression(
+                        targetArgs = Utils.CreateValueTupleExpression(knownSymbols.Select(var => Utils.CreateIdentifierExpression(
                             Identifier.NewLocalVariable(var.VariableName),
                             TypeArgsResolution.Empty,
                             var.Type))
@@ -784,39 +793,39 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                            && call.Item1.Expression is ExpressionKind.Identifier;
                 }
 
-                public override QsStatementKind onConjugation(QsConjugation stm)
+                public override QsStatementKind OnConjugation(QsConjugation stm)
                 {
                     var superInWithinBlock = SharedState.InWithinBlock;
                     SharedState.InWithinBlock = true;
-                    var (_, outer) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
+                    var (_, outer) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
                     SharedState.InWithinBlock = superInWithinBlock;
 
-                    var (_, inner) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
+                    var (_, inner) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
 
                     return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
                 }
 
-                public override QsStatementKind onReturnStatement(TypedExpression ex)
+                public override QsStatementKind OnReturnStatement(TypedExpression ex)
                 {
                     SharedState.IsValidScope = false;
-                    return base.onReturnStatement(ex);
+                    return base.OnReturnStatement(ex);
                 }
 
-                public override QsStatementKind onValueUpdate(QsValueUpdate stm)
+                public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
                 {
                     // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
-                    var lhs = this.Expressions.Transform(stm.Lhs);
+                    var lhs = this.Expressions.OnTypedExpression(stm.Lhs);
 
                     if (SharedState.ContainsHoistParamRef)
                     {
                         SharedState.IsValidScope = false;
                     }
 
-                    var rhs = this.Expressions.Transform(stm.Rhs);
+                    var rhs = this.Expressions.OnTypedExpression(stm.Rhs);
                     return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
                 }
 
-                public override QsStatementKind onConditionalStatement(QsConditionalStatement stm)
+                public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
                 {
                     var contextValidScope = SharedState.IsValidScope;
                     var contextHoistParams = SharedState.CurrentHoistParams;
@@ -832,7 +841,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
                         : condBlock.Item2.Body.KnownSymbols.Variables;
 
-                        var (expr, block) = this.onPositionedBlock(QsNullable<TypedExpression>.NewValue(condBlock.Item1), condBlock.Item2);
+                        var (expr, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.NewValue(condBlock.Item1), condBlock.Item2);
 
                         // ToDo: Reduce the number of unnecessary generated operations by generalizing
                         // the condition logic for the conversion and using that condition here
@@ -864,7 +873,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                             ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
                             : stm.Default.Item.Body.KnownSymbols.Variables;
 
-                        var (_, block) = this.onPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
+                        var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
                         if (block.Body.Statements.Length > 0 && SharedState.IsValidScope && !IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
                         {
                             // Hoist the scope to its own operation
@@ -897,22 +906,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                           new QsConditionalStatement(stm.ConditionalBlocks, stm.Default));
                 }
 
-                public override QsStatementKind Transform(QsStatementKind kind)
+                public override QsStatementKind OnStatementKind(QsStatementKind kind)
                 {
                     SharedState.ContainsHoistParamRef = false; // Every statement kind starts off false
-                    return base.Transform(kind);
+                    return base.OnStatementKind(kind);
                 }
             }
 
-            private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
+            private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
                 public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override TypedExpression Transform(TypedExpression ex)
+                public override TypedExpression OnTypedExpression(TypedExpression ex)
                 {
                     var contextContainsHoistParamRef = SharedState.ContainsHoistParamRef;
                     SharedState.ContainsHoistParamRef = false;
-                    var rtrn = base.Transform(ex);
+                    var rtrn = base.OnTypedExpression(ex);
 
                     // If the sub context contains a reference, then the super context contains a reference,
                     // otherwise return the super context to its original value
@@ -925,32 +934,34 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 }
             }
 
-            private class ExpressionKindTransformation : Core.ExpressionKindTransformation<TransformationState>
+            private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
             {
                 public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override ExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
                 {
                     if (sym is Identifier.LocalVariable local &&
                     SharedState.CurrentHoistParams.Any(param => param.VariableName.Equals(local.Item)))
                     {
                         SharedState.ContainsHoistParamRef = true;
                     }
-                    return base.onIdentifier(sym, tArgs);
+                    return base.OnIdentifier(sym, tArgs);
                 }
             }
         }
 
-        // Transformation that updates the contents of newly generated operations by:
-        // 1. Rerouting the origins of type parameter references to the new operation
-        // 2. Changes the IsMutable info on variable that used to be mutable, but are now immutable params to the operation
+        /// <summary>
+        /// Transformation that updates the contents of newly generated operations by:
+        /// 1. Rerouting the origins of type parameter references to the new operation
+        /// 2. Changes the IsMutable info on variable that used to be mutable, but are now immutable params to the operation
+        /// </summary>
         private class UpdateGeneratedOp : SyntaxTreeTransformation<UpdateGeneratedOp.TransformationState>
         {
             public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             {
                 var filter = new UpdateGeneratedOp(parameters, oldName, newName);
 
-                return filter.Namespaces.onCallableImplementation(qsCallable);
+                return filter.Namespaces.OnCallableDeclaration(qsCallable);
             }
 
             public class TransformationState
@@ -976,17 +987,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                 this.Types = new TypeTransformation(this);
             }
 
-            private class ExpressionTransformation : Core.ExpressionTransformation<TransformationState>
+            private class ExpressionTransformation : ExpressionTransformation<TransformationState>
             {
                 public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
+                public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
                 {
                     // Prevent keys from having their names updated
-                    return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.Transform(kvp.Value));
+                    return typeParams.ToImmutableDictionary(kvp => kvp.Key, kvp => this.Types.OnType(kvp.Value));
                 }
 
-                public override TypedExpression Transform(TypedExpression ex)
+                public override TypedExpression OnTypedExpression(TypedExpression ex)
                 {
                     // Checks if expression is mutable identifier that is in parameter list
                     if (ex.InferredInformation.IsMutable &&
@@ -1005,19 +1016,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
 
                     // Prevent IsRecursiveIdentifier from propagating beyond the typed expression it is referring to
                     var isRecursiveIdentifier = SharedState.IsRecursiveIdentifier;
-                    var rtrn = base.Transform(ex);
+                    var rtrn = base.OnTypedExpression(ex);
                     SharedState.IsRecursiveIdentifier = isRecursiveIdentifier;
                     return rtrn;
                 }
             }
 
-            private class ExpressionKindTransformation : Core.ExpressionKindTransformation<TransformationState>
+            private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
             {
                 public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override ExpressionKind onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
                 {
-                    var rtrn = base.onIdentifier(sym, tArgs);
+                    var rtrn = base.OnIdentifier(sym, tArgs);
 
                     // Then check if this is a recursive identifier
                     // In this context, that is a call back to the original callable from the newly generated operation
@@ -1036,7 +1047,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
             {
                 public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                public override ResolvedTypeKind onTypeParameter(QsTypeParameter tp)
+                public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
                 {
                     // Reroute a type parameter's origin to the newly generated operation
                     if (!SharedState.IsRecursiveIdentifier && SharedState.OldName.Equals(tp.Origin))
@@ -1044,7 +1055,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTran
                         tp = new QsTypeParameter(SharedState.NewName, tp.TypeName, tp.Range);
                     }
 
-                    return base.onTypeParameter(tp);
+                    return base.OnTypeParameter(tp);
                 }
             }
         }

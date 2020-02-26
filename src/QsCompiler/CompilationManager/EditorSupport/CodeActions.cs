@@ -220,7 +220,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             string CharacteristicsAnnotation(Characteristics c)
             {
-                var charEx = SyntaxTreeToQs.CharacteristicsExpression(SymbolResolution.ResolveCharacteristics(c));
+                var charEx = SyntaxTreeToQsharp.CharacteristicsExpression(SymbolResolution.ResolveCharacteristics(c));
                 return charEx == null ? "" : $"{Keywords.qsCharacteristics.id} {charEx}";
             }
 

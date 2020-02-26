@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
     /// throws an InvalidOperationException if the outer block contains while-loops. 
     /// </summary>
     public class InlineConjugations 
-        : SyntaxTreeTransformation<InlineConjugations.TransformationState> 
+    : SyntaxTreeTransformation<InlineConjugations.TransformationState> 
     {
         public class TransformationState
         {
@@ -28,10 +28,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             internal readonly Action<Exception> OnException;
 
             internal Func<QsScope, QsScope> ResolveNames = 
-                new UniqueVariableNames().Statements.Transform;
+                new UniqueVariableNames().Statements.OnScope;
 
             public void Reset() => 
-                this.ResolveNames = new UniqueVariableNames().Statements.Transform;
+                this.ResolveNames = new UniqueVariableNames().Statements.OnScope;
 
             public TransformationState(Action<Exception> onException = null)
             {
@@ -42,24 +42,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
 
 
         public InlineConjugations(Action<Exception> onException = null)
-            : base(new TransformationState(onException))
+        : base(new TransformationState(onException))
         { 
-            this.Statements = new StatementTransformation(this);
             this.Namespaces = new NamespaceTransformation(this);
+            this.Statements = new StatementTransformation(this);
+            this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
 
         // helper classes
 
-        private class StatementTransformation :
-            StatementTransformation<TransformationState>
+        private class StatementTransformation 
+        : StatementTransformation<TransformationState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent) { }
 
 
-            public override QsScope Transform(QsScope scope)
+            public override QsScope OnScope(QsScope scope)
             {
                 var statements = ImmutableArray.CreateBuilder<QsStatement>();
                 foreach (var statement in scope.Statements)
@@ -68,34 +69,33 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
                     {
                         // since we are eliminating scopes, 
                         // we need to make sure that the variables defined within the inlined scopes do not clash with other defined variables.
-                        var outer = this.SharedState.ResolveNames(this.Transform(conj.Item.OuterTransformation.Body));
-                        var inner = this.SharedState.ResolveNames(this.Transform(conj.Item.InnerTransformation.Body));
+                        var outer = this.SharedState.ResolveNames(this.OnScope(conj.Item.OuterTransformation.Body));
+                        var inner = this.SharedState.ResolveNames(this.OnScope(conj.Item.InnerTransformation.Body));
                         var adjOuter = outer.GenerateAdjoint(); // will add a unique name wrapper
 
                         statements.AddRange(outer.Statements);
                         statements.AddRange(inner.Statements);
                         statements.AddRange(adjOuter.Statements);
                     }
-                    else statements.Add(this.onStatement(statement));
+                    else statements.Add(this.OnStatement(statement));
                 }
                 return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
             }
         }
 
 
-        private class NamespaceTransformation :
-            NamespaceTransformation<TransformationState>
+        private class NamespaceTransformation 
+        : NamespaceTransformation<TransformationState>
         {
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            { }
+            : base(parent) { }
 
 
-            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> onProvidedImplementation
+            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> OnProvidedImplementation
                 (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
             {
                 this.SharedState.Reset();
-                try { body = this.Transformation.Statements.Transform(body); }
+                try { body = this.Transformation.Statements.OnScope(body); }
                 catch (Exception ex)
                 {
                     this.SharedState.OnException?.Invoke(ex);

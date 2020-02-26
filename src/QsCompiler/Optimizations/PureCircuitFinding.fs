@@ -23,16 +23,18 @@ type PureCircuitFinder private (_private_ : string) =
         new PureCircuitFinder("_private_") then
             this.Namespaces <- new PureCircuitFinderNamespaces(this)
             this.Statements <- new PureCircuitFinderStatements(this, callables)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for PureCircuitFinder
 and private PureCircuitFinderNamespaces (parent : PureCircuitFinder) = 
     inherit Core.NamespaceTransformation(parent)
 
-    override __.onCallableImplementation c =
+    override __.OnCallableDeclaration c =
         let r = FindDistinctQubits()
-        r.Namespaces.onCallableImplementation c |> ignore
+        r.Namespaces.OnCallableDeclaration c |> ignore
         parent.DistinctQubitFinder <- Some r
-        base.onCallableImplementation c
+        base.OnCallableDeclaration c
 
 /// private helper class for PureCircuitFinder
 and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables : ImmutableDictionary<_,_>) = 
@@ -48,7 +50,7 @@ and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables :
             | _ -> false
         | _ -> false
 
-    override this.Transform scope =
+    override this.OnScope scope =
         let mutable circuit = ImmutableArray.Empty
         let mutable newStatements = ImmutableArray.Empty
 
@@ -69,7 +71,7 @@ and private PureCircuitFinderStatements (parent : PureCircuitFinder, callables :
                 circuit <- circuit.Add expr
             | _ ->
                 finishCircuit()
-                newStatements <- newStatements.Add (this.onStatement stmt)
+                newStatements <- newStatements.Add (this.OnStatement stmt)
         finishCircuit()
 
         QsScope.New (newStatements, scope.KnownSymbols)

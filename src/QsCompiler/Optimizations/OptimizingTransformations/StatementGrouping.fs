@@ -16,6 +16,8 @@ type StatementGrouping private (_private_ : string) =
     new () as this = 
         new StatementGrouping("_private_") then
             this.Statements <- new StatementGroupingStatements(this)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for StatementGrouping
 and private StatementGroupingStatements (parent : StatementGrouping) = 
@@ -25,14 +27,14 @@ and private StatementGroupingStatements (parent : StatementGrouping) =
     /// The statement must have no classical or quantum side effects other than defining a variable.
     let isPureClassical stmt =
         let c = SideEffectChecker()
-        c.Statements.onStatement stmt |> ignore
+        c.Statements.OnStatement stmt |> ignore
         not c.HasQuantum && not c.HasMutation && not c.HasInterrupts
 
     /// Returns whether a statement is purely quantum.
     /// The statement must have no classical side effects, but can have quantum side effects.
     let isPureQuantum stmt =
         let c = SideEffectChecker()
-        c.Statements.onStatement stmt |> ignore
+        c.Statements.OnStatement stmt |> ignore
         c.HasQuantum && not c.HasMutation && not c.HasInterrupts
 
     /// Reorders a list of statements such that the pure classical statements occur before the pure quantum statements
@@ -43,9 +45,9 @@ and private StatementGroupingStatements (parent : StatementGrouping) =
             else a :: reorderStatements (b :: tail)
         | x -> x
 
-    override this.Transform scope =
+    override this.OnScope scope =
         let parentSymbols = scope.KnownSymbols
-        let statements = scope.Statements |> Seq.map this.onStatement |> List.ofSeq |> reorderStatements
+        let statements = scope.Statements |> Seq.map this.OnStatement |> List.ofSeq |> reorderStatements
         QsScope.New (statements, parentSymbols)
 
 

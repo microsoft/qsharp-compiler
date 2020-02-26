@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation;
+using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution;
 
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = IntrinsicResolutionTransformation.Apply(this.Environment, compilation);
+            transformed = ReplaceWithTargetIntrinsics.Apply(this.Environment, compilation);
             return true;
         }
 

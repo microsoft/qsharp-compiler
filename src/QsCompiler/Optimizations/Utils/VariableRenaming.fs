@@ -70,6 +70,7 @@ type VariableRenaming private (_private_) =
             this.Statements <- new VariableRenamingStatements(this)
             this.StatementKinds <- new VariableRenamingStatementKinds(this)
             this.ExpressionKinds <- new VariableRenamingExpressionKinds(this)
+            this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
 
 /// private helper class for VariableRenaming
 and private VariableRenamingNamespaces (parent : VariableRenaming) = 
@@ -81,22 +82,22 @@ and private VariableRenamingNamespaces (parent : VariableRenaming) =
         | QsTupleItem {VariableName = InvalidName} -> ()
         | QsTuple items -> Seq.iter processArgTuple items
 
-    override __.onProvidedImplementation (argTuple, body) =
+    override __.OnProvidedImplementation (argTuple, body) =
         parent.Clear()
         do processArgTuple argTuple
-        base.onProvidedImplementation (argTuple, body)
+        base.OnProvidedImplementation (argTuple, body)
 
 /// private helper class for VariableRenaming
 and private VariableRenamingStatements (parent : VariableRenaming) = 
     inherit StatementTransformation(parent)
 
-    override this.Transform x =
+    override this.OnScope x =
         if parent.SkipScope then
             parent.SkipScope <- false
-            base.Transform x
+            base.OnScope x
         else
             parent.RenamingStack <- parent.EnterScope parent.RenamingStack
-            let result = base.Transform x
+            let result = base.OnScope x
             parent.RenamingStack <- parent.ExitScope parent.RenamingStack
             result
 
@@ -104,16 +105,16 @@ and private VariableRenamingStatements (parent : VariableRenaming) =
 and private VariableRenamingStatementKinds (parent : VariableRenaming) = 
     inherit StatementKindTransformation(parent)
 
-    override this.onSymbolTuple syms =
+    override this.OnSymbolTuple syms =
         match syms with
         | VariableName item -> VariableName (NonNullable<_>.New (parent.GenerateUniqueName item.Value))
-        | VariableNameTuple items -> Seq.map this.onSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
+        | VariableNameTuple items -> Seq.map this.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
         | InvalidItem | DiscardedItem -> syms
 
-    override this.onRepeatStatement stm =
+    override this.OnRepeatStatement stm =
         parent.RenamingStack <- parent.EnterScope parent.RenamingStack
         parent.SkipScope <- true
-        let result = base.onRepeatStatement stm
+        let result = base.OnRepeatStatement stm
         parent.RenamingStack <- parent.ExitScope parent.RenamingStack
         result
 
@@ -126,7 +127,7 @@ and private VariableRenamingExpressionKinds (parent : VariableRenaming) =
     /// Returns None if the key isn't associated with any values.
     let tryGet key = List.tryPick (Map.tryFind key)
 
-    override this.onIdentifier (sym, tArgs) =
+    override this.OnIdentifier (sym, tArgs) =
         maybe {
             let! name =
                 match sym with
