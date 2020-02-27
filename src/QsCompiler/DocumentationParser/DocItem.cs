@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         protected readonly string replacement;
 
         /// <summary>
-        /// The item's kind, as a string (Utilities.OperationKind, .FunctionKind, or .UdtKind)
+        /// The item's kind, as a string (Utils.OperationKind, .FunctionKind, or .UdtKind)
         /// </summary>
         internal string ItemType => this.itemType;
         /// <summary>

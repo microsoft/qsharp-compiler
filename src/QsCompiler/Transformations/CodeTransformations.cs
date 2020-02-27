@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.Optimizations;
+using Microsoft.Quantum.QsCompiler.Experimental;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Conjugations;
 using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
@@ -28,9 +28,9 @@ namespace Microsoft.Quantum.QsCompiler
         {
             // Since we are pulling purely classical statements up, we are potentially changing the order of declarations.
             // We therefore need to generate unique variable names before reordering the statements.
-            scope = new UniqueVariableNames().Transform(scope);
+            scope = new UniqueVariableNames().Statements.OnScope(scope);
             scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
-            scope = new ReverseOrderOfOperationCalls().Transform(scope);
+            scope = new ReverseOrderOfOperationCalls().Statements.OnScope(scope);
             return StripPositionInfo.Apply(scope);
         }
 
@@ -58,9 +58,9 @@ namespace Microsoft.Quantum.QsCompiler
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
             var inline = new InlineConjugations(onException);
-            var namespaces = compilation.Namespaces.Select(inline.Transform).ToImmutableArray();
+            var namespaces = compilation.Namespaces.Select(inline.Namespaces.OnNamespace).ToImmutableArray();
             inlined = new QsCompilation(namespaces, compilation.EntryPoints);
-            return inline.Success;
+            return inline.SharedState.Success;
         }
 
         /// <summary>

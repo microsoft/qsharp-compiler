@@ -33,10 +33,12 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
             ULog("V1");
 
             within {
+                let dummy = 0;
                 ULog("U3");
                 ULog("V3");
             }
             apply {
+                let dummy = 0;
                 ULog("Core3");
             }
         }

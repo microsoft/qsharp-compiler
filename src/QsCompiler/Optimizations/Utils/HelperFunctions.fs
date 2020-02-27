@@ -1,14 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Optimizations.Utils
+module internal Microsoft.Quantum.QsCompiler.Experimental.Utils
 
 open System
+open System.Collections.Generic
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Optimizations.ComputationExpressions
+open Microsoft.Quantum.QsCompiler.ComputationExpressions
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -22,8 +23,16 @@ type internal TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParamet
 type internal InitKind = QsInitializerKind<ResolvedInitializer, TypedExpression>
 
 
+/// The maybe monad. Returns None if any of the lines are None.
+let internal maybe = MaybeBuilder()
+
+/// Returns Some () if x is true, and returns None otherwise.
+/// Normally used after a do! in the Maybe monad, which makes this act as an assertion.
+let internal check x = if x then Some () else None
+
+
 /// Returns whether a given expression is a literal (and thus a constant)
-let rec internal isLiteral (callables: ImmutableDictionary<QsQualifiedName, QsCallable>) (expr: TypedExpression): bool =
+let rec internal isLiteral (callables: IDictionary<QsQualifiedName, QsCallable>) (expr: TypedExpression): bool =
     let folder ex sub = 
         match ex.Expression with
         | IntLiteral _ | BigIntLiteral _ | DoubleLiteral _ | BoolLiteral _ | ResultLiteral _ | PauliLiteral _ | StringLiteral _
@@ -42,19 +51,20 @@ let rec internal isLiteral (callables: ImmutableDictionary<QsQualifiedName, QsCa
 /// Otherwise, returns constants without any changes.
 /// If the given variable is already defined, its name is shadowed in the current scope.
 /// Throws an InvalidOperationException if there aren't any scopes on the stack.
-let internal defineVar check constants (name, value) =
-    if not (check value) then constants else constants |> Map.add name value
+let internal defineVar check (constants : IDictionary<_,_>) (name, value) =
+    if check value then constants.[name] <- value
 
 /// Applies the given function op on a SymbolTuple, ValueTuple pair
-let rec private onTuple op constants (names, values) =
+let rec private onTuple op constants (names, values) : unit =
     match names, values with
     | VariableName name, _ ->
         op constants (name.Value, values)
     | VariableNameTuple namesTuple, Tuple valuesTuple ->
         if namesTuple.Length <> valuesTuple.Length then
             ArgumentException "names and values have different lengths" |> raise
-        Seq.zip namesTuple valuesTuple |> Seq.fold (onTuple op) constants
-    | _ -> constants
+        for sym, value in Seq.zip namesTuple valuesTuple do
+            onTuple op constants (sym, value)
+    | _ -> ()
 
 /// Returns a Constants<Expr> with the given variables defined as the given values
 let internal defineVarTuple check = onTuple (defineVar check)
@@ -105,7 +115,7 @@ let rec internal optionListToListOption = function
 
 /// Returns the given list without the elements at the given indices
 let rec internal removeIndices idx l =
-    List.indexed l |> List.filter (fun (i, _) -> not (List.contains i idx)) |> List.map snd
+    Seq.indexed l |> Seq.filter (fun (i, _) -> not (Seq.contains i idx)) |> Seq.map snd
 
 
 /// Converts a QsTuple to a SymbolTuple
@@ -182,18 +192,26 @@ and internal defaultValue (bt: TypeKind): ExprKind option =
     | _ -> None
 
 
+/// Returns true if the expression contains missing expressions.
+/// Returns false otherwise.
+let rec private containsMissing (ex : TypedExpression) =
+    match ex.Expression with 
+    | MissingExpr -> true
+    | ValueTuple items -> items |> Seq.exists containsMissing
+    | _ -> false
+
 /// Fills a partial argument by replacing MissingExprs with the corresponding values of a tuple
 let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpression): TypedExpression =
     match partialArg with
     | Missing -> arg
     | Tuple items ->
         let argsList =
-            match List.filter TypedExpression.ContainsMissing items, arg with
+            match List.filter containsMissing items, arg with
             | [_], _ -> [arg]
             | _, Tuple args -> args
             | _ -> failwithf "args must be a tuple"
         items |> List.mapFold (fun args t1 ->
-            if TypedExpression.ContainsMissing t1 then
+            if containsMissing t1 then
                 match args with
                 | [] -> failwithf "ran out of args"
                 | head :: tail -> fillPartialArg (t1, head), tail

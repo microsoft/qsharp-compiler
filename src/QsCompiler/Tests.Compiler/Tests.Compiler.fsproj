@@ -23,6 +23,9 @@
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\LinkingTests\QuantumProcessorExtensions.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LinkingTests\Generics.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -39,6 +42,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LinkingTests\IntrinsicResolution.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\ClassicalControl.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">
@@ -134,6 +140,7 @@
     <Compile Include="TransformationTests.fs" />
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="LinkingTests.fs" />
+    <Compile Include="ClassicalControlTests.fs" />
     <Compile Include="RegexTests.fs" />
     <Compile Include="SerializationTests.fs" />
     <Compile Include="CommandLineTests.fs" />

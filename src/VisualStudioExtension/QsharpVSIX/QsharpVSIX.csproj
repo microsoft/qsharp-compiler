@@ -151,6 +151,6 @@
       <RemoveFiles Include="$(LanguageServerPath)**" />
     </ItemGroup>
     <Delete Files="@(RemoveFiles)" />
-    <Exec Command="dotnet publish $(ProjectDir)..\..\QsCompiler\LanguageServer\LanguageServer.csproj --self-contained true /p:PublishSingleFile=true --runtime win10-x64 -c $(ConfigurationName) -o $(ProjectDir)$(LanguageServerPath)" />
+    <Exec Command="dotnet publish $(ProjectDir)..\..\QsCompiler\LanguageServer\LanguageServer.csproj --self-contained true --runtime win10-x64 -c $(ConfigurationName) -o $(ProjectDir)$(LanguageServerPath)" />
   </Target>
 </Project>
