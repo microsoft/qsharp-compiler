@@ -9,9 +9,9 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation
+namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 {
-    public class IntrinsicResolutionTransformation
+    public static class ReplaceWithTargetIntrinsics
     {
         /// <summary>
         /// Merge the environment-specific syntax tree with the target tree. The resulting tree will
@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransf
                 {
                     if (elem is QsNamespaceElement.QsCallable elemCall &&
                     overrideElem is QsNamespaceElement.QsCallable overrideCall &&
-                    !CompareSigs(elemCall.Item.Signature, overrideCall.Item.Signature))
+                    !CompareSignatures(elemCall.Item.Signature, overrideCall.Item.Signature))
                     {
                         throw new Exception($"Callable {overrideCall.GetFullName()} in environment compilation does not have the same signature as callable {elemCall.GetFullName()} in target compilation");
                     }
@@ -76,7 +76,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransf
                 .Concat(overriding);
         }
 
-        private static bool CompareSigs(ResolvedSignature first, ResolvedSignature second)
+        private static bool CompareSignatures(ResolvedSignature first, ResolvedSignature second)
         {
             return
                 StripPositionInfo.Apply(first.ArgumentType).Equals(StripPositionInfo.Apply(second.ArgumentType)) &&

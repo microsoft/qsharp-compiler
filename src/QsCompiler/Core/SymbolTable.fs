@@ -282,7 +282,7 @@ and Namespace private
 
         // ignore ambiguous/clashing references
         let FilterUnique (g : IGrouping<_,_>) = 
-            if g.Count() > 1 then None // TODO: give warning??
+            if g.Count() > 1 then None
             else g.Single() |> Some
         let typesInRefs = typesInRefs.GroupBy(fun t -> t.QualifiedName.Name) |> Seq.choose FilterUnique
         let callablesInRefs = callablesInRefs.GroupBy(fun c -> c.QualifiedName.Name) |> Seq.choose FilterUnique
@@ -1211,7 +1211,7 @@ and NamespaceManager
         try this.ClearResolutions()
             match Namespaces.TryGetValue nsName with 
             | true, ns when ns.Sources.Contains source -> 
-                let validAlias = String.IsNullOrWhiteSpace alias || NonNullable<string>.New (alias.Trim()) |> Namespaces.ContainsKey |> not // TODO: DISALLOW TWO ALIAS WITH THE SAME NAME?
+                let validAlias = String.IsNullOrWhiteSpace alias || NonNullable<string>.New (alias.Trim()) |> Namespaces.ContainsKey |> not 
                 if validAlias && Namespaces.ContainsKey opened then ns.TryAddOpenDirective source (opened, openedRange) (alias, aliasRange.ValueOr openedRange)
                 elif validAlias then [| openedRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [opened.Value]) |]
                 else [| aliasRange.ValueOr openedRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidNamespaceAliasName, [alias]) |]

@@ -24,12 +24,12 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 // utils for verifying types in expressions
 
 type private StripInferredInfoFromType () = 
-    inherit ExpressionTypeTransformation(true)
-    default this.onCallableInformation opInfo = 
-        let characteristics = this.onCharacteristicsExpression opInfo.Characteristics
+    inherit TypeTransformationBase()
+    default this.OnCallableInformation opInfo = 
+        let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         CallableInformation.New (characteristics, InferredCallableInformation.NoInformation)
-    override this.onRangeInformation _ = QsRangeInfo.Null
-let private StripInferredInfoFromType = (new StripInferredInfoFromType()).Transform
+    override this.OnRangeInformation _ = QsRangeInfo.Null
+let private StripInferredInfoFromType = (new StripInferredInfoFromType()).OnType
 
 /// used for type matching arguments in call-like expressions
 type private Variance = 
@@ -50,7 +50,7 @@ let private missingFunctors (target : ImmutableHashSet<_>, given) =
 
 /// Return the string representation for a ResolveType. 
 /// User defined types are represented by their full name. 
-let internal toString = (new ExpressionTypeToQs(new ExpressionToQs())).Apply
+let internal toString (t : ResolvedType) = SyntaxTreeToQsharp.Default.ToCode t 
 
 /// Given two resolve types, determines and returns a common base type if such a type exists, 
 /// or pushes adds a suitable error using addError and returns invalid type if a common base type does not exist.

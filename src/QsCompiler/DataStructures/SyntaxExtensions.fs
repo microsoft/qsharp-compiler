@@ -296,7 +296,8 @@ type QsStatement with
         | QsReturnStatement _
         | QsFailStatement _
         | QsVariableDeclaration _
-        | QsValueUpdate _ -> Seq.empty
+        | QsValueUpdate _ 
+        | EmptyStatement -> Seq.empty
         | QsConditionalStatement s ->
             (Seq.append
                 (s.ConditionalBlocks |> Seq.collect (fun (_, b) -> b.Body.Statements))
