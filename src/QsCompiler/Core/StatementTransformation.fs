@@ -15,7 +15,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 type StatementKindTransformationBase internal (options : TransformationOptions, _internal_) =
 
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
-    let Node = if options.DisableRebuild then Walk else Fold
+    let Node = if options.Rebuild then Fold else Walk
 
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
@@ -162,7 +162,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
 
     abstract member OnStatementKind : QsStatementKind -> QsStatementKind
     default this.OnStatementKind kind = 
-        if options.Disable then kind else
+        if not options.Enable then kind else
         let transformed = kind |> function
             | QsExpressionStatement ex   -> this.OnExpressionStatement  ex
             | QsReturnStatement ex       -> this.OnReturnStatement      ex
@@ -182,7 +182,7 @@ type StatementKindTransformationBase internal (options : TransformationOptions, 
 and StatementTransformationBase internal (options : TransformationOptions, _internal_) =
 
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
-    let Node = if options.DisableRebuild then Walk else Fold
+    let Node = if options.Rebuild then Fold else Walk
 
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
     member val internal StatementKindTransformationHandle = missingTransformation "statement kind" with get, set
@@ -229,7 +229,7 @@ and StatementTransformationBase internal (options : TransformationOptions, _inte
 
     abstract member OnStatement : QsStatement -> QsStatement
     default this.OnStatement stm = 
-        if options.Disable then stm else
+        if not options.Enable then stm else
         let location = this.OnLocation stm.Location
         let comments = stm.Comments
         let kind = this.StatementKinds.OnStatementKind stm.Statement
@@ -238,7 +238,7 @@ and StatementTransformationBase internal (options : TransformationOptions, _inte
 
     abstract member OnScope : QsScope -> QsScope 
     default this.OnScope scope = 
-        if options.Disable then scope else
+        if not options.Enable then scope else
         let parentSymbols = this.OnLocalDeclarations scope.KnownSymbols
         let statements = scope.Statements |> Seq.map this.OnStatement |> ImmutableArray.CreateRange
         QsScope.New |> Node.BuildOr scope (statements, parentSymbols)
