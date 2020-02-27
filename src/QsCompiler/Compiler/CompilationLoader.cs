@@ -21,6 +21,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json.Bson;
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
+using OptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
 
 
 namespace Microsoft.Quantum.QsCompiler
@@ -842,7 +843,7 @@ namespace Microsoft.Quantum.QsCompiler
                     this.Config.ProjectNameWithoutExtension ?? Path.GetFileNameWithoutExtension(outputPath),
                     syntaxTrees: new[] { csharpTree },
                     references: references.Select(r => r.Item2).Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location)), // if System.Object can't be found a warning is generated
-                    options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
+                    options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release)
                 );
 
                 using var outputStream = File.OpenWrite(outputPath);
