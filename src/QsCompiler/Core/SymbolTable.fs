@@ -117,7 +117,7 @@ type private PartialNamespace private
 
     /// Adds the given lines of documentation to the list of documenting sections 
     /// associated with this namespace within this source file. 
-    member this.AddDocumenation (doc : IEnumerable<_>) = 
+    member this.AddDocumentation (doc : IEnumerable<_>) = 
         AssociatedDocumentation.Add(doc.ToImmutableArray())
 
     /// If the given namespace name is not already listened as imported, adds the given namespace name to the list of open namespaces.
@@ -503,9 +503,9 @@ and Namespace private
     /// Adds the given lines of documentation to the list of documenting sections 
     /// associated with this namespace within the given source file. 
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
-    member this.AddDocumenation source doc =
+    member this.AddDocumentation source doc =
         match Parts.TryGetValue source with 
-        | true, partial -> partial.AddDocumenation doc
+        | true, partial -> partial.AddDocumentation doc
         | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
 
     /// Adds the given namespace name to the list of opened namespaces for the part of the namespace defined in the given source file.
