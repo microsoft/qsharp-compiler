@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.FSharp.Core;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -376,31 +377,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     if (isCondition)
                     {
-                        var (isCompareLiteral, literal, nonLiteral) = IsConditionedOnResultLiteralExpression(condition);
-                        if (isCompareLiteral)
+                        if (IsConditionedOnResultLiteralExpression(condition, out var literal, out var nonLiteral))
                         {
                             return CreateControlStatement(statement, CreateApplyIfExpression(literal, nonLiteral, conditionScope, defaultScope));
                         }
-                        else
+                        else if (IsConditionedOnResultEqualityExpression(condition, out var lhsConditionExpression, out var rhsConditionExpression))
                         {
-                            var (isNonLiteralEquality, conditionExpr1, conditionExpr2) = IsConditionedOnResultEqualityExpression(condition);
-                            if (isNonLiteralEquality)
-                            {
-                                return CreateControlStatement(statement, CreateApplyConditionallyExpression(conditionExpr1, conditionExpr2, conditionScope, defaultScope));
-                            }
-                            else
-                            {
-                                bool isNonLiteralInequality;
-                                (isNonLiteralInequality, conditionExpr1, conditionExpr2) = IsConditionedOnResultInequalityExpression(condition);
-                                if (isNonLiteralInequality)
-                                {
-                                    return CreateControlStatement(statement, CreateApplyConditionallyExpression(conditionExpr1, conditionExpr2, defaultScope, conditionScope));
-                                }
-
-                                // ToDo: Diagnostic message
-                                return statement; // The condition does not fit a supported format.
-                            }
+                            return CreateControlStatement(statement, CreateApplyConditionallyExpression(lhsConditionExpression, rhsConditionExpression, conditionScope, defaultScope));
                         }
+                        else if (IsConditionedOnResultInequalityExpression(condition, out lhsConditionExpression, out rhsConditionExpression))
+                        {
+                            // The scope arguments are reversed to account for the negation of the NEQ
+                            return CreateControlStatement(statement, CreateApplyConditionallyExpression(lhsConditionExpression, rhsConditionExpression, defaultScope, conditionScope));
+                        }
+                        
+                        // ToDo: Diagnostic message
+                        return statement; // The condition does not fit a supported format.
                     }
                     else
                     {
@@ -434,17 +426,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 /// expression in the (in)equality, otherwise returns false with nulls. If it is an
                 /// inequality, the returned result value will be the opposite of the result literal found.
                 /// </summary>
-                private (bool, QsResult, TypedExpression) IsConditionedOnResultLiteralExpression(TypedExpression expression)
+                private bool IsConditionedOnResultLiteralExpression(TypedExpression expression, out QsResult literal, out TypedExpression nonLiteral)
                 {
+                    literal = null;
+                    nonLiteral = null;
+
                     if (expression.Expression is ExpressionKind.EQ eq)
                     {
                         if (eq.Item1.Expression is ExpressionKind.ResultLiteral literal1)
                         {
-                            return (true, literal1.Item, eq.Item2);
+                            literal = literal1.Item;
+                            nonLiteral = eq.Item2;
+                            return true;
                         }
                         else if (eq.Item2.Expression is ExpressionKind.ResultLiteral literal2)
                         {
-                            return (true, literal2.Item, eq.Item1);
+                            literal = literal2.Item;
+                            nonLiteral = eq.Item1;
+                            return true;
                         }
                     }
                     else if (expression.Expression is ExpressionKind.NEQ neq)
@@ -453,47 +452,61 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                         if (neq.Item1.Expression is ExpressionKind.ResultLiteral literal1)
                         {
-                            return (true, FlipResult(literal1.Item), neq.Item2);
+                            literal = FlipResult(literal1.Item);
+                            nonLiteral = neq.Item2;
+                            return true;
                         }
                         else if (neq.Item2.Expression is ExpressionKind.ResultLiteral literal2)
                         {
-                            return (true, FlipResult(literal2.Item), neq.Item1);
+                            literal = FlipResult(literal2.Item);
+                            nonLiteral = neq.Item1;
+                            return true;
                         }
                     }
 
-                    return (false, null, null);
+                    return false;
                 }
 
                 /// <summary>
                 /// Checks if the expression is an equality comparison between two Result-typed expressions.
                 /// If it is, returns true along with the two expressions, otherwise returns false with nulls.
                 /// </summary>
-                private (bool, TypedExpression, TypedExpression) IsConditionedOnResultEqualityExpression(TypedExpression expression)
+                private bool IsConditionedOnResultEqualityExpression(TypedExpression expression, out TypedExpression lhs, out TypedExpression rhs)
                 {
+                    lhs = null;
+                    rhs = null;
+
                     if (expression.Expression is ExpressionKind.EQ eq
                         && eq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
                         && eq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
                     {
-                        return (true, eq.Item1, eq.Item2);
+                        lhs = eq.Item1;
+                        rhs = eq.Item2;
+                        return true;
                     }
 
-                    return (false, null, null);
+                    return false;
                 }
 
                 /// <summary>
                 /// Checks if the expression is an inequality comparison between two Result-typed expressions.
                 /// If it is, returns true along with the two expressions, otherwise returns false with nulls.
                 /// </summary>
-                private (bool, TypedExpression, TypedExpression) IsConditionedOnResultInequalityExpression(TypedExpression expression)
+                private bool IsConditionedOnResultInequalityExpression(TypedExpression expression, out TypedExpression lhs, out TypedExpression rhs)
                 {
+                    lhs = null;
+                    rhs = null;
+
                     if (expression.Expression is ExpressionKind.NEQ neq
                         && neq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
                         && neq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
                     {
-                        return (true, neq.Item1, neq.Item2);
+                        lhs = neq.Item1;
+                        rhs = neq.Item2;
+                        return true;
                     }
 
-                    return (false, null, null);
+                    return false;
                 }
 
                 #endregion
