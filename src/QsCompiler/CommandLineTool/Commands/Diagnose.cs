@@ -173,13 +173,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 if (Options.IsCodeSnippet(file))
                 {
                     var subtree = evaluatedTree.Select(ns => FilterBySourceFile.Apply(ns, file)).Where(ns => ns.Elements.Any());
-                    var code = new string[] { "" }.Concat(StripSnippetWrapping(subtree).Select(SyntaxTreeToQs.Default.ToCode));
+                    var code = new string[] { "" }.Concat(StripSnippetWrapping(subtree).Select(SyntaxTreeToQsharp.Default.ToCode));
                     logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), messageParam: code.ToArray());
                 }
                 else 
                 {
                     var imports = evaluatedTree.ToImmutableDictionary(ns => ns.Name, ns => compilation.OpenDirectives(file, ns.Name).ToImmutableArray());
-                    SyntaxTreeToQs.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, evaluatedTree, (file, imports));
+                    SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, evaluatedTree, (file, imports));
                     var code = new string[] { "" }.Concat(generated.Single().Values.Select(nsCode => $"{nsCode}{Environment.NewLine}"));
                     logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), file.Value, messageParam: code.ToArray());
                 };

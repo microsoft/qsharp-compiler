@@ -10,6 +10,7 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// Represents all the functors applied to an operation call
@@ -83,14 +84,14 @@ type private InliningInfo = {
         maybe {
             let! functors, callable, arg = InliningInfo.TrySplitCall callables expr.Expression
             let! specArgs, body = InliningInfo.TryGetProvidedImpl callable functors
-            let body = ReplaceTypeParams(expr.TypeParameterResolutions).Statements.Transform body
-            let returnType = ReplaceTypeParams(expr.TypeParameterResolutions).Expressions.Types.Transform callable.Signature.ReturnType
+            let body = ReplaceTypeParams(expr.TypeParameterResolutions).Statements.OnScope body
+            let returnType = ReplaceTypeParams(expr.TypeParameterResolutions).Types.OnType callable.Signature.ReturnType
             return { functors = functors; callable = callable; arg = arg; specArgs = specArgs; body = body; returnType = returnType }
         }
 
 
 /// The SyntaxTreeTransformation used to inline callables
-type CallableInlining private (unsafe : string) =
+type CallableInlining private (_private_ : string) =
     inherit TransformationBase()
 
     // The current callable we're in the process of transforming
@@ -98,24 +99,26 @@ type CallableInlining private (unsafe : string) =
     member val Renamer: VariableRenaming option = None with get, set
 
     new (callables) as this = 
-        new CallableInlining("unsafe") then
+        new CallableInlining("_private_") then
             this.Namespaces <- new CallableInliningNamespaces(this)
             this.Statements <- new CallableInliningStatements(this, callables)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for CallableInlining
 and private CallableInliningNamespaces (parent : CallableInlining) = 
     inherit NamespaceTransformationBase(parent)
 
-    override __.Transform x =
-        let x = base.Transform x
-        VariableRenaming().Namespaces.Transform x
+    override __.OnNamespace x =
+        let x = base.OnNamespace x
+        VariableRenaming().Namespaces.OnNamespace x
 
-    override __.onCallableImplementation c =
+    override __.OnCallableDeclaration c =
         let renamerVal = VariableRenaming()
-        let c = renamerVal.Namespaces.onCallableImplementation c
+        let c = renamerVal.Namespaces.OnCallableDeclaration c
         parent.CurrentCallable <- Some c
         parent.Renamer <- Some renamerVal
-        base.onCallableImplementation c
+        base.OnCallableDeclaration c
 
 /// private helper class for CallableInlining
 and private CallableInliningStatements (parent : CallableInlining, callables : ImmutableDictionary<_,_>) = 
@@ -160,7 +163,7 @@ and private CallableInliningStatements (parent : CallableInlining, callables : I
             let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
             let newStatements =
                 ii.body.Statements.Insert (0, newBinding |> QsVariableDeclaration |> wrapStmt)
-                |> Seq.map renamer.Statements.onStatement
+                |> Seq.map renamer.Statements.OnStatement
                 |> Seq.map (fun s -> s.Statement)
                 |> ImmutableArray.CreateRange
             return ii, newStatements

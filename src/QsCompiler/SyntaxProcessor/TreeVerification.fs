@@ -73,7 +73,8 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsExpressionStatement _ 
             | QsStatementKind.QsFailStatement _ 
             | QsStatementKind.QsValueUpdate _ 
-            | QsStatementKind.QsVariableDeclaration _ -> ()
+            | QsStatementKind.QsVariableDeclaration _ 
+            | QsStatementKind.EmptyStatement -> ()
 
     // returns true if all paths in the given scope contain a terminating (i.e. return or fail) statement
     let rec checkTermination (scope : QsScope) = 
@@ -98,7 +99,8 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsExpressionStatement _ 
             | QsStatementKind.QsFailStatement _ 
             | QsStatementKind.QsValueUpdate _ 
-            | QsStatementKind.QsVariableDeclaration _ -> true
+            | QsStatementKind.QsVariableDeclaration _ 
+            | QsStatementKind.EmptyStatement -> true
 
         let returnOrFailAndAfter = Seq.toList <| scope.Statements.SkipWhile isNonTerminatingStatement
         if returnOrFailAndAfter.Length <> 0 then 

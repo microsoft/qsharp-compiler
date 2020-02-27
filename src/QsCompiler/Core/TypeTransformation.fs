@@ -8,104 +8,128 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
 type private ExpressionType = 
     QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
 
-type TypeTransformationBase() = 
+type TypeTransformationBase(options : TransformationOptions) = 
 
-    abstract member onRangeInformation : QsRangeInfo -> QsRangeInfo
-    default this.onRangeInformation r = r
+    let Node = if options.Rebuild then Fold else Walk
+    new () = new TypeTransformationBase(TransformationOptions.Default)
 
-    abstract member onCharacteristicsExpression : ResolvedCharacteristics -> ResolvedCharacteristics
-    default this.onCharacteristicsExpression fs = fs
 
-    abstract member onCallableInformation : CallableInformation -> CallableInformation
-    default this.onCallableInformation opInfo = 
-        let characteristics = this.onCharacteristicsExpression opInfo.Characteristics
+    // supplementary type information 
+
+    abstract member OnRangeInformation : QsRangeInfo -> QsRangeInfo
+    default this.OnRangeInformation r = r
+
+    abstract member OnCharacteristicsExpression : ResolvedCharacteristics -> ResolvedCharacteristics
+    default this.OnCharacteristicsExpression fs = fs
+
+    abstract member OnCallableInformation : CallableInformation -> CallableInformation
+    default this.OnCallableInformation opInfo = 
+        let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         let inferred = opInfo.InferredInformation
-        CallableInformation.New (characteristics, inferred)
+        CallableInformation.New |> Node.BuildOr opInfo (characteristics, inferred)
 
-    abstract member onUserDefinedType : UserDefinedType -> ExpressionType
-    default this.onUserDefinedType udt = 
+
+    // nodes containing subtypes
+
+    abstract member OnUserDefinedType : UserDefinedType -> ExpressionType
+    default this.OnUserDefinedType udt = 
         let ns, name = udt.Namespace, udt.Name
-        let range = this.onRangeInformation udt.Range
-        UserDefinedType.New (ns, name, range) |> ExpressionType.UserDefinedType
+        let range = this.OnRangeInformation udt.Range
+        ExpressionType.UserDefinedType << UserDefinedType.New |> Node.BuildOr InvalidType (ns, name, range)
 
-    abstract member onTypeParameter : QsTypeParameter -> ExpressionType
-    default this.onTypeParameter tp = 
+    abstract member OnTypeParameter : QsTypeParameter -> ExpressionType
+    default this.OnTypeParameter tp = 
         let origin = tp.Origin
         let name = tp.TypeName
-        let range = this.onRangeInformation tp.Range
-        QsTypeParameter.New (origin, name, range) |> ExpressionType.TypeParameter
+        let range = this.OnRangeInformation tp.Range
+        ExpressionType.TypeParameter << QsTypeParameter.New |> Node.BuildOr InvalidType (origin, name, range)
 
-    abstract member onUnitType : unit -> ExpressionType
-    default this.onUnitType () = ExpressionType.UnitType
+    abstract member OnOperation : (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
+    default this.OnOperation ((it, ot), info) = 
+        let transformed = (this.OnType it, this.OnType ot), this.OnCallableInformation info
+        ExpressionType.Operation |> Node.BuildOr InvalidType transformed
 
-    abstract member onOperation : (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
-    default this.onOperation ((it, ot), info) = ExpressionType.Operation ((this.Transform it, this.Transform ot), this.onCallableInformation info)
+    abstract member OnFunction : ResolvedType * ResolvedType -> ExpressionType
+    default this.OnFunction (it, ot) = 
+        let transformed = this.OnType it, this.OnType ot
+        ExpressionType.Function |> Node.BuildOr InvalidType transformed
 
-    abstract member onFunction : ResolvedType * ResolvedType -> ExpressionType
-    default this.onFunction (it, ot) = ExpressionType.Function (this.Transform it, this.Transform ot)
+    abstract member OnTupleType : ImmutableArray<ResolvedType> -> ExpressionType
+    default this.OnTupleType ts = 
+        let transformed = ts |> Seq.map this.OnType |> ImmutableArray.CreateRange
+        ExpressionType.TupleType |> Node.BuildOr InvalidType transformed
 
-    abstract member onTupleType : ImmutableArray<ResolvedType> -> ExpressionType
-    default this.onTupleType ts = ExpressionType.TupleType ((ts |> Seq.map this.Transform).ToImmutableArray())
+    abstract member OnArrayType : ResolvedType -> ExpressionType
+    default this.OnArrayType b = 
+        ExpressionType.ArrayType |> Node.BuildOr InvalidType (this.OnType b)
 
-    abstract member onArrayType : ResolvedType -> ExpressionType
-    default this.onArrayType b = ExpressionType.ArrayType (this.Transform b)
 
-    abstract member onQubit : unit -> ExpressionType
-    default this.onQubit () = ExpressionType.Qubit
+    // leaf nodes
+    
+    abstract member OnUnitType : unit -> ExpressionType
+    default this.OnUnitType () = ExpressionType.UnitType
 
-    abstract member onMissingType : unit -> ExpressionType
-    default this.onMissingType () = ExpressionType.MissingType
+    abstract member OnQubit : unit -> ExpressionType
+    default this.OnQubit () = ExpressionType.Qubit
 
-    abstract member onInvalidType : unit -> ExpressionType
-    default this.onInvalidType () = ExpressionType.InvalidType
+    abstract member OnMissingType : unit -> ExpressionType
+    default this.OnMissingType () = ExpressionType.MissingType
 
-    abstract member onInt : unit -> ExpressionType
-    default this.onInt () = ExpressionType.Int
+    abstract member OnInvalidType : unit -> ExpressionType
+    default this.OnInvalidType () = ExpressionType.InvalidType
 
-    abstract member onBigInt : unit -> ExpressionType
-    default this.onBigInt () = ExpressionType.BigInt
+    abstract member OnInt : unit -> ExpressionType
+    default this.OnInt () = ExpressionType.Int
 
-    abstract member onDouble : unit -> ExpressionType
-    default this.onDouble () = ExpressionType.Double
+    abstract member OnBigInt : unit -> ExpressionType
+    default this.OnBigInt () = ExpressionType.BigInt
 
-    abstract member onBool : unit -> ExpressionType
-    default this.onBool () = ExpressionType.Bool
+    abstract member OnDouble : unit -> ExpressionType
+    default this.OnDouble () = ExpressionType.Double
 
-    abstract member onString : unit -> ExpressionType
-    default this.onString () = ExpressionType.String
+    abstract member OnBool : unit -> ExpressionType
+    default this.OnBool () = ExpressionType.Bool
 
-    abstract member onResult : unit -> ExpressionType
-    default this.onResult () = ExpressionType.Result
+    abstract member OnString : unit -> ExpressionType
+    default this.OnString () = ExpressionType.String
 
-    abstract member onPauli : unit -> ExpressionType
-    default this.onPauli () = ExpressionType.Pauli
+    abstract member OnResult : unit -> ExpressionType
+    default this.OnResult () = ExpressionType.Result
 
-    abstract member onRange : unit -> ExpressionType
-    default this.onRange () = ExpressionType.Range
+    abstract member OnPauli : unit -> ExpressionType
+    default this.OnPauli () = ExpressionType.Pauli
 
-    member this.Transform (t : ResolvedType) =
-        match t.Resolution with
-        | ExpressionType.UnitType                    -> this.onUnitType ()
-        | ExpressionType.Operation ((it, ot), fs)    -> this.onOperation ((it, ot), fs)
-        | ExpressionType.Function (it, ot)           -> this.onFunction (it, ot)
-        | ExpressionType.TupleType ts                -> this.onTupleType ts
-        | ExpressionType.ArrayType b                 -> this.onArrayType b
-        | ExpressionType.UserDefinedType udt         -> this.onUserDefinedType udt
-        | ExpressionType.TypeParameter tp            -> this.onTypeParameter tp
-        | ExpressionType.Qubit                       -> this.onQubit ()
-        | ExpressionType.MissingType                 -> this.onMissingType ()
-        | ExpressionType.InvalidType                 -> this.onInvalidType ()
-        | ExpressionType.Int                         -> this.onInt ()
-        | ExpressionType.BigInt                      -> this.onBigInt ()
-        | ExpressionType.Double                      -> this.onDouble ()
-        | ExpressionType.Bool                        -> this.onBool ()
-        | ExpressionType.String                      -> this.onString ()
-        | ExpressionType.Result                      -> this.onResult ()
-        | ExpressionType.Pauli                       -> this.onPauli ()
-        | ExpressionType.Range                       -> this.onRange ()
-        |> ResolvedType.New
+    abstract member OnRange : unit -> ExpressionType
+    default this.OnRange () = ExpressionType.Range
+
+
+    // transformation root called on each node
+
+    member this.OnType (t : ResolvedType) =
+        if not options.Enable then t else
+        let transformed = t.Resolution |> function
+            | ExpressionType.UnitType                    -> this.OnUnitType ()
+            | ExpressionType.Operation ((it, ot), fs)    -> this.OnOperation ((it, ot), fs)
+            | ExpressionType.Function (it, ot)           -> this.OnFunction (it, ot)
+            | ExpressionType.TupleType ts                -> this.OnTupleType ts
+            | ExpressionType.ArrayType b                 -> this.OnArrayType b
+            | ExpressionType.UserDefinedType udt         -> this.OnUserDefinedType udt
+            | ExpressionType.TypeParameter tp            -> this.OnTypeParameter tp
+            | ExpressionType.Qubit                       -> this.OnQubit ()
+            | ExpressionType.MissingType                 -> this.OnMissingType ()
+            | ExpressionType.InvalidType                 -> this.OnInvalidType ()
+            | ExpressionType.Int                         -> this.OnInt ()
+            | ExpressionType.BigInt                      -> this.OnBigInt ()
+            | ExpressionType.Double                      -> this.OnDouble ()
+            | ExpressionType.Bool                        -> this.OnBool ()
+            | ExpressionType.String                      -> this.OnString ()
+            | ExpressionType.Result                      -> this.OnResult ()
+            | ExpressionType.Pauli                       -> this.OnPauli ()
+            | ExpressionType.Range                       -> this.OnRange ()
+        ResolvedType.New |> Node.BuildOr t transformed

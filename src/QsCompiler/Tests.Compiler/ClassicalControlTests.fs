@@ -11,7 +11,7 @@ open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledTransformation
+open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 
@@ -50,7 +50,7 @@ type ClassicalControlTests () =
         srcChunks.Length >= testNumber + 1 |> Assert.True
         let shared = srcChunks.[0]
         let compilationDataStructures = BuildContent <| shared + srcChunks.[testNumber]
-        let processedCompilation = ClassicallyControlledTransformation.Apply compilationDataStructures.BuiltCompilation
+        let processedCompilation = ReplaceClassicalControl.Apply compilationDataStructures.BuiltCompilation
         Assert.NotNull processedCompilation
         Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] processedCompilation
         processedCompilation
@@ -61,15 +61,15 @@ type ClassicalControlTests () =
     let GetCtlAdjFromCallable call = call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlledAdjoint)
 
     let GetLinesFromSpecialization specialization =
-        let writer = new SyntaxTreeToQs()
+        let writer = new SyntaxTreeToQsharp()
 
         specialization
         |> fun x -> match x.Implementation with | Provided (_, body) -> Some body | _ -> None
         |> Option.get
-        |> writer.Statements.Transform
+        |> writer.Statements.OnScope
         |> ignore
 
-        writer.InternalState.StatementOutputHandle 
+        writer.SharedState.StatementOutputHandle 
         |> Seq.filter (not << String.IsNullOrWhiteSpace)
         |> Seq.toArray
 
@@ -162,7 +162,7 @@ type ClassicalControlTests () =
         |> Seq.find (fun x -> x.Key.Name.Value = name)
         |> (fun x -> x.Value)
 
-    let ApplyIfElseTest  compilation =
+    let ApplyIfElseTest compilation =
         
         let original = GetCallableWithName compilation Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
