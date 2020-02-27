@@ -10,15 +10,19 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations
+namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
 
-    public static class Utilities
+    /// <summary>
+    /// These tools are specific to the classically-controlled transformation and are not intended for wider use in their current state. 
+    /// They rely on the specific context in which they are invoked during that transformation and are not general purpuse tools. 
+    /// </summary>
+    internal static class Utils 
     {
-        public static TypedExpression CreateIdentifierExpression(Identifier id,
+        internal static TypedExpression CreateIdentifierExpression(Identifier id,
             TypeArgsResolution typeArgsMapping, ResolvedType resolvedType) =>
             new TypedExpression
             (
@@ -35,7 +39,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
             );
 
-        public static TypedExpression CreateValueTupleExpression(params TypedExpression[] expressions) =>
+        internal static TypedExpression CreateValueTupleExpression(params TypedExpression[] expressions) =>
             new TypedExpression
             (
                 ExpressionKind.NewValueTuple(expressions.ToImmutableArray()),
@@ -45,7 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
             );
 
-        public static TypedExpression CreateCallLike(TypedExpression id, TypedExpression args, TypeArgsResolution typeRes) =>
+        internal static TypedExpression CreateCallLikeExpression(TypedExpression id, TypedExpression args, TypeArgsResolution typeRes) =>
             new TypedExpression
             (
                 ExpressionKind.NewCallLikeExpression(id, args),
@@ -56,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             );
 
         // All of the resolved types of the given expression must match.
-        public static TypedExpression CreateValueArray(params TypedExpression[] expressions)
+        internal static TypedExpression CreateValueArray(params TypedExpression[] expressions)
         {
             ResolvedType type = null;
             if (expressions.Any())
@@ -79,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             );
         }
 
-        public static ResolvedType GetOperatorResolvedType(IEnumerable<OpProperty> props, ResolvedType argumentType)
+        internal static ResolvedType GetOperationType(IEnumerable<OpProperty> props, ResolvedType argumentType)
         {
             var characteristics = new CallableInformation(
                 ResolvedCharacteristics.FromProperties(props),
@@ -90,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 characteristics));
         }
 
-        public static TypeArgsResolution GetCombinedType(TypeArgsResolution outer, TypeArgsResolution inner)
+        internal static TypeArgsResolution GetCombinedTypeResolution(TypeArgsResolution outer, TypeArgsResolution inner)
         {
             var outerDict = outer.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
             return inner.Select(innerRes =>
@@ -105,17 +109,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 {
                     return innerRes;
                 }
-            }).Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
+            })
+            .Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
         }
 
-        public static (TypedExpression, TypedExpression) GetNoOp()
+        internal static (TypedExpression, TypedExpression) GetNoOp()
         {
-            var identifier = Utilities.CreateIdentifierExpression(
+            var identifier = Utils.CreateIdentifierExpression(
                 Identifier.NewGlobalCallable(new QsQualifiedName(BuiltIn.NoOp.Namespace, BuiltIn.NoOp.Name)),
                 BuiltIn.NoOp.TypeParameters
                     .Select(param => Tuple.Create(new QsQualifiedName(BuiltIn.NoOp.Namespace, BuiltIn.NoOp.Name), param, ResolvedType.New(ResolvedTypeKind.UnitType)))
                     .ToImmutableArray(),
-                Utilities.GetOperatorResolvedType(new[] { OpProperty.Adjointable, OpProperty.Controllable }, ResolvedType.New(ResolvedTypeKind.UnitType)));
+                Utils.GetOperationType(new[] { OpProperty.Adjointable, OpProperty.Controllable }, ResolvedType.New(ResolvedTypeKind.UnitType)));
 
             var args = new TypedExpression
             (
@@ -128,8 +133,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
             return (identifier, args);
         }
-
-        public static QsQualifiedName AddGuid(QsQualifiedName original) =>
-            new QsQualifiedName(original.Namespace, NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + original.Name.Value));
     }
 }

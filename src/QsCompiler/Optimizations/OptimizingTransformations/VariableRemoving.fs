@@ -11,31 +11,33 @@ open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to remove useless statements
-type VariableRemoval(unsafe) =
+type VariableRemoval(_private_) =
     inherit TransformationBase()
 
     member val internal ReferenceCounter = None with get, set
 
     new () as this = 
-        new VariableRemoval("unsafe") then
+        new VariableRemoval("_private_") then
             this.Namespaces <- new VariableRemovalNamespaces(this)
             this.StatementKinds <- new VariableRemovalStatementKinds(this)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for VariableRemoval
 and private VariableRemovalNamespaces (parent : VariableRemoval) = 
     inherit NamespaceTransformationBase(parent)
 
-    override __.onProvidedImplementation (argTuple, body) =
+    override __.OnProvidedImplementation (argTuple, body) =
         let r = ReferenceCounter()
-        r.Statements.Transform body |> ignore
+        r.Statements.OnScope body |> ignore
         parent.ReferenceCounter <- Some r
-        base.onProvidedImplementation (argTuple, body)
+        base.OnProvidedImplementation (argTuple, body)
 
 /// private helper class for VariableRemoval
 and private VariableRemovalStatementKinds (parent : VariableRemoval) = 
     inherit Core.StatementKindTransformation(parent)
 
-    override stmtKind.onSymbolTuple syms =
+    override stmtKind.OnSymbolTuple syms =
         match syms with
         | VariableName item ->
             maybe {
@@ -44,6 +46,6 @@ and private VariableRemovalStatementKinds (parent : VariableRemoval) =
                 do! check (uses = 0)
                 return DiscardedItem
             } |? syms
-        | VariableNameTuple items -> Seq.map stmtKind.onSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
+        | VariableNameTuple items -> Seq.map stmtKind.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
         | InvalidItem | DiscardedItem -> syms
 

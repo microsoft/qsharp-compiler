@@ -162,7 +162,7 @@ type CallableDeclarationHeader = {
     static member FromJson json =
         let info = {IsMutable = false; HasLocalQuantumDependency = false} 
         let rec setInferredInfo = function // no need to raise an error if anything needs to be set - the info above is always correct
-            | QsTuple ts -> (ts |> Seq.map setInferredInfo).ToImmutableArray() |> QsTuple
+            | QsTuple ts -> ts |> Seq.map setInferredInfo |> ImmutableArray.CreateRange |> QsTuple
             | QsTupleItem (decl : LocalVariableDeclaration<_>) -> QsTupleItem {decl with InferredInformation = info}
         // we need to make sure that all fields that could possibly be null after deserializing 
         // due to changes of fields over time are initialized to a proper value
