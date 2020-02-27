@@ -12,9 +12,9 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation
+open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
-open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
+open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 open Xunit
 open Xunit.Abstractions
 
@@ -54,7 +54,7 @@ type LinkingTests (output:ITestOutputHelper) =
             tests.Verify (callable.FullName, diag)
 
     member private this.BuildContent content =
-        
+
         let fileId = getTempFile()
         let file = getManager fileId content
 
@@ -71,24 +71,24 @@ type LinkingTests (output:ITestOutputHelper) =
 
         let compilationDataStructures = this.BuildContent input
 
-        let monomorphicCompilation = MonomorphizationTransformation.Apply compilationDataStructures.BuiltCompilation
+        let monomorphicCompilation = Monomorphize.Apply compilationDataStructures.BuiltCompilation
 
         Assert.NotNull monomorphicCompilation
-        MonomorphizationValidationTransformation.Apply monomorphicCompilation
+        ValidateMonomorphization.Apply monomorphicCompilation
 
         monomorphicCompilation
 
     member private this.CompileIntrinsicResolution source environment =
-        
+
         let envDS = this.BuildContent environment
         let sourceDS = this.BuildContent source
 
-        IntrinsicResolutionTransformation.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
+        ReplaceWithTargetIntrinsics.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
 
     member private this.RunIntrinsicResolutionTest testNumber =
-        
+
         let srcChunks = LinkingTests.ReadAndChunkSourceFile "IntrinsicResolution.qs"
-        srcChunks.Length >= 2*testNumber |> Assert.True
+        srcChunks.Length >= 2 * testNumber |> Assert.True
         let chunckNumber = 2 * (testNumber - 1)
         let result = this.CompileIntrinsicResolution srcChunks.[chunckNumber] srcChunks.[chunckNumber+1]
         Signatures.SignatureCheck [Signatures.IntrinsicResolutionNs] Signatures.IntrinsicResolutionSignatures.[testNumber-1] result
@@ -113,7 +113,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
     [<Fact>]
     member this.``Monomorphization`` () =
-        
+
         let filePath = Path.Combine ("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath
         let fileId = (new Uri(filePath))
         getManager fileId (File.ReadAllText filePath)
@@ -136,7 +136,7 @@ type LinkingTests (output:ITestOutputHelper) =
     member this.``Intrinsic Resolution Returns UDT`` () =
         this.RunIntrinsicResolutionTest 2
 
-    
+
     [<Fact>]
     [<Trait("Category","Intrinsic Resolution")>]
     member this.``Intrinsic Resolution Type Mismatch Error`` () =

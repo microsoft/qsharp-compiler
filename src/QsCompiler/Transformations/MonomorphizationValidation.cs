@@ -7,47 +7,52 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
+namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 {
-    public class MonomorphizationValidationTransformation
+    public class ValidateMonomorphization : SyntaxTreeTransformation<ValidateMonomorphization.TransformationState>
     {
         public static void Apply(QsCompilation compilation)
         {
-            var filter = new MonomorphizationValidationSyntax();
+            var filter = new ValidateMonomorphization();
 
             foreach (var ns in compilation.Namespaces)
             {
-                filter.Transform(ns);
+                filter.Namespaces.OnNamespace(ns);
             }
         }
 
-        private class MonomorphizationValidationSyntax : SyntaxTreeTransformation<ScopeTransformation<MonomorphizationValidationExpression>>
-        {
-            public MonomorphizationValidationSyntax(ScopeTransformation<MonomorphizationValidationExpression> scope = null) :
-                base(scope ?? new ScopeTransformation<MonomorphizationValidationExpression>(new MonomorphizationValidationExpression())) { }
+        public class TransformationState { }
 
-            public override ResolvedSignature onSignature(ResolvedSignature s)
+        internal ValidateMonomorphization() : base(new TransformationState()) 
+        { 
+            this.Namespaces = new NamespaceTransformation(this);
+            this.Expressions = new ExpressionTransformation(this);
+            this.Types = new TypeTransformation(this);
+        }
+
+        private class NamespaceTransformation : NamespaceTransformation<TransformationState>
+        {
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+            public override ResolvedSignature OnSignature(ResolvedSignature s)
             {
                 if (s.TypeParameters.Any())
                 {
                     throw new Exception("Signatures cannot contains type parameters");
                 }
 
-                return base.onSignature(s);
+                return base.OnSignature(s);
             }
         }
 
-        private class MonomorphizationValidationExpression :
-            ExpressionTransformation<Core.ExpressionKindTransformation, MonomorphizationValidationExpressionType>
+        private class ExpressionTransformation : ExpressionTransformation<TransformationState>
         {
-            public MonomorphizationValidationExpression() :
-                base(expr => new ExpressionKindTransformation<MonomorphizationValidationExpression>(expr as MonomorphizationValidationExpression),
-                     expr => new MonomorphizationValidationExpressionType(expr as MonomorphizationValidationExpression))
-            { }
+            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-            public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> onTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
+            public override ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> OnTypeParamResolutions(ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> typeParams)
             {
                 if (typeParams.Any())
                 {
@@ -58,11 +63,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidatio
             }
         }
 
-        private class MonomorphizationValidationExpressionType : ExpressionTypeTransformation<MonomorphizationValidationExpression>
+        private class TypeTransformation : TypeTransformation<TransformationState>
         {
-            public MonomorphizationValidationExpressionType(MonomorphizationValidationExpression expr) : base(expr) { }
+            public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-            public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
+            public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp)
             {
                 throw new Exception("Type Parameter types must be resolved");
             }

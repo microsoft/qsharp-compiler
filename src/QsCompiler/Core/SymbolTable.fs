@@ -133,7 +133,7 @@ type private PartialNamespace private
 
     /// Adds the given lines of documentation to the list of documenting sections 
     /// associated with this namespace within this source file. 
-    member this.AddDocumenation (doc : IEnumerable<_>) = 
+    member this.AddDocumentation (doc : IEnumerable<_>) = 
         AssociatedDocumentation.Add(doc.ToImmutableArray())
 
     /// If the given namespace name is not already listened as imported, adds the given namespace name to the list of open namespaces.
@@ -300,7 +300,7 @@ and Namespace private
 
         // ignore ambiguous/clashing references
         let FilterUnique (g : IGrouping<_,_>) = 
-            if g.Count() > 1 then None // TODO: give warning??
+            if g.Count() > 1 then None
             else g.Single() |> Some
         let typesInRefs = typesInRefs.GroupBy(fun t -> t.QualifiedName.Name) |> Seq.choose FilterUnique
         let callablesInRefs = callablesInRefs.GroupBy(fun c -> c.QualifiedName.Name) |> Seq.choose FilterUnique
@@ -535,9 +535,9 @@ and Namespace private
     /// Adds the given lines of documentation to the list of documenting sections 
     /// associated with this namespace within the given source file. 
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
-    member this.AddDocumenation source doc =
+    member this.AddDocumentation source doc =
         match Parts.TryGetValue source with 
-        | true, partial -> partial.AddDocumenation doc
+        | true, partial -> partial.AddDocumentation doc
         | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
 
     /// Adds the given namespace name to the list of opened namespaces for the part of the namespace defined in the given source file.
@@ -1389,7 +1389,7 @@ and NamespaceManager
         try this.ClearResolutions()
             match Namespaces.TryGetValue nsName with 
             | true, ns when ns.Sources.Contains source -> 
-                let validAlias = String.IsNullOrWhiteSpace alias || NonNullable<string>.New (alias.Trim()) |> Namespaces.ContainsKey |> not // TODO: DISALLOW TWO ALIAS WITH THE SAME NAME?
+                let validAlias = String.IsNullOrWhiteSpace alias || NonNullable<string>.New (alias.Trim()) |> Namespaces.ContainsKey |> not 
                 if validAlias && Namespaces.ContainsKey opened then ns.TryAddOpenDirective source (opened, openedRange) (alias, aliasRange.ValueOr openedRange)
                 elif validAlias then [| openedRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [opened.Value]) |]
                 else [| aliasRange.ValueOr openedRange |> QsCompilerDiagnostic.Error (ErrorCode.InvalidNamespaceAliasName, [alias]) |]

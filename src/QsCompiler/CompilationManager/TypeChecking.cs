@@ -222,7 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // add documenting comments to the namespace declarations
                 foreach (var header in namespaceHeaders)
-                { distinctNamespaces[header.Item2.SymbolName].AddDocumenation(file.FileName, header.Item2.Documentation); }
+                { distinctNamespaces[header.Item2.SymbolName].AddDocumentation(file.FileName, header.Item2.Documentation); }
 
                 // add all type declarations
                 var typesToCompile = AddItems(file.GetTypeDeclarationHeaderItems(),

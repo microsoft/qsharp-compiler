@@ -271,21 +271,24 @@ let private showModifiers kind modifiers =
     | Private -> "private " + kind
 
 type private TName () = 
-    inherit ExpressionTypeToQs(new ExpressionToQs())
-    override this.onCharacteristicsExpression characteristics =
+    inherit SyntaxTreeToQsharp.TypeTransformation() 
+    override this.OnCharacteristicsExpression characteristics =
         if characteristics.AreInvalid then this.Output <- "?"; characteristics
-        else base.onCharacteristicsExpression characteristics
-    override this.onInvalidType() = 
+        else base.OnCharacteristicsExpression characteristics
+    override this.OnInvalidType() = 
         this.Output <- "?"
         InvalidType
-    override this.onUserDefinedType udt = 
+    override this.OnUserDefinedType udt = 
         this.Output <- udt.Name.Value
         UserDefinedType udt
+    member this.Apply t = 
+        this.OnType t |> ignore
+        this.Output
 let private TypeString = new TName()
 let private TypeName = TypeString.Apply
 let private CharacteristicsAnnotation (ex, format) = 
-    ex |> TypeString.onCharacteristicsExpression |> ignore
-    if String.IsNullOrWhiteSpace TypeString.Output then "" else sprintf "is %s" TypeString.Output |> format
+    let charEx = SyntaxTreeToQsharp.CharacteristicsExpression ex
+    if String.IsNullOrWhiteSpace charEx then "" else sprintf "is %s" charEx |> format
 
 [<Extension>]
 let public TypeInfo (symbolTable : NamespaceManager) (currentNS, source) (qsType : QsType) markdown = 
@@ -347,7 +350,7 @@ let private printCallableKind = function
 
 [<Extension>]
 let public PrintArgumentTuple item = 
-    SyntaxTreeToQs.ArgumentTuple (item, new Func<_,_>(TypeName)) // note: needs to match the corresponding part of the output constructed by PrintSignature below!
+    SyntaxTreeToQsharp.ArgumentTuple (item, new Func<_,_>(TypeName)) // note: needs to match the corresponding part of the output constructed by PrintSignature below!
 
 [<Extension>]
 let public PrintSignature (header : CallableDeclarationHeader) = 
@@ -360,7 +363,7 @@ let public PrintSignature (header : CallableDeclarationHeader) =
                                                               ImmutableArray.Empty,
                                                               ImmutableArray.Empty,
                                                               QsComments.Empty)
-    let signature = SyntaxTreeToQs.DeclarationSignature (callable, new Func<_,_>(TypeName))
+    let signature = SyntaxTreeToQsharp.DeclarationSignature (callable, new Func<_,_>(TypeName))
     let annotation = CharacteristicsAnnotation (header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
     sprintf "%s%s" signature annotation
 
@@ -415,8 +418,8 @@ let public DeclarationInfo symbolTable (locals : LocalDeclarations) (currentNS, 
             let input = sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName) |> withNewLine
             let output = sprintf "Output type: %s" (decl.Signature.ReturnType |> TypeName) |> withNewLine
             let functorSupport characteristics =
-                TypeString.onCharacteristicsExpression characteristics |> ignore
-                if String.IsNullOrWhiteSpace TypeString.Output then "(None)" else TypeString.Output
+                let charEx = SyntaxTreeToQsharp.CharacteristicsExpression characteristics
+                if String.IsNullOrWhiteSpace charEx then "(None)" else charEx
             let fs = sprintf "Supported functors: %s" (decl.Signature.Information.Characteristics |> functorSupport)
             let doc = PrintSummary decl.Documentation markdown
             sprintf "Declaration of %s %s%s%s%s%s%s" kind name ns input output fs doc

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Immutable;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
@@ -18,69 +19,90 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
     /// In particular, it is only guaranteed to be valid if operation calls only occur within expression statements, and 
     /// throws an InvalidOperationException if the outer block contains while-loops. 
     /// </summary>
-    public class InlineConjugations
-        : SyntaxTreeTransformation<InlineConjugationStatements>
+    public class InlineConjugations 
+    : SyntaxTreeTransformation<InlineConjugations.TransformationState> 
     {
-        public bool Success { get; private set; }
-        private readonly Action<Exception> OnException;
+        public class TransformationState
+        {
+            public bool Success { get; internal set; }
+            internal readonly Action<Exception> OnException;
+
+            internal Func<QsScope, QsScope> ResolveNames = 
+                new UniqueVariableNames().Statements.OnScope;
+
+            public void Reset() => 
+                this.ResolveNames = new UniqueVariableNames().Statements.OnScope;
+
+            public TransformationState(Action<Exception> onException = null)
+            {
+                this.Success = true;
+                this.OnException = onException;
+            }
+        }
+
 
         public InlineConjugations(Action<Exception> onException = null)
-            : base(new InlineConjugationStatements())
-        {
-            this.Success = true;
-            this.OnException = onException;
+        : base(new TransformationState(onException))
+        { 
+            this.Namespaces = new NamespaceTransformation(this);
+            this.Statements = new StatementTransformation(this);
+            this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
-        public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> onProvidedImplementation
-            (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
+
+        // helper classes
+
+        private class StatementTransformation 
+        : StatementTransformation<TransformationState>
         {
-            this._Scope.Reset();
-            try { body = this._Scope.Transform(body); }
-            catch (Exception ex)
+            public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
+            : base(parent) { }
+
+
+            public override QsScope OnScope(QsScope scope)
             {
-                this.OnException?.Invoke(ex);
-                this.Success = false;
-            }
-            return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
-        }
-    }
-
-    /// <summary>
-    /// Scope transformation that inlines all conjugations, thus eliminating them from a given scope.
-    /// The generation of the adjoint for the outer block is subject to the same limitation as any adjoint auto-generation. 
-    /// In particular, it is only guaranteed to be valid if operation calls only occur within expression statements, and 
-    /// throws an InvalidOperationException if the outer block contains while-loops. 
-    /// </summary>
-    public class InlineConjugationStatements 
-        : ScopeTransformation<StatementKindTransformation<InlineConjugationStatements>, NoExpressionTransformations>
-    {
-        private Func<QsScope, QsScope> ResolveNames;
-        internal void Reset() => this.ResolveNames = new UniqueVariableNames().Transform;
-
-        public InlineConjugationStatements()
-            : base(s => new StatementKindTransformation<InlineConjugationStatements>(s as InlineConjugationStatements), new NoExpressionTransformations()) =>
-            this.ResolveNames = new UniqueVariableNames().Transform;
-
-        public override QsScope Transform(QsScope scope)
-        {
-            var statements = ImmutableArray.CreateBuilder<QsStatement>();
-            foreach (var statement in scope.Statements)
-            {
-                if (statement.Statement is QsStatementKind.QsConjugation conj)
+                var statements = ImmutableArray.CreateBuilder<QsStatement>();
+                foreach (var statement in scope.Statements)
                 {
-                    // since we are eliminating scopes, 
-                    // we need to make sure that the variables defined within the inlined scopes do not clash with other defined variables.
-                    var outer = ResolveNames(this.Transform(conj.Item.OuterTransformation.Body));
-                    var inner = ResolveNames(this.Transform(conj.Item.InnerTransformation.Body));
-                    var adjOuter = outer.GenerateAdjoint(); // will add a unique name wrapper
+                    if (statement.Statement is QsStatementKind.QsConjugation conj)
+                    {
+                        // since we are eliminating scopes, 
+                        // we need to make sure that the variables defined within the inlined scopes do not clash with other defined variables.
+                        var outer = this.SharedState.ResolveNames(this.OnScope(conj.Item.OuterTransformation.Body));
+                        var inner = this.SharedState.ResolveNames(this.OnScope(conj.Item.InnerTransformation.Body));
+                        var adjOuter = outer.GenerateAdjoint(); // will add a unique name wrapper
 
-                    statements.AddRange(outer.Statements);
-                    statements.AddRange(inner.Statements);
-                    statements.AddRange(adjOuter.Statements);
+                        statements.AddRange(outer.Statements);
+                        statements.AddRange(inner.Statements);
+                        statements.AddRange(adjOuter.Statements);
+                    }
+                    else statements.Add(this.OnStatement(statement));
                 }
-                else statements.Add(this.onStatement(statement));
+                return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
             }
-            return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
+        }
+
+
+        private class NamespaceTransformation 
+        : NamespaceTransformation<TransformationState>
+        {
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+            : base(parent) { }
+
+
+            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> OnProvidedImplementation
+                (QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
+            {
+                this.SharedState.Reset();
+                try { body = this.Transformation.Statements.OnScope(body); }
+                catch (Exception ex)
+                {
+                    this.SharedState.OnException?.Invoke(ex);
+                    this.SharedState.Success = false;
+                }
+                return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
+            }
         }
     }
 }

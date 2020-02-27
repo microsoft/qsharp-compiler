@@ -5,4 +5,25 @@ namespace Microsoft.Quantum.Testing.Optimization.Arithmetic {
         return 4;
     }
     
+    
+    operation TestArithmeticForBigInt (x : BigInt) : BigInt {
+        
+        let y = x + x;
+        return y;
+    }
+    
+    
+    operation TestArithmeticForDouble (x : Double) : Double {
+        
+        let y = x + x;
+        return y;
+    }
+    
+    
+    operation TestArithmeticForInt (x : Int) : Int {
+        
+        let y = x + x;
+        return y;
+    }
+    
 }

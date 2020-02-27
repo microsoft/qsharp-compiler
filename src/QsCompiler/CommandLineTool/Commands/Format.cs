@@ -61,18 +61,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
 
         /// <summary>
-        /// Returns formatted Q# code for the given statement.
-        /// Throws an ArgumentNullException if the given statement is null.
-        /// </summary>
-        internal static string FormatStatement(QsStatement statement)
-        {
-            if (statement == null) throw new ArgumentNullException(nameof(statement));
-            var ToCode = new ScopeToQs();
-            ToCode.onStatement(statement);
-            return ToCode.Output;
-        }
-
-        /// <summary>
         /// Generates formatted Q# code based on the part of the syntax tree that corresponds to each file in the given compilation. 
         /// If the id of a file is consistent with the one assigned to a code snippet,
         /// strips the lines of code that correspond to the wrapping defined by WrapSnippet. 
@@ -85,13 +73,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (Options.IsCodeSnippet(file))
             {
                 var subtree = compilation.SyntaxTree.Values.Select(ns => FilterBySourceFile.Apply(ns, file)).Where(ns => ns.Elements.Any());
-                return DiagnoseCompilation.StripSnippetWrapping(subtree).Select(FormatStatement);
+                return DiagnoseCompilation.StripSnippetWrapping(subtree).Select(SyntaxTreeToQsharp.Default.ToCode);
             }
             else
             {
                 var imports = compilation.SyntaxTree.Values 
                     .ToImmutableDictionary(ns => ns.Name, ns => compilation.OpenDirectives(file, ns.Name).ToImmutableArray());
-                var success = SyntaxTreeToQs.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, compilation.SyntaxTree.Values, (file, imports));
+                var success = SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, compilation.SyntaxTree.Values, (file, imports));
                 if (!success) logger?.Log(WarningCode.UnresolvedItemsInGeneratedQs, Enumerable.Empty<string>(), file.Value);
 
                 return generated.Single().Select(entry =>
