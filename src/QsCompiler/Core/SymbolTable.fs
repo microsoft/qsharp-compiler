@@ -31,7 +31,9 @@ type ResolutionResult<'T> =
     | NotFound
     
 
-/// Note that this class is *not* threadsafe!
+/// Represents the partial declaration of a namespace in a single file.
+///
+/// Note that this class is *not* thread-safe, and access modifiers are always ignored when looking up declarations.
 type private PartialNamespace private
     (name : NonNullable<string>,
      source : NonNullable<string>,
@@ -244,7 +246,9 @@ type private PartialNamespace private
         | false, _ -> [||]
 
 
-/// Note that this class is *not* threadsafe!
+/// Represents a namespace and all of its declarations.
+///
+/// Note that this class is *not* thread-safe, and access modifiers are always ignored when looking up declarations.
 and Namespace private
     (name, parts : IEnumerable<KeyValuePair<NonNullable<string>,PartialNamespace>>,
      CallablesInReferences : ImmutableDictionary<NonNullable<string>, CallableDeclarationHeader>,
@@ -657,14 +661,19 @@ and Namespace private
 
 
 /// Threadsafe class for global symbol management.
-/// Takes a lookup for all callables and for all types declared within one of the assemblies 
-/// referenced by the compilation unit this namespace manager belongs to.
-/// The key for the given lookups is the name of the namespace the declarations belongs to.
-and NamespaceManager 
+///
+/// Takes a lookup for all callables and for all types declared within one of the assemblies referenced by the
+/// compilation unit this namespace manager belongs to. The key for the given lookups is the name of the namespace the
+/// declarations belongs to.
+///
+/// The namespace manager takes access modifiers into consideration when resolving symbols. Some methods bypass this
+/// (e.g., when returning a list of all declarations). Individual methods document whether they follow or ignore access
+/// modifiers.
+and NamespaceManager
     (syncRoot : IReaderWriterLock,
-     callablesInRefs : IEnumerable<CallableDeclarationHeader>, 
+     callablesInRefs : IEnumerable<CallableDeclarationHeader>,
      specializationsInRefs : IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
-     typesInRefs : IEnumerable<TypeDeclarationHeader>) = 
+     typesInRefs : IEnumerable<TypeDeclarationHeader>) =
     // This class itself does not use any concurrency, 
     // so anything that is accessible within the class only does not apply any locks.
     // IMPORTANT: the syncRoot is intentionally not exposed externally, since with this class supporting mutation
@@ -761,12 +770,16 @@ and NamespaceManager
         | Internal -> sameAssembly
         | Private -> sameAssembly && sameNs
 
-    /// Given the qualified or unqualfied name of a type used within the given parent namespace and source file, determines if such a type exists 
-    /// and returns its full name and the source file or referenced assembly in which it is defined as Some if it does. 
-    /// Returns None if no such type exist, or if the type name is unqualified and ambiguous.
+    /// Given the qualified or unqualified name of a type used within the given parent namespace and source file,
+    /// determines if such a type is accessible, and returns its full name and the source file or referenced assembly in
+    /// which it is defined as Some if it is.
+    ///
+    /// Returns None if no such type exists, the type is inaccessible, or if the type name is unqualified and ambiguous.
+    ///
     /// Generates and returns an array with suitable diagnostics.
-    /// Throws an ArgumentException if the given parent namespace does not exist,
-    /// or if no source file with the given name is listed as source of that namespace. 
+    ///
+    /// Throws an ArgumentException if the given parent namespace does not exist, or if no source file with the given
+    /// name is listed as source of that namespace.
     let TryResolveTypeName (parentNS, source) ((nsName, symName), symRange) = 
         let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
         let checkQualificationForDeprecation qual = BuiltIn.Deprecated |> PossibleQualifications (parentNS, source) |> Seq.contains qual
@@ -813,8 +826,8 @@ and NamespaceManager
     /// resolution consists of replacing all unqualified names for user defined types by their qualified name.
     ///
     /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or
-    /// unqualified) can be found. In that case, resolves the user defined type by replacing it with the Q# type
-    /// denoting an invalid type.
+    /// unqualified) can be found, or if the type is inaccessible. In that case, resolves the user defined type by
+    /// replacing it with the Q# type denoting an invalid type.
     ///
     /// Diagnostics can be generated in additional cases when UDTs are referenced by returning an array of diagnostics
     /// from the given checkUdt function.
@@ -825,7 +838,8 @@ and NamespaceManager
     ///
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
     /// consistent with the defined callables.
-    /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations. 
+    ///
+    /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
     /// Throws a NotSupportedException if the QsType to resolve contains a MissingType.
     let resolveType (parent : QsQualifiedName, tpNames, source) qsType checkUdt =
         let processUDT = TryResolveTypeName (parent.Namespace, source) >> function
@@ -858,15 +872,20 @@ and NamespaceManager
                    (udt.Range.ValueOr QsCompilerDiagnostic.DefaultRange) |]
 
 
-    /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given attribute.
-    /// Generates suitable diagnostics if a suitable attribute cannot be determined, 
-    /// or if the attribute argument contains expressions that are not supported, 
-    /// or if the resolved argument type does not match the expected argument type. 
+    /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given
+    /// attribute.
+    ///
+    /// Generates suitable diagnostics if a suitable attribute cannot be found or is not accessible, if the attribute
+    /// argument contains expressions that are not supported, or if the resolved argument type does not match the
+    /// expected argument type.
+    ///
     /// Returns the resolved attribute as well as the generated diagnostics.
-    /// The TypeId in the resolved attribute is set to Null if the unresolved Id is not a valid identifier 
-    /// or if the correct attribute cannot be determined, and is set to the corresponding type identifier otherwise. 
-    /// May throw an ArgumentException if the given parent namespace does not exist,
-    /// or if no source file with the given name is listed as source of that namespace. 
+    ///
+    /// The TypeId in the resolved attribute is set to Null if the unresolved Id is not a valid identifier or if the
+    /// correct attribute cannot be determined, and is set to the corresponding type identifier otherwise.
+    ///
+    /// May throw an ArgumentException if the given parent namespace does not exist or if no source file with the given
+    /// name is listed as source of that namespace.
     member private this.ResolveAttribute (parentNS, source) attribute = 
         let getAttribute ((nsName, symName), symRange) = 
             match TryResolveTypeName (parentNS, source) ((nsName, symName), symRange) with
@@ -965,8 +984,8 @@ and NamespaceManager
     /// resolution consists of replacing all unqualified names for user defined types by their qualified name.
     ///
     /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or
-    /// unqualified) can be found. In that case, resolves the user defined type by replacing it with the Q# type
-    /// denoting an invalid type.
+    /// unqualified) can be found or the type is inaccessible. In that case, resolves the user defined type by replacing
+    /// it with the Q# type denoting an invalid type.
     ///
     /// Verifies that all used type parameters are defined in the given list of type parameters, and generates suitable
     /// diagnostics if they are not, replacing them by the Q# type denoting an invalid type. Returns the resolved type
@@ -974,17 +993,25 @@ and NamespaceManager
     ///
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
     /// consistent with the defined callables.
-    /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations. 
+    ///
+    /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
     /// Throws a NotSupportedException if the QsType to resolve contains a MissingType.
     member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>)
                             (qsType : QsType)
                             : ResolvedType * QsCompilerDiagnostic[] =
         resolveType (parent, tpNames, source) qsType (fun _ -> [||])
 
-    /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the specified source file. 
-    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined types. 
-    /// May throw an exception if the given parent and/or source file is inconsistent with the defined types. 
-    /// Throws an ArgumentException if the given type tuple is an empty QsTuple. 
+    /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the
+    /// specified source file using ResolveType.
+    ///
+    /// Generates the same diagnostics as ResolveType, as well as additional diagnostics when the accessibility of the
+    /// type declaration is greater than the accessibility of any part of its underlying type.
+    ///
+    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
+    /// consistent with the defined types.
+    ///
+    /// May throw an exception if the given parent and/or source file is inconsistent with the defined types. Throws an
+    /// ArgumentException if the given type tuple is an empty QsTuple.
     member private this.ResolveTypeDeclaration (fullName, source, modifiers) typeTuple =
         // Currently, type parameters for UDTs are not supported.
         let resolveType qsType =
@@ -994,14 +1021,23 @@ and NamespaceManager
                 (checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, modifiers))
         SymbolResolution.ResolveTypeDeclaration resolveType typeTuple
 
-    /// Given the namespace and the name of the callable that the given signature belongs to, as well as its kind and the source file it is declared in,
-    /// fully resolves all Q# types in the signature using ResolveType.
-    /// Returns a new signature with the resolved types, the resolved argument tuple, as well as the array of diagnostics created during type resolution.
-    /// The position offset information for the variables declared in the argument tuple will be set to Null.
-    /// Positional information within types is set to Null if the parent callable is a type constructor. 
-    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined callables. 
-    /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables. 
-    /// Throws an ArgumentException if the given list of characteristics is empty.
+    /// Given the namespace and the name of the callable that the given signature belongs to, as well as its kind and
+    /// the source file it is declared in, fully resolves all Q# types in the signature using ResolveType.
+    ///
+    /// Generates the same diagnostics as ResolveType, as well as additional diagnostics when the accessibility of the
+    /// callable declaration is greater than the accessibility of any type in its signature.
+    ///
+    /// Returns a new signature with the resolved types, the resolved argument tuple, as well as the array of
+    /// diagnostics created during type resolution.
+    ///
+    /// The position offset information for the variables declared in the argument tuple will be set to Null. Positional
+    /// information within types is set to Null if the parent callable is a type constructor.
+    ///
+    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
+    /// consistent with the defined callables.
+    ///
+    /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables. Throws
+    /// an ArgumentException if the given list of characteristics is empty.
     member private this.ResolveCallableSignature (parentKind, parentName, source, modifiers)
                                                  (signature, specBundleCharacteristics) =
         let resolveType tpNames qsType =
@@ -1195,7 +1231,8 @@ and NamespaceManager
             defined.ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
-    /// Returns the source file and CallableDeclarationHeader of all callables imported from referenced assemblies.
+    /// Returns the source file and CallableDeclarationHeader of all callables imported from referenced assemblies,
+    /// regardless of accessibility.
     member this.ImportedCallables () = 
         // TODO: this needs to be adapted if we support external specializations
         syncRoot.EnterReadLock()
@@ -1203,8 +1240,9 @@ and NamespaceManager
             imported.ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
-    /// Returns the declaration headers for all callables defined in source files.
-    /// Throws an InvalidOperationException if the symbols are not currently resolved. 
+    /// Returns the declaration headers for all callables defined in source files, regardless of accessibility.
+    ///
+    /// Throws an InvalidOperationException if the symbols are not currently resolved.
     member this.DefinedCallables () = 
         let notResolvedException = InvalidOperationException "callables are not resolved"
         syncRoot.EnterReadLock()
@@ -1241,15 +1279,17 @@ and NamespaceManager
             IsDeclarationAccessible sameAssembly (nsName = callable.QualifiedName.Namespace) callable.Modifiers)
         |> Seq.map fst
 
-    /// Returns the source file and TypeDeclarationHeader of all types imported from referenced assemblies.
-    member this.ImportedTypes() = 
+    /// Returns the source file and TypeDeclarationHeader of all types imported from referenced assemblies, regardless
+    /// of accessibility.
+    member this.ImportedTypes() =
         syncRoot.EnterReadLock()
         try let imported = Namespaces.Values |> Seq.collect (fun ns -> ns.TypesInReferencedAssemblies.Values)
             imported.ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
-    /// Returns the declaration headers for all types defined in source files.
-    /// Throws an InvalidOperationException if the symbols are not currently resolved. 
+    /// Returns the declaration headers for all types defined in source files, regardless of accessibility.
+    ///
+    /// Throws an InvalidOperationException if the symbols are not currently resolved.
     member this.DefinedTypes () = 
         let notResolvedException = InvalidOperationException "types are not resolved"
         syncRoot.EnterReadLock()
@@ -1357,11 +1397,15 @@ and NamespaceManager
             | false, _ -> ArgumentException "no such namespace exists" |> raise        
         finally syncRoot.ExitWriteLock()
 
-    /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader as Value, 
-    /// if the qualifier can be resolved within the given parent namespace and source file, and such a callable indeed exists. 
-    /// If the callable is not defined an any of the references and the source file containing the callable declaration is specified (i.e. declSource is Some), 
-    /// throws the corresponding exception if no such callable exists in that file. 
-    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
+    /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
+    /// the qualifier can be resolved within the given parent namespace and source file, and the callable is accessible.
+    ///
+    /// If the callable is not defined an any of the references and the source file containing the callable declaration
+    /// is specified (i.e. declSource is Some), throws the corresponding exception if no such callable exists in that
+    /// file.
+    ///
+    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent
+    /// namespace does not exist.
     member private this.TryGetCallableHeader (callableName : QsQualifiedName, declSource) (nsName, source) =
         let BuildHeader fullName (source, kind, declaration : Resolution<_,_>) = 
             let fallback () = (declaration.Defined, [CallableInformation.Invalid]) |> this.ResolveCallableSignature (kind, callableName, source, declaration.Modifiers) |> fst
@@ -1401,14 +1445,20 @@ and NamespaceManager
                         | false, _ -> NotFound
         finally syncRoot.ExitReadLock()
 
-    /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader as Value, 
-    /// if the qualifier can be resolved within the given parent namespace and source file, and such a callable indeed exists. 
-    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
-    member this.TryGetCallable (callableName : QsQualifiedName) (nsName, source) = this.TryGetCallableHeader (callableName, None) (nsName, source)
+    /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
+    /// the qualifier can be resolved within the given parent namespace and source file, and the callable is accessible.
+    ///
+    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent
+    /// namespace does not exist.
+    member this.TryGetCallable (callableName : QsQualifiedName) (nsName, source) =
+        this.TryGetCallableHeader (callableName, None) (nsName, source)
 
-    /// If the given callable name can be uniquely resolved within the given namespace and source file, 
-    /// returns the CallableDeclarationHeader with the information on that callable as Value.
-    /// Returns Null as well as a list with namespaces containing a callable with that name if this is not the case. 
+    /// Given an unqualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
+    /// the qualifier can be uniquely resolved within the given parent namespace and source file, and the callable is
+    /// accessible.
+    ///
+    /// Returns an Ambiguous result with a list with namespaces containing a type with that name if the name cannot be
+    /// uniquely resolved.
     member this.TryResolveAndGetCallable cName (nsName, source) = 
         syncRoot.EnterReadLock()
         try
@@ -1427,11 +1477,14 @@ and NamespaceManager
             | _ -> accessibleResolutions.Select fst |> Ambiguous
         finally syncRoot.ExitReadLock()
 
-    /// Given a qualified type name, returns the corresponding TypeDeclarationHeader as Value, 
-    /// if the qualifier can be resolved within the given parent namespace and source file, and such a type indeed exists. 
-    /// If the type is not defined an any of the references and the source file containing the type declaration is specified (i.e. declSource is Some), 
-    /// throws the corresponding exception if no such type exists in that file. 
-    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
+    /// Given a qualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
+    /// qualifier can be resolved within the given parent namespace and source file, and the type is accessible.
+    ///
+    /// If the type is not defined an any of the references and the source file containing the type declaration is
+    /// specified (i.e. declSource is Some), throws the corresponding exception if no such type exists in that file.
+    ///
+    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent
+    /// namespace does not exist.
     member private this.TryGetTypeHeader (typeName : QsQualifiedName, declSource) (nsName, source) =
         let BuildHeader fullName (source, declaration) =
             let fallback () =
@@ -1472,14 +1525,19 @@ and NamespaceManager
                         | false, _ -> NotFound
         finally syncRoot.ExitReadLock()
 
-    /// Given a qualified type name, returns the corresponding TypeDeclarationHeader as Value, 
-    /// if the qualifier can be resolved within the given parent namespace and source file, and such a type indeed exists. 
-    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
+    /// Given a qualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
+    /// qualifier can be resolved within the given parent namespace and source file, and the type is accessible.
+    ///
+    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent
+    /// namespace does not exist.
     member this.TryGetType (typeName : QsQualifiedName) (nsName, source) = this.TryGetTypeHeader (typeName, None) (nsName, source)
 
-    /// If the given type name can be uniquely resolved within the given namespace and source file, 
-    /// returns the TypeDeclarationHeader with the information on that type as Value.
-    /// Returns Null as well as a list with namespaces containing a type with that name if this is not the case. 
+    /// Given an unqualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
+    /// qualifier can be uniquely resolved within the given parent namespace and source file, and the type is
+    /// accessible.
+    ///
+    /// Returns an Ambiguous result with a list with namespaces containing a type with that name if the name cannot be
+    /// uniquely resolved.
     member this.TryResolveAndGetType tName (nsName, source) = 
         syncRoot.EnterReadLock()
         try
