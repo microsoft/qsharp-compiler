@@ -171,32 +171,41 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 /// <summary>
                 /// Creates an operation call from the conditional control API for non-literal Result comparisons.
                 /// </summary>
-                private TypedExpression CreateApplyConditionallyExpression(TypedExpression conditionExpr1, TypedExpression conditionExpr2, QsScope conditionScope, QsScope defaultScope)
+                private TypedExpression CreateApplyConditionallyExpression(TypedExpression conditionExpr1, TypedExpression conditionExpr2, QsScope equalityScope, QsScope inequalityScope)
                 {
-                    var (isConditionValid, conditionId, conditionArgs) = IsValidScope(conditionScope);
-                    var (isDefaultValid, defaultId, defaultArgs) = IsValidScope(defaultScope);
-
-                    if (!isConditionValid)
+                    if (equalityScope == null && inequalityScope == null)
                     {
-                        return null; // ToDo: Diagnostic message - condition block not valid
+                        return null; // Not sure how this would happen
                     }
 
-                    if (!isDefaultValid && defaultScope != null)
+                    var (isEqualityValid, equalityId, equalityArgs) = IsValidScope(equalityScope);
+                    var (isInequaltiyValid, inequalityId, inequalityArgs) = IsValidScope(inequalityScope);
+
+                    if (!isEqualityValid && equalityScope != null)
                     {
-                        return null; // ToDo: Diagnostic message - default block exists, but is not valid
+                        return null; // ToDo: Diagnostic message - equality block exists, but is not valid
                     }
 
-                    if (defaultScope == null)
+                    if (!isInequaltiyValid && inequalityScope != null)
                     {
-                        (defaultId, defaultArgs) = Utils.GetNoOp();
+                        return null; // ToDo: Diagnostic message - inequality block exists, but is not valid
+                    }
+
+                    if (equalityScope == null)
+                    {
+                        (equalityId, equalityArgs) = Utils.GetNoOp();
+                    }
+                    else if (inequalityScope == null)
+                    {
+                        (inequalityId, inequalityArgs) = Utils.GetNoOp();
                     }
 
                     // Get characteristic properties from global id
                     var props = ImmutableHashSet<OpProperty>.Empty;
-                    if (conditionId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
+                    if (equalityId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
                     {
                         props = op.Item2.Characteristics.GetProperties();
-                        if (defaultId != null && defaultId.ResolvedType.Resolution is ResolvedTypeKind.Operation defaultOp)
+                        if (inequalityId != null && inequalityId.ResolvedType.Resolution is ResolvedTypeKind.Operation defaultOp)
                         {
                             props = props.Intersect(defaultOp.Item2.Characteristics.GetProperties());
                         }
@@ -221,10 +230,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         controlOpInfo = BuiltIn.ApplyConditionally;
                     }
 
-                    var equality = Utils.CreateValueTupleExpression(conditionId, conditionArgs);
-                    var inequality = Utils.CreateValueTupleExpression(defaultId, defaultArgs);
+                    var equality = Utils.CreateValueTupleExpression(equalityId, equalityArgs);
+                    var inequality = Utils.CreateValueTupleExpression(inequalityId, inequalityArgs);
                     var controlArgs = Utils.CreateValueTupleExpression(Utils.CreateValueArray(conditionExpr1), Utils.CreateValueArray(conditionExpr2), equality, inequality);
-                    var targetArgsTypes = ImmutableArray.Create(conditionArgs.ResolvedType, defaultArgs.ResolvedType);
+                    var targetArgsTypes = ImmutableArray.Create(equalityArgs.ResolvedType, inequalityArgs.ResolvedType);
                     
                     return CreateControlCall(controlOpInfo, props, controlArgs, targetArgsTypes);
                 }
@@ -374,13 +383,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         }
                         else
                         {
-                            var (isCompareNonLiteral, conditionExpr1, conditionExpr2) = IsConditionedOnResultEqualityExpression(condition);
-                            if (isCompareNonLiteral)
+                            var (isNonLiteralEquality, conditionExpr1, conditionExpr2) = IsConditionedOnResultEqualityExpression(condition);
+                            if (isNonLiteralEquality)
                             {
                                 return CreateControlStatement(statement, CreateApplyConditionallyExpression(conditionExpr1, conditionExpr2, conditionScope, defaultScope));
                             }
                             else
                             {
+                                bool isNonLiteralInequality;
+                                (isNonLiteralInequality, conditionExpr1, conditionExpr2) = IsConditionedOnResultInequalityExpression(condition);
+                                if (isNonLiteralInequality)
+                                {
+                                    return CreateControlStatement(statement, CreateApplyConditionallyExpression(conditionExpr1, conditionExpr2, defaultScope, conditionScope));
+                                }
+
                                 // ToDo: Diagnostic message
                                 return statement; // The condition does not fit a supported format.
                             }
@@ -413,21 +429,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 }
 
                 /// <summary>
-                /// Checks if the expression is an equality comparison where one side is a Result literal.
-                /// If it is, returns true along with the Result literal and the other expression in the
-                /// equality, otherwise returns false with nulls.
+                /// Checks if the expression is an equality or inequality comparison where one side is a
+                /// Result literal. If it is, returns true along with the Result literal and the other
+                /// expression in the (in)equality, otherwise returns false with nulls. If it is an
+                /// inequality, the returned result value will be the opposite of the result literal found.
                 /// </summary>
                 private (bool, QsResult, TypedExpression) IsConditionedOnResultLiteralExpression(TypedExpression expression)
                 {
                     if (expression.Expression is ExpressionKind.EQ eq)
                     {
-                        if (eq.Item1.Expression is ExpressionKind.ResultLiteral exp1)
+                        if (eq.Item1.Expression is ExpressionKind.ResultLiteral literal1)
                         {
-                            return (true, exp1.Item, eq.Item2);
+                            return (true, literal1.Item, eq.Item2);
                         }
-                        else if (eq.Item2.Expression is ExpressionKind.ResultLiteral exp2)
+                        else if (eq.Item2.Expression is ExpressionKind.ResultLiteral literal2)
                         {
-                            return (true, exp2.Item, eq.Item1);
+                            return (true, literal2.Item, eq.Item1);
+                        }
+                    }
+                    else if (expression.Expression is ExpressionKind.NEQ neq)
+                    {
+                        QsResult FlipResult(QsResult result) => result.IsZero ? QsResult.One : QsResult.Zero;
+
+                        if (neq.Item1.Expression is ExpressionKind.ResultLiteral literal1)
+                        {
+                            return (true, FlipResult(literal1.Item), neq.Item2);
+                        }
+                        else if (neq.Item2.Expression is ExpressionKind.ResultLiteral literal2)
+                        {
+                            return (true, FlipResult(literal2.Item), neq.Item1);
                         }
                     }
 
@@ -445,6 +475,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         && eq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
                     {
                         return (true, eq.Item1, eq.Item2);
+                    }
+
+                    return (false, null, null);
+                }
+
+                /// <summary>
+                /// Checks if the expression is an inequality comparison between two Result-typed expressions.
+                /// If it is, returns true along with the two expressions, otherwise returns false with nulls.
+                /// </summary>
+                private (bool, TypedExpression, TypedExpression) IsConditionedOnResultInequalityExpression(TypedExpression expression)
+                {
+                    if (expression.Expression is ExpressionKind.NEQ neq
+                        && neq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
+                        && neq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
+                    {
+                        return (true, neq.Item1, neq.Item2);
                     }
 
                     return (false, null, null);
