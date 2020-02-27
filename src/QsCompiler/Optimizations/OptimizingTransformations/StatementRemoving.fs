@@ -10,15 +10,18 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to remove useless statements
-type StatementRemoval private (unsafe : string) =
+type StatementRemoval private (_private_ : string) =
     inherit TransformationBase()
 
     new (removeFunctions : bool) as this = 
-        new StatementRemoval("unsafe") then
+        new StatementRemoval("_private_") then
             this.Statements <- new VariableRemovalStatements(this, removeFunctions)
+            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for StatementRemoval
 and private VariableRemovalStatements (parent : StatementRemoval, removeFunctions) = 
@@ -32,10 +35,10 @@ and private VariableRemovalStatements (parent : StatementRemoval, removeFunction
     override __.CollectStatements stmt =
 
         let c = SideEffectChecker()
-        c.StatementKinds.Transform stmt |> ignore
+        c.StatementKinds.OnStatementKind stmt |> ignore
 
         let c2 = MutationChecker()
-        c2.StatementKinds.Transform stmt |> ignore
+        c2.StatementKinds.OnStatementKind stmt |> ignore
 
         match stmt with
         | QsVariableDeclaration {Lhs = lhs}

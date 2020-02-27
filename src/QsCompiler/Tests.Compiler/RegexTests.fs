@@ -83,23 +83,23 @@ let ``Strip unique variable name resolution`` () =
         |> List.map NonNullable<string>.New 
 
     origNames
-    |> List.map (fun var -> var, NameResolution.StripUniqueName var)
+    |> List.map (fun var -> var, UniqueVariableNames.StripUniqueName var)
     |> List.iter Assert.Equal
 
     origNames
-    |> List.map NameResolution.InternalState.GenerateUniqueName
-    |> List.map (fun unique -> unique, NameResolution.InternalState.GenerateUniqueName unique)
-    |> List.map (fun (unique, twiceWrapped) -> unique, NameResolution.StripUniqueName twiceWrapped)
+    |> List.map NameResolution.SharedState.GenerateUniqueName
+    |> List.map (fun unique -> unique, NameResolution.SharedState.GenerateUniqueName unique)
+    |> List.map (fun (unique, twiceWrapped) -> unique, UniqueVariableNames.StripUniqueName twiceWrapped)
     |> List.iter Assert.Equal
 
     origNames
-    |> List.map (fun var -> var, NameResolution.InternalState.GenerateUniqueName var)
-    |> List.map (fun (var, unique) -> var, NameResolution.InternalState.GenerateUniqueName unique)
-    |> List.map (fun (var, twiceWrapped) -> var, NameResolution.StripUniqueName twiceWrapped)
-    |> List.map (fun (var, unique) -> var, NameResolution.StripUniqueName unique)
+    |> List.map (fun var -> var, NameResolution.SharedState.GenerateUniqueName var)
+    |> List.map (fun (var, unique) -> var, NameResolution.SharedState.GenerateUniqueName unique)
+    |> List.map (fun (var, twiceWrapped) -> var, UniqueVariableNames.StripUniqueName twiceWrapped)
+    |> List.map (fun (var, unique) -> var, UniqueVariableNames.StripUniqueName unique)
     |> List.iter Assert.Equal
 
     origNames
-    |> List.map (fun var -> var, NameResolution.InternalState.GenerateUniqueName var)
-    |> List.map (fun (var, unique) -> var, NameResolution.StripUniqueName unique)
+    |> List.map (fun var -> var, NameResolution.SharedState.GenerateUniqueName var)
+    |> List.map (fun (var, unique) -> var, UniqueVariableNames.StripUniqueName unique)
     |> List.iter Assert.Equal
