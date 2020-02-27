@@ -30,7 +30,6 @@ namespace Microsoft.Quantum.Testing {
     
     operation op1 (q1 : Qubit, r1 : BigEndianRegister) : Unit
     is Ctl + Adj {
-        adjoint self;
         
         body (...) {
             Adjoint CNOT(q1, (r1!)[0]);
@@ -41,6 +40,8 @@ namespace Microsoft.Quantum.Testing {
                 CNOT(q1, item);
             }
         }
+        
+        adjoint self;
         
         ///automatically generated QsControlled specialization for Microsoft.Quantum.Testing.op1
         controlled (__controlQubits__, ...) {

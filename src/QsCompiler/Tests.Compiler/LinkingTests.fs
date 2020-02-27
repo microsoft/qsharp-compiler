@@ -12,9 +12,9 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolutionTransformation
+open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
-open Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation
+open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 open Xunit
 open Xunit.Abstractions
 
@@ -71,10 +71,10 @@ type LinkingTests (output:ITestOutputHelper) =
 
         let compilationDataStructures = this.BuildContent input
 
-        let monomorphicCompilation = MonomorphizationTransformation.Apply compilationDataStructures.BuiltCompilation
+        let monomorphicCompilation = Monomorphize.Apply compilationDataStructures.BuiltCompilation
 
         Assert.NotNull monomorphicCompilation
-        MonomorphizationValidationTransformation.Apply monomorphicCompilation
+        ValidateMonomorphization.Apply monomorphicCompilation
 
         monomorphicCompilation
 
@@ -83,7 +83,7 @@ type LinkingTests (output:ITestOutputHelper) =
         let envDS = this.BuildContent environment
         let sourceDS = this.BuildContent source
 
-        IntrinsicResolutionTransformation.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
+        ReplaceWithTargetIntrinsics.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
 
     member private this.RunIntrinsicResolutionTest testNumber =
 

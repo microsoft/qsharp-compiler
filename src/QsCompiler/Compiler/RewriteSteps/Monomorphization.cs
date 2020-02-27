@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization;
-using Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation;
+using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
 
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = MonomorphizationTransformation.Apply(compilation);
+            transformed = Monomorphize.Apply(compilation);
             return true;
         }
 
@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool PostconditionVerification(QsCompilation compilation)
         {
-            try { MonomorphizationValidationTransformation.Apply(compilation); }
+            try { ValidateMonomorphization.Apply(compilation); }
             catch { return false; }
             return true;
         }

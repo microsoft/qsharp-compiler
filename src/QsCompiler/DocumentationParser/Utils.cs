@@ -123,12 +123,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// </summary>
         /// <param name="t">The resolved type</param>
         /// <returns>A string containing the source representation of the type</returns>
-        internal static string ResolvedTypeToString(ResolvedType t)
-        {
-            var exprTransformer = new ExpressionToQs();
-            var transformer = new ExpressionTypeToQs(exprTransformer);
-            return transformer.Apply(t);
-        }
+        internal static string ResolvedTypeToString(ResolvedType t) =>
+            SyntaxTreeToQsharp.Default.ToCode(t);
 
         /// <summary>
         /// Populates a YAML mapping node with information describing a Q# resolved type.
