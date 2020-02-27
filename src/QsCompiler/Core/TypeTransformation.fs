@@ -16,7 +16,7 @@ type private ExpressionType =
 
 type TypeTransformationBase(options : TransformationOptions) = 
 
-    let Node = if options.DisableRebuild then Walk else Fold
+    let Node = if options.Rebuild then Fold else Walk
     new () = new TypeTransformationBase(TransformationOptions.Default)
 
 
@@ -112,7 +112,7 @@ type TypeTransformationBase(options : TransformationOptions) =
     // transformation root called on each node
 
     member this.OnType (t : ResolvedType) =
-        if options.Disable then t else
+        if not options.Enable then t else
         let transformed = t.Resolution |> function
             | ExpressionType.UnitType                    -> this.OnUnitType ()
             | ExpressionType.Operation ((it, ot), fs)    -> this.OnOperation ((it, ot), fs)

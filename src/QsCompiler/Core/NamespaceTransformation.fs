@@ -18,7 +18,7 @@ type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 type NamespaceTransformationBase internal (options : TransformationOptions, _internal_) =
 
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
-    let Node = if options.DisableRebuild then Walk else Fold
+    let Node = if options.Rebuild then Fold else Walk
 
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
     member this.Statements = this.StatementTransformationHandle()
@@ -212,14 +212,14 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
 
     abstract member OnNamespaceElement : QsNamespaceElement -> QsNamespaceElement
     default this.OnNamespaceElement element = 
-        if options.Disable then element else
+        if not options.Enable then element else
         match element with
         | QsCustomType t    -> t |> this.OnTypeDeclaration     |> QsCustomType
         | QsCallable c      -> c |> this.OnCallableDeclaration |> QsCallable
 
     abstract member OnNamespace : QsNamespace -> QsNamespace 
     default this.OnNamespace ns = 
-        if options.Disable then ns else
+        if not options.Enable then ns else
         let name = ns.Name
         let doc = ns.Documentation.AsEnumerable().SelectMany(fun entry -> 
             entry |> Seq.map (fun doc -> entry.Key, this.OnDocumentation doc)).ToLookup(fst, snd)

@@ -20,7 +20,7 @@ type private ExpressionKind =
 type ExpressionKindTransformationBase internal (options : TransformationOptions, _internal_) =
     
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
-    let Node = if options.DisableRebuild then Walk else Fold
+    let Node = if options.Rebuild then Fold else Walk
 
     member val internal TypeTransformationHandle = missingTransformation "type" with get, set
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
@@ -280,7 +280,7 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
 
     abstract member OnExpressionKind : ExpressionKind -> ExpressionKind
     default this.OnExpressionKind kind = 
-        if options.Disable then kind else
+        if not options.Enable then kind else
         let transformed = kind |> function
             | Identifier (sym, tArgs)                          -> this.OnIdentifier                 (sym, tArgs)
             | CallLikeExpression (method,arg)                  -> this.OnCallLikeExpression         (method, arg)
@@ -333,7 +333,7 @@ type ExpressionKindTransformationBase internal (options : TransformationOptions,
 and ExpressionTransformationBase internal (options : TransformationOptions, _internal_) = 
     
     let missingTransformation name _ = new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise 
-    let Node = if options.DisableRebuild then Walk else Fold
+    let Node = if options.Rebuild then Fold else Walk
 
     member val internal TypeTransformationHandle = missingTransformation "type" with get, set
     member val internal ExpressionKindTransformationHandle = missingTransformation "expression kind" with get, set
@@ -386,7 +386,7 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
 
     abstract member OnTypedExpression : TypedExpression -> TypedExpression
     default this.OnTypedExpression (ex : TypedExpression) =
-        if options.Disable then ex else
+        if not options.Enable then ex else
         let range                = this.OnRangeInformation ex.Range
         let typeParamResolutions = this.OnTypeParamResolutions ex.TypeParameterResolutions
         let kind                 = this.ExpressionKinds.OnExpressionKind ex.Expression
