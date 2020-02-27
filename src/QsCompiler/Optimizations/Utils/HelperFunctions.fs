@@ -52,7 +52,6 @@ let rec internal isLiteral (callables: IDictionary<QsQualifiedName, QsCallable>)
 /// If the given variable is already defined, its name is shadowed in the current scope.
 /// Throws an InvalidOperationException if there aren't any scopes on the stack.
 let internal defineVar check (constants : IDictionary<_,_>) (name, value) =
-    //if not (check value) then constants else constants |> Map.add name value
     if check value then constants.[name] <- value
 
 /// Applies the given function op on a SymbolTuple, ValueTuple pair
@@ -65,7 +64,6 @@ let rec private onTuple op constants (names, values) : unit =
             ArgumentException "names and values have different lengths" |> raise
         for sym, value in Seq.zip namesTuple valuesTuple do
             onTuple op constants (sym, value)
-        //Seq.zip namesTuple valuesTuple |> Seq.fold (onTuple op) constants
     | _ -> ()
 
 /// Returns a Constants<Expr> with the given variables defined as the given values
