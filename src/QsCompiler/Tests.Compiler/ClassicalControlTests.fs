@@ -254,7 +254,7 @@ type ClassicalControlTests () =
         CompileClassicalControlTest 6 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Apply If Calls")>]
+    [<Trait("Category","Condition API Conversion")>]
     member this.``ApplyIfZero And ApplyIfOne`` () =
         let result = CompileClassicalControlTest 7
 
@@ -268,7 +268,7 @@ type ClassicalControlTests () =
         |> AssertSpecializationHasCalls originalOp
 
     [<Fact>]
-    [<Trait("Category","Apply If Calls")>]
+    [<Trait("Category","Condition API Conversion")>]
     member this.``Apply If Zero Else One`` () =
         let (targs, args) = CompileClassicalControlTest 8 |> ApplyIfElseTest
         
@@ -281,7 +281,7 @@ type ClassicalControlTests () =
         Assert.True(IsTypeArgsMatch targs "Result, Unit", "ApplyIfElse did not have the correct type arguments")
 
     [<Fact>]
-    [<Trait("Category","Apply If Calls")>]
+    [<Trait("Category","Condition API Conversion")>]
     member this.``Apply If One Else Zero`` () =
         let (targs, args) = CompileClassicalControlTest 9 |> ApplyIfElseTest
 
@@ -1224,3 +1224,45 @@ type ClassicalControlTests () =
         // the All-Or-Nothing test where a block is *invalid* for
         // hoisting due to a set statement or return statement.
         CompileClassicalControlTest 28 |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Condition API Conversion")>]
+    member this.``Apply Conditionally`` () =
+        let result = CompileClassicalControlTest 29
+
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let lines = original |> GetLinesFromSpecialization
+
+        Assert.True(3 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.Namespace.Value BuiltIn.ApplyConditionally.Name.Value lines.[2]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
+
+        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
+        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        
+        IsApplyIfElseArgsMatch args "[r1], [r2]" Bar SubOp1
+        |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
+
+        Assert.True(IsTypeArgsMatch targs "Result, Unit", "ApplyConditionally did not have the correct type arguments")
+
+    [<Fact>]
+    [<Trait("Category","Condition API Conversion")>]
+    member this.``Apply Conditionally With NoOp`` () =
+        let result = CompileClassicalControlTest 30
+
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let lines = original |> GetLinesFromSpecialization
+
+        Assert.True(3 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.Namespace.Value BuiltIn.ApplyConditionally.Name.Value lines.[2]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
+
+        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
+        let NoOp = {Namespace = NonNullable<_>.New "Microsoft.Quantum.Canon"; Name = NonNullable<_>.New "NoOp"}
+        
+        IsApplyIfElseArgsMatch args "[r1], [r2]" Bar NoOp
+        |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
+
+        Assert.True(IsTypeArgsMatch targs "Result, Unit", "ApplyConditionally did not have the correct type arguments")
