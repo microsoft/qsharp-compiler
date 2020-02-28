@@ -910,3 +910,94 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         }
     }
 }
+
+// =================================
+
+// Inequality with ApplyConditionally
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Bar(r : Result) : Unit { }
+
+    operation Foo() : Unit {
+        let r1 = Zero;
+        let r2 = Zero;
+
+        if (r1 != r2) {
+            Bar(r1);
+        }
+        else {
+            SubOp1();
+        }
+    }
+}
+
+// =================================
+
+// Inequality with Apply If One Else Zero
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Bar(r : Result) : Unit { }
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (r != Zero) {
+            Bar(r);
+        }
+        else {
+            SubOp1();
+        }
+    }
+}
+
+// =================================
+
+// Inequality with Apply If Zero Else One
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Bar(r : Result) : Unit { }
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (r != One) {
+            Bar(r);
+        }
+        else {
+            SubOp1();
+        }
+    }
+}
+
+// =================================
+
+// Inequality with ApplyIfOne
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (r != Zero) {
+            SubOp1();
+        }
+    }
+}
+
+// =================================
+
+// Inequality with ApplyIfZero
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (r != One) {
+            SubOp1();
+        }
+    }
+}

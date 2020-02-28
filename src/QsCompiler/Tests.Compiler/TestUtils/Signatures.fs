@@ -393,5 +393,23 @@ let public ClassicalControlSignatures =
             ClassicalControlNs, "Bar", [|"Result"|], "Unit"
             ClassicalControlNs, "Foo", [||], "Unit"
         |])
+        (_DefaultTypes, [| // Inequality with ApplyConditionally
+            ClassicalControlNs, "Bar", [|"Result"|], "Unit"
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
+        (_DefaultTypes, [| // Inequality with Apply If One Else Zero
+            ClassicalControlNs, "Bar", [|"Result"|], "Unit"
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
+        (_DefaultTypes, [| // Inequality with Apply If Zero Else One
+            ClassicalControlNs, "Bar", [|"Result"|], "Unit"
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
+        (_DefaultTypes, [| // Inequality with ApplyIfOne
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
+        (_DefaultTypes, [| // Inequality with ApplyIfZero
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
     |]
     |> _MakeSignatures
