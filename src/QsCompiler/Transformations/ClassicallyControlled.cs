@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
     /// 1st Pass: Hoist the contents of conditional statements into separate operations, where possible.
     /// 2nd Pass: On the way down the tree, reshape conditional statements to replace Elif's and
     /// top level OR and AND conditions with equivalent nested if-else statements. One the way back up
-    /// the tree, convert conditional statements into ApplyIf calls, where possible.
+    /// the tree, convert conditional statements into interface calls, where possible.
     /// This relies on anything having type parameters must be a global callable.
     /// </summary>
     public static class ReplaceClassicalControl
@@ -73,6 +73,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             {
                 public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
+                /// <summary>
+                /// Checks if the scope is valid for conversion to an operation call from the conditional control API.
+                /// It is valid if there is exactly one statement in it and that statement is a call like expression statement.
+                /// If valid, returns true with the identifier of the call like expression and the arguments of the
+                /// call like expression, otherwise returns false with nulls.
+                /// </summary>
                 private (bool, TypedExpression, TypedExpression) IsValidScope(QsScope scope)
                 {
                     // if the scope has exactly one statement in it and that statement is a call like expression statement
@@ -127,11 +133,108 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     return (false, null, null);
                 }
 
-                #region Apply If
+                #region Condition Converting Logic
 
+                /// <summary>
+                /// Creates an operation call from the conditional control API, given information
+                /// about which operation to call and with what arguments.
+                /// </summary>
+                private TypedExpression CreateControlCall(BuiltIn opInfo, IEnumerable<OpProperty> properties, TypedExpression args, IEnumerable<ResolvedType> typeArgs)
+                {
+                    // Build the surrounding control call
+                    var identifier = Utils.CreateIdentifierExpression(
+                        Identifier.NewGlobalCallable(new QsQualifiedName(opInfo.Namespace, opInfo.Name)),
+                        typeArgs
+                            .Zip(opInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(opInfo.Namespace, opInfo.Name), param, type))
+                            .ToImmutableArray(),
+                        Utils.GetOperationType(properties, args.ResolvedType));
+
+                    // Creates type resolutions for the call expression
+                    var opTypeArgResolutions = typeArgs
+                        .SelectMany(x =>
+                            x.Resolution is ResolvedTypeKind.TupleType tup
+                            ? tup.Item
+                            : ImmutableArray.Create(x))
+                        .Where(x => x.Resolution.IsTypeParameter)
+                        .Select(x => (x.Resolution as ResolvedTypeKind.TypeParameter).Item)
+                        .GroupBy(x => (x.Origin, x.TypeName))
+                        .Select(group =>
+                        {
+                            var typeParam = group.First();
+                            return Tuple.Create(typeParam.Origin, typeParam.TypeName, ResolvedType.New(ResolvedTypeKind.NewTypeParameter(typeParam)));
+                        })
+                        .ToImmutableArray();
+
+                    return Utils.CreateCallLikeExpression(identifier, args, opTypeArgResolutions);
+                }
+
+                /// <summary>
+                /// Creates an operation call from the conditional control API for non-literal Result comparisons.
+                /// </summary>
+                private TypedExpression CreateApplyConditionallyExpression(TypedExpression conditionExpr1, TypedExpression conditionExpr2, QsScope conditionScope, QsScope defaultScope)
+                {
+                    var (isConditionValid, conditionId, conditionArgs) = IsValidScope(conditionScope);
+                    var (isDefaultValid, defaultId, defaultArgs) = IsValidScope(defaultScope);
+
+                    if (!isConditionValid)
+                    {
+                        return null; // ToDo: Diagnostic message - condition block not valid
+                    }
+
+                    if (!isDefaultValid && defaultScope != null)
+                    {
+                        return null; // ToDo: Diagnostic message - default block exists, but is not valid
+                    }
+
+                    if (defaultScope == null)
+                    {
+                        (defaultId, defaultArgs) = Utils.GetNoOp();
+                    }
+
+                    // Get characteristic properties from global id
+                    var props = ImmutableHashSet<OpProperty>.Empty;
+                    if (conditionId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
+                    {
+                        props = op.Item2.Characteristics.GetProperties();
+                        if (defaultId != null && defaultId.ResolvedType.Resolution is ResolvedTypeKind.Operation defaultOp)
+                        {
+                            props = props.Intersect(defaultOp.Item2.Characteristics.GetProperties());
+                        }
+                    }
+
+                    BuiltIn controlOpInfo;
+                    (bool adj, bool ctl) = (props.Contains(OpProperty.Adjointable), props.Contains(OpProperty.Controllable));
+                    if (adj && ctl)
+                    {
+                        controlOpInfo = BuiltIn.ApplyConditionallyCA;
+                    }
+                    else if (adj)
+                    {
+                        controlOpInfo = BuiltIn.ApplyConditionallyA;
+                    }
+                    else if (ctl)
+                    {
+                        controlOpInfo = BuiltIn.ApplyConditionallyC;
+                    }
+                    else
+                    {
+                        controlOpInfo = BuiltIn.ApplyConditionally;
+                    }
+
+                    var equality = Utils.CreateValueTupleExpression(conditionId, conditionArgs);
+                    var inequality = Utils.CreateValueTupleExpression(defaultId, defaultArgs);
+                    var controlArgs = Utils.CreateValueTupleExpression(Utils.CreateValueArray(conditionExpr1), Utils.CreateValueArray(conditionExpr2), equality, inequality);
+                    var targetArgsTypes = ImmutableArray.Create(conditionArgs.ResolvedType, defaultArgs.ResolvedType);
+                    
+                    return CreateControlCall(controlOpInfo, props, controlArgs, targetArgsTypes);
+                }
+
+                /// <summary>
+                /// Creates an operation call from the conditional control API for Result literal comparisons.
+                /// </summary>
                 private TypedExpression CreateApplyIfExpression(QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
                 {
-                    var (isCondValid, condId, condArgs) = IsValidScope(conditionScope);
+                    var (isConditionValid, conditionId, conditionArgs) = IsValidScope(conditionScope);
                     var (isDefaultValid, defaultId, defaultArgs) = IsValidScope(defaultScope);
 
                     BuiltIn controlOpInfo;
@@ -140,10 +243,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     var props = ImmutableHashSet<OpProperty>.Empty;
 
-                    if (isCondValid)
+                    if (isConditionValid)
                     {
                         // Get characteristic properties from global id
-                        if (condId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
+                        if (conditionId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
                         {
                             props = op.Item2.Characteristics.GetProperties();
                             if (defaultId != null && defaultId.ResolvedType.Resolution is ResolvedTypeKind.Operation defaultOp)
@@ -184,8 +287,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             );
 
                             (controlArgs, targetArgsTypes) = (result == QsResult.Zero)
-                                ? GetArgs(condId, condArgs, defaultId, defaultArgs)
-                                : GetArgs(defaultId, defaultArgs, condId, condArgs);
+                                ? GetArgs(conditionId, conditionArgs, defaultId, defaultArgs)
+                                : GetArgs(defaultId, defaultArgs, conditionId, conditionArgs);
                         }
                         else if (defaultScope == null)
                         {
@@ -216,56 +319,34 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                             controlArgs = Utils.CreateValueTupleExpression(
                                 conditionExpression,
-                                Utils.CreateValueTupleExpression(condId, condArgs));
+                                Utils.CreateValueTupleExpression(conditionId, conditionArgs));
 
-                            targetArgsTypes = ImmutableArray.Create(condArgs.ResolvedType);
+                            targetArgsTypes = ImmutableArray.Create(conditionArgs.ResolvedType);
                         }
                         else
                         {
-                            return null; // ToDo: Diagnostic message - default body exists, but is not valid
+                            return null; // ToDo: Diagnostic message - default block exists, but is not valid
                         }
 
                     }
                     else
                     {
-                        return null; // ToDo: Diagnostic message - cond body not valid
+                        return null; // ToDo: Diagnostic message - condition block not valid
                     }
 
-                    // Build the surrounding apply-if call
-                    var controlOpId = Utils.CreateIdentifierExpression(
-                        Identifier.NewGlobalCallable(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name)),
-                        targetArgsTypes
-                            .Zip(controlOpInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(controlOpInfo.Namespace, controlOpInfo.Name), param, type))
-                            .ToImmutableArray(),
-                        Utils.GetOperationType(props, controlArgs.ResolvedType));
-
-                    // Creates identity resolutions for the call expression
-                    var opTypeArgResolutions = targetArgsTypes
-                        .SelectMany(x =>
-                            x.Resolution is ResolvedTypeKind.TupleType tup
-                            ? tup.Item
-                            : ImmutableArray.Create(x))
-                        .Where(x => x.Resolution.IsTypeParameter)
-                        .Select(x => (x.Resolution as ResolvedTypeKind.TypeParameter).Item)
-                        .GroupBy(x => (x.Origin, x.TypeName))
-                        .Select(group =>
-                        {
-                            var typeParam = group.First();
-                            return Tuple.Create(typeParam.Origin, typeParam.TypeName, ResolvedType.New(ResolvedTypeKind.NewTypeParameter(typeParam)));
-                        })
-                        .ToImmutableArray();
-
-                    return Utils.CreateCallLikeExpression(controlOpId, controlArgs, opTypeArgResolutions);
+                    return CreateControlCall(controlOpInfo, props, controlArgs, targetArgsTypes);
                 }
 
-                private QsStatement CreateApplyIfStatement(QsStatement statement, QsResult result, TypedExpression conditionExpression, QsScope conditionScope, QsScope defaultScope)
+                /// <summary>
+                /// Takes an expression that is the call to a conditional control API operation and the original statement,
+                /// and creates a statement from the given expression.
+                /// </summary>
+                private QsStatement CreateControlStatement(QsStatement statement, TypedExpression callExpression)
                 {
-                    var controlCall = CreateApplyIfExpression(result, conditionExpression, conditionScope, defaultScope);
-
-                    if (controlCall != null)
+                    if (callExpression != null)
                     {
                         return new QsStatement(
-                            QsStatementKind.NewQsExpressionStatement(controlCall),
+                            QsStatementKind.NewQsExpressionStatement(callExpression),
                             statement.SymbolDeclarations,
                             QsNullable<QsLocation>.Null,
                             statement.Comments);
@@ -277,46 +358,145 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     }
                 }
 
+                /// <summary>
+                /// Converts a conditional statement to an operation call from the conditional control API.
+                /// </summary>
+                private QsStatement ConvertConditionalToControlCall(QsStatement statement)
+                {
+                    var (isCondition, condition, conditionScope, defaultScope) = IsConditionWithSingleBlock(statement);
+
+                    if (isCondition)
+                    {
+                        var (isCompareLiteral, literal, nonLiteral) = IsConditionedOnResultLiteralExpression(condition);
+                        if (isCompareLiteral)
+                        {
+                            return CreateControlStatement(statement, CreateApplyIfExpression(literal, nonLiteral, conditionScope, defaultScope));
+                        }
+                        else
+                        {
+                            var (isCompareNonLiteral, conditionExpr1, conditionExpr2) = IsConditionedOnResultEqualityExpression(condition);
+                            if (isCompareNonLiteral)
+                            {
+                                return CreateControlStatement(statement, CreateApplyConditionallyExpression(conditionExpr1, conditionExpr2, conditionScope, defaultScope));
+                            }
+                            else
+                            {
+                                // ToDo: Diagnostic message
+                                return statement; // The condition does not fit a supported format.
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // ToDo: Diagnostic message
+                        return statement; // The reshaping of the conditional did not succeed.
+                    }
+                }
+
+                #endregion
+
+                #region Condition Checking Logic
+
+                /// <summary>
+                /// Checks if the statement is a condition statement that only has one conditional block in it (default blocks are optional).
+                /// If it is, returns true along with the condition, the body of the conditional block, and, optionally, the body of the
+                /// default block, otherwise returns false with nulls. If there is no default block, the last value of the return tuple will be null.
+                /// </summary>
+                private (bool, TypedExpression, QsScope, QsScope) IsConditionWithSingleBlock(QsStatement statement)
+                {
+                    if (statement.Statement is QsStatementKind.QsConditionalStatement condition && condition.Item.ConditionalBlocks.Length == 1)
+                    {
+                        return (true, condition.Item.ConditionalBlocks[0].Item1, condition.Item.ConditionalBlocks[0].Item2.Body, condition.Item.Default.ValueOr(null)?.Body);
+                    }
+
+                    return (false, null, null, null);
+                }
+
+                /// <summary>
+                /// Checks if the expression is an equality comparison where one side is a Result literal.
+                /// If it is, returns true along with the Result literal and the other expression in the
+                /// equality, otherwise returns false with nulls.
+                /// </summary>
+                private (bool, QsResult, TypedExpression) IsConditionedOnResultLiteralExpression(TypedExpression expression)
+                {
+                    if (expression.Expression is ExpressionKind.EQ eq)
+                    {
+                        if (eq.Item1.Expression is ExpressionKind.ResultLiteral exp1)
+                        {
+                            return (true, exp1.Item, eq.Item2);
+                        }
+                        else if (eq.Item2.Expression is ExpressionKind.ResultLiteral exp2)
+                        {
+                            return (true, exp2.Item, eq.Item1);
+                        }
+                    }
+
+                    return (false, null, null);
+                }
+
+                /// <summary>
+                /// Checks if the expression is an equality comparison between two Result-typed expressions.
+                /// If it is, returns true along with the two expressions, otherwise returns false with nulls.
+                /// </summary>
+                private (bool, TypedExpression, TypedExpression) IsConditionedOnResultEqualityExpression(TypedExpression expression)
+                {
+                    if (expression.Expression is ExpressionKind.EQ eq
+                        && eq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
+                        && eq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
+                    {
+                        return (true, eq.Item1, eq.Item2);
+                    }
+
+                    return (false, null, null);
+                }
+
                 #endregion
 
                 #region Condition Reshaping Logic
 
-                private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement cond)
+                /// <summary>
+                /// Converts if-elif-else structures to nested if-else structures.
+                /// </summary>
+                private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement conditionStatment)
                 {
-                    if (cond.ConditionalBlocks.Length < 2) return (false, cond);
+                    if (conditionStatment.ConditionalBlocks.Length < 2) return (false, conditionStatment);
 
-                    var subCond = new QsConditionalStatement(cond.ConditionalBlocks.RemoveAt(0), cond.Default);
-                    var secondCondBlock = cond.ConditionalBlocks[1].Item2;
+                    var subCondition = new QsConditionalStatement(conditionStatment.ConditionalBlocks.RemoveAt(0), conditionStatment.Default);
+                    var secondConditionBlock = conditionStatment.ConditionalBlocks[1].Item2;
 
                     var subIfStatment = new QsStatement
                     (
-                        QsStatementKind.NewQsConditionalStatement(subCond),
+                        QsStatementKind.NewQsConditionalStatement(subCondition),
                         LocalDeclarations.Empty,
-                        secondCondBlock.Location,
-                        secondCondBlock.Comments
+                        secondConditionBlock.Location,
+                        secondConditionBlock.Comments
                     );
 
                     var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
-                        new QsScope(ImmutableArray.Create(subIfStatment), secondCondBlock.Body.KnownSymbols),
-                        secondCondBlock.Location,
+                        new QsScope(ImmutableArray.Create(subIfStatment), secondConditionBlock.Body.KnownSymbols),
+                        secondConditionBlock.Location,
                         QsComments.Empty));
 
-                    return (true, new QsConditionalStatement(ImmutableArray.Create(cond.ConditionalBlocks[0]), newDefault));
+                    return (true, new QsConditionalStatement(ImmutableArray.Create(conditionStatment.ConditionalBlocks[0]), newDefault));
                 }
 
-                private (bool, QsConditionalStatement) ProcessOR(QsConditionalStatement cond)
+                /// <summary>
+                /// Converts conditional statements whose top-most condition is an OR.
+                /// Creates a nested structure without the top-most OR.
+                /// </summary>
+                private (bool, QsConditionalStatement) ProcessOR(QsConditionalStatement conditionStatment)
                 {
                     // This method expects elif blocks to have been abstracted out
-                    if (cond.ConditionalBlocks.Length != 1) return (false, cond);
+                    if (conditionStatment.ConditionalBlocks.Length != 1) return (false, conditionStatment);
 
-                    var (condition, block) = cond.ConditionalBlocks[0];
+                    var (condition, block) = conditionStatment.ConditionalBlocks[0];
 
-                    if (condition.Expression is ExpressionKind.OR orCond)
+                    if (condition.Expression is ExpressionKind.OR orCondition)
                     {
-                        var subCond = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCond.Item2, block)), cond.Default);
+                        var subCondition = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCondition.Item2, block)), conditionStatment.Default);
                         var subIfStatment = new QsStatement
                         (
-                            QsStatementKind.NewQsConditionalStatement(subCond),
+                            QsStatementKind.NewQsConditionalStatement(subCondition),
                             LocalDeclarations.Empty,
                             block.Location,
                             QsComments.Empty
@@ -326,27 +506,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             block.Location,
                             QsComments.Empty));
 
-                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCond.Item1, block)), newDefault));
+                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCondition.Item1, block)), newDefault));
                     }
                     else
                     {
-                        return (false, cond);
+                        return (false, conditionStatment);
                     }
                 }
 
-                private (bool, QsConditionalStatement) ProcessAND(QsConditionalStatement cond)
+                /// <summary>
+                /// Converts conditional statements whose top-most condition is an AND.
+                /// Creates a nested structure without the top-most AND.
+                /// </summary>
+                private (bool, QsConditionalStatement) ProcessAND(QsConditionalStatement conditionStatment)
                 {
                     // This method expects elif blocks to have been abstracted out
-                    if (cond.ConditionalBlocks.Length != 1) return (false, cond);
+                    if (conditionStatment.ConditionalBlocks.Length != 1) return (false, conditionStatment);
 
-                    var (condition, block) = cond.ConditionalBlocks[0];
+                    var (condition, block) = conditionStatment.ConditionalBlocks[0];
 
-                    if (condition.Expression is ExpressionKind.AND andCond)
+                    if (condition.Expression is ExpressionKind.AND andCondition)
                     {
-                        var subCond = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCond.Item2, block)), cond.Default);
+                        var subCondition = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCondition.Item2, block)), conditionStatment.Default);
                         var subIfStatment = new QsStatement
                         (
-                            QsStatementKind.NewQsConditionalStatement(subCond),
+                            QsStatementKind.NewQsConditionalStatement(subCondition),
                             LocalDeclarations.Empty,
                             block.Location,
                             QsComments.Empty
@@ -356,19 +540,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             block.Location,
                             QsComments.Empty);
 
-                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCond.Item1, newBlock)), cond.Default));
+                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCondition.Item1, newBlock)), conditionStatment.Default));
                     }
                     else
                     {
-                        return (false, cond);
+                        return (false, conditionStatment);
                     }
                 }
 
+                /// <summary>
+                /// Converts conditional statements to nested structures so they do not
+                /// have elif blocks or top-most OR or AND conditions.
+                /// </summary>
                 private QsStatement ReshapeConditional(QsStatement statement)
                 {
-                    if (statement.Statement is QsStatementKind.QsConditionalStatement cond)
+                    if (statement.Statement is QsStatementKind.QsConditionalStatement condition)
                     {
-                        var stm = cond.Item;
+                        var stm = condition.Item;
                         (_, stm) = ProcessElif(stm);
                         bool wasOrProcessed, wasAndProcessed;
                         do
@@ -390,37 +578,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                 #endregion
 
-                #region Condition Checking Logic
-
-                private (bool, TypedExpression, QsScope, QsScope) IsConditionWithSingleBlock(QsStatement statement)
-                {
-                    if (statement.Statement is QsStatementKind.QsConditionalStatement cond && cond.Item.ConditionalBlocks.Length == 1)
-                    {
-                        return (true, cond.Item.ConditionalBlocks[0].Item1, cond.Item.ConditionalBlocks[0].Item2.Body, cond.Item.Default.ValueOr(null)?.Body);
-                    }
-
-                    return (false, null, null, null);
-                }
-
-                private (bool, QsResult, TypedExpression) IsConditionedOnResultLiteralExpression(TypedExpression expression)
-                {
-                    if (expression.Expression is ExpressionKind.EQ eq)
-                    {
-                        if (eq.Item1.Expression is ExpressionKind.ResultLiteral exp1)
-                        {
-                            return (true, exp1.Item, eq.Item2);
-                        }
-                        else if (eq.Item2.Expression is ExpressionKind.ResultLiteral exp2)
-                        {
-                            return (true, exp2.Item, eq.Item1);
-                        }
-                    }
-
-                    return (false, null, null);
-                }
-
-                #endregion
-
                 public override QsScope OnScope(QsScope scope)
                 {
                     var parentSymbols = this.OnLocalDeclarations(scope.KnownSymbols);
@@ -432,23 +589,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         {
                             var stm = ReshapeConditional(statement);
                             stm = this.OnStatement(stm);
+                            stm = ConvertConditionalToControlCall(stm);
 
-                            var (isCondition, cond, conditionScope, defaultScope) = IsConditionWithSingleBlock(stm);
-
-                            if (isCondition)
-                            {
-                                /*ToDo: this could be a separate function.*/
-                                var (isCompareLiteral, literal, nonLiteral) = IsConditionedOnResultLiteralExpression(cond);
-                                if (isCompareLiteral)
-                                {
-                                    statements.Add(CreateApplyIfStatement(stm, literal, nonLiteral, conditionScope, defaultScope));
-                                }
-                                else
-                                {
-                                    statements.Add(stm);
-                                }
-                                /**/
-                            }
+                            statements.Add(stm);
                         }
                         else
                         {
@@ -844,22 +987,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     var newConditionBlocks = new List<Tuple<TypedExpression, QsPositionedBlock>>();
                     var generatedOperations = new List<QsCallable>();
-                    foreach (var condBlock in stm.ConditionalBlocks)
+                    foreach (var conditionBlock in stm.ConditionalBlocks)
                     {
                         SharedState.IsValidScope = true;
-                        SharedState.CurrentHoistParams = condBlock.Item2.Body.KnownSymbols.IsEmpty
+                        SharedState.CurrentHoistParams = conditionBlock.Item2.Body.KnownSymbols.IsEmpty
                         ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
-                        : condBlock.Item2.Body.KnownSymbols.Variables;
+                        : conditionBlock.Item2.Body.KnownSymbols.Variables;
 
-                        var (expr, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.NewValue(condBlock.Item1), condBlock.Item2);
+                        var (expr, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.NewValue(conditionBlock.Item1), conditionBlock.Item2);
 
                         // ToDo: Reduce the number of unnecessary generated operations by generalizing
                         // the condition logic for the conversion and using that condition here
-                        //var (isExprCond, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
+                        //var (isExprCondition, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
 
                         if (SharedState.IsValidScope) // if sub-scope is valid, hoist content
                         {
-                            if (/*isExprCond &&*/ !IsScopeSingleCall(block.Body))
+                            if (/*isExprCondition &&*/ !IsScopeSingleCall(block.Body))
                             {
                                 // Hoist the scope to its own operation
                                 var (callable, call) = HoistBody(block.Body);
