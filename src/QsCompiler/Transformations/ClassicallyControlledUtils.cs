@@ -59,7 +59,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
             );
 
-        // All of the resolved types of the given expression must match.
+        /// <summary>
+        /// Creates an array literal with the given items, setting the range information to Null. 
+        /// If no items are given, creates an empty array of type Unit[]. 
+        /// The resolved types for all of the given expressions must match, 
+        /// none of the given expressions should have a local quantum dependency, 
+        /// and all range information should be stripped from each given expression. 
+        /// </summary>
         internal static TypedExpression CreateValueArray(params TypedExpression[] expressions)
         {
             ResolvedType type = null;
