@@ -446,6 +446,90 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
     }
 
+    /// <summary>
+    /// A transformation that renames all references to each given qualified name.
+    /// </summary>
+    public class RenameReferences : SyntaxTreeTransformation
+    {
+        private readonly IImmutableDictionary<QsQualifiedName, QsQualifiedName> names;
+
+        /// <summary>
+        /// Creates a new rename references transformation.
+        /// </summary>
+        /// <param name="names">The mapping from existing names to new names.</param>
+        public RenameReferences(IImmutableDictionary<QsQualifiedName, QsQualifiedName> names)
+        {
+            this.names = names;
+            Types = new TypeTransformation(this);
+            ExpressionKinds = new ExpressionKindTransformation(this);
+            Namespaces = new NamespaceTransformation(this);
+        }
+
+        /// <summary>
+        /// Gets the renamed version of the qualified name if one exists; otherwise, returns the original name.
+        /// </summary>
+        /// <param name="name">The qualified name to rename.</param>
+        /// <returns>
+        /// The renamed version of the qualified name if one exists; otherwise, returns the original name.
+        /// </returns>
+        private QsQualifiedName GetNewName(QsQualifiedName name) => names.GetValueOrDefault(name) ?? name;
+
+        private class TypeTransformation : Core.TypeTransformation
+        {
+            private readonly RenameReferences parent;
+
+            public TypeTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
+
+            public override QsTypeKind OnUserDefinedType(UserDefinedType udt)
+            {
+                var newName = parent.GetNewName(new QsQualifiedName(udt.Namespace, udt.Name));
+                return base.OnUserDefinedType(new UserDefinedType(newName.Namespace, newName.Name, udt.Range));
+            }
+
+            public override QsTypeKind OnTypeParameter(QsTypeParameter tp) =>
+                base.OnTypeParameter(new QsTypeParameter(parent.GetNewName(tp.Origin), tp.TypeName, tp.Range));
+        }
+
+        private class ExpressionKindTransformation : Core.ExpressionKindTransformation
+        {
+            private readonly RenameReferences parent;
+
+            public ExpressionKindTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
+
+            public override QsExpressionKind OnIdentifier(Identifier id,
+                                                          QsNullable<ImmutableArray<ResolvedType>> typeArgs)
+            {
+                if (id is Identifier.GlobalCallable global)
+                {
+                    id = Identifier.NewGlobalCallable(parent.GetNewName(global.Item));
+                }
+                return base.OnIdentifier(id, typeArgs);
+            }
+        }
+
+        private class NamespaceTransformation : Core.NamespaceTransformation
+        {
+            private readonly RenameReferences parent;
+
+            public NamespaceTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
+
+            public override QsCallable OnCallableDeclaration(QsCallable callable) =>
+                base.OnCallableDeclaration(callable.WithFullName(parent.GetNewName));
+
+            public override QsCustomType OnTypeDeclaration(QsCustomType type) =>
+                base.OnTypeDeclaration(new QsCustomType(
+                    fullName: parent.GetNewName(type.FullName),
+                    attributes: type.Attributes,
+                    modifiers: type.Modifiers,
+                    sourceFile: type.SourceFile,
+                    location: type.Location,
+                    type: type.Type,
+                    typeItems: type.TypeItems,
+                    documentation: type.Documentation,
+                    comments: type.Comments));
+        }
+    }
+
 
     // general purpose helpers
 
