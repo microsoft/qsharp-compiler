@@ -466,6 +466,87 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
         /// <summary>
+        /// Renames references in the callable declaration header, including the name of the callable itself.
+        /// </summary>
+        /// <param name="callable">The callable declaration header in which to rename references.</param>
+        /// <returns>The callable declaration header with renamed references.</returns>
+        public CallableDeclarationHeader OnCallableDeclarationHeader(CallableDeclarationHeader callable) =>
+            new CallableDeclarationHeader(
+                kind: callable.Kind,
+                qualifiedName: GetNewName(callable.QualifiedName),
+                attributes: callable.Attributes.Select(Namespaces.OnAttribute).ToImmutableArray(),
+                modifiers: callable.Modifiers,
+                sourceFile: callable.SourceFile,
+                position: callable.Position,
+                symbolRange: callable.SymbolRange,
+                argumentTuple: Namespaces.OnArgumentTuple(callable.ArgumentTuple),
+                signature: Namespaces.OnSignature(callable.Signature),
+                documentation: Namespaces.OnDocumentation(callable.Documentation));
+
+        /// <summary>
+        /// Renames references in the specialization declaration header, including the name of the specialization
+        /// itself.
+        /// </summary>
+        /// <param name="specialization">The specialization declaration header in which to rename references.</param>
+        /// <returns>The specialization declaration header with renamed references.</returns>
+        public SpecializationDeclarationHeader OnSpecializationDeclarationHeader(
+            SpecializationDeclarationHeader specialization)
+        {
+            var typeArguments =
+                specialization.TypeArguments.IsValue
+                ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(
+                    specialization.TypeArguments.Item.Select(Types.OnType).ToImmutableArray())
+                : QsNullable<ImmutableArray<ResolvedType>>.Null;
+            return new SpecializationDeclarationHeader(
+                kind: specialization.Kind,
+                typeArguments: typeArguments,
+                information: specialization.Information,
+                parent: GetNewName(specialization.Parent),
+                attributes: specialization.Attributes.Select(Namespaces.OnAttribute).ToImmutableArray(),
+                sourceFile: specialization.SourceFile,
+                position: specialization.Position,
+                headerRange: specialization.HeaderRange,
+                documentation: Namespaces.OnDocumentation(specialization.Documentation));
+        }
+
+        /// <summary>
+        /// Renames references in the specialization implementation.
+        /// </summary>
+        /// <param name="specialization">The specialization implementation in which to rename references.</param>
+        /// <returns>The specialization implementation with renamed references.</returns>
+        public SpecializationImplementation OnSpecializationImplementation(SpecializationImplementation implementation)
+        {
+            if (implementation is SpecializationImplementation.Provided provided)
+            {
+                return SpecializationImplementation.NewProvided(Namespaces.OnArgumentTuple(provided.Item1),
+                                                                Statements.OnScope(provided.Item2));
+            }
+            else
+            {
+                return implementation;
+            }
+        }
+
+        /// <summary>
+        /// Renames references in the type declaration header, including the name of the type itself.
+        /// </summary>
+        /// <param name="type">The type declaration header in which to rename references.</param>
+        /// <returns>The type declaration header with renamed references.</returns>
+        public TypeDeclarationHeader OnTypeDeclarationHeader(TypeDeclarationHeader type)
+        {
+            return new TypeDeclarationHeader(
+                qualifiedName: GetNewName(type.QualifiedName),
+                attributes: type.Attributes.Select(Namespaces.OnAttribute).ToImmutableArray(),
+                modifiers: type.Modifiers,
+                sourceFile: type.SourceFile,
+                position: type.Position,
+                symbolRange: type.SymbolRange,
+                type: Types.OnType(type.Type),
+                typeItems: Namespaces.OnTypeItems(type.TypeItems),
+                documentation: Namespaces.OnDocumentation(type.Documentation));
+        }
+
+        /// <summary>
         /// Gets the renamed version of the qualified name if one exists; otherwise, returns the original name.
         /// </summary>
         /// <param name="name">The qualified name to rename.</param>
