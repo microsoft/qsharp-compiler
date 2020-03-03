@@ -6,12 +6,15 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
@@ -28,9 +31,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public readonly ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)> Specializations;
             public readonly ImmutableArray<TypeDeclarationHeader> Types;
 
-            private Headers(string source,
-                IEnumerable<CallableDeclarationHeader> callables = null, 
-                IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation)> specs = null, 
+            internal Headers(string source,
+                IEnumerable<CallableDeclarationHeader> callables = null,
+                IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation)> specs = null,
                 IEnumerable<TypeDeclarationHeader> types = null)
             {
                 NonNullable<string> SourceOr(NonNullable<string> origSource) => NonNullable<string>.New(source ?? origSource.Value);
@@ -74,6 +77,36 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             attributes.Select(IsDeclaration("TypeDeclarationAttribute")).Where(v => v != null)
                 .Select(TypeDeclarationHeader.FromJson).Select(built => built.Item2);
 
+        /// <summary>
+        /// Renames all private and internal declarations in the headers to have names that are based on the path to the
+        /// referenced assembly.
+        /// </summary>
+        /// <param name="source">The path to the assembly that is the source of the given headers.</param>
+        /// <param name="headers">The declaration headers in the assembly.</param>
+        /// <returns></returns>
+        private static Headers RenameInternals(string source, Headers headers)
+        {
+            static bool IsInternal(AccessModifier access) => access.IsInternal || access.IsPrivate;
+
+            var prefix = Regex.Replace(source, @"[^A-Za-z0-9_]", "_"); // TODO: This isn't necessarily unique.
+            var internalNames = headers.Callables
+                .Where(callable => IsInternal(callable.Modifiers.Access))
+                .Select(callable => callable.QualifiedName)
+                .Concat(headers.Types
+                    .Where(type => IsInternal(type.Modifiers.Access))
+                    .Select(type => type.QualifiedName))
+                .ToImmutableDictionary(
+                    name => name,
+                    name => new QsQualifiedName(name.Namespace,
+                                                NonNullable<string>.New($"__{prefix}_{name.Name.Value}__")));
+            var rename = new RenameReferences(internalNames);
+            var callables = headers.Callables.Select(rename.OnCallableDeclarationHeader);
+            var specializations = headers.Specializations.Select(
+                specialization => (rename.OnSpecializationDeclarationHeader(specialization.Item1),
+                                   rename.OnSpecializationImplementation(specialization.Item2)));
+            var types = headers.Types.Select(rename.OnTypeDeclarationHeader);
+            return new Headers(source, callables, specializations, types);
+        }
 
         /// <summary>
         /// Dictionary that maps the id of a referenced assembly (given by its location on disk) to the headers defined in that assembly.
@@ -109,14 +142,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Given a dictionary that maps the ids of dll files to the corresponding headers,
-        /// initializes a new set of references based on the given headers and verifies that there are no conflicts. 
-        /// Calls the given Action onError with suitable diagnostics if two or more references conflict, 
-        /// i.e. if two or more references contain a declaration with the same fully qualified name. 
-        /// Throws an ArgumentNullException if the given dictionary of references is null. 
+        /// initializes a new set of references based on the given headers and verifies that there are no conflicts.
+        /// Calls the given Action onError with suitable diagnostics if two or more references conflict,
+        /// i.e. if two or more references contain a public declaration with the same fully qualified name.
+        /// Throws an ArgumentNullException if the given dictionary of references is null.
         /// </summary>
         public References(ImmutableDictionary<NonNullable<string>, Headers> refs, Action<ErrorCode, string[]> onError = null)
         {
-            this.Declarations = refs ?? throw new ArgumentNullException(nameof(refs));
+            this.Declarations =
+                (refs ?? throw new ArgumentNullException(nameof(refs)))
+                .Select(reference => (reference.Key, RenameInternals(reference.Key.Value, reference.Value)))
+                .ToImmutableDictionary(reference => reference.Key, reference => reference.Item2);
             if (onError == null) return;
 
             var conflictingCallables = refs.Values.SelectMany(r => r.Callables)

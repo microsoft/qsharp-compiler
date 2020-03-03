@@ -65,9 +65,11 @@ type AccessModifierTests (output) =
 
     [<Fact>]
     member this.``References`` () =
-        this.Expect "CallableReferencePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
-        this.Expect "CallableReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
-        this.Expect "TypeReferencePrivateInaccessible" [Error ErrorCode.InaccessibleType]
-        this.Expect "TypeConstructorReferencePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
-        this.Expect "TypeReferenceInternalInaccessible" [Error ErrorCode.InaccessibleType]
-        this.Expect "TypeConstructorReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
+        // Since internal declarations in references are renamed, the errors will be for unidentified callables and
+        // types instead of inaccessible ones.
+        this.Expect "CallableReferencePrivateInaccessible" [Error ErrorCode.UnknownIdentifier]
+        this.Expect "CallableReferenceInternalInaccessible" [Error ErrorCode.UnknownIdentifier]
+        this.Expect "TypeReferencePrivateInaccessible" [Error ErrorCode.UnknownType]
+        this.Expect "TypeConstructorReferencePrivateInaccessible" [Error ErrorCode.UnknownIdentifier]
+        this.Expect "TypeReferenceInternalInaccessible" [Error ErrorCode.UnknownType]
+        this.Expect "TypeConstructorReferenceInternalInaccessible" [Error ErrorCode.UnknownIdentifier]
