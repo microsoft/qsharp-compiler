@@ -170,13 +170,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                 /// <summary>
                 /// Creates an operation call from the conditional control API for non-literal Result comparisons.
+                /// The equalityScope and inequalityScope cannot both be null.
                 /// </summary>
                 private TypedExpression CreateApplyConditionallyExpression(TypedExpression conditionExpr1, TypedExpression conditionExpr2, QsScope equalityScope, QsScope inequalityScope)
                 {
-                    if (equalityScope == null && inequalityScope == null)
-                    {
-                        return null; // Not sure how this would happen
-                    }
+                    QsCompilerError.Verify(equalityScope != null || inequalityScope != null, $"Cannot have null for both equality and inequality scopes when creating ApplyConditionally expressions.");
 
                     var (isEqualityValid, equalityId, equalityArgs) = IsValidScope(equalityScope);
                     var (isInequaltiyValid, inequalityId, inequalityArgs) = IsValidScope(inequalityScope);
