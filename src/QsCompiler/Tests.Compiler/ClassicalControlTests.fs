@@ -1335,3 +1335,14 @@ type ClassicalControlTests () =
         [ (1, BuiltIn.ApplyIfZero) ]
         |> Seq.map ExpandBuiltInQualifiedSymbol
         |> AssertSpecializationHasCalls originalOp
+
+    [<Fact>]
+    [<Trait("Category","Condition API Conversion")>]
+    member this.``Literal on the Left`` () =
+        let result = CompileClassicalControlTest 36
+
+        let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+
+        [(1, BuiltIn.ApplyIfZero)]
+        |> Seq.map ExpandBuiltInQualifiedSymbol
+        |> AssertSpecializationHasCalls originalOp

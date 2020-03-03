@@ -1001,3 +1001,18 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         }
     }
 }
+
+// =================================
+
+// Literal on the Left
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if (Zero == r) {
+            SubOp1();
+        }
+    }
+}

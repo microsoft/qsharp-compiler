@@ -374,9 +374,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     if (isCondition)
                     {
-                        if (IsConditionedOnResultLiteralExpression(condition, out var literal, out var nonLiteral))
+                        if (IsConditionedOnResultLiteralExpression(condition, out var literal, out var conditionExpression))
                         {
-                            return CreateControlStatement(statement, CreateApplyIfExpression(literal, nonLiteral, conditionScope, defaultScope));
+                            return CreateControlStatement(statement, CreateApplyIfExpression(literal, conditionExpression, conditionScope, defaultScope));
                         }
                         else if (IsConditionedOnResultEqualityExpression(condition, out var lhsConditionExpression, out var rhsConditionExpression))
                         {
@@ -423,23 +423,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 /// expression in the (in)equality, otherwise returns false with nulls. If it is an
                 /// inequality, the returned result value will be the opposite of the result literal found.
                 /// </summary>
-                private bool IsConditionedOnResultLiteralExpression(TypedExpression expression, out QsResult literal, out TypedExpression nonLiteral)
+                private bool IsConditionedOnResultLiteralExpression(TypedExpression expression, out QsResult literal, out TypedExpression conditionExpression)
                 {
                     literal = null;
-                    nonLiteral = null;
+                    conditionExpression = null;
 
                     if (expression.Expression is ExpressionKind.EQ eq)
                     {
                         if (eq.Item1.Expression is ExpressionKind.ResultLiteral literal1)
                         {
                             literal = literal1.Item;
-                            nonLiteral = eq.Item2;
+                            conditionExpression = eq.Item2;
                             return true;
                         }
                         else if (eq.Item2.Expression is ExpressionKind.ResultLiteral literal2)
                         {
                             literal = literal2.Item;
-                            nonLiteral = eq.Item1;
+                            conditionExpression = eq.Item1;
                             return true;
                         }
                     }
@@ -450,13 +450,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         if (neq.Item1.Expression is ExpressionKind.ResultLiteral literal1)
                         {
                             literal = FlipResult(literal1.Item);
-                            nonLiteral = neq.Item2;
+                            conditionExpression = neq.Item2;
                             return true;
                         }
                         else if (neq.Item2.Expression is ExpressionKind.ResultLiteral literal2)
                         {
                             literal = FlipResult(literal2.Item);
-                            nonLiteral = neq.Item1;
+                            conditionExpression = neq.Item1;
                             return true;
                         }
                     }

@@ -411,5 +411,8 @@ let public ClassicalControlSignatures =
         (_DefaultTypes, [| // Inequality with ApplyIfZero
             ClassicalControlNs, "Foo", [||], "Unit"
         |])
+        (_DefaultTypes, [| // Literal on the Left
+            ClassicalControlNs, "Foo", [||], "Unit"
+        |])
     |]
     |> _MakeSignatures
