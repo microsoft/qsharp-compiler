@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
 
             [Option("response-files", Required = true, SetName = RESPONSE_FILES,
-            HelpText = "Response file(s) providing the command arguments. Required only if no other arguments are specified. This option replaces all other arguments.")]
+            HelpText = "Response file(s) providing command arguments. Required only if no other arguments are specified. Non-default values for options specified via command line take precedence.")]
             public IEnumerable<string> ResponseFiles { get; set; }
 
             [Option('o', "output", Required = false, SetName = CODE_MODE,
@@ -113,11 +113,28 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
-            if (options.ResponseFiles != null && options.ResponseFiles.Any())
+            while (options.ResponseFiles != null && options.ResponseFiles.Any())
             {
                 var fromResponseFiles = FromResponseFiles(options.ResponseFiles);
-                options = fromResponseFiles; // FIXME: PROPERLY MERGE OPTIONS INSTEAD
-                if (options == null) return ReturnCode.INVALID_ARGUMENTS;
+                if (fromResponseFiles == null) return ReturnCode.INVALID_ARGUMENTS;
+
+                options.CodeSnippet ??= fromResponseFiles.CodeSnippet;
+                options.DocFolder ??= fromResponseFiles.DocFolder;
+                options.EmitDll = options.EmitDll || fromResponseFiles.EmitDll;
+                options.Input = (options.Input ?? new string[0]).Concat(fromResponseFiles.Input ?? new string[0]);
+                options.NoWarn = (options.NoWarn ?? new int[0]).Concat(fromResponseFiles.NoWarn ?? new int[0]);
+                options.OutputFolder ??= fromResponseFiles.OutputFolder;
+                options.OutputFormat = options.OutputFormat != DefaultOptions.OutputFormat ? options.OutputFormat : fromResponseFiles.OutputFormat;
+                options.PackageLoadFallbackFolders = (options.PackageLoadFallbackFolders ?? new string[0]).Concat(fromResponseFiles.PackageLoadFallbackFolders ?? new string[0]);
+                options.PerfFolder ??= fromResponseFiles.PerfFolder;
+                options.Plugins = (options.Plugins ?? new string[0]).Concat(fromResponseFiles.Plugins ?? new string[0]);
+                options.ProjectName ??= fromResponseFiles.ProjectName;
+                options.References = (options.References ?? new string[0]).Concat(options.References ?? new string[0]);
+                options.ResponseFiles = fromResponseFiles.ResponseFiles;
+                options.TargetPackage ??= fromResponseFiles.TargetPackage;
+                options.TrimLevel = options.TrimLevel != DefaultOptions.TrimLevel ? options.TrimLevel : fromResponseFiles.TrimLevel;
+                options.Verbosity = options.Verbosity != DefaultOptions.Verbosity ? options.Verbosity : fromResponseFiles.Verbosity;
+                options.WithinFunction = options.WithinFunction || fromResponseFiles.WithinFunction;
             }
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();

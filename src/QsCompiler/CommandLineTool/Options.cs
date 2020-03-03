@@ -17,9 +17,20 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
+    /// <summary>
+    /// Default values for command line options if nothing is specified. 
+    /// </summary>
+    internal static class DefaultOptions
+    {
+        public const string Verbosity = "normal";
+        public const Options.LogFormat OutputFormat = Options.LogFormat.Default;
+        public const int TrimLevel = 1;
+    }
+
+
     public class CompilationOptions : Options
     {
-        [Option("trim", Required = false, Default = 1,
+        [Option("trim", Required = false, Default = DefaultOptions.TrimLevel,
         HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
         public int TrimLevel { get; set; }
 
@@ -73,7 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         protected const string SNIPPET_MODE = "snippetMode";
         protected const string RESPONSE_FILES = "responseFiles";
 
-        [Option('v', "verbosity", Required = false, Default = "normal",
+        [Option('v', "verbosity", Required = false, Default = DefaultOptions.Verbosity,
         HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
         public string Verbosity { get; set; }
 
@@ -97,7 +108,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Warnings with the given code(s) will be ignored.")]
         public IEnumerable<int> NoWarn { get; set; }
 
-        [Option("format", Required = false, Default = LogFormat.Default,
+        [Option("format", Required = false, Default = DefaultOptions.OutputFormat,
         HelpText = "Specifies the output format of the command line compiler.")]
         public LogFormat OutputFormat { get; set; }
 
