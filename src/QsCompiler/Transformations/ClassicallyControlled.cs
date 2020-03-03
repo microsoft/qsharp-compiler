@@ -170,33 +170,40 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                 /// <summary>
                 /// Creates an operation call from the conditional control API for non-literal Result comparisons.
+                /// The equalityScope and inequalityScope cannot both be null.
                 /// </summary>
-                private TypedExpression CreateApplyConditionallyExpression(TypedExpression conditionExpr1, TypedExpression conditionExpr2, QsScope conditionScope, QsScope defaultScope)
+                private TypedExpression CreateApplyConditionallyExpression(TypedExpression conditionExpr1, TypedExpression conditionExpr2, QsScope equalityScope, QsScope inequalityScope)
                 {
-                    var (isConditionValid, conditionId, conditionArgs) = IsValidScope(conditionScope);
-                    var (isDefaultValid, defaultId, defaultArgs) = IsValidScope(defaultScope);
+                    QsCompilerError.Verify(equalityScope != null || inequalityScope != null, $"Cannot have null for both equality and inequality scopes when creating ApplyConditionally expressions.");
 
-                    if (!isConditionValid)
+                    var (isEqualityValid, equalityId, equalityArgs) = IsValidScope(equalityScope);
+                    var (isInequaltiyValid, inequalityId, inequalityArgs) = IsValidScope(inequalityScope);
+
+                    if (!isEqualityValid && equalityScope != null)
                     {
-                        return null; // ToDo: Diagnostic message - condition block not valid
+                        return null; // ToDo: Diagnostic message - equality block exists, but is not valid
                     }
 
-                    if (!isDefaultValid && defaultScope != null)
+                    if (!isInequaltiyValid && inequalityScope != null)
                     {
-                        return null; // ToDo: Diagnostic message - default block exists, but is not valid
+                        return null; // ToDo: Diagnostic message - inequality block exists, but is not valid
                     }
 
-                    if (defaultScope == null)
+                    if (equalityScope == null)
                     {
-                        (defaultId, defaultArgs) = Utils.GetNoOp();
+                        (equalityId, equalityArgs) = Utils.GetNoOp();
+                    }
+                    else if (inequalityScope == null)
+                    {
+                        (inequalityId, inequalityArgs) = Utils.GetNoOp();
                     }
 
                     // Get characteristic properties from global id
                     var props = ImmutableHashSet<OpProperty>.Empty;
-                    if (conditionId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
+                    if (equalityId.ResolvedType.Resolution is ResolvedTypeKind.Operation op)
                     {
                         props = op.Item2.Characteristics.GetProperties();
-                        if (defaultId != null && defaultId.ResolvedType.Resolution is ResolvedTypeKind.Operation defaultOp)
+                        if (inequalityId != null && inequalityId.ResolvedType.Resolution is ResolvedTypeKind.Operation defaultOp)
                         {
                             props = props.Intersect(defaultOp.Item2.Characteristics.GetProperties());
                         }
@@ -221,10 +228,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         controlOpInfo = BuiltIn.ApplyConditionally;
                     }
 
-                    var equality = Utils.CreateValueTupleExpression(conditionId, conditionArgs);
-                    var inequality = Utils.CreateValueTupleExpression(defaultId, defaultArgs);
+                    var equality = Utils.CreateValueTupleExpression(equalityId, equalityArgs);
+                    var inequality = Utils.CreateValueTupleExpression(inequalityId, inequalityArgs);
                     var controlArgs = Utils.CreateValueTupleExpression(Utils.CreateValueArray(conditionExpr1), Utils.CreateValueArray(conditionExpr2), equality, inequality);
-                    var targetArgsTypes = ImmutableArray.Create(conditionArgs.ResolvedType, defaultArgs.ResolvedType);
+                    var targetArgsTypes = ImmutableArray.Create(equalityArgs.ResolvedType, inequalityArgs.ResolvedType);
                     
                     return CreateControlCall(controlOpInfo, props, controlArgs, targetArgsTypes);
                 }
@@ -367,24 +374,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     if (isCondition)
                     {
-                        var (isCompareLiteral, literal, nonLiteral) = IsConditionedOnResultLiteralExpression(condition);
-                        if (isCompareLiteral)
+                        if (IsConditionedOnResultLiteralExpression(condition, out var literal, out var conditionExpression))
                         {
-                            return CreateControlStatement(statement, CreateApplyIfExpression(literal, nonLiteral, conditionScope, defaultScope));
+                            return CreateControlStatement(statement, CreateApplyIfExpression(literal, conditionExpression, conditionScope, defaultScope));
                         }
-                        else
+                        else if (IsConditionedOnResultEqualityExpression(condition, out var lhsConditionExpression, out var rhsConditionExpression))
                         {
-                            var (isCompareNonLiteral, conditionExpr1, conditionExpr2) = IsConditionedOnResultEqualityExpression(condition);
-                            if (isCompareNonLiteral)
-                            {
-                                return CreateControlStatement(statement, CreateApplyConditionallyExpression(conditionExpr1, conditionExpr2, conditionScope, defaultScope));
-                            }
-                            else
-                            {
-                                // ToDo: Diagnostic message
-                                return statement; // The condition does not fit a supported format.
-                            }
+                            return CreateControlStatement(statement, CreateApplyConditionallyExpression(lhsConditionExpression, rhsConditionExpression, conditionScope, defaultScope));
                         }
+                        else if (IsConditionedOnResultInequalityExpression(condition, out lhsConditionExpression, out rhsConditionExpression))
+                        {
+                            // The scope arguments are reversed to account for the negation of the NEQ
+                            return CreateControlStatement(statement, CreateApplyConditionallyExpression(lhsConditionExpression, rhsConditionExpression, defaultScope, conditionScope));
+                        }
+                        
+                        // ToDo: Diagnostic message
+                        return statement; // The condition does not fit a supported format.
                     }
                     else
                     {
@@ -413,41 +418,92 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 }
 
                 /// <summary>
-                /// Checks if the expression is an equality comparison where one side is a Result literal.
-                /// If it is, returns true along with the Result literal and the other expression in the
-                /// equality, otherwise returns false with nulls.
+                /// Checks if the expression is an equality or inequality comparison where one side is a
+                /// Result literal. If it is, returns true along with the Result literal and the other
+                /// expression in the (in)equality, otherwise returns false with nulls. If it is an
+                /// inequality, the returned result value will be the opposite of the result literal found.
                 /// </summary>
-                private (bool, QsResult, TypedExpression) IsConditionedOnResultLiteralExpression(TypedExpression expression)
+                private bool IsConditionedOnResultLiteralExpression(TypedExpression expression, out QsResult literal, out TypedExpression conditionExpression)
                 {
+                    literal = null;
+                    conditionExpression = null;
+
                     if (expression.Expression is ExpressionKind.EQ eq)
                     {
-                        if (eq.Item1.Expression is ExpressionKind.ResultLiteral exp1)
+                        if (eq.Item1.Expression is ExpressionKind.ResultLiteral literal1)
                         {
-                            return (true, exp1.Item, eq.Item2);
+                            literal = literal1.Item;
+                            conditionExpression = eq.Item2;
+                            return true;
                         }
-                        else if (eq.Item2.Expression is ExpressionKind.ResultLiteral exp2)
+                        else if (eq.Item2.Expression is ExpressionKind.ResultLiteral literal2)
                         {
-                            return (true, exp2.Item, eq.Item1);
+                            literal = literal2.Item;
+                            conditionExpression = eq.Item1;
+                            return true;
+                        }
+                    }
+                    else if (expression.Expression is ExpressionKind.NEQ neq)
+                    {
+                        QsResult FlipResult(QsResult result) => result.IsZero ? QsResult.One : QsResult.Zero;
+
+                        if (neq.Item1.Expression is ExpressionKind.ResultLiteral literal1)
+                        {
+                            literal = FlipResult(literal1.Item);
+                            conditionExpression = neq.Item2;
+                            return true;
+                        }
+                        else if (neq.Item2.Expression is ExpressionKind.ResultLiteral literal2)
+                        {
+                            literal = FlipResult(literal2.Item);
+                            conditionExpression = neq.Item1;
+                            return true;
                         }
                     }
 
-                    return (false, null, null);
+                    return false;
                 }
 
                 /// <summary>
                 /// Checks if the expression is an equality comparison between two Result-typed expressions.
                 /// If it is, returns true along with the two expressions, otherwise returns false with nulls.
                 /// </summary>
-                private (bool, TypedExpression, TypedExpression) IsConditionedOnResultEqualityExpression(TypedExpression expression)
+                private bool IsConditionedOnResultEqualityExpression(TypedExpression expression, out TypedExpression lhs, out TypedExpression rhs)
                 {
+                    lhs = null;
+                    rhs = null;
+
                     if (expression.Expression is ExpressionKind.EQ eq
                         && eq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
                         && eq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
                     {
-                        return (true, eq.Item1, eq.Item2);
+                        lhs = eq.Item1;
+                        rhs = eq.Item2;
+                        return true;
                     }
 
-                    return (false, null, null);
+                    return false;
+                }
+
+                /// <summary>
+                /// Checks if the expression is an inequality comparison between two Result-typed expressions.
+                /// If it is, returns true along with the two expressions, otherwise returns false with nulls.
+                /// </summary>
+                private bool IsConditionedOnResultInequalityExpression(TypedExpression expression, out TypedExpression lhs, out TypedExpression rhs)
+                {
+                    lhs = null;
+                    rhs = null;
+
+                    if (expression.Expression is ExpressionKind.NEQ neq
+                        && neq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
+                        && neq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
+                    {
+                        lhs = neq.Item1;
+                        rhs = neq.Item2;
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 #endregion

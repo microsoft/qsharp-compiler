@@ -1266,3 +1266,83 @@ type ClassicalControlTests () =
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
 
         Assert.True(IsTypeArgsMatch targs "Result, Unit", "ApplyConditionally did not have the correct type arguments")
+
+    [<Fact>]
+    [<Trait("Category","Inequality Condition")>]
+    member this.``Inequality with ApplyConditionally`` () =
+        let result = CompileClassicalControlTest 31
+        
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let lines = original |> GetLinesFromSpecialization
+
+        Assert.True(3 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.Namespace.Value BuiltIn.ApplyConditionally.Name.Value lines.[2]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
+
+        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
+        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        
+        IsApplyIfElseArgsMatch args "[r1], [r2]" SubOp1 Bar
+        |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
+
+        Assert.True(IsTypeArgsMatch targs "Unit, Result", "ApplyConditionally did not have the correct type arguments")
+
+    [<Fact>]
+    [<Trait("Category","Inequality Condition")>]
+    member this.``Inequality with Apply If One Else Zero`` () =
+        let (targs, args) = CompileClassicalControlTest 32 |> ApplyIfElseTest
+        
+        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
+        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        
+        IsApplyIfElseArgsMatch args "r" SubOp1 Bar
+        |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
+        
+        Assert.True(IsTypeArgsMatch targs "Unit, Result", "ApplyIfElse did not have the correct type arguments")
+
+    [<Fact>]
+    [<Trait("Category","Inequality Condition")>]
+    member this.``Inequality with Apply If Zero Else One`` () =
+        let (targs, args) = CompileClassicalControlTest 33 |> ApplyIfElseTest
+        
+        let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
+        let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
+        
+        IsApplyIfElseArgsMatch args "r" Bar SubOp1
+        |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
+
+        Assert.True(IsTypeArgsMatch targs "Result, Unit", "ApplyIfElse did not have the correct type arguments")
+
+    [<Fact>]
+    [<Trait("Category","Inequality Condition")>]
+    member this.``Inequality with ApplyIfOne`` () =
+        let result = CompileClassicalControlTest 34
+        
+        let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+
+        [ (1, BuiltIn.ApplyIfOne) ]
+        |> Seq.map ExpandBuiltInQualifiedSymbol
+        |> AssertSpecializationHasCalls originalOp
+
+    [<Fact>]
+    [<Trait("Category","Inequality Condition")>]
+    member this.``Inequality with ApplyIfZero`` () =
+        let result = CompileClassicalControlTest 35
+        
+        let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+
+        [ (1, BuiltIn.ApplyIfZero) ]
+        |> Seq.map ExpandBuiltInQualifiedSymbol
+        |> AssertSpecializationHasCalls originalOp
+
+    [<Fact>]
+    [<Trait("Category","Condition API Conversion")>]
+    member this.``Literal on the Left`` () =
+        let result = CompileClassicalControlTest 36
+
+        let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+
+        [(1, BuiltIn.ApplyIfZero)]
+        |> Seq.map ExpandBuiltInQualifiedSymbol
+        |> AssertSpecializationHasCalls originalOp
