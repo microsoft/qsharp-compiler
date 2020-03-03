@@ -2,18 +2,17 @@ steps:
 - template: init.yml
 
 
-- powershell: ./build.ps1
+- pwsh: ./build.ps1
   displayName: "Build all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
 
-- powershell: ./test.ps1
+- pwsh: ./test.ps1
   displayName: "Test all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
-  condition: and(succeeded(), ne(variables['Skip.Tests'], 'true'))
 
 
-- powershell: ./pack.ps1
+- pwsh: ./pack.ps1
   displayName: "Pack NuGets and VS Code"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
@@ -24,12 +23,14 @@ steps:
 ##
 - task: VSBuild@1
   displayName: 'Pack VisualStudio extension'
+  condition: and(succeeded(), ne(variables['Enable.VSIX'], 'false'))
   inputs:
     solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
     msbuildArgs: >
       /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)
+
 
 
 - template: wrap-up.yml

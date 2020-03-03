@@ -11,7 +11,7 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations
+open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 
@@ -26,46 +26,49 @@ type private Counter () =
     member val forCount = 0 with get, set
     member val ifsCount = 0 with get, set            
 
-type private StatementKindCounter(stm, counter : Counter) = 
-    inherit StatementKindTransformation<StatementCounter>(stm)
 
-    override this.onConditionalStatement (node:QsConditionalStatement) =
-        counter.ifsCount <- counter.ifsCount + 1
-        base.onConditionalStatement node
-        
-    override this.onForStatement (node:QsForStatement) =
-        counter.forCount <- counter.forCount + 1
-        base.onForStatement node
+type private SyntaxCounter private(counter : Counter, ?options) = 
+    inherit SyntaxTreeTransformation(defaultArg options TransformationOptions.Default)
 
-and private StatementCounter(counter) = 
-    inherit ScopeTransformation<StatementKindCounter, ExpressionCounter>
-            (Func<_,_>(fun s -> new StatementKindCounter(s :?> StatementCounter, counter)), new ExpressionCounter(counter))
-                
-and private ExpressionKindCounter(ex, counter : Counter) = 
-    inherit ExpressionKindTransformation<ExpressionCounter>(ex)
+    member this.Counter = counter
 
-    override this.beforeCallLike (op,args) =
-        counter.callsCount <- counter.callsCount + 1
-        (op,args)
+    new (?options) as this =
+        new SyntaxCounter(new Counter()) then
+            this.Namespaces <- new SyntaxCounterNamespaces(this)
+            this.StatementKinds <- new SyntaxCounterStatementKinds(this)
+            this.ExpressionKinds <- new SyntaxCounterExpressionKinds(this)
 
-and private ExpressionCounter(counter) = 
-    inherit ExpressionTransformation<ExpressionKindCounter>
-            (new Func<_,_>(fun e -> new ExpressionKindCounter(e :?> ExpressionCounter, counter)))
+and private SyntaxCounterNamespaces(parent : SyntaxCounter) = 
+    inherit NamespaceTransformation(parent)
 
-
-type private SyntaxCounter(counter) = 
-    inherit SyntaxTreeTransformation<StatementCounter>(new StatementCounter(counter))
-
-    override this.beforeCallable (node:QsCallable) =
+    override this.OnCallableDeclaration (node:QsCallable) =
         match node.Kind with
-        | Operation ->       counter.opsCount <- counter.opsCount + 1
-        | Function  ->       counter.funCount <- counter.funCount + 1
+        | Operation ->       parent.Counter.opsCount <- parent.Counter.opsCount + 1
+        | Function  ->       parent.Counter.funCount <- parent.Counter.funCount + 1
         | TypeConstructor -> ()
-        node
+        base.OnCallableDeclaration node
+
+    override this.OnTypeDeclaration (udt:QsCustomType) =
+        parent.Counter.udtCount <- parent.Counter.udtCount + 1
+        base.OnTypeDeclaration udt
+
+and private SyntaxCounterStatementKinds(parent : SyntaxCounter) = 
+    inherit StatementKindTransformation(parent)
+
+    override this.OnConditionalStatement (node:QsConditionalStatement) =
+        parent.Counter.ifsCount <- parent.Counter.ifsCount + 1
+        base.OnConditionalStatement node
     
-    override this.onType (udt:QsCustomType) =
-        counter.udtCount <- counter.udtCount + 1
-        base.onType udt
+    override this.OnForStatement (node:QsForStatement) =
+        parent.Counter.forCount <- parent.Counter.forCount + 1
+        base.OnForStatement node
+
+and private SyntaxCounterExpressionKinds(parent : SyntaxCounter) = 
+    inherit ExpressionKindTransformation(parent)
+
+    override this.OnCallLikeExpression (op,args) =
+        parent.Counter.callsCount <- parent.Counter.callsCount + 1
+        base.OnCallLikeExpression (op, args)
 
 
 let private buildSyntaxTree code =
@@ -73,27 +76,38 @@ let private buildSyntaxTree code =
     let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message) 
     let file = CompilationUnitManager.InitializeFileManager(fileId, code)
     compilationUnit.AddOrUpdateSourceFileAsync file |> ignore  // spawns a task that modifies the current compilation
-    let mutable syntaxTree = compilationUnit.GetSyntaxTree()   // will wait for any current tasks to finish
-    FunctorGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree) |> ignore
-    syntaxTree
+    let mutable syntaxTree = compilationUnit.Build().BuiltCompilation // will wait for any current tasks to finish
+    CodeGeneration.GenerateFunctorSpecializations(syntaxTree, &syntaxTree) |> ignore
+    syntaxTree.Namespaces
 
 
 //////////////////////////////// tests //////////////////////////////////
 
-
 [<Fact>]
 let ``basic walk`` () = 
-    let tree = Path.Combine(Path.GetFullPath ".", "TestFiles", "test-00.qs") |> File.ReadAllText |> buildSyntaxTree
-    let counter = new Counter()
-    tree |> Seq.map (SyntaxCounter(counter)).Transform |> Seq.toList |> ignore
+    let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
+    let walker = new SyntaxCounter(TransformationOptions.NoRebuild)
+    tree |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
         
-    Assert.Equal (4, counter.udtCount)
-    Assert.Equal (1, counter.funCount)
-    Assert.Equal (5, counter.opsCount)
-    Assert.Equal (7, counter.forCount)
-    Assert.Equal (6, counter.ifsCount)
-    Assert.Equal (20, counter.callsCount)
+    Assert.Equal (4, walker.Counter.udtCount)
+    Assert.Equal (1, walker.Counter.funCount)
+    Assert.Equal (5, walker.Counter.opsCount)
+    Assert.Equal (7, walker.Counter.forCount)
+    Assert.Equal (6, walker.Counter.ifsCount)
+    Assert.Equal (20, walker.Counter.callsCount)
 
+[<Fact>]
+let ``basic transformation`` () = 
+    let tree = Path.Combine(Path.GetFullPath ".", "TestCases", "Transformation.qs") |> File.ReadAllText |> buildSyntaxTree
+    let walker = new SyntaxCounter()
+    tree |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
+        
+    Assert.Equal (4, walker.Counter.udtCount)
+    Assert.Equal (1, walker.Counter.funCount)
+    Assert.Equal (5, walker.Counter.opsCount)
+    Assert.Equal (7, walker.Counter.forCount)
+    Assert.Equal (6, walker.Counter.ifsCount)
+    Assert.Equal (20, walker.Counter.callsCount)
 
 [<Fact>]
 let ``generation of open statements`` () = 
@@ -119,7 +133,7 @@ let ``generation of open statements`` () =
     let imports = ImmutableDictionary.Empty.Add(ns.Name, openDirectives)
 
     let codeOutput = ref null
-    SyntaxTreeToQs.Apply (codeOutput, tree, struct (source, imports)) |> Assert.True
+    SyntaxTreeToQsharp.Apply (codeOutput, tree, struct (source, imports)) |> Assert.True
     let lines = Utils.SplitLines (codeOutput.Value.Single().[ns.Name])
     Assert.Equal(13, lines.Count())
 

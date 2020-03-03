@@ -1,9 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <Import Project="..\Common\AssemblyCommon.props" />
+  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <AssemblyName>Tests.Microsoft.Quantum.QsCompiler</AssemblyName>
     <OutputType>Library</OutputType>
@@ -14,7 +13,99 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Remove="TestFiles\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="TestUtils\TestUtils.fs" />
+    <Compile Include="TestUtils\SetupVerificationTests.fs" />
+    <Compile Include="TestUtils\Signatures.fs" />
+    <None Include="TestCases\LinkingTests\Core.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\QuantumProcessorExtensions.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\Generics.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\ValidEntryPoints.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\InvalidEntryPoints.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\EntryPointSpecializations.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\Monomorphization.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\IntrinsicResolution.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\ClassicalControl.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\FunctionEval_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\Inlining_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\LoopUnrolling_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\Miscellaneous_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\NoOp_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\PartialEval_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\Reordering_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\TypedParameters_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\Arithmetic_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\FunctionEval_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\Inlining_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\LoopUnrolling_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\Miscellaneous_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\NoOp_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\PartialEval_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\Reordering_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\OptimizerTests\TypedParameters_input.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\ExecutionTests\Packaging.qs" />
     <None Include="TestCases\ExecutionTests\LoggingBasedTests.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Transformation.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LocalVerification.qs">
@@ -35,37 +126,29 @@
     <None Include="TestCases\FunctorGeneration.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestFiles\test-00.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="TestFiles\test-01.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="TestFiles\test-02.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <Compile Include="..\Common\DelaySign.fs" Link="DelaySign.fs" />
-    <Compile Include="TestUtils.fs" />
+    <Compile Include="..\..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
     <Compile Include="CompletionParsingTests.fs" />
-    <Compile Include="SetupVerificationTests.fs" />
     <Compile Include="GlobalVerificationTests.fs" />
     <Compile Include="LocalVerificationTests.fs" />
     <Compile Include="TypeCheckingTests.fs" />
     <Compile Include="AutoGenerationTests.fs" />
     <Compile Include="TransformationTests.fs" />
     <Compile Include="ExecutionTests.fs" />
+    <Compile Include="LinkingTests.fs" />
+    <Compile Include="ClassicalControlTests.fs" />
     <Compile Include="RegexTests.fs" />
     <Compile Include="SerializationTests.fs" />
     <Compile Include="CommandLineTests.fs" />
     <Compile Include="SymbolManagementTests.fs" />
+    <Compile Include="OptimizationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
-    <PackageReference Include="xunit" Version="2.4.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
@@ -73,7 +156,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CommandLineTool\QsCommandLineTool.csproj" />
+    <ProjectReference Include="..\CommandLineTool\CommandLineTool.csproj" />
     <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
@@ -81,12 +164,12 @@
 
   <ItemGroup>
     <PackageReference Update="System.ValueTuple" Version="4.4.0" />
-    <PackageReference Update="FSharp.Core" Version="4.6.2" />    
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />    
   </ItemGroup>
 
   <Target Name="PrepareExecutionTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
     <PropertyGroup>
-      <ExecutionTarget>"$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp2.1\Example.dll"</ExecutionTarget>
+      <ExecutionTarget>"$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.0\Example.dll"</ExecutionTarget>
     </PropertyGroup>
     <WriteLinesToFile File="$(OutputPath)ExecutionTarget.txt" Lines="$(ExecutionTarget)" Overwrite="true" />
   </Target>

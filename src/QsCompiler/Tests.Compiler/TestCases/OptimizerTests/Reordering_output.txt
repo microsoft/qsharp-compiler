@@ -1,0 +1,16 @@
+namespace Microsoft.Quantum.Testing.Optimization.Reordering {
+    
+    operation f (n : Int) : Unit {
+        body intrinsic;
+    }
+    
+    
+    operation Test (x : Int) : Unit {
+        
+        let y = x + 2;
+        let z = y + 2;
+        f(y);
+        f(z);
+    }
+    
+}

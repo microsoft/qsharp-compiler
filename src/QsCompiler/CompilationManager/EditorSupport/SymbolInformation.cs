@@ -165,8 +165,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
             (referenceLocations, declarationLocation) = (null, null);
-            var symbolInfo = file?.TryGetQsSymbolInfo(position, true, out var _); // includes the end position 
-            if (symbolInfo == null || compilation == null) return false;
+            if (file == null || compilation == null) return false;
+            var symbolInfo = file.TryGetQsSymbolInfo(position, true, out var fragment); // includes the end position 
+            if (symbolInfo == null || fragment?.Kind is QsFragmentKind.NamespaceDeclaration) return false;
 
             var sym = symbolInfo.UsedTypes.Any()
                 && symbolInfo.UsedTypes.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt ? udt.Item
@@ -211,8 +212,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 referenceLocations = parent.Specializations
                     .Where(spec => spec.SourceFile.Value == file.FileName.Value)
                     .SelectMany(spec =>
-                        spec.Implementation is SpecializationImplementation.Provided impl
-                            ? IdentifierLocation.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Offset)
+                        spec.Implementation is SpecializationImplementation.Provided impl && spec.Location.IsValue
+                            ? IdentifierReferences.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Item.Offset)
                             : ImmutableArray<IdentifierReferences.Location>.Empty)
                     .Distinct().Select(AsLocation);
             }
@@ -222,7 +223,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var statements = implementation.StatementsAfterDeclaration(defStart.Subtract(specPos));
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
                 var rootOffset = DiagnosticTools.AsTuple(specPos); 
-                referenceLocations = IdentifierLocation.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Distinct().Select(AsLocation);
+                referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Distinct().Select(AsLocation);
             }
             declarationLocation = AsLocation(file.FileName, definition.Item.Item2, defRange);
             return true;

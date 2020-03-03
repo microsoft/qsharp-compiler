@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <AssemblyName>Tests.Microsoft.Quantum.QsLanguageServer</AssemblyName>
     <OutputType>Library</OutputType>
@@ -13,16 +14,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
-    <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Client" Version="16.0.2264" />
-    <PackageReference Include="Microsoft.VisualStudio.Shell.15.0" Version="15.7.27703" />
-    <PackageReference Include="MSTest.TestAdapter" Version="1.3.2" />
-    <PackageReference Include="MSTest.TestFramework" Version="1.3.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
+    <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Client" Version="16.3.57" />
+    <PackageReference Include="MSTest.TestAdapter" Version="2.0.0" />
+    <PackageReference Include="MSTest.TestFramework" Version="2.0.0" />
     <PackageReference Include="System.IO.Pipes" Version="4.3.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\LanguageServer\QsLanguageServer.csproj">
+    <ProjectReference Include="..\LanguageServer\LanguageServer.csproj">
       <Private>true</Private>
     </ProjectReference>
   </ItemGroup>
@@ -39,6 +39,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Common\DelaySign.cs" Link="DelaySign.cs" />
+    <Compile Include="..\..\Common\DelaySign.cs" Link="DelaySign.cs" />
   </ItemGroup>
 </Project>

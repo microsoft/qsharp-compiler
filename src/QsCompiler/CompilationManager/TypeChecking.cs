@@ -222,7 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // add documenting comments to the namespace declarations
                 foreach (var header in namespaceHeaders)
-                { distinctNamespaces[header.Item2.SymbolName].AddDocumenation(file.FileName, header.Item2.Documentation); }
+                { distinctNamespaces[header.Item2.SymbolName].AddDocumentation(file.FileName, header.Item2.Documentation); }
 
                 // add all type declarations
                 var typesToCompile = AddItems(file.GetTypeDeclarationHeaderItems(),
@@ -1226,8 +1226,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             QsSpecialization GetSpecialization(SpecializationDeclarationHeader spec, ResolvedSignature signature, 
                 SpecializationImplementation implementation, QsComments comments = null) =>
-                new QsSpecialization(spec.Kind, spec.Parent, spec.Attributes, spec.SourceFile, null,
-                    spec.TypeArguments, SyntaxGenerator.WithoutRangeInfo(signature), implementation, spec.Documentation, comments ?? QsComments.Empty);
+                new QsSpecialization(spec.Kind, spec.Parent, spec.Attributes, spec.SourceFile, QsNullable<QsLocation>.Null, 
+                spec.TypeArguments, SyntaxGenerator.WithoutRangeInfo(signature), implementation, spec.Documentation, comments ?? QsComments.Empty);
 
             QsSpecialization BuildSpecialization(QsSpecializationKind kind, ResolvedSignature signature, QsSpecializationGeneratorKind<QsSymbol> gen, FragmentTree.TreeNode root,
                 Func<QsSymbol, Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsCompilerDiagnostic[]>> buildArg, QsComments comments = null)
@@ -1265,7 +1265,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (cancellationToken.IsCancellationRequested) return null;
                 bool InvalidCharacteristicsOrSupportedFunctors(params QsFunctor[] functors) =>
                     parentCharacteristics.AreInvalid || !functors.Any(f => !supportedFunctors.Contains(f));
-                if (!definedSpecs.Values.Any(d => DiagnosticTools.AsPosition(d.Item2.Position) == root.Fragment.GetRange().Start)) return null; // only process specializations that are valid
+                if (!definedSpecs.Values.Any(d => d.Item2.Position is DeclarationHeader.Offset.Defined pos && DiagnosticTools.AsPosition(pos.Item) == root.Fragment.GetRange().Start)) return null; // only process specializations that are valid
 
                 if (FileHeader.IsCallableDeclaration(root.Fragment)) // no specializations have been defined -> one default body
                 {
@@ -1381,19 +1381,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     symbolTracker.BeginScope();
                     foreach (var decl in declaredVariables)
                     {
+                        var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
+                        QsCompilerError.Verify(offset != null, "missing position information for built callable");
                         var msgs = symbolTracker.TryAddVariableDeclartion(decl).Item2
-                            .Select(msg => Diagnostics.Generate(info.SourceFile.Value, msg, DiagnosticTools.AsPosition(info.Position)));
+                            .Select(msg => Diagnostics.Generate(info.SourceFile.Value, msg, DiagnosticTools.AsPosition(offset)));
                         diagnostics.AddRange(msgs);
                     }
                     symbolTracker.EndScope();
                     QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
-                    return new QsCallable(info.Kind, parent, info.Attributes, info.SourceFile, null, 
+                    return new QsCallable(info.Kind, parent, info.Attributes, info.SourceFile, QsNullable<QsLocation>.Null, 
                         info.Signature, info.ArgumentTuple, specs, info.Documentation, roots[parent].Item1);
                 }
 
                 var callables = callableRoots.Select(GetSpecializations).Select(GetCallable).ToImmutableArray();
                 var types = typeDeclarations.Select(decl => new QsCustomType(
-                    decl.Key, decl.Value.Attributes, decl.Value.SourceFile, new QsLocation(decl.Value.Position, decl.Value.SymbolRange), 
+                    decl.Key, decl.Value.Attributes, decl.Value.SourceFile, decl.Value.Location,
                     decl.Value.Type, decl.Value.TypeItems, decl.Value.Documentation, roots[decl.Key].Item1)).ToImmutableArray();
 
                 if (cancellationToken.IsCancellationRequested) return null;

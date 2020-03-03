@@ -5,6 +5,7 @@ namespace Microsoft.Quantum.QsCompiler
 
 open System
 open System.Collections.Immutable
+open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -13,78 +14,48 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
-type BuiltIn = {
-    /// contains the name of the callable
-    Name : NonNullable<string>
-    /// contains the name of the namespace in which the callable is defined
-    Namespace : NonNullable<string>
-    /// contains the names of the type parameters without the leading tick (')
-    TypeParameters : ImmutableArray<NonNullable<string>>
-}
-    with 
-    static member CoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
-    static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
-    static member StandardArrayNamespace = NonNullable<string>.New "Microsoft.Quantum.Arrays"
-
-    static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
-
-
-    static member Length = {
-        Name = "Length" |> NonNullable<string>.New
-        Namespace = BuiltIn.CoreNamespace
-        TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)
-    }
-
-    static member IndexRange = {
-        Name = "IndexRange" |> NonNullable<string>.New
-        Namespace = BuiltIn.StandardArrayNamespace
-        TypeParameters = ImmutableArray.Empty
-    }
-
-    static member Attribute = {
-        Name = "Attribute" |> NonNullable<string>.New
-        Namespace = BuiltIn.CoreNamespace
-        TypeParameters = ImmutableArray.Empty
-    }
-
-
 // transformations used to strip range information for auto-generated syntax
 
-type private StripPositionInfoFromType () = 
-    inherit ExpressionTypeTransformation(true)
-    override this.onRangeInformation _ = Null
+type private StripPositionInfoFromType (parent : StripPositionInfo) = 
+    inherit TypeTransformation(parent)
+    override this.OnRangeInformation _ = Null
 
-type private StripPositionInfoFromExpression () = 
-    inherit ExpressionTransformation()
-    let typeTransformation = new StripPositionInfoFromType() :> ExpressionTypeTransformation
-    override this.onRangeInformation _ = Null
-    override this.Type = typeTransformation
+and private StripPositionInfoFromExpression (parent : StripPositionInfo) = 
+    inherit ExpressionTransformation(parent)
+    override this.OnRangeInformation _ = Null
 
-type private StripPositionInfoFromScope() = 
-    inherit ScopeTransformation()
-    let expressionTransformation = new StripPositionInfoFromExpression()
-    override this.onLocation _ = Null
-    override this.Expression = expressionTransformation :> ExpressionTransformation
+and private StripPositionInfoFromStatement(parent : StripPositionInfo) = 
+    inherit StatementTransformation(parent)
+    override this.OnLocation _ = Null
 
-type public StripPositionInfo(setDeclLocToDefault) = 
+and private StripPositionInfoFromNamespace(parent : StripPositionInfo) = 
+    inherit NamespaceTransformation(parent)
+    override this.OnLocation _ = Null
+
+and public StripPositionInfo private (_internal_) = 
     inherit SyntaxTreeTransformation()
-    let scopeTransformation = new StripPositionInfoFromScope()
     static let defaultInstance = new StripPositionInfo()
-    new() = StripPositionInfo(false)
-    
-    override this.Scope = scopeTransformation :> ScopeTransformation
-    override this.onLocation loc = 
-        if not setDeclLocToDefault then loc
-        else QsLocation.New ((0,0), QsCompilerDiagnostic.DefaultRange)
+
+    new () as this =
+        StripPositionInfo("_internal_") then 
+            this.Types <- new StripPositionInfoFromType(this) 
+            this.Expressions <- new StripPositionInfoFromExpression(this)
+            this.Statements <- new StripPositionInfoFromStatement(this)
+            this.Namespaces <- new StripPositionInfoFromNamespace(this)
 
     static member public Default = defaultInstance
-    static member public Apply t = defaultInstance.Scope.Expression.Type.Transform t
-    static member public Apply e = defaultInstance.Scope.Expression.Transform e
-    static member public Apply s = defaultInstance.Scope.Transform s
-    static member public Apply a = defaultInstance.Transform a
+    static member public Apply t = defaultInstance.Types.OnType t
+    static member public Apply e = defaultInstance.Expressions.OnTypedExpression e
+    static member public Apply s = defaultInstance.Statements.OnScope s
+    static member public Apply a = defaultInstance.Namespaces.OnNamespace a
 
 
 module SyntaxGenerator = 
+
+    /// Matches only if the string consists of a fully qualified name and nothing else. 
+    let internal FullyQualifiedName = 
+        new Regex(@"^[\p{L}_][\p{L}\p{Nd}_]*(\.[\p{L}_][\p{L}\p{Nd}_]*)+$")
+
 
     // literal expresssions
 
@@ -95,22 +66,27 @@ module SyntaxGenerator =
         let noInferredInfo = InferredExpressionInformation.New (false, quantumDep = qDep)
         TypedExpression.New (kind, ImmutableDictionary.Empty, exTypeKind |> ResolvedType.New, noInferredInfo, QsRangeInfo.Null)
 
-    /// Created a typed expression that corresponds to an Int literal with the given value. 
+    /// Creates a typed expression that corresponds to a Unit value. 
+    /// Sets the range information for the built expression to Null. 
+    let UnitValue = 
+        AutoGeneratedExpression UnitValue QsTypeKind.UnitType false
+
+    /// Creates a typed expression that corresponds to an Int literal with the given value. 
     /// Sets the range information for the built expression to Null. 
     let IntLiteral v = 
         AutoGeneratedExpression (IntLiteral v) QsTypeKind.Int false
 
-    /// Created a typed expression that corresponds to a BigInt literal with the given value. 
+    /// Creates a typed expression that corresponds to a BigInt literal with the given value. 
     /// Sets the range information for the built expression to Null. 
     let BigIntLiteral (v : int) = 
         AutoGeneratedExpression (BigIntLiteral (bigint v)) QsTypeKind.BigInt false
 
-    /// Created a typed expression that corresponds to a Double literal with the given value. 
+    /// Creates a typed expression that corresponds to a Double literal with the given value. 
     /// Sets the range information for the built expression to Null. 
     let DoubleLiteral v = 
         AutoGeneratedExpression (DoubleLiteral v) QsTypeKind.Double false
 
-    /// Created a typed expression that corresponds to a Range literal with the given left hand side and right hand side. 
+    /// Creates a typed expression that corresponds to a Range literal with the given left hand side and right hand side. 
     /// Sets the range information for the built expression to Null. 
     /// Does *not* verify the given left and right hand side. 
     let RangeLiteral (lhs, rhs) = 
@@ -136,13 +112,14 @@ module SyntaxGenerator =
     /// Assumes that the RangeReverse function is part of the standard library.
     /// Throws an ArgumentException if the given expression is of a valid type but not of type Range. 
     let private ReverseRange (ex : TypedExpression) = 
-        let RangeItem name = 
-            let kind = Identifier.GlobalCallable {Namespace = BuiltIn.CoreNamespace; Name = sprintf "Range%s" name |> NonNullable<string>.New}
-            let exTypeKind = QsTypeKind.Function (QsTypeKind.Range |> ResolvedType.New, QsTypeKind.Int |> ResolvedType.New)
-            AutoGeneratedExpression (QsExpressionKind.Identifier (kind, Null)) exTypeKind false
+        let buildCallToReverse ex = 
+            let kind = Identifier.GlobalCallable {Namespace = BuiltIn.RangeReverse.Namespace; Name = BuiltIn.RangeReverse.Name}
+            let exTypeKind = QsTypeKind.Function (QsTypeKind.Range |> ResolvedType.New, QsTypeKind.Range |> ResolvedType.New)
+            let reverse = AutoGeneratedExpression (QsExpressionKind.Identifier (kind, Null)) exTypeKind false
+            CallNonGeneric (reverse, ex) 
         match ex.ResolvedType.Resolution with 
         | QsTypeKind.InvalidType
-        | QsTypeKind.Range _     -> CallNonGeneric(RangeItem "Reverse", ex)
+        | QsTypeKind.Range _     -> buildCallToReverse ex
         | _ -> ArgumentException "given expression is not a range" |> raise
 
     /// Builds a range expression for the given lhs and rhs of the range operator.
@@ -158,13 +135,13 @@ module SyntaxGenerator =
     let private Length (ex : TypedExpression) = 
         let callableName = {Namespace = BuiltIn.Length.Namespace; Name = BuiltIn.Length.Name}
         let kind = Identifier.GlobalCallable callableName
-        let typeParameter = QsTypeParameter.New (callableName.Namespace, callableName.Name, BuiltIn.Length.TypeParameters.[0], Null)
+        let typeParameter = QsTypeParameter.New (callableName, BuiltIn.Length.TypeParameters.[0], Null)
         let genArrayType = QsTypeKind.ArrayType (QsTypeKind.TypeParameter typeParameter |> ResolvedType.New) |> ResolvedType.New
         let exTypeKind = QsTypeKind.Function (genArrayType, QsTypeKind.Int |> ResolvedType.New)
         let length = AutoGeneratedExpression (QsExpressionKind.Identifier (kind, Null)) exTypeKind false
         let callToLength tpRes = 
-            let resolutions = (seq { yield (typeParameter, tpRes) }).ToImmutableDictionary(fst, snd)
-            {CallNonGeneric (length, ex) with TypeParameterResolutions = resolutions}
+            let resolutions = (seq { yield (typeParameter.Origin, typeParameter.TypeName, tpRes) }).ToImmutableArray()
+            {CallNonGeneric (length, ex) with TypeArguments = resolutions}
         match ex.ResolvedType.Resolution with 
         | ArrayType b -> callToLength b
         | InvalidType -> callToLength ex.ResolvedType

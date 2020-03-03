@@ -1548,6 +1548,21 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     @ Attribute() // silently ignored
     function ValidAttributes12 () : Unit {}
 
+    @ AttType2()
+    @ AttType1()
+    @ AttType1()
+    function AttributeDuplication1 () : Unit {}
+
+    @ StringAttribute("")
+    @ StringAttribute("")
+    @ AttType1()
+    @ AttType2()
+    operation AttributeDuplication2 () : Unit {}
+
+    @ AttType1()
+    @ AttType1()
+    newtype AttributeDuplication3 = Unit;
+
 
     // invalid declaration attributes
 

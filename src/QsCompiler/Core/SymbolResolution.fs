@@ -9,6 +9,7 @@ open System.Collections.Immutable
 open System.Linq
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
@@ -20,6 +21,13 @@ type AttributeAnnotation = {
     Position : int * int
     Comments : QsComments
 }
+    with
+    static member internal NonInterpolatedStringArgument inner = function 
+        | Item arg -> inner arg |> function 
+            | StringLiteral (str, interpol) when interpol.Length = 0 -> str.Value
+            | _ -> null
+        | _ -> null
+
 
 /// used internally for symbol resolution
 type internal Resolution<'T,'R> = internal {
@@ -69,6 +77,65 @@ type SpecializationBundleProperties = internal {
 
 module SymbolResolution = 
 
+    // routines for giving deprecation warnings
+
+    /// Returns true if any one of the given unresolved attributes indicates a deprecation. 
+    let internal IndicatesDeprecation checkQualification attribute = attribute.Id.Symbol |> function 
+        | Symbol sym -> sym.Value = BuiltIn.Deprecated.Name.Value && checkQualification ""
+        | QualifiedSymbol (ns, sym) -> sym.Value = BuiltIn.Deprecated.Name.Value && (ns.Value = BuiltIn.Deprecated.Namespace.Value || checkQualification ns.Value)
+        | _ -> false
+
+    /// Given the redirection extracted by TryFindRedirect, 
+    /// returns an array with diagnostics for using a type or callable with the given name at the given range. 
+    /// Returns an empty array if no redirection was determined, i.e. the given redirection was Null. 
+    let GenerateDeprecationWarning (fullName : QsQualifiedName, range) redirect = redirect |> function
+        | Value redirect -> 
+            let usedName = sprintf "%s.%s" fullName.Namespace.Value fullName.Name.Value
+            if String.IsNullOrWhiteSpace redirect then [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithoutRedirect, [usedName]) |]
+            else [| range |> QsCompilerDiagnostic.Warning (WarningCode.DeprecationWithRedirect, [usedName; redirect]) |]
+        | Null -> [| |]
+
+    /// Applies the given getArgument function to the given attributes, 
+    /// and extracts and returns the non-interpolated string argument for all attributes for which getArgument returned Some. 
+    /// The returned sequence may contain null if the argument of an attribute for which getArgument returned Some was not a non-interpolated string. 
+    let private StringArgument (getArgument, getInner) attributes = 
+        let argument = getArgument >> function
+            | Some redirect -> redirect |> AttributeAnnotation.NonInterpolatedStringArgument getInner |> Some
+            | None -> None
+        attributes |> Seq.choose argument 
+
+    /// Checks whether the given attributes indicate that the corresponding declaration has been deprecated. 
+    /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise. 
+    /// The returned string is empty or null if the declaration has been deprecated but an alternative is not specified or could not be determined. 
+    /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
+    let internal TryFindRedirectInUnresolved checkQualification attributes = 
+        let getRedirect (att : AttributeAnnotation) = if att |> IndicatesDeprecation checkQualification then Some att.Argument else None
+        StringArgument (getRedirect, fun ex -> ex.Expression) attributes |> Seq.tryHead |> QsNullable<_>.FromOption
+
+    /// Checks whether the given attributes indicate that the corresponding declaration has been deprecated. 
+    /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise. 
+    /// The returned string is empty or null if the declaration has been deprecated but an alternative is not specified or could not be determined. 
+    /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute. 
+    let TryFindRedirect attributes = 
+        let getRedirect (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
+        StringArgument (getRedirect, fun ex -> ex.Expression) attributes |> Seq.tryHead |> QsNullable<_>.FromOption
+
+    /// Checks whether the given attributes indicate that the corresponding declaration contains a unit test. 
+    /// Returns a sequence of strings defining all execution targets on which the test should be run. Invalid execution targets are set to null. 
+    /// The returned sequence is empty if the declaration does not contain a unit test. 
+    let TryFindTestTargets attributes = 
+        let getTarget (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksTestOperation then Some att.Argument else None
+        let validTargets = BuiltIn.ValidExecutionTargets.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
+        let targetName (target : string) = 
+            if target = null then null
+            elif SyntaxGenerator.FullyQualifiedName.IsMatch target then target
+            else target.ToLowerInvariant() |> validTargets.TryGetValue |> function
+                | true, valid -> valid
+                | false, _ -> null
+        StringArgument (getTarget, fun ex -> ex.Expression) attributes 
+        |> Seq.map targetName |> ImmutableHashSet.CreateRange
+
+
     // routines for resolving types and signatures
 
     /// helper function for ResolveType and ResolveCallableSignature
@@ -91,7 +158,7 @@ module SymbolResolution =
     let private TypeParameterResolutionWarnings (argumentType : ResolvedType) (returnType : ResolvedType, range) typeParams = 
         // FIXME: this verification needs to be done for each specialization individually once type specializations are fully supported
         let typeParamsResolvedByArg = 
-            let getTypeParams = function
+            let getTypeParams (t : ResolvedType) = t.Resolution |> function
                 | QsTypeKind.TypeParameter (tp : QsTypeParameter) -> [tp.TypeName].AsEnumerable() 
                 | _ -> Enumerable.Empty()
             argumentType.ExtractAll getTypeParams |> Seq.toList
@@ -150,7 +217,7 @@ module SymbolResolution =
                 | QsSymbolKind.InvalidSymbol -> invalidTp :: tps, errs
                 | QsSymbolKind.Symbol sym -> 
                     if not (tps |> List.exists (fst >> (=)(ValidName sym))) then (ValidName sym, range) :: tps, errs
-                    else invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.TypeParameterRedeclaration, [])) :: errs
+                    else invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.TypeParameterRedeclaration, [sym.Value])) :: errs
                 | _ -> invalidTp :: tps, (range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTypeParameterDeclaration, [])) :: errs
             ) ([], []) |> (fun (tps, errs) -> tps |> List.rev, errs |> List.rev |> List.toArray)
         let resolveArg (sym, range) t = sym |> function
@@ -181,7 +248,7 @@ module SymbolResolution =
             | QsSymbolKind.MissingSymbol 
             | QsSymbolKind.InvalidSymbol -> Anonymous t, [||]
             | QsSymbolKind.Symbol sym when itemDeclarations.Exists (fun item -> item.VariableName.Value = sym.Value) -> 
-                Anonymous t, [| range |> QsCompilerDiagnostic.Error (ErrorCode.NamedItemAlreadyExists, []) |]
+                Anonymous t, [| range |> QsCompilerDiagnostic.Error (ErrorCode.NamedItemAlreadyExists, [sym.Value]) |]
             | QsSymbolKind.Symbol sym -> 
                 let info = {IsMutable = false; HasLocalQuantumDependency = false}
                 itemDeclarations.Add { VariableName = sym; Type = t; InferredInformation = info; Position = Null; Range = range }
@@ -252,7 +319,7 @@ module SymbolResolution =
     let internal ResolveAttribute getAttribute (attribute : AttributeAnnotation) =
         let asTypedExression range (exKind, exType) = {
             Expression = exKind
-            TypeParameterResolutions = ImmutableDictionary.Empty
+            TypeArguments = ImmutableArray.Empty
             ResolvedType = exType |> ResolvedType.New
             InferredInformation = {IsMutable = false; HasLocalQuantumDependency = false}
             Range = range}
@@ -300,6 +367,7 @@ module SymbolResolution =
                 let resIdx, idxErrs = ArgExression idx
                 (NewArray (resBaseType, resIdx), ArrayType resBaseType) |> asTypedExression ex.Range, Array.concat [typeErrs; idxErrs]
             // TODO: detect constructor calls
+            | InvalidExpr -> invalidExpr ex.Range, [||]
             | _ -> invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InvalidAttributeArgument |] 
         and aggregateInner vs = 
             let innerExs, errs = vs |> Seq.map ArgExression |> Seq.toList |> List.unzip
@@ -315,9 +383,10 @@ module SymbolResolution =
                 // we can make the following simple check since / as long as there is no variance behavior 
                 // for any of the supported attribute argument types
                 let isError (msg : QsCompilerDiagnostic) = msg.Diagnostic |> function | Error _ -> true | _ -> false
-                if resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo && not (argErrs |> Array.exists isError) then
+                let argIsInvalid = resArg.ResolvedType.Resolution = InvalidType || argErrs |> Array.exists isError
+                if resArg.ResolvedType.WithoutRangeInfo <> argType.WithoutRangeInfo && not argIsInvalid then
                     let mismatchErr = attribute.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeArgumentTypeMismatch, [])
-                    Null |> buildAttribute, Array.concat [errs; argErrs; [| mismatchErr |]] 
+                    Value name |> buildAttribute, Array.concat [errs; argErrs; [| mismatchErr |]] 
                 else Value name |> buildAttribute, errs |> Array.append argErrs
         match attribute.Id.Symbol with 
         | Symbol sym -> getAttribute (None, sym) 

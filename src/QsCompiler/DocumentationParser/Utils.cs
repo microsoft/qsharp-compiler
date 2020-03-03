@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -122,12 +123,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// </summary>
         /// <param name="t">The resolved type</param>
         /// <returns>A string containing the source representation of the type</returns>
-        internal static string ResolvedTypeToString(ResolvedType t)
-        {
-            var exprTransformer = new ExpressionToQs();
-            var transformer = new ExpressionTypeToQs(exprTransformer);
-            return transformer.Apply(t);
-        }
+        internal static string ResolvedTypeToString(ResolvedType t) =>
+            SyntaxTreeToQsharp.Default.ToCode(t);
 
         /// <summary>
         /// Populates a YAML mapping node with information describing a Q# resolved type.
@@ -468,5 +465,49 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 }
             }
         }
+    }
+
+    
+    // See https://stackoverflow.com/a/5037815/267841.
+    internal static class SortExtensions
+    {
+        internal static void AddRange<T>(this IList<T> list, IEnumerable<T> source)
+        {
+            if (list is List<T> concreteList)
+            {
+                concreteList.AddRange(source);
+            }
+            else
+            {
+                foreach (var element in list)
+                {
+                    list.Add(element);
+                }
+            }
+        }
+
+        //  Sorts an IList<T> in place.
+        internal static void Sort<T>(this IList<T> list, Comparison<T> comparison)
+        {
+            ArrayList.Adapter((IList)list).Sort(new ComparisonComparer<T>(comparison));
+        }
+
+        // Convenience method on IEnumerable<T> to allow passing of a
+        // Comparison<T> delegate to the OrderBy method.
+        internal static IEnumerable<T> OrderBy<T>(this IEnumerable<T> list, Comparison<T> comparison) =>
+            list.OrderBy(t => t, new ComparisonComparer<T>(comparison));
+    }
+    internal class ComparisonComparer<T> : IComparer<T>, IComparer
+    {
+        private readonly Comparison<T> _comparison;
+
+        internal ComparisonComparer(Comparison<T> comparison)
+        {
+            _comparison = comparison;
+        }
+
+        public int Compare(T x, T y) => _comparison(x, y);
+
+        public int Compare(object o1, object o2) => _comparison((T)o1, (T)o2);
     }
 }

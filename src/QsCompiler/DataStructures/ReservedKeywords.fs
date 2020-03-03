@@ -177,6 +177,12 @@ module Directives =
     let Distribute  = "distribute"
 
 
+/// contains project specific settings specified during Q# compilation
+module AssemblyConstants = 
+    let OutputPath = "OutputPath"
+    let AssemblyName = "AssemblyName"
+
+
 /// contains keywords reserved for internal use
 module InternalUse = 
     // IMPORTANT: with the exception of the CsKeyworks the keywords here are expected to follow the pattern __*__ 
@@ -192,30 +198,40 @@ module InternalUse =
     let UnitArgument = "__unitArg__"
 
     /// contains all keywords reserved due to clashes with auto-generated Q# code, or generated C# code
-    let CsKeywords = 
-        let reserved = [
+    let CsKeywords = ImmutableHashSet.CreateRange [
 
-            "Allocate"; 
-            "Release"; 
-            "Borrow"; 
-            "Return";
+            "Allocate"
+            "Release" 
+            "Borrow" 
+            "Return"
 
-            "QVoid"; 
-            "Int64"; 
-            "BigInteger";
-            "Boolean"; 
-            "QArray"; 
-            "QTuple"; 
-            "UDTBase";
+            "Data"
+            "Item"
 
-            "IUnitary"; 
-            "IAdjointable"; 
-            "IControllable"; 
-            "ICallable"; 
-            "IOperationFactory"; 
-            "IApplyData";
+            "QVoid"
+            "Int64" 
+            "BigInteger"
+            "Boolean"
+            "QArray" 
+            "QTuple" 
+            "UDTBase"
+
+            "IUnitary" 
+            "IAdjointable"
+            "IControllable" 
+            "ICallable"
+            "IOperationFactory"
+            "IApplyData"
         ]
-        reserved.ToImmutableHashSet()
     
     // TODO: ReservedForFutureUse = ...
+
+
+/// contains specific names used within Q# dlls
+module DotnetCoreDll = 
+    let ResourceName = "__qsharp_data__.bson"
+    let MetadataNamespace = "__qsharp__"
+    let ReferenceAlias = "__qsharp_reference__"
+    let MetadataType = "Metadata"
+    let Dependencies = "Dependencies"
 

@@ -9,9 +9,6 @@
 namespace Microsoft.Quantum.Core {
 
     @ Attribute()
-    newtype Attribute = Unit;
-
-    @ Attribute()
     newtype IntTupleAttribute = (Int, Int);
 }
 

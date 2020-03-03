@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using Xunit;
 
 
@@ -21,8 +22,8 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
     {
         private readonly Tuple<QsPositionInfo, QsPositionInfo> EmptyRange = 
             new Tuple<QsPositionInfo, QsPositionInfo>(QsPositionInfo.Zero, QsPositionInfo.Zero);
-        private readonly QsLocation ZeroLocation = new QsLocation(new Tuple<int, int>(0, 0), 
-                                                new Tuple<QsPositionInfo, QsPositionInfo>(QsPositionInfo.Zero, QsPositionInfo.Zero));
+        private readonly QsNullable<QsLocation> ZeroLocation =
+            QsNullable<QsLocation>.NewValue(new QsLocation(new Tuple<int, int>(0, 0), new Tuple<QsPositionInfo, QsPositionInfo>(QsPositionInfo.Zero, QsPositionInfo.Zero)));
         private readonly NonNullable<string> CanonName = NonNullable<string>.New("Microsoft.Quantum.Canon");
 
         private QsQualifiedName MakeFullName(string name)
@@ -351,6 +352,37 @@ output:
             callable.WriteToFile(stream);
             var s = stream.ToString();
             Assert.Equal(expected, s);
+        }
+
+        [Fact]
+        public void ParseDeprecated()
+        {
+            string[] comments = { "# Summary",
+                                  "This is some text",
+                                  "# Deprecated",
+                                  "Some other text"
+                                };
+            string dep = "NewName";
+            string warning = "> [!WARNING]\n> Deprecated\n";
+            string warningText = "name has been deprecated. Please use @\"newname\" instead.";
+
+            // Test with just the Deprecated comment section
+            var dc = new DocComment(comments);
+            Assert.Equal(comments[1] + "\r" + warning + "\r" + comments[3], dc.Summary);
+            Assert.Equal(warning + "\r" + comments[3], dc.ShortSummary);
+            Assert.Equal(comments[3], dc.Documentation);
+
+            // Test with just the deprecated attribute
+            dc = new DocComment(comments.Take(2), "name", true, dep);
+            Assert.Equal(comments[1] + "\r" + warning + "\r" + warningText, dc.Summary);
+            Assert.Equal(warning + "\r" + warningText, dc.ShortSummary);
+            Assert.Equal(warningText, dc.Documentation);
+
+            // Test with both
+            dc = new DocComment(comments, "name", true, dep);
+            Assert.Equal(comments[1] + "\r" + warning + "\r" + warningText + "\r" + comments[3], dc.Summary);
+            Assert.Equal(warning + "\r" + warningText, dc.ShortSummary);
+            Assert.Equal(warningText, dc.Documentation);
         }
     }
 }

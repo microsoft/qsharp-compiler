@@ -4,6 +4,7 @@
 namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System.Collections.Generic
+open System.IO
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -13,12 +14,26 @@ open Xunit.Abstractions
 
 
 type LocalVerificationTests (output:ITestOutputHelper) =
-    inherit CompilerTests("TestCases", ["General.qs"; "LocalVerification.qs"; "Types.qs"], output)
+    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "LocalVerification.qs"; "Types.qs"; Path.Combine ("LinkingTests", "Core.qs")], output)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.LocalVerification" |> NonNullable<_>.New
         let name = name |> NonNullable<_>.New
         this.Verify (QsQualifiedName.New (ns, name), diag)
+
+    
+    [<Fact>]
+    member this.``Variable declarations`` () = 
+        this.Expect "VariableDeclaration1"  []
+        this.Expect "VariableDeclaration2"  []
+        this.Expect "VariableDeclaration3"  []
+        this.Expect "VariableDeclaration4"  []
+        this.Expect "VariableDeclaration5"  []
+        this.Expect "VariableDeclaration6"  []
+        this.Expect "VariableDeclaration7"  []
+        this.Expect "VariableDeclaration8"  []
+        this.Expect "VariableDeclaration9"  [Error ErrorCode.SymbolTupleShapeMismatch]
+        this.Expect "VariableDeclaration10" [Error ErrorCode.SymbolTupleShapeMismatch]
 
 
     [<Fact>]
@@ -40,6 +55,7 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "CopyAndUpdateArray15" [Error ErrorCode.TypeMismatchInCopyAndUpdateExpr]
         this.Expect "CopyAndUpdateArray16" [Error ErrorCode.ConstrainsTypeParameter]
 
+
     [<Fact>]
     member this.``Update-and-reassign arrays`` () = 
         this.Expect "UpdateAndReassign1"  []
@@ -52,6 +68,7 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "UpdateAndReassign8"  []
         this.Expect "UpdateAndReassign9"  [Error ErrorCode.TypeMismatchInCopyAndUpdateExpr]
         this.Expect "UpdateAndReassign10" [Error ErrorCode.TypeMismatchInCopyAndUpdateExpr]
+
 
     [<Fact>]
     member this.``Apply-and-reassign`` () = 
@@ -158,4 +175,89 @@ type LocalVerificationTests (output:ITestOutputHelper) =
         this.Expect "InvalidConjugation6" [Error ErrorCode.InvalidReassignmentInApplyBlock]
         this.Expect "InvalidConjugation7" [Error ErrorCode.InvalidReassignmentInApplyBlock]
         this.Expect "InvalidConjugation8" [Error ErrorCode.InvalidReassignmentInApplyBlock]
+
+
+    [<Fact>]
+    member this.``Deprecation warnings`` () =
+        this.Expect "DeprecatedType"               []
+        this.Expect "RenamedType"                  []
+        this.Expect "DuplicateDeprecateAttribute1" [Warning WarningCode.DuplicateAttribute]
+        this.Expect "DuplicateDeprecateAttribute2" [Warning WarningCode.DuplicateAttribute]
+
+        this.Expect "DeprecatedTypeConstructor"    [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "RenamedTypeConstructor"       [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedCallable"      [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingRenamedCallable"         [Warning WarningCode.DeprecationWithRedirect]
+                                                   
+        this.Expect "DeprecatedItemType1"          [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "DeprecatedItemType2"          [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "RenamedItemType1"             [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "RenamedItemType2"             [Warning WarningCode.DeprecationWithRedirect]
+                                                   
+        this.Expect "UsingDeprecatedAttribute1"    [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedAttribute2"    [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedAttribute3"    [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingRenamedAttribute1"       [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedAttribute2"       [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedAttribute3"       [Warning WarningCode.DeprecationWithRedirect]
+                                                   
+        this.Expect "UsingDeprecatedType1"         [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType2"         [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType3"         [Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType4"         [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
+        this.Expect "UsingDeprecatedType5"         [Warning WarningCode.DeprecationWithoutRedirect; Warning WarningCode.DeprecationWithoutRedirect]
+                                                   
+        this.Expect "UsingRenamedType1"            [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType2"            [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType3"            [Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType4"            [Warning WarningCode.DeprecationWithRedirect; Warning WarningCode.DeprecationWithRedirect]
+        this.Expect "UsingRenamedType5"            [Warning WarningCode.DeprecationWithRedirect; Warning WarningCode.DeprecationWithRedirect]
+
+
+    [<Fact>]
+    member this.``Unit test attributes`` () = 
+        this.Expect "ValidTestAttribute1"    []
+        this.Expect "ValidTestAttribute2"    []
+        this.Expect "ValidTestAttribute3"    []
+        this.Expect "ValidTestAttribute4"    []
+        this.Expect "ValidTestAttribute5"    []
+        this.Expect "ValidTestAttribute6"    []
+        this.Expect "ValidTestAttribute7"    []
+        this.Expect "ValidTestAttribute8"    []
+        this.Expect "ValidTestAttribute9"    []
+        this.Expect "ValidTestAttribute10"   []
+        this.Expect "ValidTestAttribute11"   []
+        this.Expect "ValidTestAttribute12"   []
+        this.Expect "ValidTestAttribute13"   []
+        this.Expect "ValidTestAttribute14"   []
+        this.Expect "ValidTestAttribute15"   [Warning WarningCode.DuplicateAttribute]
+        this.Expect "ValidTestAttribute16"   [Error ErrorCode.MissingType]
+        this.Expect "ValidTestAttribute17"   []
+        this.Expect "ValidTestAttribute18"   []
+        this.Expect "ValidTestAttribute19"   [Warning WarningCode.DuplicateAttribute]
+        this.Expect "ValidTestAttribute20"   []
+                                             
+        this.Expect "InvalidTestAttribute1"  [Error ErrorCode.InvalidTestAttributePlacement]
+        this.Expect "InvalidTestAttribute2"  [Error ErrorCode.MisplacedDeclarationAttribute]
+        this.Expect "InvalidTestAttribute3"  [Error ErrorCode.MisplacedDeclarationAttribute]
+        this.Expect "InvalidTestAttribute4"  [Error ErrorCode.MisplacedDeclarationAttribute]
+        this.Expect "InvalidTestAttribute5"  [Error ErrorCode.InvalidTestAttributePlacement; Warning WarningCode.TypeParameterNotResolvedByArgument]
+        this.Expect "InvalidTestAttribute6"  [Error ErrorCode.InvalidTestAttributePlacement; Warning WarningCode.TypeParameterNotResolvedByArgument]
+        this.Expect "InvalidTestAttribute7"  [Error ErrorCode.InvalidTestAttributePlacement]
+        this.Expect "InvalidTestAttribute8"  [Error ErrorCode.InvalidTestAttributePlacement]
+        this.Expect "InvalidTestAttribute9"  [Error ErrorCode.InvalidTestAttributePlacement]
+        this.Expect "InvalidTestAttribute10" [Error ErrorCode.InvalidTestAttributePlacement]
+        this.Expect "InvalidTestAttribute11" [Error ErrorCode.InvalidTestAttributePlacement]
+        this.Expect "InvalidTestAttribute12" [Error ErrorCode.InvalidExecutionTargetForTest]
+        this.Expect "InvalidTestAttribute13" [Error ErrorCode.InvalidExecutionTargetForTest]
+        this.Expect "InvalidTestAttribute14" [Error ErrorCode.InvalidExecutionTargetForTest]
+        this.Expect "InvalidTestAttribute15" [Error ErrorCode.InvalidExecutionTargetForTest; Warning WarningCode.DuplicateAttribute]
+        this.Expect "InvalidTestAttribute16" [Error ErrorCode.InvalidTestAttributePlacement; Error ErrorCode.UnknownType]
+        this.Expect "InvalidTestAttribute17" [Error ErrorCode.InvalidExecutionTargetForTest; Error ErrorCode.AttributeArgumentTypeMismatch]
+        this.Expect "InvalidTestAttribute18" [Error ErrorCode.InvalidExecutionTargetForTest; Error ErrorCode.MissingAttributeArgument]
+        this.Expect "InvalidTestAttribute19" [Error ErrorCode.InvalidExecutionTargetForTest]
+        this.Expect "InvalidTestAttribute20" [Error ErrorCode.InvalidExecutionTargetForTest]
+        this.Expect "InvalidTestAttribute21" [Error ErrorCode.InvalidExecutionTargetForTest]
+        this.Expect "InvalidTestAttribute22" [Error ErrorCode.InvalidExecutionTargetForTest]
+
 

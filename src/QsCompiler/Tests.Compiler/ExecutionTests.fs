@@ -42,7 +42,6 @@ type ExecutionTests (output:ITestOutputHelper) =
 
     [<Fact>]
     member this.``Specialization Generation for Conjugations`` () = 
-
         ExecuteAndCompareOutput 
             "ConjugationsInBody" "
                 U1
@@ -66,7 +65,7 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V1
                 Adjoint U1        
             "
-
+            
         ExecuteAndCompareOutput 
             "ConjugationsInAdjoint" "
                 U1
@@ -90,7 +89,7 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V1
                 Adjoint U1        
             "
-
+            
         ExecuteAndCompareOutput 
             "ConjugationsInControlled" "
                 U1
@@ -114,7 +113,7 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V1
                 Adjoint U1        
             "
-
+            
         ExecuteAndCompareOutput 
             "ConjugationsInControlledAdjoint" "
                 U1
@@ -138,4 +137,18 @@ type ExecutionTests (output:ITestOutputHelper) =
                 Adjoint V1
                 Adjoint U1        
             "
+
+
+    [<Fact>]
+    member this.``Referencing Projects and Packages`` () = 
+        ExecuteAndCompareOutput 
+            "PackageAndProjectReference" "
+                Welcome to Q#!
+                Info: Go check out https://docs.microsoft.com/en-us/quantum/?view=qsharp-preview.
+            "
+        ExecuteAndCompareOutput 
+            "TypeInReferencedProject" "            
+                [Complex((1, 0))]
+            "
+
 

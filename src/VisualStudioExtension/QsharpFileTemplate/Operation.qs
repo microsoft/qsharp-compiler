@@ -1,10 +1,10 @@
-﻿namespace $rootnamespace$
-{
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Canon;
+﻿namespace $rootnamespace$ {
 
-    operation $safeitemname$ () : Unit
-    {
+    open Microsoft.Quantum.Canon;
+    open Microsoft.Quantum.Intrinsic;
+
+
+    operation $safeitemname$ () : Unit {
         
     }
 }

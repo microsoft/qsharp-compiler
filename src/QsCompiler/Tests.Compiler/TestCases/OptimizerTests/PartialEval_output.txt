@@ -1,0 +1,38 @@
+namespace Microsoft.Quantum.Testing.Optimization.PartialEval {
+    
+    newtype MyFunc = ((Int -> Int));
+    
+    newtype MyInt = (Int);
+    
+    
+    function h (a : Int, b : Int, c : Int) : Int {
+        
+        return (a + b) + c;
+    }
+    
+    
+    function j (a : Int, (b : Int, c : Int, d : Int)) : Int {
+        
+        return ((a + b) + c) + d;
+    }
+    
+    
+    function k (a : Int, fun : ((Int, Int) -> Int)) : Int {
+        
+        return fun(a, a);
+    }
+    
+    
+    function M (q : Int) : Result {
+        body intrinsic;
+    }
+    
+    
+    operation Test () : (Int, Int, Int, Int, Int, Int, Bool) {
+        
+        let o = M(2);
+        let p = o == One;
+        return (7, 15, 6, 3, 12, 5, p);
+    }
+    
+}

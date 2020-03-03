@@ -57,9 +57,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "Specifies whether to print the Q# code generated based on the built syntax tree.")]
             public bool PrintCompiledCode { get; set; }
 
-            [Option("trim", Required = false, Default = false,
-            HelpText = "Specifies whether to trim the syntax tree to eliminate selective abstractions.")]
-            public bool TrimSyntaxTree { get; set; }
+            [Option("trim", Required = false, Default = 1,
+            HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
+            public int TrimLevel { get; set; }
+
+            [Option("load", Required = false, SetName = CODE_MODE,
+            HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
+            public IEnumerable<string> Plugins { get; set; }
         }
 
         /// <summary>
@@ -169,13 +173,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 if (Options.IsCodeSnippet(file))
                 {
                     var subtree = evaluatedTree.Select(ns => FilterBySourceFile.Apply(ns, file)).Where(ns => ns.Elements.Any());
-                    var code = new string[] { "" }.Concat(StripSnippetWrapping(subtree).Select(FormatCompilation.FormatStatement));
+                    var code = new string[] { "" }.Concat(StripSnippetWrapping(subtree).Select(SyntaxTreeToQsharp.Default.ToCode));
                     logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), messageParam: code.ToArray());
                 }
                 else 
                 {
                     var imports = evaluatedTree.ToImmutableDictionary(ns => ns.Name, ns => compilation.OpenDirectives(file, ns.Name).ToImmutableArray());
-                    SyntaxTreeToQs.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, evaluatedTree, (file, imports));
+                    SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, evaluatedTree, (file, imports));
                     var code = new string[] { "" }.Concat(generated.Single().Values.Select(nsCode => $"{nsCode}{Environment.NewLine}"));
                     logger.Log(InformationCode.FormattedQsCode, Enumerable.Empty<string>(), file.Value, messageParam: code.ToArray());
                 };
@@ -213,15 +217,23 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
-            var loadOptions = new CompilationLoader.Configuration { GenerateFunctorSupport = true, SkipSyntaxTreeTrimming = !options.TrimSyntaxTree }; 
+            var loadOptions = new CompilationLoader.Configuration
+            {
+                GenerateFunctorSupport = true,
+                SkipSyntaxTreeTrimming = options.TrimLevel == 0,
+                ConvertClassicalControl = options.TrimLevel >= 2,
+                AttemptFullPreEvaluation = options.TrimLevel > 2,
+                RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
+                EnableAdditionalChecks = true
+            }; 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
             if (loaded.VerifiedCompilation == null) return ReturnCode.Status(loaded);
 
             if (logger.Verbosity < DiagnosticSeverity.Information) logger.Verbosity = DiagnosticSeverity.Information;
             if (options.PrintTextRepresentation) PrintFileContentInMemory(loaded.VerifiedCompilation, logger);
             if (options.PrintTokenization) PrintContentTokenization(loaded.VerifiedCompilation, logger);
-            if (options.PrintSyntaxTree) PrintSyntaxTree(loaded.GeneratedSyntaxTree, loaded.VerifiedCompilation, logger);
-            if (options.PrintCompiledCode) PrintGeneratedQs(loaded.GeneratedSyntaxTree, loaded.VerifiedCompilation, logger);
+            if (options.PrintSyntaxTree) PrintSyntaxTree(loaded.CompilationOutput?.Namespaces, loaded.VerifiedCompilation, logger);
+            if (options.PrintCompiledCode) PrintGeneratedQs(loaded.CompilationOutput?.Namespaces, loaded.VerifiedCompilation, logger);
             return ReturnCode.Status(loaded);
         }
     }

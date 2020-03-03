@@ -2,11 +2,11 @@
 <VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" xmlns:sdk="http://schemas.microsoft.com/developer/vstemplate-sdkextension/2010">
   <TemplateData>
     <Name>Q# Test Project</Name>
-    <Description>A project for testing quantum operations.</Description>
+    <Description>A project for creating unit tests in Q#.</Description>
     <Icon>mobius_strip_icon.png</Icon>
     <ProjectType>CSharp</ProjectType>
     <SortOrder>1000</SortOrder>
-    <TemplateID>Microsoft.Test.xUnit.QSharp</TemplateID>
+    <TemplateID>Microsoft.Test.QSharp</TemplateID>
     <CreateNewFolder>true</CreateNewFolder>
     <CreateInPlace>true</CreateInPlace>
     <DefaultName>QSharpTestProject</DefaultName>
@@ -14,7 +14,6 @@
   </TemplateData>
   <TemplateContent>
     <Project File="TestProjectTemplate.xml" TargetFileName="$projectname$.csproj"  ReplaceParameters="true">
-      <ProjectItem ReplaceParameters="true" OpenInEditor="true">TestSuiteRunner.cs</ProjectItem>
       <ProjectItem ReplaceParameters="true" OpenInEditor="true">Tests.qs</ProjectItem>
     </Project>
   </TemplateContent>

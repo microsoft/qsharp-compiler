@@ -19,6 +19,11 @@ type QsNullable<'T> = // to avoid having to include the F# core in the C# part o
         | Null -> Null
         | Value v -> Value (fct v)
 
+    /// If the given nullable has a value, applies the given function to it.
+    static member Iter fct = function 
+        | Null -> ()
+        | Value v -> fct v
+
     /// If the given nullable has a value, applies (fct fallback) to it and returns the result, 
     /// and returns fallback otherwise.
     static member Fold fct fallback = function
@@ -37,6 +42,11 @@ type QsNullable<'T> = // to avoid having to include the F# core in the C# part o
     /// Returns the sequence comprised of the results x for each element where the function returns Value x
     static member Choose fct (seq : _ seq) = 
         seq |> Seq.choose (fct >> function | Null -> None | Value v -> Some v) 
+
+    /// Converts the given F# Option to a QsNullable.
+    static member FromOption opt = opt |> function 
+        | Some v -> Value v
+        | None -> Null
 
 
 [<Struct>]

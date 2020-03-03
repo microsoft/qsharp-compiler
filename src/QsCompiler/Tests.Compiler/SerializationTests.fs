@@ -34,10 +34,10 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 module SerializationTests = 
 
     open System
-    open System.Collections.Generic
     open System.Collections.Immutable
-    open System.Linq
+    open System.IO;
     open System.Reflection
+    open System.Reflection.PortableExecutable;
     open Microsoft.Quantum.QsCompiler
     open Microsoft.Quantum.QsCompiler.CompilationBuilder
     open Microsoft.Quantum.QsCompiler.DataTypes
@@ -90,8 +90,8 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (4,43)
-            HeaderRange     = {Line = 1; Column = 1}, {Line = 1; Column = 5}
+            Position        = (4,43) |> DeclarationHeader.Offset.Defined
+            HeaderRange     = ({Line = 1; Column = 1}, {Line = 1; Column = 5}) |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
         } 
         |> testOne
@@ -103,8 +103,8 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (5,39)
-            HeaderRange     = {Line = 1; Column = 1}, {Line = 1; Column = 5}
+            Position        = (5,39) |> DeclarationHeader.Offset.Defined
+            HeaderRange     = ({Line = 1; Column = 1}, {Line = 1; Column = 5}) |> DeclarationHeader.Range.Defined
             Documentation   = [ "Line one"; "Line two" ] |> ImmutableArray.CreateRange
         } 
         |> testOne
@@ -116,8 +116,8 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (5,4)
-            HeaderRange     = {Line = 1; Column = 9}, {Line = 1; Column = 13}
+            Position        = (5,4) |> DeclarationHeader.Offset.Defined
+            HeaderRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 13}) |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
         }
         |> testOne
@@ -129,8 +129,8 @@ module SerializationTests =
             Parent          = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (6,4)
-            HeaderRange     = {Line = 1; Column = 9}, {Line = 1; Column = 15}
+            Position        = (6,4) |> DeclarationHeader.Offset.Defined
+            HeaderRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 15}) |> DeclarationHeader.Range.Defined
             Documentation   = ImmutableArray.Empty
         }
         |> testOne
@@ -149,8 +149,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (2,4)
-            SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 13}
+            Position        = (2,4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 13}) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [varDecl "__Item1__" Int (1,1) |> QsTupleItem; varDecl "__Item2__" Int (1,1) |> QsTupleItem].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature tupleIntIntType udtPair [] 
             Documentation   = ImmutableArray.Create("type constructor for user defined type") 
@@ -162,8 +162,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (4,4)
-            SymbolRange     = {Line = 1; Column = 10}, {Line = 1; Column = 23} 
+            Position        = (4,4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = ({Line = 1; Column = 10}, {Line = 1; Column = 23}) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [ varDecl "p" udtPair (25,26) |> QsTupleItem].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature udtPair UnitType []
             Documentation   = ImmutableArray.Empty
@@ -175,8 +175,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (5,4)
-            SymbolRange     = {Line = 1; Column = 11}, {Line = 1; Column = 25}
+            Position        = (5,4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = ({Line = 1; Column = 11}, {Line = 1; Column = 25}) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature UnitType UnitType [Adjointable; Controllable]
             Documentation   = ImmutableArray.Empty
@@ -188,8 +188,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (3,4)
-            SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 15}
+            Position        = (3,4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 15}) |> DeclarationHeader.Range.Defined
             ArgumentTuple   = [varDecl "__Item1__" Int (1,1) |> QsTupleItem; varDecl "__Item2__" Int (1,1) |> QsTupleItem].ToImmutableArray() |> QsTuple
             Signature       = simpleSignature tupleIntIntType (udt "Unused") []
             Documentation   = ImmutableArray.Create("type constructor for user defined type")
@@ -208,8 +208,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (2,4)
-            SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 13}
+            Position        = (2,4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 13}) |> DeclarationHeader.Range.Defined
             Type            = tupleIntIntType |> ResolvedType.New
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty
@@ -220,8 +220,8 @@ module SerializationTests =
             QualifiedName   = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes      = ImmutableArray.Empty
             SourceFile      = "%%%" |> NonNullable<string>.New
-            Position        = (3,4)
-            SymbolRange     = {Line = 1; Column = 9}, {Line = 1; Column = 15}
+            Position        = (3,4) |> DeclarationHeader.Offset.Defined
+            SymbolRange     = ({Line = 1; Column = 9}, {Line = 1; Column = 15}) |> DeclarationHeader.Range.Defined
             Type            = tupleIntIntType |> ResolvedType.New
             TypeItems       = intIntTypeItems
             Documentation   = ImmutableArray.Empty
@@ -229,38 +229,36 @@ module SerializationTests =
         |> testOne
     
     [<Literal>]
-    let CALLABLE_1 = "{\"Kind\":{\"Case\":\"TypeConstructor\"},\"QualifiedName\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"Pair\"},\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":2,\"Item2\":4},\"SymbolRange\":{\"Item1\":{\"Line\":1,\"Column\":9},\"Item2\":{\"Line\":1,\"Column\":13}},\"ArgumentTuple\":{\"Case\":\"QsTuple\",\"Fields\":[[{\"Case\":\"QsTupleItem\",\"Fields\":[{\"VariableName\":{\"Case\":\"ValidName\",\"Fields\":[\"__Item1__\"]},\"Type\":{\"Case\":\"Int\"},\"InferredInformation\":{\"IsMutable\":false,\"HasLocalQuantumDependency\":false},\"Position\":{\"Case\":\"Null\"},\"Range\":{\"Item1\":{\"Line\":1,\"Column\":1},\"Item2\":{\"Line\":1,\"Column\":1}}}]},{\"Case\":\"QsTupleItem\",\"Fields\":[{\"VariableName\":{\"Case\":\"ValidName\",\"Fields\":[\"__Item2__\"]},\"Type\":{\"Case\":\"Int\"},\"InferredInformation\":{\"IsMutable\":false,\"HasLocalQuantumDependency\":false},\"Position\":{\"Case\":\"Null\"},\"Range\":{\"Item1\":{\"Line\":1,\"Column\":1},\"Item2\":{\"Line\":1,\"Column\":1}}}]}]]},\"Signature\":{\"TypeParameters\":[],\"ArgumentType\":{\"Case\":\"TupleType\",\"Fields\":[[{\"Case\":\"Int\"},{\"Case\":\"Int\"}]]},\"ReturnType\":{\"Case\":\"UserDefinedType\",\"Fields\":[{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"Pair\",\"Range\":{\"Case\":\"Null\"}}]},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":true}}},\"Documentation\":[\"type constructor for user defined type\"]}"
+    let CALLABLE_1 = "{\"Kind\":{\"Case\":\"TypeConstructor\"},\"QualifiedName\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"Pair\"},\"Attributes\":[],\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":2,\"Item2\":4},\"SymbolRange\":{\"Item1\":{\"Line\":1,\"Column\":9},\"Item2\":{\"Line\":1,\"Column\":13}},\"ArgumentTuple\":{\"Case\":\"QsTuple\",\"Fields\":[[{\"Case\":\"QsTupleItem\",\"Fields\":[{\"VariableName\":{\"Case\":\"ValidName\",\"Fields\":[\"__Item1__\"]},\"Type\":{\"Case\":\"Int\"},\"InferredInformation\":{\"IsMutable\":false,\"HasLocalQuantumDependency\":false},\"Position\":{\"Case\":\"Null\"},\"Range\":{\"Item1\":{\"Line\":1,\"Column\":1},\"Item2\":{\"Line\":1,\"Column\":1}}}]},{\"Case\":\"QsTupleItem\",\"Fields\":[{\"VariableName\":{\"Case\":\"ValidName\",\"Fields\":[\"__Item2__\"]},\"Type\":{\"Case\":\"Int\"},\"InferredInformation\":{\"IsMutable\":false,\"HasLocalQuantumDependency\":false},\"Position\":{\"Case\":\"Null\"},\"Range\":{\"Item1\":{\"Line\":1,\"Column\":1},\"Item2\":{\"Line\":1,\"Column\":1}}}]}]]},\"Signature\":{\"TypeParameters\":[],\"ArgumentType\":{\"Case\":\"TupleType\",\"Fields\":[[{\"Case\":\"Int\"},{\"Case\":\"Int\"}]]},\"ReturnType\":{\"Case\":\"UserDefinedType\",\"Fields\":[{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"Pair\",\"Range\":{\"Case\":\"Null\"}}]},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":true}}},\"Documentation\":[\"type constructor for user defined type\"]}"
     [<Literal>]
-    let TYPE_1 = "{\"QualifiedName\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"Pair\"},\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":2,\"Item2\":4},\"SymbolRange\":{\"Item1\":{\"Line\":1,\"Column\":9},\"Item2\":{\"Line\":1,\"Column\":13}},\"Type\":{\"Case\":\"TupleType\",\"Fields\":[[{\"Case\":\"Int\"},{\"Case\":\"Int\"}]]},\"TypeItems\":{\"Case\":\"QsTuple\",\"Fields\":[[{\"Case\":\"QsTupleItem\",\"Fields\":[{\"Case\":\"Anonymous\",\"Fields\":[{\"Case\":\"Int\"}]}]},{\"Case\":\"QsTupleItem\",\"Fields\":[{\"Case\":\"Anonymous\",\"Fields\":[{\"Case\":\"Int\"}]}]}]]},\"Documentation\":[]}"
+    let TYPE_1 = "{\"QualifiedName\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"Pair\"},\"Attributes\":[],\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":2,\"Item2\":4},\"SymbolRange\":{\"Item1\":{\"Line\":1,\"Column\":9},\"Item2\":{\"Line\":1,\"Column\":13}},\"Type\":{\"Case\":\"TupleType\",\"Fields\":[[{\"Case\":\"Int\"},{\"Case\":\"Int\"}]]},\"TypeItems\":{\"Case\":\"QsTuple\",\"Fields\":[[{\"Case\":\"QsTupleItem\",\"Fields\":[{\"Case\":\"Anonymous\",\"Fields\":[{\"Case\":\"Int\"}]}]},{\"Case\":\"QsTupleItem\",\"Fields\":[{\"Case\":\"Anonymous\",\"Fields\":[{\"Case\":\"Int\"}]}]}]]},\"Documentation\":[]}"
     [<Literal>]
-    let CALLABLE_2 = "{\"Kind\":{\"Case\":\"Function\"},\"QualifiedName\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"emptyFunction\"},\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":4,\"Item2\":4},\"SymbolRange\":{\"Item1\":{\"Line\":1,\"Column\":10},\"Item2\":{\"Line\":1,\"Column\":23}},\"ArgumentTuple\":{\"Case\":\"QsTuple\",\"Fields\":[[{\"Case\":\"QsTupleItem\",\"Fields\":[{\"VariableName\":{\"Case\":\"ValidName\",\"Fields\":[\"p\"]},\"Type\":{\"Case\":\"UserDefinedType\",\"Fields\":[{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"Pair\"}]},\"InferredInformation\":{\"IsMutable\":false,\"HasLocalQuantumDependency\":false},\"Position\":{\"Case\":\"Null\"},\"Range\":{\"Item1\":{\"Line\":1,\"Column\":25},\"Item2\":{\"Line\":1,\"Column\":26}}}]}]]},\"Signature\":{\"TypeParameters\":[],\"ArgumentType\":{\"Case\":\"UserDefinedType\",\"Fields\":[{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"Pair\"}]},\"ReturnType\":{\"Case\":\"UnitType\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}}},\"Documentation\":[]}"
+    let CALLABLE_2 = "{\"Kind\":{\"Case\":\"Function\"},\"QualifiedName\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"emptyFunction\"},\"Attributes\":[],\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":4,\"Item2\":4},\"SymbolRange\":{\"Item1\":{\"Line\":1,\"Column\":10},\"Item2\":{\"Line\":1,\"Column\":23}},\"ArgumentTuple\":{\"Case\":\"QsTuple\",\"Fields\":[[{\"Case\":\"QsTupleItem\",\"Fields\":[{\"VariableName\":{\"Case\":\"ValidName\",\"Fields\":[\"p\"]},\"Type\":{\"Case\":\"UserDefinedType\",\"Fields\":[{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"Pair\",\"Range\":{\"Case\":\"Null\"}}]},\"InferredInformation\":{\"IsMutable\":false,\"HasLocalQuantumDependency\":false},\"Position\":{\"Case\":\"Null\"},\"Range\":{\"Item1\":{\"Line\":1,\"Column\":25},\"Item2\":{\"Line\":1,\"Column\":26}}}]}]]},\"Signature\":{\"TypeParameters\":[],\"ArgumentType\":{\"Case\":\"UserDefinedType\",\"Fields\":[{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"Pair\",\"Range\":{\"Case\":\"Null\"}}]},\"ReturnType\":{\"Case\":\"UnitType\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}}},\"Documentation\":[]}"
     [<Literal>]
-    let SPECIALIZATION_1 = "{\"Kind\":{\"Case\":\"QsBody\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}},\"Parent\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"emptyFunction\"},\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":4,\"Item2\":43},\"HeaderRange\":{\"Item1\":{\"Line\":1,\"Column\":1},\"Item2\":{\"Line\":1,\"Column\":5}},\"Documentation\":[]}"
+    let SPECIALIZATION_1 = "{\"Kind\":{\"Case\":\"QsBody\"},\"TypeArguments\":{\"Case\":\"Null\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}},\"Parent\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"emptyFunction\"},\"Attributes\":[],\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":4,\"Item2\":43},\"HeaderRange\":{\"Item1\":{\"Line\":1,\"Column\":1},\"Item2\":{\"Line\":1,\"Column\":5}},\"Documentation\":[]}"
     [<Literal>]
-    let CALLABLE_3 = "{\"Kind\":{\"Case\":\"Operation\"},\"QualifiedName\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"emptyOperation\"},\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":5,\"Item2\":4},\"SymbolRange\":{\"Item1\":{\"Line\":1,\"Column\":11},\"Item2\":{\"Line\":1,\"Column\":25}},\"ArgumentTuple\":{\"Case\":\"QsTuple\",\"Fields\":[[]]},\"Signature\":{\"TypeParameters\":[],\"ArgumentType\":{\"Case\":\"UnitType\"},\"ReturnType\":{\"Case\":\"UnitType\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}}},\"Documentation\":[]}"
+    let CALLABLE_3 = "{\"Kind\":{\"Case\":\"Operation\"},\"QualifiedName\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"emptyOperation\"},\"Attributes\":[],\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":5,\"Item2\":4},\"SymbolRange\":{\"Item1\":{\"Line\":1,\"Column\":11},\"Item2\":{\"Line\":1,\"Column\":25}},\"ArgumentTuple\":{\"Case\":\"QsTuple\",\"Fields\":[[]]},\"Signature\":{\"TypeParameters\":[],\"ArgumentType\":{\"Case\":\"UnitType\"},\"ReturnType\":{\"Case\":\"UnitType\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}}},\"Documentation\":[]}"
     [<Literal>]
-    let SPECIALIZATION_3 = "{\"Kind\":{\"Case\":\"QsBody\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}},\"Parent\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"emptyOperation\"},\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":5,\"Item2\":39},\"HeaderRange\":{\"Item1\":{\"Line\":1,\"Column\":1},\"Item2\":{\"Line\":1,\"Column\":5}},\"Documentation\":[]}"
+    let SPECIALIZATION_3 = "{\"Kind\":{\"Case\":\"QsBody\"},\"TypeArguments\":{\"Case\":\"Null\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}},\"Parent\":{\"Namespace\":\"Microsoft.Quantum\",\"Name\":\"emptyOperation\"},\"Attributes\":[],\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":5,\"Item2\":39},\"HeaderRange\":{\"Item1\":{\"Line\":1,\"Column\":1},\"Item2\":{\"Line\":1,\"Column\":5}},\"Documentation\":[]}"
 
     
     [<Fact>]
     let ``attribute reader`` () =
-        let path = Assembly.GetExecutingAssembly().Location
-        let uri = new Uri(path)
-        let attrs = AttributeReader.GetQsCompilerAttributes uri |> Seq.toArray
-        Assert.Equal(6, attrs.Length)
+        let dllUri = new Uri(Assembly.GetExecutingAssembly().Location)
+        let gotId, dllId = CompilationUnitManager.TryGetFileId dllUri
+        let mutable attrs = null
+        let loadedFromResource = AssemblyLoader.LoadReferencedAssembly (dllUri, &attrs, false)
+        Assert.True(gotId && not loadedFromResource, "loading should indicate failure when headers are loaded based on attributes rather than resources");
 
-        [
-            CALLABLE_1
-            TYPE_1
-            CALLABLE_2
-            SPECIALIZATION_1
-            CALLABLE_3
-            SPECIALIZATION_3
-        ] 
-        |> List.iteri (fun i expected -> 
-            let struct (_, actual) = attrs.[i]
-            Assert.Equal (expected, actual)
-        )
+        let callables = attrs.Callables |> Seq.map (fun c -> c.ToJson()) |> Seq.toList
+        let types = attrs.Types |> Seq.map (fun t -> t.ToJson()) |> Seq.toList
+        let specs = attrs.Specializations |> Seq.map (fun s -> (s.ToTuple() |> fst).ToJson()) |> Seq.toList
+        let AssertEqual (expected : string list) (got : _ list) = 
+            Assert.Equal(expected.Length, got.Length)
+            expected |> List.iteri (fun i ex -> Assert.Equal (ex.Replace("%%%", dllId.Value), got.[i]))
+        AssertEqual [CALLABLE_1; CALLABLE_2; CALLABLE_3] callables
+        AssertEqual [SPECIALIZATION_1; SPECIALIZATION_3] specs
+        AssertEqual [TYPE_1] types
 
 
     // These attributes are used to test the AttributeReader.
@@ -273,18 +271,4 @@ module SerializationTests =
     do ()
 
 
-    [<Fact>]
-    let ``referenced declarations`` () =
-        let path = Assembly.GetExecutingAssembly().Location
-        let uri = new Uri(path)
-        let attrs = AttributeReader.GetQsCompilerAttributes uri
-        match References.TryInitializeFrom [KeyValuePair(uri, attrs.ToImmutableArray())] with 
-        | built, refs, errs -> 
-            Assert.True(built)
-            Assert.Empty(errs)
-            Assert.True(refs.Declarations.Count = 1); 
-            let declarations = refs.Declarations.Single().Value
-            Assert.Equal(3, declarations.Callables.Length)
-            Assert.Equal(1, declarations.Types.Length)
-            Assert.Equal(2, declarations.Specializations.Length)
         

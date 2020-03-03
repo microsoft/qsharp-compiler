@@ -210,44 +210,75 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return res;
     }
 
-    function CommonBaseType10 () : BigInt {
-        return 1 + 1; 
+    function CommonBaseType10 (
+        op1 : (Unit => Unit is Adj + Ctl),
+        op2 : (Unit => Unit is Ctl + Adj)) 
+    : (Unit => Unit is Ctl + Adj)[] {
+        mutable arr = [op1];
+        set arr += [op2];
+        return arr;
     }
 
     function CommonBaseType11 () : BigInt {
+        return 1 + 1; 
+    }
+
+    function CommonBaseType12 () : BigInt {
         return 1L + 1; 
     }
 
-    function CommonBaseType12 (arg1 : OpTuple, arg2 : OpTuple) : OpTuple[] {
+    function CommonBaseType13 (arg1 : OpTuple, arg2 : OpTuple) : OpTuple[] {
         return [arg1, arg2]; 
     }
 
-    function CommonBaseType13 (arg1 : OpTuple, arg2 : AdjCtlTuple) : ((Unit => Unit), (Unit => Unit))[] {
-        return [arg1!, arg2!]; 
-    }
-
-    function CommonBaseType14 (arg1 : OpTuple, arg2 : AdjCtlTuple) : OpTuple[] {
+    function CommonBaseType14 (arg1 : OpTuple, arg2 : AdjCtlTuple) : ((Unit => Unit), (Unit => Unit))[] {
         return [arg1!, arg2!]; 
     }
 
     function CommonBaseType15 (arg1 : OpTuple, arg2 : AdjCtlTuple) : OpTuple[] {
+        return [arg1!, arg2!]; 
+    }
+
+    function CommonBaseType16 (arg1 : OpTuple, arg2 : AdjCtlTuple) : OpTuple[] {
         return [arg1, arg2]; 
     }
 
-    function CommonBaseType16 () : (Unit => Unit is Adj)[] {
+    function CommonBaseType17 () : (Unit => Unit is Adj)[] {
         return [SelfAdjOp, IntrinsicAdj];
     }
 
-    function CommonBaseType17<'A> (a1 : 'A, a2 : 'A) : 'A[] {
+    function CommonBaseType18<'A> (a1 : 'A, a2 : 'A) : 'A[] {
         return [a1, a2];
     }
 
-    function CommonBaseType18<'A,'B> () : 'A[] {
+    function CommonBaseType19<'A,'B> () : 'A[] {
         return [(new 'A[1])[0], (new 'A[1])[0]];
     }
 
-    function CommonBaseType19<'A,'B> (a : 'A, b : 'B) : 'A[] {
+    function CommonBaseType20<'A,'B> (a : 'A, b : 'B) : 'A[] {
         return [(new 'A[1])[0], (new 'B[1])[0]];
+    }
+
+    function CommonBaseType21 () : BigEndian[] {
+        return [(new BigEndian[1])[0], (new BigEndian[1])[0]];
+    }
+
+    function CommonBaseType22 () : (Int -> Unit)[] {
+        return [GenericFunction<Int>, GenericFunction<Int>];
+    }
+
+    function CommonBaseType23 () : (Int -> Unit)[] {
+        let fct = GenericFunction<Int>;
+        return [GenericFunction<Int>, fct];
+    }
+
+    function CommonBaseType24 () : (Int -> Unit)[] {
+        let fct = GenericFunction<Int>;
+        return [fct, fct];
+    }
+
+    function CommonBaseType25 () : (Int -> Unit)[] {
+        return [GenericFunction<Int>, GenericFunction<Double>];
     }
 
 

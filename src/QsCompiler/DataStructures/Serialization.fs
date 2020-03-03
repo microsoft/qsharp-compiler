@@ -11,6 +11,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.SyntaxTokens 
 open Newtonsoft.Json
+open Newtonsoft.Json.Linq
 open Newtonsoft.Json.Serialization
 
 
@@ -23,6 +24,30 @@ type NonNullableConverter<'T when 'T: equality and 'T: null>()  =
         
     override this.WriteJson(writer : JsonWriter, value : NonNullable<'T>, serializer : JsonSerializer) =
         serializer.Serialize(writer, value.Value)
+
+
+type QsNullableLocationConverter(?ignoreSerializationException) =
+    inherit JsonConverter<QsNullable<QsLocation>>()
+    let ignoreSerializationException = defaultArg ignoreSerializationException false
+
+    override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : QsNullable<QsLocation>, hasExistingValue : bool, serializer : JsonSerializer) =
+        try if reader.ValueType <> typeof<String> || (string)reader.Value <> "Null" then  
+                let token = JObject.Load(reader)
+                let loc = serializer.Deserialize<QsLocation>(token.CreateReader())
+                if Object.ReferenceEquals(loc.Offset, null) || Object.ReferenceEquals(loc.Range, null) then 
+                    match serializer.Deserialize<QsNullable<JToken>>(token.CreateReader()) with
+                    | Value loc -> loc.ToObject<QsLocation>() |> Value 
+                    | Null -> Null
+                else loc |> Value
+            else Null
+        with | :? JsonSerializationException as ex -> 
+            if ignoreSerializationException then Null
+            else raise ex
+
+    override this.WriteJson(writer : JsonWriter, value : QsNullable<QsLocation>, serializer : JsonSerializer) =
+        match value with 
+        | Value loc -> serializer.Serialize(writer, loc)
+        | Null -> serializer.Serialize(writer, "Null")
 
 
 type ResolvedTypeConverter(?ignoreSerializationException) =
@@ -73,11 +98,16 @@ type TypedExpressionConverter() =
     inherit JsonConverter<TypedExpression>()
 
     override this.ReadJson(reader : JsonReader, objectType : Type, existingValue : TypedExpression, hasExistingValue : bool, serializer : JsonSerializer) = 
-        let (ex, paramRes, t, info, range) = serializer.Deserialize<QsExpressionKind<TypedExpression, Identifier, ResolvedType> * IEnumerable<KeyValuePair<QsTypeParameter,ResolvedType>> * ResolvedType * InferredExpressionInformation * QsRangeInfo>(reader) 
-        {Expression = ex; TypeParameterResolutions = paramRes.ToImmutableDictionary(); ResolvedType = t; InferredInformation = info; Range = range}
+        let (ex, paramRes, t, info, range) = 
+            serializer.Deserialize< QsExpressionKind<TypedExpression, Identifier, ResolvedType>
+                                    * IEnumerable<QsQualifiedName * NonNullable<string> * ResolvedType> 
+                                    * ResolvedType 
+                                    * InferredExpressionInformation 
+                                    * QsRangeInfo >(reader) 
+        {Expression = ex; TypeArguments = paramRes.ToImmutableArray(); ResolvedType = t; InferredInformation = info; Range = range}
 
     override this.WriteJson(writer : JsonWriter, value : TypedExpression, serializer : JsonSerializer) =
-        serializer.Serialize(writer, (value.Expression, value.TypeParameterResolutions, value.ResolvedType, value.InferredInformation, value.Range))
+        serializer.Serialize(writer, (value.Expression, value.TypeArguments, value.ResolvedType, value.InferredInformation, value.Range))
 
 
 type QsNamespaceConverter() =
@@ -91,18 +121,6 @@ type QsNamespaceConverter() =
         serializer.Serialize(writer, (value.Name, value.Elements))
 
 
-type JsonConverters =
-    static member All ignoreSerializationException = 
-        [|
-            new NonNullableConverter<string>()                                  :> JsonConverter
-            new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
-            new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
-            new TypedExpressionConverter()                                      :> JsonConverter
-            new ResolvedInitializerConverter()                                  :> JsonConverter
-            new QsNamespaceConverter()                                          :> JsonConverter
-        |]
-
-
 type DictionaryAsArrayResolver () =
     inherit DefaultContractResolver()
 
@@ -112,4 +130,32 @@ type DictionaryAsArrayResolver () =
             (t.IsGenericType && t.GetGenericTypeDefinition() = typeof<IDictionary<_,_>>.GetGenericTypeDefinition())
         if objectType.GetInterfaces().Any(new Func<_,_>(isDictionary)) then base.CreateArrayContract(objectType) :> JsonContract;
         else base.CreateContract(objectType);
+
+
+module Json =
+    
+    let Converters ignoreSerializationException = 
+        [|
+            new NonNullableConverter<string>()                                  :> JsonConverter
+            new QsNullableLocationConverter(ignoreSerializationException)       :> JsonConverter
+            new ResolvedTypeConverter(ignoreSerializationException)             :> JsonConverter
+            new ResolvedCharacteristicsConverter(ignoreSerializationException)  :> JsonConverter
+            new TypedExpressionConverter()                                      :> JsonConverter
+            new ResolvedInitializerConverter()                                  :> JsonConverter
+            new QsNamespaceConverter()                                          :> JsonConverter
+        |]
+
+    /// Creates a serializer using the given converters. 
+    /// Be aware that this is expensive and repeated creation of a serializer should be avoided. 
+    let CreateSerializer converters = 
+        let settings = new JsonSerializerSettings() 
+        settings.Converters <- converters
+        settings.ContractResolver <- new DictionaryAsArrayResolver()
+        settings.NullValueHandling <- NullValueHandling.Include
+        settings.MissingMemberHandling <- MissingMemberHandling.Ignore
+        settings.CheckAdditionalContent <- false
+        JsonSerializer.CreateDefault settings
+
+    let Serializer = Converters false |> CreateSerializer
+    let PermissiveSerializer = Converters true |> CreateSerializer
 

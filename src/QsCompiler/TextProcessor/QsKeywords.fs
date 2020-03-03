@@ -247,7 +247,7 @@ type QsOperator = {
 let qsCopyAndUpdateOp = QsOperator.New("w/", "<-"    ,   1 , true) // *needs* to have lowest precedence!
 let qsOpenRangeOp     = QsOperator.New("..."         ,   2 , true) // only valid as part of certain contextual expressions!
 let qsRangeOp         = QsOperator.New(".."          ,   2 , true) // second lowest precedence due to the contextual open range operator
-let qsConditionalOp   = QsOperator.New("?", "|"      ,   5 , true)
+let qsConditionalOp   = QsOperator.New("?", "|"      ,   5 , false)
 let qsORop            = QsOperator.New(orOperator.id ,   10, true)
 let qsANDop           = QsOperator.New(andOperator.id,   11, true)
 let qsBORop           = QsOperator.New("|||"         ,   12, true)
@@ -271,8 +271,8 @@ let qsBNOTop          = QsOperator.New("~~~"         ,   45, true)
 let qsNOTop           = QsOperator.New(notOperator.id,   45, true)
 let qsNEGop           = QsOperator.New("-"           ,   45, true)
 
-let qsSetUnion        = QsOperator.New("+", 10, true)
-let qsSetIntersection = QsOperator.New("*", 20, true)
+let qsSetUnion        = QsOperator.New("+"           ,   10, true)
+let qsSetIntersection = QsOperator.New("*"           ,   20, true)
 
 // As far as the precedence rules of Q# go, 
 // there are operators (the things above, processed by an operator precedence parser), 
