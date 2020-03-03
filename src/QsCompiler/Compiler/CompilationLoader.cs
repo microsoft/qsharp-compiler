@@ -151,7 +151,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// However, the compiler may overwrite the assembly constants defined for the Q# compilation unit in the dictionary of the loaded step.
             /// The given dictionary in this configuration is left unchanged in any case. 
             /// </summary>
-            public IReadOnlyDictionary<string, string> AssemblyConstants; 
+            public IReadOnlyDictionary<string, string> AssemblyConstants;
+            /// <summary>
+            /// Path to the assembly that contains a syntax tree with target specific implementations for certain functions and operations. 
+            /// The functions and operations defined in that assembly replace the ones declarated within the compilation unit.
+            /// If no path is specified here or the specified path is null then this compilation step is omitted. 
+            /// </summary>
+            public string TargetPackageAssembly;
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
@@ -190,6 +196,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status ReferenceLoading = Status.NotRun;
             internal Status PluginLoading = Status.NotRun;
             internal Status Validation = Status.NotRun;
+            internal Status TargetSpecificReplacements = Status.NotRun;
             internal Status FunctorSupport = Status.NotRun;
             internal Status PreEvaluation = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
@@ -212,6 +219,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(true, this.PluginLoading) &&
+                WasSuccessful(!String.IsNullOrWhiteSpace(options.TargetPackageAssembly), this.TargetSpecificReplacements) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
@@ -246,6 +254,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// that is executed before invoking further rewrite and/or generation steps.   
         /// </summary>
         public Status Validation => this.CompilationStatus.Validation;
+        /// <summary>
+        /// Indicates whether target specific implementations for functions and operations
+        /// have been used to replace the ones declarated within the compilation unit.
+        /// This step is only executed if the specified configuration contains the path to the target package.
+        /// </summary>
+        public Status TargetSpecificReplacements => this.CompilationStatus.TargetSpecificReplacements;
         /// <summary>
         /// Indicates whether all specializations were generated successfully. 
         /// This rewrite step is only executed if the corresponding configuration is specified. 
@@ -418,6 +432,34 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 status = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out var transformed);
                 return status == Status.Succeeded ? transformed : this.CompilationOutput;
+            }
+
+            if (!String.IsNullOrWhiteSpace(this.Config.TargetPackageAssembly))
+            {
+                try 
+                { 
+                    var targetDll = Path.GetFullPath(this.Config.TargetPackageAssembly);
+                    var loaded = AssemblyLoader.LoadReferencedAssembly(
+                        targetDll, 
+                        out var targetIntrinsics, 
+                        ex => this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ex));
+
+                    if (loaded)
+                    {
+                        var rewriteStep = new RewriteSteps.LoadedStep(new IntrinsicResolution(targetIntrinsics), typeof(IRewriteStep), thisDllUri);
+                        this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.TargetSpecificReplacements);
+                    }
+                    else
+                    {
+                        this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ErrorCode.FailedToLoadTargetPackageAssembly, new[] { targetDll });
+                        targetIntrinsics = null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ErrorCode.InvalidTargetPackageAssemblyPath, new[] { this.Config.TargetPackageAssembly });
+                    this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ex);
+                }
             }
 
             if (this.Config.ConvertClassicalControl)

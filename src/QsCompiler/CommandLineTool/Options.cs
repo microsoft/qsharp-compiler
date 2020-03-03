@@ -17,6 +17,49 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
+    public class CompilationOptions : Options
+    {
+        [Option("trim", Required = false, Default = 1,
+        HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
+        public int TrimLevel { get; set; }
+
+        [Option("load", Required = false, SetName = CODE_MODE,
+        HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
+        public IEnumerable<string> Plugins { get; set; }
+
+        [Option("target-package", Required = false,
+        HelpText = "Path to the NuGet package containing target specific information and implementations.")]
+        public string TargetPackage { get; set; }
+
+        /// <summary>
+        /// Returns null if TargetPackage is not null or empty, and 
+        /// returns the path to the assembly containing target specific implementations otherwise.
+        /// If a logger is specified, logs suitable diagnostics if a TargetPackages is not null or empty,
+        /// but no path to the target package assembly could be determined. 
+        /// This may be the case if no directory at the TargetPackage location exists, or if its files can't be accessed, 
+        /// or more than one dll matches the pattern by which the target package assembly is identified.
+        /// </summary>
+        public string GetTargetPackageAssemblyPath(ILogger logger = null)
+        {
+            if (String.IsNullOrEmpty(this.TargetPackage)) return null;
+            try
+            {
+                // Disclaimer: we may revise that in the future.
+                var targetPackageAssembly = Directory.GetFiles(this.TargetPackage, "*Intrinsics.dll", SearchOption.AllDirectories).SingleOrDefault();
+                if (targetPackageAssembly != null) return targetPackageAssembly;
+            }
+            catch (Exception ex)
+            {
+                if (Directory.Exists(this.TargetPackage)) logger?.Log(ex);
+                else logger?.Log(ErrorCode.CouldNotFineTargetPackage, new[] { this.TargetPackage });
+            }
+
+            logger?.Log(ErrorCode.CouldNotFindTargetPackageAssembly, new[] { this.TargetPackage });
+            return null;
+        }
+    }
+
+
     public class Options
     {
         public enum LogFormat
@@ -59,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public LogFormat OutputFormat { get; set; }
 
         [Option("package-load-fallback-folders", Required = false, SetName = CODE_MODE,
-        HelpText = "Specifies the directories the compiler will search when a rewrite step dependency could not be found.")]
+        HelpText = "Specifies the directories the compiler will search when a compiler dependency could not be found.")]
         public IEnumerable<string> PackageLoadFallbackFolders { get; set; }
 
 
@@ -87,15 +130,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// <summary>
         /// Given a LogFormat, returns a suitable routing for formatting diagnostics.
         /// </summary>
-        internal static Func<Diagnostic, string> LoggingFormat(LogFormat format)
-        {
-            switch (format)
+        internal static Func<Diagnostic, string> LoggingFormat(LogFormat format) => 
+            format switch
             {
-                case LogFormat.MsBuild: return Formatting.MsBuildFormat;
-                case LogFormat.Default: return Formatting.HumanReadableFormat;
-                default: throw new NotImplementedException("unknown output format for logger");
-            }
-        }
+                LogFormat.MsBuild => Formatting.MsBuildFormat,
+                LogFormat.Default => Formatting.HumanReadableFormat,
+                _ => throw new NotImplementedException("unknown output format for logger"),
+            };
 
         /// <summary>
         /// Creates a suitable logger for the given command line options, 

@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
     public static class BuildCompilation
     {
         [Verb("build", HelpText = "Builds a compilation unit to run on the Q# quantum simulation framework.")]
-        public class BuildOptions : Options
+        public class BuildOptions : CompilationOptions
         {
             [Usage(ApplicationAlias = "qsCompiler")]
             public static IEnumerable<Example> UsageExamples
@@ -49,14 +49,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option("proj", Required = false, SetName = CODE_MODE,
             HelpText = "Name of the project (needs to be usable as file name).")]
             public string ProjectName { get; set; }
-
-            [Option("load", Required = false, SetName = CODE_MODE,
-            HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
-            public IEnumerable<string> Plugins { get; set; }
-
-            [Option("trim", Required = false, Default = 1,
-            HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
-            public int TrimLevel { get; set; }
 
             [Option("emit-dll", Required = false, Default = false, SetName = CODE_MODE,
             HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
@@ -121,14 +113,18 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
-            if (options?.ResponseFiles != null && options.ResponseFiles.Any())
-            { options = FromResponseFiles(options.ResponseFiles); }
-            if (options == null) return ReturnCode.INVALID_ARGUMENTS;
+            if (options.ResponseFiles != null && options.ResponseFiles.Any())
+            {
+                var fromResponseFiles = FromResponseFiles(options.ResponseFiles);
+                options = fromResponseFiles; // FIXME: PROPERLY MERGE OPTIONS INSTEAD
+                if (options == null) return ReturnCode.INVALID_ARGUMENTS;
+            }
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
             var loadOptions = new CompilationLoader.Configuration
             {
                 ProjectName = options.ProjectName,
+                TargetPackageAssembly = options.GetTargetPackageAssemblyPath(logger),
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 ConvertClassicalControl = options.TrimLevel >= 2,
@@ -154,7 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
                 catch (Exception ex)
                 {
-                    logger.Log(ErrorCode.PublishingPerfResultsFailed, new string[]{options.PerfFolder});
+                    logger.Log(ErrorCode.PublishingPerfResultsFailed, new string[]{ options.PerfFolder });
                     logger.Log(ex);
                 }
             }

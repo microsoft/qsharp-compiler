@@ -267,7 +267,11 @@ type ErrorCode =
     | UnknownCompilerPlugin = 7015
     | CouldNotLoadCompilerPlugin = 7016
     | CouldNotInstantiateRewriteStep = 7017
-    | UnexpectedCompilerException = 7018
+    | CouldNotFineTargetPackage = 7018
+    | CouldNotFindTargetPackageAssembly = 7019
+    | InvalidTargetPackageAssemblyPath = 7020
+    | FailedToLoadTargetPackageAssembly = 7021
+    | UnexpectedCompilerException = 7022
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
@@ -619,7 +623,11 @@ type DiagnosticItem =
             | ErrorCode.SourceFilesMissing                        -> "No source files have been specified."
             | ErrorCode.UnknownCompilerPlugin                     -> "Could not find the .NET Core library \"{0}\" specifying transformations to perform as part of the compilation process."
             | ErrorCode.CouldNotLoadCompilerPlugin                -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. The file needs to be a suitable .NET Core library."
-            | ErrorCode.CouldNotInstantiateRewriteStep            -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor. "
+            | ErrorCode.CouldNotInstantiateRewriteStep            -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor."
+            | ErrorCode.CouldNotFineTargetPackage                 -> "Could not find the directory \"{0}\" containing target specific information."
+            | ErrorCode.CouldNotFindTargetPackageAssembly         -> "Could not find the assembly specifying target specific implementations within the target package \"{0}\"."
+            | ErrorCode.InvalidTargetPackageAssemblyPath          -> "Could not find the file \"{0}\" that specifies target specific implementations."
+            | ErrorCode.FailedToLoadTargetPackageAssembly         -> "Unable to load target specific implementations from \"{0}\"." 
             | ErrorCode.UnexpectedCompilerException               -> "The compiler threw an exception."
                                                                   
             | ErrorCode.FunctorGenerationFailed                   -> "Auto-generation of functor specialization(s) failed."

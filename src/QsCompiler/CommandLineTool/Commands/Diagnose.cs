@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
     public static class DiagnoseCompilation
     {
         [Verb("diagnose", HelpText = "Generates intermediate representations of the code to help diagnose issues.")]
-        public class DiagnoseOptions : Options
+        public class DiagnoseOptions : CompilationOptions
         {
             [Usage(ApplicationAlias = "qsCompiler")]
             public static IEnumerable<Example> UsageExamples
@@ -56,14 +56,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option("code", Required = false, Default = false,
             HelpText = "Specifies whether to print the Q# code generated based on the built syntax tree.")]
             public bool PrintCompiledCode { get; set; }
-
-            [Option("trim", Required = false, Default = 1,
-            HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
-            public int TrimLevel { get; set; }
-
-            [Option("load", Required = false, SetName = CODE_MODE,
-            HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
-            public IEnumerable<string> Plugins { get; set; }
         }
 
         /// <summary>
@@ -136,7 +128,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         private static void PrintSyntaxTree(IEnumerable<QsNamespace> evaluatedTree, Compilation compilation, ILogger logger)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
-            evaluatedTree = evaluatedTree ?? compilation.SyntaxTree.Values;
+            evaluatedTree ??= compilation.SyntaxTree.Values;
 
             foreach (var file in compilation.SourceFiles)
             {
@@ -166,7 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         private static void PrintGeneratedQs(IEnumerable<QsNamespace> evaluatedTree, Compilation compilation, ILogger logger)
         {
             if (compilation == null) throw new ArgumentNullException(nameof(compilation));
-            evaluatedTree = evaluatedTree ?? compilation.SyntaxTree.Values;
+            evaluatedTree ??= compilation.SyntaxTree.Values;
 
             foreach (var file in compilation.SourceFiles)
             {
@@ -219,6 +211,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             var loadOptions = new CompilationLoader.Configuration
             {
+                TargetPackageAssembly = options.GetTargetPackageAssemblyPath(logger),
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 ConvertClassicalControl = options.TrimLevel >= 2,
