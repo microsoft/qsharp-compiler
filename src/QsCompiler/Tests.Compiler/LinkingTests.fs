@@ -41,7 +41,6 @@ type LinkingTests (output:ITestOutputHelper) =
     let countReferencesInNamespaces (name : QsQualifiedName) namespaces =
         let references = IdentifierReferences (name, defaultOffset)
         namespaces |> Seq.iter (references.Namespaces.OnNamespace >> ignore)
-        // TODO: What if name is a type? Is the type constructor included?
         if obj.ReferenceEquals (references.SharedState.DeclarationLocation, null)
         then references.SharedState.Locations.Count
         else 1 + references.SharedState.Locations.Count
@@ -310,3 +309,8 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     member this.``Rename internal call references`` () =
         this.RunInternalRenamingTest 1
+
+    [<Fact>]
+    member this.``Rename internal type references`` () =
+        // TODO: Check that both RenameMe and Foo are renamed.
+        this.RunInternalRenamingTest 2

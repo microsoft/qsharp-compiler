@@ -12,3 +12,11 @@ namespace Microsoft.Quantum.Testing.InternalRenaming {
 }
 
 // =================================
+
+// Test 2
+namespace Microsoft.Quantum.Testing.InternalRenaming {
+	internal newtype RenameMe = Unit;
+
+	internal function Foo (x : RenameMe) : Unit {
+	}
+}
