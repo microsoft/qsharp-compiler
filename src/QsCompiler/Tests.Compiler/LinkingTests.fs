@@ -50,11 +50,25 @@ type LinkingTests (output:ITestOutputHelper) =
     let countReferencesInHeaders (headers : References.Headers) (name : QsQualifiedName) =
         let references = IdentifierReferences (name, defaultOffset)
         references.SharedState.DeclarationOffset <- (0, 0)
-        headers.Specializations.Select(fun specialization -> snd (specialization.ToTuple ()))
-        |> Seq.iter (references.Namespaces.OnSpecializationImplementation >> ignore)
+
+        for callable in headers.Callables do
+            Seq.iter (references.Namespaces.OnAttribute >> ignore) callable.Attributes
+            references.Namespaces.OnArgumentTuple callable.ArgumentTuple |> ignore
+            references.Namespaces.OnSignature callable.Signature |> ignore
+            references.Namespaces.OnDocumentation callable.Documentation |> ignore
+        for (specialization, implementation) in headers.Specializations do
+            Seq.iter (references.Namespaces.OnAttribute >> ignore) specialization.Attributes
+            references.Namespaces.OnDocumentation specialization.Documentation |> ignore
+            references.Namespaces.OnSpecializationImplementation implementation |> ignore
+        for qsType in headers.Types do
+            Seq.iter (references.Namespaces.OnAttribute >> ignore) qsType.Attributes
+            references.Types.OnType qsType.Type |> ignore
+            references.Namespaces.OnTypeItems qsType.TypeItems |> ignore
+            references.Namespaces.OnDocumentation qsType.Documentation |> ignore
+
         let count =
             headers.Callables.Count(fun callable -> callable.QualifiedName = name) +
-            headers.Types.Count(fun types -> types.QualifiedName = name) +
+            headers.Types.Count(fun qsType -> qsType.QualifiedName = name) +
             references.SharedState.Locations.Count
         count
 
@@ -310,14 +324,49 @@ type LinkingTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
-    member this.``Rename internal call references`` () =
+    member this.``Rename internal operation call references`` () =
         this.RunInternalRenamingTest 1
             [{ Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Foo" }]
             [{ Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Bar" }]
 
     [<Fact>]
-    member this.``Rename internal type references`` () =
+    member this.``Rename internal function call references`` () =
         this.RunInternalRenamingTest 2
-            [{ Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Foo" }
-             { Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Bar" }]
+            [{ Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Foo" }]
+            [{ Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Bar" }]
+
+    [<Fact>]
+    member this.``Rename internal type references`` () =
+        this.RunInternalRenamingTest 3
+            [
+                { Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Foo" }
+                { Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Bar" }
+                { Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Baz" }
+            ]
             []
+
+    [<Fact>]
+    member this.``Rename internal references across namespaces`` () =
+        this.RunInternalRenamingTest 4
+            [
+                { Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Foo" }
+                { Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Bar" }
+                { Namespace = NonNullable<_>.New (Signatures.InternalRenamingNs + ".Extra"); Name = NonNullable<_>.New "Qux" }
+            ]
+            [{ Namespace = NonNullable<_>.New (Signatures.InternalRenamingNs + ".Extra"); Name = NonNullable<_>.New "Baz" }]
+
+    [<Fact>]
+    member this.``Rename internal qualified references`` () =
+        this.RunInternalRenamingTest 5
+            [
+                { Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Foo" }
+                { Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Bar" }
+                { Namespace = NonNullable<_>.New (Signatures.InternalRenamingNs + ".Extra"); Name = NonNullable<_>.New "Qux" }
+            ]
+            [{ Namespace = NonNullable<_>.New (Signatures.InternalRenamingNs + ".Extra"); Name = NonNullable<_>.New "Baz" }]
+
+    [<Fact>]
+    member this.``Rename internal attribute references`` () =
+        this.RunInternalRenamingTest 6
+            [{ Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Foo" }]
+            [{ Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Bar" }]
