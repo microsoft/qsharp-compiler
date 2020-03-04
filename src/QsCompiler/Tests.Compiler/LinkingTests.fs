@@ -67,7 +67,8 @@ type LinkingTests (output:ITestOutputHelper) =
             references.Namespaces.OnDocumentation qsType.Documentation |> ignore
 
         let count =
-            headers.Callables.Count(fun callable -> callable.QualifiedName = name) +
+            // TODO: We ignore type constructors because countReferencesInNamespaces is not able to count them.
+            headers.Callables.Count(fun callable -> callable.QualifiedName = name && callable.Kind <> TypeConstructor) +
             headers.Types.Count(fun qsType -> qsType.QualifiedName = name) +
             references.SharedState.Locations.Count
         count

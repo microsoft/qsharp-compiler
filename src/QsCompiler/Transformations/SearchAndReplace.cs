@@ -608,6 +608,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                     typeItems: type.TypeItems,
                     documentation: type.Documentation,
                     comments: type.Comments));
+
+            public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute attribute)
+            {
+                var newTypeId = QsNullable<UserDefinedType>.Null;
+                if (attribute.TypeId.IsValue)
+                {
+                    var newName = parent.GetNewName(new QsQualifiedName(attribute.TypeId.Item.Namespace,
+                                                                        attribute.TypeId.Item.Name));
+                    newTypeId = QsNullable<UserDefinedType>.NewValue(
+                        new UserDefinedType(newName.Namespace, newName.Name, attribute.TypeId.Item.Range));
+                }
+                var newArgument = parent.Expressions.OnTypedExpression(attribute.Argument);
+                return base.OnAttribute(
+                    new QsDeclarationAttribute(newTypeId, newArgument, attribute.Offset, attribute.Comments));
+            }
         }
     }
 
