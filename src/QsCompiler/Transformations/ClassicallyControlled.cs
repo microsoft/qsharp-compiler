@@ -10,7 +10,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
-
+using Transformations;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 {
@@ -1279,6 +1279,127 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     }
 
                     return base.OnTypeParameter(tp);
+                }
+            }
+        }
+    }
+
+    internal static class HoistTransformation2
+    {
+        private class MyLift : LiftContent
+        {
+            private MyLift() : base()
+            {
+                this.StatementKinds = new StatementKindTransformation(this);
+            }
+
+            private new class StatementKindTransformation : LiftContent.StatementKindTransformation
+            {
+                public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+                private bool IsScopeSingleCall(QsScope contents)
+                {
+                    if (contents.Statements.Length != 1) return false;
+
+                    return contents.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr
+                           && expr.Item.Expression is ExpressionKind.CallLikeExpression call
+                           && !TypedExpression.IsPartialApplication(expr.Item.Expression)
+                           && call.Item1.Expression is ExpressionKind.Identifier;
+                }
+
+                public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
+                {
+                    var contextValidScope = SharedState.IsValidScope;
+                    var contextHoistParams = SharedState.CurrentHoistParams;
+
+                    var isHoistValid = true;
+
+                    var newConditionBlocks = new List<Tuple<TypedExpression, QsPositionedBlock>>();
+                    var generatedOperations = new List<QsCallable>();
+                    foreach (var conditionBlock in stm.ConditionalBlocks)
+                    {
+                        SharedState.IsValidScope = true;
+                        SharedState.CurrentHoistParams = conditionBlock.Item2.Body.KnownSymbols.IsEmpty
+                        ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
+                        : conditionBlock.Item2.Body.KnownSymbols.Variables;
+
+                        var (expr, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.NewValue(conditionBlock.Item1), conditionBlock.Item2);
+
+                        // ToDo: Reduce the number of unnecessary generated operations by generalizing
+                        // the condition logic for the conversion and using that condition here
+                        //var (isExprCondition, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
+
+                        if (SharedState.IsValidScope) // if sub-scope is valid, hoist content
+                        {
+                            if (/*isExprCondition &&*/ !IsScopeSingleCall(block.Body))
+                            {
+                                // Hoist the scope to its own operation
+                                var (callable, call) = SharedState.HoistBody(block.Body);
+                                block = new QsPositionedBlock(
+                                    new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
+                                    block.Location,
+                                    block.Comments);
+                                newConditionBlocks.Add(Tuple.Create(expr.Item, block));
+                                generatedOperations.Add(callable);
+                            }
+                            else if (block.Body.Statements.Length > 0)
+                            {
+                                newConditionBlocks.Add(Tuple.Create(expr.Item, block));
+                            }
+                        }
+                        else
+                        {
+                            isHoistValid = false;
+                            break;
+                        }
+                    }
+
+                    var newDefault = QsNullable<QsPositionedBlock>.Null;
+                    if (isHoistValid && stm.Default.IsValue)
+                    {
+                        SharedState.IsValidScope = true;
+                        SharedState.CurrentHoistParams = stm.Default.Item.Body.KnownSymbols.IsEmpty
+                            ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
+                            : stm.Default.Item.Body.KnownSymbols.Variables;
+
+                        var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
+                        if (SharedState.IsValidScope)
+                        {
+                            if (!IsScopeSingleCall(block.Body)) // if sub-scope is valid, hoist content
+                            {
+                                // Hoist the scope to its own operation
+                                var (callable, call) = SharedState.HoistBody(block.Body);
+                                block = new QsPositionedBlock(
+                                    new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
+                                    block.Location,
+                                    block.Comments);
+                                newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                                generatedOperations.Add(callable);
+                            }
+                            else if (block.Body.Statements.Length > 0)
+                            {
+                                newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                            }
+                        }
+                        else
+                        {
+                            isHoistValid = false;
+                        }
+                    }
+
+                    if (isHoistValid)
+                    {
+                        SharedState.GeneratedOperations.AddRange(generatedOperations);
+                    }
+
+                    SharedState.CurrentHoistParams = contextHoistParams;
+                    SharedState.IsValidScope = contextValidScope;
+
+                    return isHoistValid
+                        ? QsStatementKind.NewQsConditionalStatement(
+                          new QsConditionalStatement(newConditionBlocks.ToImmutableArray(), newDefault))
+                        : QsStatementKind.NewQsConditionalStatement(
+                          new QsConditionalStatement(stm.ConditionalBlocks, stm.Default));
                 }
             }
         }
