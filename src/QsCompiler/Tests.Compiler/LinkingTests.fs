@@ -38,7 +38,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
     /// Counts the number of references to the qualified name in all of the namespaces. The declaration of the name is
     /// included in the count.
-    let countReferencesInNamespaces (name : QsQualifiedName) namespaces =
+    let countReferencesInNamespaces namespaces (name : QsQualifiedName) =
         let references = IdentifierReferences (name, defaultOffset)
         namespaces |> Seq.iter (references.Namespaces.OnNamespace >> ignore)
         if obj.ReferenceEquals (references.SharedState.DeclarationLocation, null)
@@ -47,7 +47,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
     /// Counts the number of references to the qualified name in the headers and specialization implementations. The
     /// declaration of the name is included in the count.
-    let countReferencesInHeaders (name : QsQualifiedName) (headers : References.Headers) =
+    let countReferencesInHeaders (headers : References.Headers) (name : QsQualifiedName) =
         let references = IdentifierReferences (name, defaultOffset)
         references.SharedState.DeclarationOffset <- (0, 0)
         headers.Specializations.Select(fun specialization -> snd (specialization.ToTuple ()))
@@ -142,30 +142,33 @@ type LinkingTests (output:ITestOutputHelper) =
             |> Assert.True)
         |> ignore
 
-    member private this.RunInternalRenamingTest num =
+    /// Runs the nth internal renaming test, asserting that declarations with the given name and references to them have
+    /// been renamed across the compilation unit.
+    member private this.RunInternalRenamingTest num renamed notRenamed =
         let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
         let compilation = this.BuildContent chunks.[num - 1]
 
-        let name = {
-            Namespace = NonNullable<_>.New Signatures.InternalRenamingNs
-            Name = NonNullable<_>.New "RenameMe"
-        }
-        let beforeCount = countReferencesInNamespaces name [compilation.SyntaxTree.[name.Namespace]]
+        let beforeCount =
+            Seq.concat [renamed; notRenamed]
+            |> Seq.map (countReferencesInNamespaces compilation.BuiltCompilation.Namespaces)
+            |> Seq.sum
 
         let sourceName = "InternalRenaming.dll"
-        let headers =
-            (NonNullable<_>.New sourceName, compilation.BuiltCompilation.Namespaces)
-            |> References.Headers
+        let headers = (NonNullable<_>.New sourceName, compilation.BuiltCompilation.Namespaces) |> References.Headers
         let references =
             [KeyValuePair.Create(NonNullable<_>.New sourceName, headers)]
             |> ImmutableDictionary.CreateRange
             |> References
 
         let oldAfterCount =
-            countReferencesInHeaders name references.Declarations.[NonNullable<_>.New sourceName]
-        let newName = References.GetNewNameForInternal (sourceName, name)
+            renamed
+            |> Seq.map (countReferencesInHeaders references.Declarations.[NonNullable<_>.New sourceName])
+            |> Seq.sum
+        let newNames = renamed |> Seq.map (sourceName |> FuncConvert.FuncFromTupled References.GetNewNameForInternal)
         let newAfterCount =
-            countReferencesInHeaders newName references.Declarations.[NonNullable<_>.New sourceName]
+            Seq.concat [newNames; notRenamed]
+            |> Seq.map (countReferencesInHeaders references.Declarations.[NonNullable<_>.New sourceName])
+            |> Seq.sum
 
         Assert.NotEqual (0, beforeCount)
         Assert.Equal (0, oldAfterCount)
@@ -309,8 +312,12 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     member this.``Rename internal call references`` () =
         this.RunInternalRenamingTest 1
+            [{ Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Foo" }]
+            [{ Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Bar" }]
 
     [<Fact>]
     member this.``Rename internal type references`` () =
-        // TODO: Check that both RenameMe and Foo are renamed.
         this.RunInternalRenamingTest 2
+            [{ Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Foo" }
+             { Namespace = NonNullable<_>.New Signatures.InternalRenamingNs; Name = NonNullable<_>.New "Bar" }]
+            []

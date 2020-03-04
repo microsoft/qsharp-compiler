@@ -3,11 +3,11 @@
 
 // Test 1
 namespace Microsoft.Quantum.Testing.InternalRenaming {
-	internal operation RenameMe () : Unit {
+	internal operation Foo () : Unit {
 	}
 
-	operation Foo () : Unit {
-		RenameMe();
+	operation Bar () : Unit {
+		Foo();
 	}
 }
 
@@ -15,8 +15,8 @@ namespace Microsoft.Quantum.Testing.InternalRenaming {
 
 // Test 2
 namespace Microsoft.Quantum.Testing.InternalRenaming {
-	internal newtype RenameMe = Unit;
+	internal newtype Foo = Unit;
 
-	internal function Foo (x : RenameMe) : Unit {
+	internal function Bar (x : Foo) : Unit {
 	}
 }
