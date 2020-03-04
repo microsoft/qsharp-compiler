@@ -5,7 +5,10 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
 open System.Collections.Generic
+open System.Collections.Immutable
 open System.IO
+open System.Linq
+open Microsoft.VisualStudio.LanguageServer.Protocol
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -15,6 +18,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
+open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 open Xunit
 open Xunit.Abstractions
 
@@ -24,8 +28,36 @@ type LinkingTests (output:ITestOutputHelper) =
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
 
-    let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+    let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName() + ".qs"))
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
+
+    let defaultOffset = {
+        Offset = DiagnosticTools.AsTuple (Position (0, 0))
+        Range = QsCompilerDiagnostic.DefaultRange
+    }
+
+    /// Counts the number of references to the qualified name in all of the namespaces. The declaration of the name is
+    /// included in the count.
+    let countReferencesInNamespaces (name : QsQualifiedName) namespaces =
+        let references = IdentifierReferences (name, defaultOffset)
+        namespaces |> Seq.iter (references.Namespaces.OnNamespace >> ignore)
+        // TODO: What if name is a type? Is the type constructor included?
+        if obj.ReferenceEquals (references.SharedState.DeclarationLocation, null)
+        then references.SharedState.Locations.Count
+        else 1 + references.SharedState.Locations.Count
+
+    /// Counts the number of references to the qualified name in the headers and specialization implementations. The
+    /// declaration of the name is included in the count.
+    let countReferencesInHeaders (name : QsQualifiedName) (headers : References.Headers) =
+        let references = IdentifierReferences (name, defaultOffset)
+        references.SharedState.DeclarationOffset <- (0, 0)
+        headers.Specializations.Select(fun specialization -> snd (specialization.ToTuple ()))
+        |> Seq.iter (references.Namespaces.OnSpecializationImplementation >> ignore)
+        let count =
+            headers.Callables.Count(fun callable -> callable.QualifiedName = name) +
+            headers.Types.Count(fun types -> types.QualifiedName = name) +
+            references.SharedState.Locations.Count
+        count
 
     do  let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
@@ -110,6 +142,35 @@ type LinkingTests (output:ITestOutputHelper) =
             | _ -> false
             |> Assert.True)
         |> ignore
+
+    member private this.RunInternalRenamingTest num =
+        let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
+        let compilation = this.BuildContent chunks.[num - 1]
+
+        let name = {
+            Namespace = NonNullable<_>.New Signatures.InternalRenamingNs
+            Name = NonNullable<_>.New "RenameMe"
+        }
+        let beforeCount = countReferencesInNamespaces name [compilation.SyntaxTree.[name.Namespace]]
+
+        let sourceName = "InternalRenaming.dll"
+        let headers =
+            (NonNullable<_>.New sourceName, compilation.BuiltCompilation.Namespaces)
+            |> References.Headers
+        let references =
+            [KeyValuePair.Create(NonNullable<_>.New sourceName, headers)]
+            |> ImmutableDictionary.CreateRange
+            |> References
+
+        let oldAfterCount =
+            countReferencesInHeaders name references.Declarations.[NonNullable<_>.New sourceName]
+        let newName = References.GetNewNameForInternal (sourceName, name)
+        let newAfterCount =
+            countReferencesInHeaders newName references.Declarations.[NonNullable<_>.New sourceName]
+
+        Assert.NotEqual (0, beforeCount)
+        Assert.Equal (0, oldAfterCount)
+        Assert.Equal (beforeCount, newAfterCount)
 
     [<Fact>]
     member this.``Monomorphization`` () =
@@ -245,3 +306,7 @@ type LinkingTests (output:ITestOutputHelper) =
         this.Expect "InvalidEntryPoint35" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint36" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
 
+
+    [<Fact>]
+    member this.``Rename internal call references`` () =
+        this.RunInternalRenamingTest 1

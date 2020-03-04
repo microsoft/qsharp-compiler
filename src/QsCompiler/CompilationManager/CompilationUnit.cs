@@ -88,17 +88,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             static bool IsInternal(AccessModifier access) => access.IsInternal || access.IsPrivate;
 
-            var prefix = Regex.Replace(source, @"[^A-Za-z0-9_]", "_"); // TODO: This isn't necessarily unique.
             var internalNames = headers.Callables
                 .Where(callable => IsInternal(callable.Modifiers.Access))
                 .Select(callable => callable.QualifiedName)
                 .Concat(headers.Types
                     .Where(type => IsInternal(type.Modifiers.Access))
                     .Select(type => type.QualifiedName))
-                .ToImmutableDictionary(
-                    name => name,
-                    name => new QsQualifiedName(name.Namespace,
-                                                NonNullable<string>.New($"__{prefix}_{name.Name.Value}__")));
+                .ToImmutableDictionary(name => name, name => GetNewNameForInternal(source, name));
             var rename = new RenameReferences(internalNames);
             var callables = headers.Callables.Select(rename.OnCallableDeclarationHeader);
             var specializations = headers.Specializations.Select(
@@ -106,6 +102,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                                    rename.OnSpecializationImplementation(specialization.Item2)));
             var types = headers.Types.Select(rename.OnTypeDeclarationHeader);
             return new Headers(source, callables, specializations, types);
+        }
+
+        /// <summary>
+        /// Returns a new name for an internal declaration that is uniquely tagged with its source assembly path.
+        /// </summary>
+        /// <param name="source">The path to the reference assembly in which the internal name is declared.</param>
+        /// <param name="name">The name of the internal declaration.</param>
+        /// <returns>
+        /// A new name for an internal declaration that is uniquely tagged with its source assembly path.
+        /// </returns>
+        internal static QsQualifiedName GetNewNameForInternal(string source, QsQualifiedName name)
+        {
+            // TODO: This isn't necessarily unique.
+            var prefix = Regex.Replace(source, @"[^A-Za-z0-9_]", "_");
+            return new QsQualifiedName(name.Namespace, NonNullable<string>.New($"__{prefix}_{name.Name.Value}__"));
         }
 
         /// <summary>
