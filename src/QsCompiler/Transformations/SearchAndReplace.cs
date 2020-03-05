@@ -598,16 +598,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 base.OnCallableDeclaration(callable.WithFullName(parent.GetNewName));
 
             public override QsCustomType OnTypeDeclaration(QsCustomType type) =>
-                base.OnTypeDeclaration(new QsCustomType(
-                    fullName: parent.GetNewName(type.FullName),
-                    attributes: type.Attributes,
-                    modifiers: type.Modifiers,
-                    sourceFile: type.SourceFile,
-                    location: type.Location,
-                    type: type.Type,
-                    typeItems: type.TypeItems,
-                    documentation: type.Documentation,
-                    comments: type.Comments));
+                base.OnTypeDeclaration(type.WithFullName(parent.GetNewName));
         }
     }
 
