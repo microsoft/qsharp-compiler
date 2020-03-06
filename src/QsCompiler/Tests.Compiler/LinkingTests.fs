@@ -147,17 +147,15 @@ type LinkingTests (output:ITestOutputHelper) =
     /// Runs the nth internal renaming test, asserting that declarations with the given name and references to them have
     /// been renamed across the compilation unit.
     member private this.RunInternalRenamingTest num renamed notRenamed =
-        let fileSource = "InternalRenaming.qs"
         let dllSource = "InternalRenaming.dll"
         let newNames = renamed |> Seq.map (dllSource |> FuncConvert.FuncFromTupled References.GetNewNameForInternal)
 
-        let chunks = LinkingTests.ReadAndChunkSourceFile fileSource
+        let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
         let compilation = this.BuildContent chunks.[num - 1]
-        let originalHeaders = new References.Headers(NonNullable<string>.New fileSource, compilation.SyntaxTree.Values)
+        let originalHeaders = new References.Headers(NonNullable<string>.New dllSource, compilation.BuiltCompilation.Namespaces)
 
-        let ReferencesForSource sourceName = 
-            let headers = (NonNullable<_>.New sourceName, compilation.BuiltCompilation.Namespaces) |> References.Headers
-            [KeyValuePair.Create(NonNullable<_>.New sourceName, headers)]
+        let loadedReferences  = 
+            [KeyValuePair.Create(NonNullable<_>.New dllSource, originalHeaders)]
             |> ImmutableDictionary.CreateRange
             |> References
 
@@ -174,11 +172,11 @@ type LinkingTests (output:ITestOutputHelper) =
             |> CountReferencesFor (Seq.concat [renamed; notRenamed])
 
         let afterCount =
-            ReferencesForSource dllSource |> HeadersFromReference
+            loadedReferences |> HeadersFromReference
             |> CountReferencesFor (Seq.concat [newNames; notRenamed])
 
         let afterCountOriginalName =
-            ReferencesForSource dllSource |> HeadersFromReference
+            loadedReferences |> HeadersFromReference
             |> CountReferencesFor renamed
 
         Assert.NotEqual (0, beforeCount)

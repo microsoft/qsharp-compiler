@@ -111,7 +111,7 @@ namespace Microsoft.Quantum.QsCompiler
             return path == null ? null : LoadFromAssemblyPath(path);
         }
 
-        private static ConcurrentBag<LoadContext> Loaded =
+        private static readonly ConcurrentBag<LoadContext> Loaded =
             new ConcurrentBag<LoadContext>();
 
         /// <summary>
