@@ -143,10 +143,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             referenceLocations = namespaces.SelectMany(ns =>
             {
                 var locs = IdentifierReferences.Find(fullName, ns, defaultOffset, out var dLoc, limitToSourceFiles);
-                declLoc = declLoc ?? dLoc;
+                declLoc ??= dLoc;
                 return locs;
             })
-            .Distinct().Select(AsLocation).ToArray(); // ToArray is needed here to force the execution before checking declLoc
+            .Select(AsLocation).ToArray(); // ToArray is needed here to force the execution before checking declLoc
             declarationLocation = declLoc == null ? null : AsLocation(declLoc.Item1, declLoc.Item2.Offset, declLoc.Item2.Range);
             return true;
         }
@@ -218,8 +218,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .SelectMany(spec =>
                         spec.Implementation is SpecializationImplementation.Provided impl && spec.Location.IsValue
                             ? IdentifierReferences.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Item.Offset)
-                            : ImmutableArray<IdentifierReferences.Location>.Empty)
-                    .Distinct().Select(AsLocation);
+                            : ImmutableHashSet<IdentifierReferences.Location>.Empty)
+                    .Select(AsLocation);
             }
             else // the given position corresponds to a variable declared as part of a specialization declaration or implementation
             {
@@ -227,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var statements = implementation.StatementsAfterDeclaration(defStart.Subtract(specPos));
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
                 var rootOffset = DiagnosticTools.AsTuple(specPos); 
-                referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Distinct().Select(AsLocation);
+                referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, rootOffset).Select(AsLocation);
             }
             declarationLocation = AsLocation(file.FileName, definition.Item.Item2, defRange);
             return true;

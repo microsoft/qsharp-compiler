@@ -36,15 +36,6 @@ type LinkingTests (output:ITestOutputHelper) =
         Range = QsCompilerDiagnostic.DefaultRange
     }
 
-    /// Counts the number of references to the qualified name in all of the namespaces. The declaration of the name is
-    /// included in the count.
-    let countReferencesInNamespaces namespaces (name : QsQualifiedName) =
-        let references = IdentifierReferences (name, defaultOffset)
-        namespaces |> Seq.iter (references.Namespaces.OnNamespace >> ignore)
-        if obj.ReferenceEquals (references.SharedState.DeclarationLocation, null)
-        then references.SharedState.Locations.Count
-        else 1 + references.SharedState.Locations.Count
-
     /// Counts the number of references to the qualified name in the headers and specialization implementations. The
     /// declaration of the name is included in the count.
     let countReferencesInHeaders (headers : References.Headers) (name : QsQualifiedName) =
@@ -55,16 +46,13 @@ type LinkingTests (output:ITestOutputHelper) =
             Seq.iter (references.Namespaces.OnAttribute >> ignore) callable.Attributes
             references.Namespaces.OnArgumentTuple callable.ArgumentTuple |> ignore
             references.Namespaces.OnSignature callable.Signature |> ignore
-            references.Namespaces.OnDocumentation callable.Documentation |> ignore
         for (specialization, implementation) in headers.Specializations do
             Seq.iter (references.Namespaces.OnAttribute >> ignore) specialization.Attributes
-            references.Namespaces.OnDocumentation specialization.Documentation |> ignore
             references.Namespaces.OnSpecializationImplementation implementation |> ignore
         for qsType in headers.Types do
             Seq.iter (references.Namespaces.OnAttribute >> ignore) qsType.Attributes
             references.Types.OnType qsType.Type |> ignore
             references.Namespaces.OnTypeItems qsType.TypeItems |> ignore
-            references.Namespaces.OnDocumentation qsType.Documentation |> ignore
 
         let count =
             headers.Callables.Count(fun callable -> callable.QualifiedName = name) +
@@ -159,34 +147,43 @@ type LinkingTests (output:ITestOutputHelper) =
     /// Runs the nth internal renaming test, asserting that declarations with the given name and references to them have
     /// been renamed across the compilation unit.
     member private this.RunInternalRenamingTest num renamed notRenamed =
-        let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
+        let fileSource = "InternalRenaming.qs"
+        let dllSource = "InternalRenaming.dll"
+        let newNames = renamed |> Seq.map (dllSource |> FuncConvert.FuncFromTupled References.GetNewNameForInternal)
+
+        let chunks = LinkingTests.ReadAndChunkSourceFile fileSource
         let compilation = this.BuildContent chunks.[num - 1]
+        let originalHeaders = new References.Headers(NonNullable<string>.New fileSource, compilation.SyntaxTree.Values)
 
-        let beforeCount =
-            Seq.concat [renamed; notRenamed]
-            |> Seq.map (countReferencesInNamespaces compilation.BuiltCompilation.Namespaces)
-            |> Seq.sum
-
-        let sourceName = "InternalRenaming.dll"
-        let headers = (NonNullable<_>.New sourceName, compilation.BuiltCompilation.Namespaces) |> References.Headers
-        let references =
+        let ReferencesForSource sourceName = 
+            let headers = (NonNullable<_>.New sourceName, compilation.BuiltCompilation.Namespaces) |> References.Headers
             [KeyValuePair.Create(NonNullable<_>.New sourceName, headers)]
             |> ImmutableDictionary.CreateRange
             |> References
 
-        let oldAfterCount =
-            renamed
-            |> Seq.map (countReferencesInHeaders references.Declarations.[NonNullable<_>.New sourceName])
-            |> Seq.sum
-        let newNames = renamed |> Seq.map (sourceName |> FuncConvert.FuncFromTupled References.GetNewNameForInternal)
-        let newAfterCount =
-            Seq.concat [newNames; notRenamed]
-            |> Seq.map (countReferencesInHeaders references.Declarations.[NonNullable<_>.New sourceName])
+        let HeadersFromReference (references : References) = 
+            references.Declarations.Single().Value
+
+        let CountReferencesFor itemsToCount headers = 
+            itemsToCount 
+            |> Seq.map (countReferencesInHeaders headers)
             |> Seq.sum
 
+        let beforeCount =
+            originalHeaders
+            |> CountReferencesFor (Seq.concat [renamed; notRenamed])
+
+        let afterCount =
+            ReferencesForSource dllSource |> HeadersFromReference
+            |> CountReferencesFor (Seq.concat [newNames; notRenamed])
+
+        let afterCountOriginalName =
+            ReferencesForSource dllSource |> HeadersFromReference
+            |> CountReferencesFor renamed
+
         Assert.NotEqual (0, beforeCount)
-        Assert.Equal (0, oldAfterCount)
-        Assert.Equal (beforeCount, newAfterCount)
+        Assert.Equal (0, afterCountOriginalName)
+        Assert.Equal (beforeCount, afterCount)
 
     [<Fact>]
     member this.``Monomorphization`` () =
