@@ -46,13 +46,16 @@ type LinkingTests (output:ITestOutputHelper) =
             Seq.iter (references.Namespaces.OnAttribute >> ignore) callable.Attributes
             references.Namespaces.OnArgumentTuple callable.ArgumentTuple |> ignore
             references.Namespaces.OnSignature callable.Signature |> ignore
+            references.Namespaces.OnDocumentation callable.Documentation |> ignore
         for (specialization, implementation) in headers.Specializations do
             Seq.iter (references.Namespaces.OnAttribute >> ignore) specialization.Attributes
             references.Namespaces.OnSpecializationImplementation implementation |> ignore
+            references.Namespaces.OnDocumentation specialization.Documentation |> ignore
         for qsType in headers.Types do
             Seq.iter (references.Namespaces.OnAttribute >> ignore) qsType.Attributes
             references.Types.OnType qsType.Type |> ignore
             references.Namespaces.OnTypeItems qsType.TypeItems |> ignore
+            references.Namespaces.OnDocumentation qsType.Documentation |> ignore
 
         let count =
             // TODO: We ignore type constructors because countReferencesInNamespaces is not able to count them.

@@ -481,7 +481,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 symbolRange: callable.SymbolRange,
                 argumentTuple: Namespaces.OnArgumentTuple(callable.ArgumentTuple),
                 signature: Namespaces.OnSignature(callable.Signature),
-                documentation: callable.Documentation);
+                documentation: Namespaces.OnDocumentation(callable.Documentation));
 
         /// <summary>
         /// Renames references in the specialization declaration header, including the name of the specialization
@@ -506,7 +506,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 sourceFile: specialization.SourceFile,
                 position: specialization.Position,
                 headerRange: specialization.HeaderRange,
-                documentation: specialization.Documentation);
+                documentation: Namespaces.OnDocumentation(specialization.Documentation));
         }
 
         /// <summary>
@@ -525,7 +525,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 symbolRange: type.SymbolRange,
                 type: Types.OnType(type.Type),
                 typeItems: Namespaces.OnTypeItems(type.TypeItems),
-                documentation: type.Documentation);
+                documentation: Namespaces.OnDocumentation(type.Documentation));
         }
 
         /// <summary>
