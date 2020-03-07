@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
     /// <summary>
     /// These tools are specific to the classically-controlled transformation and are not intended for wider use in their current state. 
-    /// They rely on the specific context in which they are invoked during that transformation and are not general purpuse tools. 
+    /// They rely on the specific context in which they are invoked during that transformation and are not general purpose tools. 
     /// </summary>
     internal static class Utils 
     {
@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 ExpressionKind.NewValueTuple(expressions.ToImmutableArray()),
                 TypeArgsResolution.Empty,
                 ResolvedType.New(ResolvedTypeKind.NewTupleType(expressions.Select(expr => expr.ResolvedType).ToImmutableArray())),
-                new InferredExpressionInformation(false, false),
+                new InferredExpressionInformation(false, expressions.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
             );
 
@@ -66,24 +66,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
         /// none of the given expressions should have a local quantum dependency, 
         /// and all range information should be stripped from each given expression. 
         /// </summary>
-        internal static TypedExpression CreateValueArray(params TypedExpression[] expressions)
+        internal static TypedExpression CreateValueArray(ResolvedType baseType, params TypedExpression[] expressions)
         {
-            ResolvedType type = null;
-            if (expressions.Any())
-            {
-                type = expressions.First().ResolvedType;
-                QsCompilerError.Verify(expressions.All(expr => expr.ResolvedType.Equals(type)));
-            }
-            else
-            {
-                type = ResolvedType.New(ResolvedTypeKind.UnitType);
-            }
-
             return new TypedExpression
             (
                 ExpressionKind.NewValueArray(expressions.ToImmutableArray()),
                 TypeArgsResolution.Empty,
-                ResolvedType.New(ResolvedTypeKind.NewArrayType(type)),
+                ResolvedType.New(ResolvedTypeKind.NewArrayType(baseType)),
                 new InferredExpressionInformation(false, false),
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
             );

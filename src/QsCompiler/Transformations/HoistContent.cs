@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -8,7 +11,8 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-namespace Transformations
+
+namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
@@ -25,418 +29,410 @@ namespace Transformations
     /// The contents of the conditional block are then replaced with a call to the new operation with all
     /// the type parameters and known variables being forwarded to the new operation as arguments.
     /// </summary>
-    //internal static class HoistContent
-    //{
-    //    internal static QsCompilation Apply(QsCompilation compilation) => LiftContent.Apply(compilation);
+    public class LiftContent : SyntaxTreeTransformation<LiftContent.TransformationState>
+    {
 
-        public class LiftContent : SyntaxTreeTransformation<LiftContent.TransformationState>
+        public class CallableDetails
         {
-            public static QsCompilation Apply(QsCompilation compilation)
-            {
-                var filter = new LiftContent();
+            public QsCallable Callable;
+            public QsSpecialization Adjoint;
+            public QsSpecialization Controlled;
+            public QsSpecialization ControlledAdjoint;
+            public QsNullable<ImmutableArray<ResolvedType>> TypeParameters;
 
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
+            public CallableDetails(QsCallable callable)
+            {
+                Callable = callable;
+                Adjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
+                Controlled = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
+                ControlledAdjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
+                TypeParameters = callable.Signature.TypeParameters.Any(param => param.IsValidName)
+                ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
+                    .Where(param => param.IsValidName)
+                    .Select(param =>
+                        ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
+                            callable.FullName,
+                            ((QsLocalSymbol.ValidName)param).Item,
+                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                    ))))
+                    .ToImmutableArray())
+                : QsNullable<ImmutableArray<ResolvedType>>.Null;
             }
+        }
 
-            public class CallableDetails
+        public class TransformationState
+        {
+            public bool IsValidScope = true;
+            public List<QsCallable> GeneratedOperations = null;
+            public ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> CurrentHoistParams =
+                ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
+            public bool ContainsHoistParamRef = false;
+
+            public CallableDetails CurrentCallable = null;
+            public bool InBody = false;
+            public bool InAdjoint = false;
+            public bool InControlled = false;
+            public bool InWithinBlock = false;
+
+            private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
+                QsQualifiedName callableName, ResolvedType paramsType, SpecializationImplementation bodyImplementation)
             {
-                public QsCallable Callable;
-                public QsSpecialization Adjoint;
-                public QsSpecialization Controlled;
-                public QsSpecialization ControlledAdjoint;
-                public QsNullable<ImmutableArray<ResolvedType>> TypeArguments;
-
-                public CallableDetails(QsCallable callable)
-                {
-                    Callable = callable;
-                    Adjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
-                    Controlled = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
-                    ControlledAdjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
-                    TypeArguments = callable.Signature.TypeParameters.Any(param => param.IsValidName)
-                    ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
-                        .Where(param => param.IsValidName)
-                        .Select(param =>
-                            ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
-                                callable.FullName,
-                                ((QsLocalSymbol.ValidName)param).Item,
-                                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                        ))))
-                        .ToImmutableArray())
-                    : QsNullable<ImmutableArray<ResolvedType>>.Null;
-                }
-            }
-
-            public class TransformationState
-            {
-                public bool IsValidScope = true;
-                public List<QsCallable> GeneratedOperations = null;
-                public ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> CurrentHoistParams =
-                    ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
-                public bool ContainsHoistParamRef = false;
-
-                public CallableDetails CurrentCallable = null;
-                public bool InBody = false;
-                public bool InAdjoint = false;
-                public bool InControlled = false;
-                public bool InWithinBlock = false;
-
-                private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
-                    QsQualifiedName callableName, ResolvedType argsType, SpecializationImplementation bodyImplementation)
-                {
-                    QsSpecialization MakeSpec(QsSpecializationKind kind, ResolvedSignature signature, SpecializationImplementation impl) =>
-                        new QsSpecialization(
-                            kind,
-                            callableName,
-                            ImmutableArray<QsDeclarationAttribute>.Empty,
-                            CurrentCallable.Callable.SourceFile,
-                            QsNullable<QsLocation>.Null,
-                            QsNullable<ImmutableArray<ResolvedType>>.Null,
-                            signature,
-                            impl,
-                            ImmutableArray<string>.Empty,
-                            QsComments.Empty);
-
-                    var adj = CurrentCallable.Adjoint;
-                    var ctl = CurrentCallable.Controlled;
-                    var ctlAdj = CurrentCallable.ControlledAdjoint;
-
-                    bool addAdjoint = false;
-                    bool addControlled = false;
-
-                    if (InWithinBlock)
-                    {
-                        addAdjoint = true;
-                        addControlled = false;
-                    }
-                    else if (InBody)
-                    {
-                        if (adj != null && adj.Implementation is SpecializationImplementation.Generated adjGen) addAdjoint = adjGen.Item.IsInvert;
-                        if (ctl != null && ctl.Implementation is SpecializationImplementation.Generated ctlGen) addControlled = ctlGen.Item.IsDistribute;
-                        if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated ctlAdjGen)
-                        {
-                            addAdjoint = addAdjoint || ctlAdjGen.Item.IsInvert && ctl.Implementation.IsGenerated;
-                            addControlled = addControlled || ctlAdjGen.Item.IsDistribute && adj.Implementation.IsGenerated;
-                        }
-                    }
-                    else if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated gen)
-                    {
-                        addControlled = InAdjoint && gen.Item.IsDistribute;
-                        addAdjoint = InControlled && gen.Item.IsInvert;
-                    }
-
-                    var props = new List<OpProperty>();
-                    if (addAdjoint) props.Add(OpProperty.Adjointable);
-                    if (addControlled) props.Add(OpProperty.Controllable);
-                    var newSig = new ResolvedSignature(
-                        CurrentCallable.Callable.Signature.TypeParameters,
-                        argsType,
-                        ResolvedType.New(ResolvedTypeKind.UnitType),
-                        new CallableInformation(ResolvedCharacteristics.FromProperties(props), InferredCallableInformation.NoInformation));
-
-                    var controlledSig = new ResolvedSignature(
-                        newSig.TypeParameters,
-                        ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
-                            ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
-                            newSig.ArgumentType))),
-                        newSig.ReturnType,
-                        newSig.Information);
-
-                    var specializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, newSig, bodyImplementation) };
-
-                    if (addAdjoint)
-                    {
-                        specializations.Add(MakeSpec(
-                            QsSpecializationKind.QsAdjoint,
-                            newSig,
-                            SpecializationImplementation.NewGenerated(QsGeneratorDirective.Invert)));
-                    }
-
-                    if (addControlled)
-                    {
-                        specializations.Add(MakeSpec(
-                            QsSpecializationKind.QsControlled,
-                            controlledSig,
-                            SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
-                    }
-
-                    if (addAdjoint && addControlled)
-                    {
-                        specializations.Add(MakeSpec(
-                            QsSpecializationKind.QsControlledAdjoint,
-                            controlledSig,
-                            SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
-                    }
-
-                    return (newSig, specializations);
-                }
-
-                private (QsCallable, ResolvedType) GenerateOperation(QsScope contents)
-                {
-                    var newName = UniqueVariableNames.PrependGuid(CurrentCallable.Callable.FullName);
-
-                    var knownVariables = contents.KnownSymbols.IsEmpty
-                        ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
-                        : contents.KnownSymbols.Variables;
-
-                    var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTuple(knownVariables
-                        .Select(var => QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
-                            QsLocalSymbol.NewValidName(var.VariableName),
-                            var.Type,
-                            var.InferredInformation,
-                            var.Position,
-                            var.Range)))
-                        .ToImmutableArray());
-
-                    var paramTypes = ResolvedType.New(ResolvedTypeKind.UnitType);
-                    if (knownVariables.Length == 1)
-                    {
-                        paramTypes = knownVariables.First().Type;
-                    }
-                    else if (knownVariables.Length > 1)
-                    {
-                        paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(knownVariables
-                            .Select(var => var.Type)
-                            .ToImmutableArray()));
-                    }
-
-                    var (signature, specializations) = MakeSpecializations(newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents));
-
-                    var controlCallable = new QsCallable(
-                        QsCallableKind.Operation,
-                        newName,
+                QsSpecialization MakeSpec(QsSpecializationKind kind, ResolvedSignature signature, SpecializationImplementation impl) =>
+                    new QsSpecialization(
+                        kind,
+                        callableName,
                         ImmutableArray<QsDeclarationAttribute>.Empty,
                         CurrentCallable.Callable.SourceFile,
                         QsNullable<QsLocation>.Null,
+                        QsNullable<ImmutableArray<ResolvedType>>.Null,
                         signature,
-                        parameters,
-                        specializations.ToImmutableArray(),
+                        impl,
                         ImmutableArray<string>.Empty,
                         QsComments.Empty);
 
-                    var updatedCallable = UpdateGeneratedOp.Apply(controlCallable, knownVariables, CurrentCallable.Callable.FullName, newName);
+                var adj = CurrentCallable.Adjoint;
+                var ctl = CurrentCallable.Controlled;
+                var ctlAdj = CurrentCallable.ControlledAdjoint;
 
-                    return (updatedCallable, signature.ArgumentType);
+                bool addAdjoint = false;
+                bool addControlled = false;
+                bool isSelfAdjoint = false;
+
+                if (InWithinBlock)
+                {
+                    addAdjoint = true;
+                    addControlled = false;
+                }
+                else if (InBody)
+                {
+                    if (adj != null && adj.Implementation is SpecializationImplementation.Generated adjGen)
+                    {
+                        addAdjoint = adjGen.Item.IsInvert;
+                        isSelfAdjoint = adjGen.Item.IsSelfInverse;
+                    }
+                    if (ctl != null && ctl.Implementation is SpecializationImplementation.Generated ctlGen) addControlled = ctlGen.Item.IsDistribute;
+                    if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated ctlAdjGen)
+                    {
+                        addAdjoint = addAdjoint || ctlAdjGen.Item.IsInvert && ctl.Implementation.IsGenerated;
+                        addControlled = addControlled || ctlAdjGen.Item.IsDistribute && adj.Implementation.IsGenerated;
+                        isSelfAdjoint = isSelfAdjoint || ctlAdjGen.Item.IsSelfInverse;
+                    }
+                }
+                else if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated gen)
+                {
+                    addControlled = InAdjoint && gen.Item.IsDistribute;
+                    addAdjoint = InControlled && gen.Item.IsInvert;
+                    isSelfAdjoint = gen.Item.IsSelfInverse;
                 }
 
-                // ToDo: Doc comment
-                public (QsCallable, QsStatement) HoistBody(QsScope body)
-                {
-                    var (targetOp, originalArgumentType) = GenerateOperation(body);
-                    var targetOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
-                        Tuple.Create(
-                            originalArgumentType,
-                            ResolvedType.New(ResolvedTypeKind.UnitType)),
-                        targetOp.Signature.Information));
+                var props = new List<OpProperty>();
+                if (addAdjoint) props.Add(OpProperty.Adjointable);
+                if (addControlled) props.Add(OpProperty.Controllable);
+                var newSig = new ResolvedSignature(
+                    CurrentCallable.Callable.Signature.TypeParameters,
+                    paramsType,
+                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                    new CallableInformation(ResolvedCharacteristics.FromProperties(props), new InferredCallableInformation(isSelfAdjoint, false)));
 
-                    var targetTypeArgTypes = CurrentCallable.TypeArguments;
-                    var targetOpId = new TypedExpression
-                    (
-                        ExpressionKind.NewIdentifier(Identifier.NewGlobalCallable(targetOp.FullName), targetTypeArgTypes),
-                        targetTypeArgTypes.IsNull
-                            ? TypeArgsResolution.Empty
-                            : targetTypeArgTypes.Item
-                                .Select(type => Tuple.Create(targetOp.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
-                                .ToImmutableArray(),
-                        targetOpType,
+                var controlledSig = new ResolvedSignature(
+                    newSig.TypeParameters,
+                    ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
+                        ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
+                        newSig.ArgumentType))),
+                    newSig.ReturnType,
+                    newSig.Information);
+
+                var specializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, newSig, bodyImplementation) };
+
+                if (addAdjoint)
+                {
+                    specializations.Add(MakeSpec(
+                        QsSpecializationKind.QsAdjoint,
+                        newSig,
+                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Invert)));
+                }
+
+                if (addControlled)
+                {
+                    specializations.Add(MakeSpec(
+                        QsSpecializationKind.QsControlled,
+                        controlledSig,
+                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
+                }
+
+                if (addAdjoint && addControlled)
+                {
+                    specializations.Add(MakeSpec(
+                        QsSpecializationKind.QsControlledAdjoint,
+                        controlledSig,
+                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
+                }
+
+                return (newSig, specializations);
+            }
+
+            private (QsCallable, ResolvedType) GenerateOperation(QsScope contents)
+            {
+                var newName = UniqueVariableNames.PrependGuid(CurrentCallable.Callable.FullName);
+
+                var knownVariables = contents.KnownSymbols.Variables;
+
+                var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTuple(knownVariables
+                    .Select(var => QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
+                        QsLocalSymbol.NewValidName(var.VariableName),
+                        var.Type,
                         new InferredExpressionInformation(false, false),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                    );
+                        var.Position,
+                        var.Range)))
+                    .ToImmutableArray());
 
-                    var knownSymbols = body.KnownSymbols.Variables;
+                var paramTypes = ResolvedType.New(ResolvedTypeKind.UnitType);
+                if (knownVariables.Length == 1)
+                {
+                    paramTypes = knownVariables.First().Type;
+                }
+                else if (knownVariables.Length > 1)
+                {
+                    paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(knownVariables
+                        .Select(var => var.Type)
+                        .ToImmutableArray()));
+                }
 
-                    TypedExpression targetArgs = null;
-                    if (knownSymbols.Any())
-                    {
-                        targetArgs = Utils.CreateValueTupleExpression(knownSymbols.Select(var => Utils.CreateIdentifierExpression(
-                            Identifier.NewLocalVariable(var.VariableName),
-                            TypeArgsResolution.Empty,
-                            var.Type))
-                            .ToArray());
-                    }
-                    else
-                    {
-                        targetArgs = new TypedExpression
-                        (
-                            ExpressionKind.UnitValue,
-                            TypeArgsResolution.Empty,
-                            ResolvedType.New(ResolvedTypeKind.UnitType),
-                            new InferredExpressionInformation(false, false),
-                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                        );
-                    }
+                var (signature, specializations) = MakeSpecializations(newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents));
 
-                    var call = new TypedExpression
-                    (
-                        ExpressionKind.NewCallLikeExpression(targetOpId, targetArgs),
-                        targetTypeArgTypes.IsNull
-                            ? TypeArgsResolution.Empty
-                            : targetTypeArgTypes.Item
-                                .Select(type => Tuple.Create(CurrentCallable.Callable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
-                                .ToImmutableArray(),
+                var generatedCallable = new QsCallable(
+                    QsCallableKind.Operation,
+                    newName,
+                    ImmutableArray<QsDeclarationAttribute>.Empty,
+                    CurrentCallable.Callable.SourceFile,
+                    QsNullable<QsLocation>.Null,
+                    signature,
+                    parameters,
+                    specializations.ToImmutableArray(),
+                    ImmutableArray<string>.Empty,
+                    QsComments.Empty);
+
+                // Change the origin of all type parameter references to use the new name and make all variables immutable
+                generatedCallable = UpdateGeneratedOp.Apply(generatedCallable, knownVariables, CurrentCallable.Callable.FullName, newName);
+
+                return (generatedCallable, signature.ArgumentType);
+            }
+
+            // ToDo: Doc comment
+            public (QsCallable, QsStatement) HoistBody(QsScope body)
+            {
+                var (generatedOp, originalArgumentType) = GenerateOperation(body);
+                var generatedOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
+                    Tuple.Create(
+                        originalArgumentType,
+                        ResolvedType.New(ResolvedTypeKind.UnitType)),
+                    generatedOp.Signature.Information));
+
+                // Foreword the type parameters of the parent callable to the type arguments of the call to the generated operation.
+                var typeArguments = CurrentCallable.TypeParameters;
+                var generatedOpId = new TypedExpression
+                (
+                    ExpressionKind.NewIdentifier(Identifier.NewGlobalCallable(generatedOp.FullName), typeArguments),
+                    typeArguments.IsNull
+                        ? TypeArgsResolution.Empty
+                        : typeArguments.Item
+                            .Select(type => Tuple.Create(generatedOp.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
+                            .ToImmutableArray(),
+                    generatedOpType,
+                    new InferredExpressionInformation(false, false),
+                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                );
+
+                var knownSymbols = body.KnownSymbols.Variables;
+                TypedExpression arguments = null;
+                if (knownSymbols.Any())
+                {
+                    var argumentArray = knownSymbols
+                        .Select(var => new TypedExpression(
+                            ExpressionKind.NewIdentifier(
+                                Identifier.NewLocalVariable(var.VariableName),
+                                QsNullable<ImmutableArray<ResolvedType>>.Null),
+                                TypeArgsResolution.Empty,
+                                var.Type,
+                                var.InferredInformation,
+                                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null))
+                        .ToImmutableArray();
+
+                    arguments = new TypedExpression(
+                        ExpressionKind.NewValueTuple(argumentArray),
+                        TypeArgsResolution.Empty,
+                        ResolvedType.New(ResolvedTypeKind.NewTupleType(argumentArray.Select(expr => expr.ResolvedType).ToImmutableArray())),
+                        new InferredExpressionInformation(false, argumentArray.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                }
+                else
+                {
+                    arguments = new TypedExpression(
+                        ExpressionKind.UnitValue,
+                        TypeArgsResolution.Empty,
                         ResolvedType.New(ResolvedTypeKind.UnitType),
-                        new InferredExpressionInformation(false, true),
-                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                    );
-
-                    return (targetOp, new QsStatement(
-                        QsStatementKind.NewQsExpressionStatement(call),
-                        LocalDeclarations.Empty,
-                        QsNullable<QsLocation>.Null,
-                        QsComments.Empty));
+                        new InferredExpressionInformation(false, false),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
                 }
+
+                var call = new TypedExpression(
+                    ExpressionKind.NewCallLikeExpression(generatedOpId, arguments),
+                    typeArguments.IsNull
+                        ? TypeArgsResolution.Empty
+                        : typeArguments.Item
+                            .Select(type => Tuple.Create(CurrentCallable.Callable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
+                            .ToImmutableArray(),
+                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                    new InferredExpressionInformation(false, true),
+                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+
+                return (generatedOp, new QsStatement(
+                    QsStatementKind.NewQsExpressionStatement(call),
+                    LocalDeclarations.Empty,
+                    QsNullable<QsLocation>.Null,
+                    QsComments.Empty));
+            }
+        }
+
+        protected LiftContent() : base(new TransformationState())
+        {
+            this.Namespaces = new NamespaceTransformation(this);
+            this.StatementKinds = new StatementKindTransformation(this);
+            this.Expressions = new ExpressionTransformation(this);
+            this.ExpressionKinds = new ExpressionKindTransformation(this);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+        }
+
+        protected class NamespaceTransformation : NamespaceTransformation<TransformationState>
+        {
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+            public override QsCallable OnCallableDeclaration(QsCallable c)
+            {
+                SharedState.CurrentCallable = new CallableDetails(c);
+                return base.OnCallableDeclaration(c);
             }
 
-            public LiftContent() : base(new TransformationState())
+            public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
             {
-                this.Namespaces = new NamespaceTransformation(this);
-                this.StatementKinds = new StatementKindTransformation(this);
-                this.Expressions = new ExpressionTransformation(this);
-                this.ExpressionKinds = new ExpressionKindTransformation(this);
-                this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                SharedState.InBody = true;
+                var rtrn = base.OnBodySpecialization(spec);
+                SharedState.InBody = false;
+                return rtrn;
             }
 
-            public class NamespaceTransformation : NamespaceTransformation<TransformationState>
+            public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
             {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
-
-                public override QsCallable OnCallableDeclaration(QsCallable c)
-                {
-                    SharedState.CurrentCallable = new CallableDetails(c);
-                    return base.OnCallableDeclaration(c);
-                }
-
-                public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
-                {
-                    SharedState.InBody = true;
-                    var rtrn = base.OnBodySpecialization(spec);
-                    SharedState.InBody = false;
-                    return rtrn;
-                }
-
-                public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
-                {
-                    SharedState.InAdjoint = true;
-                    var rtrn = base.OnAdjointSpecialization(spec);
-                    SharedState.InAdjoint = false;
-                    return rtrn;
-                }
-
-                public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
-                {
-                    SharedState.InControlled = true;
-                    var rtrn = base.OnControlledSpecialization(spec);
-                    SharedState.InControlled = false;
-                    return rtrn;
-                }
-
-                public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being hoisted
-
-                public override QsNamespace OnNamespace(QsNamespace ns)
-                {
-                    // Generated operations list will be populated in the transform
-                    SharedState.GeneratedOperations = new List<QsCallable>();
-                    return base.OnNamespace(ns)
-                        .WithElements(elems => elems.AddRange(SharedState.GeneratedOperations.Select(op => QsNamespaceElement.NewQsCallable(op))));
-                }
+                SharedState.InAdjoint = true;
+                var rtrn = base.OnAdjointSpecialization(spec);
+                SharedState.InAdjoint = false;
+                return rtrn;
             }
 
-            protected class StatementKindTransformation : StatementKindTransformation<TransformationState>
+            public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
             {
-                public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                SharedState.InControlled = true;
+                var rtrn = base.OnControlledSpecialization(spec);
+                SharedState.InControlled = false;
+                return rtrn;
+            }
 
-                // ToDo: This logic should be externalized at some point to make the Hoisting more general
-                //private bool IsScopeSingleCall(QsScope contents)
-                //{
-                //    if (contents.Statements.Length != 1) return false;
-                //
-                //    return contents.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr
-                //           && expr.Item.Expression is ExpressionKind.CallLikeExpression call
-                //           && !TypedExpression.IsPartialApplication(expr.Item.Expression)
-                //           && call.Item1.Expression is ExpressionKind.Identifier;
-                //}
+            public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being hoisted
 
-                public override QsStatementKind OnConjugation(QsConjugation stm)
-                {
-                    var superInWithinBlock = SharedState.InWithinBlock;
-                    SharedState.InWithinBlock = true;
-                    var (_, outer) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
-                    SharedState.InWithinBlock = superInWithinBlock;
+            public override QsNamespace OnNamespace(QsNamespace ns)
+            {
+                // Generated operations list will be populated in the transform
+                SharedState.GeneratedOperations = new List<QsCallable>();
+                return base.OnNamespace(ns)
+                    .WithElements(elems => elems.AddRange(SharedState.GeneratedOperations.Select(op => QsNamespaceElement.NewQsCallable(op))));
+            }
+        }
 
-                    var (_, inner) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
+        protected class StatementKindTransformation : StatementKindTransformation<TransformationState>
+        {
+            public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                    return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
-                }
+            public override QsStatementKind OnConjugation(QsConjugation stm)
+            {
+                var superInWithinBlock = SharedState.InWithinBlock;
+                SharedState.InWithinBlock = true;
+                var (_, outer) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
+                SharedState.InWithinBlock = superInWithinBlock;
 
-                public override QsStatementKind OnReturnStatement(TypedExpression ex)
+                var (_, inner) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
+
+                return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
+            }
+
+            public override QsStatementKind OnReturnStatement(TypedExpression ex)
+            {
+                SharedState.IsValidScope = false;
+                return base.OnReturnStatement(ex);
+            }
+
+            public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
+            {
+                // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
+                var lhs = this.Expressions.OnTypedExpression(stm.Lhs);
+
+                if (SharedState.ContainsHoistParamRef)
                 {
                     SharedState.IsValidScope = false;
-                    return base.OnReturnStatement(ex);
                 }
 
-                public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
-                {
-                    // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
-                    var lhs = this.Expressions.OnTypedExpression(stm.Lhs);
-
-                    if (SharedState.ContainsHoistParamRef)
-                    {
-                        SharedState.IsValidScope = false;
-                    }
-
-                    var rhs = this.Expressions.OnTypedExpression(stm.Rhs);
-                    return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
-                }
-
-                public override QsStatementKind OnStatementKind(QsStatementKind kind)
-                {
-                    SharedState.ContainsHoistParamRef = false; // Every statement kind starts off false
-                    return base.OnStatementKind(kind);
-                }
+                var rhs = this.Expressions.OnTypedExpression(stm.Rhs);
+                return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
             }
 
-            public class ExpressionTransformation : ExpressionTransformation<TransformationState>
+            public override QsStatementKind OnStatementKind(QsStatementKind kind)
             {
-                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
-
-                public override TypedExpression OnTypedExpression(TypedExpression ex)
-                {
-                    var contextContainsHoistParamRef = SharedState.ContainsHoistParamRef;
-                    SharedState.ContainsHoistParamRef = false;
-                    var rtrn = base.OnTypedExpression(ex);
-
-                    // If the sub context contains a reference, then the super context contains a reference,
-                    // otherwise return the super context to its original value
-                    if (!SharedState.ContainsHoistParamRef)
-                    {
-                        SharedState.ContainsHoistParamRef = contextContainsHoistParamRef;
-                    }
-
-                    return rtrn;
-                }
+                SharedState.ContainsHoistParamRef = false; // Every statement kind starts off false
+                return base.OnStatementKind(kind);
             }
+        }
 
-            public class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
+        protected class ExpressionTransformation : ExpressionTransformation<TransformationState>
+        {
+            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+            public override TypedExpression OnTypedExpression(TypedExpression ex)
             {
-                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+                var contextContainsHoistParamRef = SharedState.ContainsHoistParamRef;
+                SharedState.ContainsHoistParamRef = false;
+                var rtrn = base.OnTypedExpression(ex);
 
-                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+                // If the sub context contains a reference, then the super context contains a reference,
+                // otherwise return the super context to its original value
+                if (!SharedState.ContainsHoistParamRef)
                 {
-                    if (sym is Identifier.LocalVariable local &&
-                    SharedState.CurrentHoistParams.Any(param => param.VariableName.Equals(local.Item)))
-                    {
-                        SharedState.ContainsHoistParamRef = true;
-                    }
-                    return base.OnIdentifier(sym, tArgs);
+                    SharedState.ContainsHoistParamRef = contextContainsHoistParamRef;
                 }
+
+                return rtrn;
+            }
+        }
+
+        protected class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
+        {
+            public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+            public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+            {
+                if (sym is Identifier.LocalVariable local &&
+                SharedState.CurrentHoistParams.Any(param => param.VariableName.Equals(local.Item)))
+                {
+                    SharedState.ContainsHoistParamRef = true;
+                }
+                return base.OnIdentifier(sym, tArgs);
             }
         }
 
         /// <summary>
         /// Transformation that updates the contents of newly generated operations by:
         /// 1. Rerouting the origins of type parameter references to the new operation
-        /// 2. Changes the IsMutable info on variable that used to be mutable, but are now immutable params to the operation
+        /// 2. Changes the IsMutable and HasLocalQuantumDependency info on parameter references to be false
         /// </summary>
-        public class UpdateGeneratedOp : SyntaxTreeTransformation<UpdateGeneratedOp.TransformationState>
+        private class UpdateGeneratedOp : SyntaxTreeTransformation<UpdateGeneratedOp.TransformationState>
         {
             public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             {
@@ -481,17 +477,17 @@ namespace Transformations
                 public override TypedExpression OnTypedExpression(TypedExpression ex)
                 {
                     // Checks if expression is mutable identifier that is in parameter list
-                    if (ex.InferredInformation.IsMutable &&
-                        ex.Expression is ExpressionKind.Identifier id &&
-                        id.Item1 is Identifier.LocalVariable variable &&
-                        SharedState.Parameters.Any(x => x.VariableName.Equals(variable)))
+                    if ((ex.InferredInformation.IsMutable || ex.InferredInformation.HasLocalQuantumDependency)
+                        && ex.Expression is ExpressionKind.Identifier id
+                        && id.Item1 is Identifier.LocalVariable variable
+                        && SharedState.Parameters.Any(x => x.VariableName.Equals(variable)))
                     {
                         // Set the mutability to false
                         ex = new TypedExpression(
                             ex.Expression,
                             ex.TypeArguments,
                             ex.ResolvedType,
-                            new InferredExpressionInformation(false, ex.InferredInformation.HasLocalQuantumDependency),
+                            new InferredExpressionInformation(false, false), // parameter references cannot be mutable or have local quantum dependency
                             ex.Range);
                     }
 
@@ -540,5 +536,5 @@ namespace Transformations
                 }
             }
         }
-    //}
+    }
 }
