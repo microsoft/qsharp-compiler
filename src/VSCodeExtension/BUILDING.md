@@ -4,7 +4,7 @@
 
 - npm and vsce
 - PowerShell Core (6.0 or later)
-- .NET Core SDK 3.0 or later
+- .NET Core SDK 3.1 or later
 
 ### Obtaining npm and vsce ###
 
@@ -67,7 +67,7 @@ PS> dotnet publish --self-contained --runtime win10-x64
 To get the value that you need for the `quantumDevKit.languageServerPath` preference:
 
 ```
-PS> Resolve-Path bin/Debug/netcoreapp3.0/win10-x64/publish/Microsoft.Quantum.QsLanguageServer.exe
+PS> Resolve-Path bin/Debug/netcoreapp3.1/win10-x64/publish/Microsoft.Quantum.QsLanguageServer.exe
 ```
 
 ## Debugging ##
