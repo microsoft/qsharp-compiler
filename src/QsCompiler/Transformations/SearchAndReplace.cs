@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public class TransformationState
         {
             public Tuple<NonNullable<string>, QsLocation> DeclarationLocation { get; internal set; }
-            public ImmutableList<Location> Locations { get; private set; }
+            public ImmutableHashSet<Location> Locations { get; private set; }
 
             /// <summary>
             /// Whenever DeclarationOffset is set, the current statement offset is set to this default value.
@@ -101,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             {
                 this.TrackIdentifier = trackId ?? throw new ArgumentNullException(nameof(trackId));
                 this.RelevantSourseFiles = limitToSourceFiles;
-                this.Locations = ImmutableList<Location>.Empty;
+                this.Locations = ImmutableHashSet<Location>.Empty;
                 this.DefaultOffset = defaultOffset;
             }
 
@@ -168,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // static methods for convenience
 
-        public static IEnumerable<Location> Find(NonNullable<string> idName, QsScope scope,
+        public static ImmutableHashSet<Location> Find(NonNullable<string> idName, QsScope scope,
             NonNullable<string> sourceFile, Tuple<int, int> rootLoc)
         {
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
@@ -178,7 +178,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return finder.SharedState.Locations;
         }
 
-        public static IEnumerable<Location> Find(QsQualifiedName idName, QsNamespace ns, QsLocation defaultOffset,
+        public static ImmutableHashSet<Location> Find(QsQualifiedName idName, QsNamespace ns, QsLocation defaultOffset,
             out Tuple<NonNullable<string>, QsLocation> declarationLocation, IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
             var finder = new IdentifierReferences(idName, defaultOffset, limitToSourceFiles);
@@ -510,24 +510,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
         /// <summary>
-        /// Renames references in the specialization implementation.
-        /// </summary>
-        /// <param name="specialization">The specialization implementation in which to rename references.</param>
-        /// <returns>The specialization implementation with renamed references.</returns>
-        public SpecializationImplementation OnSpecializationImplementation(SpecializationImplementation implementation)
-        {
-            if (implementation is SpecializationImplementation.Provided provided)
-            {
-                return SpecializationImplementation.NewProvided(Namespaces.OnArgumentTuple(provided.Item1),
-                                                                Statements.OnScope(provided.Item2));
-            }
-            else
-            {
-                return implementation;
-            }
-        }
-
-        /// <summary>
         /// Renames references in the type declaration header, including the name of the type itself.
         /// </summary>
         /// <param name="type">The type declaration header in which to rename references.</param>
@@ -555,20 +537,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// </returns>
         private QsQualifiedName GetNewName(QsQualifiedName name) => names.GetValueOrDefault(name) ?? name;
 
+        /// <summary>
+        /// Gets the renamed version of the user defined type if one exists; otherwise, returns the original one.
+        /// </summary>
+        /// <returns>
+        /// The renamed version of the user defined type if one exists; otherwise, returns the original one.
+        /// </returns>
+        private UserDefinedType RenameUdt(UserDefinedType udt)
+        {
+            var newName = GetNewName(new QsQualifiedName(udt.Namespace, udt.Name));
+            return new UserDefinedType(newName.Namespace, newName.Name, udt.Range);
+        }
+
+
         private class TypeTransformation : Core.TypeTransformation
         {
             private readonly RenameReferences parent;
 
             public TypeTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
 
-            public override QsTypeKind OnUserDefinedType(UserDefinedType udt)
-            {
-                var newName = parent.GetNewName(new QsQualifiedName(udt.Namespace, udt.Name));
-                return base.OnUserDefinedType(new UserDefinedType(newName.Namespace, newName.Name, udt.Range));
-            }
+            public override QsTypeKind OnUserDefinedType(UserDefinedType udt) =>
+                QsTypeKind.NewUserDefinedType(parent.RenameUdt(udt));
 
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp) =>
-                base.OnTypeParameter(new QsTypeParameter(parent.GetNewName(tp.Origin), tp.TypeName, tp.Range));
+                QsTypeKind.NewTypeParameter(new QsTypeParameter(parent.GetNewName(tp.Origin), tp.TypeName, tp.Range));
         }
 
         private class ExpressionKindTransformation : Core.ExpressionKindTransformation
@@ -577,8 +569,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public ExpressionKindTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
 
-            public override QsExpressionKind OnIdentifier(Identifier id,
-                                                          QsNullable<ImmutableArray<ResolvedType>> typeArgs)
+            public override QsExpressionKind OnIdentifier(Identifier id, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
             {
                 if (id is Identifier.GlobalCallable global)
                 {
@@ -594,35 +585,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public NamespaceTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
 
+            public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute att)
+            {
+                var argument = parent.Expressions.OnTypedExpression(att.Argument);
+                var tId = att.TypeId.IsValue
+                    ? QsNullable<UserDefinedType>.NewValue(parent.RenameUdt(att.TypeId.Item))
+                    : att.TypeId;
+                return new QsDeclarationAttribute(tId, argument, att.Offset, att.Comments);
+            }
+
             public override QsCallable OnCallableDeclaration(QsCallable callable) =>
                 base.OnCallableDeclaration(callable.WithFullName(parent.GetNewName));
 
             public override QsCustomType OnTypeDeclaration(QsCustomType type) =>
-                base.OnTypeDeclaration(new QsCustomType(
-                    fullName: parent.GetNewName(type.FullName),
-                    attributes: type.Attributes,
-                    modifiers: type.Modifiers,
-                    sourceFile: type.SourceFile,
-                    location: type.Location,
-                    type: type.Type,
-                    typeItems: type.TypeItems,
-                    documentation: type.Documentation,
-                    comments: type.Comments));
+                base.OnTypeDeclaration(type.WithFullName(parent.GetNewName));
 
-            public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute attribute)
-            {
-                var newTypeId = QsNullable<UserDefinedType>.Null;
-                if (attribute.TypeId.IsValue)
-                {
-                    var newName = parent.GetNewName(new QsQualifiedName(attribute.TypeId.Item.Namespace,
-                                                                        attribute.TypeId.Item.Name));
-                    newTypeId = QsNullable<UserDefinedType>.NewValue(
-                        new UserDefinedType(newName.Namespace, newName.Name, attribute.TypeId.Item.Range));
-                }
-                var newArgument = parent.Expressions.OnTypedExpression(attribute.Argument);
-                return base.OnAttribute(
-                    new QsDeclarationAttribute(newTypeId, newArgument, attribute.Offset, attribute.Comments));
-            }
+            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) => 
+                base.OnSpecializationDeclaration(spec.WithParent(parent.GetNewName));
         }
     }
 

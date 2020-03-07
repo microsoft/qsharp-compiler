@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var callables = headers.Callables.Select(rename.OnCallableDeclarationHeader);
             var specializations = headers.Specializations.Select(
                 specialization => (rename.OnSpecializationDeclarationHeader(specialization.Item1),
-                                   rename.OnSpecializationImplementation(specialization.Item2)));
+                                   rename.Namespaces.OnSpecializationImplementation(specialization.Item2)));
             var types = headers.Types.Select(rename.OnTypeDeclarationHeader);
             return new Headers(source, callables, specializations, types);
         }
@@ -461,7 +461,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             header.Location,
                             header.Signature,
                             header.ArgumentTuple,
-                            ImmutableArray.Create<QsSpecialization>(defaultSpec),
+                            ImmutableArray.Create(defaultSpec),
                             header.Documentation,
                             QsComments.Empty
                         );
