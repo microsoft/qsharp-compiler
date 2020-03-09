@@ -177,8 +177,7 @@ type LinkingTests (output:ITestOutputHelper) =
             |> ImmutableDictionary.CreateRange
             |> References
         let newNames =
-            renamed
-            |> Seq.map (dllSource |> FuncConvert.FuncFromTupled References.GetNewNameForInternal)
+            renamed |> Seq.map (0 |> FuncConvert.FuncFromTupled References.GetNewNameForInternal)
         let afterCount = references.Declarations.Single().Value |> countAll (Seq.concat [newNames; notRenamed])
 
         let afterCountOriginalName = references.Declarations.Single().Value |> countAll renamed

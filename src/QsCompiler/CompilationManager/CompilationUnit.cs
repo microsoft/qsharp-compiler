@@ -78,13 +78,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(TypeDeclarationHeader.FromJson).Select(built => built.Item2);
 
         /// <summary>
-        /// Renames all private and internal declarations in the headers to have names that are based on the path to the
+        /// Renames all private and internal declarations in the headers to have names that are based on the ID of the
         /// referenced assembly.
         /// </summary>
+        /// <param name="id">A number uniquely identifying the referenced assembly that contains the headers.</param>
         /// <param name="source">The path to the assembly that is the source of the given headers.</param>
         /// <param name="headers">The declaration headers in the assembly.</param>
         /// <returns></returns>
-        private static Headers RenameInternals(string source, Headers headers)
+        private static Headers RenameInternals(int id, string source, Headers headers)
         {
             static bool IsInternal(AccessModifier access) => access.IsInternal || access.IsPrivate;
 
@@ -94,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(headers.Types
                     .Where(type => IsInternal(type.Modifiers.Access))
                     .Select(type => type.QualifiedName))
-                .ToImmutableDictionary(name => name, name => GetNewNameForInternal(source, name));
+                .ToImmutableDictionary(name => name, name => GetNewNameForInternal(id, name));
             var rename = new RenameReferences(internalNames);
             var callables = headers.Callables.Select(rename.OnCallableDeclarationHeader);
             var specializations = headers.Specializations.Select(
@@ -105,32 +106,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a new name for an internal declaration that is uniquely tagged with its source assembly path.
+        /// Returns a new name for an internal declaration that is tagged with its reference ID.
         /// </summary>
-        /// <param name="source">The path to the reference assembly in which the internal name is declared.</param>
+        /// <param name="id">The ID of the reference in which this name was declared.</param>
         /// <param name="name">The name of the internal declaration.</param>
-        /// <returns>
-        /// A new name for an internal declaration that is uniquely tagged with its source assembly path.
-        /// </returns>
-        internal static QsQualifiedName GetNewNameForInternal(string source, QsQualifiedName name)
-        {
-            // Returns true if the character c is valid as part of an identifier. "_" is excluded so it can be used as
-            // an escape character.
-            static bool IsValidCharacter(char c) =>
-                'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9';
-
-            // Converts the string s to a string where all invalid characters are escaped by "_X", where "X" is the
-            // hexadecimal representation of the character.
-            static string ToEscapedIdentifier(string s) =>
-                string.Join(
-                    "",
-                    s.Select(c => IsValidCharacter(c) ? c.ToString() : "_" + Convert.ToByte(c).ToString("X")));
-
-            var prefix = ToEscapedIdentifier(source);
-            // The name is already a valid identifier, but we also want to escape "_".
-            var escapedName = ToEscapedIdentifier(name.Name.Value);
-            return new QsQualifiedName(name.Namespace, NonNullable<string>.New($"__{prefix}_{escapedName}__"));
-        }
+        /// <returns>A new name for an internal declaration that is tagged with its reference ID.</returns>
+        internal static QsQualifiedName GetNewNameForInternal(int id, QsQualifiedName name) =>
+            new QsQualifiedName(name.Namespace, NonNullable<string>.New($"__Reference{id}_{name.Name.Value}__"));
 
         /// <summary>
         /// Dictionary that maps the id of a referenced assembly (given by its location on disk) to the headers defined in that assembly.
@@ -179,7 +161,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // assemblies.
             this.Declarations =
                 (refs ?? throw new ArgumentNullException(nameof(refs)))
-                .Select(reference => (reference.Key, RenameInternals(reference.Key.Value, reference.Value)))
+                .Select((reference, index) => (reference.Key,
+                                               RenameInternals(index, reference.Key.Value, reference.Value)))
                 .ToImmutableDictionary(reference => reference.Key, reference => reference.Item2);
             if (onError == null) return;
 
