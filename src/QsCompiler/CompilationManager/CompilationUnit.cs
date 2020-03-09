@@ -173,6 +173,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public References(ImmutableDictionary<NonNullable<string>, Headers> refs, Action<ErrorCode, string[]> onError = null)
         {
+            // TODO: We mangle the names of internal declarations in references to avoid name conflicts in the symbol
+            // table. However, it might be better to instead change the symbol table so it can support duplicate names
+            // as long as they are not in overlapping scopes, which is the case with internal declarations in separate
+            // assemblies.
             this.Declarations =
                 (refs ?? throw new ArgumentNullException(nameof(refs)))
                 .Select(reference => (reference.Key, RenameInternals(reference.Key.Value, reference.Value)))
