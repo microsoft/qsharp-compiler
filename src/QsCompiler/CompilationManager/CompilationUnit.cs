@@ -114,9 +114,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </returns>
         internal static QsQualifiedName GetNewNameForInternal(string source, QsQualifiedName name)
         {
-            // TODO: This isn't necessarily unique.
-            var prefix = Regex.Replace(source, @"[^A-Za-z0-9_]", "_");
-            return new QsQualifiedName(name.Namespace, NonNullable<string>.New($"__{prefix}_{name.Name.Value}__"));
+            // Returns true if the character c is valid as part of an identifier. "_" is excluded so it can be used as
+            // an escape character.
+            static bool IsValidCharacter(char c) =>
+                'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9';
+
+            // Converts the string s to a string where all invalid characters are escaped by "_X", where "X" is the
+            // hexadecimal representation of the character.
+            static string ToEscapedIdentifier(string s) =>
+                string.Join(
+                    "",
+                    s.Select(c => IsValidCharacter(c) ? c.ToString() : "_" + Convert.ToByte(c).ToString("X")));
+
+            var prefix = ToEscapedIdentifier(source);
+            // The name is already a valid identifier, but we also want to escape "_".
+            var escapedName = ToEscapedIdentifier(name.Name.Value);
+            return new QsQualifiedName(name.Namespace, NonNullable<string>.New($"__{prefix}_{escapedName}__"));
         }
 
         /// <summary>
