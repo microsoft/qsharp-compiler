@@ -557,10 +557,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public TypeTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
 
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt) =>
-                QsTypeKind.NewUserDefinedType(parent.RenameUdt(udt));
+                base.OnUserDefinedType(parent.RenameUdt(udt));
 
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp) =>
-                QsTypeKind.NewTypeParameter(new QsTypeParameter(parent.GetNewName(tp.Origin), tp.TypeName, tp.Range));
+                base.OnTypeParameter(new QsTypeParameter(parent.GetNewName(tp.Origin), tp.TypeName, tp.Range));
         }
 
         private class ExpressionKindTransformation : Core.ExpressionKindTransformation
@@ -585,13 +585,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public NamespaceTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
 
-            public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute att)
+            public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute attribute)
             {
-                var argument = parent.Expressions.OnTypedExpression(att.Argument);
-                var tId = att.TypeId.IsValue
-                    ? QsNullable<UserDefinedType>.NewValue(parent.RenameUdt(att.TypeId.Item))
-                    : att.TypeId;
-                return new QsDeclarationAttribute(tId, argument, att.Offset, att.Comments);
+                var argument = parent.Expressions.OnTypedExpression(attribute.Argument);
+                var typeId = attribute.TypeId.IsValue
+                    ? QsNullable<UserDefinedType>.NewValue(parent.RenameUdt(attribute.TypeId.Item))
+                    : attribute.TypeId;
+                return base.OnAttribute(
+                    new QsDeclarationAttribute(typeId, argument, attribute.Offset, attribute.Comments));
             }
 
             public override QsCallable OnCallableDeclaration(QsCallable callable) =>
@@ -600,7 +601,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsCustomType OnTypeDeclaration(QsCustomType type) =>
                 base.OnTypeDeclaration(type.WithFullName(parent.GetNewName));
 
-            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) => 
+            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
                 base.OnSpecializationDeclaration(spec.WithParent(parent.GetNewName));
         }
     }

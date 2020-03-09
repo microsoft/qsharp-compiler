@@ -155,37 +155,29 @@ type LinkingTests (output:ITestOutputHelper) =
     /// Runs the nth internal renaming test, asserting that declarations with the given name and references to them have
     /// been renamed across the compilation unit.
     member private this.RunInternalRenamingTest num renamed notRenamed =
-        let dllSource = "InternalRenaming.dll"
-        let newNames = renamed |> Seq.map (dllSource |> FuncConvert.FuncFromTupled References.GetNewNameForInternal)
-
-        let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
-        let compilation = this.BuildContent chunks.[num - 1]
-        let originalHeaders = new References.Headers(NonNullable<string>.New dllSource, compilation.BuiltCompilation.Namespaces)
-
-        let loadedReferences  = 
-            [KeyValuePair.Create(NonNullable<_>.New dllSource, originalHeaders)]
-            |> ImmutableDictionary.CreateRange
-            |> References
-
-        let HeadersFromReference (references : References) = 
-            references.Declarations.Single().Value
-
-        let CountReferencesFor itemsToCount headers = 
-            itemsToCount 
+        let countAll names headers =
+            names
             |> Seq.map (countReferencesInHeaders headers)
             |> Seq.sum
 
-        let beforeCount =
-            originalHeaders
-            |> CountReferencesFor (Seq.concat [renamed; notRenamed])
+        let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
+        let compilation = this.BuildContent chunks.[num - 1]
+        let dllSource = "InternalRenaming.dll"
+        let originalHeaders =
+            References.Headers (NonNullable<string>.New dllSource, compilation.BuiltCompilation.Namespaces)
 
-        let afterCount =
-            loadedReferences |> HeadersFromReference
-            |> CountReferencesFor (Seq.concat [newNames; notRenamed])
+        let beforeCount = originalHeaders |> countAll (Seq.concat [renamed; notRenamed])
 
-        let afterCountOriginalName =
-            loadedReferences |> HeadersFromReference
-            |> CountReferencesFor renamed
+        let references =
+            [KeyValuePair.Create(NonNullable<_>.New dllSource, originalHeaders)]
+            |> ImmutableDictionary.CreateRange
+            |> References
+        let newNames =
+            renamed
+            |> Seq.map (dllSource |> FuncConvert.FuncFromTupled References.GetNewNameForInternal)
+        let afterCount = references.Declarations.Single().Value |> countAll (Seq.concat [newNames; notRenamed])
+
+        let afterCountOriginalName = references.Declarations.Single().Value |> countAll renamed
 
         Assert.NotEqual (0, beforeCount)
         Assert.Equal (0, afterCountOriginalName)
