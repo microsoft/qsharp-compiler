@@ -53,8 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
                         ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
                             callable.FullName,
                             ((QsLocalSymbol.ValidName)param).Item,
-                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                    ))))
+                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null))))
                     .ToImmutableArray())
                 : QsNullable<ImmutableArray<ResolvedType>>.Null;
             }
@@ -230,9 +229,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
 
                 // Foreword the type parameters of the parent callable to the type arguments of the call to the generated operation.
                 var typeArguments = CurrentCallable.TypeParameters;
-                var generatedOpId = new TypedExpression
-                (
-                    ExpressionKind.NewIdentifier(Identifier.NewGlobalCallable(generatedOp.FullName), typeArguments),
+                var generatedOpId = new TypedExpression(
+                    ExpressionKind.NewIdentifier(
+                        Identifier.NewGlobalCallable(generatedOp.FullName),
+                        typeArguments),
                     typeArguments.IsNull
                         ? TypeArgsResolution.Empty
                         : typeArguments.Item
@@ -240,8 +240,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
                             .ToImmutableArray(),
                     generatedOpType,
                     new InferredExpressionInformation(false, false),
-                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
-                );
+                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
 
                 var knownSymbols = body.KnownSymbols.Variables;
                 TypedExpression arguments = null;

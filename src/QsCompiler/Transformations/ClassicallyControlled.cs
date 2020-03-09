@@ -11,6 +11,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.LyftContent;
 
+
 namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
@@ -73,6 +74,29 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
                 /// <summary>
+                /// Get the combined type resolutions for a pair of nested resolutions,
+                /// resolving references in the inner resolutions to the outer resolutions.
+                /// </summary>
+                private TypeArgsResolution GetCombinedTypeResolution(TypeArgsResolution outer, TypeArgsResolution inner)
+                {
+                    var outerDict = outer.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
+                    return inner.Select(innerRes =>
+                    {
+                        if (innerRes.Item3.Resolution is ResolvedTypeKind.TypeParameter typeParam &&
+                            outerDict.TryGetValue((typeParam.Item.Origin, typeParam.Item.TypeName), out var outerRes))
+                        {
+                            outerDict.Remove((typeParam.Item.Origin, typeParam.Item.TypeName));
+                            return Tuple.Create(innerRes.Item1, innerRes.Item2, outerRes);
+                        }
+                        else
+                        {
+                            return innerRes;
+                        }
+                    })
+                    .Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
+                }
+
+                /// <summary>
                 /// Checks if the scope is valid for conversion to an operation call from the conditional control API.
                 /// It is valid if there is exactly one statement in it and that statement is a call like expression statement.
                 /// If valid, returns true with the identifier of the call like expression and the arguments of the
@@ -94,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                         var callTypeArguments = expr.Item.TypeArguments;
                         var idTypeArguments = call.Item1.TypeArguments;
-                        var combinedTypeArguments = Utils.GetCombinedTypeResolution(callTypeArguments, idTypeArguments);
+                        var combinedTypeArguments = GetCombinedTypeResolution(callTypeArguments, idTypeArguments);
 
                         // This relies on anything having type parameters must be a global callable.
                         var newCallIdentifier = call.Item1;
@@ -132,6 +156,56 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     return (false, null, null);
                 }
 
+                /// <summary>
+                /// Gets an identifier and argument tuple for the built in operation NoOp.
+                /// </summary>
+                private (TypedExpression, TypedExpression) GetNoOp()
+                {
+                    var opInfo = BuiltIn.NoOp;
+
+                    var properties = new[] { OpProperty.Adjointable, OpProperty.Controllable };
+                    var characteristics = new CallableInformation(
+                        ResolvedCharacteristics.FromProperties(properties),
+                        InferredCallableInformation.NoInformation); // ToDo: Set the IsSelfAdjoint flag appropriately
+
+                    var unitType = ResolvedType.New(ResolvedTypeKind.UnitType);
+                    var operationType = ResolvedType.New(ResolvedTypeKind.NewOperation(
+                            Tuple.Create(unitType, unitType),
+                            characteristics));
+
+                    var args = new TypedExpression(
+                        ExpressionKind.UnitValue,
+                        TypeArgsResolution.Empty,
+                        unitType,
+                        new InferredExpressionInformation(false, false),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+                    var typeArgs = ImmutableArray.Create(unitType);
+
+                    var identifier = new TypedExpression(
+                        ExpressionKind.NewIdentifier(
+                            Identifier.NewGlobalCallable(new QsQualifiedName(opInfo.Namespace, opInfo.Name)),
+                            QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs)),
+                        typeArgs
+                            .Zip(opInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(opInfo.Namespace, opInfo.Name), param, type))
+                            .ToImmutableArray(),
+                        operationType,
+                        new InferredExpressionInformation(false, false),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+
+                    return (identifier, args);
+                }
+
+                /// <summary>
+                /// Creates a value tuple expression containing the given expressions.
+                /// </summary>
+                private TypedExpression CreateValueTupleExpression(params TypedExpression[] expressions) =>
+                    new TypedExpression(
+                        ExpressionKind.NewValueTuple(expressions.ToImmutableArray()),
+                        TypeArgsResolution.Empty,
+                        ResolvedType.New(ResolvedTypeKind.NewTupleType(expressions.Select(expr => expr.ResolvedType).ToImmutableArray())),
+                        new InferredExpressionInformation(false, expressions.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+
                 #region Condition Converting Logic
 
                 /// <summary>
@@ -140,13 +214,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 /// </summary>
                 private TypedExpression CreateControlCall(BuiltIn opInfo, IEnumerable<OpProperty> properties, TypedExpression args, IEnumerable<ResolvedType> typeArgs)
                 {
+                    var characteristics = new CallableInformation(
+                        ResolvedCharacteristics.FromProperties(properties),
+                        InferredCallableInformation.NoInformation); // ToDo: Set the IsSelfAdjoint flag appropriately
+
+                    var unitType = ResolvedType.New(ResolvedTypeKind.UnitType);
+                    var operationType = ResolvedType.New(ResolvedTypeKind.NewOperation(
+                        Tuple.Create(args.ResolvedType, unitType),
+                        characteristics));
+
                     // Build the surrounding control call
-                    var identifier = Utils.CreateIdentifierExpression(
-                        Identifier.NewGlobalCallable(new QsQualifiedName(opInfo.Namespace, opInfo.Name)),
+                    var identifier = new TypedExpression(
+                        ExpressionKind.NewIdentifier(
+                            Identifier.NewGlobalCallable(new QsQualifiedName(opInfo.Namespace, opInfo.Name)),
+                            typeArgs.Any()
+                            ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs.ToImmutableArray())
+                            : QsNullable<ImmutableArray<ResolvedType>>.Null),
                         typeArgs
                             .Zip(opInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(opInfo.Namespace, opInfo.Name), param, type))
                             .ToImmutableArray(),
-                        Utils.GetOperationType(properties, args.ResolvedType));
+                        operationType,
+                        new InferredExpressionInformation(false, false),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
 
                     // Creates type resolutions for the call expression
                     var opTypeArgResolutions = typeArgs
@@ -164,7 +253,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         })
                         .ToImmutableArray();
 
-                    return Utils.CreateCallLikeExpression(identifier, args, opTypeArgResolutions);
+                    return new TypedExpression(
+                        ExpressionKind.NewCallLikeExpression(identifier, args),
+                        opTypeArgResolutions,
+                        unitType,
+                        new InferredExpressionInformation(false, true),
+                        QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
                 }
 
                 /// <summary>
@@ -190,11 +284,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     if (equalityScope == null)
                     {
-                        (equalityId, equalityArgs) = Utils.GetNoOp();
+                        (equalityId, equalityArgs) = GetNoOp();
                     }
                     else if (inequalityScope == null)
                     {
-                        (inequalityId, inequalityArgs) = Utils.GetNoOp();
+                        (inequalityId, inequalityArgs) = GetNoOp();
                     }
 
                     // Get characteristic properties from global id
@@ -227,11 +321,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         controlOpInfo = BuiltIn.ApplyConditionally;
                     }
 
-                    var equality = Utils.CreateValueTupleExpression(equalityId, equalityArgs);
-                    var inequality = Utils.CreateValueTupleExpression(inequalityId, inequalityArgs);
-                    var controlArgs = Utils.CreateValueTupleExpression(
-                        Utils.CreateValueArray(ResolvedType.New(ResolvedTypeKind.Result), conditionExpr1),
-                        Utils.CreateValueArray(ResolvedType.New(ResolvedTypeKind.Result), conditionExpr2),
+                    // Takes a single TypedExpression of type Result and puts in into a
+                    // value array expression with the given expression as its only item.
+                    TypedExpression BoxResultInArray(TypedExpression expression) =>
+                        new TypedExpression(
+                            ExpressionKind.NewValueArray(ImmutableArray.Create(expression)),
+                            TypeArgsResolution.Empty,
+                            ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Result))),
+                            new InferredExpressionInformation(false, expression.InferredInformation.HasLocalQuantumDependency),
+                            QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
+
+                    var equality = CreateValueTupleExpression(equalityId, equalityArgs);
+                    var inequality = CreateValueTupleExpression(inequalityId, inequalityArgs);
+                    var controlArgs = CreateValueTupleExpression(
+                        BoxResultInArray(conditionExpr1),
+                        BoxResultInArray(conditionExpr2),
                         equality,
                         inequality);
                     var targetArgsTypes = ImmutableArray.Create(equalityArgs.ResolvedType, inequalityArgs.ResolvedType);
@@ -288,10 +392,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                             (TypedExpression, ImmutableArray<ResolvedType>) GetArgs(TypedExpression zeroId, TypedExpression zeroArgs, TypedExpression oneId, TypedExpression oneArgs) =>
                             (
-                                Utils.CreateValueTupleExpression(
+                                CreateValueTupleExpression(
                                     conditionExpression,
-                                    Utils.CreateValueTupleExpression(zeroId, zeroArgs),
-                                    Utils.CreateValueTupleExpression(oneId, oneArgs)),
+                                    CreateValueTupleExpression(zeroId, zeroArgs),
+                                    CreateValueTupleExpression(oneId, oneArgs)),
 
                                 ImmutableArray.Create(zeroArgs.ResolvedType, oneArgs.ResolvedType)
                             );
@@ -327,9 +431,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                 : BuiltIn.ApplyIfOne;
                             }
 
-                            controlArgs = Utils.CreateValueTupleExpression(
+                            controlArgs = CreateValueTupleExpression(
                                 conditionExpression,
-                                Utils.CreateValueTupleExpression(conditionId, conditionArgs));
+                                CreateValueTupleExpression(conditionId, conditionArgs));
 
                             targetArgsTypes = ImmutableArray.Create(conditionArgs.ResolvedType);
                         }
@@ -522,15 +626,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     var subCondition = new QsConditionalStatement(conditionStatment.ConditionalBlocks.RemoveAt(0), conditionStatment.Default);
                     var secondConditionBlock = conditionStatment.ConditionalBlocks[1].Item2;
-
-                    var subIfStatment = new QsStatement
-                    (
+                    var subIfStatment = new QsStatement(
                         QsStatementKind.NewQsConditionalStatement(subCondition),
                         LocalDeclarations.Empty,
                         secondConditionBlock.Location,
-                        secondConditionBlock.Comments
-                    );
-
+                        secondConditionBlock.Comments);
                     var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
                         new QsScope(ImmutableArray.Create(subIfStatment), secondConditionBlock.Body.KnownSymbols),
                         secondConditionBlock.Location,
@@ -553,13 +653,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     if (condition.Expression is ExpressionKind.OR orCondition)
                     {
                         var subCondition = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCondition.Item2, block)), conditionStatment.Default);
-                        var subIfStatment = new QsStatement
-                        (
+                        var subIfStatment = new QsStatement(
                             QsStatementKind.NewQsConditionalStatement(subCondition),
                             LocalDeclarations.Empty,
                             block.Location,
-                            QsComments.Empty
-                        );
+                            QsComments.Empty);
                         var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
                             new QsScope(ImmutableArray.Create(subIfStatment), block.Body.KnownSymbols),
                             block.Location,
@@ -587,13 +685,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     if (condition.Expression is ExpressionKind.AND andCondition)
                     {
                         var subCondition = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCondition.Item2, block)), conditionStatment.Default);
-                        var subIfStatment = new QsStatement
-                        (
+                        var subIfStatment = new QsStatement(
                             QsStatementKind.NewQsConditionalStatement(subCondition),
                             LocalDeclarations.Empty,
                             block.Location,
-                            QsComments.Empty
-                        );
+                            QsComments.Empty);
                         var newBlock = new QsPositionedBlock(
                             new QsScope(ImmutableArray.Create(subIfStatment), block.Body.KnownSymbols),
                             block.Location,
@@ -624,13 +720,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             (wasAndProcessed, stm) = ProcessAND(stm);
                         } while (wasOrProcessed || wasAndProcessed);
 
-                        return new QsStatement
-                        (
+                        return new QsStatement(
                             QsStatementKind.NewQsConditionalStatement(stm),
                             statement.SymbolDeclarations,
                             statement.Location,
-                            statement.Comments
-                        );
+                            statement.Comments);
                     }
                     return statement;
                 }
