@@ -28,7 +28,11 @@ type LinkingTests (output:ITestOutputHelper) =
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
 
-    let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName() + ".qs"))
+    let getTempFile () =
+        // The file name needs to end in ".qs" so that it isn't ignored by the References.Headers class during the
+        // internal renaming tests.
+        new Uri(Path.GetFullPath(Path.GetRandomFileName() + ".qs"))
+
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
     let defaultOffset = {
