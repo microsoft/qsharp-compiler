@@ -19,7 +19,7 @@ type AccessModifierTests (output) =
                                                  [File.ReadAllLines("ReferenceTargets.txt").ElementAt(1)],
                            output)
 
-    member private this.Expect name (diagnostics : IEnumerable<DiagnosticItem>) = 
+    member private this.Expect name (diagnostics : IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.AccessModifiers" |> NonNullable<_>.New
         let name = name |> NonNullable<_>.New
         this.Verify (QsQualifiedName.New (ns, name), diagnostics)
@@ -27,47 +27,30 @@ type AccessModifierTests (output) =
     [<Fact>]
     member this.``Callables`` () =
         this.Expect "CallableUseOK" []
-        this.Expect "CallableUnqualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
-        this.Expect "CallableQualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallableInNamespace]
 
     [<Fact>]
     member this.``Types`` () =
         this.Expect "TypeUseOK" []
-        this.Expect "TypeUnqualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleType]
-        this.Expect "TypeConstructorUnqualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
-        this.Expect "TypeQualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleTypeInNamespace]
-        this.Expect "TypeConstructorQualifiedUsePrivateInaccessible" [Error ErrorCode.InaccessibleCallableInNamespace]
 
     [<Fact>]
     member this.``Callable signatures`` () =
-        this.Expect "PublicCallableLeaksPrivateTypeIn1" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
-        this.Expect "PublicCallableLeaksPrivateTypeIn2" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
-        this.Expect "PublicCallableLeaksPrivateTypeOut1" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
-        this.Expect "PublicCallableLeaksPrivateTypeOut2" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
-        this.Expect "InternalCallableLeaksPrivateTypeIn" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
-        this.Expect "InternalCallableLeaksPrivateTypeOut" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
-        this.Expect "CallablePrivateTypeOK" []
-        this.Expect "CallableLeaksInternalTypeIn" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
-        this.Expect "CallableLeaksInternalTypeOut" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
+        this.Expect "CallableLeaksInternalTypeIn1" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
+        this.Expect "CallableLeaksInternalTypeIn2" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
+        this.Expect "CallableLeaksInternalTypeIn3" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
+        this.Expect "CallableLeaksInternalTypeOut1" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
+        this.Expect "CallableLeaksInternalTypeOut2" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
+        this.Expect "CallableLeaksInternalTypeOut3" [Error ErrorCode.TypeLessAccessibleThanParentCallable]
         this.Expect "InternalCallableInternalTypeOK" []
-        this.Expect "PrivateCallableInternalTypeOK" []
 
     [<Fact>]
     member this.``Underlying types`` () =
-        this.Expect "PublicTypeLeaksPrivateType1" [Error ErrorCode.TypeLessAccessibleThanParentType]
-        this.Expect "PublicTypeLeaksPrivateType2" [Error ErrorCode.TypeLessAccessibleThanParentType]
-        this.Expect "PublicTypeLeaksPrivateType3" [Error ErrorCode.TypeLessAccessibleThanParentType]
-        this.Expect "InternalTypeLeaksPrivateType" [Error ErrorCode.TypeLessAccessibleThanParentType]
-        this.Expect "PrivateTypePrivateTypeOK" []
-        this.Expect "PublicTypeLeaksInternalType" [Error ErrorCode.TypeLessAccessibleThanParentType]
+        this.Expect "PublicTypeLeaksInternalType1" [Error ErrorCode.TypeLessAccessibleThanParentType]
+        this.Expect "PublicTypeLeaksInternalType2" [Error ErrorCode.TypeLessAccessibleThanParentType]
+        this.Expect "PublicTypeLeaksInternalType3" [Error ErrorCode.TypeLessAccessibleThanParentType]
         this.Expect "InternalTypeInternalTypeOK" []
-        this.Expect "PrivateTypeInternalTypeOK" []
 
     [<Fact>]
     member this.``References`` () =
-        this.Expect "CallableReferencePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
         this.Expect "CallableReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
-        this.Expect "TypeReferencePrivateInaccessible" [Error ErrorCode.InaccessibleType]
-        this.Expect "TypeConstructorReferencePrivateInaccessible" [Error ErrorCode.InaccessibleCallable]
         this.Expect "TypeReferenceInternalInaccessible" [Error ErrorCode.InaccessibleType]
         this.Expect "TypeConstructorReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]

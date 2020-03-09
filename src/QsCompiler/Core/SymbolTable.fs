@@ -763,12 +763,11 @@ and NamespaceManager
         | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
 
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
-    /// the same assembly and/or namespace as the declaration, and the declaration's modifiers.
-    let IsDeclarationAccessible sameAssembly sameNs modifiers =
-        match modifiers.Access with
+    /// the same assembly as the declaration, and the declaration's access modifier.
+    let IsDeclarationAccessible sameAssembly access =
+        match access with
         | DefaultAccess -> true
         | Internal -> sameAssembly
-        | Private -> sameAssembly && sameNs
 
     /// Given the qualified or unqualified name of a type used within the given parent namespace and source file,
     /// determines if such a type is accessible, and returns its full name and the source file or referenced assembly in
@@ -794,8 +793,8 @@ and NamespaceManager
                 PossibleResolutions
                     (fun ns -> ns.TryFindType (tName, checkQualificationForDeprecation))
                     (parentNS, source)
-            let accessibleResolutions = allResolutions |> List.filter (fun (nsName, (_, _, sameAssembly, modifiers)) ->
-                IsDeclarationAccessible sameAssembly (parentNS = nsName) modifiers)
+            let accessibleResolutions = allResolutions |> List.filter (fun (_, (_, _, sameAssembly, modifiers)) ->
+                IsDeclarationAccessible sameAssembly modifiers.Access)
             match accessibleResolutions with
             | [] ->
                 if List.isEmpty allResolutions
@@ -817,7 +816,7 @@ and NamespaceManager
             | Some ns ->
                 ns.TryFindType (symName, checkQualificationForDeprecation) |> function
                 | Value (declSource, deprecation, sameAssembly, modifiers) ->
-                    if IsDeclarationAccessible sameAssembly (parentNS = ns.Name) modifiers
+                    if IsDeclarationAccessible sameAssembly modifiers.Access
                     then buildAndReturn (ns.Name, declSource, deprecation, modifiers, [||])
                     else None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InaccessibleTypeInNamespace, [symName.Value; qualifier.Value]) |]
                 | _ -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, [symName.Value; qualifier.Value]) |]
@@ -843,7 +842,8 @@ and NamespaceManager
     /// Throws a NotSupportedException if the QsType to resolve contains a MissingType.
     let resolveType (parent : QsQualifiedName, tpNames, source) qsType checkUdt =
         let processUDT = TryResolveTypeName (parent.Namespace, source) >> function
-            | Some (udt, _, modifiers), errs -> UserDefinedType udt, Array.append errs (checkUdt (udt, modifiers))
+            | Some (udt, _, modifiers), errs ->
+                UserDefinedType udt, Array.append errs (checkUdt (udt, modifiers.Access))
             | None, errs -> InvalidType, errs
         let processTP (symName, symRange) =
             if tpNames |> Seq.contains symName
@@ -858,18 +858,12 @@ and NamespaceManager
     /// accessibility of a referenced type is less than the accessibility of the parent, returns a diagnostic using the
     /// given error code. Otherwise, returns an empty array.
     let checkUdtAccessibility code
-                              (parent : NonNullable<string>, parentModifiers)
-                              (udt : UserDefinedType, udtModifiers) =
-        match (parentModifiers.Access, udtModifiers.Access) with
-        | (DefaultAccess, DefaultAccess)
-        | (Internal, DefaultAccess)
-        | (Internal, Internal)
-        | (Private, _) -> [||] // OK
-        | _ ->
-            // Error
-            [| QsCompilerDiagnostic.Error
-                   (code, [udt.Name.Value; parent.Value])
-                   (udt.Range.ValueOr QsCompilerDiagnostic.DefaultRange) |]
+                              (parent : NonNullable<string>, parentAccess)
+                              (udt : UserDefinedType, udtAccess) =
+        if parentAccess = DefaultAccess && udtAccess = Internal
+        then [| QsCompilerDiagnostic.Error (code, [udt.Name.Value; parent.Value])
+                                           (udt.Range.ValueOr QsCompilerDiagnostic.DefaultRange) |]
+        else [||]
 
 
     /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given
@@ -1018,7 +1012,7 @@ and NamespaceManager
             resolveType
                 (fullName, ImmutableArray<_>.Empty, source)
                 qsType
-                (checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, modifiers))
+                (checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, modifiers.Access))
         SymbolResolution.ResolveTypeDeclaration resolveType typeTuple
 
     /// Given the namespace and the name of the callable that the given signature belongs to, as well as its kind and
@@ -1038,14 +1032,14 @@ and NamespaceManager
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables. Throws
     /// an ArgumentException if the given list of characteristics is empty.
-    member private this.ResolveCallableSignature (parentKind, parentName, source, modifiers)
+    member private this.ResolveCallableSignature (parentKind, parentName, source, access)
                                                  (signature, specBundleCharacteristics) =
         let resolveType tpNames qsType =
             let res, errs =
                 resolveType
                     (parentName, tpNames, source)
                     qsType
-                    (checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, modifiers))
+                    (checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, access))
             if parentKind <> TypeConstructor then res, errs
             else res.WithoutRangeInfo, errs // strip positional info for auto-generated type constructors
         SymbolResolution.ResolveCallableSignature (resolveType, specBundleCharacteristics) signature
@@ -1128,7 +1122,7 @@ and NamespaceManager
 
                 // and finally we resolve the overall signature (whose characteristics are the intersection of the one of all bundles)
                 let characteristics = props.Values |> Seq.map (fun bundle -> bundle.BundleInfo) |> Seq.toList
-                let resolved, msgs = (signature.Defined, characteristics) |> this.ResolveCallableSignature (kind, parent, source, signature.Modifiers) // no positional info for type constructors
+                let resolved, msgs = (signature.Defined, characteristics) |> this.ResolveCallableSignature (kind, parent, source, signature.Modifiers.Access) // no positional info for type constructors
                 ns.SetCallableResolution source (parent.Name, resolved |> Value, callableAttributes)
                 errs <- (attrErrs |> Array.map (fun m -> source, m)) :: (msgs |> Array.map (fun m -> source, (signature.Position, m))) :: errs
 
@@ -1268,15 +1262,15 @@ and NamespaceManager
         finally syncRoot.ExitReadLock()
 
     /// Returns the declaration headers for all callables (either defined in source files or imported from referenced
-    /// assemblies) that are accessible from the given namespace.
+    /// assemblies) that are accessible from source files in the compilation unit.
     ///
     /// Throws an InvalidOperationException if the symbols are not currently resolved.
-    member this.AccessibleCallables nsName =
+    member this.AccessibleCallables () =
         Seq.append
             (Seq.map (fun callable -> callable, true) (this.DefinedCallables()))
             (Seq.map (fun callable -> callable, false) (this.ImportedCallables()))
         |> Seq.filter (fun (callable, sameAssembly) ->
-            IsDeclarationAccessible sameAssembly (nsName = callable.QualifiedName.Namespace) callable.Modifiers)
+            IsDeclarationAccessible sameAssembly callable.Modifiers.Access)
         |> Seq.map fst
 
     /// Returns the source file and TypeDeclarationHeader of all types imported from referenced assemblies, regardless
@@ -1314,15 +1308,15 @@ and NamespaceManager
         finally syncRoot.ExitReadLock()
 
     /// Returns the declaration headers for all types (either defined in source files or imported from referenced
-    /// assemblies) that are accessible from the given namespace.
+    /// assemblies) that are accessible from source files in the compilation unit.
     ///
     /// Throws an InvalidOperationException if the symbols are not currently resolved.
-    member this.AccessibleTypes nsName =
+    member this.AccessibleTypes () =
         Seq.append
             (Seq.map (fun qsType -> qsType, true) (this.DefinedTypes()))
             (Seq.map (fun qsType -> qsType, false) (this.ImportedTypes()))
         |> Seq.filter (fun (qsType, sameAssembly) ->
-            IsDeclarationAccessible sameAssembly (nsName = qsType.QualifiedName.Namespace) qsType.Modifiers)
+            IsDeclarationAccessible sameAssembly qsType.Modifiers.Access)
         |> Seq.map fst
 
     /// removes the given source file and all its content from all namespaces 
@@ -1408,7 +1402,7 @@ and NamespaceManager
     /// namespace does not exist.
     member private this.TryGetCallableHeader (callableName : QsQualifiedName, declSource) (nsName, source) =
         let BuildHeader fullName (source, kind, declaration : Resolution<_,_>) = 
-            let fallback () = (declaration.Defined, [CallableInformation.Invalid]) |> this.ResolveCallableSignature (kind, callableName, source, declaration.Modifiers) |> fst
+            let fallback () = (declaration.Defined, [CallableInformation.Invalid]) |> this.ResolveCallableSignature (kind, callableName, source, declaration.Modifiers.Access) |> fst
             let resolvedSignature, argTuple = declaration.Resolved.ValueOrApply fallback
             {
                 Kind = kind
@@ -1427,19 +1421,19 @@ and NamespaceManager
             | None -> NotFound
             | Some ns -> ns.CallablesInReferencedAssemblies.TryGetValue callableName.Name |> function
                 | true, cDecl ->
-                    if IsDeclarationAccessible false (nsName = cDecl.QualifiedName.Namespace) cDecl.Modifiers
+                    if IsDeclarationAccessible false cDecl.Modifiers.Access
                     then Found cDecl
                     else Inaccessible
                 | false, _ -> declSource |> function
                     | Some source -> 
                         let kind, decl = ns.CallableInSource source callableName.Name // ok only because/if we have covered that the callable is not in a reference!
-                        if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers
+                        if IsDeclarationAccessible true decl.Modifiers.Access
                         then BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl) |> Found
                         else Inaccessible
                     | None -> 
                         ns.CallablesDefinedInAllSources().TryGetValue callableName.Name |> function
                         | true, (source, (kind, decl)) ->
-                            if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers
+                            if IsDeclarationAccessible true decl.Modifiers.Access
                             then BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl) |> Found
                             else Inaccessible
                         | false, _ -> NotFound
@@ -1465,7 +1459,7 @@ and NamespaceManager
             let allResolutions = (nsName, source) |> PossibleResolutions (fun ns -> ns.TryFindCallable cName)
             let accessibleResolutions =
                 allResolutions |> List.filter (fun (declaredNS, (_, _, sameAssembly, modifiers)) ->
-                    IsDeclarationAccessible sameAssembly (declaredNS = nsName) modifiers)
+                    IsDeclarationAccessible sameAssembly modifiers.Access)
             match accessibleResolutions with
             | [] -> if not <| List.isEmpty allResolutions then Inaccessible else NotFound
             | [(declNS, (declSource, _, _, _))] ->
@@ -1507,19 +1501,19 @@ and NamespaceManager
             | None -> NotFound
             | Some ns -> ns.TypesInReferencedAssemblies.TryGetValue typeName.Name |> function
                 | true, tDecl ->
-                    if IsDeclarationAccessible false (nsName = tDecl.QualifiedName.Namespace) tDecl.Modifiers
+                    if IsDeclarationAccessible false tDecl.Modifiers.Access
                     then Found tDecl
                     else Inaccessible
                 | false, _ -> declSource |> function
                     | Some source ->
                         let decl = ns.TypeInSource source typeName.Name // ok only because/if we have covered that the type is not in a reference!
-                        if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers
+                        if IsDeclarationAccessible true decl.Modifiers.Access
                         then BuildHeader {typeName with Namespace = ns.Name} (source, decl) |> Found
                         else Inaccessible
                     | None -> 
                         ns.TypesDefinedInAllSources().TryGetValue typeName.Name |> function
                         | true, (source, decl) ->
-                            if IsDeclarationAccessible true (nsName = ns.Name) decl.Modifiers
+                            if IsDeclarationAccessible true decl.Modifiers.Access
                             then BuildHeader {typeName with Namespace = ns.Name} (source, decl) |> Found
                             else Inaccessible
                         | false, _ -> NotFound
@@ -1544,7 +1538,7 @@ and NamespaceManager
             let allResolutions = (nsName, source) |> PossibleResolutions (fun ns -> ns.TryFindType tName)
             let accessibleResolutions =
                 allResolutions |> List.filter (fun (declaredNS, (_, _, sameAssembly, modifiers)) ->
-                    IsDeclarationAccessible sameAssembly (declaredNS = nsName) modifiers)
+                    IsDeclarationAccessible sameAssembly modifiers.Access)
             match accessibleResolutions with
             | [] -> if not <| List.isEmpty allResolutions then Inaccessible else NotFound
             | [(declNS, (declSource, _, _, _))] ->
@@ -1568,28 +1562,28 @@ and NamespaceManager
         finally syncRoot.ExitReadLock()
 
     /// Returns the names of all namespaces in which a callable is declared that has the given name and is accessible
-    /// from the given parent namespace.
-    member this.NamespacesContainingCallable cName nsName =
+    /// from source files in the compilation unit.
+    member this.NamespacesContainingCallable cName =
         // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
         syncRoot.EnterReadLock()
         try
             let tryFindCallable (ns : Namespace) =
                 ns.TryFindCallable cName |> QsNullable<_>.Bind (fun (_, _, sameAssembly, modifiers) ->
-                    if IsDeclarationAccessible sameAssembly (nsName = ns.Name) modifiers
+                    if IsDeclarationAccessible sameAssembly modifiers.Access
                     then Value ns.Name
                     else Null)
             (Namespaces.Values |> QsNullable<_>.Choose tryFindCallable).ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
     /// Returns the names of all namespaces in which a type is declared that has the given name and is accessible from
-    /// the given parent namespace.
-    member this.NamespacesContainingType tName nsName =
+    /// source files in the compilation unit.
+    member this.NamespacesContainingType tName =
         // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
         syncRoot.EnterReadLock()
         try
             let tryFindType (ns : Namespace) =
                 ns.TryFindType tName |> QsNullable<_>.Bind (fun (_, _, sameAssembly, modifiers) ->
-                    if IsDeclarationAccessible sameAssembly (nsName = ns.Name) modifiers
+                    if IsDeclarationAccessible sameAssembly modifiers.Access
                     then Value ns.Name
                     else Null)
             (Namespaces.Values |> QsNullable<_>.Choose tryFindType).ToImmutableArray()

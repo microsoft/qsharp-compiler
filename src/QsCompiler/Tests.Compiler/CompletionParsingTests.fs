@@ -112,7 +112,6 @@ let private testElifElse scope previous =
 let private testWithModifiers tests =
     List.concat [
         tests
-        List.map (fun (input, result) -> ("private " + input, result)) tests
         List.map (fun (input, result) -> ("internal " + input, result)) tests
     ] |> List.iter (matches NamespaceTopLevel Null)
 
@@ -135,7 +134,6 @@ let ``Namespace top-level parser tests`` () =
         Keyword "function"
         Keyword "operation"
         Keyword "newtype"
-        Keyword "private"
         Keyword "internal"
         Keyword "open"
     ]
@@ -153,8 +151,6 @@ let ``Namespace top-level parser tests`` () =
         ("newtype", keywords)
         ("open", keywords)
         ("pri", keywords)
-        ("private", keywords)
-        ("private ", [Keyword "function"; Keyword "operation"; Keyword "newtype"])
         ("int", keywords)
         ("internal", keywords)
         ("internal ", [Keyword "function"; Keyword "operation"; Keyword "newtype"])
