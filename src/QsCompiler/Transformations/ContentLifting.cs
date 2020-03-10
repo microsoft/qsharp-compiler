@@ -19,16 +19,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
 
     /// <summary>
-    /// Transformation handling the task of lifting the contents of code blocks into generated operations.
+    /// This transformation handles the task of lifting the contents of code blocks into generated operations.
     /// The transformation provides validation to see if any given block can safely be lifted into its own operation.
     /// Validation requirements are that there are no return statements and that there are no set statements
     /// on mutables declared outside the block. Setting mutables declared inside the block is valid.
     /// A block can be checked by setting the SharedState.IsValidScope to true before traversing the scope,
     /// then checking the SharedState.IsValidScope after traversal. Blocks should be validated before calling
-    /// the SharedState.LiftBody function, which will generate a new operation with the block's contents,
-    /// having all the same type parameters as the calling context and all known variables at the start of
-    /// the block become parameters to the new operation. A call to the new operation is also returned with
-    /// all the type parameters and known variables being forwarded to the new operation as arguments.
+    /// the SharedState.LiftBody function, which will generate a new operation with the block's contents.
+    /// All the known variables at the start of the block will become parameters to the new operation, and 
+    /// the operation will have all the valid type parameters of the calling context as type parameters.
+    /// A call to the new operation is also returned with all the valid type parameters and known variables
+    /// being forwarded to the new operation as arguments.
     /// </summary>
     public class LiftContent : SyntaxTreeTransformation<LiftContent.TransformationState>
     {
@@ -225,11 +226,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             }
 
             /// <summary>
-            /// Generates a new operation with the body's contents, having all the same type parameters
-            /// as the current callable and all known variables at the start of the block become
-            /// parameters to the new operation. The generated operation is returned, along with a call
-            /// to the new operation is also returned with all the type parameters and known
-            /// variables being forwarded to the new operation as arguments.
+            /// Generates a new operation with the body's contents. All the known variables at the
+            /// start of the block will become parameters to the new operation, and the operation
+            /// will have all the valid type parameters of the calling context as type parameters.
+            /// The generated operation is returned, along with a call to the new operation is
+            /// also returned with all the type parameters and known variables being forwarded to
+            /// the new operation as arguments.
             /// 
             /// The given body should be validated with the SharedState.IsValidScope before using this function.
             /// </summary>
@@ -242,7 +244,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         ResolvedType.New(ResolvedTypeKind.UnitType)),
                     generatedOp.Signature.Information));
 
-                // Foreword the type parameters of the parent callable to the type arguments of the call to the generated operation.
+                // Forward the type parameters of the parent callable to the type arguments of the call to the generated operation.
                 var typeArguments = CurrentCallable.TypeParameters;
                 var generatedOpId = new TypedExpression(
                     ExpressionKind.NewIdentifier(

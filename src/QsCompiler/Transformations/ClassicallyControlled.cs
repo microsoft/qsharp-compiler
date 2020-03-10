@@ -156,7 +156,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 }
 
                 /// <summary>
-                /// Gets an identifier and argument tuple for the built in operation NoOp.
+                /// Gets an identifier and argument tuple for the built-in operation NoOp.
                 /// </summary>
                 private (TypedExpression, TypedExpression) GetNoOp()
                 {
