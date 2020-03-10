@@ -78,7 +78,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             protected internal bool InControlledAdjoint = false;
             protected internal bool InWithinBlock = false;
 
-            public List<QsCallable> GeneratedOperations = null;
+            protected internal List<QsCallable> GeneratedOperations = null;
 
             private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
                 QsQualifiedName callableName, ResolvedType paramsType, SpecializationImplementation bodyImplementation)
