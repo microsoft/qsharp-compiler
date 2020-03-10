@@ -44,9 +44,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             public CallableDetails(QsCallable callable)
             {
                 Callable = callable;
+                // ToDo: this may need to be adapted once we support type specializations
                 Adjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
                 Controlled = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
                 ControlledAdjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
+                // ToDo: this may need to be per-specialization
                 TypeParameters = callable.Signature.TypeParameters.Any(param => param.IsValidName)
                 ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
                     .Where(param => param.IsValidName)
@@ -344,8 +346,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 SharedState.InControlled = false;
                 return rtrn;
             }
-
-            public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
 
             public override QsNamespace OnNamespace(QsNamespace ns)
             {
