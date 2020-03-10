@@ -347,6 +347,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return rtrn;
             }
 
+            public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
+
             public override QsNamespace OnNamespace(QsNamespace ns)
             {
                 // Generated operations list will be populated in the transform

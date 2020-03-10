@@ -770,15 +770,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
         {
             public LiftContent() : base()
             {
-                this.Namespaces = new NamespaceTransformation(this);
                 this.StatementKinds = new StatementKindTransformation(this);
-            }
-
-            private new class NamespaceTransformation : ContentLifting.LiftContent.NamespaceTransformation
-            {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
-
-                public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
             }
 
             private new class StatementKindTransformation : ContentLifting.LiftContent.StatementKindTransformation
