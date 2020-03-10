@@ -59,6 +59,36 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
             );
 
+        /// <summary>
+        /// Creates an array literal with the given items, setting the range information to Null. 
+        /// If no items are given, creates an empty array of type Unit[]. 
+        /// The resolved types for all of the given expressions must match, 
+        /// none of the given expressions should have a local quantum dependency, 
+        /// and all range information should be stripped from each given expression. 
+        /// </summary>
+        internal static TypedExpression CreateValueArray(params TypedExpression[] expressions)
+        {
+            ResolvedType type = null;
+            if (expressions.Any())
+            {
+                type = expressions.First().ResolvedType;
+                QsCompilerError.Verify(expressions.All(expr => expr.ResolvedType.Equals(type)));
+            }
+            else
+            {
+                type = ResolvedType.New(ResolvedTypeKind.UnitType);
+            }
+
+            return new TypedExpression
+            (
+                ExpressionKind.NewValueArray(expressions.ToImmutableArray()),
+                TypeArgsResolution.Empty,
+                ResolvedType.New(ResolvedTypeKind.NewArrayType(type)),
+                new InferredExpressionInformation(false, false),
+                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+            );
+        }
+
         internal static ResolvedType GetOperationType(IEnumerable<OpProperty> props, ResolvedType argumentType)
         {
             var characteristics = new CallableInformation(
@@ -87,6 +117,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 }
             })
             .Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
+        }
+
+        internal static (TypedExpression, TypedExpression) GetNoOp()
+        {
+            var identifier = Utils.CreateIdentifierExpression(
+                Identifier.NewGlobalCallable(new QsQualifiedName(BuiltIn.NoOp.Namespace, BuiltIn.NoOp.Name)),
+                BuiltIn.NoOp.TypeParameters
+                    .Select(param => Tuple.Create(new QsQualifiedName(BuiltIn.NoOp.Namespace, BuiltIn.NoOp.Name), param, ResolvedType.New(ResolvedTypeKind.UnitType)))
+                    .ToImmutableArray(),
+                Utils.GetOperationType(new[] { OpProperty.Adjointable, OpProperty.Controllable }, ResolvedType.New(ResolvedTypeKind.UnitType)));
+
+            var args = new TypedExpression
+            (
+                ExpressionKind.UnitValue,
+                TypeArgsResolution.Empty,
+                ResolvedType.New(ResolvedTypeKind.UnitType),
+                new InferredExpressionInformation(false, false),
+                QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+            );
+
+            return (identifier, args);
         }
     }
 }
