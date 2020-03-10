@@ -32,16 +32,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     /// </summary>
     public class LiftContent : SyntaxTreeTransformation<LiftContent.TransformationState>
     {
-
-        public class CallableDetails
+        internal class CallableDetails
         {
-            public QsCallable Callable;
-            public QsSpecialization Adjoint;
-            public QsSpecialization Controlled;
-            public QsSpecialization ControlledAdjoint;
-            public QsNullable<ImmutableArray<ResolvedType>> TypeParameters;
+            internal readonly QsCallable Callable;
+            internal readonly QsSpecialization Adjoint;
+            internal readonly QsSpecialization Controlled;
+            internal readonly QsSpecialization ControlledAdjoint;
+            internal readonly QsNullable<ImmutableArray<ResolvedType>> TypeParameters;
 
-            public CallableDetails(QsCallable callable)
+            internal CallableDetails(QsCallable callable)
             {
                 Callable = callable;
                 // ToDo: this may need to be adapted once we support type specializations
@@ -66,15 +65,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         {
             public bool IsValidScope = true;
             public List<QsCallable> GeneratedOperations = null;
-            public ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
-                ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
-            public bool ContainsParamRef = false;
 
-            public CallableDetails CurrentCallable = null;
-            public bool InBody = false;
-            public bool InAdjoint = false;
-            public bool InControlled = false;
-            public bool InWithinBlock = false;
+            internal CallableDetails CurrentCallable = null;
+            internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
+                ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
+            internal bool ContainsParamRef = false;
+
+            protected internal bool InBody = false;
+            protected internal bool InAdjoint = false;
+            protected internal bool InControlled = false;
+            protected internal bool InControlledAdjoint = false;
+            protected internal bool InWithinBlock = false;
 
             private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
                 QsQualifiedName callableName, ResolvedType paramsType, SpecializationImplementation bodyImplementation)
@@ -304,7 +305,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             }
         }
 
-        protected LiftContent() : base(new TransformationState())
+        public LiftContent() : base(new TransformationState())
         {
             this.Namespaces = new NamespaceTransformation(this);
             this.StatementKinds = new StatementKindTransformation(this);
@@ -344,6 +345,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 SharedState.InControlled = true;
                 var rtrn = base.OnControlledSpecialization(spec);
                 SharedState.InControlled = false;
+                return rtrn;
+            }
+
+            public override QsSpecialization OnControlledAdjointSpecialization(QsSpecialization spec)
+            {
+                SharedState.InControlledAdjoint = true;
+                var rtrn = base.OnControlledAdjointSpecialization(spec);
+                SharedState.InControlledAdjoint = false;
                 return rtrn;
             }
 
