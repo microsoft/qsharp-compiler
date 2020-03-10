@@ -6,7 +6,6 @@ namespace Microsoft.Quantum.QsCompiler
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
 
 type BuiltIn = {

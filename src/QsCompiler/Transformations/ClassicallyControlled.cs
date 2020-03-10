@@ -783,8 +783,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     return contents.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr
                            && expr.Item.Expression is ExpressionKind.CallLikeExpression call
-                           && !TypedExpression.IsPartialApplication(expr.Item.Expression)
-                           && call.Item1.Expression is ExpressionKind.Identifier;
+                           && call.Item1.ResolvedType.Resolution.IsOperation
+                           && call.Item1.Expression is ExpressionKind.Identifier
+                           && !TypedExpression.IsPartialApplication(expr.Item.Expression);
                 }
 
                 public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
