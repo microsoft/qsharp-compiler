@@ -12,22 +12,23 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
+namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
 
     /// <summary>
-    /// Transformation handling the first pass task of hoisting of the contents of conditional statements.
-    /// If blocks are first validated to see if they can safely be hoisted into their own operation.
+    /// Transformation handling the task of lifting the contents of code blocks into generated operations.
+    /// The transformation provides validation to see if any given block can safely be lifted into its own operation.
     /// Validation requirements are that there are no return statements and that there are no set statements
     /// on mutables declared outside the block. Setting mutables declared inside the block is valid.
-    /// If the block is valid, and there is more than one statement in the block, a new operation with the
-    /// block's contents is generated, having all the same type parameters as the calling context
-    /// and all known variables at the start of the block become parameters to the new operation.
-    /// The contents of the conditional block are then replaced with a call to the new operation with all
-    /// the type parameters and known variables being forwarded to the new operation as arguments.
+    /// A block can be checked by setting the SharedState.IsValidScope to true before traversing the scope,
+    /// then checking the SharedState.IsValidScope after traversal. Blocks should be validated before calling
+    /// the SharedState.LiftBody function, which will generate a new operation with the block's contents,
+    /// having all the same type parameters as the calling context and all known variables at the start of
+    /// the block become parameters to the new operation. A call to the new operation is also returned with
+    /// all the type parameters and known variables being forwarded to the new operation as arguments.
     /// </summary>
     public class LiftContent : SyntaxTreeTransformation<LiftContent.TransformationState>
     {
@@ -63,9 +64,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
         {
             public bool IsValidScope = true;
             public List<QsCallable> GeneratedOperations = null;
-            public ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> CurrentHoistParams =
+            public ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
                 ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
-            public bool ContainsHoistParamRef = false;
+            public bool ContainsParamRef = false;
 
             public CallableDetails CurrentCallable = null;
             public bool InBody = false;
@@ -217,8 +218,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
                 return (generatedCallable, signature.ArgumentType);
             }
 
-            // ToDo: Doc comment
-            public (QsCallable, QsStatement) HoistBody(QsScope body)
+            /// <summary>
+            /// Generates a new operation with the body's contents, having all the same type parameters
+            /// as the current callable and all known variables at the start of the block become
+            /// parameters to the new operation. The generated operation is returned, along with a call
+            /// to the new operation is also returned with all the type parameters and known
+            /// variables being forwarded to the new operation as arguments.
+            /// 
+            /// The given body should be validated with the SharedState.IsValidScope before using this function.
+            /// </summary>
+            public (QsCallable, QsStatement) LiftBody(QsScope body)
             {
                 var (generatedOp, originalArgumentType) = GenerateOperation(body);
                 var generatedOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
@@ -336,7 +345,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
                 return rtrn;
             }
 
-            public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being hoisted
+            public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
 
             public override QsNamespace OnNamespace(QsNamespace ns)
             {
@@ -374,7 +383,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
                 // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
                 var lhs = this.Expressions.OnTypedExpression(stm.Lhs);
 
-                if (SharedState.ContainsHoistParamRef)
+                if (SharedState.ContainsParamRef)
                 {
                     SharedState.IsValidScope = false;
                 }
@@ -385,7 +394,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
 
             public override QsStatementKind OnStatementKind(QsStatementKind kind)
             {
-                SharedState.ContainsHoistParamRef = false; // Every statement kind starts off false
+                SharedState.ContainsParamRef = false; // Every statement kind starts off false
                 return base.OnStatementKind(kind);
             }
         }
@@ -396,16 +405,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
 
             public override TypedExpression OnTypedExpression(TypedExpression ex)
             {
-                var contextContainsHoistParamRef = SharedState.ContainsHoistParamRef;
-                SharedState.ContainsHoistParamRef = false;
+                var contextContainsParamRef = SharedState.ContainsParamRef;
+                SharedState.ContainsParamRef = false;
                 var rtrn = base.OnTypedExpression(ex);
 
                 // If the sub context contains a reference, then the super context contains a reference,
                 // otherwise return the super context to its original value
-                if (!SharedState.ContainsHoistParamRef)
-                {
-                    SharedState.ContainsHoistParamRef = contextContainsHoistParamRef;
-                }
+                SharedState.ContainsParamRef |= contextContainsParamRef;
 
                 return rtrn;
             }
@@ -418,9 +424,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LyftContent
             public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
             {
                 if (sym is Identifier.LocalVariable local &&
-                SharedState.CurrentHoistParams.Any(param => param.VariableName.Equals(local.Item)))
+                SharedState.GeneratedOpParams.Any(param => param.VariableName.Equals(local.Item)))
                 {
-                    SharedState.ContainsHoistParamRef = true;
+                    SharedState.ContainsParamRef = true;
                 }
                 return base.OnIdentifier(sym, tArgs);
             }
