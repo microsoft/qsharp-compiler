@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         {
             // ToDo: It should be possible to make these three properties private, 
             // if we absorb the corresponding logic into LiftBody. 
-            internal bool IsValidScope = true;
+            public bool IsValidScope = true;
             internal bool ContainsParamRef = false;
             internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
                 ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
