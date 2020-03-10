@@ -63,19 +63,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
         public class TransformationState
         {
-            public bool IsValidScope = true;
-            public List<QsCallable> GeneratedOperations = null;
-
-            internal CallableDetails CurrentCallable = null;
+            // ToDo: It should be possible to make these three properties private, 
+            // if we absorb the corresponding logic into LiftBody. 
+            internal bool IsValidScope = true;
+            internal bool ContainsParamRef = false;
             internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
                 ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
-            internal bool ContainsParamRef = false;
+
+            internal CallableDetails CurrentCallable = null;
 
             protected internal bool InBody = false;
             protected internal bool InAdjoint = false;
             protected internal bool InControlled = false;
             protected internal bool InControlledAdjoint = false;
             protected internal bool InWithinBlock = false;
+
+            public List<QsCallable> GeneratedOperations = null;
 
             private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
                 QsQualifiedName callableName, ResolvedType paramsType, SpecializationImplementation bodyImplementation)
