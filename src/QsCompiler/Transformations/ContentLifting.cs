@@ -310,7 +310,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             }
         }
 
-        public LiftContent() : base(new TransformationState())
+        protected LiftContent() : base(new TransformationState())
         {
             this.Namespaces = new NamespaceTransformation(this);
             this.StatementKinds = new StatementKindTransformation(this);
