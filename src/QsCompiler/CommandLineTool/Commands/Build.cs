@@ -129,7 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 options.PerfFolder ??= fromResponseFiles.PerfFolder;
                 options.Plugins = (options.Plugins ?? new string[0]).Concat(fromResponseFiles.Plugins ?? new string[0]);
                 options.ProjectName ??= fromResponseFiles.ProjectName;
-                options.References = (options.References ?? new string[0]).Concat(options.References ?? new string[0]);
+                options.References = (options.References ?? new string[0]).Concat(fromResponseFiles.References ?? new string[0]);
                 options.ResponseFiles = fromResponseFiles.ResponseFiles;
                 options.TargetPackage ??= fromResponseFiles.TargetPackage;
                 options.TrimLevel = options.TrimLevel != DefaultOptions.TrimLevel ? options.TrimLevel : fromResponseFiles.TrimLevel;

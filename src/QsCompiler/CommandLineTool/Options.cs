@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
         public IEnumerable<string> Plugins { get; set; }
 
-        [Option("target-package", Required = false,
+        [Option("target-package", Required = false, SetName = CODE_MODE,
         HelpText = "Path to the NuGet package containing target specific information and implementations.")]
         public string TargetPackage { get; set; }
 
