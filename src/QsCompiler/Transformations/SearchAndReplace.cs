@@ -451,7 +451,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// </summary>
     public class RenameReferences : SyntaxTreeTransformation
     {
-        private readonly IImmutableDictionary<QsQualifiedName, QsQualifiedName> names;
+        private readonly TransformationState state;
 
         /// <summary>
         /// Creates a new rename references transformation.
@@ -459,7 +459,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// <param name="names">The mapping from existing names to new names.</param>
         public RenameReferences(IImmutableDictionary<QsQualifiedName, QsQualifiedName> names)
         {
-            this.names = names;
+            state = new TransformationState(names);
             Types = new TypeTransformation(this);
             ExpressionKinds = new ExpressionKindTransformation(this);
             Namespaces = new NamespaceTransformation(this);
@@ -473,7 +473,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public CallableDeclarationHeader OnCallableDeclarationHeader(CallableDeclarationHeader callable) =>
             new CallableDeclarationHeader(
                 kind: callable.Kind,
-                qualifiedName: GetNewName(callable.QualifiedName),
+                qualifiedName: state.GetNewName(callable.QualifiedName),
                 attributes: callable.Attributes.Select(Namespaces.OnAttribute).ToImmutableArray(),
                 modifiers: callable.Modifiers,
                 sourceFile: callable.SourceFile,
@@ -501,7 +501,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 kind: specialization.Kind,
                 typeArguments: typeArguments,
                 information: specialization.Information,
-                parent: GetNewName(specialization.Parent),
+                parent: state.GetNewName(specialization.Parent),
                 attributes: specialization.Attributes.Select(Namespaces.OnAttribute).ToImmutableArray(),
                 sourceFile: specialization.SourceFile,
                 position: specialization.Position,
@@ -517,7 +517,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public TypeDeclarationHeader OnTypeDeclarationHeader(TypeDeclarationHeader type)
         {
             return new TypeDeclarationHeader(
-                qualifiedName: GetNewName(type.QualifiedName),
+                qualifiedName: state.GetNewName(type.QualifiedName),
                 attributes: type.Attributes.Select(Namespaces.OnAttribute).ToImmutableArray(),
                 modifiers: type.Modifiers,
                 sourceFile: type.SourceFile,
@@ -528,52 +528,59 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 documentation: Namespaces.OnDocumentation(type.Documentation));
         }
 
-        /// <summary>
-        /// Gets the renamed version of the qualified name if one exists; otherwise, returns the original name.
-        /// </summary>
-        /// <param name="name">The qualified name to rename.</param>
-        /// <returns>
-        /// The renamed version of the qualified name if one exists; otherwise, returns the original name.
-        /// </returns>
-        private QsQualifiedName GetNewName(QsQualifiedName name) => names.GetValueOrDefault(name) ?? name;
-
-        /// <summary>
-        /// Gets the renamed version of the user defined type if one exists; otherwise, returns the original one.
-        /// </summary>
-        /// <returns>
-        /// The renamed version of the user defined type if one exists; otherwise, returns the original one.
-        /// </returns>
-        private UserDefinedType RenameUdt(UserDefinedType udt)
+        private class TransformationState
         {
-            var newName = GetNewName(new QsQualifiedName(udt.Namespace, udt.Name));
-            return new UserDefinedType(newName.Namespace, newName.Name, udt.Range);
-        }
+            private readonly IImmutableDictionary<QsQualifiedName, QsQualifiedName> names;
 
+            internal TransformationState(IImmutableDictionary<QsQualifiedName, QsQualifiedName> names) =>
+                this.names = names;
+
+            /// <summary>
+            /// Gets the renamed version of the qualified name if one exists; otherwise, returns the original name.
+            /// </summary>
+            /// <param name="name">The qualified name to rename.</param>
+            /// <returns>
+            /// The renamed version of the qualified name if one exists; otherwise, returns the original name.
+            /// </returns>
+            internal QsQualifiedName GetNewName(QsQualifiedName name) => names.GetValueOrDefault(name) ?? name;
+
+            /// <summary>
+            /// Gets the renamed version of the user-defined type if one exists; otherwise, returns the original one.
+            /// </summary>
+            /// <returns>
+            /// The renamed version of the user-defined type if one exists; otherwise, returns the original one.
+            /// </returns>
+            internal UserDefinedType RenameUdt(UserDefinedType udt)
+            {
+                var newName = GetNewName(new QsQualifiedName(udt.Namespace, udt.Name));
+                return new UserDefinedType(newName.Namespace, newName.Name, udt.Range);
+            }
+        }
 
         private class TypeTransformation : Core.TypeTransformation
         {
-            private readonly RenameReferences parent;
+            private readonly TransformationState state;
 
-            public TypeTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
+            public TypeTransformation(RenameReferences parent) : base(parent) => state = parent.state;
 
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt) =>
-                base.OnUserDefinedType(parent.RenameUdt(udt));
+                base.OnUserDefinedType(state.RenameUdt(udt));
 
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp) =>
-                base.OnTypeParameter(new QsTypeParameter(parent.GetNewName(tp.Origin), tp.TypeName, tp.Range));
+                base.OnTypeParameter(new QsTypeParameter(state.GetNewName(tp.Origin), tp.TypeName, tp.Range));
         }
 
         private class ExpressionKindTransformation : Core.ExpressionKindTransformation
         {
-            private readonly RenameReferences parent;
+            private readonly TransformationState state;
 
-            public ExpressionKindTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
+            public ExpressionKindTransformation(RenameReferences parent) : base(parent) => state = parent.state;
 
             public override QsExpressionKind OnIdentifier(Identifier id, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
             {
                 if (id is Identifier.GlobalCallable global)
                 {
-                    id = Identifier.NewGlobalCallable(parent.GetNewName(global.Item));
+                    id = Identifier.NewGlobalCallable(state.GetNewName(global.Item));
                 }
                 return base.OnIdentifier(id, typeArgs);
             }
@@ -581,28 +588,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         private class NamespaceTransformation : Core.NamespaceTransformation
         {
-            private readonly RenameReferences parent;
+            private readonly TransformationState state;
 
-            public NamespaceTransformation(RenameReferences parent) : base(parent) => this.parent = parent;
+            public NamespaceTransformation(RenameReferences parent) : base(parent) => state = parent.state;
 
             public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute attribute)
             {
-                var argument = parent.Expressions.OnTypedExpression(attribute.Argument);
+                var argument = Transformation.Expressions.OnTypedExpression(attribute.Argument);
                 var typeId = attribute.TypeId.IsValue
-                    ? QsNullable<UserDefinedType>.NewValue(parent.RenameUdt(attribute.TypeId.Item))
+                    ? QsNullable<UserDefinedType>.NewValue(state.RenameUdt(attribute.TypeId.Item))
                     : attribute.TypeId;
                 return base.OnAttribute(
                     new QsDeclarationAttribute(typeId, argument, attribute.Offset, attribute.Comments));
             }
 
             public override QsCallable OnCallableDeclaration(QsCallable callable) =>
-                base.OnCallableDeclaration(callable.WithFullName(parent.GetNewName));
+                base.OnCallableDeclaration(callable.WithFullName(state.GetNewName));
 
             public override QsCustomType OnTypeDeclaration(QsCustomType type) =>
-                base.OnTypeDeclaration(type.WithFullName(parent.GetNewName));
+                base.OnTypeDeclaration(type.WithFullName(state.GetNewName));
 
             public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
-                base.OnSpecializationDeclaration(spec.WithParent(parent.GetNewName));
+                base.OnSpecializationDeclaration(spec.WithParent(state.GetNewName));
         }
     }
 
