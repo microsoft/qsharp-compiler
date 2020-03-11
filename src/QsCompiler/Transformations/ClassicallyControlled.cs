@@ -809,13 +809,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         // ToDo: Reduce the number of unnecessary generated operations by generalizing
                         // the condition logic for the conversion and using that condition here
                         //var (isExprCondition, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
-
-                        if (SharedState.IsValidScope) // if sub-scope is valid, lift content
+                        
+                        if (IsScopeSingleCall(block.Body))
                         {
-                            if (/*isExprCondition &&*/ !IsScopeSingleCall(block.Body))
+                            newConditionBlocks.Add(Tuple.Create(expr.Item, block));
+                        }
+                        // ToDo: We may want to prevent empty blocks from getting lifted
+                        else //if(block.Body.Statements.Length > 0)
+                        {
+                            // Lift the scope to its own operation
+                            if (SharedState.LiftBody(block.Body, out var callable, out var call))
                             {
-                                // Lift the scope to its own operation
-                                var (callable, call) = SharedState.LiftBody(block.Body);
                                 block = new QsPositionedBlock(
                                     new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
                                     block.Location,
@@ -823,15 +827,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                 newConditionBlocks.Add(Tuple.Create(expr.Item, block));
                                 generatedOperations.Add(callable);
                             }
-                            else if (block.Body.Statements.Length > 0)
+                            else
                             {
-                                newConditionBlocks.Add(Tuple.Create(expr.Item, block));
+                                isValidLift = false;
+                                break;
                             }
-                        }
-                        else
-                        {
-                            isValidLift = false;
-                            break;
                         }
                     }
 
@@ -844,12 +844,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             : stm.Default.Item.Body.KnownSymbols.Variables;
 
                         var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
-                        if (SharedState.IsValidScope)
+
+
+                        if (IsScopeSingleCall(block.Body))
                         {
-                            if (!IsScopeSingleCall(block.Body)) // if sub-scope is valid, lift content
+                            newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                        }
+                        // ToDo: We may want to prevent empty blocks from getting lifted
+                        else //if(block.Body.Statements.Length > 0)
+                        {
+                            // Lift the scope to its own operation
+                            if (SharedState.LiftBody(block.Body, out var callable, out var call))
                             {
-                                // Lift the scope to its own operation
-                                var (callable, call) = SharedState.LiftBody(block.Body);
                                 block = new QsPositionedBlock(
                                     new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
                                     block.Location,
@@ -857,14 +863,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                 newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
                                 generatedOperations.Add(callable);
                             }
-                            else if (block.Body.Statements.Length > 0)
+                            else
                             {
-                                newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                                isValidLift = false;
                             }
-                        }
-                        else
-                        {
-                            isValidLift = false;
                         }
                     }
 

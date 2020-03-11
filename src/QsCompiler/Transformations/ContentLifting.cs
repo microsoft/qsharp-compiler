@@ -235,8 +235,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             /// 
             /// The given body should be validated with the SharedState.IsValidScope before using this function.
             /// </summary>
-            public (QsCallable, QsStatement) LiftBody(QsScope body)
+            public bool LiftBody(QsScope body, out QsCallable callable, out QsStatement callStatement)
             {
+                if (!IsValidScope)
+                {
+                    callable = null;
+                    callStatement = null;
+                    return false;
+                }
+
                 var (generatedOp, originalArgumentType) = GenerateOperation(body);
                 var generatedOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
                     Tuple.Create(
@@ -302,11 +309,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     new InferredExpressionInformation(false, true),
                     QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null);
 
-                return (generatedOp, new QsStatement(
+                // set output parameters
+                callable = generatedOp;
+                callStatement = new QsStatement(
                     QsStatementKind.NewQsExpressionStatement(call),
                     LocalDeclarations.Empty,
                     QsNullable<QsLocation>.Null,
-                    QsComments.Empty));
+                    QsComments.Empty);
+
+                return true;
             }
         }
 
