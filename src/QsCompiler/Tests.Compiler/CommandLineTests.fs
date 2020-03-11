@@ -162,6 +162,7 @@ let ``options from response files`` () =
         [|
             "-i"
             ("TestCases","LinkingTests","Core.qs") |> Path.Combine
+            ("TestCases","LinkingTests","Diagnostics.qs") |> Path.Combine
             "--trim"
             "0"
         |]        
@@ -169,8 +170,6 @@ let ``options from response files`` () =
     let commandLineArgs = 
         [|
             "build"
-            "-i"
-            ("TestCases","LinkingTests","Diagnostics.qs") |> Path.Combine
             "--trim"
             "2"
             "--response-files"
