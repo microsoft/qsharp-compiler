@@ -7,3 +7,4 @@ namespace Microsoft.Quantum.Diagnostics {
     @ Attribute()
     newtype Test = String;
 }
+
