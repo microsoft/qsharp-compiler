@@ -8,13 +8,10 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
-type BuiltInKindFunction = {TypeParameters : ImmutableArray<NonNullable<string>>}
-type BuiltInKindOperation = {TypeParameters : ImmutableArray<NonNullable<string>>; IsSelfAdjoint : bool}
-
 type BuiltInKind =
     | Attribute
-    | Function of BuiltInKindFunction
-    | Operation of BuiltInKindOperation
+    | Function of TypeParameters : ImmutableArray<NonNullable<string>>
+    | Operation of TypeParameters : ImmutableArray<NonNullable<string>> * IsSelfAdjoint : bool
 
 type BuiltIn = {
     /// contains the fully qualified name of the built-in
@@ -67,12 +64,12 @@ type BuiltIn = {
 
     static member Length = {
         FullName = {Name = "Length" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
-        Kind = Function {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New)}
+        Kind = Function (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New))
     }
 
     static member RangeReverse = {
         FullName = {Name = "RangeReverse" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
-        Kind = Function {TypeParameters = ImmutableArray.Empty}
+        Kind = Function (TypeParameters = ImmutableArray.Empty)
     }
 
     static member Attribute = {
@@ -99,7 +96,7 @@ type BuiltIn = {
 
     static member NoOp = {
         FullName = {Name = "NoOp" |> NonNullable<string>.New; Namespace = BuiltIn.CanonNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
         
     }
 
@@ -108,102 +105,102 @@ type BuiltIn = {
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit), 'T) , (('U => Unit), 'U)) => Unit)
     static member ApplyConditionally = {
         FullName = {Name = "ApplyConditionally" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit is Adj), 'T) , (('U => Unit is Adj), 'U)) => Unit is Adj)
     static member ApplyConditionallyA = {
         FullName = {Name = "ApplyConditionallyA" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit is Ctl), 'T) , (('U => Unit is Ctl), 'U)) => Unit is Ctl)
     static member ApplyConditionallyC = {
         FullName = {Name = "ApplyConditionallyC" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit is Adj + Ctl), 'T) , (('U => Unit is Adj + Ctl), 'U)) => Unit is Adj + Ctl)
     static member ApplyConditionallyCA = {
         FullName = {Name = "ApplyConditionallyCA" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
     static member ApplyIfZero = {
         FullName = {Name = "ApplyIfZero" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Adj), 'T)) => Unit is Adj)
     static member ApplyIfZeroA = {
         FullName = {Name = "ApplyIfZeroA" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Ctl), 'T)) => Unit is Ctl)
     static member ApplyIfZeroC = {
         FullName = {Name = "ApplyIfZeroC" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Adj + Ctl), 'T)) => Unit is Adj + Ctl)
     static member ApplyIfZeroCA = {
         FullName = {Name = "ApplyIfZeroCA" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T>((Result, (('T => Unit), 'T)) => Unit)
     static member ApplyIfOne = {
         FullName = {Name = "ApplyIfOne" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Adj), 'T)) => Unit is Adj)
     static member ApplyIfOneA = {
         FullName = {Name = "ApplyIfOneA" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Ctl), 'T)) => Unit is Ctl)
     static member ApplyIfOneC = {
         FullName = {Name = "ApplyIfOneC" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T>((Result, (('T => Unit is Adj + Ctl), 'T)) => Unit is Adj + Ctl)
     static member ApplyIfOneCA = {
         FullName = {Name = "ApplyIfOneCA" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T, 'U>((Result, (('T => Unit), 'T), (('U => Unit), 'U)) => Unit)
     static member ApplyIfElseR = {
         FullName = {Name = "ApplyIfElseR" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T, 'U>((Result, (('T => Unit is Adj), 'T), (('U => Unit is Adj), 'U)) => Unit is Adj)
     static member ApplyIfElseRA = {
         FullName = {Name = "ApplyIfElseRA" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T, 'U>((Result, (('T => Unit is Ctl), 'T), (('U => Unit is Ctl), 'U)) => Unit is Ctl)
     static member ApplyIfElseRC = {
         FullName = {Name = "ApplyIfElseRC" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // This is expected to have type <'T, 'U>((Result, (('T => Unit is Adj + Ctl), 'T), (('U => Unit is Adj + Ctl), 'U)) => Unit is Adj + Ctl)
     static member ApplyIfElseRCA = {
         FullName = {Name = "ApplyIfElseRCA" |> NonNullable<string>.New; Namespace = BuiltIn.ClassicallyControlledNamespace}
-        Kind = Operation {TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New); IsSelfAdjoint = false}
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
     // "weak dependencies" in other namespaces (e.g. things used for code actions)
 
     static member IndexRange = {
         FullName = {Name = "IndexRange" |> NonNullable<string>.New; Namespace = BuiltIn.StandardArrayNamespace}
-        Kind = Function {TypeParameters = ImmutableArray.Empty}
+        Kind = Function (TypeParameters = ImmutableArray.Empty)
     }
