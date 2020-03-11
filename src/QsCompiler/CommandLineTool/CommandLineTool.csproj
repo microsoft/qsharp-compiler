@@ -4,7 +4,7 @@
   <PropertyGroup>
     <AssemblyName>qsc</AssemblyName>
     <AssemblyTitle>Microsoft Q# compiler command line tool.</AssemblyTitle>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
