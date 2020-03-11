@@ -156,6 +156,29 @@ let ``diagnose outputs`` () =
 
 
 [<Fact>]
+let ``options from response files`` () = 
+    let configFile = ("TestCases", "qsc-config.txt") |> Path.Combine
+    let configArgs = 
+        [|
+            "-i"
+            ("TestCases","General.qs") |> Path.Combine
+            "--trim 0"
+        |]        
+    File.WriteAllText(configFile, String.Join (" ", configArgs))
+    let commandLineArgs = 
+        [|
+            "-i"
+            ("TestCases","FunctorGeneration.qs") |> Path.Combine
+            "--trim 2"
+            "--response-files"
+            configFile
+        |]        
+
+    let result = Program.Main commandLineArgs
+    Assert.Equal(ReturnCode.SUCCESS, result)
+
+
+[<Fact>]
 let ``generate docs`` () =
     let docsFolder = ("TestCases", "docs.Out") |> Path.Combine
     if (Directory.Exists docsFolder) then
