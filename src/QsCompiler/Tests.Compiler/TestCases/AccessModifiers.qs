@@ -21,6 +21,10 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
         B.InternalFunctionB();
     }
 
+    function CallableReferenceInternalInaccessible () : Unit {
+        InternalFunctionC();
+    }
+
     // Types
 
     function TypeUseOK () : Unit {
@@ -30,6 +34,14 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
         let itas = new InternalTypeA[1];
         let itb = B.InternalTypeB();
         let itbs = new B.InternalTypeB[1];
+    }
+
+    function TypeReferenceInternalInaccessible () : Unit {
+        let itcs = new InternalTypeC[1];
+    }
+
+    function TypeConstructorReferenceInternalInaccessible () : Unit {
+        let itc = InternalTypeC();
     }
 
     // Callable signatures
@@ -65,20 +77,6 @@ namespace Microsoft.Quantum.Testing.AccessModifiers {
     newtype PublicTypeLeaksInternalType3 = (Int, (InternalType, Bool));
 
     internal newtype InternalTypeInternalTypeOK = InternalType;
-
-    // References
-
-    function CallableReferenceInternalInaccessible () : Unit {
-        InternalFunctionC();
-    }
-
-    function TypeReferenceInternalInaccessible () : Unit {
-        let itcs = new InternalTypeC[1];
-    }
-
-    function TypeConstructorReferenceInternalInaccessible () : Unit {
-        let itc = InternalTypeC();
-    }
 }
 
 /// This namespace contains additional definitions of types and callables meant to be used by the

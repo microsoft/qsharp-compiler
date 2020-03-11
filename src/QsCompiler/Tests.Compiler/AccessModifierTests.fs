@@ -27,10 +27,13 @@ type AccessModifierTests (output) =
     [<Fact>]
     member this.``Callables`` () =
         this.Expect "CallableUseOK" []
+        this.Expect "CallableReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
 
     [<Fact>]
     member this.``Types`` () =
         this.Expect "TypeUseOK" []
+        this.Expect "TypeReferenceInternalInaccessible" [Error ErrorCode.InaccessibleType]
+        this.Expect "TypeConstructorReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
 
     [<Fact>]
     member this.``Callable signatures`` () =
@@ -48,9 +51,3 @@ type AccessModifierTests (output) =
         this.Expect "PublicTypeLeaksInternalType2" [Error ErrorCode.TypeLessAccessibleThanParentType]
         this.Expect "PublicTypeLeaksInternalType3" [Error ErrorCode.TypeLessAccessibleThanParentType]
         this.Expect "InternalTypeInternalTypeOK" []
-
-    [<Fact>]
-    member this.``References`` () =
-        this.Expect "CallableReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
-        this.Expect "TypeReferenceInternalInaccessible" [Error ErrorCode.InaccessibleType]
-        this.Expect "TypeConstructorReferenceInternalInaccessible" [Error ErrorCode.InaccessibleCallable]
