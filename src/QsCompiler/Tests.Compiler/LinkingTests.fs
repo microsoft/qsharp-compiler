@@ -63,6 +63,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
         let count =
             headers.Callables.Count(fun callable -> callable.QualifiedName = name) +
+            headers.Specializations.Count(fun specialization -> (fst (specialization.ToTuple ())).Parent = name) +
             headers.Types.Count(fun qsType -> qsType.QualifiedName = name) +
             references.SharedState.Locations.Count
         count
@@ -366,5 +367,11 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     member this.``Rename internal attribute references`` () =
         this.RunInternalRenamingTest 6
+            [qualifiedName Signatures.InternalRenamingNs "Foo"]
+            [qualifiedName Signatures.InternalRenamingNs "Bar"]
+
+    [<Fact>]
+    member this.``Rename specializations for internal operations`` () =
+        this.RunInternalRenamingTest 7
             [qualifiedName Signatures.InternalRenamingNs "Foo"]
             [qualifiedName Signatures.InternalRenamingNs "Bar"]

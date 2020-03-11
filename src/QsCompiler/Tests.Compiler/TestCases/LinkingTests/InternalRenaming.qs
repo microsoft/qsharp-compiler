@@ -94,3 +94,21 @@ namespace Microsoft.Quantum.Testing.InternalRenaming {
     function Bar () : Unit {
     }
 }
+
+// =================================
+// Test 7: Rename specializations for internal operations
+
+namespace Microsoft.Quantum.Testing.InternalRenaming {
+    internal operation Foo () : Unit is Adj {
+        body {
+		}
+
+        adjoint {
+		}
+	}
+
+    operation Bar () : Unit {
+        Foo();
+        Adjoint Foo();
+	}
+}
