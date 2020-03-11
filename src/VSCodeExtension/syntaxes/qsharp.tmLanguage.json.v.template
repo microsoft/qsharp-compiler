@@ -50,7 +50,7 @@
         },
         {
           "name": "keyword.other.qsharp",
-          "match": "\\b(internal|new|not|and|or|w\/)\\b"
+          "match": "\\b(new|not|and|or|w\/)\\b"
         },
         {
           "comment": "C# reserved words which can't be used in Q#, A-D",
@@ -78,7 +78,7 @@
       "patterns": [
         {
           "name": "keyword.other.qsharp",
-          "match": "\\b(namespace|open|as|newtype|operation|function|body|(a|A)djoint|(c|C)ontrolled|self|auto|distribute|invert|intrinsic)\\b"
+          "match": "\\b(namespace|open|as|internal|newtype|operation|function|body|(a|A)djoint|(c|C)ontrolled|self|auto|distribute|invert|intrinsic)\\b"
         }
       ]
     },
