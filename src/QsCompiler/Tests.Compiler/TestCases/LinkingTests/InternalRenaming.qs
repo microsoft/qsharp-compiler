@@ -101,14 +101,14 @@ namespace Microsoft.Quantum.Testing.InternalRenaming {
 namespace Microsoft.Quantum.Testing.InternalRenaming {
     internal operation Foo () : Unit is Adj {
         body {
-		}
+        }
 
         adjoint {
-		}
-	}
+        }
+    }
 
     operation Bar () : Unit {
         Foo();
         Adjoint Foo();
-	}
+    }
 }
