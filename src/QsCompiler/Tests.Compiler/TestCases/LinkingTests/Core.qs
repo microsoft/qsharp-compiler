@@ -19,9 +19,3 @@ namespace Microsoft.Quantum.Core {
     }
 }
 
-namespace Microsoft.Quantum.Diagnostics {
-
-    // needs to be available for testing
-    @ Attribute()
-    newtype Test = String;
-}

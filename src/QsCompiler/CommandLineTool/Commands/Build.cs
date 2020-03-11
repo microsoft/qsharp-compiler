@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
             }
 
-            [Option("response-files", Required = true, SetName = RESPONSE_FILES,
+            [Option("response-files", Required = false,
             HelpText = "Response file(s) providing command arguments. Required only if no other arguments are specified. Non-default values for options specified via command line take precedence.")]
             public IEnumerable<string> ResponseFiles { get; set; }
 

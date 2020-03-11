@@ -161,15 +161,18 @@ let ``options from response files`` () =
     let configArgs = 
         [|
             "-i"
-            ("TestCases","General.qs") |> Path.Combine
-            "--trim 0"
+            ("TestCases","LinkingTests","Core.qs") |> Path.Combine
+            "--trim"
+            "0"
         |]        
     File.WriteAllText(configFile, String.Join (" ", configArgs))
     let commandLineArgs = 
         [|
+            "build"
             "-i"
-            ("TestCases","FunctorGeneration.qs") |> Path.Combine
-            "--trim 2"
+            ("TestCases","LinkingTests","Diagnostics.qs") |> Path.Combine
+            "--trim"
+            "2"
             "--response-files"
             configFile
         |]        

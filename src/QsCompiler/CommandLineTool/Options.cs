@@ -82,7 +82,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         // Note: items in one set are mutually exclusive with items from other sets
         protected const string CODE_MODE = "codeMode";
         protected const string SNIPPET_MODE = "snippetMode";
-        protected const string RESPONSE_FILES = "responseFiles";
 
         [Option('v', "verbosity", Required = false, Default = DefaultOptions.Verbosity,
         HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
