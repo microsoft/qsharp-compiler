@@ -19,19 +19,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
 
     /// <summary>
-    /// This transformation handles the task of lifting the contents of code blocks into generated operations.
-    /// The transformation provides validation to see if any given block can safely be lifted into its own operation.
-    /// Validation requirements are that there are no return statements and that there are no set statements
-    /// on mutables declared outside the block. Setting mutables declared inside the block is valid.
-    /// A block can be checked by setting the SharedState.IsValidScope to true before traversing the scope,
-    /// then checking the SharedState.IsValidScope after traversal. Blocks should be validated before calling
-    /// the SharedState.LiftBody function, which will generate a new operation with the block's contents.
-    /// All the known variables at the start of the block will become parameters to the new operation, and 
-    /// the operation will have all the valid type parameters of the calling context as type parameters.
-    /// A call to the new operation is also returned with all the valid type parameters and known variables
-    /// being forwarded to the new operation as arguments.
+    /// Static class to accumulate all type parameter independent subclasses used by LiftContent<T>.
     /// </summary>
-    public class LiftContent : SyntaxTreeTransformation<LiftContent.TransformationState>
+    public static class LiftContent
     {
         internal class CallableDetails
         {
@@ -64,22 +54,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
         public class TransformationState
         {
+            public TransformationState()
+            {
+                IsValidScope = true;
+                ContainsParamRef = false;
+                GeneratedOpParams = ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
+            }
+
             // ToDo: It should be possible to make these three properties private, 
             // if we absorb the corresponding logic into LiftBody. 
-            public bool IsValidScope = true;
-            internal bool ContainsParamRef = false;
-            internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
-                ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
+            public bool IsValidScope { get; set; }
+            internal bool ContainsParamRef { get; set; }
+            internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams { get; set; }
 
-            internal CallableDetails CurrentCallable = null;
+            internal CallableDetails CurrentCallable { get; set; }
 
-            protected internal bool InBody = false;
-            protected internal bool InAdjoint = false;
-            protected internal bool InControlled = false;
-            protected internal bool InControlledAdjoint = false;
-            protected internal bool InWithinBlock = false;
+            protected internal bool InBody { get; set; }
+            protected internal bool InAdjoint { get; set; }
+            protected internal bool InControlled { get; set; }
+            protected internal bool InControlledAdjoint { get; set; }
+            protected internal bool InWithinBlock { get; set; }
 
-            protected internal List<QsCallable> GeneratedOperations = null;
+            protected internal List<QsCallable> GeneratedOperations { get; set; }
+
+            //bool ITransformationState.IsValidScope { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
             private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
                 QsQualifiedName callableName, ResolvedType paramsType, SpecializationImplementation bodyImplementation)
@@ -310,144 +308,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             }
         }
 
-        protected LiftContent() : base(new TransformationState())
-        {
-            this.Namespaces = new NamespaceTransformation(this);
-            this.StatementKinds = new StatementKindTransformation(this);
-            this.Expressions = new ExpressionTransformation(this);
-            this.ExpressionKinds = new ExpressionKindTransformation(this);
-            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
-        }
-
-        protected class NamespaceTransformation : NamespaceTransformation<TransformationState>
-        {
-            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
-
-            public override QsCallable OnCallableDeclaration(QsCallable c)
-            {
-                SharedState.CurrentCallable = new CallableDetails(c);
-                return base.OnCallableDeclaration(c);
-            }
-
-            public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
-            {
-                SharedState.InBody = true;
-                var rtrn = base.OnBodySpecialization(spec);
-                SharedState.InBody = false;
-                return rtrn;
-            }
-
-            public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
-            {
-                SharedState.InAdjoint = true;
-                var rtrn = base.OnAdjointSpecialization(spec);
-                SharedState.InAdjoint = false;
-                return rtrn;
-            }
-
-            public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
-            {
-                SharedState.InControlled = true;
-                var rtrn = base.OnControlledSpecialization(spec);
-                SharedState.InControlled = false;
-                return rtrn;
-            }
-
-            public override QsSpecialization OnControlledAdjointSpecialization(QsSpecialization spec)
-            {
-                SharedState.InControlledAdjoint = true;
-                var rtrn = base.OnControlledAdjointSpecialization(spec);
-                SharedState.InControlledAdjoint = false;
-                return rtrn;
-            }
-
-            public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
-
-            public override QsNamespace OnNamespace(QsNamespace ns)
-            {
-                // Generated operations list will be populated in the transform
-                SharedState.GeneratedOperations = new List<QsCallable>();
-                return base.OnNamespace(ns)
-                    .WithElements(elems => elems.AddRange(SharedState.GeneratedOperations.Select(op => QsNamespaceElement.NewQsCallable(op))));
-            }
-        }
-
-        protected class StatementKindTransformation : StatementKindTransformation<TransformationState>
-        {
-            public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
-
-            public override QsStatementKind OnConjugation(QsConjugation stm)
-            {
-                var superInWithinBlock = SharedState.InWithinBlock;
-                SharedState.InWithinBlock = true;
-                var (_, outer) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
-                SharedState.InWithinBlock = superInWithinBlock;
-
-                var (_, inner) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
-
-                return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
-            }
-
-            public override QsStatementKind OnReturnStatement(TypedExpression ex)
-            {
-                SharedState.IsValidScope = false;
-                return base.OnReturnStatement(ex);
-            }
-
-            public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
-            {
-                // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
-                var lhs = this.Expressions.OnTypedExpression(stm.Lhs);
-
-                if (SharedState.ContainsParamRef)
-                {
-                    SharedState.IsValidScope = false;
-                }
-
-                var rhs = this.Expressions.OnTypedExpression(stm.Rhs);
-                return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
-            }
-
-            public override QsStatementKind OnStatementKind(QsStatementKind kind)
-            {
-                SharedState.ContainsParamRef = false; // Every statement kind starts off false
-                return base.OnStatementKind(kind);
-            }
-        }
-
-        protected class ExpressionTransformation : ExpressionTransformation<TransformationState>
-        {
-            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
-
-            public override TypedExpression OnTypedExpression(TypedExpression ex)
-            {
-                var contextContainsParamRef = SharedState.ContainsParamRef;
-                SharedState.ContainsParamRef = false;
-                var rtrn = base.OnTypedExpression(ex);
-
-                // If the sub context contains a reference, then the super context contains a reference,
-                // otherwise return the super context to its original value
-                SharedState.ContainsParamRef |= contextContainsParamRef;
-
-                return rtrn;
-            }
-        }
-
-        protected class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
-        {
-            public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
-
-            public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
-            {
-                if (sym is Identifier.LocalVariable local &&
-                SharedState.GeneratedOpParams.Any(param => param.VariableName.Equals(local.Item)))
-                {
-                    SharedState.ContainsParamRef = true;
-                }
-                return base.OnIdentifier(sym, tArgs);
-            }
-        }
-
         /// <summary>
         /// Transformation that updates the contents of newly generated operations by:
         /// 1. Rerouting the origins of type parameter references to the new operation
@@ -555,6 +415,161 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
                     return base.OnTypeParameter(tp);
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// This transformation handles the task of lifting the contents of code blocks into generated operations.
+    /// The transformation provides validation to see if any given block can safely be lifted into its own operation.
+    /// Validation requirements are that there are no return statements and that there are no set statements
+    /// on mutables declared outside the block. Setting mutables declared inside the block is valid.
+    /// A block can be checked by setting the SharedState.IsValidScope to true before traversing the scope,
+    /// then checking the SharedState.IsValidScope after traversal. Blocks should be validated before calling
+    /// the SharedState.LiftBody function, which will generate a new operation with the block's contents.
+    /// All the known variables at the start of the block will become parameters to the new operation, and 
+    /// the operation will have all the valid type parameters of the calling context as type parameters.
+    /// A call to the new operation is also returned with all the valid type parameters and known variables
+    /// being forwarded to the new operation as arguments.
+    /// </summary>
+    public class LiftContent<T> : SyntaxTreeTransformation<T>
+        where T : LiftContent.TransformationState
+    {
+        protected LiftContent(T state) : base(state)
+        {
+            this.Namespaces = new NamespaceTransformation(this);
+            this.StatementKinds = new StatementKindTransformation(this);
+            this.Expressions = new ExpressionTransformation(this);
+            this.ExpressionKinds = new ExpressionKindTransformation(this);
+            this.Types = new TypeTransformation<T>(this, TransformationOptions.Disabled);
+        }
+
+        protected class NamespaceTransformation : NamespaceTransformation<T>
+        {
+            public NamespaceTransformation(SyntaxTreeTransformation<T> parent) : base(parent) { }
+
+            public override QsCallable OnCallableDeclaration(QsCallable c)
+            {
+                SharedState.CurrentCallable = new LiftContent.CallableDetails(c);
+                return base.OnCallableDeclaration(c);
+            }
+
+            public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
+            {
+                SharedState.InBody = true;
+                var rtrn = base.OnBodySpecialization(spec);
+                SharedState.InBody = false;
+                return rtrn;
+            }
+
+            public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
+            {
+                SharedState.InAdjoint = true;
+                var rtrn = base.OnAdjointSpecialization(spec);
+                SharedState.InAdjoint = false;
+                return rtrn;
+            }
+
+            public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
+            {
+                SharedState.InControlled = true;
+                var rtrn = base.OnControlledSpecialization(spec);
+                SharedState.InControlled = false;
+                return rtrn;
+            }
+
+            public override QsSpecialization OnControlledAdjointSpecialization(QsSpecialization spec)
+            {
+                SharedState.InControlledAdjoint = true;
+                var rtrn = base.OnControlledAdjointSpecialization(spec);
+                SharedState.InControlledAdjoint = false;
+                return rtrn;
+            }
+
+            public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
+
+            public override QsNamespace OnNamespace(QsNamespace ns)
+            {
+                // Generated operations list will be populated in the transform
+                SharedState.GeneratedOperations = new List<QsCallable>();
+                return base.OnNamespace(ns)
+                    .WithElements(elems => elems.AddRange(SharedState.GeneratedOperations.Select(op => QsNamespaceElement.NewQsCallable(op))));
+            }
+        }
+
+        protected class StatementKindTransformation : StatementKindTransformation<T>
+        {
+            public StatementKindTransformation(SyntaxTreeTransformation<T> parent) : base(parent) { }
+
+            public override QsStatementKind OnConjugation(QsConjugation stm)
+            {
+                var superInWithinBlock = SharedState.InWithinBlock;
+                SharedState.InWithinBlock = true;
+                var (_, outer) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
+                SharedState.InWithinBlock = superInWithinBlock;
+
+                var (_, inner) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
+
+                return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
+            }
+
+            public override QsStatementKind OnReturnStatement(TypedExpression ex)
+            {
+                SharedState.IsValidScope = false;
+                return base.OnReturnStatement(ex);
+            }
+
+            public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
+            {
+                // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
+                var lhs = this.Expressions.OnTypedExpression(stm.Lhs);
+
+                if (SharedState.ContainsParamRef)
+                {
+                    SharedState.IsValidScope = false;
+                }
+
+                var rhs = this.Expressions.OnTypedExpression(stm.Rhs);
+                return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
+            }
+
+            public override QsStatementKind OnStatementKind(QsStatementKind kind)
+            {
+                SharedState.ContainsParamRef = false; // Every statement kind starts off false
+                return base.OnStatementKind(kind);
+            }
+        }
+
+        protected class ExpressionTransformation : ExpressionTransformation<T>
+        {
+            public ExpressionTransformation(SyntaxTreeTransformation<T> parent) : base(parent) { }
+
+            public override TypedExpression OnTypedExpression(TypedExpression ex)
+            {
+                var contextContainsParamRef = SharedState.ContainsParamRef;
+                SharedState.ContainsParamRef = false;
+                var rtrn = base.OnTypedExpression(ex);
+
+                // If the sub context contains a reference, then the super context contains a reference,
+                // otherwise return the super context to its original value
+                SharedState.ContainsParamRef |= contextContainsParamRef;
+
+                return rtrn;
+            }
+        }
+
+        protected class ExpressionKindTransformation : ExpressionKindTransformation<T>
+        {
+            public ExpressionKindTransformation(SyntaxTreeTransformation<T> parent) : base(parent) { }
+
+            public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+            {
+                if (sym is Identifier.LocalVariable local &&
+                SharedState.GeneratedOpParams.Any(param => param.VariableName.Equals(local.Item)))
+                {
+                    SharedState.ContainsParamRef = true;
+                }
+                return base.OnIdentifier(sym, tArgs);
             }
         }
     }
