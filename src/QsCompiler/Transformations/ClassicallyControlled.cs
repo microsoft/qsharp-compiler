@@ -644,7 +644,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         QsCallableKind.Operation,
                         newName,
                         ImmutableArray<QsDeclarationAttribute>.Empty,
-                        new Modifiers(AccessModifier.Private),
+                        new Modifiers(AccessModifier.Internal),
                         CurrentCallable.Callable.SourceFile,
                         QsNullable<QsLocation>.Null,
                         signature,
