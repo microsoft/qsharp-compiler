@@ -54,30 +54,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
         public class TransformationState
         {
-            public TransformationState()
-            {
-                IsValidScope = true;
-                ContainsParamRef = false;
-                GeneratedOpParams = ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
-            }
-
             // ToDo: It should be possible to make these three properties private, 
             // if we absorb the corresponding logic into LiftBody. 
-            public bool IsValidScope { get; set; }
-            internal bool ContainsParamRef { get; set; }
-            internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams { get; set; }
+            public bool IsValidScope = true;
+            internal bool ContainsParamRef = false;
+            internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
+                ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty;
 
-            internal CallableDetails CurrentCallable { get; set; }
+            internal CallableDetails CurrentCallable = null;
 
-            protected internal bool InBody { get; set; }
-            protected internal bool InAdjoint { get; set; }
-            protected internal bool InControlled { get; set; }
-            protected internal bool InControlledAdjoint { get; set; }
-            protected internal bool InWithinBlock { get; set; }
+            protected internal bool InBody = false;
+            protected internal bool InAdjoint = false;
+            protected internal bool InControlled = false;
+            protected internal bool InControlledAdjoint = false;
+            protected internal bool InWithinBlock = false;
 
-            protected internal List<QsCallable> GeneratedOperations { get; set; }
-
-            //bool ITransformationState.IsValidScope { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+            protected internal List<QsCallable> GeneratedOperations = null;
 
             private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
                 QsQualifiedName callableName, ResolvedType paramsType, SpecializationImplementation bodyImplementation)
