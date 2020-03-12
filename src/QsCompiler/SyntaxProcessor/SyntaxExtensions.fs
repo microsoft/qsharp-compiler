@@ -268,7 +268,6 @@ let private showModifiers kind modifiers =
     match modifiers.Access with
     | DefaultAccess -> kind
     | Internal -> "internal " + kind
-    | Private -> "private " + kind
 
 type private TName () = 
     inherit SyntaxTreeToQsharp.TypeTransformation() 

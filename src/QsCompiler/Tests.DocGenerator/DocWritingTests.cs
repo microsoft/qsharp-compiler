@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
         public void ExcludeInaccessible()
         {
             var elements =
-                new[] { AccessModifier.DefaultAccess, AccessModifier.Internal, AccessModifier.Private }
+                new[] { AccessModifier.DefaultAccess, AccessModifier.Internal }
                 .SelectMany(access =>
                 {
                     var source = NonNullable<string>.New("Tests.qs");

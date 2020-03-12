@@ -78,8 +78,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(TypeDeclarationHeader.FromJson).Select(built => built.Item2);
 
         /// <summary>
-        /// Renames all private and internal declarations in the headers to have names that are based on the ID of the
-        /// referenced assembly.
+        /// Renames all internal declarations in the headers to have names that are based on the ID of the referenced
+        /// assembly.
         /// </summary>
         /// <param name="id">A number uniquely identifying the referenced assembly that contains the headers.</param>
         /// <param name="source">The path to the assembly that is the source of the given headers.</param>
@@ -87,13 +87,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <returns></returns>
         private static Headers RenameInternals(int id, string source, Headers headers)
         {
-            static bool IsInternal(AccessModifier access) => access.IsInternal || access.IsPrivate;
-
             var internalNames = headers.Callables
-                .Where(callable => IsInternal(callable.Modifiers.Access))
+                .Where(callable => callable.Modifiers.Access.IsInternal)
                 .Select(callable => callable.QualifiedName)
                 .Concat(headers.Types
-                    .Where(type => IsInternal(type.Modifiers.Access))
+                    .Where(type => type.Modifiers.Access.IsInternal)
                     .Select(type => type.QualifiedName))
                 .ToImmutableDictionary(name => name, name => GetNewNameForInternal(id, name));
             var rename = new RenameReferences(internalNames);

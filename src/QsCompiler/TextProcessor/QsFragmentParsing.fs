@@ -115,7 +115,7 @@ let private allocationScope =
 
 /// Parses keywords that modify the visibility or behavior of a declaration.
 let private modifiers =
-    let accessModifier = (qsPrivate.parse >>% Private) <|> (qsInternal.parse >>% Internal) <|>% DefaultAccess
+    let accessModifier = (qsInternal.parse >>% Internal) <|>% DefaultAccess
     accessModifier |>> fun access -> {Access = access}
 
 /// Parses a Q# operation or function signature. 
@@ -465,11 +465,10 @@ let private fragments =
         (bodyDeclHeader, bodyDeclaration)
         (importDirectiveHeader, openDirective)
 
-        // These fragment headers do not have their own fragment kind. Instead, they are only parsed as part of another
-        // fragment kind. If one of these headers occurs by itself, without the other header it's a part of, an invalid
-        // fragment should be created. Since they're at the end of the list, we know that all of the other fragment
-        // kinds have been tried first.
-        (qsPrivate, buildInvalidFragment qsPrivate.parse)
+        // This fragment header does not have its own fragment kind. Instead, it is only parsed as part of another
+        // fragment kind. If this header occurs by itself, without the other header it's a part of, an invalid fragment
+        // should be created. Since it's at the end of the list, we know that all of the other fragment kinds have been
+        // tried first.
         (qsInternal, buildInvalidFragment qsInternal.parse)
     ]
 

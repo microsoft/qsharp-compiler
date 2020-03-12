@@ -201,9 +201,6 @@ type AccessModifier =
     /// Internal access means that a type or callable may only be used from within the compilation unit in which it is
     /// declared.
     | Internal
-    /// Private access means that a type or callable may only be used from within the compilation unit and namespace in
-    /// which it is declared.
-    | Private
 
 /// Used to represent Q# keywords that may be attached to a declaration to modify its visibility or behavior.
 [<Struct>]

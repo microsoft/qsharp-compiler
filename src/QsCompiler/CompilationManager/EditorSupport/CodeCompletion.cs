@@ -333,7 +333,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (currentNamespace == null || !compilation.GlobalSymbols.ContainsResolutions)
                 return Array.Empty<CompletionItem>();
             return
-                compilation.GlobalSymbols.AccessibleCallables(NonNullable<string>.New(currentNamespace))
+                compilation.GlobalSymbols.AccessibleCallables()
                 .Where(callable =>
                     IsAccessibleAsUnqualifiedName(callable.QualifiedName, currentNamespace, openNamespaces))
                 .Select(callable => new CompletionItem()
@@ -372,7 +372,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (currentNamespace == null || !compilation.GlobalSymbols.ContainsResolutions)
                 return Array.Empty<CompletionItem>();
             return
-                compilation.GlobalSymbols.AccessibleTypes(NonNullable<string>.New(currentNamespace))
+                compilation.GlobalSymbols.AccessibleTypes()
                 .Where(type => IsAccessibleAsUnqualifiedName(type.QualifiedName, currentNamespace, openNamespaces))
                 .Select(type => new CompletionItem()
                 {
@@ -401,7 +401,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (currentNamespace == null || !compilation.GlobalSymbols.ContainsResolutions)
                 return Array.Empty<CompletionItem>();
-            return compilation.GlobalSymbols.AccessibleTypes(NonNullable<string>.New(currentNamespace))
+            return compilation.GlobalSymbols.AccessibleTypes()
                 .SelectMany(type => ExtractItems(type.TypeItems))
                 .Where(item => item.IsNamed)
                 .Select(item => new CompletionItem()

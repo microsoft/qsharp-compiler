@@ -24,7 +24,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.ParsingPrimitive
 
 /// Parses a declaration modifier list.
 let private modifiers =
-    expectedKeyword qsPrivate <|>@ expectedKeyword qsInternal
+    expectedKeyword qsInternal
 
 /// Parses a callable signature.
 let private callableSignature =

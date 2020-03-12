@@ -54,8 +54,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             idName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
             var nsName = file.TryGetNamespaceAt(pos);
             return idName != null && compilation != null && nsName != null
-                ? compilation.GlobalSymbols.NamespacesContainingCallable(NonNullable<string>.New(idName),
-                                                                         NonNullable<string>.New(nsName))
+                ? compilation.GlobalSymbols.NamespacesContainingCallable(NonNullable<string>.New(idName))
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
 
@@ -77,8 +76,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? udt.Item.Symbol.AsDeclarationName(null) : null;
             var nsName = file.TryGetNamespaceAt(pos);
             return typeName != null && compilation != null && nsName != null
-                ? compilation.GlobalSymbols.NamespacesContainingType(NonNullable<string>.New(typeName),
-                                                                     NonNullable<string>.New(nsName))
+                ? compilation.GlobalSymbols.NamespacesContainingType(NonNullable<string>.New(typeName))
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
 
