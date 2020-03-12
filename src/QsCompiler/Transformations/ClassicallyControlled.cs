@@ -766,14 +766,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
         }
 
-        private class LiftContent : ContentLifting.LiftContent
+        private class LiftContent : ContentLifting.LiftContent<LiftContent.TransformationState>
         {
-            public LiftContent() : base()
+            internal class TransformationState : ContentLifting.LiftContent.TransformationState
+            { 
+                // here is where additional handles would go
+            }
+
+            public LiftContent() : base(new TransformationState())
             {
                 this.StatementKinds = new StatementKindTransformation(this);
             }
 
-            private new class StatementKindTransformation : ContentLifting.LiftContent.StatementKindTransformation
+            private new class StatementKindTransformation : ContentLifting.LiftContent<TransformationState>.StatementKindTransformation
             {
                 public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
