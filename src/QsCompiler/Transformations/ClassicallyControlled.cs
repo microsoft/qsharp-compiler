@@ -165,7 +165,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     var properties = new[] { OpProperty.Adjointable, OpProperty.Controllable };
                     var characteristics = new CallableInformation(
                         ResolvedCharacteristics.FromProperties(properties),
-                        InferredCallableInformation.NoInformation); // ToDo: Set the IsSelfAdjoint flag appropriately
+                        new InferredCallableInformation(((BuiltInKind.Operation)opInfo.Kind).IsSelfAdjoint, false));
 
                     var unitType = ResolvedType.New(ResolvedTypeKind.UnitType);
                     var operationType = ResolvedType.New(ResolvedTypeKind.NewOperation(
@@ -182,10 +182,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     var identifier = new TypedExpression(
                         ExpressionKind.NewIdentifier(
-                            Identifier.NewGlobalCallable(new QsQualifiedName(opInfo.Namespace, opInfo.Name)),
+                            Identifier.NewGlobalCallable(opInfo.FullName),
                             QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs)),
                         typeArgs
-                            .Zip(opInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(opInfo.Namespace, opInfo.Name), param, type))
+                            .Zip(((BuiltInKind.Operation)opInfo.Kind).TypeParameters, (type, param) => Tuple.Create(opInfo.FullName, param, type))
                             .ToImmutableArray(),
                         operationType,
                         new InferredExpressionInformation(false, false),
@@ -215,7 +215,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 {
                     var characteristics = new CallableInformation(
                         ResolvedCharacteristics.FromProperties(properties),
-                        InferredCallableInformation.NoInformation); // ToDo: Set the IsSelfAdjoint flag appropriately
+                        new InferredCallableInformation(((BuiltInKind.Operation)opInfo.Kind).IsSelfAdjoint, false));
 
                     var unitType = ResolvedType.New(ResolvedTypeKind.UnitType);
                     var operationType = ResolvedType.New(ResolvedTypeKind.NewOperation(
@@ -225,12 +225,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     // Build the surrounding control call
                     var identifier = new TypedExpression(
                         ExpressionKind.NewIdentifier(
-                            Identifier.NewGlobalCallable(new QsQualifiedName(opInfo.Namespace, opInfo.Name)),
+                            Identifier.NewGlobalCallable(opInfo.FullName),
                             typeArgs.Any()
                             ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs.ToImmutableArray())
                             : QsNullable<ImmutableArray<ResolvedType>>.Null),
                         typeArgs
-                            .Zip(opInfo.TypeParameters, (type, param) => Tuple.Create(new QsQualifiedName(opInfo.Namespace, opInfo.Name), param, type))
+                            .Zip(((BuiltInKind.Operation)opInfo.Kind).TypeParameters, (type, param) => Tuple.Create(opInfo.FullName, param, type))
                             .ToImmutableArray(),
                         operationType,
                         new InferredExpressionInformation(false, false),
@@ -338,7 +338,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         equality,
                         inequality);
                     var targetArgsTypes = ImmutableArray.Create(equalityArgs.ResolvedType, inequalityArgs.ResolvedType);
-                    
+
                     return CreateControlCall(controlOpInfo, props, controlArgs, targetArgsTypes);
                 }
 
@@ -493,7 +493,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             // The scope arguments are reversed to account for the negation of the NEQ
                             return CreateControlStatement(statement, CreateApplyConditionallyExpression(lhsConditionExpression, rhsConditionExpression, defaultScope, conditionScope));
                         }
-                        
+
                         // ToDo: Diagnostic message
                         return statement; // The condition does not fit a supported format.
                     }

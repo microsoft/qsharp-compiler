@@ -54,8 +54,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
         public class TransformationState
         {
-            // ToDo: It should be possible to make these three properties private, 
-            // if we absorb the corresponding logic into LiftBody. 
+            // ToDo: It should be possible to make these three properties private,
+            // if we absorb the corresponding logic into LiftBody.
             public bool IsValidScope = true;
             internal bool ContainsParamRef = false;
             internal ImmutableArray<LocalVariableDeclaration<NonNullable<string>>> GeneratedOpParams =
@@ -222,7 +222,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             /// The generated operation is returned, along with a call to the new operation is
             /// also returned with all the type parameters and known variables being forwarded to
             /// the new operation as arguments.
-            /// 
+            ///
             /// The given body should be validated with the SharedState.IsValidScope before using this function.
             /// </summary>
             public bool LiftBody(QsScope body, out QsCallable callable, out QsStatement callStatement)
@@ -430,7 +430,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     /// A block can be checked by setting the SharedState.IsValidScope to true before traversing the scope,
     /// then checking the SharedState.IsValidScope after traversal. Blocks should be validated before calling
     /// the SharedState.LiftBody function, which will generate a new operation with the block's contents.
-    /// All the known variables at the start of the block will become parameters to the new operation, and 
+    /// All the known variables at the start of the block will become parameters to the new operation, and
     /// the operation will have all the valid type parameters of the calling context as type parameters.
     /// A call to the new operation is also returned with all the valid type parameters and known variables
     /// being forwarded to the new operation as arguments.
