@@ -318,7 +318,7 @@ type ClassicalControlTests () =
         let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
-        let (success, _, subArgs, _, _) = IsApplyIfElseArgsMatch args "r" BuiltIn.ApplyIfElseRCA.FullName elseOp
+        let (success, _, subArgs, _, _) = IsApplyIfElseArgsMatch args "r" BuiltIn.ApplyIfElseR.FullName elseOp
         Assert.True(success, errorMsg)
         IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
