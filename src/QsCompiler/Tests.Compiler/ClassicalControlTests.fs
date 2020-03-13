@@ -69,7 +69,7 @@ type ClassicalControlTests () =
         |> writer.Statements.OnScope
         |> ignore
 
-        writer.SharedState.StatementOutputHandle 
+        writer.SharedState.StatementOutputHandle
         |> Seq.filter (not << String.IsNullOrWhiteSpace)
         |> Seq.toArray
 
@@ -121,7 +121,7 @@ type ClassicalControlTests () =
     let AssertSpecializationHasCalls specialization calls =
         Assert.True(CheckIfSpecializationHasCalls specialization calls, sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind)
 
-    let ExpandBuiltInQualifiedSymbol (i, (builtin : BuiltIn)) = (i, builtin.Namespace.Value, builtin.Name.Value)
+    let ExpandBuiltInQualifiedSymbol (i, (builtin : BuiltIn)) = (i, builtin.FullName.Namespace.Value, builtin.FullName.Name.Value)
 
     let IdentifyGeneratedByCalls generatedCallables calls =
         let mutable callables = generatedCallables |> Seq.map (fun x -> x, x |> (GetBodyFromCallable >> GetLinesFromSpecialization))
@@ -163,13 +163,13 @@ type ClassicalControlTests () =
         |> (fun x -> x.Value)
 
     let ApplyIfElseTest compilation =
-        
+
         let original = GetCallableWithName compilation Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
         Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
-        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.Namespace.Value BuiltIn.ApplyIfElseR.Name.Value lines.[1]
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         targs, args
@@ -271,10 +271,10 @@ type ClassicalControlTests () =
     [<Trait("Category","Condition API Conversion")>]
     member this.``Apply If Zero Else One`` () =
         let (targs, args) = CompileClassicalControlTest 8 |> ApplyIfElseTest
-        
+
         let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
         let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
-        
+
         IsApplyIfElseArgsMatch args "r" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
@@ -304,7 +304,7 @@ type ClassicalControlTests () =
         let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp3"}
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
-        let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
+        let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp BuiltIn.ApplyIfElseR.FullName
         Assert.True(success, errorMsg)
         IsApplyIfElseArgsMatch subArgs "r" elseOp elifOp // elif and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
@@ -318,7 +318,7 @@ type ClassicalControlTests () =
         let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
-        let (success, _, subArgs, _, _) = IsApplyIfElseArgsMatch args "r" { Namespace = BuiltIn.ApplyIfElseRCA.Namespace; Name = BuiltIn.ApplyIfElseR.Name } elseOp
+        let (success, _, subArgs, _, _) = IsApplyIfElseArgsMatch args "r" BuiltIn.ApplyIfElseRCA.FullName elseOp
         Assert.True(success, errorMsg)
         IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
@@ -332,7 +332,7 @@ type ClassicalControlTests () =
         let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
-        let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp { Namespace = BuiltIn.ApplyIfElseR.Namespace; Name = BuiltIn.ApplyIfElseR.Name }
+        let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp BuiltIn.ApplyIfElseR.FullName
         Assert.True(success, errorMsg)
         IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
@@ -385,7 +385,7 @@ type ClassicalControlTests () =
 
         // Assert that the original operation calls the generated operation with the appropriate type arguments
         let lines = GetBodyFromCallable original |> GetLinesFromSpecialization
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZero.Namespace.Value BuiltIn.ApplyIfZero.Name.Value lines.[1]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace.Value BuiltIn.ApplyIfZero.FullName.Name.Value lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.FullName QsSpecializationKind.QsBody)
 
         let (success, typeArgs, _) = IsApplyIfArgMatch args "r" generated.FullName
@@ -1179,7 +1179,7 @@ type ClassicalControlTests () =
         AssertCallSupportsFunctors [QsFunctor.Adjoint] outerOp
 
         let lines = GetLinesFromSpecialization original
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZeroA.Namespace.Value BuiltIn.ApplyIfZeroA.Name.Value lines.[2]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZeroA.FullName.Namespace.Value BuiltIn.ApplyIfZeroA.FullName.Name.Value lines.[2]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody)
 
         let (success, _, _) = IsApplyIfArgMatch args "r" outerOp.FullName
@@ -1193,7 +1193,7 @@ type ClassicalControlTests () =
         let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         let lines = GetLinesFromSpecialization original
-        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZero.Namespace.Value BuiltIn.ApplyIfZero.Name.Value lines.[1]
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace.Value BuiltIn.ApplyIfZero.FullName.Name.Value lines.[1]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody)
 
         let (success, typeArgs, _) = IsApplyIfArgMatch args "r" {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
@@ -1235,12 +1235,12 @@ type ClassicalControlTests () =
 
         Assert.True(3 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
-        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.Namespace.Value BuiltIn.ApplyConditionally.Name.Value lines.[2]
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.FullName.Namespace.Value BuiltIn.ApplyConditionally.FullName.Name.Value lines.[2]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
         let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
-        
+
         IsApplyIfElseArgsMatch args "[r1], [r2]" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
 
@@ -1256,12 +1256,12 @@ type ClassicalControlTests () =
 
         Assert.True(3 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
-        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.Namespace.Value BuiltIn.ApplyConditionally.Name.Value lines.[2]
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.FullName.Namespace.Value BuiltIn.ApplyConditionally.FullName.Name.Value lines.[2]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
         let NoOp = {Namespace = NonNullable<_>.New "Microsoft.Quantum.Canon"; Name = NonNullable<_>.New "NoOp"}
-        
+
         IsApplyIfElseArgsMatch args "[r1], [r2]" Bar NoOp
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
 
@@ -1271,18 +1271,18 @@ type ClassicalControlTests () =
     [<Trait("Category","Inequality Condition")>]
     member this.``Inequality with ApplyConditionally`` () =
         let result = CompileClassicalControlTest 31
-        
+
         let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
         Assert.True(3 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
 
-        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.Namespace.Value BuiltIn.ApplyConditionally.Name.Value lines.[2]
+        let (success, targs, args) = CheckIfLineIsCall BuiltIn.ApplyConditionally.FullName.Namespace.Value BuiltIn.ApplyConditionally.FullName.Name.Value lines.[2]
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
         let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
-        
+
         IsApplyIfElseArgsMatch args "[r1], [r2]" SubOp1 Bar
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyConditionally did not have the correct arguments"))
 
@@ -1292,23 +1292,23 @@ type ClassicalControlTests () =
     [<Trait("Category","Inequality Condition")>]
     member this.``Inequality with Apply If One Else Zero`` () =
         let (targs, args) = CompileClassicalControlTest 32 |> ApplyIfElseTest
-        
+
         let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
         let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
-        
+
         IsApplyIfElseArgsMatch args "r" SubOp1 Bar
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
-        
+
         Assert.True(IsTypeArgsMatch targs "Unit, Result", "ApplyIfElse did not have the correct type arguments")
 
     [<Fact>]
     [<Trait("Category","Inequality Condition")>]
     member this.``Inequality with Apply If Zero Else One`` () =
         let (targs, args) = CompileClassicalControlTest 33 |> ApplyIfElseTest
-        
+
         let Bar = {Namespace = NonNullable<_>.New Signatures.ClassicalControlNs; Name = NonNullable<_>.New "Bar"}
         let SubOp1 = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
-        
+
         IsApplyIfElseArgsMatch args "r" Bar SubOp1
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
 
@@ -1318,7 +1318,7 @@ type ClassicalControlTests () =
     [<Trait("Category","Inequality Condition")>]
     member this.``Inequality with ApplyIfOne`` () =
         let result = CompileClassicalControlTest 34
-        
+
         let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         [ (1, BuiltIn.ApplyIfOne) ]
@@ -1329,7 +1329,7 @@ type ClassicalControlTests () =
     [<Trait("Category","Inequality Condition")>]
     member this.``Inequality with ApplyIfZero`` () =
         let result = CompileClassicalControlTest 35
-        
+
         let originalOp = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
 
         [ (1, BuiltIn.ApplyIfZero) ]
