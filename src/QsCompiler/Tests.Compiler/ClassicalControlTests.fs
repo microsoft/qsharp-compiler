@@ -23,12 +23,8 @@ type ClassicalControlTests () =
     let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
-    do let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
-       Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
-       Path.Combine ("TestCases", "LinkingTests", "QuantumProcessorExtensions.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
-
     let ReadAndChunkSourceFile fileName =
-        let sourceInput = Path.Combine ("TestCases", "LinkingTests", fileName) |> File.ReadAllText
+        let sourceInput = Path.Combine ("TestCases", fileName) |> File.ReadAllText
         sourceInput.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
 
     let BuildContent content =
@@ -212,8 +208,8 @@ type ClassicalControlTests () =
         Assert.True(DoesCallSupportFunctors expectedFunctors call, sprintf "Callable %O did not support the expected functors" call.FullName)
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Basic Hoist`` () =
+    [<Trait("Category","Content Lifting")>]
+    member this.``Basic Lift`` () =
         let result = CompileClassicalControlTest 1
 
         let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
@@ -227,30 +223,30 @@ type ClassicalControlTests () =
         |> AssertSpecializationHasCalls generated
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Hoist Loops`` () =
+    [<Trait("Category","Content Lifting")>]
+    member this.``Lift Loops`` () =
         CompileClassicalControlTest 2 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Don't Hoist Single Call`` () =
-        // Single calls should not be hoisted into their own operation
+    [<Trait("Category","Content Lifting")>]
+    member this.``Don't Lift Single Call`` () =
+        // Single calls should not be lifted into their own operation
         CompileClassicalControlTest 3 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Hoist Single Non-Call`` () =
-        // Single expressions that are not calls should be hoisted into their own operation
+    [<Trait("Category","Content Lifting")>]
+    member this.``Lift Single Non-Call`` () =
+        // Single expressions that are not calls should be lifted into their own operation
         CompileClassicalControlTest 4 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Don't Hoist Return Statements`` () =
+    [<Trait("Category","Content Lifting")>]
+    member this.``Don't Lift Return Statements`` () =
         CompileClassicalControlTest 5 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``All-Or-None Hoisting`` () =
+    [<Trait("Category","Content Lifting")>]
+    member this.``All-Or-None Lifting`` () =
         CompileClassicalControlTest 6 |> ignore
 
     [<Fact>]
@@ -338,18 +334,18 @@ type ClassicalControlTests () =
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Don't Hoist Functions`` () =
+    [<Trait("Category","Content Lifting")>]
+    member this.``Don't Lift Functions`` () =
         CompileClassicalControlTest 13 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Hoist Self-Contained Mutable`` () =
+    [<Trait("Category","Content Lifting")>]
+    member this.``Lift Self-Contained Mutable`` () =
         CompileClassicalControlTest 14 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Don't Hoist General Mutable`` () =
+    [<Trait("Category","Content Lifting")>]
+    member this.``Don't Lift General Mutable`` () =
         CompileClassicalControlTest 15 |> ignore
 
     [<Fact>]
@@ -1202,27 +1198,27 @@ type ClassicalControlTests () =
         Assert.True((typeArgs = "Int, Double"), "Bar did not have the correct type arguments")
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Hoist Functor Application`` () =
+    [<Trait("Category","Content Lifting")>]
+    member this.``Lift Functor Application`` () =
         CompileClassicalControlTest 25 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Hoist Partial Application`` () =
+    [<Trait("Category","Content Lifting")>]
+    member this.``Lift Partial Application`` () =
         CompileClassicalControlTest 26 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Hoist Array Item Call`` () =
+    [<Trait("Category","Content Lifting")>]
+    member this.``Lift Array Item Call`` () =
         CompileClassicalControlTest 27 |> ignore
 
     [<Fact>]
-    [<Trait("Category","Content Hoisting")>]
-    member this.``Hoist One Not Both`` () =
-        // If hoisting is not needed on one of the blocks, it should not
-        // prevent the other blocks from being hoisted, as it would in
+    [<Trait("Category","Content Lifting")>]
+    member this.``Lift One Not Both`` () =
+        // If lifting is not needed on one of the blocks, it should not
+        // prevent the other blocks from being lifted, as it would in
         // the All-Or-Nothing test where a block is *invalid* for
-        // hoisting due to a set statement or return statement.
+        // lifting due to a set statement or return statement.
         CompileClassicalControlTest 28 |> ignore
 
     [<Fact>]
