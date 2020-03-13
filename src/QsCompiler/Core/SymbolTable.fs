@@ -334,16 +334,6 @@ and Namespace private
             isAvailableWith partial.TryGetCallable (fun c -> (snd c).Modifiers.Access) true &&
             isAvailableWith partial.TryGetType (fun t -> t.Modifiers.Access) true)
 
-    /// Given a selector, determines the source files for which the given selector returns a Value.
-    /// Returns that Value if exactly one such source file exists, or Null if no such file exists.
-    /// Note that files contained in referenced assemblies are *not* considered to be source files for the namespace!
-    /// Throws an ArgumentException if the selector returns a Value for more than one source file. 
-    let FromSingleSource (selector : PartialNamespace -> _ Option) = 
-        let sources = Parts.Values |> Seq.choose selector
-        if sources.Count() > 1 then ArgumentException "given selector selects more than one partial namespace" |> raise
-        if sources.Any() then Value (sources.Single()) else Null
-
-
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
     /// the same assembly as the declaration, and the declaration's access modifier.
     static member internal IsDeclarationAccessible sameAssembly = function
@@ -839,20 +829,6 @@ and NamespaceManager
         match Namespaces.TryGetValue nsName with 
         | true, ns -> ns, ns.ImportedNamespaces source |> Seq.choose isKnownAndNotAliased |> Seq.toList 
         | false, _ -> ArgumentException("no namespace with the given name exists") |> raise
-
-    /// If the given function containsSymbol returns a Value for the namespace with the given name,  
-    /// returns a list containing only a single tuple with the given namespace name and the returned value.  
-    /// Otherwise returns a list with all possible (namespaceName, returnedValue) tuples that yielded non-Null values 
-    /// for namespaces opened within the given namespace and source file.
-    /// Throws an ArgumentException if no namespace with the given name exists, 
-    /// or the given source file is not listed as source of that namespace.  
-    let PossibleResolutions containsSymbol (nsName, source) = 
-        let containsSource (arg : Namespace) = 
-            containsSymbol arg |> QsNullable<_>.Map (fun source -> (arg.Name, source)) 
-        let currentNS, importedNS = OpenNamespaces (nsName, source)
-        currentNS |> containsSource |> function
-        | Value (nsName, source) -> [(nsName, source)]
-        | Null -> importedNS |> List.choose (containsSource >> function | Value v -> Some v | Null -> None)
 
     /// Calls the resolver function on each namespace opened within the given namespace name and source file, and
     /// attempts to find an unambiguous resolution.
