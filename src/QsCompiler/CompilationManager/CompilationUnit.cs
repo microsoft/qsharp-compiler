@@ -716,6 +716,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .ToImmutableDictionary(item => item.key, item => item.value);
 
             QsQualifiedName GetNewName(QsQualifiedName name, string source) =>
+                // TODO: We might need to change the name format to make it easier to reverse later.
                 new QsQualifiedName(name.Namespace, NonNullable<string>.New($"__{name.Name.Value}_{tags[source]}__"));
 
             ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
