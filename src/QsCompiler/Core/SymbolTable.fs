@@ -407,30 +407,44 @@ and Namespace private
         | true, partial -> partial.NamespaceShortNames
         | false, _ -> ArgumentException "given source file is not listed as a source file for this namespace" |> raise
 
-    /// If a type with the given name is defined in the specified source file or reference, 
-    /// checks if that type has been marked as attribute and returns its underlying type if it has. 
-    /// A type is considered to be marked as attribute if the list of defined attributes contains an attribute 
-    /// with name "Attribute" that is qualified by any of the given possible qualifications. 
+    /// If a type with the given name is defined in the specified source file or reference,
+    /// checks if that type has been marked as attribute and returns its underlying type if it has.
+    /// A type is considered to be marked as attribute if the list of defined attributes contains an attribute
+    /// with name "Attribute" that is qualified by any of the given possible qualifications.
     /// If the list of possible qualifications contains an empty string, then the "Attribute" may be unqualified.
     /// Throws an ArgumentException if no such type exists in any of the references and the source file is not listed as source file of the namespace.
-    /// Throws an InvalidOperationExeception if the corresponding type has not been resolved. 
-    member internal this.TryGetAttributeDeclaredIn source (attName, possibleQualifications : _ seq) = 
-        let marksAttribute (t : QsDeclarationAttribute) = t.TypeId |> function 
-            | Value id -> id.Namespace.Value = BuiltIn.Attribute.Namespace.Value && id.Name.Value = BuiltIn.Attribute.Name.Value
+    /// Throws an InvalidOperationExeception if the corresponding type has not been resolved.
+    member internal this.TryGetAttributeDeclaredIn source (attName, possibleQualifications : _ seq) =
+        let marksAttribute (t : QsDeclarationAttribute) = t.TypeId |> function
+            | Value id ->
+                id.Namespace.Value = BuiltIn.Attribute.Namespace.Value &&
+                id.Name.Value = BuiltIn.Attribute.Name.Value
             | Null -> false
-        let missingResolutionException () = InvalidOperationException "cannot get unresolved attribute" |> raise 
-        let compareAttributeName (att : AttributeAnnotation) = att.Id.Symbol |> function 
-            | Symbol sym when sym.Value = BuiltIn.Attribute.Name.Value && possibleQualifications.Contains "" -> true
-            | QualifiedSymbol (ns, sym) when sym.Value = BuiltIn.Attribute.Name.Value && possibleQualifications.Contains ns.Value -> true
+
+        let missingResolutionException () = InvalidOperationException "cannot get unresolved attribute" |> raise
+
+        let compareAttributeName (att : AttributeAnnotation) =
+            match att.Id.Symbol with
+            | Symbol sym when sym.Value = BuiltIn.Attribute.Name.Value && possibleQualifications.Contains "" ->
+                true
+            | QualifiedSymbol (ns, sym) when sym.Value = BuiltIn.Attribute.Name.Value &&
+                                             possibleQualifications.Contains ns.Value ->
+                true
             | _ -> false
-        match TypesInReferences.TryGetValue attName with 
-        | true, tDecl -> if tDecl.Attributes |> Seq.exists marksAttribute then Some tDecl.Type else None
-        | false, _ -> Parts.TryGetValue source |> function // ok only because/if we have covered that the type is not in a reference!
-            | false, _ -> ArgumentException "given source file is not listed as source of the namespace" |> raise
-            | true, partialNS -> partialNS.TryGetType attName |> function 
-                | true, resolution when resolution.DefinedAttributes |> Seq.exists compareAttributeName -> 
-                    resolution.Resolved.ValueOrApply missingResolutionException |> fst |> Some
-                | _ -> None
+
+        match Parts.TryGetValue source with
+        | true, partial ->
+            match partial.TryGetType attName with
+            | true, resolution when Seq.exists compareAttributeName resolution.DefinedAttributes ->
+                resolution.Resolved.ValueOrApply missingResolutionException |> fst |> Some
+            | _ -> None
+        | false, _ ->
+            match TypesInReferences.TryGetValue attName with
+            | true, qsType ->
+                if Seq.exists marksAttribute qsType.Attributes
+                then Some qsType.Type
+                else None
+            | false, _ -> ArgumentException "Given source file is not part of the namespace" |> raise
 
     /// Returns the type with the given name defined in the given source file within this namespace.
     /// Note that files contained in referenced assemblies are *not* considered to be source files for the namespace!
