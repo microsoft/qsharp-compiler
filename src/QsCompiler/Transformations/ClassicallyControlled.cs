@@ -165,7 +165,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     var properties = new[] { OpProperty.Adjointable, OpProperty.Controllable };
                     var characteristics = new CallableInformation(
                         ResolvedCharacteristics.FromProperties(properties),
-                        InferredCallableInformation.NoInformation); // ToDo: Set the IsSelfAdjoint flag appropriately
+                        new InferredCallableInformation(((BuiltInKind.Operation)opInfo.Kind).IsSelfAdjoint, false));
 
                     var unitType = ResolvedType.New(ResolvedTypeKind.UnitType);
                     var operationType = ResolvedType.New(ResolvedTypeKind.NewOperation(
@@ -215,7 +215,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 {
                     var characteristics = new CallableInformation(
                         ResolvedCharacteristics.FromProperties(properties),
-                        InferredCallableInformation.NoInformation); // ToDo: Set the IsSelfAdjoint flag appropriately
+                        new InferredCallableInformation(((BuiltInKind.Operation)opInfo.Kind).IsSelfAdjoint, false));
 
                     var unitType = ResolvedType.New(ResolvedTypeKind.UnitType);
                     var operationType = ResolvedType.New(ResolvedTypeKind.NewOperation(
