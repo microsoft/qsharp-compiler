@@ -18,16 +18,8 @@ type BuiltIn = {
     FullName : QsQualifiedName
     /// contains the specific kind of built-in this is, as well as information specific to that kind
     Kind : BuiltInKind
-
-
-    /// contains the name of the callable
-    //Name : NonNullable<string>
-    /// contains the name of the namespace in which the callable is defined
-    //Namespace : NonNullable<string>
-    /// contains the names of the type parameters without the leading tick (')
-    //TypeParameters : ImmutableArray<NonNullable<string>>
 }
-    with 
+    with
     static member CoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
     static member CanonNamespace = NonNullable<string>.New "Microsoft.Quantum.Canon"
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
@@ -39,23 +31,23 @@ type BuiltIn = {
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
 
     /// Returns all valid targets for executing Q# code.
-    static member ValidExecutionTargets = 
+    static member ValidExecutionTargets =
         // Note: If this is adapted, then the error message for InvalidExecutionTargetForTest needs to be adapted as well.
-        ["QuantumSimulator"; "ToffoliSimulator"; "ResourcesEstimator"] 
+        ["QuantumSimulator"; "ToffoliSimulator"; "ResourcesEstimator"]
         |> ImmutableHashSet.CreateRange
 
-    /// Returns true if the given attribute marks the corresponding declaration as entry point. 
-    static member MarksEntryPoint (att : QsDeclarationAttribute) = att.TypeId |> function 
+    /// Returns true if the given attribute marks the corresponding declaration as entry point.
+    static member MarksEntryPoint (att : QsDeclarationAttribute) = att.TypeId |> function
         | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.FullName.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.FullName.Name.Value
         | Null -> false
 
-    /// Returns true if the given attribute marks the corresponding declaration as deprecated. 
-    static member MarksDeprecation (att : QsDeclarationAttribute) = att.TypeId |> function 
+    /// Returns true if the given attribute marks the corresponding declaration as deprecated.
+    static member MarksDeprecation (att : QsDeclarationAttribute) = att.TypeId |> function
         | Value tId -> tId.Namespace.Value = BuiltIn.Deprecated.FullName.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.FullName.Name.Value
         | Null -> false
 
-    /// Returns true if the given attribute marks the corresponding declaration as unit test. 
-    static member MarksTestOperation (att : QsDeclarationAttribute) = att.TypeId |> function 
+    /// Returns true if the given attribute marks the corresponding declaration as unit test.
+    static member MarksTestOperation (att : QsDeclarationAttribute) = att.TypeId |> function
         | Value tId -> tId.Namespace.Value = BuiltIn.Test.FullName.Namespace.Value && tId.Name.Value = BuiltIn.Test.FullName.Name.Value
         | Null -> false
 
@@ -77,17 +69,17 @@ type BuiltIn = {
         Kind = Attribute
     }
 
-    static member EntryPoint : BuiltIn = {
+    static member EntryPoint = {
         FullName = {Name = "EntryPoint" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
         Kind = Attribute
     }
 
-    static member Deprecated : BuiltIn = {
+    static member Deprecated = {
         FullName = {Name = "Deprecated" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
         Kind = Attribute
     }
 
-    static member Test : BuiltIn = {
+    static member Test = {
         FullName = {Name = "Test" |> NonNullable<string>.New; Namespace = BuiltIn.DiagnosticsNamespace}
         Kind = Attribute
     }
@@ -97,7 +89,7 @@ type BuiltIn = {
     static member NoOp = {
         FullName = {Name = "NoOp" |> NonNullable<string>.New; Namespace = BuiltIn.CanonNamespace}
         Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
-        
+
     }
 
     // hard dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions
