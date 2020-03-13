@@ -678,39 +678,44 @@ and Namespace private
     /// If a declaration for a callable of the given name exists within this namespace,
     /// verifies that no specialization of the given kind that clashes with the give specialization already exists,
     /// and adds the specialization defined by the given generator for the given kind to the dictionary of specializations in the given source.
-    /// The given location is associated with the given specialization and accessible via the record properties Position and HeaderRange. 
+    /// The given location is associated with the given specialization and accessible via the record properties Position and HeaderRange.
     /// Returns an array with suitable diagnostics if a clashing specialization already exists, and/or
-    /// if the length of the type arguments in the given generator does not match the number of type parameters of the callable declaration. 
+    /// if the length of the type arguments in the given generator does not match the number of type parameters of the callable declaration.
     /// If no declaration for the given callable name exists within this namespace, returns an array with suitable diagnostics.
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
     /// IMPORTANT: The verification of whether the given specialization kind (body, adjoint, controlled, or controlled adjoint) may exist
-    /// for the given callable is up to the calling routine. 
+    /// for the given callable is up to the calling routine.
     member this.TryAddCallableSpecialization kind (source, location : QsLocation) ((cName, cRange), generator : QsSpecializationGenerator, attributes, documentation) = 
         let getRelevantDeclInfo (declSource : NonNullable<string>) =
             let unitOrInvalid fct = function
-                | Item item -> fct item |> function | UnitType | InvalidType -> true | _ -> false
+                | Item item -> match fct item with
+                               | UnitType
+                               | InvalidType -> true
+                               | _ -> false
                 | _ -> false
-            match CallablesInReferences.TryGetValue cName with
-            | true, cDecl ->
-                let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t : ResolvedType) -> t.Resolution)
-                unitReturn, cDecl.Signature.TypeParameters.Length
-            | false, _ ->
-                let _, cDecl = Parts.[declSource].GetCallable cName // ok only because/if we have covered that the callable is not in a reference!
+
+            match Parts.TryGetValue declSource with
+            | true, partial ->
+                let _, cDecl = partial.GetCallable cName
                 let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t : QsType) -> t.Type)
                 unitReturn, cDecl.Defined.TypeParameters.Length
+            | false, _ ->
+                let cDecl = CallablesInReferences.[cName]
+                let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t : ResolvedType) -> t.Resolution)
+                unitReturn, cDecl.Signature.TypeParameters.Length
 
-        match Parts.TryGetValue source with 
+        match Parts.TryGetValue source with
         | true, partial ->
             match this.TryFindCallable cName with
             | Found (declSource, _) ->
-                let AddAndClearCache () = 
+                let AddAndClearCache () =
                     CallablesDefinedInAllSourcesCache <- null
                     partial.AddCallableSpecialization location kind (cName, generator, attributes, documentation)
                 // verify that the given specializations are indeed compatible with the defined type parameters
                 let qFunctorSupport, nrTypeParams = getRelevantDeclInfo declSource
-                let givenNrTypeParams = generator.TypeArguments |> function | Value args -> Some args.Length | Null -> None                
+                let givenNrTypeParams = generator.TypeArguments |> function | Value args -> Some args.Length | Null -> None
                 if givenNrTypeParams.IsSome && givenNrTypeParams.Value <> nrTypeParams then
-                    [| location.Range |> QsCompilerDiagnostic.Error (ErrorCode.TypeSpecializationMismatch, [nrTypeParams.ToString()]) |]        
+                    [| location.Range |> QsCompilerDiagnostic.Error (ErrorCode.TypeSpecializationMismatch, [nrTypeParams.ToString()]) |]
                 // verify if a unit return value is required for the given specialization kind
                 elif not qFunctorSupport then kind |> function
                     | QsBody -> AddAndClearCache(); [||]
