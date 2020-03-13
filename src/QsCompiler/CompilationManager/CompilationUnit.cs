@@ -473,7 +473,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (header == null) throw new ArgumentNullException(nameof(header));
             var importedSpecs = this.GlobalSymbols.ImportedSpecializations(header.QualifiedName);
             var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName);
-            QsCompilerError.Verify(definedSpecs.Length == 0, "external specializations are currently not supported");
+            // TODO: This assertion is not valid if a defined callable is shadowing an internal imported callable.
+            // QsCompilerError.Verify(definedSpecs.Length == 0, "external specializations are currently not supported");
             var specializations = importedSpecs.Select(imported =>
             {
                 var (specHeader, implementation) = imported;
