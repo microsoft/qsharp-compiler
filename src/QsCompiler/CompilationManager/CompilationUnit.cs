@@ -5,13 +5,17 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
@@ -473,7 +477,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (header == null) throw new ArgumentNullException(nameof(header));
             var importedSpecs = this.GlobalSymbols.ImportedSpecializations(header.QualifiedName);
             var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName);
-            // TODO: This assertion is not valid if a defined callable is shadowing an internal imported callable.
+            // TODO: This assertion is not valid if a defined callable is shadowing an imported internal callable.
             // QsCompilerError.Verify(definedSpecs.Length == 0, "external specializations are currently not supported");
             var specializations = importedSpecs.Select(imported =>
             {
@@ -584,10 +588,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 // build the syntax tree
-
                 var callables = this.CompiledCallables.Values.Concat(this.GlobalSymbols.ImportedCallables().Select(this.GetImportedCallable));
                 var types = this.CompiledTypes.Values.Concat(this.GlobalSymbols.ImportedTypes().Select(this.GetImportedType));
-                var tree = CompilationUnit.NewSyntaxTree(callables, types, this.GlobalSymbols.Documentation());
+                var (taggedCallables, taggedTypes) = TagImportedInternalNames(callables, types);
+                var tree = NewSyntaxTree(taggedCallables, taggedTypes, this.GlobalSymbols.Documentation());
                 var entryPoints = tree.Callables().Where(c => c.Attributes.Any(BuiltIn.MarksEntryPoint)).Select(c => c.FullName).ToImmutableArray();
                 return new QsCompilation(tree, entryPoints);
             }
@@ -686,6 +690,56 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var implementation = this.TryGetSpecializationAt(file, pos, out parentCallable, out var callablePos, out var specPos);
             var declarations = implementation?.LocalDeclarationsAt(pos.Subtract(specPos), includeDeclaredAtPosition);
             return this.PositionedDeclarations(parentCallable, callablePos, specPos, declarations); 
+        }
+
+        /// <summary>
+        /// Tags the names of imported internal callables and types with a unique identifier based on the path to their
+        /// assembly, so that they do not conflict with callables and types defined locally. Renames all references to
+        /// the tagged declarations found in the given callables and types.
+        /// </summary>
+        /// <param name="callables">The callables to rename and update references in.</param>
+        /// <param name="types">The types to rename and update references in.</param>
+        /// <returns>The tagged callables and types with references renamed everywhere.</returns>
+        private static (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
+            TagImportedInternalNames(IEnumerable<QsCallable> callables, IEnumerable<QsCustomType> types)
+        {
+            // Create a mapping from source file names to a short, unique identifying tag.
+            var tags =
+                callables.Select(callable => callable.SourceFile.Value)
+                .Concat(types.Select(type => type.SourceFile.Value))
+                .Distinct()
+                .GroupBy(source => Regex.Replace(Path.GetFileNameWithoutExtension(source), "[^A-Za-z0-9_]", ""))
+                .SelectMany(group =>
+                    group.Count() == 1
+                    ? new[] { (key: group.Single(), value: group.Key) }
+                    : group.Select((source, index) => (key: source, value: group.Key + index)))
+                .ToImmutableDictionary(item => item.key, item => item.value);
+
+            QsQualifiedName GetNewName(QsQualifiedName name, string source) =>
+                new QsQualifiedName(name.Namespace, NonNullable<string>.New($"__{name.Name.Value}_{tags[source]}__"));
+
+            ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
+                IGrouping<string, (QsQualifiedName name, string source, AccessModifier access)> group) =>
+                // TODO: Is there another way besides file extension to check if the source file is a reference?
+                group
+                .Where(item => item.access.IsInternal && !item.source.EndsWith(".qs"))
+                .ToImmutableDictionary(item => item.name, item => GetNewName(item.name, item.source));
+
+            var transformations =
+                callables.Select(callable =>
+                    (name: callable.FullName, source: callable.SourceFile.Value, access: callable.Modifiers.Access))
+                .Concat(types.Select(type =>
+                    (name: type.FullName, source: type.SourceFile.Value, access: type.Modifiers.Access)))
+                .GroupBy(item => item.source)
+                .ToImmutableDictionary(
+                    group => group.Key,
+                    group => new RenameReferences(GetMappingForSourceGroup(group)));
+
+            var taggedCallables = callables.Select(
+                callable => transformations[callable.SourceFile.Value].Namespaces.OnCallableDeclaration(callable));
+            var taggedTypes = types.Select(
+                type => transformations[type.SourceFile.Value].Namespaces.OnTypeDeclaration(type));
+            return (taggedCallables, taggedTypes);
         }
     }
 }
