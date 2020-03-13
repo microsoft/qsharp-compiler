@@ -52,7 +52,7 @@ module private ResolutionResult =
 
     /// Returns the first result matching Found, Inaccessible or NotFound, in decreasing order of priority. If the
     /// sequence contains a Found result, the rest of the sequence after it is not evaluated.
-    let internal firstResolution results =
+    let internal tryFirst results =
         results
         |> Seq.tryPick (function | Found callable -> Some (Found callable) | _ -> None)
         |> Option.orElseWith (fun () ->
@@ -60,8 +60,8 @@ module private ResolutionResult =
         |> Option.defaultValue NotFound
 
     /// Returns a Found result if there is only one in the sequence. If there is more than one, returns an Ambiguous
-    /// result. Otherwise, returns the same value as ResolutionResult.firstResolution.
-    let internal uniqueResolution nsGetter results =
+    /// result. Otherwise, returns the same value as ResolutionResult.tryFirst.
+    let internal tryExactlyOne nsGetter results =
         let found = results |> Seq.filter (function | Found _ -> true | _ -> false)
         if Seq.length found > 1
         then found
@@ -70,7 +70,16 @@ module private ResolutionResult =
              |> Ambiguous
         else found
              |> Seq.tryExactlyOne
-             |> Option.defaultWith (fun () -> firstResolution results)
+             |> Option.defaultWith (fun () -> tryFirst results)
+
+    /// Returns a Found result if there is only one in the sequence. If there is more than one, raises an exception.
+    /// Otherwise, returns the same value as ResolutionResult.tryFirst.
+    let internal exactlyOne = tryExactlyOne (fun _ -> NonNullable<_>.New "") >> function
+        | Found value -> Found value
+        | Ambiguous _ -> QsCompilerError.Raise "Resolution is ambiguous"
+                         Exception () |> raise
+        | Inaccessible -> Inaccessible
+        | NotFound -> NotFound
 
 
 /// Represents the partial declaration of a namespace in a single file.
@@ -543,10 +552,11 @@ and Namespace private
         let findInPartial (partial : PartialNamespace) =
             match partial.TryGetCallable cName with
             | true, (_, callable) ->
-                Some (partial.Source,
-                      SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes,
-                      callable.Modifiers.Access)
-            | false, _ -> None
+                if Namespace.IsDeclarationAccessible true callable.Modifiers.Access
+                then Found (partial.Source,
+                            SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes)
+                else Inaccessible
+            | false, _ -> NotFound
 
         seq {
             yield match CallablesInReferences.TryGetValue cName with
@@ -556,14 +566,9 @@ and Namespace private
                       else Inaccessible
                   | false, _ -> NotFound
 
-            yield match FromSingleSource findInPartial with
-                  | Value (source, deprecation, access) ->
-                      if Namespace.IsDeclarationAccessible true access
-                      then Found (source, deprecation)
-                      else Inaccessible
-                  | Null -> NotFound
+            yield Seq.map findInPartial Parts.Values |> ResolutionResult.exactlyOne
         }
-        |> ResolutionResult.firstResolution
+        |> ResolutionResult.tryFirst
 
     /// Sets the resolution for the type with the given name in the given source file to the given type,
     /// and replaces the resolved attributes with the given values.
@@ -694,6 +699,7 @@ and Namespace private
                                | _ -> false
                 | _ -> false
 
+            // Check if the declaration's source file is local first, then look in references.
             match Parts.TryGetValue declSource with
             | true, partial ->
                 let _, cDecl = partial.GetCallable cName
@@ -828,7 +834,7 @@ and NamespaceManager
         List.Cons (currentNs, importedNs)
         |> List.distinctBy (fun ns -> ns.Name)
         |> Seq.map resolveWithNsName
-        |> ResolutionResult.uniqueResolution fst
+        |> ResolutionResult.tryExactlyOne fst
 
     /// Given a qualifier for a symbol name, returns the corresponding namespace as Some
     /// if such a namespace or such a namespace short name within the given parent namespace and source file exists. 
@@ -1540,7 +1546,7 @@ and NamespaceManager
 
                     yield findInSources ns declSource
                 }
-                |> ResolutionResult.firstResolution
+                |> ResolutionResult.tryFirst
         finally syncRoot.ExitReadLock()
 
     /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
