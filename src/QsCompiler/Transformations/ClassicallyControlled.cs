@@ -766,14 +766,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
         }
 
-        private class LiftContent : ContentLifting.LiftContent
+        private class LiftContent : ContentLifting.LiftContent<LiftContent.TransformationState>
         {
-            public LiftContent() : base()
+            internal class TransformationState : ContentLifting.LiftContent.TransformationState
+            {
+                internal bool IsConditionLiftable = false;
+            }
+
+            public LiftContent() : base(new TransformationState())
             {
                 this.StatementKinds = new StatementKindTransformation(this);
             }
 
-            private new class StatementKindTransformation : ContentLifting.LiftContent.StatementKindTransformation
+            private new class StatementKindTransformation : ContentLifting.LiftContent<TransformationState>.StatementKindTransformation
             {
                 public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
@@ -790,19 +795,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                 public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
                 {
-                    var contextValidScope = SharedState.IsValidScope;
-                    var contextParams = SharedState.GeneratedOpParams;
-
-                    var isValidLift = true;
+                    var contextIsConditionLiftable = SharedState.IsConditionLiftable;
+                    SharedState.IsConditionLiftable = true;
 
                     var newConditionBlocks = new List<Tuple<TypedExpression, QsPositionedBlock>>();
                     var generatedOperations = new List<QsCallable>();
                     foreach (var conditionBlock in stm.ConditionalBlocks)
                     {
+                        var contextValidScope = SharedState.IsValidScope;
+                        var contextParams = SharedState.GeneratedOpParams;
+
                         SharedState.IsValidScope = true;
-                        SharedState.GeneratedOpParams = conditionBlock.Item2.Body.KnownSymbols.IsEmpty
-                        ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
-                        : conditionBlock.Item2.Body.KnownSymbols.Variables;
+                        SharedState.GeneratedOpParams = conditionBlock.Item2.Body.KnownSymbols.Variables;
 
                         var (expr, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.NewValue(conditionBlock.Item1), conditionBlock.Item2);
 
@@ -810,12 +814,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         // the condition logic for the conversion and using that condition here
                         //var (isExprCondition, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
 
-                        if (SharedState.IsValidScope) // if sub-scope is valid, lift content
+                        if (IsScopeSingleCall(block.Body))
                         {
-                            if (/*isExprCondition &&*/ !IsScopeSingleCall(block.Body))
+                            newConditionBlocks.Add(Tuple.Create(expr.Item, block));
+                        }
+                        // ToDo: We may want to prevent empty blocks from getting lifted
+                        else //if(block.Body.Statements.Length > 0)
+                        {
+                            // Lift the scope to its own operation
+                            if (SharedState.LiftBody(block.Body, out var callable, out var call))
                             {
-                                // Lift the scope to its own operation
-                                var (callable, call) = SharedState.LiftBody(block.Body);
                                 block = new QsPositionedBlock(
                                     new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
                                     block.Location,
@@ -823,33 +831,39 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                 newConditionBlocks.Add(Tuple.Create(expr.Item, block));
                                 generatedOperations.Add(callable);
                             }
-                            else if (block.Body.Statements.Length > 0)
+                            else
                             {
-                                newConditionBlocks.Add(Tuple.Create(expr.Item, block));
+                                SharedState.IsConditionLiftable = false;
                             }
                         }
-                        else
-                        {
-                            isValidLift = false;
-                            break;
-                        }
+
+                        SharedState.GeneratedOpParams = contextParams;
+                        SharedState.IsValidScope = contextValidScope;
+
+                        if (!SharedState.IsConditionLiftable) break;
                     }
 
                     var newDefault = QsNullable<QsPositionedBlock>.Null;
-                    if (isValidLift && stm.Default.IsValue)
+                    if (SharedState.IsConditionLiftable && stm.Default.IsValue)
                     {
+                        var contextValidScope = SharedState.IsValidScope;
+                        var contextParams = SharedState.GeneratedOpParams;
+
                         SharedState.IsValidScope = true;
-                        SharedState.GeneratedOpParams = stm.Default.Item.Body.KnownSymbols.IsEmpty
-                            ? ImmutableArray<LocalVariableDeclaration<NonNullable<string>>>.Empty
-                            : stm.Default.Item.Body.KnownSymbols.Variables;
+                        SharedState.GeneratedOpParams = stm.Default.Item.Body.KnownSymbols.Variables;
 
                         var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
-                        if (SharedState.IsValidScope)
+
+                        if (IsScopeSingleCall(block.Body))
                         {
-                            if (!IsScopeSingleCall(block.Body)) // if sub-scope is valid, lift content
+                            newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                        }
+                        // ToDo: We may want to prevent empty blocks from getting lifted
+                        else //if(block.Body.Statements.Length > 0)
+                        {
+                            // Lift the scope to its own operation
+                            if (SharedState.LiftBody(block.Body, out var callable, out var call))
                             {
-                                // Lift the scope to its own operation
-                                var (callable, call) = SharedState.LiftBody(block.Body);
                                 block = new QsPositionedBlock(
                                     new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
                                     block.Location,
@@ -857,30 +871,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                 newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
                                 generatedOperations.Add(callable);
                             }
-                            else if (block.Body.Statements.Length > 0)
+                            else
                             {
-                                newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                                SharedState.IsConditionLiftable = false;
                             }
                         }
-                        else
-                        {
-                            isValidLift = false;
-                        }
+
+                        SharedState.GeneratedOpParams = contextParams;
+                        SharedState.IsValidScope = contextValidScope;
                     }
 
-                    if (isValidLift)
+                    if (SharedState.IsConditionLiftable)
                     {
                         SharedState.GeneratedOperations.AddRange(generatedOperations);
                     }
 
-                    SharedState.GeneratedOpParams = contextParams;
-                    SharedState.IsValidScope = contextValidScope;
-
-                    return isValidLift
+                    var rtrn = SharedState.IsConditionLiftable
                         ? QsStatementKind.NewQsConditionalStatement(
                           new QsConditionalStatement(newConditionBlocks.ToImmutableArray(), newDefault))
                         : QsStatementKind.NewQsConditionalStatement(
                           new QsConditionalStatement(stm.ConditionalBlocks, stm.Default));
+
+                    SharedState.IsConditionLiftable = contextIsConditionLiftable;
+
+                    return rtrn;
                 }
             }
         }
