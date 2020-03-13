@@ -290,7 +290,10 @@ type private PartialNamespace private
 
 /// Represents a namespace and all of its declarations.
 ///
-/// Note that this class is *not* thread-safe, and access modifiers are always ignored when looking up declarations.
+/// This class is *not* thread-safe.
+///
+/// Access modifiers are taken into consideration when resolving symbols. Some methods bypass this (e.g., when returning
+/// a list of all declarations). Individual methods will mention if they adhere to symbol accessibility.
 and Namespace private
     (name, parts : IEnumerable<KeyValuePair<NonNullable<string>,PartialNamespace>>,
      CallablesInReferences : ImmutableDictionary<NonNullable<string>, CallableDeclarationHeader>,
@@ -521,6 +524,7 @@ and Namespace private
 
     /// Returns a resolution result for the callable with the given name containing the name of the source file or
     /// referenced assembly in which it is declared, and a string indicating the redirection if it has been deprecated.
+    /// Resolution is based on accessibility to source files in this compilation unit.
     ///
     /// If the given callable corresponds to the (auto-generated) type constructor for a user defined type, returns the
     /// file in which that type is declared as the source.
