@@ -20,14 +20,15 @@ open Newtonsoft.Json
 
 /// Represents the outcome of resolving a symbol in the symbol table.
 type ResolutionResult<'T> =
-    /// The symbol resolved successfully.
+    /// A result indicating that the symbol resolved successfully.
     | Found of 'T
-    /// An unqualified symbol is ambiguous, and it is possible to resolve it to more than one namespace. Includes the
-    /// list of possible namespaces.
+    /// A result indicating that an unqualified symbol is ambiguous, and it is possible to resolve it to more than one
+    /// namespace. Includes the list of possible namespaces.
     | Ambiguous of NonNullable<string> seq
-    /// The symbol resolved to a declaration which is not accessible from the location referencing it.
+    /// A result indicating that the symbol resolved to a declaration which is not accessible from the location
+    /// referencing it.
     | Inaccessible
-    /// No declaration with that name was found.
+    /// A result indicating that no declaration with that name was found.
     | NotFound
 
 
@@ -48,18 +49,34 @@ module private ResolutionResult =
     /// Converts the resolution result to a 0- or 1-element list containing the Found value if the result is a Found.
     let private toList = toOption >> Option.toList
 
-    /// Returns the first result matching Found, Inaccessible or NotFound, in decreasing order of priority. If the
-    /// sequence contains a Found result, the rest of the sequence after it is not evaluated.
-    let internal tryFirst results =
-        results
-        |> Seq.tryPick (function | Found callable -> Some (Found callable) | _ -> None)
-        |> Option.orElseWith (fun () ->
-            results |> Seq.tryPick (function | Inaccessible -> Some (Inaccessible) | _ -> None))
-        |> Option.defaultValue NotFound
+    /// Sorts the sequence of results in order of Found, Ambiguous, Inaccessible, and NotFound.
+    ///
+    /// If the sequence contains a Found result, the rest of the sequence after it is not automatically evaluated.
+    /// Otherwise, the whole sequence may be evaluated by calling sort.
+    let private sort results =
+        let choosers = [
+            function | Found callable -> Some (Found callable) | _ -> None
+            function | Ambiguous namespaces -> Some (Ambiguous namespaces) | _ -> None
+            function | Inaccessible -> Some Inaccessible | _ -> None
+            function | NotFound -> Some NotFound | _ -> None
+        ]
+        choosers
+        |> Seq.map (fun chooser -> Seq.choose chooser results)
+        |> Seq.concat
+
+    /// Returns the first item of the sequence of results if there is one, or NotFound if the sequence is empty.
+    let private tryHead<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
+        Seq.tryHead >> Option.defaultValue NotFound
+
+    /// Returns the first Found result in the sequence if it exists. If not, returns the first Ambiguous result if it
+    /// exists. Repeats for Inaccessible and NotFound in this order. If the sequence is empty, returns NotFound.
+    let internal tryFirstBest<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
+        sort >> tryHead
 
     /// Returns a Found result if there is only one in the sequence. If there is more than one, returns an Ambiguous
-    /// result. Otherwise, returns the same value as ResolutionResult.tryFirst.
-    let internal tryExactlyOne nsGetter results =
+    /// result. Otherwise, returns the first value from ResolutionResult.sort.
+    let internal tryExactlyOne<'T> (nsGetter : 'T -> NonNullable<string>)
+                                   (results : seq<ResolutionResult<'T>>) : ResolutionResult<'T> =
         let found = results |> Seq.filter (function | Found _ -> true | _ -> false)
         if Seq.length found > 1
         then found
@@ -68,17 +85,15 @@ module private ResolutionResult =
              |> Ambiguous
         else found
              |> Seq.tryExactlyOne
-             |> Option.defaultWith (fun () -> tryFirst results)
+             |> Option.defaultWith (fun () -> tryFirstBest results)
 
     /// Returns a Found result if there is only one in the sequence. If there is more than one, raises an exception.
     /// Otherwise, returns the same value as ResolutionResult.tryFirst.
     let internal exactlyOne<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
         tryExactlyOne (fun _ -> NonNullable<_>.New "") >> function
-        | Found value -> Found value
         | Ambiguous _ -> QsCompilerError.Raise "Resolution is ambiguous"
                          Exception () |> raise
-        | Inaccessible -> Inaccessible
-        | NotFound -> NotFound
+        | result -> result
 
     /// Returns true if the resolution result indicates that a resolution exists (Found or Ambiguous).
     let internal exists = function
@@ -555,7 +570,7 @@ and Namespace private
 
         seq { yield findInReferences ()
               yield Seq.map findInPartial Parts.Values |> ResolutionResult.exactlyOne }
-        |> ResolutionResult.tryFirst
+        |> ResolutionResult.tryFirstBest
 
     /// Returns a resolution result for the callable with the given name containing the name of the source file or
     /// referenced assembly in which it is declared, and a string indicating the redirection if it has been deprecated.
@@ -593,7 +608,7 @@ and Namespace private
 
         seq { yield findInReferences ()
               yield Seq.map findInPartial Parts.Values |> ResolutionResult.exactlyOne }
-        |> ResolutionResult.tryFirst
+        |> ResolutionResult.tryFirstBest
 
     /// Sets the resolution for the type with the given name in the given source file to the given type,
     /// and replaces the resolved attributes with the given values.
@@ -850,10 +865,9 @@ and NamespaceManager
         let resolveWithNsName (ns : Namespace) =
             resolver ns |> ResolutionResult.map (fun value -> (ns.Name, value))
         let currentNs, importedNs = OpenNamespaces (nsName, source)
-        List.Cons (currentNs, importedNs)
-        |> List.distinctBy (fun ns -> ns.Name)
-        |> Seq.map resolveWithNsName
-        |> ResolutionResult.tryExactlyOne fst
+        seq { yield resolveWithNsName currentNs
+              yield Seq.map resolveWithNsName importedNs |> ResolutionResult.tryExactlyOne fst }
+        |> ResolutionResult.tryFirstBest
 
     /// Given a qualifier for a symbol name, returns the corresponding namespace as Some
     /// if such a namespace or such a namespace short name within the given parent namespace and source file exists. 
@@ -1564,7 +1578,7 @@ and NamespaceManager
             | Some ns ->
                 seq { yield findInReferences ns
                       yield findInSources ns declSource }
-                |> ResolutionResult.tryFirst
+                |> ResolutionResult.tryFirstBest
         finally syncRoot.ExitReadLock()
 
     /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
@@ -1648,7 +1662,7 @@ and NamespaceManager
             | Some ns ->
                 seq { yield findInReferences ns
                       yield findInSources ns declSource }
-                |> ResolutionResult.tryFirst
+                |> ResolutionResult.tryFirstBest
         finally syncRoot.ExitReadLock()
 
     /// Given a qualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
