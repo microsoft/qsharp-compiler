@@ -14,10 +14,11 @@ open System.Linq
 
 
 type AccessModifierTests (output) =
-    inherit CompilerTests (CompilerTests.Compile "TestCases"
-                                                 ["AccessModifiers.qs"]
-                                                 [File.ReadAllLines("ReferenceTargets.txt").ElementAt(1)],
-                           output)
+    // We load two references, but they are both identical copies. Both define only internal declarations, so this
+    // implicitly tests that multiple references can re-use the same internal names.
+    inherit CompilerTests
+        (CompilerTests.Compile "TestCases" ["AccessModifiers.qs"] (File.ReadAllLines("ReferenceTargets.txt").[1..2]),
+        output)
 
     member private this.Expect name (diagnostics : IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.AccessModifiers" |> NonNullable<_>.New

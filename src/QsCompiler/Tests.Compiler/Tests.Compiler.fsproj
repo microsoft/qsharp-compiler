@@ -178,8 +178,12 @@
     <PropertyGroup>
       <ExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.0\Example.dll</ExecutionTarget>
       <LibraryTarget>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\netcoreapp3.0\Library1.dll</LibraryTarget>
+      <LibraryTargetCopy>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\netcoreapp3.0\Library1Copy.dll</LibraryTargetCopy>
     </PropertyGroup>
-    <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt" Lines="$(ExecutionTarget); $(LibraryTarget)" Overwrite="true" />
+    <Copy SourceFiles="$(LibraryTarget)" DestinationFiles="$(LibraryTargetCopy)"/>
+    <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt"
+                      Lines="$(ExecutionTarget); $(LibraryTarget); $(LibraryTargetCopy)"
+                      Overwrite="true" />
   </Target>
 
 </Project>
