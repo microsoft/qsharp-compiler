@@ -4,21 +4,26 @@
 namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System.Collections.Generic
+open System.IO
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
-open System.IO
-open System.Linq
 
 
 type AccessModifierTests (output) =
+    // TODO: Replace this inherit statement with the one below to enable the test for supporting multiple references
+    // with the same internal name.
+    inherit CompilerTests
+        (CompilerTests.Compile "TestCases" ["AccessModifiers.qs"] [File.ReadAllLines("ReferenceTargets.txt").[1]],
+         output)
+
     // We load two references, but they are both identical copies. Both define only internal declarations, so this
     // implicitly tests that multiple references can re-use the same internal names.
-    inherit CompilerTests
-        (CompilerTests.Compile "TestCases" ["AccessModifiers.qs"] (File.ReadAllLines("ReferenceTargets.txt").[1..2]),
-        output)
+    // inherit CompilerTests
+    //     (CompilerTests.Compile "TestCases" ["AccessModifiers.qs"] (File.ReadAllLines("ReferenceTargets.txt").[1..2]),
+    //      output)
 
     member private this.Expect name (diagnostics : IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.AccessModifiers" |> NonNullable<_>.New
