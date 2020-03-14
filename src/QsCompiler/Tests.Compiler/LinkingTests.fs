@@ -31,7 +31,7 @@ type LinkingTests (output:ITestOutputHelper) =
     let getTempFile () =
         // The file name needs to end in ".qs" so that it isn't ignored by the References.Headers class during the
         // internal renaming tests.
-        Path.GetRandomFileName() + ".qs" |> Path.GetFullPath |> Uri
+        Path.GetRandomFileName () + ".qs" |> Path.GetFullPath |> Uri
 
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
@@ -87,16 +87,15 @@ type LinkingTests (output:ITestOutputHelper) =
     member private this.BuildContent (source, ?references) =
         let fileId = getTempFile ()
         let file = getManager fileId source
-        let wait : Task -> Unit = Async.AwaitTask >> Async.RunSynchronously
 
         match references with
-        | Some references -> compilationManager.UpdateReferencesAsync references |> wait
+        | Some references -> compilationManager.UpdateReferencesAsync references |> ignore
         | None -> ()
-        compilationManager.AddOrUpdateSourceFileAsync file |> wait
+        compilationManager.AddOrUpdateSourceFileAsync file |> ignore
 
         let compilation = compilationManager.Build ()
-        compilationManager.TryRemoveSourceFileAsync (fileId, false) |> wait
-        compilationManager.UpdateReferencesAsync (References ImmutableDictionary<_, _>.Empty) |> wait
+        compilationManager.TryRemoveSourceFileAsync (fileId, false) |> ignore
+        compilationManager.UpdateReferencesAsync (References ImmutableDictionary<_, _>.Empty) |> ignore
 
         compilation.Diagnostics () |> Seq.exists (fun d -> d.IsError ()) |> Assert.False
         Assert.NotNull compilation.BuiltCompilation
