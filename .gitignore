@@ -33,6 +33,11 @@ drops/
 # Visual Studio 2017 auto generated files
 Generated\ Files/
 
+# Visual Studio Code options directory
+.vscode/
+# Visual Studio Code Ionide-FSharp extension cache directory
+.ionide/
+
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
