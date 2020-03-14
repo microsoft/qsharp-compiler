@@ -434,6 +434,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     /// the operation will have all the valid type parameters of the calling context as type parameters.
     /// A call to the new operation is also returned with all the valid type parameters and known variables
     /// being forwarded to the new operation as arguments.
+    ///
+    /// ToDo: This transformation currently does not support lifting inside of functions.
     /// </summary>
     public class LiftContent<T> : SyntaxTreeTransformation<T>
         where T : LiftContent.TransformationState
@@ -489,6 +491,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return rtrn;
             }
 
+            // ToDo: We will want to support lifting of functions in the future
             public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
 
             public override QsNamespace OnNamespace(QsNamespace ns)
