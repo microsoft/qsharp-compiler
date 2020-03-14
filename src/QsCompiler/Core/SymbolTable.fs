@@ -95,8 +95,15 @@ module private ResolutionResult =
                          Exception () |> raise
         | result -> result
 
-    /// Returns true if the resolution result indicates that a resolution exists (Found or Ambiguous).
+    /// Returns true if the resolution result indicates that a resolution exists (Found, Ambiguous or Inaccessible).
     let internal exists = function
+        | Found _
+        | Ambiguous _
+        | Inaccessible -> true
+        | NotFound -> false
+
+    /// Returns true if the resolution result indicates that a resolution is accessible (Found or Ambiguous).
+    let internal isAccessible = function
         | Found _
         | Ambiguous _ -> true
         | Inaccessible
@@ -523,15 +530,13 @@ and Namespace private
     /// This excludes specializations that are defined in files contained in referenced assemblies.
     /// Throws an ArgumentException if no callable with the given name is defined in this namespace.
     member internal this.SpecializationsDefinedInAllSources cName =
-        match this.TryFindCallable cName with
-        | Found _ ->
-            (Parts.Values.SelectMany (fun partial ->
-                partial.GetSpecializations cName
-                |> Seq.map (fun (kind, decl) -> kind, (partial.Source, decl)))).ToImmutableArray()
-        | _ ->
-            // TODO:
-            // ArgumentException "no callable with the given name exist within the namespace" |> raise
-            ImmutableArray<_>.Empty
+        let getSpecializationInPartial (partial : PartialNamespace) =
+            partial.GetSpecializations cName
+            |> Seq.map (fun (kind, decl) -> kind, (partial.Source, decl))
+
+        if this.TryFindCallable cName |> ResolutionResult.exists
+        then (Parts.Values.SelectMany getSpecializationInPartial).ToImmutableArray()
+        else ArgumentException "no callable with the given name exist within the namespace" |> raise
 
 
     /// Returns a resolution result for the type with the given name containing the name of the source file or
@@ -892,7 +897,7 @@ and NamespaceManager
         match Namespaces.TryGetValue nsName with
         | true, ns when ns.Sources.Contains source ->
             match (ns.ImportedNamespaces source).TryGetValue builtIn.Namespace with
-            | true, null when not (ns.TryFindType builtIn.Name |> ResolutionResult.exists) ||
+            | true, null when not (ns.TryFindType builtIn.Name |> ResolutionResult.isAccessible) ||
                               nsName.Value = builtIn.Namespace.Value ->
                 [""; builtIn.Namespace.Value]
             | true, null -> [builtIn.Namespace.Value] // the built-in type or callable is shadowed
