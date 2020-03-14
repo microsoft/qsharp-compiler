@@ -697,6 +697,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Returns a short tag name for the given source file. The tag is not unique. If multiple source files are
+        /// being tagged, make sure there are no name conflicts.
+        /// </summary>
+        /// <param name="source">The source file to get the tag for.</param>
+        /// <returns>A short tag name for the given source file.</returns>
+        internal static string GetTagForSource(string source) =>
+            Regex.Replace(Path.GetFileNameWithoutExtension(source), "[^A-Za-z0-9_]", "");
+
+        /// <summary>
+        /// Embeds the tag name into the qualified name.
+        /// </summary>
+        /// <param name="tag">The tag name to embed.</param>
+        /// <param name="name">The qualified name in which to embed the tag name.</param>
+        /// <returns>A new qualified name with the tag embedded into it.</returns>
+        internal static QsQualifiedName EmbedTag(string tag, QsQualifiedName name) =>
+            // TODO: We might need to change the format to make it easier to reverse later.
+            new QsQualifiedName(name.Namespace, NonNullable<string>.New($"__{name.Name.Value}_{tag}__"));
+
+        /// <summary>
         /// Tags the names of imported internal callables and types with a unique identifier based on the path to their
         /// assembly, so that they do not conflict with callables and types defined locally. Renames all references to
         /// the tagged declarations found in the given callables and types.
@@ -707,28 +726,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
             TagImportedInternalNames(IEnumerable<QsCallable> callables, IEnumerable<QsCustomType> types)
         {
-            // Create a mapping from source file names to a short, unique identifying tag.
+            // Create a mapping from source file names to a short, unique identifying tag name.
             var tags =
                 callables.Select(callable => callable.SourceFile.Value)
                 .Concat(types.Select(type => type.SourceFile.Value))
                 .Distinct()
-                .GroupBy(source => Regex.Replace(Path.GetFileNameWithoutExtension(source), "[^A-Za-z0-9_]", ""))
+                .GroupBy(GetTagForSource)
                 .SelectMany(group =>
                     group.Count() == 1
                     ? new[] { (key: group.Single(), value: group.Key) }
                     : group.Select((source, index) => (key: source, value: group.Key + index)))
                 .ToImmutableDictionary(item => item.key, item => item.value);
 
-            QsQualifiedName GetNewName(QsQualifiedName name, string source) =>
-                // TODO: We might need to change the name format to make it easier to reverse later.
-                new QsQualifiedName(name.Namespace, NonNullable<string>.New($"__{name.Name.Value}_{tags[source]}__"));
-
             ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
                 IGrouping<string, (QsQualifiedName name, string source, AccessModifier access)> group) =>
                 // TODO: Is there another way besides file extension to check if the source file is a reference?
                 group
                 .Where(item => item.access.IsInternal && !item.source.EndsWith(".qs"))
-                .ToImmutableDictionary(item => item.name, item => GetNewName(item.name, item.source));
+                .ToImmutableDictionary(item => item.name, item => EmbedTag(tags[item.source], item.name));
 
             var transformations =
                 callables.Select(callable =>
