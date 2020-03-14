@@ -600,6 +600,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // build the syntax tree
                 var callables = this.CompiledCallables.Values.Concat(this.GlobalSymbols.ImportedCallables().Select(this.GetImportedCallable));
                 var types = this.CompiledTypes.Values.Concat(this.GlobalSymbols.ImportedTypes().Select(this.GetImportedType));
+                // Rename imported internal declarations by tagging them with their source file to avoid potentially
+                // having duplicate names in the syntax tree.
                 var (taggedCallables, taggedTypes) = TagImportedInternalNames(callables, types);
                 var tree = NewSyntaxTree(taggedCallables, taggedTypes, this.GlobalSymbols.Documentation());
                 var entryPoints = tree.Callables().Where(c => c.Attributes.Any(BuiltIn.MarksEntryPoint)).Select(c => c.FullName).ToImmutableArray();
