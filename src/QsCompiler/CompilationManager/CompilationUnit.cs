@@ -123,11 +123,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.Declarations = refs ?? throw new ArgumentNullException(nameof(refs));
             if (onError == null) return;
 
-            var conflictingCallables = refs.Values.SelectMany(r => r.Callables)
-                .GroupBy(c => c.QualifiedName).Where(g => g.Count() != 1)
+            var conflictingCallables = refs.Values
+                .SelectMany(r => r.Callables)
+                .Where(c => Namespace.IsDeclarationAccessible(false, c.Modifiers.Access))
+                .GroupBy(c => c.QualifiedName)
+                .Where(g => g.Count() != 1)
                 .Select(g => (g.Key, String.Join(", ", g.Select(c => c.SourceFile.Value))));
-            var conflictingTypes = refs.Values.SelectMany(r => r.Types)
-                .GroupBy(t => t.QualifiedName).Where(g => g.Count() != 1)
+            var conflictingTypes = refs.Values
+                .SelectMany(r => r.Types)
+                .Where(t => Namespace.IsDeclarationAccessible(false, t.Modifiers.Access))
+                .GroupBy(t => t.QualifiedName)
+                .Where(g => g.Count() != 1)
                 .Select(g => (g.Key, String.Join(", ", g.Select(c => c.SourceFile.Value))));
 
             foreach (var (name, conflicts) in conflictingCallables.Concat(conflictingTypes).Distinct())
