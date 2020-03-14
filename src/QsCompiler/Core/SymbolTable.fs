@@ -878,7 +878,7 @@ and NamespaceManager
         match Namespaces.TryGetValue nsName with
         | true, ns when ns.Sources.Contains source ->
             match (ns.ImportedNamespaces source).TryGetValue builtIn.Namespace with
-            | true, null when ResolutionResult.exists (ns.TryFindType builtIn.Name) ||
+            | true, null when not (ns.TryFindType builtIn.Name |> ResolutionResult.exists) ||
                               nsName.Value = builtIn.Namespace.Value ->
                 [""; builtIn.Namespace.Value]
             | true, null -> [builtIn.Namespace.Value] // the built-in type or callable is shadowed
