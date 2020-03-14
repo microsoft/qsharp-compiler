@@ -347,7 +347,7 @@ and Namespace private
     let isNameAvailable name =
         let isAvailableWith declarationGetter accessibilityGetter sameAssembly =
             match declarationGetter name with
-            | true, value -> not <| Namespace.IsDeclarationAccessible sameAssembly (accessibilityGetter value)
+            | true, value -> not <| Namespace.IsDeclarationAccessible (sameAssembly, accessibilityGetter value)
             | false, _ -> true
 
         isAvailableWith CallablesInReferences.TryGetValue (fun c -> c.Modifiers.Access) false &&
@@ -358,7 +358,8 @@ and Namespace private
 
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
     /// the same assembly as the declaration, and the declaration's access modifier.
-    static member internal IsDeclarationAccessible sameAssembly = function
+    static member IsDeclarationAccessible (sameAssembly, access) =
+        match access with
         | DefaultAccess -> true
         | Internal -> sameAssembly
 
@@ -556,7 +557,7 @@ and Namespace private
         let findInReferences () =
             match TypesInReferences.TryGetValue tName with
             | true, qsType ->
-                if Namespace.IsDeclarationAccessible false qsType.Modifiers.Access
+                if Namespace.IsDeclarationAccessible (false, qsType.Modifiers.Access)
                 then Found (qsType.SourceFile,
                             SymbolResolution.TryFindRedirect qsType.Attributes,
                             qsType.Modifiers.Access)
@@ -566,7 +567,7 @@ and Namespace private
         let findInPartial (partial : PartialNamespace) =
             match partial.TryGetType tName with
             | true, qsType ->
-                if Namespace.IsDeclarationAccessible true qsType.Modifiers.Access
+                if Namespace.IsDeclarationAccessible (true, qsType.Modifiers.Access)
                 then Found (partial.Source,
                             SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
                             qsType.Modifiers.Access)
@@ -597,7 +598,7 @@ and Namespace private
         let findInReferences () =
             match CallablesInReferences.TryGetValue cName with
             | true, callable ->
-                if Namespace.IsDeclarationAccessible false callable.Modifiers.Access
+                if Namespace.IsDeclarationAccessible (false, callable.Modifiers.Access)
                 then Found (callable.SourceFile, SymbolResolution.TryFindRedirect callable.Attributes)
                 else Inaccessible
             | false, _ -> NotFound
@@ -605,7 +606,7 @@ and Namespace private
         let findInPartial (partial : PartialNamespace) =
             match partial.TryGetCallable cName with
             | true, (_, callable) ->
-                if Namespace.IsDeclarationAccessible true callable.Modifiers.Access
+                if Namespace.IsDeclarationAccessible (true, callable.Modifiers.Access)
                 then Found (partial.Source,
                             SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes)
                 else Inaccessible
@@ -1402,8 +1403,8 @@ and NamespaceManager
         Seq.append
             (Seq.map (fun callable -> callable, true) (this.DefinedCallables()))
             (Seq.map (fun callable -> callable, false) (this.ImportedCallables()))
-        |> Seq.filter
-            (fun (callable, sameAssembly) -> Namespace.IsDeclarationAccessible sameAssembly callable.Modifiers.Access)
+        |> Seq.filter (fun (callable, sameAssembly) ->
+            Namespace.IsDeclarationAccessible (sameAssembly, callable.Modifiers.Access))
         |> Seq.map fst
 
     /// Returns the source file and TypeDeclarationHeader of all types imported from referenced assemblies, regardless
@@ -1448,8 +1449,8 @@ and NamespaceManager
         Seq.append
             (Seq.map (fun qsType -> qsType, true) (this.DefinedTypes()))
             (Seq.map (fun qsType -> qsType, false) (this.ImportedTypes()))
-        |> Seq.filter
-            (fun (qsType, sameAssembly) -> Namespace.IsDeclarationAccessible sameAssembly qsType.Modifiers.Access)
+        |> Seq.filter (fun (qsType, sameAssembly) ->
+            Namespace.IsDeclarationAccessible (sameAssembly, qsType.Modifiers.Access))
         |> Seq.map fst
 
     /// removes the given source file and all its content from all namespaces 
@@ -1556,7 +1557,7 @@ and NamespaceManager
         let findInReferences (ns : Namespace) =
             match ns.CallablesInReferencedAssemblies.TryGetValue callableName.Name with
             | true, callable ->
-                if Namespace.IsDeclarationAccessible false callable.Modifiers.Access
+                if Namespace.IsDeclarationAccessible (false, callable.Modifiers.Access)
                 then Found callable
                 else Inaccessible
             | false, _ -> NotFound
@@ -1566,13 +1567,13 @@ and NamespaceManager
                 // OK to use CallableInSource because this is only evaluated if the callable is not in a
                 // reference.
                 let kind, declaration = ns.CallableInSource source callableName.Name
-                if Namespace.IsDeclarationAccessible true declaration.Modifiers.Access
+                if Namespace.IsDeclarationAccessible (true, declaration.Modifiers.Access)
                 then Found (buildHeader {callableName with Namespace = ns.Name} (source, kind, declaration))
                 else Inaccessible
             | None ->
                 match ns.CallablesDefinedInAllSources().TryGetValue callableName.Name with
                 | true, (source, (kind, declaration)) ->
-                    if Namespace.IsDeclarationAccessible true declaration.Modifiers.Access
+                    if Namespace.IsDeclarationAccessible (true, declaration.Modifiers.Access)
                     then Found (buildHeader {callableName with Namespace = ns.Name} (source, kind, declaration))
                     else Inaccessible
                 | false, _ -> NotFound
@@ -1641,7 +1642,7 @@ and NamespaceManager
         let findInReferences (ns : Namespace) =
             match ns.TypesInReferencedAssemblies.TryGetValue typeName.Name with
             | true, qsType ->
-                if Namespace.IsDeclarationAccessible false qsType.Modifiers.Access
+                if Namespace.IsDeclarationAccessible (false, qsType.Modifiers.Access)
                 then Found qsType
                 else Inaccessible
             | false, _ -> NotFound
@@ -1650,13 +1651,13 @@ and NamespaceManager
             | Some source ->
                 // OK to use TypeInSource because this is only evaluated if the type is not in a reference.
                 let declaration = ns.TypeInSource source typeName.Name
-                if Namespace.IsDeclarationAccessible true declaration.Modifiers.Access
+                if Namespace.IsDeclarationAccessible (true, declaration.Modifiers.Access)
                 then Found (buildHeader {typeName with Namespace = ns.Name} (source, declaration))
                 else Inaccessible
             | None ->
                 match ns.TypesDefinedInAllSources().TryGetValue typeName.Name with
                 | true, (source, declaration) ->
-                    if Namespace.IsDeclarationAccessible true declaration.Modifiers.Access
+                    if Namespace.IsDeclarationAccessible (true, declaration.Modifiers.Access)
                     then Found (buildHeader {typeName with Namespace = ns.Name} (source, declaration))
                     else Inaccessible
                 | false, _ -> NotFound
