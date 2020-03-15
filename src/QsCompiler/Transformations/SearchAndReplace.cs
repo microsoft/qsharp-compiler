@@ -391,7 +391,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// <param name="number">The number to use along with the label to decorate the name.</param>
         /// <returns>The decorated name.</returns>
         public string Decorate(string name, int? number = null) =>
-            number is null ? $"__{label}__{name}" : $"__{label}{number}__{name}";
+            number is null ? $"__{label}__{name}__" : $"__{label}{number}__{name}__";
 
         /// <summary>
         /// Decorates the name of the qualified name with the label of this name decorator and the given number.
