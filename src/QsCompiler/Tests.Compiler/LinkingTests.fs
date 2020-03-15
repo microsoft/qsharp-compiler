@@ -7,7 +7,6 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.IO
-open System.Threading.Tasks
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -363,3 +362,27 @@ type LinkingTests (output:ITestOutputHelper) =
         this.RunInternalRenamingTest 7
             [qualifiedName Signatures.InternalRenamingNs "Foo"]
             [qualifiedName Signatures.InternalRenamingNs "Bar"]
+
+    [<Fact>]
+    member this.``Group internal specializations by source file`` () =
+        let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
+        let sourceCompilation = this.BuildContent chunks.[7]
+        let namespaces =
+            sourceCompilation.BuiltCompilation.Namespaces
+            |> Seq.filter (fun ns -> ns.Name.Value.StartsWith Signatures.InternalRenamingNs)
+
+        let references =
+            ["InternalRenaming1.dll"; "InternalRenaming2.dll"]
+            |> Seq.map (fun source -> KeyValuePair.Create(NonNullable<_>.New source,
+                                                          References.Headers (NonNullable<_>.New source, namespaces)))
+            |> ImmutableDictionary.CreateRange
+            |> References
+        let referenceCompilation = this.BuildContent ("", references)
+        let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
+
+        for i in 0 .. references.Declarations.Count - 1 do
+            let name =
+                CompilationUnit.ReferenceDecorator.Decorate (qualifiedName Signatures.InternalRenamingNs "Foo", i)
+            let specializations = callables.[name].Specializations
+            Assert.Equal (4, specializations.Length)
+            Assert.True (specializations |> Seq.forall (fun s -> s.SourceFile = callables.[name].SourceFile))

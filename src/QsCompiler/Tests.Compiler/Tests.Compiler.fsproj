@@ -171,18 +171,16 @@
 
   <ItemGroup>
     <PackageReference Update="System.ValueTuple" Version="4.4.0" />
-    <PackageReference Update="FSharp.Core" Version="4.7.0" />    
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
   </ItemGroup>
 
   <Target Name="PrepareReferenceTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
     <PropertyGroup>
       <ExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.0\Example.dll</ExecutionTarget>
       <LibraryTarget>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\netcoreapp3.0\Library1.dll</LibraryTarget>
-      <LibraryTargetCopy>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\netcoreapp3.0\Library2.dll</LibraryTargetCopy>
     </PropertyGroup>
-    <Copy SourceFiles="$(LibraryTarget)" DestinationFiles="$(LibraryTargetCopy)"/>
     <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt"
-                      Lines="$(ExecutionTarget); $(LibraryTarget); $(LibraryTargetCopy)"
+                      Lines="$(ExecutionTarget); $(LibraryTarget)"
                       Overwrite="true" />
   </Target>
 
