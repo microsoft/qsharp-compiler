@@ -216,25 +216,25 @@ let private _DefaultWithOperation = _MakeTypeMap [|
 /// Expected callable signatures to be found when running Classical Control tests
 let public ClassicalControlSignatures =
     [|
-        (_DefaultTypes, [| // Basic Hoist
+        (_DefaultTypes, [| // Basic Lift
             ClassicalControlNs, "Foo", [||], "Unit"; // The original operation
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"; // The generated operation
         |])
-        (_DefaultTypes, [| // Hoist Loops
+        (_DefaultTypes, [| // Lift Loops
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
-        (_DefaultTypes, [| // Don't Hoist Single Call
+        (_DefaultTypes, [| // Don't Lift Single Call
             ClassicalControlNs, "Foo", [||], "Unit"
         |])
-        (_DefaultTypes, [| // Hoist Single Non-Call
+        (_DefaultTypes, [| // Lift Single Non-Call
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
-        (_DefaultTypes, [| // Don't Hoist Return Statements
+        (_DefaultTypes, [| // Don't Lift Return Statements
             ClassicalControlNs, "Foo", [||], "Unit"
         |])
-        (_DefaultTypes, [| // All-Or-None Hoisting
+        (_DefaultTypes, [| // All-Or-None Lifting
             ClassicalControlNs, "IfInvalid", [||], "Unit"
             ClassicalControlNs, "ElseInvalid", [||], "Unit"
             ClassicalControlNs, "BothInvalid", [||], "Unit"
@@ -259,17 +259,17 @@ let public ClassicalControlSignatures =
         (_DefaultTypes, [| // Or Condition
             ClassicalControlNs, "Foo", [||], "Unit"
         |])
-        (_DefaultTypes, [| // Don't Hoist Functions
+        (_DefaultTypes, [| // Don't Lift Functions
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "SubFunc1", [||], "Unit"
             ClassicalControlNs, "SubFunc2", [||], "Unit"
             ClassicalControlNs, "SubFunc3", [||], "Unit"
         |])
-        (_DefaultTypes, [| // Hoist Self-Contained Mutable
+        (_DefaultTypes, [| // Lift Self-Contained Mutable
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
-        (_DefaultTypes, [| // Don't Hoist General Mutable
+        (_DefaultTypes, [| // Don't Lift General Mutable
             ClassicalControlNs, "Foo", [||], "Unit"
         |])
         (_DefaultTypes, [| // Generics Support
@@ -368,20 +368,20 @@ let public ClassicalControlSignatures =
             ClassicalControlNs, "Bar", [|"Bar.Q";"Bar.W"|], "Unit"
             ClassicalControlNs, "Foo", [||], "Unit"
         |])
-        (_DefaultTypes, [| // Hoist Functor Application
+        (_DefaultTypes, [| // Lift Functor Application
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
-        (_DefaultTypes, [| // Hoist Partial Application
+        (_DefaultTypes, [| // Lift Partial Application
             ClassicalControlNs, "Bar", [|"Int";"Double"|], "Unit"
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
-        (_DefaultWithOperation, [| // Hoist Array Item Call
+        (_DefaultWithOperation, [| // Lift Array Item Call
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "_Foo", [|"SubOp1Type[]";"Result"|], "Unit"
         |])
-        (_DefaultTypes, [| // Hoist One Not Both
+        (_DefaultTypes, [| // Lift One Not Both
             ClassicalControlNs, "Foo", [||], "Unit"
             ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
