@@ -364,7 +364,7 @@ type LinkingTests (output:ITestOutputHelper) =
             [qualifiedName Signatures.InternalRenamingNs "Foo"]
             [qualifiedName Signatures.InternalRenamingNs "Bar"]
 
-    [<Fact>]
+    [<Fact (Skip = "Re-using internal names in multiple references is not supported yet")>]
     member this.``Group internal specializations by source file`` () =
         let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
         let sourceCompilation = this.BuildContent chunks.[7]
