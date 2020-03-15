@@ -46,6 +46,12 @@ type LinkingTests (output:ITestOutputHelper) =
             Name = NonNullable<_>.New name
         }
 
+    let createReferences : seq<string * IEnumerable<QsNamespace>> -> References =
+        Seq.map (fun (source, namespaces) ->
+            KeyValuePair.Create(NonNullable<_>.New source, References.Headers (NonNullable<_>.New source, namespaces)))
+        >> ImmutableDictionary.CreateRange
+        >> References
+
     /// Counts the number of references to the qualified name in all of the namespaces, including the declaration.
     let countReferences namespaces (name : QsQualifiedName) =
         let references = IdentifierReferences (name, defaultOffset)
@@ -151,15 +157,10 @@ type LinkingTests (output:ITestOutputHelper) =
         let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
         let sourceCompilation = this.BuildContent chunks.[num - 1]
 
-        let dllSource = "InternalRenaming.dll"
         let namespaces =
             sourceCompilation.BuiltCompilation.Namespaces
             |> Seq.filter (fun ns -> ns.Name.Value.StartsWith Signatures.InternalRenamingNs)
-        let headers = References.Headers (NonNullable<string>.New dllSource, namespaces)
-        let references =
-            [KeyValuePair.Create(NonNullable<_>.New dllSource, headers)]
-            |> ImmutableDictionary.CreateRange
-            |> References
+        let references = createReferences ["InternalRenaming.dll", namespaces]
         let referenceCompilation = this.BuildContent ("", references)
 
         let countAll namespaces names =
@@ -371,12 +372,8 @@ type LinkingTests (output:ITestOutputHelper) =
             sourceCompilation.BuiltCompilation.Namespaces
             |> Seq.filter (fun ns -> ns.Name.Value.StartsWith Signatures.InternalRenamingNs)
 
-        let references =
-            ["InternalRenaming1.dll"; "InternalRenaming2.dll"]
-            |> Seq.map (fun source -> KeyValuePair.Create(NonNullable<_>.New source,
-                                                          References.Headers (NonNullable<_>.New source, namespaces)))
-            |> ImmutableDictionary.CreateRange
-            |> References
+        let references = createReferences ["InternalRenaming1.dll", namespaces
+                                           "InternalRenaming2.dll", namespaces]
         let referenceCompilation = this.BuildContent ("", references)
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
 
