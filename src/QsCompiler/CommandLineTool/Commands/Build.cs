@@ -61,17 +61,21 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             /// <summary>
             /// Reads the content of all specified response files and processes it using FromResponseFiles. 
-            /// Updates the options accordingly, prioritizing already specified non-default values over the values from response-files.
+            /// Updates the settings accordingly, prioritizing already specified non-default values over the values from response-files.
+            /// Returns true and a new BuildOptions object as out parameter with all the settings from response files incorporated.
             /// Returns false if the content of the specified response-files could not be processed. 
             /// </summary>
-            internal bool IncorporateResponseFiles()
+            internal static bool IncorporateResponseFiles(BuildOptions options, out BuildOptions incorporated)
             {
-                while (this.ResponseFiles != null && this.ResponseFiles.Any())
+                incorporated = null;
+                while (options.ResponseFiles != null && options.ResponseFiles.Any())
                 {
-                    var fromResponseFiles = FromResponseFiles(this.ResponseFiles);
+                    var fromResponseFiles = FromResponseFiles(options.ResponseFiles);
                     if (fromResponseFiles == null) return false;
-                    this.UpdateSetIndependentSettings(fromResponseFiles);
+                    fromResponseFiles.UpdateSetIndependentSettings(options);
+                    options = fromResponseFiles;
                 }
+                incorporated = options;
                 return true;
             }
         }
@@ -130,7 +134,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
-            if (!options.IncorporateResponseFiles()) return ReturnCode.INVALID_ARGUMENTS;
+            if (!BuildOptions.IncorporateResponseFiles(options, out options)) return ReturnCode.INVALID_ARGUMENTS;
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
             var loadOptions = new CompilationLoader.Configuration
