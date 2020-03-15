@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
     public class CompilationOptions : Options
     {
-        [Option("trim", Required = false, Default = DefaultOptions.TrimLevel,
+        [Option("trim", Required = false, Default = DefaultOptions.TrimLevel, SetName = CODE_MODE,
         HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
         public int TrimLevel { get; set; }
 
@@ -88,6 +88,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Specifies the verbosity of the logged output. Valid values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].")]
         public string Verbosity { get; set; }
 
+        [Option("format", Required = false, Default = DefaultOptions.OutputFormat,
+        HelpText = "Specifies the output format of the command line compiler.")]
+        public LogFormat OutputFormat { get; set; }
+
         [Option('i', "input", Required = true, SetName = CODE_MODE,
         HelpText = "Q# code or name of the Q# file to compile.")]
         public IEnumerable<string> Input { get; set; }
@@ -108,13 +112,23 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Warnings with the given code(s) will be ignored.")]
         public IEnumerable<int> NoWarn { get; set; }
 
-        [Option("format", Required = false, Default = DefaultOptions.OutputFormat,
-        HelpText = "Specifies the output format of the command line compiler.")]
-        public LogFormat OutputFormat { get; set; }
-
         [Option("package-load-fallback-folders", Required = false, SetName = CODE_MODE,
         HelpText = "Specifies the directories the compiler will search when a compiler dependency could not be found.")]
         public IEnumerable<string> PackageLoadFallbackFolders { get; set; }
+
+
+        /// <summary>
+        /// Updates the settings that can be used independent on the other arguments according to the setting in the given options.
+        /// Already specified non-default values are prioritized over the values in the given options, 
+        /// unless overwriteNonDefaultValues is set to true. Sequences are merged. 
+        /// </summary>
+        internal void UpdateSetIndependentSettings(Options updates, bool overwriteNonDefaultValues = false)
+        {
+            this.Verbosity = overwriteNonDefaultValues || this.Verbosity == DefaultOptions.Verbosity ? updates.Verbosity : this.Verbosity;
+            this.OutputFormat = overwriteNonDefaultValues || this.OutputFormat == DefaultOptions.OutputFormat ? updates.OutputFormat : this.OutputFormat;
+            this.NoWarn = (this.NoWarn ?? new int[0]).Concat(updates.NoWarn ?? new int[0]);
+            this.References = (this.References ?? new string[0]).Concat(updates.References ?? new string[0]);
+        }
 
 
         // routines related to logging 

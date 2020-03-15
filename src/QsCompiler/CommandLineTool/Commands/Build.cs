@@ -70,24 +70,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 {
                     var fromResponseFiles = FromResponseFiles(this.ResponseFiles);
                     if (fromResponseFiles == null) return false;
-
-                    this.CodeSnippet ??= fromResponseFiles.CodeSnippet;
-                    this.DocFolder ??= fromResponseFiles.DocFolder;
-                    this.EmitDll = this.EmitDll || fromResponseFiles.EmitDll;
-                    this.Input = (this.Input ?? new string[0]).Concat(fromResponseFiles.Input ?? new string[0]);
-                    this.NoWarn = (this.NoWarn ?? new int[0]).Concat(fromResponseFiles.NoWarn ?? new int[0]);
-                    this.OutputFolder ??= fromResponseFiles.OutputFolder;
-                    this.OutputFormat = this.OutputFormat != DefaultOptions.OutputFormat ? this.OutputFormat : fromResponseFiles.OutputFormat;
-                    this.PackageLoadFallbackFolders = (this.PackageLoadFallbackFolders ?? new string[0]).Concat(fromResponseFiles.PackageLoadFallbackFolders ?? new string[0]);
-                    this.PerfFolder ??= fromResponseFiles.PerfFolder;
-                    this.Plugins = (this.Plugins ?? new string[0]).Concat(fromResponseFiles.Plugins ?? new string[0]);
-                    this.ProjectName ??= fromResponseFiles.ProjectName;
-                    this.References = (this.References ?? new string[0]).Concat(fromResponseFiles.References ?? new string[0]);
-                    this.ResponseFiles = fromResponseFiles.ResponseFiles;
-                    this.TargetPackage ??= fromResponseFiles.TargetPackage;
-                    this.TrimLevel = this.TrimLevel != DefaultOptions.TrimLevel ? this.TrimLevel : fromResponseFiles.TrimLevel;
-                    this.Verbosity = this.Verbosity != DefaultOptions.Verbosity ? this.Verbosity : fromResponseFiles.Verbosity;
-                    this.WithinFunction = this.WithinFunction || fromResponseFiles.WithinFunction;
+                    this.UpdateSetIndependentSettings(fromResponseFiles);
                 }
                 return true;
             }
