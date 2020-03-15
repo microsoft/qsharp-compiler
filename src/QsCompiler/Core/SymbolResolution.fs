@@ -92,25 +92,25 @@ type ResolutionResult<'T> =
 /// Tools for processing resolution results.
 module internal ResolutionResult =
     /// Applies the mapping function to the value of a Found result. If the result is not a Found, returns it unchanged.
-    let internal map mapping = function
+    let internal Map mapping = function
         | Found value -> Found (mapping value)
         | Ambiguous namespaces -> Ambiguous namespaces
         | Inaccessible -> Inaccessible
         | NotFound -> NotFound
 
     /// Converts the resolution result to an option containing the Found value.
-    let internal toOption = function
+    let internal ToOption = function
         | Found value -> Some value
         | _ -> None
 
     /// Converts the resolution result to a 0- or 1-element list containing the Found value if the result is a Found.
-    let private toList = toOption >> Option.toList
+    let private ToList = ToOption >> Option.toList
 
     /// Sorts the sequence of results in order of Found, Ambiguous, Inaccessible, and NotFound.
     ///
     /// If the sequence contains a Found result, the rest of the sequence after it is not automatically evaluated.
     /// Otherwise, the whole sequence may be evaluated by calling sort.
-    let private sort results =
+    let private Sort results =
         let choosers = [
             function | Found value -> Some (Found value) | _ -> None
             function | Ambiguous namespaces -> Some (Ambiguous namespaces) | _ -> None
@@ -122,45 +122,46 @@ module internal ResolutionResult =
         |> Seq.concat
 
     /// Returns the first item of the sequence of results if there is one, or NotFound if the sequence is empty.
-    let private tryHead<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
+    let private TryHead<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
         Seq.tryHead >> Option.defaultValue NotFound
 
     /// Returns the first Found result in the sequence if it exists. If not, returns the first Ambiguous result if it
     /// exists. Repeats for Inaccessible and NotFound in this order. If the sequence is empty, returns NotFound.
-    let internal tryFirstBest<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
-        sort >> tryHead
+    let internal TryFirstBest<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
+        Sort >> TryHead
 
     /// Returns a Found result if there is only one in the sequence. If there is more than one, returns an Ambiguous
-    /// result. Otherwise, returns the first value from ResolutionResult.sort.
-    let internal tryExactlyOne<'T> (nsGetter : 'T -> NonNullable<string>)
+    /// result containing the namespaces of all Found results given by applying nsGetter to each value. Otherwise,
+    /// returns the same value as TryFirstBest.
+    let internal TryExactlyOne<'T> (nsGetter : 'T -> NonNullable<string>)
                                    (results : seq<ResolutionResult<'T>>) : ResolutionResult<'T> =
         let found = results |> Seq.filter (function | Found _ -> true | _ -> false)
         if Seq.length found > 1
         then found
-             |> Seq.map (map nsGetter >> toList)
+             |> Seq.map (Map nsGetter >> ToList)
              |> Seq.concat
              |> Ambiguous
         else found
              |> Seq.tryExactlyOne
-             |> Option.defaultWith (fun () -> tryFirstBest results)
+             |> Option.defaultWith (fun () -> TryFirstBest results)
 
     /// Returns a Found result if there is only one in the sequence. If there is more than one, raises an exception.
     /// Otherwise, returns the same value as ResolutionResult.tryFirst.
-    let internal exactlyOne<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
-        tryExactlyOne (fun _ -> NonNullable<_>.New "") >> function
+    let internal ExactlyOne<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
+        TryExactlyOne (fun _ -> NonNullable<_>.New "") >> function
         | Ambiguous _ -> QsCompilerError.Raise "Resolution is ambiguous"
                          Exception () |> raise
         | result -> result
 
     /// Returns true if the resolution result indicates that a resolution exists (Found, Ambiguous or Inaccessible).
-    let internal exists = function
+    let internal Exists = function
         | Found _
         | Ambiguous _
         | Inaccessible -> true
         | NotFound -> false
 
     /// Returns true if the resolution result indicates that a resolution is accessible (Found or Ambiguous).
-    let internal isAccessible = function
+    let internal IsAccessible = function
         | Found _
         | Ambiguous _ -> true
         | Inaccessible

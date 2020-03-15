@@ -443,7 +443,7 @@ and Namespace private
             partial.GetSpecializations cName
             |> Seq.map (fun (kind, decl) -> kind, (partial.Source, decl))
 
-        if this.TryFindCallable cName |> ResolutionResult.exists
+        if this.TryFindCallable cName |> ResolutionResult.Exists
         then (Parts.Values.SelectMany getSpecializationInPartial).ToImmutableArray()
         else ArgumentException "no callable with the given name exist within the namespace" |> raise
 
@@ -483,8 +483,8 @@ and Namespace private
             | false, _ -> NotFound
 
         seq { yield findInReferences ()
-              yield Seq.map findInPartial Parts.Values |> ResolutionResult.exactlyOne }
-        |> ResolutionResult.tryFirstBest
+              yield Seq.map findInPartial Parts.Values |> ResolutionResult.ExactlyOne }
+        |> ResolutionResult.TryFirstBest
 
     /// Returns a resolution result for the callable with the given name containing the name of the source file or
     /// referenced assembly in which it is declared, and a string indicating the redirection if it has been deprecated.
@@ -521,8 +521,8 @@ and Namespace private
             | false, _ -> NotFound
 
         seq { yield findInReferences ()
-              yield Seq.map findInPartial Parts.Values |> ResolutionResult.exactlyOne }
-        |> ResolutionResult.tryFirstBest
+              yield Seq.map findInPartial Parts.Values |> ResolutionResult.ExactlyOne }
+        |> ResolutionResult.TryFirstBest
 
     /// Sets the resolution for the type with the given name in the given source file to the given type,
     /// and replaces the resolved attributes with the given values.
@@ -777,11 +777,11 @@ and NamespaceManager
     /// attempts to find an unambiguous resolution.
     let resolveInOpenNamespaces resolver (nsName, source) =
         let resolveWithNsName (ns : Namespace) =
-            resolver ns |> ResolutionResult.map (fun value -> (ns.Name, value))
+            resolver ns |> ResolutionResult.Map (fun value -> (ns.Name, value))
         let currentNs, importedNs = OpenNamespaces (nsName, source)
         seq { yield resolveWithNsName currentNs
-              yield Seq.map resolveWithNsName importedNs |> ResolutionResult.tryExactlyOne fst }
-        |> ResolutionResult.tryFirstBest
+              yield Seq.map resolveWithNsName importedNs |> ResolutionResult.TryExactlyOne fst }
+        |> ResolutionResult.TryFirstBest
 
     /// Given a qualifier for a symbol name, returns the corresponding namespace as Some
     /// if such a namespace or such a namespace short name within the given parent namespace and source file exists. 
@@ -806,7 +806,7 @@ and NamespaceManager
         match Namespaces.TryGetValue nsName with
         | true, ns when ns.Sources.Contains source ->
             match (ns.ImportedNamespaces source).TryGetValue builtIn.Namespace with
-            | true, null when not (ns.TryFindType builtIn.Name |> ResolutionResult.isAccessible) ||
+            | true, null when not (ns.TryFindType builtIn.Name |> ResolutionResult.IsAccessible) ||
                               nsName.Value = builtIn.Namespace.Value ->
                 [""; builtIn.Namespace.Value]
             | true, null -> [builtIn.Namespace.Value] // the built-in type or callable is shadowed
@@ -1492,7 +1492,7 @@ and NamespaceManager
             | Some ns ->
                 seq { yield findInReferences ns
                       yield findInSources ns declSource }
-                |> ResolutionResult.tryFirstBest
+                |> ResolutionResult.TryFirstBest
         finally syncRoot.ExitReadLock()
 
     /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
@@ -1519,7 +1519,7 @@ and NamespaceManager
 
         syncRoot.EnterReadLock()
         try resolveInOpenNamespaces (fun ns -> ns.TryFindCallable cName) (nsName, source)
-            |> ResolutionResult.map toHeader
+            |> ResolutionResult.Map toHeader
         finally syncRoot.ExitReadLock()
 
     /// Given a qualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
@@ -1576,7 +1576,7 @@ and NamespaceManager
             | Some ns ->
                 seq { yield findInReferences ns
                       yield findInSources ns declSource }
-                |> ResolutionResult.tryFirstBest
+                |> ResolutionResult.TryFirstBest
         finally syncRoot.ExitReadLock()
 
     /// Given a qualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
@@ -1603,7 +1603,7 @@ and NamespaceManager
 
         syncRoot.EnterReadLock()
         try resolveInOpenNamespaces (fun ns -> ns.TryFindType tName) (nsName, source)
-            |> ResolutionResult.map toHeader
+            |> ResolutionResult.Map toHeader
         finally syncRoot.ExitReadLock()
 
     /// Returns the fully qualified namespace name of the given namespace alias (short name). If the alias is already a fully qualified name, 
@@ -1623,7 +1623,7 @@ and NamespaceManager
         syncRoot.EnterReadLock()
         try Namespaces.Values
             |> Seq.choose (fun ns ->
-                ns.TryFindCallable cName |> ResolutionResult.toOption |> Option.map (fun _ -> ns.Name))
+                ns.TryFindCallable cName |> ResolutionResult.ToOption |> Option.map (fun _ -> ns.Name))
             |> fun namespaces -> namespaces.ToImmutableArray ()
         finally syncRoot.ExitReadLock()
 
@@ -1634,7 +1634,7 @@ and NamespaceManager
         syncRoot.EnterReadLock()
         try Namespaces.Values
             |> Seq.choose (fun ns ->
-                ns.TryFindType tName |> ResolutionResult.toOption |> Option.map (fun _ -> ns.Name))
+                ns.TryFindType tName |> ResolutionResult.ToOption |> Option.map (fun _ -> ns.Name))
             |> fun namespaces -> namespaces.ToImmutableArray ()
         finally syncRoot.ExitReadLock()
 
