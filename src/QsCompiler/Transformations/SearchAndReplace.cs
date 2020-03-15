@@ -364,7 +364,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     // routines for replacing symbols/identifiers
 
     /// <summary>
-    /// Provides simple name decoration, or name mangling, by prefixing names with a label and number.
+    /// Provides simple name decoration (or name mangling) by prefixing names with a label and number.
     /// </summary>
     public class NameDecorator
     {
@@ -390,8 +390,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// <param name="name">The name to decorate.</param>
         /// <param name="number">The number to use along with the label to decorate the name.</param>
         /// <returns>The decorated name.</returns>
-        public string Decorate(string name, int? number = null) =>
-            number is null ? $"__{label}__{name}__" : $"__{label}{number}__{name}__";
+        public string Decorate(string name, int number) => $"__{label}{number}__{name}__";
 
         /// <summary>
         /// Decorates the name of the qualified name with the label of this name decorator and the given number.
@@ -399,7 +398,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// <param name="name">The qualified name to decorate.</param>
         /// <param name="number">The number to use along with the label to decorate the qualified name.</param>
         /// <returns>The decorated qualified name.</returns>
-        public QsQualifiedName Decorate(QsQualifiedName name, int? number = null) =>
+        public QsQualifiedName Decorate(QsQualifiedName name, int number) =>
             new QsQualifiedName(name.Namespace, NonNullable<string>.New(Decorate(name.Name.Value, number)));
 
         /// <summary>

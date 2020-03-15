@@ -169,7 +169,7 @@ type LinkingTests (output:ITestOutputHelper) =
         let beforeCount = countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [renamed; notRenamed])
         let afterCountOriginal = countAll referenceCompilation.BuiltCompilation.Namespaces renamed
 
-        let newNames = renamed |> Seq.map (fun name -> CompilationUnit.ReferenceDecorator.Decorate (name, Nullable 0))
+        let newNames = renamed |> Seq.map (fun name -> CompilationUnit.ReferenceDecorator.Decorate (name, 0))
         let afterCount = countAll referenceCompilation.BuiltCompilation.Namespaces (Seq.concat [newNames; notRenamed])
 
         Assert.NotEqual (0, beforeCount)
