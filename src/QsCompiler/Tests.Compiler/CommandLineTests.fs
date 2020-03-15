@@ -168,6 +168,10 @@ let ``options from response files`` () =
     let commandLineArgs = 
         [|
             "build"
+            "-v"
+            "Detailed"
+            "--format"
+            "MsBuild"
             "--response-files"
             configFile
         |]        
