@@ -163,15 +163,11 @@ let ``options from response files`` () =
             "-i"
             ("TestCases","LinkingTests","Core.qs") |> Path.Combine
             ("TestCases","LinkingTests","Diagnostics.qs") |> Path.Combine
-            "--trim"
-            "0"
         |]        
     File.WriteAllText(configFile, String.Join (" ", configArgs))
     let commandLineArgs = 
         [|
             "build"
-            "--trim"
-            "2"
             "--response-files"
             configFile
         |]        
