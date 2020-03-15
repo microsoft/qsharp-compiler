@@ -57,6 +57,40 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option('p', "perf", Required = false, SetName = CODE_MODE,
             HelpText = "Destination folder where the output of the performance assessment will be generated.")]
             public string PerfFolder { get; set; }
+
+
+            /// <summary>
+            /// Reads the content of all specified response files and processes it using FromResponseFiles. 
+            /// Updates the options accordingly, prioritizing already specified non-default values over the values from response-files.
+            /// Returns false if the content of the specified response-files could not be processed. 
+            /// </summary>
+            internal bool IncorporateResponseFiles()
+            {
+                while (this.ResponseFiles != null && this.ResponseFiles.Any())
+                {
+                    var fromResponseFiles = FromResponseFiles(this.ResponseFiles);
+                    if (fromResponseFiles == null) return false;
+
+                    this.CodeSnippet ??= fromResponseFiles.CodeSnippet;
+                    this.DocFolder ??= fromResponseFiles.DocFolder;
+                    this.EmitDll = this.EmitDll || fromResponseFiles.EmitDll;
+                    this.Input = (this.Input ?? new string[0]).Concat(fromResponseFiles.Input ?? new string[0]);
+                    this.NoWarn = (this.NoWarn ?? new int[0]).Concat(fromResponseFiles.NoWarn ?? new int[0]);
+                    this.OutputFolder ??= fromResponseFiles.OutputFolder;
+                    this.OutputFormat = this.OutputFormat != DefaultOptions.OutputFormat ? this.OutputFormat : fromResponseFiles.OutputFormat;
+                    this.PackageLoadFallbackFolders = (this.PackageLoadFallbackFolders ?? new string[0]).Concat(fromResponseFiles.PackageLoadFallbackFolders ?? new string[0]);
+                    this.PerfFolder ??= fromResponseFiles.PerfFolder;
+                    this.Plugins = (this.Plugins ?? new string[0]).Concat(fromResponseFiles.Plugins ?? new string[0]);
+                    this.ProjectName ??= fromResponseFiles.ProjectName;
+                    this.References = (this.References ?? new string[0]).Concat(fromResponseFiles.References ?? new string[0]);
+                    this.ResponseFiles = fromResponseFiles.ResponseFiles;
+                    this.TargetPackage ??= fromResponseFiles.TargetPackage;
+                    this.TrimLevel = this.TrimLevel != DefaultOptions.TrimLevel ? this.TrimLevel : fromResponseFiles.TrimLevel;
+                    this.Verbosity = this.Verbosity != DefaultOptions.Verbosity ? this.Verbosity : fromResponseFiles.Verbosity;
+                    this.WithinFunction = this.WithinFunction || fromResponseFiles.WithinFunction;
+                }
+                return true;
+            }
         }
 
         /// <summary>
@@ -112,30 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
-
-            while (options.ResponseFiles != null && options.ResponseFiles.Any())
-            {
-                var fromResponseFiles = FromResponseFiles(options.ResponseFiles);
-                if (fromResponseFiles == null) return ReturnCode.INVALID_ARGUMENTS;
-
-                options.CodeSnippet ??= fromResponseFiles.CodeSnippet;
-                options.DocFolder ??= fromResponseFiles.DocFolder;
-                options.EmitDll = options.EmitDll || fromResponseFiles.EmitDll;
-                options.Input = (options.Input ?? new string[0]).Concat(fromResponseFiles.Input ?? new string[0]);
-                options.NoWarn = (options.NoWarn ?? new int[0]).Concat(fromResponseFiles.NoWarn ?? new int[0]);
-                options.OutputFolder ??= fromResponseFiles.OutputFolder;
-                options.OutputFormat = options.OutputFormat != DefaultOptions.OutputFormat ? options.OutputFormat : fromResponseFiles.OutputFormat;
-                options.PackageLoadFallbackFolders = (options.PackageLoadFallbackFolders ?? new string[0]).Concat(fromResponseFiles.PackageLoadFallbackFolders ?? new string[0]);
-                options.PerfFolder ??= fromResponseFiles.PerfFolder;
-                options.Plugins = (options.Plugins ?? new string[0]).Concat(fromResponseFiles.Plugins ?? new string[0]);
-                options.ProjectName ??= fromResponseFiles.ProjectName;
-                options.References = (options.References ?? new string[0]).Concat(fromResponseFiles.References ?? new string[0]);
-                options.ResponseFiles = fromResponseFiles.ResponseFiles;
-                options.TargetPackage ??= fromResponseFiles.TargetPackage;
-                options.TrimLevel = options.TrimLevel != DefaultOptions.TrimLevel ? options.TrimLevel : fromResponseFiles.TrimLevel;
-                options.Verbosity = options.Verbosity != DefaultOptions.Verbosity ? options.Verbosity : fromResponseFiles.Verbosity;
-                options.WithinFunction = options.WithinFunction || fromResponseFiles.WithinFunction;
-            }
+            if (!options.IncorporateResponseFiles()) return ReturnCode.INVALID_ARGUMENTS;
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
             var loadOptions = new CompilationLoader.Configuration
