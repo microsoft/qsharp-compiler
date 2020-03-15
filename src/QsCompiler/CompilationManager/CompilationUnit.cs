@@ -731,7 +731,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <param name="callables">The callables to rename and update references in.</param>
         /// <param name="types">The types to rename and update references in.</param>
         /// <returns>The tagged callables and types with references renamed everywhere.</returns>
-        private static (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
+        private (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
             TagImportedInternalNames(IEnumerable<QsCallable> callables, IEnumerable<QsCustomType> types)
         {
             // Create a mapping from source file names to a short, unique identifying tag name.
@@ -748,9 +748,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
                 IGrouping<string, (QsQualifiedName name, string source, AccessModifier access)> group) =>
-                // TODO: Is there another way besides file extension to check if the source file is a reference?
                 group
-                .Where(item => item.access.IsInternal && !item.source.EndsWith(".qs"))
+                .Where(item =>
+                    !Namespace.IsDeclarationAccessible(false, item.access) &&
+                    Externals.Declarations.ContainsKey(NonNullable<string>.New(item.source)))
                 .ToImmutableDictionary(item => item.name, item => EmbedTag(tags[item.source], item.name));
 
             var transformations =
