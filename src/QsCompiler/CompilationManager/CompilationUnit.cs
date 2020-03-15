@@ -153,6 +153,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// </summary>
     public class CompilationUnit : IReaderWriterLock, IDisposable
     {
+        internal static readonly NameDecorator ReferenceDecorator = new NameDecorator("QsReference");
+
         internal References Externals { get; private set; }
         internal NamespaceManager GlobalSymbols { get; private set; }
         private readonly Dictionary<QsQualifiedName, QsCallable> CompiledCallables;
@@ -705,25 +707,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a short tag name for the given source file. The tag is not unique. If multiple source files are
-        /// being tagged, make sure there are no name conflicts.
-        /// </summary>
-        /// <param name="source">The source file to get the tag for.</param>
-        /// <returns>A short tag name for the given source file.</returns>
-        internal static string GetTagForSource(string source) =>
-            Regex.Replace(Path.GetFileNameWithoutExtension(source), "[^A-Za-z0-9_]", "");
-
-        /// <summary>
-        /// Embeds the tag name into the qualified name.
-        /// </summary>
-        /// <param name="tag">The tag name to embed.</param>
-        /// <param name="name">The qualified name in which to embed the tag name.</param>
-        /// <returns>A new qualified name with the tag embedded into it.</returns>
-        internal static QsQualifiedName EmbedTag(string tag, QsQualifiedName name) =>
-            // TODO: We might need to change the format to make it easier to reverse later.
-            new QsQualifiedName(name.Namespace, NonNullable<string>.New($"__{name.Name.Value}_{tag}__"));
-
-        /// <summary>
         /// Tags the names of imported internal callables and types with a unique identifier based on the path to their
         /// assembly, so that they do not conflict with callables and types defined locally. Renames all references to
         /// the tagged declarations found in the given callables and types.
@@ -734,17 +717,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
             TagImportedInternalNames(IEnumerable<QsCallable> callables, IEnumerable<QsCustomType> types)
         {
-            // Create a mapping from source file names to a short, unique identifying tag name.
-            var tags =
+            // Assign a unique ID to each reference.
+            var ids =
                 callables.Select(callable => callable.SourceFile.Value)
                 .Concat(types.Select(type => type.SourceFile.Value))
                 .Distinct()
-                .GroupBy(GetTagForSource)
-                .SelectMany(group =>
-                    group.Count() == 1
-                    ? new[] { (key: group.Single(), value: group.Key) }
-                    : group.Select((source, index) => (key: source, value: group.Key + index)))
-                .ToImmutableDictionary(item => item.key, item => item.value);
+                .Where(source => Externals.Declarations.ContainsKey(NonNullable<string>.New(source)))
+                .Select((source, index) => (source, index))
+                .ToImmutableDictionary(item => item.source, item => item.index);
 
             ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
                 IGrouping<string, (QsQualifiedName name, string source, AccessModifier access)> group) =>
@@ -752,7 +732,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Where(item =>
                     !Namespace.IsDeclarationAccessible(false, item.access) &&
                     Externals.Declarations.ContainsKey(NonNullable<string>.New(item.source)))
-                .ToImmutableDictionary(item => item.name, item => EmbedTag(tags[item.source], item.name));
+                .ToImmutableDictionary(item => item.name,
+                                       item => ReferenceDecorator.Decorate(item.name, ids[item.source]));
 
             var transformations =
                 callables.Select(callable =>

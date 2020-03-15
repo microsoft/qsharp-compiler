@@ -364,6 +364,60 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     // routines for replacing symbols/identifiers
 
     /// <summary>
+    /// Provides simple name decoration, or name mangling, by prefixing names with a label and number.
+    /// </summary>
+    public class NameDecorator
+    {
+        private const string original = "original";
+
+        private readonly string label;
+
+        private readonly Regex pattern;
+
+        /// <summary>
+        /// Creates a new name decorator using the label.
+        /// </summary>
+        /// <param name="label">The label to use as the prefix for decorated names.</param>
+        public NameDecorator(string label)
+        {
+            this.label = label;
+            pattern = new Regex($"^__{Regex.Escape(label)}[0-9]*__(?<{original}>.*)__$");
+        }
+
+        /// <summary>
+        /// Decorates the name with the label of this name decorator and the given number.
+        /// </summary>
+        /// <param name="name">The name to decorate.</param>
+        /// <param name="number">The number to use along with the label to decorate the name.</param>
+        /// <returns></returns>
+        public string Decorate(string name, int? number = null) =>
+            number is null ? $"__{label}__{name}" : $"__{label}{number}__{name}";
+
+        /// <summary>
+        /// Decorates the name of the qualified name with the label of this name decorator and the given number.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="number"></param>
+        /// <returns></returns>
+        public QsQualifiedName Decorate(QsQualifiedName name, int? number = null) =>
+            new QsQualifiedName(name.Namespace, NonNullable<string>.New(Decorate(name.Name.Value, number)));
+
+        /// <summary>
+        /// Reverses decoration previously done to the name using the same label as this name decorator.
+        /// </summary>
+        /// <param name="name">The decorated name to undecorate.</param>
+        /// <returns>
+        /// The original name before decoration, if the decorated name uses the same label as this name decorator;
+        /// otherwise, null.
+        /// </returns>
+        public string Undecorate(string name)
+        {
+            var match = pattern.Match(name).Groups[original];
+            return match.Success ? match.Value : null;
+        }
+    }
+
+    /// <summary>
     /// Upon transformation, assigns each defined variable a unique name, independent on the scope, and replaces all references to it accordingly.
     /// The original variable name can be recovered by using the static method StripUniqueName.
     /// This class is *not* threadsafe.
@@ -371,6 +425,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     public class UniqueVariableNames
     : SyntaxTreeTransformation<UniqueVariableNames.TransformationState>
     {
+        private static readonly NameDecorator decorator = new NameDecorator("qsVar");
+
         public class TransformationState
         {
             private int VariableNr = 0;
@@ -387,18 +443,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             /// </summary>
             internal NonNullable<string> GenerateUniqueName(NonNullable<string> varName)
             {
-                var unique = NonNullable<string>.New($"__{Prefix}{this.VariableNr++}__{varName.Value}__");
+                var unique = NonNullable<string>.New(decorator.Decorate(varName.Value, VariableNr++));
                 this.UniqueNames[varName] = unique;
                 return unique;
             }
         }
 
 
-        private const string Prefix = "qsVar";
-        private const string OrigVarName = "origVarName";
-        private static readonly Regex WrappedVarName = new Regex($"^__{Prefix}[0-9]*__(?<{OrigVarName}>.*)__$");
-
-        public UniqueVariableNames() 
+        public UniqueVariableNames()
         : base(new TransformationState())
         {
             this.StatementKinds = new StatementKindTransformation(this);
@@ -410,13 +462,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         // static methods for convenience
 
         internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
-            new QsQualifiedName(original.Namespace, NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + original.Name.Value));
+            new QsQualifiedName(
+                original.Namespace,
+                NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + original.Name.Value));
 
-        public static NonNullable<string> StripUniqueName(NonNullable<string> uniqueName)
-        {
-            var matched = WrappedVarName.Match(uniqueName.Value).Groups[OrigVarName];
-            return matched.Success ? NonNullable<string>.New(matched.Value) : uniqueName;
-        }
+        public static NonNullable<string> StripUniqueName(NonNullable<string> uniqueName) =>
+            NonNullable<string>.New(decorator.Undecorate(uniqueName.Value) ?? uniqueName.Value);
 
 
         // helper classes
