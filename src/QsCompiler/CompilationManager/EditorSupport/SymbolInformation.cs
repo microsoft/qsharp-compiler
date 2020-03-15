@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -188,17 +189,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (nsName == null) return false;
                 var ns = NonNullable<string>.New(nsName);
 
-                QsQualifiedName fullName = null;
+                var result = ResolutionResult<CallableDeclarationHeader>.NotFound;
                 if (sym.Symbol is QsSymbolKind<QsSymbol>.Symbol name)
                 {
-                    var header = compilation.GlobalSymbols.TryResolveAndGetCallable(name.Item, ns, file.FileName).Item1;
-                    if (header.IsValue) fullName = header.Item.QualifiedName;
+                    result = compilation.GlobalSymbols.TryResolveAndGetCallable(name.Item, ns, file.FileName);
                 }
-                if (sym.Symbol is QsSymbolKind<QsSymbol>.QualifiedSymbol qualName)
+                else if (sym.Symbol is QsSymbolKind<QsSymbol>.QualifiedSymbol qualifiedName)
                 {
-                    var header = compilation.GlobalSymbols.TryGetCallable(new QsQualifiedName(qualName.Item1, qualName.Item2), ns, file.FileName);
-                    if (header.IsValue) fullName = header.Item.QualifiedName;
+                    result = compilation.GlobalSymbols.TryGetCallable(
+                        new QsQualifiedName(qualifiedName.Item1, qualifiedName.Item2),
+                        ns,
+                        file.FileName);
                 }
+                var fullName = result is ResolutionResult<CallableDeclarationHeader>.Found header ? header.Item.QualifiedName : null;
+
                 return compilation.TryGetReferences(fullName, out declarationLocation, out referenceLocations, limitToSourceFiles);
             }
 

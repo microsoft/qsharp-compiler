@@ -5,7 +5,9 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
 open System.Collections.Generic
+open System.Collections.Immutable
 open System.IO
+open System.Threading.Tasks
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -15,19 +17,48 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
+open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
+open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
 
 
 type LinkingTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"], output)
+    inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"] [], output)
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
 
-    let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+    let getTempFile () =
+        // The file name needs to end in ".qs" so that it isn't ignored by the References.Headers class during the
+        // internal renaming tests.
+        Path.GetRandomFileName () + ".qs" |> Path.GetFullPath |> Uri
+
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
-    do  let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
+    let defaultOffset =
+        {
+            Offset = DiagnosticTools.AsTuple (Position (0, 0))
+            Range = QsCompilerDiagnostic.DefaultRange
+        }
+
+    let qualifiedName ns name =
+        {
+            Namespace = NonNullable<_>.New ns
+            Name = NonNullable<_>.New name
+        }
+
+    /// Counts the number of references to the qualified name in all of the namespaces, including the declaration.
+    let countReferences namespaces (name : QsQualifiedName) =
+        let references = IdentifierReferences (name, defaultOffset)
+        Seq.iter (references.Namespaces.OnNamespace >> ignore) namespaces
+        let declaration = if obj.ReferenceEquals (references.SharedState.DeclarationLocation, null) then 0 else 1
+        references.SharedState.Locations.Count + declaration
+
+    do
+        let addOrUpdateSourceFile filePath =
+            getManager (new Uri(filePath)) (File.ReadAllText filePath)
+            |> compilationManager.AddOrUpdateSourceFileAsync
+            |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
     static member private ReadAndChunkSourceFile fileName =
@@ -53,19 +84,23 @@ type LinkingTests (output:ITestOutputHelper) =
         for callable in built.Callables.Values |> Seq.filter inFile do
             tests.Verify (callable.FullName, diag)
 
-    member private this.BuildContent content =
+    member private this.BuildContent (source, ?references) =
+        let fileId = getTempFile ()
+        let file = getManager fileId source
 
-        let fileId = getTempFile()
-        let file = getManager fileId content
+        match references with
+        | Some references -> compilationManager.UpdateReferencesAsync references |> ignore
+        | None -> ()
+        compilationManager.AddOrUpdateSourceFileAsync file |> ignore
 
-        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-        let compilationDataStructures = compilationManager.Build()
-        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
+        let compilation = compilationManager.Build ()
+        compilationManager.TryRemoveSourceFileAsync (fileId, false) |> ignore
+        compilationManager.UpdateReferencesAsync (References ImmutableDictionary<_, _>.Empty) |> ignore
 
-        compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
-        Assert.NotNull compilationDataStructures.BuiltCompilation
+        compilation.Diagnostics () |> Seq.exists (fun d -> d.IsError ()) |> Assert.False
+        Assert.NotNull compilation.BuiltCompilation
 
-        compilationDataStructures
+        compilation
 
     member private this.CompileMonomorphization input =
 
@@ -110,6 +145,36 @@ type LinkingTests (output:ITestOutputHelper) =
             | _ -> false
             |> Assert.True)
         |> ignore
+
+    /// Runs the nth internal renaming test, asserting that declarations with the given name and references to them have
+    /// been renamed across the compilation unit.
+    member private this.RunInternalRenamingTest num renamed notRenamed =
+        let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
+        let sourceCompilation = this.BuildContent chunks.[num - 1]
+
+        let dllSource = "InternalRenaming.dll"
+        let namespaces =
+            sourceCompilation.BuiltCompilation.Namespaces
+            |> Seq.filter (fun ns -> ns.Name.Value.StartsWith Signatures.InternalRenamingNs)
+        let headers = References.Headers (NonNullable<string>.New dllSource, namespaces)
+        let references =
+            [KeyValuePair.Create(NonNullable<_>.New dllSource, headers)]
+            |> ImmutableDictionary.CreateRange
+            |> References
+        let referenceCompilation = this.BuildContent ("", references)
+
+        let countAll namespaces names =
+            names |> Seq.map (countReferences namespaces) |> Seq.sum
+
+        let beforeCount = countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [renamed; notRenamed])
+        let afterCountOriginal = countAll referenceCompilation.BuiltCompilation.Namespaces renamed
+
+        let newNames = renamed |> Seq.map (fun name -> CompilationUnit.ReferenceDecorator.Decorate (name, 0))
+        let afterCount = countAll referenceCompilation.BuiltCompilation.Namespaces (Seq.concat [newNames; notRenamed])
+
+        Assert.NotEqual (0, beforeCount)
+        Assert.Equal (0, afterCountOriginal)
+        Assert.Equal (beforeCount, afterCount)
 
     [<Fact>]
     member this.``Monomorphization`` () =
@@ -245,3 +310,56 @@ type LinkingTests (output:ITestOutputHelper) =
         this.Expect "InvalidEntryPoint35" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint36" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
 
+    [<Fact>]
+    member this.``Rename internal operation call references`` () =
+        this.RunInternalRenamingTest 1
+            [qualifiedName Signatures.InternalRenamingNs "Foo"]
+            [qualifiedName Signatures.InternalRenamingNs "Bar"]
+
+    [<Fact>]
+    member this.``Rename internal function call references`` () =
+        this.RunInternalRenamingTest 2
+            [qualifiedName Signatures.InternalRenamingNs "Foo"]
+            [qualifiedName Signatures.InternalRenamingNs "Bar"]
+
+    [<Fact>]
+    member this.``Rename internal type references`` () =
+        this.RunInternalRenamingTest 3
+            [
+                qualifiedName Signatures.InternalRenamingNs "Foo"
+                qualifiedName Signatures.InternalRenamingNs "Bar"
+                qualifiedName Signatures.InternalRenamingNs "Baz"
+            ]
+            []
+
+    [<Fact>]
+    member this.``Rename internal references across namespaces`` () =
+        this.RunInternalRenamingTest 4
+            [
+                qualifiedName Signatures.InternalRenamingNs "Foo"
+                qualifiedName Signatures.InternalRenamingNs "Bar"
+                qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Qux"
+            ]
+            [qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Baz"]
+
+    [<Fact>]
+    member this.``Rename internal qualified references`` () =
+        this.RunInternalRenamingTest 5
+            [
+                qualifiedName Signatures.InternalRenamingNs "Foo"
+                qualifiedName Signatures.InternalRenamingNs "Bar"
+                qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Qux"
+            ]
+            [qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Baz"]
+
+    [<Fact>]
+    member this.``Rename internal attribute references`` () =
+        this.RunInternalRenamingTest 6
+            [qualifiedName Signatures.InternalRenamingNs "Foo"]
+            [qualifiedName Signatures.InternalRenamingNs "Bar"]
+
+    [<Fact>]
+    member this.``Rename specializations for internal operations`` () =
+        this.RunInternalRenamingTest 7
+            [qualifiedName Signatures.InternalRenamingNs "Foo"]
+            [qualifiedName Signatures.InternalRenamingNs "Bar"]

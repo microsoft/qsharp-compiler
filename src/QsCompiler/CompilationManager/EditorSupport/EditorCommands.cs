@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -248,13 +249,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // extracting and adapting the relevant information for the called callable
 
-            var ns = NonNullable<string>.New(nsName);
-            var methodDecl = id.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol sym
-                ? compilation.GlobalSymbols.TryResolveAndGetCallable(sym.Item, ns, file.FileName).Item1
-                : id.Item1.Symbol is QsSymbolKind<QsSymbol>.QualifiedSymbol qualSym
-                ? compilation.GlobalSymbols.TryGetCallable(new QsQualifiedName(qualSym.Item1, qualSym.Item2), ns, file.FileName)
-                : QsNullable<CallableDeclarationHeader>.Null;
-            if (methodDecl.IsNull) return null;
+            ResolutionResult<CallableDeclarationHeader>.Found methodDecl;
+            if (id.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol sym)
+            {
+                methodDecl =
+                    compilation.GlobalSymbols.TryResolveAndGetCallable(sym.Item,
+                                                                       NonNullable<string>.New(nsName),
+                                                                       file.FileName)
+                    as ResolutionResult<CallableDeclarationHeader>.Found;
+            }
+            else if (id.Item1.Symbol is QsSymbolKind<QsSymbol>.QualifiedSymbol qualSym)
+            {
+                methodDecl =
+                    compilation.GlobalSymbols.TryGetCallable(new QsQualifiedName(qualSym.Item1, qualSym.Item2),
+                                                             NonNullable<string>.New(nsName),
+                                                             file.FileName)
+                    as ResolutionResult<CallableDeclarationHeader>.Found;
+            }
+            else
+            {
+                return null;
+            }
 
             var (documentation, argTuple) = (methodDecl.Item.Documentation, methodDecl.Item.ArgumentTuple);
             var nrCtlApplications = functors.Where(f => f.Equals(QsFunctor.Controlled)).Count();
