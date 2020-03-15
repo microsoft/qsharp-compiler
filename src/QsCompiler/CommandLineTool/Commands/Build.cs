@@ -93,6 +93,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
         }
 
+
         /// <summary>
         /// Given a string representing the command line arguments, splits them into a suitable string array. 
         /// </summary>
