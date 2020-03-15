@@ -462,7 +462,7 @@ and Namespace private
             defaultArg checkDeprecation
                        (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.Namespace.Value)
 
-        let findInReferences () =
+        let fromReferences =
             match TypesInReferences.TryGetValue tName with
             | true, qsType ->
                 if Namespace.IsDeclarationAccessible (false, qsType.Modifiers.Access)
@@ -482,7 +482,7 @@ and Namespace private
                 else Inaccessible
             | false, _ -> NotFound
 
-        seq { yield findInReferences ()
+        seq { yield fromReferences
               yield Seq.map findInPartial Parts.Values |> ResolutionResult.ExactlyOne }
         |> ResolutionResult.TryFirstBest
 
@@ -503,7 +503,7 @@ and Namespace private
             defaultArg checkDeprecation
                        (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.Namespace.Value)
 
-        let findInReferences () =
+        let fromReferences =
             match CallablesInReferences.TryGetValue cName with
             | true, callable ->
                 if Namespace.IsDeclarationAccessible (false, callable.Modifiers.Access)
@@ -520,7 +520,7 @@ and Namespace private
                 else Inaccessible
             | false, _ -> NotFound
 
-        seq { yield findInReferences ()
+        seq { yield fromReferences
               yield Seq.map findInPartial Parts.Values |> ResolutionResult.ExactlyOne }
         |> ResolutionResult.TryFirstBest
 
