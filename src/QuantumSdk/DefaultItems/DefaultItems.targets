@@ -17,7 +17,7 @@
   <!-- Resolution of verified configurable properties. 
   These properties need to live here to ensure that they are evaluated after the properties defined by the project file. -->
 
-  <!-- resolving the OutputType to either QsharpExe or QsharpLibrary -->
+  <!-- Resolving the OutputType to either QsharpExe or QsharpLibrary. -->
   <PropertyGroup>
     <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library'">QsharpLibrary</ResolvedQsharpOutputType>
     <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Exe'">QsharpExe</ResolvedQsharpOutputType>
@@ -25,15 +25,32 @@
     <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
   </PropertyGroup>
 
-  <!-- resolving the ExecutionTarget to either SimulatorBackend or QuantumProcessorBackend -->
+  <!-- Resolving the ExecutionTarget to either HoneywellProcessor, IonQProcessor, QCIProcessor or Unspecified.-->
   <PropertyGroup>
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And ('$(ExecutionTarget)' == 'QuantumProcessor')">QuantumProcessorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And ('$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'ResourcesEstimator')">SimulatorBackend</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And '$(ExecutionTarget)' == 'Honeywell'">HoneywellProcessor</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And '$(ExecutionTarget)' == 'IonQ'">IonQProcessor</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And '$(ExecutionTarget)' == 'QCI'">QCIProcessor</ResolvedQsharpExecutionTarget>
     <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'Any'">Unspecified</ResolvedQsharpExecutionTarget>
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'QuantumProcessorBackend' And '$(ResolvedQsharpExecutionTarget)' != 'SimulatorBackend' And '$(ResolvedQsharpExecutionTarget)' != 'Unspecified'"></ResolvedQsharpExecutionTarget>
-    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">Possible values are 'QuantumSimulator', 'ToffoliSimulator', 'ResourcesEstimator', or 'QuantumProcessor'.</ValidExecutionTargets>
-    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpLibrary'"> The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
-    <CsharpGeneration Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'">true</CsharpGeneration>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'Unspecified'"></ResolvedQsharpExecutionTarget>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">Possible values are 'Honeywell', 'IonQ', 'QCI', or 'Any'.</ValidExecutionTargets>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
+  </PropertyGroup>
+
+  <!-- Resolving the QuantumIntrinsics to either OpenQASM, ExtendedQASM, or Default.-->
+  <PropertyGroup>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor'">ExtendedQASM</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor'"></ResolvedQuantumIntrinsics>
+  </PropertyGroup>
+
+
+  <!-- Resolving the QuantumProcessor to either QPGen0, QPGen1, or Unspecified.-->
+  <PropertyGroup>
+    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor'">QPGen1</ResolvedQuantumProcessor>
+    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor'">QPGen0</ResolvedQuantumProcessor>
+    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor'">QPGen1</ResolvedQuantumProcessor>
+    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor'"></ResolvedQuantumProcessor>
   </PropertyGroup>
 
   <!-- set all unspecified properties configuring the paths for output generated during Q# compilation. -->

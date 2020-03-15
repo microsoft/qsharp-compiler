@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-
-using Microsoft.Quantum.Simulation.Core;
+﻿using System.Threading.Tasks;
 using Microsoft.Quantum.Simulation.Simulators;
 
 namespace Quantum.App1
@@ -10,10 +7,8 @@ namespace Quantum.App1
     {
         static async Task Main(string[] args)
         {
-            using (var qsim = new QuantumSimulator())
-            {
-                await HelloQ.Run(qsim);
-            }
+            using var qsim = new QuantumSimulator();
+            await HelloQ.Run(qsim);
         }
     }
 }
