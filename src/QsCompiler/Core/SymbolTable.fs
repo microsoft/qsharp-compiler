@@ -899,12 +899,9 @@ and NamespaceManager
     /// Compares the accessibility of the parent declaration with the accessibility of the UDT being referenced. If the
     /// accessibility of a referenced type is less than the accessibility of the parent, returns a diagnostic using the
     /// given error code. Otherwise, returns an empty array.
-    let checkUdtAccessibility code
-                              (parent : NonNullable<string>, parentAccess)
-                              (udt : UserDefinedType, udtAccess) =
+    let checkUdtAccessibility code (parent : NonNullable<string>, parentAccess) (udt : UserDefinedType, udtAccess) =
         if parentAccess = DefaultAccess && udtAccess = Internal
-        then [| QsCompilerDiagnostic.Error (code, [udt.Name.Value; parent.Value])
-                                           (udt.Range.ValueOr QsCompilerDiagnostic.DefaultRange) |]
+        then [| QsCompilerDiagnostic.Error (code, [udt.Name.Value; parent.Value]) (udt.Range.ValueOr QsCompilerDiagnostic.DefaultRange) |]
         else [||]
 
 
@@ -1060,9 +1057,7 @@ and NamespaceManager
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
     /// Throws a NotSupportedException if the QsType to resolve contains a MissingType.
-    member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>)
-                            (qsType : QsType)
-                            : ResolvedType * QsCompilerDiagnostic[] =
+    member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>) (qsType : QsType) =
         resolveType (parent, tpNames, source) qsType (fun _ -> [||])
 
     /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the
@@ -1076,13 +1071,10 @@ and NamespaceManager
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined types. Throws an
     /// ArgumentException if the given type tuple is an empty QsTuple.
-    member private this.ResolveTypeDeclaration (fullName, source, modifiers) typeTuple =
+    member private this.ResolveTypeDeclaration (fullName : QsQualifiedName, source, modifiers) typeTuple =
         // Currently, type parameters for UDTs are not supported.
-        let resolveType qsType =
-            resolveType
-                (fullName, ImmutableArray<_>.Empty, source)
-                qsType
-                (checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, modifiers.Access))
+        let checkAccessibility = checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, modifiers.Access)
+        let resolveType qsType = resolveType (fullName, ImmutableArray<_>.Empty, source) qsType checkAccessibility
         SymbolResolution.ResolveTypeDeclaration resolveType typeTuple
 
     /// Given the namespace and the name of the callable that the given signature belongs to, as well as its kind and
@@ -1102,14 +1094,10 @@ and NamespaceManager
     ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables. Throws
     /// an ArgumentException if the given list of characteristics is empty.
-    member private this.ResolveCallableSignature (parentKind, parentName, source, access)
-                                                 (signature, specBundleCharacteristics) =
+    member private this.ResolveCallableSignature (parentKind, parentName : QsQualifiedName, source, access) (signature, specBundleCharacteristics) =
+        let checkAccessibility = checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, access)
         let resolveType tpNames qsType =
-            let res, errs =
-                resolveType
-                    (parentName, tpNames, source)
-                    qsType
-                    (checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, access))
+            let res, errs = resolveType (parentName, tpNames, source) qsType checkAccessibility
             if parentKind <> TypeConstructor then res, errs
             else res.WithoutRangeInfo, errs // strip positional info for auto-generated type constructors
         SymbolResolution.ResolveCallableSignature (resolveType, specBundleCharacteristics) signature

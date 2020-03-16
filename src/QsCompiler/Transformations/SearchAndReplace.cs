@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public class TransformationState
         {
             public Tuple<NonNullable<string>, QsLocation> DeclarationLocation { get; internal set; }
-            public ImmutableList<Location> Locations { get; private set; }
+            public ImmutableHashSet<Location> Locations { get; private set; }
 
             /// <summary>
             /// Whenever DeclarationOffset is set, the current statement offset is set to this default value.
@@ -101,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             {
                 this.TrackIdentifier = trackId ?? throw new ArgumentNullException(nameof(trackId));
                 this.RelevantSourseFiles = limitToSourceFiles;
-                this.Locations = ImmutableList<Location>.Empty;
+                this.Locations = ImmutableHashSet<Location>.Empty;
                 this.DefaultOffset = defaultOffset;
             }
 
@@ -168,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // static methods for convenience
 
-        public static IEnumerable<Location> Find(NonNullable<string> idName, QsScope scope,
+        public static ImmutableHashSet<Location> Find(NonNullable<string> idName, QsScope scope,
             NonNullable<string> sourceFile, Tuple<int, int> rootLoc)
         {
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
@@ -178,7 +178,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return finder.SharedState.Locations;
         }
 
-        public static IEnumerable<Location> Find(QsQualifiedName idName, QsNamespace ns, QsLocation defaultOffset,
+        public static ImmutableHashSet<Location> Find(QsQualifiedName idName, QsNamespace ns, QsLocation defaultOffset,
             out Tuple<NonNullable<string>, QsLocation> declarationLocation, IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
             var finder = new IdentifierReferences(idName, defaultOffset, limitToSourceFiles);
@@ -622,10 +622,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 this.State = parent.State;
 
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt) =>
-                base.OnUserDefinedType(State.RenameUdt(udt));
+                QsTypeKind.NewUserDefinedType(State.RenameUdt(udt));
 
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp) =>
-                base.OnTypeParameter(new QsTypeParameter(State.GetNewName(tp.Origin), tp.TypeName, tp.Range));
+                QsTypeKind.NewTypeParameter(new QsTypeParameter(State.GetNewName(tp.Origin), tp.TypeName, tp.Range));
         }
 
         private class ExpressionKindTransformation : Core.ExpressionKindTransformation
@@ -658,8 +658,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 var typeId = attribute.TypeId.IsValue
                     ? QsNullable<UserDefinedType>.NewValue(State.RenameUdt(attribute.TypeId.Item))
                     : attribute.TypeId;
-                return base.OnAttribute(
-                    new QsDeclarationAttribute(typeId, argument, attribute.Offset, attribute.Comments));
+                return new QsDeclarationAttribute(typeId, argument, attribute.Offset, attribute.Comments);
             }
 
             public override QsCallable OnCallableDeclaration(QsCallable callable) =>
