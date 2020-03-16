@@ -113,6 +113,7 @@ let public MonomorphizationNs = "Microsoft.Quantum.Testing.Monomorphization"
 let public GenericsNs = "Microsoft.Quantum.Testing.Generics"
 let public IntrinsicResolutionNs = "Microsoft.Quantum.Testing.IntrinsicResolution"
 let public ClassicalControlNs = "Microsoft.Quantum.Testing.ClassicalControl"
+let public InternalRenamingNs = "Microsoft.Quantum.Testing.InternalRenaming"
 
 /// Expected callable signatures to be found when running Monomorphization tests
 let public MonomorphizationSignatures =

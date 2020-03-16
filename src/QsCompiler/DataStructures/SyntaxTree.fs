@@ -661,6 +661,7 @@ type QsSpecialization = {
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithImplementation impl = {this with Implementation = impl}
+    member this.WithParent (getName : Func<_,_>) = {this with Parent = getName.Invoke(this.Parent)}
 
 
 /// describes a Q# function, operation, or type constructor
@@ -739,6 +740,7 @@ type QsCustomType = {
 }
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
+    member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
 
 
 /// Describes a valid Q# namespace element.
