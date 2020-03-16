@@ -36,7 +36,7 @@ type LinkingTests (output:ITestOutputHelper) =
         Offset = DiagnosticTools.AsTuple (Position (0, 0))
         Range = QsCompilerDiagnostic.DefaultRange
     }
-    
+
     let qualifiedName ns name = {
             Namespace = NonNullable<_>.New ns
             Name = NonNullable<_>.New name
@@ -356,7 +356,7 @@ type LinkingTests (output:ITestOutputHelper) =
             [qualifiedName Signatures.InternalRenamingNs "Foo"]
             [qualifiedName Signatures.InternalRenamingNs "Bar"]
 
-    [<Fact (Skip = "Re-using internal names in multiple references is not supported yet")>]
+    [<Fact>]
     member this.``Group internal specializations by source file`` () =
         let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
         let sourceCompilation = this.BuildContent chunks.[7]
