@@ -426,7 +426,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             header.Location,
                             header.Signature,
                             header.ArgumentTuple,
-                            ImmutableArray.Create<QsSpecialization>(defaultSpec),
+                            ImmutableArray.Create(defaultSpec),
                             header.Documentation,
                             QsComments.Empty
                         );
@@ -551,8 +551,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (types == null) throw new ArgumentNullException(nameof(types));
             var emptyLookup = new NonNullable<string>[0].ToLookup(ns => ns, _ => ImmutableArray<string>.Empty);
 
-            string QualifiedName(QsQualifiedName fullName) => $"{fullName.Namespace.Value}.{fullName.Name.Value}";
-            string ElementName(QsNamespaceElement e) =>
+            static string QualifiedName(QsQualifiedName fullName) => $"{fullName.Namespace.Value}.{fullName.Name.Value}";
+            static string ElementName(QsNamespaceElement e) =>
                 e is QsNamespaceElement.QsCustomType t ? QualifiedName(t.Item.FullName) :
                 e is QsNamespaceElement.QsCallable c ? QualifiedName(c.Item.FullName) : null;
             var namespaceElements = callables.Select(c => (c.FullName.Namespace, QsNamespaceElement.NewQsCallable(c)))
@@ -679,7 +679,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             if (parentCallable == null) return LocalDeclarations.Empty;
-            declarations = declarations ?? TryGetLocalDeclarations();
+            declarations ??= TryGetLocalDeclarations();
 
             Tuple<int, int> AbsolutePosition(QsNullable<Tuple<int, int>> relOffset) =>
                 relOffset.IsNull

@@ -7,6 +7,7 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.IO
+open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -27,21 +28,16 @@ type LinkingTests (output:ITestOutputHelper) =
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
 
-    let getTempFile () =
-        // The file name needs to end in ".qs" so that it isn't ignored by the References.Headers class during the
-        // internal renaming tests.
-        Path.GetRandomFileName () + ".qs" |> Path.GetFullPath |> Uri
-
+    // The file name needs to end in ".qs" so that it isn't ignored by the References.Headers class during the internal renaming tests.
+    let getTempFile () = Path.GetRandomFileName () + ".qs" |> Path.GetFullPath |> Uri
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
-    let defaultOffset =
-        {
-            Offset = DiagnosticTools.AsTuple (Position (0, 0))
-            Range = QsCompilerDiagnostic.DefaultRange
-        }
-
-    let qualifiedName ns name =
-        {
+    let defaultOffset = {
+        Offset = DiagnosticTools.AsTuple (Position (0, 0))
+        Range = QsCompilerDiagnostic.DefaultRange
+    }
+    
+    let qualifiedName ns name = {
             Namespace = NonNullable<_>.New ns
             Name = NonNullable<_>.New name
         }
@@ -59,11 +55,7 @@ type LinkingTests (output:ITestOutputHelper) =
         let declaration = if obj.ReferenceEquals (references.SharedState.DeclarationLocation, null) then 0 else 1
         references.SharedState.Locations.Count + declaration
 
-    do
-        let addOrUpdateSourceFile filePath =
-            getManager (new Uri(filePath)) (File.ReadAllText filePath)
-            |> compilationManager.AddOrUpdateSourceFileAsync
-            |> ignore
+    do  let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
         Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
     static member private ReadAndChunkSourceFile fileName =
