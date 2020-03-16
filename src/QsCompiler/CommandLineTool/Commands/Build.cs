@@ -137,9 +137,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (!BuildOptions.IncorporateResponseFiles(options, out options)) return ReturnCode.INVALID_ARGUMENTS;
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
+            if (!options.ParseAssemblyProperties(out var assemblyConstants))
+            {
+                logger.Log(WarningCode.InvalidAssemblyProperties, new string[0]);
+            }
+
             var loadOptions = new CompilationLoader.Configuration
             {
                 ProjectName = options.ProjectName,
+                AssemblyConstants = assemblyConstants,
                 TargetPackageAssembly = options.GetTargetPackageAssemblyPath(logger),
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
