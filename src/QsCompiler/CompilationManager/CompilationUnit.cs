@@ -85,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly ImmutableDictionary<NonNullable<string>, Headers> Declarations; 
 
         public static References Empty = 
-            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty, null);
+            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty);
 
         /// <summary>
         /// Combines the current references with the given references, and verifies that there are no conflicts. 
@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (other == null) throw new ArgumentNullException(nameof(other));
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any()) throw new ArgumentException("common references exist");
-            return new References (this.Declarations.AddRange(other.Declarations), onError); 
+            return new References (this.Declarations.AddRange(other.Declarations), onError: onError); 
         }
 
         /// <summary>
@@ -109,16 +109,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics are null. 
         /// </summary>
         internal References Remove(NonNullable<string> source, Action<ErrorCode, string[]> onError = null) =>
-            new References(this.Declarations.Remove(source), onError);
+            new References(this.Declarations.Remove(source), onError: onError);
 
         /// <summary>
         /// Given a dictionary that maps the ids of dll files to the corresponding headers,
         /// initializes a new set of references based on the given headers and verifies that there are no conflicts. 
         /// Calls the given Action onError with suitable diagnostics if two or more references conflict, 
         /// i.e. if two or more references contain a declaration with the same fully qualified name. 
+        /// If loadTestNames is set to true, then public types and callables declared in referenced assemblies 
+        /// are exposed via their test name defined by the corresponding attribute. 
         /// Throws an ArgumentNullException if the given dictionary of references is null. 
         /// </summary>
-        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, Action<ErrorCode, string[]> onError = null)
+        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, bool loadTestNames = false, Action<ErrorCode, string[]> onError = null)
         {
             this.Declarations = refs ?? throw new ArgumentNullException(nameof(refs));
             if (onError == null) return;

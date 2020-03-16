@@ -217,7 +217,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 ConvertClassicalControl = options.TrimLevel >= 2,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
-                EnableAdditionalChecks = true
+                EnableAdditionalChecks = true,
+                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
             }; 
             var loaded = new CompilationLoader(options.LoadSourcesOrSnippet(logger), options.References, loadOptions, logger);
             if (loaded.VerifiedCompilation == null) return ReturnCode.Status(loaded);

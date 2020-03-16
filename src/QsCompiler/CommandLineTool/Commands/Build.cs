@@ -149,7 +149,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
-                EnableAdditionalChecks = false // todo: enable debug mode?
+                EnableAdditionalChecks = false, // todo: enable debug mode?
+                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
             }; 
 
             if (options.PerfFolder != null)

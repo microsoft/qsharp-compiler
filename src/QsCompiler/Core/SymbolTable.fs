@@ -942,6 +942,8 @@ and NamespaceManager
     /// Each entry in the returned array of attributes is the resolution for the corresponding entry in the array of defined attributes.
     /// May throw an ArgumentException if no parent callable with the given name exists.
     member private this.ResolveAttributes (parent : QsQualifiedName, source) (decl : Resolution<'T,_>) =
+        let isBuiltIn (builtIn : BuiltIn) (tId : UserDefinedType) = 
+            tId.Namespace.Value = builtIn.FullName.Namespace.Value && tId.Name.Value = builtIn.FullName.Name.Value
         let attr, msgs = decl.DefinedAttributes |> Seq.map (this.ResolveAttribute (parent.Namespace, source)) |> Seq.toList |> List.unzip
         let errs = new List<_>(msgs |> Seq.collect id)
         let validateAttributes (alreadyDefined : int list, resAttr) (att : QsDeclarationAttribute) =
@@ -954,7 +956,8 @@ and NamespaceManager
             | Value tId ->
                 let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
                 let attributeHash =
-                    if tId.Namespace.Value = BuiltIn.Deprecated.FullName.Namespace.Value && tId.Name.Value = BuiltIn.Deprecated.FullName.Name.Value then hash (tId.Namespace.Value, tId.Name.Value)
+                    if tId |> isBuiltIn BuiltIn.Deprecated then hash (tId.Namespace.Value, tId.Name.Value)
+                    elif tId |> isBuiltIn BuiltIn.EnableTestingViaName then hash (tId.Namespace.Value, tId.Name.Value)
                     else hash (tId.Namespace.Value, tId.Name.Value, NamespaceManager.ExpressionHash att.Argument)
 
                 // the attribute is a duplication of another attribute on this declaration
@@ -964,7 +967,7 @@ and NamespaceManager
                     |> Seq.singleton |> returnInvalid
 
                 // the attribute marks an entry point
-                elif tId.Namespace.Value = BuiltIn.EntryPoint.FullName.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.FullName.Name.Value then
+                elif tId |> isBuiltIn BuiltIn.EntryPoint then
                     match box decl.Defined with
                     | :? CallableSignature as signature when not (signature.TypeParameters.Any()) ->
                         let validateArgAndReturnTypes (qsType : QsType) =
@@ -989,7 +992,7 @@ and NamespaceManager
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) |> Seq.singleton |> returnInvalid
 
                 // the attribute marks a unit test
-                elif tId.Namespace.Value = BuiltIn.Test.FullName.Namespace.Value && tId.Name.Value = BuiltIn.Test.FullName.Name.Value then
+                elif tId |> isBuiltIn BuiltIn.Test then
                     let isUnitToUnit (signature : CallableSignature) =
                         let isUnitType = function
                             | Tuple _ | Missing -> false
@@ -1007,6 +1010,13 @@ and NamespaceManager
                             attributeHash :: alreadyDefined, att :: resAttr
                         else (att.Offset, att.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidExecutionTargetForTest, [])) |> Seq.singleton |> returnInvalid
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTestAttributePlacement, [])) |> Seq.singleton |> returnInvalid
+
+                // the attribute defines an alternative name for testing purposes
+                elif tId |> isBuiltIn BuiltIn.Attribute || tId |> isBuiltIn BuiltIn.Deprecated || tId |> isBuiltIn BuiltIn.EnableTestingViaName then
+                    match box decl.Defined with 
+                    | :? QsSpecializationGenerator -> 
+                        (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeInvalidOnSpecialization, [tId.Name.Value])) |> Seq.singleton |> returnInvalid
+                    | _ -> attributeHash :: alreadyDefined, att :: resAttr
 
                 // the attribute is another kind of attribute that requires no further verification at this point
                 else attributeHash :: alreadyDefined, att :: resAttr

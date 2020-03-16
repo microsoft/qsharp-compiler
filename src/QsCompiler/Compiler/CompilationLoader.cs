@@ -135,6 +135,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool LoadReferencesBasedOnGeneratedCsharp;
             /// <summary>
+            /// If set to true, then public types and callables declared in referenced assemblies 
+            /// are exposed via their test name defined by the corresponding attribute.
+            /// </summary>
+            public bool ExposeReferencesViaTestNames;
+            /// <summary>
             /// Contains a sequence of tuples with the path to a dotnet dll containing one or more rewrite steps 
             /// (i.e. classes implementing IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation. 
@@ -404,7 +409,11 @@ namespace Microsoft.Quantum.QsCompiler
                 ?? throw new ArgumentNullException("unable to load source files");
             RaiseCompilationTaskEnd("OverallCompilation", "SourcesLoading");
             RaiseCompilationTaskStart("OverallCompilation", "ReferenceLoading");
-            var references = loadReferences?.Invoke(refs => this.LoadAssemblies(refs, this.Config.LoadReferencesBasedOnGeneratedCsharp)) 
+            var references = loadReferences?.Invoke(
+                refs => this.LoadAssemblies(
+                    refs, 
+                    loadTestNames: this.Config.ExposeReferencesViaTestNames, 
+                    ignoreDllResources: this.Config.LoadReferencesBasedOnGeneratedCsharp)) 
                 ?? throw new ArgumentNullException("unable to load referenced binary files");
             RaiseCompilationTaskEnd("OverallCompilation", "ReferenceLoading");
 
@@ -783,11 +792,13 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Used to load the content of the specified assembly references from disk. 
+        /// If loadTestNames is set to true, then public types and callables declared in referenced assemblies 
+        /// are exposed via their test name defined by the corresponding attribute. 
         /// Returns the loaded content of the references. 
         /// Logs suitable diagnostics in the process and modifies the compilation status accordingly. 
         /// Prints all loaded files using PrintResolvedAssemblies.
         /// </summary>
-        private References LoadAssemblies(IEnumerable<string> refs, bool ignoreDllResources)
+        private References LoadAssemblies(IEnumerable<string> refs, bool loadTestNames, bool ignoreDllResources)
         {
             this.CompilationStatus.ReferenceLoading = 0;
             if (refs == null) this.Logger?.Log(WarningCode.ReferencesSetToNull, Enumerable.Empty<string>());
@@ -795,7 +806,7 @@ namespace Microsoft.Quantum.QsCompiler
             void onDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.CompilationStatus.ReferenceLoading, d);
             var headers = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), onDiagnostic, onException, ignoreDllResources);
             var projId = this.Config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.Config.ProjectNameWithExtension), "qsproj");
-            var references = new References(headers, (code, args) => onDiagnostic(Errors.LoadError(code, args, projId)));
+            var references = new References(headers, loadTestNames, (code, args) => onDiagnostic(Errors.LoadError(code, args, projId)));
             this.PrintResolvedAssemblies(references.Declarations.Keys);
             return references;
         }

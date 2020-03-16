@@ -13,6 +13,7 @@ type BuiltInKind =
     | Function of TypeParameters : ImmutableArray<NonNullable<string>>
     | Operation of TypeParameters : ImmutableArray<NonNullable<string>> * IsSelfAdjoint : bool
 
+
 type BuiltIn = {
     /// contains the fully qualified name of the built-in
     FullName : QsQualifiedName
@@ -20,6 +21,7 @@ type BuiltIn = {
     Kind : BuiltInKind
 }
     with
+
     static member CoreNamespace = NonNullable<string>.New "Microsoft.Quantum.Core"
     static member CanonNamespace = NonNullable<string>.New "Microsoft.Quantum.Canon"
     static member IntrinsicNamespace = NonNullable<string>.New "Microsoft.Quantum.Intrinsic"
@@ -51,8 +53,12 @@ type BuiltIn = {
         | Value tId -> tId.Namespace.Value = BuiltIn.Test.FullName.Namespace.Value && tId.Name.Value = BuiltIn.Test.FullName.Name.Value
         | Null -> false
 
+    static member MarksAlternateNameForTesting (att : QsDeclarationAttribute) = att.TypeId |> function
+        | Value tId -> tId.Namespace.Value = BuiltIn.EnableTestingViaName.FullName.Namespace.Value && tId.Name.Value = BuiltIn.Test.FullName.Name.Value
+        | Null -> false
 
-    // hard dependencies in Microsoft.Quantum.Core
+
+    // dependencies in Microsoft.Quantum.Core
 
     static member Length = {
         FullName = {Name = "Length" |> NonNullable<string>.New; Namespace = BuiltIn.CoreNamespace}
@@ -79,20 +85,26 @@ type BuiltIn = {
         Kind = Attribute
     }
 
+    // dependencies in Microsoft.Quantum.Diagnostics
+
     static member Test = {
         FullName = {Name = "Test" |> NonNullable<string>.New; Namespace = BuiltIn.DiagnosticsNamespace}
         Kind = Attribute
     }
 
-    // hard dependencies in Microsoft.Quantum.Canon
+    static member EnableTestingViaName = {
+        FullName = {Name = "EnableTestingViaName" |> NonNullable<string>.New; Namespace = BuiltIn.DiagnosticsNamespace}
+        Kind = Attribute
+    }
+
+    // dependencies in Microsoft.Quantum.Canon
 
     static member NoOp = {
         FullName = {Name = "NoOp" |> NonNullable<string>.New; Namespace = BuiltIn.CanonNamespace}
         Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
-
     }
 
-    // hard dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions
+    // dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions
 
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit), 'T) , (('U => Unit), 'U)) => Unit)
     static member ApplyConditionally = {
@@ -190,7 +202,7 @@ type BuiltIn = {
         Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New, "U" |> NonNullable<string>.New), IsSelfAdjoint = false)
     }
 
-    // "weak dependencies" in other namespaces (e.g. things used for code actions)
+    // dependencies in other namespaces (e.g. things used for code actions)
 
     static member IndexRange = {
         FullName = {Name = "IndexRange" |> NonNullable<string>.New; Namespace = BuiltIn.StandardArrayNamespace}
