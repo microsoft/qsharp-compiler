@@ -133,8 +133,8 @@ module internal ResolutionResult =
     /// Returns a Found result if there is only one in the sequence. If there is more than one, returns an Ambiguous
     /// result containing the namespaces of all Found results given by applying nsGetter to each value. Otherwise,
     /// returns the same value as TryFirstBest.
-    let internal TryAtMostOne<'T> (nsGetter : 'T -> NonNullable<string>)
-                                   (results : seq<ResolutionResult<'T>>) : ResolutionResult<'T> =
+    let internal TryAtMostOne<'T> (nsGetter : 'T -> NonNullable<string>) (results : seq<ResolutionResult<'T>>)
+            : ResolutionResult<'T> =
         let found = results |> Seq.filter (function | Found _ -> true | _ -> false)
         if Seq.length found > 1
         then found
