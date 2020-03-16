@@ -112,3 +112,22 @@ namespace Microsoft.Quantum.Testing.InternalRenaming {
         Adjoint Foo();
     }
 }
+
+// =================================
+// Test 8: Group internal specializations by source file
+
+namespace Microsoft.Quantum.Testing.InternalRenaming {
+    internal operation Foo () : Unit is Adj + Ctl {
+        body {
+        }
+
+        adjoint {
+        }
+
+        controlled (cs, ...) {
+        }
+
+        controlled adjoint (cs, ...) {
+        }
+    }
+}

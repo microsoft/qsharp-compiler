@@ -7,7 +7,6 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.IO
-open System.Threading.Tasks
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -46,6 +45,12 @@ type LinkingTests (output:ITestOutputHelper) =
             Namespace = NonNullable<_>.New ns
             Name = NonNullable<_>.New name
         }
+
+    let createReferences : seq<string * IEnumerable<QsNamespace>> -> References =
+        Seq.map (fun (source, namespaces) ->
+            KeyValuePair.Create(NonNullable<_>.New source, References.Headers (NonNullable<_>.New source, namespaces)))
+        >> ImmutableDictionary.CreateRange
+        >> References
 
     /// Counts the number of references to the qualified name in all of the namespaces, including the declaration.
     let countReferences namespaces (name : QsQualifiedName) =
@@ -152,15 +157,10 @@ type LinkingTests (output:ITestOutputHelper) =
         let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
         let sourceCompilation = this.BuildContent chunks.[num - 1]
 
-        let dllSource = "InternalRenaming.dll"
         let namespaces =
             sourceCompilation.BuiltCompilation.Namespaces
             |> Seq.filter (fun ns -> ns.Name.Value.StartsWith Signatures.InternalRenamingNs)
-        let headers = References.Headers (NonNullable<string>.New dllSource, namespaces)
-        let references =
-            [KeyValuePair.Create(NonNullable<_>.New dllSource, headers)]
-            |> ImmutableDictionary.CreateRange
-            |> References
+        let references = createReferences ["InternalRenaming.dll", namespaces]
         let referenceCompilation = this.BuildContent ("", references)
 
         let countAll namespaces names =
@@ -363,3 +363,23 @@ type LinkingTests (output:ITestOutputHelper) =
         this.RunInternalRenamingTest 7
             [qualifiedName Signatures.InternalRenamingNs "Foo"]
             [qualifiedName Signatures.InternalRenamingNs "Bar"]
+
+    [<Fact (Skip = "Re-using internal names in multiple references is not supported yet")>]
+    member this.``Group internal specializations by source file`` () =
+        let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
+        let sourceCompilation = this.BuildContent chunks.[7]
+        let namespaces =
+            sourceCompilation.BuiltCompilation.Namespaces
+            |> Seq.filter (fun ns -> ns.Name.Value.StartsWith Signatures.InternalRenamingNs)
+
+        let references = createReferences ["InternalRenaming1.dll", namespaces
+                                           "InternalRenaming2.dll", namespaces]
+        let referenceCompilation = this.BuildContent ("", references)
+        let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
+
+        for i in 0 .. references.Declarations.Count - 1 do
+            let name =
+                CompilationUnit.ReferenceDecorator.Decorate (qualifiedName Signatures.InternalRenamingNs "Foo", i)
+            let specializations = callables.[name].Specializations
+            Assert.Equal (4, specializations.Length)
+            Assert.True (specializations |> Seq.forall (fun s -> s.SourceFile = callables.[name].SourceFile))
