@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public readonly ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)> Specializations;
             public readonly ImmutableArray<TypeDeclarationHeader> Types;
 
-            private Headers(string source,
+            internal Headers(string source,
                 IEnumerable<CallableDeclarationHeader> callables = null, 
                 IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation)> specs = null, 
                 IEnumerable<TypeDeclarationHeader> types = null)
@@ -77,6 +77,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<TypeDeclarationHeader> TypeHeaders(IEnumerable<(string, string)> attributes) =>
             attributes.Select(IsDeclaration("TypeDeclarationAttribute")).Where(v => v != null)
                 .Select(TypeDeclarationHeader.FromJson).Select(built => built.Item2);
+
+        /// <summary>
+        /// Renames all declarations in the headers for which an alternative name is specified
+        /// that may be used when loading a type or callable for testing purposes.
+        /// Leaves declarations for which no such name is defined unchanged.
+        /// Does not check whether there are any conflicts when using alternative names. 
+        /// </summary>
+        private static Headers LoadTestNames(string source, Headers headers)
+        {
+            var renaming = headers.Callables.Where(callable => !callable.Kind.IsTypeConstructor)
+                .Select(callable => (callable.QualifiedName, callable.Attributes))
+                .Concat(headers.Types.Select(type => (type.QualifiedName, type.Attributes)))
+                .ToImmutableDictionary(
+                    decl => decl.QualifiedName,
+                    decl => SymbolResolution.TryGetTestName(decl.Attributes).ValueOr(decl.QualifiedName));
+
+            var rename = new RenameReferences(renaming);
+            var callables = headers.Callables.Select(rename.OnCallableDeclarationHeader);
+            var specializations = headers.Specializations.Select(
+                specialization => (rename.OnSpecializationDeclarationHeader(specialization.Item1),
+                                   rename.Namespaces.OnSpecializationImplementation(specialization.Item2)));
+            var types = headers.Types.Select(rename.OnTypeDeclarationHeader);
+            return new Headers(source, callables, specializations, types);
+        }
 
 
         /// <summary>
@@ -123,8 +147,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public References(ImmutableDictionary<NonNullable<string>, Headers> refs, bool loadTestNames = false, Action<ErrorCode, string[]> onError = null)
         {
             this.Declarations = refs ?? throw new ArgumentNullException(nameof(refs));
+            if (loadTestNames)
+            {
+                this.Declarations = this.Declarations
+                    .ToImmutableDictionary(
+                        reference => reference.Key, 
+                        reference => LoadTestNames(reference.Key.Value, reference.Value)
+                    );
+            }
+            
             if (onError == null) return;
-
             var conflictingCallables = refs.Values
                 .SelectMany(r => r.Callables)
                 .Where(c => Namespace.IsDeclarationAccessible(false, c.Modifiers.Access))

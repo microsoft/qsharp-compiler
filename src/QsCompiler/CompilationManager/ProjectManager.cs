@@ -261,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     projectReferences, GetProjectOutputPath(projectOutputPaths, diagnostics),
                     diagnostics.Add, this.Manager.LogException);
 
-                this.LoadedProjectReferences = new References(loadedHeaders, this.ExposeReferencesViaTestNames);
+                this.LoadedProjectReferences = new References(loadedHeaders);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
                     (code,args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
                 this.ProjectReferenceDiagnostics = diagnostics.ToImmutableArray();
@@ -288,12 +288,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var loadedHeaders = ProjectManager.LoadProjectReferences(
                     new string[] { projectReference.LocalPath }, GetProjectOutputPath(projectOutputPaths, diagnostics),
                     diagnostics.Add, this.Manager.LogException);
-                var loaded = new References(loadedHeaders, this.ExposeReferencesViaTestNames);
+                var loaded = new References(loadedHeaders);
 
                 QsCompilerError.Verify(!loaded.Declarations.Any() ||
                     (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key.Value == projRefId.Value),
                     $"loaded references upon loading {projectReference.LocalPath}: {String.Join(", ", loaded.Declarations.Select(r => r.Value))}");
-                this.LoadedProjectReferences = this.LoadedProjectReferences.Remove(projRefId, null).CombineWith(loaded, null);
+                this.LoadedProjectReferences = this.LoadedProjectReferences.Remove(projRefId).CombineWith(loaded);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
                     (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
 
@@ -320,7 +320,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var loadedHeaders = ProjectManager.LoadReferencedAssemblies(references, 
                     diagnostics.Add, this.Manager.LogException);
 
-                this.LoadedReferences = new References(loadedHeaders, this.ExposeReferencesViaTestNames);
+                this.LoadedReferences = new References(loadedHeaders);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
                     (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));                    
                 this.ReferenceDiagnostics = diagnostics.ToImmutableArray();
@@ -342,12 +342,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var diagnostics = new List<Diagnostic>();
                 var loadedHeaders = ProjectManager.LoadReferencedAssemblies(new string[] { reference.LocalPath },
                     diagnostics.Add, this.Manager.LogException);
-                var loaded = new References(loadedHeaders, this.ExposeReferencesViaTestNames);
+                var loaded = new References(loadedHeaders);
 
                 QsCompilerError.Verify(!loaded.Declarations.Any() || 
                     (loaded.Declarations.Count == 1 && loaded.Declarations.First().Key.Value == refId.Value),
                     $"loaded references upon loading {reference.LocalPath}: {String.Join(", ", loaded.Declarations.Select(r => r.Value))}");
-                this.LoadedReferences = this.LoadedReferences.Remove(refId, null).CombineWith(loaded, null);
+                this.LoadedReferences = this.LoadedReferences.Remove(refId).CombineWith(loaded);
                 var importedDeclarations = this.LoadedReferences.CombineWith(this.LoadedProjectReferences,
                     (code, args) => diagnostics.Add(Errors.LoadError(code, args, MessageSource(this.ProjectFile))));
 

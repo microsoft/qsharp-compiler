@@ -1012,7 +1012,25 @@ and NamespaceManager
                     | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidTestAttributePlacement, [])) |> Seq.singleton |> returnInvalid
 
                 // the attribute defines an alternative name for testing purposes
-                elif tId |> isBuiltIn BuiltIn.Attribute || tId |> isBuiltIn BuiltIn.Deprecated || tId |> isBuiltIn BuiltIn.EnableTestingViaName then
+                elif tId |> isBuiltIn BuiltIn.EnableTestingViaName then
+                    let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument (fun ex -> ex.Expression)
+                    match box decl.Defined with 
+                    | :? QsSpecializationGenerator -> 
+                        (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeInvalidOnSpecialization, [tId.Name.Value])) |> Seq.singleton |> returnInvalid
+                    | _ when SyntaxGenerator.FullyQualifiedName.IsMatch arg -> attributeHash :: alreadyDefined, att :: resAttr
+                    | _ -> (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.ExpectingFullNameAsAttributeArgument, [tId.Name.Value])) |> Seq.singleton |> returnInvalid
+
+                // the attribute marks an attribute 
+                elif tId |> isBuiltIn BuiltIn.Attribute then
+                    match box decl.Defined with 
+                    | :? CallableSignature ->
+                        (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeInvalidOnCallable, [tId.Name.Value])) |> Seq.singleton |> returnInvalid                        
+                    | :? QsSpecializationGenerator -> 
+                        (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeInvalidOnSpecialization, [tId.Name.Value])) |> Seq.singleton |> returnInvalid
+                    | _ -> attributeHash :: alreadyDefined, att :: resAttr
+
+                // the attribute marks a deprecation
+                elif tId |> isBuiltIn BuiltIn.Deprecated then
                     match box decl.Defined with 
                     | :? QsSpecializationGenerator -> 
                         (att.Offset, tId.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AttributeInvalidOnSpecialization, [tId.Name.Value])) |> Seq.singleton |> returnInvalid
