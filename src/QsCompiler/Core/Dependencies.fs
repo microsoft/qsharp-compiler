@@ -88,7 +88,7 @@ type BuiltIn = {
 
     static member NoOp = {
         FullName = {Name = "NoOp" |> NonNullable<string>.New; Namespace = BuiltIn.CanonNamespace}
-        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = false)
+        Kind = Operation (TypeParameters = ImmutableArray.Create("T" |> NonNullable<string>.New), IsSelfAdjoint = true)
 
     }
 
