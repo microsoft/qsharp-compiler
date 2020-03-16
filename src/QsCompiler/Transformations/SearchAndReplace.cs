@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public class TransformationState
         {
             public Tuple<NonNullable<string>, QsLocation> DeclarationLocation { get; internal set; }
-            public ImmutableList<Location> Locations { get; private set; }
+            public ImmutableHashSet<Location> Locations { get; private set; }
 
             /// <summary>
             /// Whenever DeclarationOffset is set, the current statement offset is set to this default value.
@@ -101,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             {
                 this.TrackIdentifier = trackId ?? throw new ArgumentNullException(nameof(trackId));
                 this.RelevantSourseFiles = limitToSourceFiles;
-                this.Locations = ImmutableList<Location>.Empty;
+                this.Locations = ImmutableHashSet<Location>.Empty;
                 this.DefaultOffset = defaultOffset;
             }
 
@@ -168,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // static methods for convenience
 
-        public static IEnumerable<Location> Find(NonNullable<string> idName, QsScope scope,
+        public static ImmutableHashSet<Location> Find(NonNullable<string> idName, QsScope scope,
             NonNullable<string> sourceFile, Tuple<int, int> rootLoc)
         {
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
@@ -178,7 +178,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return finder.SharedState.Locations;
         }
 
-        public static IEnumerable<Location> Find(QsQualifiedName idName, QsNamespace ns, QsLocation defaultOffset,
+        public static ImmutableHashSet<Location> Find(QsQualifiedName idName, QsNamespace ns, QsLocation defaultOffset,
             out Tuple<NonNullable<string>, QsLocation> declarationLocation, IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
             var finder = new IdentifierReferences(idName, defaultOffset, limitToSourceFiles);
@@ -501,18 +501,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// </summary>
     public class RenameReferences : SyntaxTreeTransformation
     {
-        /// <summary>
-        /// Creates a new rename references transformation.
-        /// </summary>
-        /// <param name="names">The mapping from existing names to new names.</param>
-        public RenameReferences(IImmutableDictionary<QsQualifiedName, QsQualifiedName> names)
-        {
-            var state = new TransformationState(names);
-            Types = new TypeTransformation(this, state);
-            ExpressionKinds = new ExpressionKindTransformation(this, state);
-            Namespaces = new NamespaceTransformation(this, state);
-        }
-
         private class TransformationState
         {
             private readonly IImmutableDictionary<QsQualifiedName, QsQualifiedName> names;
@@ -542,32 +530,116 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
+
+        private readonly TransformationState State;
+
+        /// <summary>
+        /// Creates a new rename references transformation.
+        /// </summary>
+        /// <param name="names">The mapping from existing names to new names.</param>
+        public RenameReferences(IImmutableDictionary<QsQualifiedName, QsQualifiedName> names)
+        {
+            State = new TransformationState(names);
+            Types = new TypeTransformation(this);
+            ExpressionKinds = new ExpressionKindTransformation(this);
+            Namespaces = new NamespaceTransformation(this);
+        }
+
+
+        // methods for transformations on headers
+
+        /// <summary>
+        /// Renames references in the callable declaration header, including the name of the callable itself.
+        /// </summary>
+        /// <param name="callable">The callable declaration header in which to rename references.</param>
+        /// <returns>The callable declaration header with renamed references.</returns>
+        public CallableDeclarationHeader OnCallableDeclarationHeader(CallableDeclarationHeader callable) =>
+            new CallableDeclarationHeader(
+                kind: callable.Kind,
+                qualifiedName: State.GetNewName(callable.QualifiedName),
+                attributes: callable.Attributes.Select(Namespaces.OnAttribute).ToImmutableArray(),
+                modifiers: callable.Modifiers,
+                sourceFile: callable.SourceFile,
+                position: callable.Position,
+                symbolRange: callable.SymbolRange,
+                argumentTuple: Namespaces.OnArgumentTuple(callable.ArgumentTuple),
+                signature: Namespaces.OnSignature(callable.Signature),
+                documentation: Namespaces.OnDocumentation(callable.Documentation));
+
+        /// <summary>
+        /// Renames references in the specialization declaration header, including the name of the specialization
+        /// itself.
+        /// </summary>
+        /// <param name="specialization">The specialization declaration header in which to rename references.</param>
+        /// <returns>The specialization declaration header with renamed references.</returns>
+        public SpecializationDeclarationHeader OnSpecializationDeclarationHeader(
+            SpecializationDeclarationHeader specialization)
+        {
+            var typeArguments =
+                specialization.TypeArguments.IsValue
+                ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(
+                    specialization.TypeArguments.Item.Select(Types.OnType).ToImmutableArray())
+                : QsNullable<ImmutableArray<ResolvedType>>.Null;
+            return new SpecializationDeclarationHeader(
+                kind: specialization.Kind,
+                typeArguments: typeArguments,
+                information: specialization.Information,
+                parent: State.GetNewName(specialization.Parent),
+                attributes: specialization.Attributes.Select(Namespaces.OnAttribute).ToImmutableArray(),
+                sourceFile: specialization.SourceFile,
+                position: specialization.Position,
+                headerRange: specialization.HeaderRange,
+                documentation: Namespaces.OnDocumentation(specialization.Documentation));
+        }
+
+        /// <summary>
+        /// Renames references in the type declaration header, including the name of the type itself.
+        /// </summary>
+        /// <param name="type">The type declaration header in which to rename references.</param>
+        /// <returns>The type declaration header with renamed references.</returns>
+        public TypeDeclarationHeader OnTypeDeclarationHeader(TypeDeclarationHeader type)
+        {
+            return new TypeDeclarationHeader(
+                qualifiedName: State.GetNewName(type.QualifiedName),
+                attributes: type.Attributes.Select(Namespaces.OnAttribute).ToImmutableArray(),
+                modifiers: type.Modifiers,
+                sourceFile: type.SourceFile,
+                position: type.Position,
+                symbolRange: type.SymbolRange,
+                type: Types.OnType(type.Type),
+                typeItems: Namespaces.OnTypeItems(type.TypeItems),
+                documentation: Namespaces.OnDocumentation(type.Documentation));
+        }
+
+
+        // private helper classes
+
         private class TypeTransformation : Core.TypeTransformation
         {
-            private readonly TransformationState state;
+            private readonly TransformationState State;
 
-            public TypeTransformation(RenameReferences parent, TransformationState state) : base(parent) =>
-                this.state = state;
+            public TypeTransformation(RenameReferences parent) : base(parent) =>
+                this.State = parent.State;
 
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt) =>
-                base.OnUserDefinedType(state.RenameUdt(udt));
+                QsTypeKind.NewUserDefinedType(State.RenameUdt(udt));
 
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp) =>
-                base.OnTypeParameter(new QsTypeParameter(state.GetNewName(tp.Origin), tp.TypeName, tp.Range));
+                QsTypeKind.NewTypeParameter(new QsTypeParameter(State.GetNewName(tp.Origin), tp.TypeName, tp.Range));
         }
 
         private class ExpressionKindTransformation : Core.ExpressionKindTransformation
         {
-            private readonly TransformationState state;
+            private readonly TransformationState State;
 
-            public ExpressionKindTransformation(RenameReferences parent, TransformationState state) : base(parent) =>
-                this.state = state;
+            public ExpressionKindTransformation(RenameReferences parent) : base(parent) =>
+                this.State = parent.State;
 
             public override QsExpressionKind OnIdentifier(Identifier id, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
             {
                 if (id is Identifier.GlobalCallable global)
                 {
-                    id = Identifier.NewGlobalCallable(state.GetNewName(global.Item));
+                    id = Identifier.NewGlobalCallable(State.GetNewName(global.Item));
                 }
                 return base.OnIdentifier(id, typeArgs);
             }
@@ -575,29 +647,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         private class NamespaceTransformation : Core.NamespaceTransformation
         {
-            private readonly TransformationState state;
+            private readonly TransformationState State;
 
-            public NamespaceTransformation(RenameReferences parent, TransformationState state) : base(parent) =>
-                this.state = state;
+            public NamespaceTransformation(RenameReferences parent) : base(parent) =>
+                this.State = parent.State;
 
             public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute attribute)
             {
                 var argument = Transformation.Expressions.OnTypedExpression(attribute.Argument);
                 var typeId = attribute.TypeId.IsValue
-                    ? QsNullable<UserDefinedType>.NewValue(state.RenameUdt(attribute.TypeId.Item))
+                    ? QsNullable<UserDefinedType>.NewValue(State.RenameUdt(attribute.TypeId.Item))
                     : attribute.TypeId;
-                return base.OnAttribute(
-                    new QsDeclarationAttribute(typeId, argument, attribute.Offset, attribute.Comments));
+                return new QsDeclarationAttribute(typeId, argument, attribute.Offset, attribute.Comments);
             }
 
             public override QsCallable OnCallableDeclaration(QsCallable callable) =>
-                base.OnCallableDeclaration(callable.WithFullName(state.GetNewName));
+                base.OnCallableDeclaration(callable.WithFullName(State.GetNewName));
 
             public override QsCustomType OnTypeDeclaration(QsCustomType type) =>
-                base.OnTypeDeclaration(type.WithFullName(state.GetNewName));
+                base.OnTypeDeclaration(type.WithFullName(State.GetNewName));
 
             public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
-                base.OnSpecializationDeclaration(spec.WithParent(state.GetNewName));
+                base.OnSpecializationDeclaration(spec.WithParent(State.GetNewName));
         }
     }
 
