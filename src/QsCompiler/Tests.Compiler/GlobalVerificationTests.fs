@@ -282,8 +282,6 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
         this.Expect "ValidAttributes8"  []
         this.Expect "ValidAttributes9"  []
         this.Expect "ValidAttributes10" []
-        this.Expect "ValidAttributes11" []
-        this.Expect "ValidAttributes12" []
 
         this.Expect "AttributeDuplication1" [Warning WarningCode.DuplicateAttribute]
         this.Expect "AttributeDuplication2" [Warning WarningCode.DuplicateAttribute]
@@ -300,5 +298,7 @@ type GlobalVerificationTests (output:ITestOutputHelper) =
         this.Expect "InvalidAttributes10"   [Error ErrorCode.MisplacedDeclarationAttribute]
         this.Expect "InvalidAttributes11"   [Error ErrorCode.MisplacedDeclarationAttribute]
         this.Expect "InvalidAttributes12"   [Error ErrorCode.MisplacedDeclarationAttribute]
+        this.Expect "InvalidAttributes13"   [Error ErrorCode.AttributeInvalidOnCallable]
+        this.Expect "InvalidAttributes14"   [Error ErrorCode.AttributeInvalidOnCallable]
         
 
