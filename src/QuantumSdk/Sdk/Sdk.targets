@@ -76,8 +76,9 @@
       <_QscCommandTrimFlag Condition="'$(ResolvedQuantumProcessor)' == 'QPGen1'">--trim 2</_QscCommandTrimFlag> <!-- TODO: this needs to be revised -->
       <_QscCommandTargetPackageFlag Condition="'$(ResolvedTargetPackage)' != ''">--target-package "$(ResolvedTargetPackage)"</_QscCommandTargetPackageFlag>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">--load-test-names</_QscCommandTestNamesFlag>
+      <_QscCommandAssemblyPropertiesFlag>-p ResolvedExecutionTarget=$(ResolvedQsharpExecutionTarget) $(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">--package-load-fallback-folders "@(ResolvedPackageLoadFallbackFolders,'" "')"</_QscPackageLoadFallbackFoldersFlag>
-      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandTrimFlag) $(_QscCommandTargetPackageFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
+      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandTrimFlag) $(_QscCommandTargetPackageFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
       <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
       <QscCommand>$(QscExe) build --format MsBuild $(_VerbosityFlag) --response-files $(_QscCommandArgsFile)</QscCommand>
     </PropertyGroup>

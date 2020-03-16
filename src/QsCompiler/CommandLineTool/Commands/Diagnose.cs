@@ -209,8 +209,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
+            if (!options.ParseAssemblyProperties(out var assemblyConstants))
+            {
+                logger.Log(WarningCode.InvalidAssemblyProperties, new string[0]);
+            }
+
             var loadOptions = new CompilationLoader.Configuration
             {
+                AssemblyConstants = assemblyConstants,
                 TargetPackageAssembly = options.GetTargetPackageAssemblyPath(logger),
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,

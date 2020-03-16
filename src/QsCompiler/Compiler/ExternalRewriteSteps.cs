@@ -285,9 +285,10 @@ namespace Microsoft.Quantum.QsCompiler
                     foreach (var kvPair in config.AssemblyConstants ?? Enumerable.Empty<KeyValuePair<string, string>>())
                     { assemblyConstants[kvPair.Key] = kvPair.Value; } 
 
-                    var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null; 
-                    assemblyConstants[AssemblyConstants.OutputPath] = outputFolder ?? defaultOutput ?? config.BuildOutputFolder;
-                    assemblyConstants[AssemblyConstants.AssemblyName] = config.ProjectNameWithoutExtension;
+                    // We don't overwrite assembly properties specified by configuration.
+                    var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null;
+                    assemblyConstants.TryAdd(AssemblyConstants.OutputPath, outputFolder ?? defaultOutput ?? config.BuildOutputFolder);
+                    assemblyConstants.TryAdd(AssemblyConstants.AssemblyName, config.ProjectNameWithoutExtension);
                 }
 
                 loadedSteps.Sort((fst, snd) => snd.Priority - fst.Priority);

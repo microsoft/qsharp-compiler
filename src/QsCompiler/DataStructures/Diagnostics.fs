@@ -296,8 +296,7 @@ type ErrorCode =
     | PostconditionVerificationFailed = 7113
 
     | CsharpGenerationGeneratedError = 8001
-
-    | PublishingPerfResultsFailed = 9001
+    | PublishingPerfResultsFailed = 8101
 
 
 type WarningCode = 
@@ -341,6 +340,7 @@ type WarningCode =
     | FailedToLoadRewriteStepViaReflection = 7204
 
     | CsharpGenerationGeneratedWarning = 8001
+    | InvalidAssemblyProperties = 8101
 
 
 type InformationCode = 
@@ -662,8 +662,8 @@ type DiagnosticItem =
             | ErrorCode.PostconditionVerificationFailed           -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
 
             | ErrorCode.CsharpGenerationGeneratedError            -> ""
-
             | ErrorCode.PublishingPerfResultsFailed               -> "Performance results failed to be published at \"{0}\"."
+
             | _                                                   -> ""
         code |> ApplyArguments             
              
@@ -709,6 +709,7 @@ type DiagnosticItem =
             | WarningCode.FailedToLoadRewriteStepViaReflection    -> "A possible rewrite step has been detected in \"{0}\". The step could not be loaded and will be ignored."
 
             | WarningCode.CsharpGenerationGeneratedWarning        -> ""
+            | WarningCode.InvalidAssemblyProperties               -> "Some of the specified assembly properties could not be processed. Either they did not match the expected format, or they duplicate existing ones."
             | _                                                   -> ""
         code |> ApplyArguments
 
