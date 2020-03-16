@@ -55,8 +55,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public bool Equals(Location other) =>
                 this.SourceFile.Value == other?.SourceFile.Value
-                && this.DeclarationOffset == other?.DeclarationOffset
-                && this.RelativeStatementLocation == other?.RelativeStatementLocation
+                && this.DeclarationOffset.Equals(other?.DeclarationOffset)
+                && this.RelativeStatementLocation.Offset.Equals(other?.RelativeStatementLocation.Offset)
+                && this.RelativeStatementLocation.Range.Equals(other?.RelativeStatementLocation.Range)
                 && this.SymbolRange.Item1.Equals(other?.SymbolRange?.Item1)
                 && this.SymbolRange.Item2.Equals(other?.SymbolRange?.Item2);
 
