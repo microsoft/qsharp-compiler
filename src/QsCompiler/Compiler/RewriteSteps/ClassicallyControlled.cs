@@ -45,20 +45,20 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
             var providedOperations = new QsNamespace[] { controlNs }.Callables().Select(c => c.FullName.Name);
             var requiredBuiltIns = new List<NonNullable<string>>()
             {
-                BuiltIn.ApplyIfZero.Name,
-                BuiltIn.ApplyIfZeroA.Name,
-                BuiltIn.ApplyIfZeroC.Name,
-                BuiltIn.ApplyIfZeroCA.Name,
+                BuiltIn.ApplyIfZero.FullName.Name,
+                BuiltIn.ApplyIfZeroA.FullName.Name,
+                BuiltIn.ApplyIfZeroC.FullName.Name,
+                BuiltIn.ApplyIfZeroCA.FullName.Name,
 
-                BuiltIn.ApplyIfOne.Name,
-                BuiltIn.ApplyIfOneA.Name,
-                BuiltIn.ApplyIfOneC.Name,
-                BuiltIn.ApplyIfOneCA.Name,
+                BuiltIn.ApplyIfOne.FullName.Name,
+                BuiltIn.ApplyIfOneA.FullName.Name,
+                BuiltIn.ApplyIfOneC.FullName.Name,
+                BuiltIn.ApplyIfOneCA.FullName.Name,
 
-                BuiltIn.ApplyIfElseR.Name,
-                BuiltIn.ApplyIfElseRA.Name,
-                BuiltIn.ApplyIfElseRC.Name,
-                BuiltIn.ApplyIfElseRCA.Name
+                BuiltIn.ApplyIfElseR.FullName.Name,
+                BuiltIn.ApplyIfElseRA.FullName.Name,
+                BuiltIn.ApplyIfElseRC.FullName.Name,
+                BuiltIn.ApplyIfElseRCA.FullName.Name
             };
 
             return requiredBuiltIns.All(builtIn => providedOperations.Any(provided => provided.Equals(builtIn)));
