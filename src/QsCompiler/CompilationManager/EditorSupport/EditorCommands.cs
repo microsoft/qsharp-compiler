@@ -249,7 +249,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // extracting and adapting the relevant information for the called callable
 
-            ResolutionResult<CallableDeclarationHeader>.Found methodDecl;
+            ResolutionResult<CallableDeclarationHeader>.Found methodDecl = null;
             if (id.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol sym)
             {
                 methodDecl =
@@ -266,7 +266,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                                                              file.FileName)
                     as ResolutionResult<CallableDeclarationHeader>.Found;
             }
-            else
+
+            if (methodDecl == null)
             {
                 return null;
             }
