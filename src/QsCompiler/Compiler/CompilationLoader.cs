@@ -442,10 +442,8 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (!this.Config.SkipSyntaxTreeTrimming)
             {
-                this.CompilationStatus.TreeTrimming = Status.Succeeded;
-                void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ex);
-                var trimmed = this.CompilationOutput != null && this.CompilationOutput.InlineConjugations(out this.CompilationOutput, onException);
-                if (!trimmed) this.LogAndUpdate(ref this.CompilationStatus.TreeTrimming, ErrorCode.TreeTrimmingFailed, Enumerable.Empty<string>());
+                var rewriteStep = new RewriteSteps.LoadedStep(new ConjugationInlining(), typeof(IRewriteStep), thisDllUri);
+                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.TreeTrimming);
             }
 
             if (this.Config.AttemptFullPreEvaluation)
