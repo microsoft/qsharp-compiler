@@ -41,10 +41,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all namespaces in which a callable with the name of the symbol at the given position in the given
         /// file belongs to.
-        /// 
+        ///
         /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at that
         /// location, or if the position is not part of a namespace.
-        /// 
+        ///
         /// Returns the name of the identifier as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForIdAtPosition
@@ -52,8 +52,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             var variables = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedVariables;
             idName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
-            var nsName = file.TryGetNamespaceAt(pos);
-            return idName != null && compilation != null && nsName != null
+            return idName != null && compilation != null
                 ? compilation.GlobalSymbols.NamespacesContainingCallable(NonNullable<string>.New(idName))
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
@@ -61,10 +60,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns all namespaces in which a type with the name of the symbol at the given position in the given file
         /// belongs to.
-        /// 
+        ///
         /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at that
         /// location, or if the position is not part of a namespace.
-        /// 
+        ///
         /// Returns the name of the type as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForTypeAtPosition
@@ -74,8 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             typeName = types != null && types.Any() &&
                 types.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt
                 ? udt.Item.Symbol.AsDeclarationName(null) : null;
-            var nsName = file.TryGetNamespaceAt(pos);
-            return typeName != null && compilation != null && nsName != null
+            return typeName != null && compilation != null
                 ? compilation.GlobalSymbols.NamespacesContainingType(NonNullable<string>.New(typeName))
                 : ImmutableArray<NonNullable<string>>.Empty;
         }
