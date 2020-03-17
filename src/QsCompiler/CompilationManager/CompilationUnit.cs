@@ -517,7 +517,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             // TODO: this needs to be adapted if we want to support external specializations
             if (header == null) throw new ArgumentNullException(nameof(header));
-            var importedSpecs = this.GlobalSymbols.ImportedSpecializations(header.QualifiedName);
             if (Namespace.IsDeclarationAccessible(false, header.Modifiers.Access))
             {
                 var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName);
@@ -525,17 +524,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                                        "external specializations are currently not supported");
             }
 
-            var specializations = importedSpecs.Select(imported =>
-            {
-                var (specHeader, implementation) = imported;
-                var specSignature = specHeader.Kind.IsQsControlled || specHeader.Kind.IsQsControlledAdjoint 
-                    ? SyntaxGenerator.BuildControlled(header.Signature) 
-                    : header.Signature;
-                return new QsSpecialization(specHeader.Kind, header.QualifiedName, specHeader.Attributes,
-                    specHeader.SourceFile, specHeader.Location, specHeader.TypeArguments, specSignature,
-                    implementation, specHeader.Documentation, QsComments.Empty);
-            })
-            .ToImmutableArray();
+            var specializations =
+                this.GlobalSymbols
+                .ImportedSpecializations(header.QualifiedName)
+                .Where(specialization =>
+                    // Either the callable is externally accessible, or all of its specializations must be defined in
+                    // the same reference as the callable.
+                    Namespace.IsDeclarationAccessible(false, header.Modifiers.Access) ||
+                    specialization.Item1.SourceFile.Equals(header.SourceFile))
+                .Select(specialization =>
+                {
+                    var (specHeader, implementation) = specialization;
+                    var specSignature = specHeader.Kind.IsQsControlled || specHeader.Kind.IsQsControlledAdjoint
+                        ? SyntaxGenerator.BuildControlled(header.Signature)
+                        : header.Signature;
+                    return new QsSpecialization(
+                        specHeader.Kind, header.QualifiedName, specHeader.Attributes, specHeader.SourceFile,
+                        specHeader.Location, specHeader.TypeArguments, specSignature, implementation,
+                        specHeader.Documentation, QsComments.Empty);
+                })
+                .ToImmutableArray();
             return new QsCallable(
                 header.Kind,
                 header.QualifiedName,
