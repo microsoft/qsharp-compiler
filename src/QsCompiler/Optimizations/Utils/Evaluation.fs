@@ -23,7 +23,7 @@ type private EvalState = Dictionary<string, TypedExpression> * int
 
 /// Represents any interrupt to the normal control flow of a function evaluation.
 /// Includes return statements, errors, and (if they were added) break/continue statements.
-type internal FunctionInterrupt =
+type private FunctionInterrupt =
     /// Represents the function invoking a return statement
     | Returned of TypedExpression
     /// Represents the function invoking a fail statement
@@ -62,7 +62,7 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
         | _ -> ArgumentException ("Not a BoolLiteral: " + x.Expression.ToString()) |> raise
 
     /// Evaluates and simplifies a single Q# expression
-    member internal this.EvaluateExpression expr : Imp<TypedExpression> = imperative {
+    member private this.EvaluateExpression expr : Imp<TypedExpression> = imperative {
         let! vars, counter = getState
         let result = ExpressionEvaluator(callables, vars, counter / 2).Expressions.OnTypedExpression expr
         if isLiteral callables result then return result
