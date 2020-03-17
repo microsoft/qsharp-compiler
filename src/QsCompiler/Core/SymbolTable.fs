@@ -240,10 +240,12 @@ type private PartialNamespace private
 /// Access modifiers are taken into consideration when resolving symbols. Some methods bypass this (e.g., when returning
 /// a list of all declarations). Individual methods will mention if they adhere to symbol accessibility.
 and Namespace private
-    (name, parts : IEnumerable<KeyValuePair<NonNullable<string>,PartialNamespace>>,
-     CallablesInReferences : ImmutableDictionary<NonNullable<string>, CallableDeclarationHeader>,
-     SpecializationsInReferences : ILookup<NonNullable<string>, SpecializationDeclarationHeader * SpecializationImplementation>,
-     TypesInReferences : ImmutableDictionary<NonNullable<string>, TypeDeclarationHeader>) =
+    (name,
+     parts : IEnumerable<KeyValuePair<NonNullable<string>,PartialNamespace>>,
+     CallablesInReferences : ILookup<NonNullable<string>, CallableDeclarationHeader>,
+     SpecializationsInReferences : ILookup<NonNullable<string>,
+                                           SpecializationDeclarationHeader * SpecializationImplementation>,
+     TypesInReferences : ILookup<NonNullable<string>, TypeDeclarationHeader>) =
 
     /// dictionary containing a PartialNamespaces for each source file which implements a part of this namespace -
     /// the key is the source file where each part of the namespace is defined
@@ -253,16 +255,20 @@ and Namespace private
 
     /// Returns true if the name is available for use in a new declaration.
     let isNameAvailable name =
-        let isAvailableWith declarationGetter accessibilityGetter sameAssembly =
-            match declarationGetter name with
-            | true, value -> not <| Namespace.IsDeclarationAccessible (sameAssembly, accessibilityGetter value)
-            | false, _ -> true
+        let isAvailableWith declarationsGetter accessibilityGetter sameAssembly =
+            declarationsGetter name
+            |> Seq.exists (fun name -> Namespace.IsDeclarationAccessible (sameAssembly, accessibilityGetter name))
+            |> not
 
-        isAvailableWith CallablesInReferences.TryGetValue (fun c -> c.Modifiers.Access) false &&
-        isAvailableWith TypesInReferences.TryGetValue (fun t -> t.Modifiers.Access) false &&
+        let tryToList = function
+            | true, value -> [value]
+            | false, _ -> []
+
+        isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Modifiers.Access) false &&
+        isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Modifiers.Access) false &&
         Parts.Values.All (fun partial ->
-            isAvailableWith partial.TryGetCallable (fun c -> (snd c).Modifiers.Access) true &&
-            isAvailableWith partial.TryGetType (fun t -> t.Modifiers.Access) true)
+            isAvailableWith (partial.TryGetCallable >> tryToList) (fun c -> (snd c).Modifiers.Access) true &&
+            isAvailableWith (partial.TryGetType >> tryToList) (fun t -> t.Modifiers.Access) true)
 
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
     /// the same assembly as the declaration, and the declaration's access modifier.
@@ -286,24 +292,33 @@ and Namespace private
 
     /// constructor taking the name of the namespace as well the name of the files in which (part of) it is declared in as arguments,
     /// as well as the information about all types and callables declared in referenced assemblies that belong to this namespace
-    internal new (name, sources, callablesInRefs : IEnumerable<_>, specializationsInRefs : IEnumerable<_>, typesInRefs : IEnumerable<_>) = 
+    internal new (name, sources, callablesInRefs : IEnumerable<_>, specializationsInRefs : IEnumerable<_>, typesInRefs : IEnumerable<_>) =
         let initialSources = sources |> Seq.distinct |> Seq.map (fun source -> new KeyValuePair<_,_>(source, new PartialNamespace(name, source)))
         let typesInRefs = typesInRefs.Where (fun (header : TypeDeclarationHeader) -> header.QualifiedName.Namespace = name)
         let callablesInRefs = callablesInRefs.Where(fun (header : CallableDeclarationHeader) -> header.QualifiedName.Namespace = name)
         let specializationsInRefs = specializationsInRefs.Where(fun (header : SpecializationDeclarationHeader, _) -> header.Parent.Namespace = name)
 
-        // ignore ambiguous/clashing references
-        let FilterUnique (g : IGrouping<_,_>) = 
-            if g.Count() > 1 then None
-            else g.Single() |> Some
-        let typesInRefs = typesInRefs.GroupBy(fun t -> t.QualifiedName.Name) |> Seq.choose FilterUnique
-        let callablesInRefs = callablesInRefs.GroupBy(fun c -> c.QualifiedName.Name) |> Seq.choose FilterUnique
+        let discardConflicts getAccess (_, nameGroup) =
+            // Only one externally accessible declaration with the same name is allowed.
+            let isAccessible header = Namespace.IsDeclarationAccessible (false, getAccess header)
+            if nameGroup |> Seq.filter isAccessible |> Seq.length > 1
+            then nameGroup |> Seq.filter (not << isAccessible)
+            else nameGroup
 
-        let types = typesInRefs.ToImmutableDictionary(fun t -> t.QualifiedName.Name)
-        let callables = callablesInRefs.ToImmutableDictionary(fun c -> c.QualifiedName.Name)
-        let specializations = specializationsInRefs.Where(fun (s, _) -> callables.ContainsKey s.Parent.Name).ToLookup(fun (s, _) -> s.Parent.Name)
-        new Namespace(name, initialSources, callables, specializations, types)
+        let createLookup getName getAccess headers =
+            headers
+            |> Seq.groupBy getName
+            |> Seq.map (discardConflicts getAccess)
+            |> Seq.concat
+            |> fun headers -> headers.ToLookup (Func<_, _> getName)
 
+        let types = typesInRefs |> createLookup (fun t -> t.QualifiedName.Name) (fun t -> t.Modifiers.Access)
+        let callables = callablesInRefs |> createLookup (fun c -> c.QualifiedName.Name) (fun c -> c.Modifiers.Access)
+        let specializations =
+            specializationsInRefs
+                .Where(fun (s, _) -> callables.[s.Parent.Name].Any())
+                .ToLookup(fun (s, _) -> s.Parent.Name)
+        Namespace (name, initialSources, callables, specializations, types)
 
     /// returns true if the namespace currently contains no source files or referenced content 
     member this.IsEmpty = 
@@ -370,12 +385,16 @@ and Namespace private
                 resolution.Resolved.ValueOrApply missingResolutionException |> fst |> Some
             | _ -> None
         | false, _ ->
-            match TypesInReferences.TryGetValue attName with
-            | true, qsType ->
+            let referenceType =
+                TypesInReferences.[attName]
+                |> Seq.filter (fun qsType -> qsType.SourceFile = source)
+                |> Seq.tryExactlyOne
+            match referenceType with
+            | Some qsType ->
                 if Seq.exists marksAttribute qsType.Attributes
                 then Some qsType.Type
                 else None
-            | false, _ -> ArgumentException "Given source file is not part of the namespace" |> raise
+            | None -> ArgumentException "given source file is not part of the namespace" |> raise
 
     /// Returns the type with the given name defined in the given source file within this namespace.
     /// Note that files contained in referenced assemblies are *not* considered to be source files for the namespace!
@@ -462,15 +481,12 @@ and Namespace private
             defaultArg checkDeprecation
                        (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.Namespace.Value)
 
-        let fromReferences =
-            match TypesInReferences.TryGetValue tName with
-            | true, qsType ->
-                if Namespace.IsDeclarationAccessible (false, qsType.Modifiers.Access)
-                then Found (qsType.SourceFile,
-                            SymbolResolution.TryFindRedirect qsType.Attributes,
-                            qsType.Modifiers.Access)
-                else Inaccessible
-            | false, _ -> NotFound
+        let resolveReferenceType (typeHeader : TypeDeclarationHeader) =
+            if Namespace.IsDeclarationAccessible (false, typeHeader.Modifiers.Access)
+            then Found (typeHeader.SourceFile,
+                        SymbolResolution.TryFindRedirect typeHeader.Attributes,
+                        typeHeader.Modifiers.Access)
+            else Inaccessible
 
         let findInPartial (partial : PartialNamespace) =
             match partial.TryGetType tName with
@@ -482,8 +498,8 @@ and Namespace private
                 else Inaccessible
             | false, _ -> NotFound
 
-        seq { yield fromReferences
-              yield Seq.map findInPartial Parts.Values |> ResolutionResult.ExactlyOne }
+        seq { yield Seq.map resolveReferenceType TypesInReferences.[tName] |> ResolutionResult.AtMostOne
+              yield Seq.map findInPartial Parts.Values |> ResolutionResult.AtMostOne }
         |> ResolutionResult.TryFirstBest
 
     /// Returns a resolution result for the callable with the given name containing the name of the source file or
@@ -503,13 +519,10 @@ and Namespace private
             defaultArg checkDeprecation
                        (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.Namespace.Value)
 
-        let fromReferences =
-            match CallablesInReferences.TryGetValue cName with
-            | true, callable ->
-                if Namespace.IsDeclarationAccessible (false, callable.Modifiers.Access)
-                then Found (callable.SourceFile, SymbolResolution.TryFindRedirect callable.Attributes)
-                else Inaccessible
-            | false, _ -> NotFound
+        let resolveReferenceCallable (callable : CallableDeclarationHeader) =
+            if Namespace.IsDeclarationAccessible (false, callable.Modifiers.Access)
+            then Found (callable.SourceFile, SymbolResolution.TryFindRedirect callable.Attributes)
+            else Inaccessible
 
         let findInPartial (partial : PartialNamespace) =
             match partial.TryGetCallable cName with
@@ -520,8 +533,8 @@ and Namespace private
                 else Inaccessible
             | false, _ -> NotFound
 
-        seq { yield fromReferences
-              yield Seq.map findInPartial Parts.Values |> ResolutionResult.ExactlyOne }
+        seq { yield Seq.map resolveReferenceCallable CallablesInReferences.[cName] |> ResolutionResult.AtMostOne
+              yield Seq.map findInPartial Parts.Values |> ResolutionResult.AtMostOne }
         |> ResolutionResult.TryFirstBest
 
     /// Sets the resolution for the type with the given name in the given source file to the given type,
@@ -668,7 +681,7 @@ and Namespace private
                 let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t : QsType) -> t.Type)
                 unitReturn, cDecl.Defined.TypeParameters.Length
             | false, _ ->
-                let cDecl = CallablesInReferences.[cName]
+                let cDecl = CallablesInReferences.[cName] |> Seq.filter (fun c -> c.SourceFile = source) |> Seq.exactlyOne
                 let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t : ResolvedType) -> t.Resolution)
                 unitReturn, cDecl.Signature.TypeParameters.Length
 
@@ -780,7 +793,7 @@ and NamespaceManager
             resolver ns |> ResolutionResult.Map (fun value -> (ns.Name, value))
         let currentNs, importedNs = OpenNamespaces (nsName, source)
         seq { yield resolveWithNsName currentNs
-              yield Seq.map resolveWithNsName importedNs |> ResolutionResult.TryExactlyOne fst }
+              yield Seq.map resolveWithNsName importedNs |> ResolutionResult.TryAtMostOne fst }
         |> ResolutionResult.TryFirstBest
 
     /// Given a qualifier for a symbol name, returns the corresponding namespace as Some
@@ -1260,8 +1273,9 @@ and NamespaceManager
     member this.ImportedCallables () = 
         // TODO: this needs to be adapted if we support external specializations
         syncRoot.EnterReadLock()
-        try let imported = Namespaces.Values |> Seq.collect (fun ns -> ns.CallablesInReferencedAssemblies.Values)
-            imported.ToImmutableArray()
+        try Namespaces.Values
+            |> Seq.collect (fun ns -> ns.CallablesInReferencedAssemblies.SelectMany (fun g -> g.AsEnumerable ()))
+            |> fun callables -> callables.ToImmutableArray ()
         finally syncRoot.ExitReadLock()
 
     /// Returns the declaration headers for all callables defined in source files, regardless of accessibility.
@@ -1307,8 +1321,9 @@ and NamespaceManager
     /// of accessibility.
     member this.ImportedTypes() =
         syncRoot.EnterReadLock()
-        try let imported = Namespaces.Values |> Seq.collect (fun ns -> ns.TypesInReferencedAssemblies.Values)
-            imported.ToImmutableArray()
+        try Namespaces.Values
+            |> Seq.collect (fun ns -> ns.TypesInReferencedAssemblies.SelectMany (fun g -> g.AsEnumerable ()))
+            |> fun types -> types.ToImmutableArray ()
         finally syncRoot.ExitReadLock()
 
     /// Returns the declaration headers for all types defined in source files, regardless of accessibility.
@@ -1451,12 +1466,12 @@ and NamespaceManager
             }
 
         let findInReferences (ns : Namespace) =
-            match ns.CallablesInReferencedAssemblies.TryGetValue callableName.Name with
-            | true, callable ->
+            ns.CallablesInReferencedAssemblies.[callableName.Name]
+            |> Seq.map (fun callable ->
                 if Namespace.IsDeclarationAccessible (false, callable.Modifiers.Access)
                 then Found callable
-                else Inaccessible
-            | false, _ -> NotFound
+                else Inaccessible)
+            |> ResolutionResult.AtMostOne
 
         let findInSources (ns : Namespace) = function
             | Some source ->
@@ -1536,12 +1551,12 @@ and NamespaceManager
             }
 
         let findInReferences (ns : Namespace) =
-            match ns.TypesInReferencedAssemblies.TryGetValue typeName.Name with
-            | true, qsType ->
-                if Namespace.IsDeclarationAccessible (false, qsType.Modifiers.Access)
-                then Found qsType
-                else Inaccessible
-            | false, _ -> NotFound
+            ns.TypesInReferencedAssemblies.[typeName.Name]
+            |> Seq.map (fun typeHeader ->
+                if Namespace.IsDeclarationAccessible (false, typeHeader.Modifiers.Access)
+                then Found typeHeader
+                else Inaccessible)
+            |> ResolutionResult.AtMostOne
 
         let findInSources (ns : Namespace) = function
             | Some source ->
