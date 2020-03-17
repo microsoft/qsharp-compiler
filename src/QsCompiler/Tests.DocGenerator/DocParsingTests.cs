@@ -10,7 +10,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Xunit;
-
+using static Microsoft.Quantum.QsCompiler.Documentation.Testing.Utils;
 
 namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 {
@@ -20,17 +20,6 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 
     public class DocParsingTests
     {
-        private readonly Tuple<QsPositionInfo, QsPositionInfo> EmptyRange = 
-            new Tuple<QsPositionInfo, QsPositionInfo>(QsPositionInfo.Zero, QsPositionInfo.Zero);
-        private readonly QsNullable<QsLocation> ZeroLocation =
-            QsNullable<QsLocation>.NewValue(new QsLocation(new Tuple<int, int>(0, 0), new Tuple<QsPositionInfo, QsPositionInfo>(QsPositionInfo.Zero, QsPositionInfo.Zero)));
-        private readonly NonNullable<string> CanonName = NonNullable<string>.New("Microsoft.Quantum.Canon");
-
-        private QsQualifiedName MakeFullName(string name)
-        {
-            return new QsQualifiedName(CanonName, NonNullable<string>.New(name));
-        }
-
         [Fact]
         public void ParseDocComments()
         {
@@ -158,6 +147,7 @@ seeAlso:
 
             var generatorIndexType = new QsCustomType(MakeFullName("GeneratorIndex"),
                                                       ImmutableArray<QsDeclarationAttribute>.Empty,
+                                                      new Modifiers(AccessModifier.DefaultAccess),
                                                       NonNullable<string>.New("GeneratorRepresentation.qs"),
                                                       ZeroLocation,
                                                       baseType,
@@ -339,6 +329,7 @@ output:
             var qsCallable = new QsCallable(QsCallableKind.Operation,
                                             MakeFullName("AdiabaticStateEnergyUnitary"),
                                             ImmutableArray<QsDeclarationAttribute>.Empty,
+                                            new Modifiers(AccessModifier.DefaultAccess),
                                             NonNullable<string>.New("Techniques.qs"),
                                             ZeroLocation,
                                             signature,

@@ -3,6 +3,7 @@
 
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -310,7 +311,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for all callables visible given the current namespace and the list of open namespaces.
+        /// Returns completions for all accessible callables given the current namespace and the list of open
+        /// namespaces, or an empty enumerable if symbols haven't been resolved yet.
         /// </summary>
         /// <exception cref="ArgumentNullException">
         /// Thrown when any argument except <paramref name="currentNamespace"/> is null.
@@ -331,9 +333,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (!compilation.GlobalSymbols.ContainsResolutions)
                 return Array.Empty<CompletionItem>();
             return
-                compilation.GlobalSymbols.DefinedCallables()
-                .Concat(compilation.GlobalSymbols.ImportedCallables())
-                .Where(callable => IsVisible(callable.QualifiedName, currentNamespace, openNamespaces))
+                compilation.GlobalSymbols.AccessibleCallables()
+                .Where(callable =>
+                    IsAccessibleAsUnqualifiedName(callable.QualifiedName, currentNamespace, openNamespaces))
                 .Select(callable => new CompletionItem()
                 {
                     Label = callable.QualifiedName.Name.Value,
@@ -348,7 +350,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for all types visible given the current namespace and the list of open namespaces.
+        /// Returns completions for all accessible types given the current namespace and the list of open namespaces, or
+        /// an empty enumerable if symbols haven't been resolved yet.
         /// </summary>
         /// <exception cref="ArgumentNullException">
         /// Thrown when any argument except <paramref name="currentNamespace"/> is null.
@@ -369,9 +372,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (!compilation.GlobalSymbols.ContainsResolutions)
                 return Array.Empty<CompletionItem>();
             return
-                compilation.GlobalSymbols.DefinedTypes()
-                .Concat(compilation.GlobalSymbols.ImportedTypes())
-                .Where(type => IsVisible(type.QualifiedName, currentNamespace, openNamespaces))
+                compilation.GlobalSymbols.AccessibleTypes()
+                .Where(type => IsAccessibleAsUnqualifiedName(type.QualifiedName, currentNamespace, openNamespaces))
                 .Select(type => new CompletionItem()
                 {
                     Label = type.QualifiedName.Name.Value,
@@ -385,7 +387,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for all named items in any type.
+        /// Returns completions for all named items in any accessible type, or an empty enumerable if symbols haven't
+        /// been resolved yet.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the argument is null.</exception>
         private static IEnumerable<CompletionItem> GetNamedItemCompletions(CompilationUnit compilation)
@@ -395,8 +398,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (!compilation.GlobalSymbols.ContainsResolutions)
                 return Array.Empty<CompletionItem>();
-            return compilation.GlobalSymbols.DefinedTypes()
-                .Concat(compilation.GlobalSymbols.ImportedTypes())
+            return compilation.GlobalSymbols.AccessibleTypes()
                 .SelectMany(type => ExtractItems(type.TypeItems))
                 .Where(item => item.IsNamed)
                 .Select(item => new CompletionItem()
@@ -438,8 +440,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for namespace aliases with the given prefix that are visible at the given position in
-        /// the file.
+        /// Returns completions for namespace aliases with the given prefix that are accessible from the given position
+        /// in the file.
         /// <para/>
         /// Note: a dot will be added after the given prefix if it is not the empty string, and doesn't already end with
         /// a dot.
@@ -499,9 +501,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 case CompletionItemKind.Function:
                 case CompletionItemKind.Constructor:
-                    var callable = compilation.GlobalSymbols.TryGetCallable(
+                    var result = compilation.GlobalSymbols.TryGetCallable(
                         data.QualifiedName, data.QualifiedName.Namespace, NonNullable<string>.New(data.SourceFile));
-                    if (callable.IsNull)
+                    if (!(result is ResolutionResult<CallableDeclarationHeader>.Found callable))
                         return null;
                     var signature = callable.Item.PrintSignature();
                     var documentation = callable.Item.Documentation.PrintSummary(useMarkdown);
@@ -510,15 +512,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var type =
                         compilation.GlobalSymbols.TryGetType(
                             data.QualifiedName, data.QualifiedName.Namespace, NonNullable<string>.New(data.SourceFile))
-                        .Item;
-                    return type?.Documentation.PrintSummary(useMarkdown).Trim();
+                        as ResolutionResult<TypeDeclarationHeader>.Found;
+                    return type?.Item.Documentation.PrintSummary(useMarkdown).Trim();
                 default:
                     return null;
             }
         }
 
         /// <summary>
-        /// Returns the names of all namespaces that have been opened without an alias and are visible from the given
+        /// Returns the names of all namespaces that have been opened without an alias and are accessible from the given
         /// position in the file. Returns an empty enumerator if the position is invalid.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
@@ -714,14 +716,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             };
 
         /// <summary>
-        /// Returns true if the qualified name is visible given the current namespace and a list of open namespaces.
+        /// Returns true if the declaration with the given qualified name would be accessible if it was referenced using
+        /// its unqualified name, given the current namespace and a list of open namespaces.
         /// <para/>
-        /// Names that start with "_" are treated as "private"; they are only visible from the namespace in which they
-        /// are declared.
+        /// Note: Names that start with "_" are treated as "private;" they are only accessible from the namespace in
+        /// which they are declared.
         /// </summary>
-        private static bool IsVisible(QsQualifiedName qualifiedName,
-                                      string currentNamespace,
-                                      IEnumerable<string> openNamespaces) =>
+        private static bool IsAccessibleAsUnqualifiedName(QsQualifiedName qualifiedName,
+                                                          string currentNamespace,
+                                                          IEnumerable<string> openNamespaces) =>
             openNamespaces.Contains(qualifiedName.Namespace.Value) &&
             (!qualifiedName.Name.Value.StartsWith("_") || qualifiedName.Namespace.Value == currentNamespace);
     }

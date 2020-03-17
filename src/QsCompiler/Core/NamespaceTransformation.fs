@@ -178,7 +178,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let specializations = c.Specializations |> Seq.sortBy (fun c -> c.Kind) |> Seq.map this.OnSpecializationDeclaration |> ImmutableArray.CreateRange
         let doc = this.OnDocumentation c.Documentation
         let comments = c.Comments
-        QsCallable.New c.Kind (source, loc) |> Node.BuildOr c (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
+        QsCallable.New c.Kind (source, loc) |> Node.BuildOr c (c.FullName, attributes, c.Modifiers, argTuple, signature, specializations, doc, comments)
 
     abstract member OnOperation : QsCallable -> QsCallable
     default this.OnOperation c = this.OnCallableKind c
@@ -205,7 +205,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let typeItems = this.OnTypeItems t.TypeItems
         let doc = this.OnDocumentation t.Documentation
         let comments = t.Comments
-        QsCustomType.New (source, loc) |> Node.BuildOr t (t.FullName, attributes, typeItems, underlyingType, doc, comments)
+        QsCustomType.New (source, loc) |> Node.BuildOr t (t.FullName, attributes, t.Modifiers, typeItems, underlyingType, doc, comments)
 
 
     // transformation roots called on each namespace or namespace element
