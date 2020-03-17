@@ -80,6 +80,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     catch (Exception ex)
                     {
                         Console.WriteLine($"EXCEPTION: {ex.ToString()}");
+                        options.ResponseFiles = null;
                     }
                 }
                 incorporated = options;
