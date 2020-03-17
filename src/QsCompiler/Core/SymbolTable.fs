@@ -980,20 +980,23 @@ and NamespaceManager
                 elif tId |> isBuiltIn BuiltIn.EntryPoint then
                     match box decl.Defined with
                     | :? CallableSignature as signature when not (signature.TypeParameters.Any()) ->
-                        let validateArgAndReturnTypes (qsType : QsType) =
+                        let validateArgAndReturnTypes preventTuples (qsType : QsType) =
                             qsType.ExtractAll (fun t -> t.Type |> function // ExtractAll recurs on all subtypes (e.g. callable in- and output types as well)
                             | Qubit -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.QubitTypeInEntryPointSignature, [])) |> Seq.singleton
                             | QsTypeKind.Operation _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
                             | QsTypeKind.Function _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
                             | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPointSignature, [])) |> Seq.singleton
+                            | TupleType _ when preventTuples -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InnerTupleInEntryPointArgument, [])) |> Seq.singleton
                             | _ -> Seq.empty)
-                        let argErrs = signature.Argument.Items.Select(snd).Append signature.ReturnType |> Seq.collect validateArgAndReturnTypes
+                        let inErrs = signature.Argument.Items.Select(snd) |> Seq.collect (validateArgAndReturnTypes true)
+                        let outErrs = signature.ReturnType |> validateArgAndReturnTypes false 
+                        let signatureErrs = inErrs.Concat outErrs
                         let hasCharacteristics = signature.Characteristics.Characteristics |> function | EmptySet | InvalidSetExpr -> false | _ -> true
                         match Namespaces.TryGetValue parent.Namespace with
                         | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
                         | true, ns when not ((ns.SpecializationsDefinedInAllSources parent.Name).Any(fst >> (<>)QsBody) || hasCharacteristics) -> ()
                         | _ -> errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
-                        if argErrs.Any() then returnInvalid argErrs
+                        if signatureErrs.Any() then returnInvalid signatureErrs
                         else GetEntryPoints() |> Seq.tryHead |> function
                             | None -> attributeHash :: alreadyDefined, att :: resAttr
                             | Some (epName, epSource) ->
