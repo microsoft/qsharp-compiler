@@ -116,7 +116,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 (BuildOptions opts) => opts,
                 (errs => 
                 { 
-                    HelpText.AutoBuild(parsed);
+                    var help = HelpText.AutoBuild(parsed);
+                    Console.WriteLine($"HELP: {help.ToString()}");
                     return null;
                 })
             );

@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public bool ExposeReferencesViaTestNames { get; set; }
 
         [Option('p', "assembly-properties", Required = false, SetName = CODE_MODE,
-        HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key=value\".")]
+        HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
         public IEnumerable<string> AdditionalAssemblyProperties { get; set; }
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             parsed = new Dictionary<string, string>();
             foreach (var keyValue in this.AdditionalAssemblyProperties ?? new string[0])
             {
-                var pieces = keyValue?.Split("=");
+                var pieces = keyValue?.Split(":");
                 var valid = pieces != null && pieces.Length == 2;
                 success = valid && parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"')) && success;
             }
