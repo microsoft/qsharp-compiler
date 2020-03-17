@@ -485,13 +485,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (header == null) throw new ArgumentNullException(nameof(header));
             if (Namespace.IsDeclarationAccessible(false, header.Modifiers.Access))
             {
-                var definedSpecs = GlobalSymbols.DefinedSpecializations(header.QualifiedName);
+                var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName);
                 QsCompilerError.Verify(definedSpecs.Length == 0,
                                        "external specializations are currently not supported");
             }
 
             var specializations =
-                GlobalSymbols
+                this.GlobalSymbols
                 .ImportedSpecializations(header.QualifiedName)
                 .Where(specialization =>
                     // Either the callable is externally accessible, or all of its specializations must be defined in
