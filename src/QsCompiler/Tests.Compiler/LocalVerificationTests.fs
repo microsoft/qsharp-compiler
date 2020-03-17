@@ -14,7 +14,7 @@ open Xunit.Abstractions
 
 
 type LocalVerificationTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "LocalVerification.qs"; "Types.qs"; Path.Combine ("LinkingTests", "Core.qs")], output)
+    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "LocalVerification.qs"; "Types.qs"; Path.Combine ("LinkingTests", "Core.qs")] [], output)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.LocalVerification" |> NonNullable<_>.New

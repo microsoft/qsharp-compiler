@@ -90,13 +90,13 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation, output:ITe
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
 
-    static member Compile srcFolder files = 
+    static member Compile srcFolder files references =
         let compileFiles (files : IEnumerable<_>) =
             let mgr = new CompilationUnitManager(fun ex -> failwith ex.Message)
-            files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText) 
+            files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText)
             |> CompilationUnitManager.InitializeFileManagers
-            |> mgr.AddOrUpdateSourceFilesAsync 
+            |> mgr.AddOrUpdateSourceFilesAsync
             |> ignore
-            mgr.Build() 
-        files |> Seq.map (fun file -> Path.Combine (srcFolder, file)) |> compileFiles 
-
+            mgr.UpdateReferencesAsync(new References(ProjectManager.LoadReferencedAssemblies(references))) |> ignore
+            mgr.Build()
+        files |> Seq.map (fun file -> Path.Combine (srcFolder, file)) |> compileFiles
