@@ -70,10 +70,17 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 incorporated = null;
                 while (options.ResponseFiles != null && options.ResponseFiles.Any())
                 {
-                    var fromResponseFiles = FromResponseFiles(options.ResponseFiles);
-                    if (fromResponseFiles == null) return false;
-                    fromResponseFiles.UpdateSetIndependentSettings(options);
-                    options = fromResponseFiles;
+                    try
+                    {
+                        var fromResponseFiles = FromResponseFiles(options.ResponseFiles);
+                        if (fromResponseFiles == null) return false;
+                        fromResponseFiles.UpdateSetIndependentSettings(options);
+                        options = fromResponseFiles;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"EXCEPTION: {help.ToString()}");
+                    }
                 }
                 incorporated = options;
                 return true;
