@@ -424,14 +424,17 @@ let private filterAndAdapt (diagnostics : QsCompilerDiagnostic list) endPos =
     |> List.map (fun diagnostic -> diagnostic.WithRange(rangeWithinFragment diagnostic.Range))
 
 /// Constructs a QsCodeFragment.
-/// If the given header succeeds, attempts the given body parser to obtain the argument to construct the QsFragment using the given
-/// fragmentKind constructor, or defaults to the given invalid fragment. 
-/// Generates a suitable error if the body parser fails. 
-/// If the body parser succeeds, advances until the next fragment header or until the given continuation succeeds,
-/// generating an ExcessContinuation error for any non-whitespace code. 
-/// Determines the Range and Text for the fragment and attaches all current diagnostics saved in the user state to the QsFragment. 
-/// Upon fragment construction, clears all diagnostics currently stored in the UserState.
-let internal buildFragment header body (invalid : QsFragmentKind) (fragmentKind : 'a -> QsFragmentKind) continuation =
+///
+/// If the given header parser succeeds, attempts the given body parser.
+///
+/// If the body parser succeeds, gives the results from both the header and body to the given fragmentKind constructor,
+/// and advances until the next fragment header or until the given continuation succeeds, generating an
+/// ExcessContinuation error for any non-whitespace code. Otherwise, if the body parser fails, defaults to the given
+/// invalid fragment and generates a diagnostic.
+///
+/// Determines the Range and Text for the fragment and attaches all current diagnostics saved in the user state to the
+/// QsFragment. Upon fragment construction, clears all diagnostics currently stored in the UserState.
+let internal buildFragment header body (invalid : QsFragmentKind) fragmentKind continuation =
     let build (kind, (startPos, (text, endPos))) = 
         getUserState .>> clearDiagnostics 
         |>> fun diagnostics -> 
@@ -449,18 +452,13 @@ let internal buildFragment header body (invalid : QsFragmentKind) (fragmentKind 
         (getPosition .>>. fragmentEnd) |> runOnSubstream state
     
     let continuation = (continuation >>% ()) <|> (qsFragmentHeader >>% ())
-    let validBody state = 
+    let validBody state headerResult = 
         let processExcessCode = buildError (skipInvalidUntil continuation) ErrorCode.ExcessContinuation >>% ()
         (body .>>? followedBy (continuation <|> eof)) <|> (body .>> processExcessCode)
-        |>> fragmentKind .>>. delimiters state
+        |>> fragmentKind headerResult .>>. delimiters state
     let invalidBody state = 
         getPosition .>> (advanceTo continuation) .>>. delimiters state >>= buildDiagnostic
 
     getCharStreamState >>= fun state -> 
-        header >>. (attempt (validBody state) <|> invalidBody state) >>= build
-
-
-
-
-
-
+        header >>= fun headerResult ->
+            (attempt (validBody state headerResult) <|> invalidBody state) >>= build

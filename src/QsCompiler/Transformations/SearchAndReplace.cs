@@ -55,8 +55,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public bool Equals(Location other) =>
                 this.SourceFile.Value == other?.SourceFile.Value
-                && this.DeclarationOffset == other?.DeclarationOffset
-                && this.RelativeStatementLocation == other?.RelativeStatementLocation
+                && this.DeclarationOffset.Equals(other?.DeclarationOffset)
+                && this.RelativeStatementLocation.Offset.Equals(other?.RelativeStatementLocation.Offset)
+                && this.RelativeStatementLocation.Range.Equals(other?.RelativeStatementLocation.Range)
                 && this.SymbolRange.Item1.Equals(other?.SymbolRange?.Item1)
                 && this.SymbolRange.Item2.Equals(other?.SymbolRange?.Item2);
 
@@ -84,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public class TransformationState
         {
             public Tuple<NonNullable<string>, QsLocation> DeclarationLocation { get; internal set; }
-            public ImmutableList<Location> Locations { get; private set; }
+            public ImmutableHashSet<Location> Locations { get; private set; }
 
             /// <summary>
             /// Whenever DeclarationOffset is set, the current statement offset is set to this default value.
@@ -101,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             {
                 this.TrackIdentifier = trackId ?? throw new ArgumentNullException(nameof(trackId));
                 this.RelevantSourseFiles = limitToSourceFiles;
-                this.Locations = ImmutableList<Location>.Empty;
+                this.Locations = ImmutableHashSet<Location>.Empty;
                 this.DefaultOffset = defaultOffset;
             }
 
@@ -168,7 +169,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // static methods for convenience
 
-        public static IEnumerable<Location> Find(NonNullable<string> idName, QsScope scope,
+        public static ImmutableHashSet<Location> Find(NonNullable<string> idName, QsScope scope,
             NonNullable<string> sourceFile, Tuple<int, int> rootLoc)
         {
             var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
@@ -178,7 +179,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return finder.SharedState.Locations;
         }
 
-        public static IEnumerable<Location> Find(QsQualifiedName idName, QsNamespace ns, QsLocation defaultOffset,
+        public static ImmutableHashSet<Location> Find(QsQualifiedName idName, QsNamespace ns, QsLocation defaultOffset,
             out Tuple<NonNullable<string>, QsLocation> declarationLocation, IImmutableSet<NonNullable<string>> limitToSourceFiles = null)
         {
             var finder = new IdentifierReferences(idName, defaultOffset, limitToSourceFiles);
@@ -364,6 +365,59 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     // routines for replacing symbols/identifiers
 
     /// <summary>
+    /// Provides simple name decoration (or name mangling) by prefixing names with a label and number.
+    /// </summary>
+    public class NameDecorator
+    {
+        private const string original = "original";
+
+        private readonly string label;
+
+        private readonly Regex pattern;
+
+        /// <summary>
+        /// Creates a new name decorator using the label.
+        /// </summary>
+        /// <param name="label">The label to use as the prefix for decorated names.</param>
+        public NameDecorator(string label)
+        {
+            this.label = label;
+            pattern = new Regex($"^__{Regex.Escape(label)}[0-9]*__(?<{original}>.*)__$");
+        }
+
+        /// <summary>
+        /// Decorates the name with the label of this name decorator and the given number.
+        /// </summary>
+        /// <param name="name">The name to decorate.</param>
+        /// <param name="number">The number to use along with the label to decorate the name.</param>
+        /// <returns>The decorated name.</returns>
+        public string Decorate(string name, int number) => $"__{label}{number}__{name}__";
+
+        /// <summary>
+        /// Decorates the name of the qualified name with the label of this name decorator and the given number.
+        /// </summary>
+        /// <param name="name">The qualified name to decorate.</param>
+        /// <param name="number">The number to use along with the label to decorate the qualified name.</param>
+        /// <returns>The decorated qualified name.</returns>
+        public QsQualifiedName Decorate(QsQualifiedName name, int number) =>
+            new QsQualifiedName(name.Namespace, NonNullable<string>.New(Decorate(name.Name.Value, number)));
+
+        /// <summary>
+        /// Reverses decoration previously done to the name using the same label as this name decorator.
+        /// </summary>
+        /// <param name="name">The decorated name to undecorate.</param>
+        /// <returns>
+        /// The original name before decoration, if the decorated name uses the same label as this name decorator;
+        /// otherwise, null.
+        /// </returns>
+        public string Undecorate(string name)
+        {
+            var match = pattern.Match(name).Groups[original];
+            return match.Success ? match.Value : null;
+        }
+    }
+
+    /// <summary>
     /// Upon transformation, assigns each defined variable a unique name, independent on the scope, and replaces all references to it accordingly.
     /// The original variable name can be recovered by using the static method StripUniqueName.
     /// This class is *not* threadsafe.
@@ -371,6 +425,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     public class UniqueVariableNames
     : SyntaxTreeTransformation<UniqueVariableNames.TransformationState>
     {
+        private static readonly NameDecorator decorator = new NameDecorator("qsVar");
+
         public class TransformationState
         {
             private int VariableNr = 0;
@@ -387,18 +443,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             /// </summary>
             internal NonNullable<string> GenerateUniqueName(NonNullable<string> varName)
             {
-                var unique = NonNullable<string>.New($"__{Prefix}{this.VariableNr++}__{varName.Value}__");
+                var unique = NonNullable<string>.New(decorator.Decorate(varName.Value, VariableNr++));
                 this.UniqueNames[varName] = unique;
                 return unique;
             }
         }
 
 
-        private const string Prefix = "qsVar";
-        private const string OrigVarName = "origVarName";
-        private static readonly Regex WrappedVarName = new Regex($"^__{Prefix}[0-9]*__(?<{OrigVarName}>.*)__$");
-
-        public UniqueVariableNames() 
+        public UniqueVariableNames()
         : base(new TransformationState())
         {
             this.StatementKinds = new StatementKindTransformation(this);
@@ -410,13 +462,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         // static methods for convenience
 
         internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
-            new QsQualifiedName(original.Namespace, NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + original.Name.Value));
+            new QsQualifiedName(
+                original.Namespace,
+                NonNullable<string>.New("_" + Guid.NewGuid().ToString("N") + "_" + original.Name.Value));
 
-        public static NonNullable<string> StripUniqueName(NonNullable<string> uniqueName)
-        {
-            var matched = WrappedVarName.Match(uniqueName.Value).Groups[OrigVarName];
-            return matched.Success ? NonNullable<string>.New(matched.Value) : uniqueName;
-        }
+        public static NonNullable<string> StripUniqueName(NonNullable<string> uniqueName) =>
+            NonNullable<string>.New(decorator.Undecorate(uniqueName.Value) ?? uniqueName.Value);
 
 
         // helper classes
@@ -443,6 +494,116 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override QsExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
                 this.SharedState.AdaptIdentifier(sym, tArgs);
+        }
+    }
+
+    /// <summary>
+    /// A transformation that renames all references to each given qualified name.
+    /// </summary>
+    public class RenameReferences : SyntaxTreeTransformation
+    {
+        private class TransformationState
+        {
+            private readonly IImmutableDictionary<QsQualifiedName, QsQualifiedName> names;
+
+            internal TransformationState(IImmutableDictionary<QsQualifiedName, QsQualifiedName> names) =>
+                this.names = names;
+
+            /// <summary>
+            /// Gets the renamed version of the qualified name if one exists; otherwise, returns the original name.
+            /// </summary>
+            /// <param name="name">The qualified name to rename.</param>
+            /// <returns>
+            /// The renamed version of the qualified name if one exists; otherwise, returns the original name.
+            /// </returns>
+            internal QsQualifiedName GetNewName(QsQualifiedName name) => names.GetValueOrDefault(name) ?? name;
+
+            /// <summary>
+            /// Gets the renamed version of the user-defined type if one exists; otherwise, returns the original one.
+            /// </summary>
+            /// <returns>
+            /// The renamed version of the user-defined type if one exists; otherwise, returns the original one.
+            /// </returns>
+            internal UserDefinedType RenameUdt(UserDefinedType udt)
+            {
+                var newName = GetNewName(new QsQualifiedName(udt.Namespace, udt.Name));
+                return new UserDefinedType(newName.Namespace, newName.Name, udt.Range);
+            }
+        }
+
+
+        private readonly TransformationState State;
+
+        /// <summary>
+        /// Creates a new rename references transformation.
+        /// </summary>
+        /// <param name="names">The mapping from existing names to new names.</param>
+        public RenameReferences(IImmutableDictionary<QsQualifiedName, QsQualifiedName> names)
+        {
+            State = new TransformationState(names);
+            Types = new TypeTransformation(this);
+            ExpressionKinds = new ExpressionKindTransformation(this);
+            Namespaces = new NamespaceTransformation(this);
+        }
+
+
+        // private helper classes
+
+        private class TypeTransformation : Core.TypeTransformation
+        {
+            private readonly TransformationState State;
+
+            public TypeTransformation(RenameReferences parent) : base(parent) =>
+                this.State = parent.State;
+
+            public override QsTypeKind OnUserDefinedType(UserDefinedType udt) =>
+                QsTypeKind.NewUserDefinedType(State.RenameUdt(udt));
+
+            public override QsTypeKind OnTypeParameter(QsTypeParameter tp) =>
+                QsTypeKind.NewTypeParameter(new QsTypeParameter(State.GetNewName(tp.Origin), tp.TypeName, tp.Range));
+        }
+
+        private class ExpressionKindTransformation : Core.ExpressionKindTransformation
+        {
+            private readonly TransformationState State;
+
+            public ExpressionKindTransformation(RenameReferences parent) : base(parent) =>
+                this.State = parent.State;
+
+            public override QsExpressionKind OnIdentifier(Identifier id, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
+            {
+                if (id is Identifier.GlobalCallable global)
+                {
+                    id = Identifier.NewGlobalCallable(State.GetNewName(global.Item));
+                }
+                return base.OnIdentifier(id, typeArgs);
+            }
+        }
+
+        private class NamespaceTransformation : Core.NamespaceTransformation
+        {
+            private readonly TransformationState State;
+
+            public NamespaceTransformation(RenameReferences parent) : base(parent) =>
+                this.State = parent.State;
+
+            public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute attribute)
+            {
+                var argument = Transformation.Expressions.OnTypedExpression(attribute.Argument);
+                var typeId = attribute.TypeId.IsValue
+                    ? QsNullable<UserDefinedType>.NewValue(State.RenameUdt(attribute.TypeId.Item))
+                    : attribute.TypeId;
+                return new QsDeclarationAttribute(typeId, argument, attribute.Offset, attribute.Comments);
+            }
+
+            public override QsCallable OnCallableDeclaration(QsCallable callable) =>
+                base.OnCallableDeclaration(callable.WithFullName(State.GetNewName));
+
+            public override QsCustomType OnTypeDeclaration(QsCustomType type) =>
+                base.OnTypeDeclaration(type.WithFullName(State.GetNewName));
+
+            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
+                base.OnSpecializationDeclaration(spec.WithParent(State.GetNewName));
         }
     }
 

@@ -195,10 +195,11 @@ type QsSpecialization with
     static member NewControlledAdjoint = QsSpecialization.New QsControlledAdjoint
 
 type QsCallable with 
-    static member New kind (source, location) (name, attributes, argTuple, signature, specializations : IEnumerable<_>, documentation, comments) = {
+    static member New kind (source, location) (name, attributes, modifiers, argTuple, signature, specializations : IEnumerable<_>, documentation, comments) = {
         Kind = kind
         FullName = name
         Attributes = attributes
+        Modifiers = modifiers
         SourceFile = source
         Location = location
         Signature = signature
@@ -212,9 +213,10 @@ type QsCallable with
     static member NewTypeConstructor = QsCallable.New QsCallableKind.TypeConstructor
 
 type QsCustomType with
-    static member New (source, location) (name, attributes, items, underlyingType, documentation, comments) = {
+    static member New (source, location) (name, attributes, modifiers, items, underlyingType, documentation, comments) = {
         FullName = name
         Attributes = attributes
+        Modifiers = modifiers
         SourceFile = source
         Location = location
         Type = underlyingType
