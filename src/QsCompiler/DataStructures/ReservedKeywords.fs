@@ -184,6 +184,10 @@ module Directives =
 module AssemblyConstants = 
     let OutputPath = "OutputPath"
     let AssemblyName = "AssemblyName"
+    let ExecutionTarget = "ResolvedExecutionTarget"
+    let HoneywellProcessor = "HoneywellProcessor"
+    let IonQProcessor = "IonQProcessor"
+    let QCIProcessor = "QCIProcessor"
 
 
 /// contains keywords reserved for internal use
