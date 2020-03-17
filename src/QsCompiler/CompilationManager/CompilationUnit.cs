@@ -493,7 +493,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var specializations =
                 GlobalSymbols
                 .ImportedSpecializations(header.QualifiedName)
-                .Where(specialization => specialization.Item1.SourceFile.Equals(header.SourceFile))
+                .Where(specialization =>
+                    // Either the callable is externally accessible, or all of its specializations must be defined in
+                    // the same reference as the callable.
+                    Namespace.IsDeclarationAccessible(false, header.Modifiers.Access) ||
+                    specialization.Item1.SourceFile.Equals(header.SourceFile))
                 .Select(specialization =>
                 {
                     var (specHeader, implementation) = specialization;
