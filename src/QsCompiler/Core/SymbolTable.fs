@@ -131,7 +131,7 @@ type private PartialNamespace private
 
     /// Adds the given type declaration for the given type name to the dictionary of declared types.
     /// Adds the corresponding type constructor to the dictionary of declared callables. 
-    /// The given location is associated with both the type constructur and the type itself and accessible via the record properties Position and SymbolRange. 
+    /// The given location is associated with both the type constructor and the type itself and accessible via the record properties Position and SymbolRange. 
     /// -> Note that this routine will fail with the standard dictionary.Add error if either a type or a callable with that name already exists. 
     member this.AddType (location : QsLocation) (tName, typeTuple, attributes, modifiers, documentation) = 
         let mutable anonItemId = 0
@@ -617,7 +617,7 @@ and Namespace private
 
     /// If no type with the given name exists in this namespace, adds the given type declaration
     /// as well as the corresponding constructor declaration to the given source, and returns an empty array.
-    /// The given location is associated with both the type constructur and the type itself and accessible via the record properties Position and SymbolRange.
+    /// The given location is associated with both the type constructor and the type itself and accessible via the record properties Position and SymbolRange.
     /// If a type or callable with that name already exists, returns an array of suitable diagnostics.
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
     member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, modifiers, documentation) : QsCompilerDiagnostic[] =
