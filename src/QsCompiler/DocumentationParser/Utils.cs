@@ -340,6 +340,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <returns>The syntax string</returns>
         internal static string CustomTypeToSyntax(QsCustomType customType)
         {
+            // TODO: Include modifiers.
             var sb = new StringBuilder();
             sb.Append("newtype ");
             sb.Append(customType.FullName.Name.Value);

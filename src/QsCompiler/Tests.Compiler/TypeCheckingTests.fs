@@ -13,7 +13,7 @@ open Xunit.Abstractions
 
 
 type TypeCheckingTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "TypeChecking.qs"; "Types.qs"], output)
+    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "TypeChecking.qs"; "Types.qs"] [], output)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.TypeChecking" |> NonNullable<_>.New
