@@ -12,7 +12,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public string Name => "Conjugation Inlining";
         public int Priority => 10; // Not used for built-in transformations like this
         public IDictionary<string, string> AssemblyConstants { get; }
-        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics { get; }
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
         public bool ImplementsPreconditionVerification => false;
         public bool ImplementsTransformation => true;
