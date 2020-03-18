@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         }
 
         /// <summary>
-        /// Returns null if TargetPackage is not null or empty, and 
+        /// Returns null if TargetPackage is null or empty, and 
         /// returns the path to the assembly containing target specific implementations otherwise.
         /// If a logger is specified, logs suitable diagnostics if a TargetPackages is not null or empty,
         /// but no path to the target package assembly could be determined. 
@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             catch (Exception ex)
             {
                 if (Directory.Exists(this.TargetPackage)) logger?.Log(ex);
-                else logger?.Log(ErrorCode.CouldNotFineTargetPackage, new[] { this.TargetPackage });
+                else logger?.Log(ErrorCode.CouldNotFindTargetPackage, new[] { this.TargetPackage });
             }
 
             logger?.Log(ErrorCode.CouldNotFindTargetPackageAssembly, new[] { this.TargetPackage });
