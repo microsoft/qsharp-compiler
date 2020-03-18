@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Path to the NuGet package containing target specific information and implementations.")]
         public string TargetPackage { get; set; }
 
-        [Option('p', "assembly-properties", Required = false, SetName = CODE_MODE,
+        [Option("assembly-properties", Required = false, SetName = CODE_MODE,
         HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key=value\".")]
         public IEnumerable<string> AdditionalAssemblyProperties { get; set; }
 

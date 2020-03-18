@@ -278,6 +278,7 @@ type ErrorCode =
     | InvalidTargetPackageAssemblyPath = 7020
     | FailedToLoadTargetPackageAssembly = 7021
     | UnexpectedCompilerException = 7022
+    | InvalidCommandLineArgsInResponseFiles = 7023
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
@@ -641,6 +642,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidTargetPackageAssemblyPath          -> "Could not find the file \"{0}\" that specifies target specific implementations."
             | ErrorCode.FailedToLoadTargetPackageAssembly         -> "Unable to load target specific implementations from \"{0}\"." 
             | ErrorCode.UnexpectedCompilerException               -> "The compiler threw an exception."
+            | ErrorCode.InvalidCommandLineArgsInResponseFiles     -> "Invalid command line arguments in response file(s)."
                                                                   
             | ErrorCode.FunctorGenerationFailed                   -> "Auto-generation of functor specialization(s) failed."
             | ErrorCode.TreeTrimmingFailed                        -> "The generated syntax tree could not be trimmed."
