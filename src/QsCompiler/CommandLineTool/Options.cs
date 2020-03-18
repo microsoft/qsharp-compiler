@@ -46,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Specifies whether public types and callables declared in referenced assemblies are exposed via their test name defined by the corresponding attribute.")]
         public bool ExposeReferencesViaTestNames { get; set; }
 
-        [Option('p', "assembly-properties", Required = false, SetName = CODE_MODE,
+        [Option("assembly-properties", Required = false, SetName = CODE_MODE,
         HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
         public IEnumerable<string> AdditionalAssemblyProperties { get; set; }
 
