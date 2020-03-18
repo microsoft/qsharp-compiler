@@ -601,7 +601,7 @@ type DiagnosticItem =
             | ErrorCode.QubitTypeInEntryPointSignature            -> "Invalid entry point. Values of type Qubit may not be used as arguments or return values to entry points."
             | ErrorCode.CallableTypeInEntryPointSignature         -> "Invalid entry point. Values of operation or function type may not be used as arguments or return values to entry points."
             | ErrorCode.UserDefinedTypeInEntryPointSignature      -> "Invalid entry point. Values of user defined type may not be used as arguments or return values to entry points."
-            | ErrorCode.InnerTupleInEntryPointArgument            -> "Anonymous tuple items are not supported in entry point arguments. All items need to be named."
+            | ErrorCode.InnerTupleInEntryPointArgument            -> "Anonymous tuple items or arrays of tuples are not supported in entry point arguments. All items need to be named."
             | ErrorCode.MultipleEntryPoints                       -> "Invalid entry point. An entry point {0} already exists in {1}."
             | ErrorCode.InvalidEntryPointSpecialization           -> "Entry points cannot have any other specializations besides the default body."
             | ErrorCode.InvalidTestAttributePlacement             -> "Invalid test attribute. Test attributes may only occur on callables that have no arguments and return Unit."

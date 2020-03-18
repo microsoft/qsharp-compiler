@@ -260,15 +260,15 @@ type LinkingTests (output:ITestOutputHelper) =
     member this.``Entry point argument and return type verification`` () =
 
         this.Expect "InvalidEntryPoint1"  [Error ErrorCode.QubitTypeInEntryPointSignature]
-        this.Expect "InvalidEntryPoint2"  [Error ErrorCode.QubitTypeInEntryPointSignature]
+        this.Expect "InvalidEntryPoint2"  [Error ErrorCode.QubitTypeInEntryPointSignature; Error ErrorCode.InnerTupleInEntryPointArgument]
         this.Expect "InvalidEntryPoint3"  [Error ErrorCode.QubitTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint4"  [Error ErrorCode.QubitTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint5"  [Error ErrorCode.QubitTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint6"  [Error ErrorCode.QubitTypeInEntryPointSignature]
 
         this.Expect "InvalidEntryPoint7"  [Error ErrorCode.CallableTypeInEntryPointSignature]
-        this.Expect "InvalidEntryPoint8"  [Error ErrorCode.CallableTypeInEntryPointSignature]
-        this.Expect "InvalidEntryPoint9"  [Error ErrorCode.CallableTypeInEntryPointSignature]
+        this.Expect "InvalidEntryPoint8"  [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.InnerTupleInEntryPointArgument]
+        this.Expect "InvalidEntryPoint9"  [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.InnerTupleInEntryPointArgument]
         this.Expect "InvalidEntryPoint10" [Error ErrorCode.CallableTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint11" [Error ErrorCode.CallableTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint12" [Error ErrorCode.CallableTypeInEntryPointSignature]
@@ -279,8 +279,8 @@ type LinkingTests (output:ITestOutputHelper) =
         this.Expect "InvalidEntryPoint16" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.QubitTypeInEntryPointSignature]
 
         this.Expect "InvalidEntryPoint17" [Error ErrorCode.CallableTypeInEntryPointSignature]
-        this.Expect "InvalidEntryPoint18" [Error ErrorCode.CallableTypeInEntryPointSignature]
-        this.Expect "InvalidEntryPoint19" [Error ErrorCode.CallableTypeInEntryPointSignature]
+        this.Expect "InvalidEntryPoint18" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.InnerTupleInEntryPointArgument]
+        this.Expect "InvalidEntryPoint19" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.InnerTupleInEntryPointArgument]
         this.Expect "InvalidEntryPoint20" [Error ErrorCode.CallableTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint21" [Error ErrorCode.CallableTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint22" [Error ErrorCode.CallableTypeInEntryPointSignature]
@@ -291,7 +291,7 @@ type LinkingTests (output:ITestOutputHelper) =
         this.Expect "InvalidEntryPoint26" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.QubitTypeInEntryPointSignature]
 
         this.Expect "InvalidEntryPoint27" [Error ErrorCode.UserDefinedTypeInEntryPointSignature]
-        this.Expect "InvalidEntryPoint28" [Error ErrorCode.UserDefinedTypeInEntryPointSignature]
+        this.Expect "InvalidEntryPoint28" [Error ErrorCode.UserDefinedTypeInEntryPointSignature; Error ErrorCode.InnerTupleInEntryPointArgument]
         this.Expect "InvalidEntryPoint29" [Error ErrorCode.UserDefinedTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint30" [Error ErrorCode.UserDefinedTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint31" [Error ErrorCode.UserDefinedTypeInEntryPointSignature]
@@ -301,6 +301,9 @@ type LinkingTests (output:ITestOutputHelper) =
         this.Expect "InvalidEntryPoint34" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint35" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint36" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
+        this.Expect "InvalidEntryPoint37" [Error ErrorCode.InnerTupleInEntryPointArgument]
+        this.Expect "InvalidEntryPoint38" [Error ErrorCode.InnerTupleInEntryPointArgument]
+
 
     [<Fact>]
     member this.``Rename internal operation call references`` () =
@@ -308,11 +311,13 @@ type LinkingTests (output:ITestOutputHelper) =
             [qualifiedName Signatures.InternalRenamingNs "Foo"]
             [qualifiedName Signatures.InternalRenamingNs "Bar"]
 
+
     [<Fact>]
     member this.``Rename internal function call references`` () =
         this.RunInternalRenamingTest 2
             [qualifiedName Signatures.InternalRenamingNs "Foo"]
             [qualifiedName Signatures.InternalRenamingNs "Bar"]
+
 
     [<Fact>]
     member this.``Rename internal type references`` () =
@@ -324,6 +329,7 @@ type LinkingTests (output:ITestOutputHelper) =
             ]
             []
 
+
     [<Fact>]
     member this.``Rename internal references across namespaces`` () =
         this.RunInternalRenamingTest 4
@@ -333,6 +339,7 @@ type LinkingTests (output:ITestOutputHelper) =
                 qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Qux"
             ]
             [qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Baz"]
+
 
     [<Fact>]
     member this.``Rename internal qualified references`` () =
@@ -344,17 +351,20 @@ type LinkingTests (output:ITestOutputHelper) =
             ]
             [qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Baz"]
 
+
     [<Fact>]
     member this.``Rename internal attribute references`` () =
         this.RunInternalRenamingTest 6
             [qualifiedName Signatures.InternalRenamingNs "Foo"]
             [qualifiedName Signatures.InternalRenamingNs "Bar"]
 
+
     [<Fact>]
     member this.``Rename specializations for internal operations`` () =
         this.RunInternalRenamingTest 7
             [qualifiedName Signatures.InternalRenamingNs "Foo"]
             [qualifiedName Signatures.InternalRenamingNs "Bar"]
+
 
     [<Fact>]
     member this.``Group internal specializations by source file`` () =

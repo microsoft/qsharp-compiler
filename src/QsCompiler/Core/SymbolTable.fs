@@ -986,7 +986,7 @@ and NamespaceManager
                             | QsTypeKind.Operation _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
                             | QsTypeKind.Function _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
                             | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPointSignature, [])) |> Seq.singleton
-                            | TupleType _ when preventTuples -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InnerTupleInEntryPointArgument, [])) |> Seq.singleton
+                            | TupleType ts when ts.Length > 1 && preventTuples -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InnerTupleInEntryPointArgument, [])) |> Seq.singleton
                             | _ -> Seq.empty)
                         let inErrs = signature.Argument.Items.Select(snd) |> Seq.collect (validateArgAndReturnTypes true)
                         let outErrs = signature.ReturnType |> validateArgAndReturnTypes false 
