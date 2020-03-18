@@ -41,15 +41,15 @@
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor'">ExtendedQASM</ResolvedQuantumIntrinsics>
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor'"></ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor'">Default</ResolvedQuantumIntrinsics>
   </PropertyGroup>
 
-  <!-- Resolving the QuantumProcessor to either QPGen0, QPGen1, or Unspecified.-->
+  <!-- Resolving the QuantumProcessor to either QPGen0, QPGen1, or Unknown.-->
   <PropertyGroup>
     <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor'">QPGen1</ResolvedQuantumProcessor>
     <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor'">QPGen0</ResolvedQuantumProcessor>
     <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor'">QPGen1</ResolvedQuantumProcessor>
-    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor'"></ResolvedQuantumProcessor>
+    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor'">Unknown</ResolvedQuantumProcessor>
   </PropertyGroup>
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
