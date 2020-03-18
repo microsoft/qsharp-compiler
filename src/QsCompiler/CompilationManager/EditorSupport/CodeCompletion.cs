@@ -216,7 +216,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
                 case CompletionKind.Tags.NamedItem:
-                    return GetNamedItemCompletions(compilation, currentNamespace);
+                    return GetNamedItemCompletions(compilation);
                 case CompletionKind.Tags.Namespace:
                     return
                         GetGlobalNamespaceCompletions(compilation, namespacePrefix)
@@ -312,7 +312,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns completions for all accessible callables given the current namespace and the list of open
-        /// namespaces, or an empty enumerable if the current namespace is null or symbols haven't been resolved yet.
+        /// namespaces, or an empty enumerable if symbols haven't been resolved yet.
         /// </summary>
         /// <exception cref="ArgumentNullException">
         /// Thrown when any argument except <paramref name="currentNamespace"/> is null.
@@ -330,7 +330,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (openNamespaces == null)
                 throw new ArgumentNullException(nameof(openNamespaces));
 
-            if (currentNamespace == null || !compilation.GlobalSymbols.ContainsResolutions)
+            if (!compilation.GlobalSymbols.ContainsResolutions)
                 return Array.Empty<CompletionItem>();
             return
                 compilation.GlobalSymbols.AccessibleCallables()
@@ -351,7 +351,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns completions for all accessible types given the current namespace and the list of open namespaces, or
-        /// an empty enumerable if the current namespace is null or symbols haven't been resolved yet.
+        /// an empty enumerable if symbols haven't been resolved yet.
         /// </summary>
         /// <exception cref="ArgumentNullException">
         /// Thrown when any argument except <paramref name="currentNamespace"/> is null.
@@ -369,7 +369,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (openNamespaces == null)
                 throw new ArgumentNullException(nameof(openNamespaces));
 
-            if (currentNamespace == null || !compilation.GlobalSymbols.ContainsResolutions)
+            if (!compilation.GlobalSymbols.ContainsResolutions)
                 return Array.Empty<CompletionItem>();
             return
                 compilation.GlobalSymbols.AccessibleTypes()
@@ -387,19 +387,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for all named items in any type that are accessible from the given namespace, or an
-        /// empty enumerable if the current namespace is null or symbols haven't been resolved yet.
+        /// Returns completions for all named items in any accessible type, or an empty enumerable if symbols haven't
+        /// been resolved yet.
         /// </summary>
-        /// <exception cref="ArgumentNullException">
-        /// Thrown when any argument except <paramref name="currentNamespace"/> is null.
-        /// </exception>
-        private static IEnumerable<CompletionItem> GetNamedItemCompletions(
-            CompilationUnit compilation, string currentNamespace)
+        /// <exception cref="ArgumentNullException">Thrown when the argument is null.</exception>
+        private static IEnumerable<CompletionItem> GetNamedItemCompletions(CompilationUnit compilation)
         {
             if (compilation == null)
                 throw new ArgumentNullException(nameof(compilation));
 
-            if (currentNamespace == null || !compilation.GlobalSymbols.ContainsResolutions)
+            if (!compilation.GlobalSymbols.ContainsResolutions)
                 return Array.Empty<CompletionItem>();
             return compilation.GlobalSymbols.AccessibleTypes()
                 .SelectMany(type => ExtractItems(type.TypeItems))

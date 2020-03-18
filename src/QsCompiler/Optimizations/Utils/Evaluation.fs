@@ -62,7 +62,7 @@ type internal FunctionEvaluator(callables : IDictionary<QsQualifiedName, QsCalla
         | _ -> ArgumentException ("Not a BoolLiteral: " + x.Expression.ToString()) |> raise
 
     /// Evaluates and simplifies a single Q# expression
-    member internal this.EvaluateExpression expr : Imp<TypedExpression> = imperative {
+    member private this.EvaluateExpression expr : Imp<TypedExpression> = imperative {
         let! vars, counter = getState
         let result = ExpressionEvaluator(callables, vars, counter / 2).Expressions.OnTypedExpression expr
         if isLiteral callables result then return result
