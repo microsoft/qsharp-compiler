@@ -151,7 +151,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// However, the compiler may overwrite the assembly constants defined for the Q# compilation unit in the dictionary of the loaded step.
             /// The given dictionary in this configuration is left unchanged in any case. 
             /// </summary>
-            public IReadOnlyDictionary<string, string> AssemblyConstants; 
+            public IReadOnlyDictionary<string, string> AssemblyConstants;
+            /// <summary>
+            /// Path to the assembly that contains a syntax tree with target specific implementations for certain functions and operations. 
+            /// The functions and operations defined in that assembly replace the ones declarated within the compilation unit.
+            /// If no path is specified here or the specified path is null then this compilation step is omitted. 
+            /// </summary>
+            public string TargetPackageAssembly;
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated. 
@@ -190,6 +196,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status ReferenceLoading = Status.NotRun;
             internal Status PluginLoading = Status.NotRun;
             internal Status Validation = Status.NotRun;
+            internal Status TargetSpecificReplacements = Status.NotRun;
             internal Status FunctorSupport = Status.NotRun;
             internal Status PreEvaluation = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
@@ -212,6 +219,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(true, this.PluginLoading) &&
+                WasSuccessful(!String.IsNullOrWhiteSpace(options.TargetPackageAssembly), this.TargetSpecificReplacements) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
@@ -246,6 +254,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// that is executed before invoking further rewrite and/or generation steps.   
         /// </summary>
         public Status Validation => this.CompilationStatus.Validation;
+        /// <summary>
+        /// Indicates whether target specific implementations for functions and operations
+        /// have been used to replace the ones declarated within the compilation unit.
+        /// This step is only executed if the specified configuration contains the path to the target package.
+        /// </summary>
+        public Status TargetSpecificReplacements => this.CompilationStatus.TargetSpecificReplacements;
         /// <summary>
         /// Indicates whether all specializations were generated successfully. 
         /// This rewrite step is only executed if the corresponding configuration is specified. 
@@ -414,10 +428,9 @@ namespace Microsoft.Quantum.QsCompiler
             if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
             { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
 
-            QsCompilation ExecuteAsAtomicTransformation(RewriteSteps.LoadedStep rewriteStep, ref Status status) 
+            if (!String.IsNullOrWhiteSpace(this.Config.TargetPackageAssembly))
             {
-                status = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out var transformed);
-                return status == Status.Succeeded ? transformed : this.CompilationOutput;
+                this.ReplaceTargetSpecificImplementations(thisDllUri, out this.CompilationOutput);
             }
 
             if (this.Config.ConvertClassicalControl)
@@ -506,66 +519,6 @@ namespace Microsoft.Quantum.QsCompiler
 
             RaiseCompilationTaskEnd("OverallCompilation", "RewriteSteps");
             RaiseCompilationTaskEnd(null, "OverallCompilation");
-        }
-
-        /// <summary>
-        /// Executes the given rewrite step on the given compilation, returning a transformed compilation as an out parameter.
-        /// Catches and logs any thrown exception. Returns the status of the rewrite step.
-        /// Throws an ArgumentNullException if the rewrite step to execute or the given compilation is null. 
-        /// </summary>
-        private Status ExecuteRewriteStep(RewriteSteps.LoadedStep rewriteStep, QsCompilation compilation, out QsCompilation transformed)
-        {
-            if (rewriteStep == null) throw new ArgumentNullException(nameof(rewriteStep));
-            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
-
-            string GetDiagnosticsCode(DiagnosticSeverity severity) =>
-                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
-                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.CsharpGenerationGeneratedWarning) :
-                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
-                null;
-
-            Status LogDiagnostics(Status status = Status.Succeeded)
-            {
-                try
-                {
-                    foreach (var diagnostic in rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty)
-                    { this.LogAndUpdate(ref status, RewriteSteps.LoadedStep.ConvertDiagnostic(diagnostic, GetDiagnosticsCode)); }
-                }
-                catch { this.LogAndUpdate(ref status, Warning(WarningCode.RewriteStepDiagnosticsGenerationFailed, new[] { rewriteStep.Name })); }
-                return status;
-            }
-
-            var status = Status.Succeeded;
-            var messageSource = ProjectManager.MessageSource(rewriteStep.Origin);
-            Diagnostic Warning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, messageSource);
-            try
-            {
-                transformed = compilation;
-                var preconditionFailed = rewriteStep.ImplementsPreconditionVerification && !rewriteStep.PreconditionVerification(compilation);
-                if (preconditionFailed)
-                {
-                    LogDiagnostics();
-                    this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, new[] { rewriteStep.Name, messageSource }));
-                    return status;
-                }
-
-                var transformationFailed = rewriteStep.ImplementsTransformation && !rewriteStep.Transformation(compilation, out transformed);
-                var postconditionFailed = this.Config.EnableAdditionalChecks && rewriteStep.ImplementsPostconditionVerification && !rewriteStep.PostconditionVerification(transformed);
-                LogDiagnostics();
-
-                if (transformationFailed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
-                if (postconditionFailed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
-                return status;
-            }
-            catch (Exception ex)
-            {
-                this.LogAndUpdate(ref status, ex);
-                var isLoadException = ex is FileLoadException || ex.InnerException is FileLoadException;
-                if (isLoadException) this.LogAndUpdate(ref status, ErrorCode.FileNotFoundDuringPluginExecution, new[] { rewriteStep.Name, messageSource });
-                else this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
-                transformed = null;
-            }
-            return status;
         }
 
         /// <summary>
@@ -682,6 +635,130 @@ namespace Microsoft.Quantum.QsCompiler
                 ? rewriteSteps.Select(step => $"{step.Name} ({step.Origin})").ToArray()
                 : new string[] { "(none)" };
             this.Logger?.Log(InformationCode.LoadedRewriteSteps, Enumerable.Empty<string>(), messageParam: Formatting.Indent(args).ToArray());
+        }
+
+
+        // private helper methods used during construction
+
+        /// <summary>
+        /// Raises a compilation task start event.
+        /// </summary>
+        private void RaiseCompilationTaskStart(string parentTaskName, string taskName) =>
+            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.Start, parentTaskName, taskName));
+
+        /// <summary>
+        /// Raises a compilation task end event.
+        /// </summary>
+        private void RaiseCompilationTaskEnd(string parentTaskName, string taskName) =>
+            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.End, parentTaskName, taskName));
+
+        /// <summary>
+        /// Executes the given rewrite step on the current CompilationOutput, and updates the given status accordingly. 
+        /// Sets the CompilationOutput to the transformed compilation if the status indicates success. 
+        /// </summary>
+        private QsCompilation ExecuteAsAtomicTransformation(RewriteSteps.LoadedStep rewriteStep, ref Status status)
+        {
+            status = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out var transformed);
+            return status == Status.Succeeded ? transformed : this.CompilationOutput;
+        }
+
+        /// <summary>
+        /// Attempts to load the target package assembly specified in the configuration, 
+        /// logging diagnostics when the loading fails or the corresponding configuration is not specified. 
+        /// Updates the compilation status accordingly. 
+        /// Executes the transformation to replace target specific implementations as atomic rewrite step, 
+        /// returning the transformed compilation as out parameter. 
+        /// Sets the out parameter to the unmodified CompilationOutput if the replacement fails. 
+        /// Returns a boolean value indicating whether the returned compilation has been modified.  
+        /// </summary>
+        private bool ReplaceTargetSpecificImplementations(Uri rewriteStepOrigin, out QsCompilation transformed)
+        {
+            try
+            {
+                var targetDll = Path.GetFullPath(this.Config.TargetPackageAssembly);
+                var loaded = AssemblyLoader.LoadReferencedAssembly(
+                    targetDll,
+                    out var targetIntrinsics,
+                    ex => this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ex));
+
+                if (loaded)
+                {
+                    var rewriteStep = new RewriteSteps.LoadedStep(new IntrinsicResolution(targetIntrinsics), typeof(IRewriteStep), rewriteStepOrigin);
+                    transformed = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.TargetSpecificReplacements);
+                    return true;
+                }
+                else
+                {
+                    this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ErrorCode.FailedToLoadTargetPackageAssembly, new[] { targetDll });
+                }
+            }
+            catch (Exception ex)
+            {
+                this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ErrorCode.InvalidTargetPackageAssemblyPath, new[] { this.Config.TargetPackageAssembly });
+                this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ex);
+            }
+            transformed = this.CompilationOutput;
+            return false;
+        }
+
+        /// <summary>
+        /// Executes the given rewrite step on the given compilation, returning a transformed compilation as an out parameter.
+        /// Catches and logs any thrown exception. Returns the status of the rewrite step.
+        /// Throws an ArgumentNullException if the rewrite step to execute or the given compilation is null. 
+        /// </summary>
+        private Status ExecuteRewriteStep(RewriteSteps.LoadedStep rewriteStep, QsCompilation compilation, out QsCompilation transformed)
+        {
+            if (rewriteStep == null) throw new ArgumentNullException(nameof(rewriteStep));
+            if (compilation == null) throw new ArgumentNullException(nameof(compilation));
+
+            string GetDiagnosticsCode(DiagnosticSeverity severity) =>
+                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
+                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.CsharpGenerationGeneratedWarning) :
+                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
+                null;
+
+            Status LogDiagnostics(Status status = Status.Succeeded)
+            {
+                try
+                {
+                    foreach (var diagnostic in rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty)
+                    { this.LogAndUpdate(ref status, RewriteSteps.LoadedStep.ConvertDiagnostic(diagnostic, GetDiagnosticsCode)); }
+                }
+                catch { this.LogAndUpdate(ref status, Warning(WarningCode.RewriteStepDiagnosticsGenerationFailed, new[] { rewriteStep.Name })); }
+                return status;
+            }
+
+            var status = Status.Succeeded;
+            var messageSource = ProjectManager.MessageSource(rewriteStep.Origin);
+            Diagnostic Warning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, messageSource);
+            try
+            {
+                transformed = compilation;
+                var preconditionFailed = rewriteStep.ImplementsPreconditionVerification && !rewriteStep.PreconditionVerification(compilation);
+                if (preconditionFailed)
+                {
+                    LogDiagnostics();
+                    this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, new[] { rewriteStep.Name, messageSource }));
+                    return status;
+                }
+
+                var transformationFailed = rewriteStep.ImplementsTransformation && !rewriteStep.Transformation(compilation, out transformed);
+                var postconditionFailed = this.Config.EnableAdditionalChecks && rewriteStep.ImplementsPostconditionVerification && !rewriteStep.PostconditionVerification(transformed);
+                LogDiagnostics();
+
+                if (transformationFailed) this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
+                if (postconditionFailed) this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
+                return status;
+            }
+            catch (Exception ex)
+            {
+                this.LogAndUpdate(ref status, ex);
+                var isLoadException = ex is FileLoadException || ex.InnerException is FileLoadException;
+                if (isLoadException) this.LogAndUpdate(ref status, ErrorCode.FileNotFoundDuringPluginExecution, new[] { rewriteStep.Name, messageSource });
+                else this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
+                transformed = null;
+            }
+            return status;
         }
 
 
@@ -909,17 +986,5 @@ namespace Microsoft.Quantum.QsCompiler
             File.WriteAllText(targetFile, content);
             return targetFile;
         }
-
-        /// <summary>
-        /// Raises a compilation task start event.
-        /// </summary>
-        private void RaiseCompilationTaskStart (string parentTaskName, string taskName) =>
-            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.Start, parentTaskName, taskName));
-
-        /// <summary>
-        /// Raises a compilation task end event.
-        /// </summary>
-        private void RaiseCompilationTaskEnd(string parentTaskName, string taskName) =>
-            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.End, parentTaskName, taskName));
     }
 }

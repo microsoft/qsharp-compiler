@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
     public static class BuildCompilation
     {
         [Verb("build", HelpText = "Builds a compilation unit to run on the Q# quantum simulation framework.")]
-        public class BuildOptions : Options
+        public class BuildOptions : CompilationOptions
         {
             [Usage(ApplicationAlias = "qsCompiler")]
             public static IEnumerable<Example> UsageExamples
@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
 
             [Option("response-files", Required = true, SetName = RESPONSE_FILES,
-            HelpText = "Response file(s) providing the command arguments. Required only if no other arguments are specified. This option replaces all other arguments.")]
+            HelpText = "Response file(s) providing command arguments. Required only if no other arguments are specified. Non-default values for options specified via command line take precedence.")]
             public IEnumerable<string> ResponseFiles { get; set; }
 
             [Option('o', "output", Required = false, SetName = CODE_MODE,
@@ -50,14 +50,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "Name of the project (needs to be usable as file name).")]
             public string ProjectName { get; set; }
 
-            [Option("load", Required = false, SetName = CODE_MODE,
-            HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
-            public IEnumerable<string> Plugins { get; set; }
-
-            [Option("trim", Required = false, Default = 1,
-            HelpText = "[Experimental feature] Integer indicating how much to simplify the syntax tree by eliminating selective abstractions.")]
-            public int TrimLevel { get; set; }
-
             [Option("emit-dll", Required = false, Default = false, SetName = CODE_MODE,
             HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
             public bool EmitDll { get; set; }
@@ -65,7 +57,29 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option('p', "perf", Required = false, SetName = CODE_MODE,
             HelpText = "Destination folder where the output of the performance assessment will be generated.")]
             public string PerfFolder { get; set; }
+
+
+            /// <summary>
+            /// Reads the content of all specified response files and processes it using FromResponseFiles. 
+            /// Updates the settings accordingly, prioritizing already specified non-default values over the values from response-files.
+            /// Returns true and a new BuildOptions object as out parameter with all the settings from response files incorporated.
+            /// Returns false if the content of the specified response-files could not be processed. 
+            /// </summary>
+            internal static bool IncorporateResponseFiles(BuildOptions options, out BuildOptions incorporated)
+            {
+                incorporated = null;
+                while (options.ResponseFiles != null && options.ResponseFiles.Any())
+                {
+                    var fromResponseFiles = FromResponseFiles(options.ResponseFiles);
+                    if (fromResponseFiles == null) return false;
+                    fromResponseFiles.UpdateSetIndependentSettings(options);
+                    options = fromResponseFiles;
+                }
+                incorporated = options;
+                return true;
+            }
         }
+
 
         /// <summary>
         /// Given a string representing the command line arguments, splits them into a suitable string array. 
@@ -120,15 +134,19 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
-
-            if (options?.ResponseFiles != null && options.ResponseFiles.Any())
-            { options = FromResponseFiles(options.ResponseFiles); }
-            if (options == null) return ReturnCode.INVALID_ARGUMENTS;
+            if (!BuildOptions.IncorporateResponseFiles(options, out options)) return ReturnCode.INVALID_ARGUMENTS;
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
+            if (!options.ParseAssemblyProperties(out var assemblyConstants))
+            {
+                logger.Log(WarningCode.InvalidAssemblyProperties, new string[0]);
+            }
+
             var loadOptions = new CompilationLoader.Configuration
             {
                 ProjectName = options.ProjectName,
+                AssemblyConstants = assemblyConstants,
+                TargetPackageAssembly = options.GetTargetPackageAssemblyPath(logger),
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 ConvertClassicalControl = options.TrimLevel >= 2,
@@ -154,7 +172,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 }
                 catch (Exception ex)
                 {
-                    logger.Log(ErrorCode.PublishingPerfResultsFailed, new string[]{options.PerfFolder});
+                    logger.Log(ErrorCode.PublishingPerfResultsFailed, new string[]{ options.PerfFolder });
                     logger.Log(ex);
                 }
             }

@@ -273,7 +273,11 @@ type ErrorCode =
     | UnknownCompilerPlugin = 7015
     | CouldNotLoadCompilerPlugin = 7016
     | CouldNotInstantiateRewriteStep = 7017
-    | UnexpectedCompilerException = 7018
+    | CouldNotFindTargetPackage = 7018
+    | CouldNotFindTargetPackageAssembly = 7019
+    | InvalidTargetPackageAssemblyPath = 7020
+    | FailedToLoadTargetPackageAssembly = 7021
+    | UnexpectedCompilerException = 7022
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
@@ -289,8 +293,7 @@ type ErrorCode =
     | PostconditionVerificationFailed = 7113
 
     | CsharpGenerationGeneratedError = 8001
-
-    | PublishingPerfResultsFailed = 9001
+    | PublishingPerfResultsFailed = 8101
 
 
 type WarningCode = 
@@ -334,6 +337,7 @@ type WarningCode =
     | FailedToLoadRewriteStepViaReflection = 7204
 
     | CsharpGenerationGeneratedWarning = 8001
+    | InvalidAssemblyProperties = 8101
 
 
 type InformationCode = 
@@ -631,7 +635,11 @@ type DiagnosticItem =
             | ErrorCode.SourceFilesMissing                        -> "No source files have been specified."
             | ErrorCode.UnknownCompilerPlugin                     -> "Could not find the .NET Core library \"{0}\" specifying transformations to perform as part of the compilation process."
             | ErrorCode.CouldNotLoadCompilerPlugin                -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. The file needs to be a suitable .NET Core library."
-            | ErrorCode.CouldNotInstantiateRewriteStep            -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor. "
+            | ErrorCode.CouldNotInstantiateRewriteStep            -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor."
+            | ErrorCode.CouldNotFindTargetPackage                 -> "Could not find the directory \"{0}\" containing target specific information."
+            | ErrorCode.CouldNotFindTargetPackageAssembly         -> "Could not find the assembly specifying target specific implementations within the target package \"{0}\"."
+            | ErrorCode.InvalidTargetPackageAssemblyPath          -> "Could not find the file \"{0}\" that specifies target specific implementations."
+            | ErrorCode.FailedToLoadTargetPackageAssembly         -> "Unable to load target specific implementations from \"{0}\"." 
             | ErrorCode.UnexpectedCompilerException               -> "The compiler threw an exception."
                                                                   
             | ErrorCode.FunctorGenerationFailed                   -> "Auto-generation of functor specialization(s) failed."
@@ -648,8 +656,8 @@ type DiagnosticItem =
             | ErrorCode.PostconditionVerificationFailed           -> "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
 
             | ErrorCode.CsharpGenerationGeneratedError            -> ""
-
             | ErrorCode.PublishingPerfResultsFailed               -> "Performance results failed to be published at \"{0}\"."
+
             | _                                                   -> ""
         code |> ApplyArguments             
              
@@ -695,6 +703,7 @@ type DiagnosticItem =
             | WarningCode.FailedToLoadRewriteStepViaReflection    -> "A possible rewrite step has been detected in \"{0}\". The step could not be loaded and will be ignored."
 
             | WarningCode.CsharpGenerationGeneratedWarning        -> ""
+            | WarningCode.InvalidAssemblyProperties               -> "Some of the specified assembly properties could not be processed. Either they did not match the expected format, or they duplicate existing ones."
             | _                                                   -> ""
         code |> ApplyArguments
 

@@ -470,7 +470,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public Task ReloadSourceFileAsync(Uri sourceFile, Func<Uri, FileContentManager> openInEditor = null)
             {
                 if (sourceFile == null) throw new ArgumentNullException(nameof(sourceFile));
-                openInEditor = openInEditor ?? (_ => null);
+                openInEditor ??= (_ => null);
 
                 return this.Processing.QueueForExecutionAsync(() =>
                 {
@@ -589,7 +589,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (openInEditor == null) throw new ArgumentNullException(nameof(openInEditor));
             return (filesAddedToProject, projFile) =>
             {
-                filesAddedToProject = filesAddedToProject ?? ImmutableHashSet<Uri>.Empty;
+                filesAddedToProject ??= ImmutableHashSet<Uri>.Empty;
                 var openFiles = filesAddedToProject.Select(openInEditor).Where(m => m != null).ToImmutableArray();
                 var removals = openFiles.Select(file =>
                 {
@@ -618,7 +618,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return (filesRemovedFromProject, removal) =>
             {
                 if (removal.IsCanceled) return;
-                filesRemovedFromProject = filesRemovedFromProject ?? ImmutableHashSet<Uri>.Empty;
+                filesRemovedFromProject ??= ImmutableHashSet<Uri>.Empty;
                 Task.WaitAll(removal); // we *need* to wait here in order to make sure that change notifications are processed in order!!
                 var openFiles = filesRemovedFromProject.Select(openInEditor).Where(m => m != null).ToImmutableHashSet();
                 foreach (var file in openFiles)
@@ -642,7 +642,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (projectFiles == null || projectFiles.Contains(null)) throw new ArgumentNullException(nameof(projectFiles));
             if (projectLoader == null) throw new ArgumentNullException(nameof(projectLoader));
-            openInEditor = openInEditor ?? (_ => null);
+            openInEditor ??= (_ => null);
 
             return this.Load.QueueForExecutionAsync(() =>
             {
@@ -672,7 +672,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (projectFile == null) throw new ArgumentNullException(nameof(projectFile));
             if (projectLoader == null) throw new ArgumentNullException(nameof(projectLoader));
-            openInEditor = openInEditor ?? (_ => null);
+            openInEditor ??= (_ => null);
 
             // TODO: allow to cancel this task via cancellation token?
             return this.Load.QueueForExecutionAsync(() => 

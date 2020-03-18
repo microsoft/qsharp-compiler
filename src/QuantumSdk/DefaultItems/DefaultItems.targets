@@ -9,15 +9,15 @@
   
   <!-- We want access to the full path of packages as determined by msbuild to filter and reorder various package references. -->
   <ItemDefinitionGroup>
-    <PackageReference IsQscReference ="false" GeneratePathProperty="true" />
-    <ProjectReference IsQscReference ="false" />
+    <PackageReference IsQscReference ="false" IsTargetPackage="false" GeneratePathProperty="true" />
+    <ProjectReference IsQscReference ="false" IsTargetPackage="false" />
   </ItemDefinitionGroup>
   
 
   <!-- Resolution of verified configurable properties. 
   These properties need to live here to ensure that they are evaluated after the properties defined by the project file. -->
 
-  <!-- resolving the OutputType to either QsharpExe or QsharpLibrary -->
+  <!-- Resolving the OutputType to either QsharpExe or QsharpLibrary. -->
   <PropertyGroup>
     <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library'">QsharpLibrary</ResolvedQsharpOutputType>
     <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Exe'">QsharpExe</ResolvedQsharpOutputType>
@@ -25,18 +25,34 @@
     <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
   </PropertyGroup>
 
-  <!-- resolving the ExecutionTarget to either SimulatorBackend or QuantumProcessorBackend -->
+  <!-- Resolving the ExecutionTarget to either HoneywellProcessor, IonQProcessor, QCIProcessor or Unspecified.-->
   <PropertyGroup>
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And ('$(ExecutionTarget)' == 'QuantumProcessor')">QuantumProcessorBackend</ResolvedQsharpExecutionTarget> <!-- TODO: replace that -->
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And ('$(ExecutionTarget)' == 'QuantumSimulator' Or '$(ExecutionTarget)' == 'ToffoliSimulator' Or '$(ExecutionTarget)' == 'ResourcesEstimator')">SimulatorBackend</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And '$(ExecutionTarget)' == 'Honeywell'">HoneywellProcessor</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And '$(ExecutionTarget)' == 'IonQ'">IonQProcessor</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And '$(ExecutionTarget)' == 'QCI'">QCIProcessor</ResolvedQsharpExecutionTarget>
     <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'Any'">Unspecified</ResolvedQsharpExecutionTarget>
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'QuantumProcessorBackend' And '$(ResolvedQsharpExecutionTarget)' != 'SimulatorBackend' And '$(ResolvedQsharpExecutionTarget)' != 'Unspecified'"></ResolvedQsharpExecutionTarget>
-    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">Possible values are 'QuantumSimulator', 'ToffoliSimulator', 'ResourcesEstimator', or 'QuantumProcessor'.</ValidExecutionTargets>
-    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpLibrary'"> The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
-    <CsharpGeneration Condition="'$(ResolvedQsharpExecutionTarget)' == 'SimulatorBackend'">true</CsharpGeneration>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'Unspecified'"></ResolvedQsharpExecutionTarget>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">Possible values are 'Honeywell', 'IonQ', 'QCI', or 'Any'.</ValidExecutionTargets>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
   </PropertyGroup>
 
-  <!-- set all unspecified properties configuring the paths for output generated during Q# compilation. -->
+  <!-- Resolving the QuantumIntrinsics to either OpenQASM, ExtendedQASM, or Default.-->
+  <PropertyGroup>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor'">ExtendedQASM</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor'">Default</ResolvedQuantumIntrinsics>
+  </PropertyGroup>
+
+  <!-- Resolving the QuantumProcessor to either QPGen0, QPGen1, or Unknown.-->
+  <PropertyGroup>
+    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor'">QPGen1</ResolvedQuantumProcessor>
+    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor'">QPGen0</ResolvedQuantumProcessor>
+    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor'">QPGen1</ResolvedQuantumProcessor>
+    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor'">Unknown</ResolvedQuantumProcessor>
+  </PropertyGroup>
+
+  <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
   <PropertyGroup>
     <!-- path compatible assembly name -->
     <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
@@ -55,7 +71,28 @@
   </PropertyGroup>
 
 
-  <!-- Recomputes the content of ResolvedQscReferences, ResolvedQscReferencesAndPriorities, QscProjectReference and QscPackageReference. The current content of these item groups is cleared during the process. -->
+  <!-- Computes the ResolvedTargetPackage property. Generates a build error if more than one target package has been specified. -->
+  <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences;Restore" BeforeTargets="BeforeQsharpCompile">
+    <ItemGroup>
+      <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
+      <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'Pkg$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" /> 
+      <_ResolvedTargetPackageReferences Include="$(%(_TargetPackageReferencePathProperty.Identity))" /> 
+    </ItemGroup>
+    <Error Condition="@(_ResolvedTargetPackageReferences->Count()) &gt; 1" Text="More than one target package was defined. The defined target package needs to be unique." />
+    <Message 
+      Condition="@(_ResolvedTargetPackageReferences->Count()) &gt; 1 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
+      Text="Resolved target package: %(_ResolvedTargetPackageReferences.Identity)" 
+      Importance="High" /> 
+    <PropertyGroup>
+      <ResolvedTargetPackage Condition="@(_ResolvedTargetPackageReferences->Count()) == 1">%(_ResolvedTargetPackageReferences.Identity)</ResolvedTargetPackage> 
+    </PropertyGroup>
+    <Message 
+      Condition="'$(ResolvedTargetPackage)' != '' And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
+      Text="Resolved target package: $(ResolvedTargetPackage)" 
+      Importance="High" /> 
+  </Target>  
+
+  <!-- Computes ResolvedQscReferences, ResolvedQscReferencesAndPriorities, QscProjectReference and QscPackageReference. -->
   <Target Name="ResolveQscReferences" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences;Restore" BeforeTargets="BeforeQsharpCompile">
     <!-- get the assembly path for all relevant project references which are passed as qsc references -->
     <ItemGroup>
