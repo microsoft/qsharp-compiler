@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
                 ? this.SourceFiles.Where(f => f.Value.EndsWith(".qs")).OrderBy(f => f).Select(f => (f, this.Imports)).ToArray()
                 : new[] { (NonNullable<string>.New(sourceFile), this.Imports) };
 
-            SyntaxTreeToQs.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, this.Compilation.Namespaces, filesToShow);
+            SyntaxTreeToQsharp.Apply(out List<ImmutableDictionary<NonNullable<string>, string>> generated, this.Compilation.Namespaces, filesToShow);
             var code = generated.SelectMany((namespaces, sourceIndex) =>
                 namespaces.Values
                 .Prepend($"// Compiled Q# code from file \"{filesToShow[sourceIndex].Item1.Value}\":")

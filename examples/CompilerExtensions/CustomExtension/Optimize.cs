@@ -14,7 +14,8 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
 {
     /// <summary>
     /// Provides a compilation step that can be executed during the compilation of a Q# project.  
-    /// The compilation step executes selective transformations provided in the Microsoft.Quantum.QsCompiler.Experimental namespace. 
+    /// The compilation step executes selective optimizations provided in the Microsoft.Quantum.QsCompiler.Experimental namespace. 
+    /// It adds a comment to each callable that lists all identifers that were used within it prior to applying the optimizations.
     /// </summary>
     public class CustomCompilerExtension : IRewriteStep
     {
@@ -61,14 +62,16 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
         {
             // Defines the transformations to execute in each iteration spawned during PreEvaluation. 
             // The PreEvaluation invokes these transformations as long as the previous invokation resulted in a non-trivial change. 
-            static OptimizingTransformation[] Script(ImmutableDictionary<QsQualifiedName, QsCallable> callables) => new OptimizingTransformation[]
-            {
-                new ConstantPropagation(callables),
-                new VariableRemoval(),
-                new StatementRemoval(true),
-            };
+            static TransformationBase[] Script(ImmutableDictionary<QsQualifiedName, QsCallable> callables) => 
+                new TransformationBase[]
+                {
+                    new ConstantPropagation(callables),
+                    new VariableRemoval(),
+                    new StatementRemoval(true),
+                };
 
-            transformed = PreEvaluation.WithScript(Script, compilation);
+            transformed = new ListIdentifiers().OnCompilation(compilation); // adds a comment with all used identifers to each callable
+            transformed = PreEvaluation.WithScript(Script, transformed); // applies the specified optimizations
             return true;
         }
 
