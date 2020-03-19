@@ -14,14 +14,14 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
 {
     /// <summary>
-    /// Implements a transformation of a Q# compilation. 
-    /// The transformation adds a comment to each callable listing all identifiers used within the callable. 
+    /// Implements a transformation of a Q# compilation.
+    /// The transformation adds a comment to each callable listing all identifiers used within the callable.
     /// </summary>
     public class ListIdentifiers
     : SyntaxTreeTransformation<ListIdentifiers.TransformationState>
     {
-        // The constructor defines what transformations are executed, and whether the syntax tree nodes are rebuilt in the process. 
-        // Since all data structures are immutable, modifying the compilation requires rebuilding the nodes. 
+        // The constructor defines what transformations are executed, and whether the syntax tree nodes are rebuilt in the process.
+        // Since all data structures are immutable, modifying the compilation requires rebuilding the nodes.
         public ListIdentifiers()
         : base(new TransformationState())
         {
@@ -32,12 +32,12 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
             this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
             this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
             this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
-            // Since we are only interested in all occurring identifiers, we can omit walking type nodes entirely. 
+            // Since we are only interested in all occurring identifiers, we can omit walking type nodes entirely.
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
         /// <summary>
-        /// Adds a comment to each callable listing all identifiers used within the callable. 
+        /// Adds a comment to each callable listing all identifiers used within the callable.
         /// </summary>
         public QsCompilation OnCompilation(QsCompilation compilation)
         {
@@ -48,8 +48,8 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
         }
 
         /// <summary>
-        /// Class used to track the internal state of the transformation, as well as access any information based on it. 
-        /// These properties and methods are usually used by multiple subtransformations. 
+        /// Class used to track the internal state of the transformation, as well as access any information based on it.
+        /// These properties and methods are usually used by multiple subtransformations.
         /// </summary>
         public class TransformationState
         {
@@ -78,7 +78,7 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
 
         /// <summary>
         /// Helper class for ListIdentifiers that defines expression kind transformations.
-        /// It adds any identifier that occurs within an expression to the shared transformation state. 
+        /// It adds any identifier that occurs within an expression to the shared transformation state.
         /// The transformation does not modify the syntax tree nodes.
         /// </summary>
         private class ExpressionKindTransformation
@@ -102,9 +102,9 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
         }
 
         /// <summary>
-        /// Helper class for ListIdentifiers that defines namespace transformations. 
-        /// It adds a comment to each callable listing all identifiers used within the callable 
-        /// according to the information accumulated in the shared transformation state. 
+        /// Helper class for ListIdentifiers that defines namespace transformations.
+        /// It adds a comment to each callable listing all identifiers used within the callable
+        /// according to the information accumulated in the shared transformation state.
         /// </summary>
         private class NamespaceTransformation
         : NamespaceTransformation<TransformationState>

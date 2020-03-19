@@ -13,9 +13,9 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
 {
     /// <summary>
-    /// Provides a compilation step that can be executed during the compilation of a Q# project.  
-    /// The compilation step executes selective optimizations provided in the Microsoft.Quantum.QsCompiler.Experimental namespace. 
-    /// It adds a comment to each callable that lists all identifers that were used within it prior to applying the optimizations.
+    /// Provides a compilation step that can be executed during the compilation of a Q# project.
+    /// The compilation step executes selective optimizations provided in the Microsoft.Quantum.QsCompiler.Experimental namespace.
+    /// It adds a comment to each callable that lists all identifiers that were used within it prior to applying the optimizations.
     /// </summary>
     public class CustomCompilerExtension : IRewriteStep
     {
@@ -44,9 +44,9 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
             var preconditionPassed = true; // nothing to check
             if (preconditionPassed)
             {
-                // Diagnostics with severity Info or lower usually won't be displayed to the user. 
-                // If the severity is Error or Warning the diagnostic is shown to the user like any other compiler diagnostic, 
-                // and if the Source property is set to the absolute path of an existing file, 
+                // Diagnostics with severity Info or lower usually won't be displayed to the user.
+                // If the severity is Error or Warning the diagnostic is shown to the user like any other compiler diagnostic,
+                // and if the Source property is set to the absolute path of an existing file,
                 // the user will be directed to the file when double clicking the diagnostics.
                 this.Diagnostics.Add(new IRewriteStep.Diagnostic
                 {
@@ -60,9 +60,9 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            // Defines the transformations to execute in each iteration spawned during PreEvaluation. 
-            // The PreEvaluation invokes these transformations as long as the previous invokation resulted in a non-trivial change. 
-            static TransformationBase[] Script(ImmutableDictionary<QsQualifiedName, QsCallable> callables) => 
+            // Defines the transformations to execute in each iteration spawned during PreEvaluation.
+            // The PreEvaluation invokes these transformations as long as the previous invocation resulted in a non-trivial change.
+            static TransformationBase[] Script(ImmutableDictionary<QsQualifiedName, QsCallable> callables) =>
                 new TransformationBase[]
                 {
                     new ConstantPropagation(callables),
@@ -70,7 +70,7 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
                     new StatementRemoval(true),
                 };
 
-            transformed = new ListIdentifiers().OnCompilation(compilation); // adds a comment with all used identifers to each callable
+            transformed = new ListIdentifiers().OnCompilation(compilation); // adds a comment with all used identifiers to each callable
             transformed = PreEvaluation.WithScript(Script, transformed); // applies the specified optimizations
             return true;
         }
