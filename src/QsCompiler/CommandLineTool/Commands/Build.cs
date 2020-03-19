@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
             public bool EmitDll { get; set; }
 
-            [Option('p', "perf", Required = false, SetName = CODE_MODE,
+            [Option("perf", Required = false, SetName = CODE_MODE,
             HelpText = "Destination folder where the output of the performance assessment will be generated.")]
             public string PerfFolder { get; set; }
 
@@ -65,15 +65,23 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// Returns true and a new BuildOptions object as out parameter with all the settings from response files incorporated.
             /// Returns false if the content of the specified response-files could not be processed. 
             /// </summary>
-            internal static bool IncorporateResponseFiles(BuildOptions options, out BuildOptions incorporated)
+            internal static bool IncorporateResponseFiles(BuildOptions options, out BuildOptions incorporated, ILogger logger = null)
             {
                 incorporated = null;
                 while (options.ResponseFiles != null && options.ResponseFiles.Any())
                 {
-                    var fromResponseFiles = FromResponseFiles(options.ResponseFiles);
-                    if (fromResponseFiles == null) return false;
-                    fromResponseFiles.UpdateSetIndependentSettings(options);
-                    options = fromResponseFiles;
+                    try
+                    {
+                        var fromResponseFiles = FromResponseFiles(options.ResponseFiles);
+                        if (fromResponseFiles == null) return false;
+                        fromResponseFiles.UpdateSetIndependentSettings(options);
+                        options = fromResponseFiles;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger?.Log(ex);
+                        return false;
+                    }
                 }
                 incorporated = options;
                 return true;
@@ -134,7 +142,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
-            if (!BuildOptions.IncorporateResponseFiles(options, out options)) return ReturnCode.INVALID_ARGUMENTS;
+            if (!BuildOptions.IncorporateResponseFiles(options, out options))
+            {
+                logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, new string[0]);
+                return ReturnCode.INVALID_ARGUMENTS;
+            }
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
             if (!options.ParseAssemblyProperties(out var assemblyConstants))
