@@ -1,28 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 {
-    //using Concretion = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
-    //using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
-    //using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
-
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
-    //using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    //using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
 
     /// Class used to track call graph of a compilation.
     /// This class is *not* threadsafe.
@@ -32,66 +21,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             public QsQualifiedName CallableName;
             public QsSpecializationKind Kind;
-            //public QsNullable<List<int>> TypeArgHash;
             public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
         }
 
-        private Dictionary<CallGraphDependency, HashSet<CallGraphDependency>> dependencies = new Dictionary<CallGraphDependency, HashSet<CallGraphDependency>>();
-        //private Dictionary<int, ResolvedType> typeHashes = new Dictionary<int, ResolvedType>();
-
-        //private CallGraphDependency SpecInfoToKey(QsSpecializationKind kind, QsQualifiedName parent, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
-        //{
-        //    //List<int> getTypeArgHash(ImmutableArray<ResolvedType> tArgs)
-        //    //{
-        //    //    return tArgs
-        //    //        .Select(t =>
-        //    //        {
-        //    //            var tHash = t.GetHashCode();
-        //    //            typeHashes[tHash] = t;
-        //    //            return tHash;
-        //    //        })
-        //    //        .ToList();
-        //    //}
-        //
-        //    //var typeArgHash = QsNullable<List<int>>.Null;
-        //    //if (typeArgs.IsValue)
-        //    //{
-        //    //    typeArgHash = QsNullable<List<int>>.NewValue(getTypeArgHash(typeArgs.Item));
-        //    //}
-        //
-        //    return new CallGraphDependency() { CallableName = parent, Kind = kind, TypeArgs = typeArgs };
-        //}
-
-        //private CallGraphDependency SpecToKey(QsSpecialization spec) =>
-        //    SpecInfoToKey(spec.Kind, spec.Parent, spec.TypeArguments);
-
-        //private QsNullable<List<ResolvedType>> HashToTypeArgs(QsNullable<List<int>> tArgHash)
-        //{
-        //    if (tArgHash.IsNull)
-        //    {
-        //        return QsNullable<List<ResolvedType>>.Null;
-        //    }
-        //    else
-        //    {
-        //        return QsNullable<List<ResolvedType>>.NewValue(tArgHash.Item
-        //            .Select(hash =>
-        //            {
-        //                if (typeHashes.TryGetValue(hash, out var t))
-        //                {
-        //                    return t;
-        //                }
-        //                else
-        //                {
-        //                    throw new ArgumentException("no type with the given hash has been listed");
-        //                }
-        //            })
-        //            .ToList());
-        //    }
-        //}
+        private Dictionary<CallGraphDependency, HashSet<CallGraphDependency>> _Dependencies = new Dictionary<CallGraphDependency, HashSet<CallGraphDependency>>();
 
         private void RecordDependency(CallGraphDependency callerKey, CallGraphDependency calledKey)
         {
-            if (dependencies.TryGetValue(callerKey, out var deps))
+            if (_Dependencies.TryGetValue(callerKey, out var deps))
             {
                 deps.Add(calledKey);
             }
@@ -99,14 +36,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 var newDeps = new HashSet<CallGraphDependency>();
                 newDeps.Add(calledKey);
-                dependencies[callerKey] = newDeps;
+                _Dependencies[callerKey] = newDeps;
             }
         }
 
         public void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs)
         {
-            //var callerKey = SpecToKey(callerSpec);
-            //var calledKey = SpecInfoToKey(calledKind, calledName, calledTypeArgs);
             var callerKey = new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = callerSpec.TypeArguments };
             var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = calledTypeArgs };
             RecordDependency(callerKey, calledKey);
@@ -116,8 +51,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
             QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs)
         {
-            //var callerKey = SpecInfoToKey(callerKind, callerName, callerTypeArgs);
-            //var calledKey = SpecInfoToKey(calledKind, calledName, calledTypeArgs);
             var callerKey = new CallGraphDependency { CallableName = callerName, Kind = callerKind, TypeArgs = callerTypeArgs };
             var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = calledTypeArgs };
             RecordDependency(callerKey, calledKey);
@@ -131,17 +64,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
         public ImmutableArray<CallGraphDependency> GetDirectDependencies(QsSpecialization callerSpec)
         {
-            //var key = SpecToKey(callerSpec);
             var callerKey = new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = callerSpec.TypeArguments };
-            if (dependencies.TryGetValue(callerKey, out var deps))
+            if (_Dependencies.TryGetValue(callerKey, out var deps))
             {
-                return deps
-                    //.Select(key => (key.CallableName, key.Kind, key.TypeArgs))
-                    .ToImmutableArray();
+                return deps.ToImmutableArray();
             }
             else
             {
-                //return ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<ImmutableArray<ResolvedType>>)>.Empty;
                 return ImmutableArray<CallGraphDependency>.Empty;
             }
         }
@@ -156,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             HashSet<CallGraphDependency> WalkDependencyTree(CallGraphDependency root, HashSet<CallGraphDependency> accum)
             {
-                if (dependencies.TryGetValue(root, out var next))
+                if (_Dependencies.TryGetValue(root, out var next))
                 {
                     foreach (var k in next)
                     {
@@ -170,11 +99,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 return accum;
             }
 
-            //var key = SpecToKey(callerSpec);
             var callerKey = new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = callerSpec.TypeArguments };
-            return WalkDependencyTree(callerKey, new HashSet<CallGraphDependency>())
-                //.Select(key => (key.CallableName, key.Kind, key.TypeArgs))
-                .ToImmutableArray();
+            return WalkDependencyTree(callerKey, new HashSet<CallGraphDependency>()).ToImmutableArray();
         }
     }
 

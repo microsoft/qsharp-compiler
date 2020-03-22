@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
@@ -19,8 +20,66 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
     using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
+    using Temp = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    using RangeTemp = QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>;
+
     public static class Monomorphize
     {
+        // ToDo: Remove this manual test
+        public static void test()
+        {
+            var node1TP1 = new QsTypeParameter(
+                new QsQualifiedName(NonNullable<string>.New("ns1"), NonNullable<string>.New("name1")),
+                NonNullable<string>.New("TP1"),
+                RangeTemp.NewValue(Tuple.Create(
+                    new QsPositionInfo(2,3),
+                    new QsPositionInfo(4,5))));
+
+            var node1TP2 = new QsTypeParameter(
+                new QsQualifiedName(NonNullable<string>.New("ns1"), NonNullable<string>.New("name1")),
+                NonNullable<string>.New("TP2"),
+                RangeTemp.NewValue(Tuple.Create(
+                    new QsPositionInfo(6, 7),
+                    new QsPositionInfo(8, 9))));
+
+            var node1Types = ImmutableArray.Create(ResolvedType.New(Temp.NewTypeParameter(node1TP1)), ResolvedType.New(Temp.NewTypeParameter(node1TP2)));
+            var node1 = new CallGraph.CallGraphDependency
+            {
+                CallableName = new QsQualifiedName(NonNullable<string>.New("ns1"), NonNullable<string>.New("name1")),
+                Kind = QsSpecializationKind.QsBody,
+                TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.NewValue(node1Types)
+            };
+
+            var node2TP1 = new QsTypeParameter(
+                new QsQualifiedName(NonNullable<string>.New("ns1"), NonNullable<string>.New("name1")),
+                NonNullable<string>.New("TP1"),
+                RangeTemp.NewValue(Tuple.Create(
+                    new QsPositionInfo(2, 3),
+                    new QsPositionInfo(4, 5))));
+
+            var node2TP2 = new QsTypeParameter(
+                new QsQualifiedName(NonNullable<string>.New("ns1"), NonNullable<string>.New("name1")),
+                NonNullable<string>.New("TP2"),
+                RangeTemp.Null);
+
+            var node2Types = ImmutableArray.Create(ResolvedType.New(Temp.NewTypeParameter(node2TP1)), ResolvedType.New(Temp.NewTypeParameter(node2TP2)));
+            var node2 = new CallGraph.CallGraphDependency
+            {
+                CallableName = new QsQualifiedName(NonNullable<string>.New("ns1"), NonNullable<string>.New("name1")),
+                Kind = QsSpecializationKind.QsBody,
+                TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.NewValue(node2Types)
+            };
+
+            var set = new HashSet<CallGraph.CallGraphDependency>();
+            set.Add(node1);
+            if (!set.Contains(node2)) throw new Exception("Hash set did not work");
+
+            var dict = new Dictionary<CallGraph.CallGraphDependency, int>();
+            dict[node1] = 12;
+            if (dict[node2] != 12) throw new Exception("Dictionary did not work");
+        }
+
+
         private struct Request
         {
             public QsQualifiedName originalName;
@@ -37,6 +96,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         public static QsCompilation Apply(QsCompilation compilation)
         {
+
+            test();
+
+
+
+
+
+
+
+
+
             if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
 
             var globals = compilation.Namespaces.GlobalCallableResolutions();
@@ -180,8 +250,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
             /// </summary>
             /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            private ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables)) 
-            { 
+            private ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables))
+            {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -239,8 +309,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            private ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams)) 
-            { 
+            private ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams))
+            {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Types = new TypeTransformation(this);
             }
@@ -308,8 +378,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier) : base(new TransformationState(getConcreteIdentifier)) 
-            { 
+            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier) : base(new TransformationState(getConcreteIdentifier))
+            {
                 this.Expressions = new ExpressionTransformation(this);
                 this.ExpressionKinds = new ExpressionKindTransformation(this);
                 this.Types = new TypeTransformation(this);

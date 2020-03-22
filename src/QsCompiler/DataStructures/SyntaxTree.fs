@@ -67,8 +67,8 @@ type QsQualifiedName = {
     /// the declared name of the namespace element
     Name : NonNullable<string>
 }
-    with 
-    override this.ToString () = 
+    with
+    override this.ToString () =
         sprintf "%s.%s" this.Namespace.Value this.Name.Value
 
 
@@ -115,6 +115,7 @@ type QsLocation = {
 
 
 /// used to represent the use of a type parameter within a fully resolved Q# type
+[<CustomComparison; CustomEquality>]
 type QsTypeParameter = {
 // TODO: origin needs adapting if we ever allow to declare type parameters on specializations
 
@@ -126,9 +127,29 @@ type QsTypeParameter = {
     /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
     Range : QsRangeInfo
 }
+    with
+    interface IComparable<QsTypeParameter> with
+        member this.CompareTo other =
+            compare (this.Origin, this.TypeName) (other.Origin, other.TypeName)
+    interface IComparable with
+        member this.CompareTo obj =
+            match obj with
+            | null                        -> 1
+            | :? QsTypeParameter as other -> (this :> IComparable<_>).CompareTo other
+            | _                           -> invalidArg "obj" "not a QsTypeParameter"
+    interface IEquatable<QsTypeParameter> with
+        member this.Equals other =
+            (this.Origin, this.TypeName) = (other.Origin, other.TypeName)
+    override this.Equals obj =
+        match obj with
+        | :? QsTypeParameter as other -> (this :> IEquatable<_>).Equals other
+        | _                           -> false
+    override this.GetHashCode() =
+        hash (this.Origin, this.TypeName)
 
 
 /// used to represent the use of a user defined type within a fully resolved Q# type
+[<CustomComparison; CustomEquality>]
 type UserDefinedType = {
     /// the name of the namespace in which the type is declared
     Namespace : NonNullable<string>
@@ -138,6 +159,25 @@ type UserDefinedType = {
     /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
     Range : QsRangeInfo
 }
+    with
+    interface IComparable<UserDefinedType> with
+        member this.CompareTo other =
+            compare (this.Namespace, this.Name) (other.Namespace, other.Name)
+    interface IComparable with
+        member this.CompareTo obj =
+            match obj with
+            | null                        -> 1
+            | :? UserDefinedType as other -> (this :> IComparable<_>).CompareTo other
+            | _                           -> invalidArg "obj" "not a UserDefinedType"
+    interface IEquatable<UserDefinedType> with
+        member this.Equals other =
+            (this.Namespace, this.Name) = (other.Namespace, other.Name)
+    override this.Equals obj =
+        match obj with
+        | :? UserDefinedType as other -> (this :> IEquatable<_>).Equals other
+        | _                           -> false
+    override this.GetHashCode() =
+        hash (this.Namespace, this.Name)
 
 
 /// Fully resolved operation characteristics used to describe the properties of a Q# callable.
@@ -344,8 +384,8 @@ type InferredExpressionInformation = {
 type TypedExpression = {
     /// the content (kind) of the expression
     Expression : QsExpressionKind<TypedExpression, Identifier, ResolvedType>
-    /// contains all type arguments implicitly or explicitly determined by the expression, 
-    /// i.e. the origin, name and concrete type of all type parameters whose type can either be inferred based on the expression, 
+    /// contains all type arguments implicitly or explicitly determined by the expression,
+    /// i.e. the origin, name and concrete type of all type parameters whose type can either be inferred based on the expression,
     /// or who have explicitly been resolved by provided type arguments
     TypeArguments : ImmutableArray<QsQualifiedName * NonNullable<string> * ResolvedType>
     /// the type of the expression after applying the type arguments
@@ -361,13 +401,13 @@ type TypedExpression = {
 
     /// Contains a dictionary mapping the origin and name of all type parameters whose type can either be inferred based on the expression,
     /// or who have explicitly been resolved by provided type arguments to their concrete type within this expression
-    member this.TypeParameterResolutions = 
+    member this.TypeParameterResolutions =
         this.TypeArguments.ToImmutableDictionary((fun (origin, name, _) -> origin, name), (fun (_,_,t) -> t))
 
     /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
     /// Returns false otherwise.
     static member public IsPartialApplication kind =
-        let rec containsMissing ex = 
+        let rec containsMissing ex =
             match ex.Expression with
             | MissingExpr -> true
             | ValueTuple items -> items |> Seq.exists containsMissing
@@ -564,7 +604,7 @@ and QsStatementKind =
 | QsRepeatStatement      of QsRepeatStatement
 | QsConjugation          of QsConjugation
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
-| EmptyStatement 
+| EmptyStatement
 
 
 and QsStatement = {
@@ -645,7 +685,7 @@ type QsSpecialization = {
     /// Contains the location information for the declared specialization.
     /// The position offset represents the position in the source file where the specialization is declared,
     /// and the range contains the range of the corresponding specialization header.
-    /// For auto-generated specializations, the location is set to the location of the parent callable declaration. 
+    /// For auto-generated specializations, the location is set to the location of the parent callable declaration.
     Location : QsNullable<QsLocation>
     /// contains the type arguments for which the implementation is specialized
     TypeArguments : QsNullable<ImmutableArray<ResolvedType>>
