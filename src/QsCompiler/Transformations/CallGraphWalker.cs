@@ -28,65 +28,67 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     /// This class is *not* threadsafe.
     public class CallGraph
     {
+        // ToDo: It might be better to use a tuple with a local alias instead of a struct
         public struct SpecializationKey
         {
             public QsQualifiedName CallableName;
             public QsSpecializationKind Kind;
-            public QsNullable<List<int>> TypeArgHash;
+            //public QsNullable<List<int>> TypeArgHash;
+            public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
         }
 
         private Dictionary<SpecializationKey, HashSet<SpecializationKey>> dependencies = new Dictionary<SpecializationKey, HashSet<SpecializationKey>>();
-        private Dictionary<int, ResolvedType> typeHashes = new Dictionary<int, ResolvedType>();
+        //private Dictionary<int, ResolvedType> typeHashes = new Dictionary<int, ResolvedType>();
 
         private SpecializationKey SpecInfoToKey(QsSpecializationKind kind, QsQualifiedName parent, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
         {
-            List<int> getTypeArgHash(ImmutableArray<ResolvedType> tArgs)
-            {
-                return tArgs
-                    .Select(t =>
-                    {
-                        var tHash = t.GetHashCode();
-                        typeHashes[tHash] = t;
-                        return tHash;
-                    })
-                    .ToList();
-            }
+            //List<int> getTypeArgHash(ImmutableArray<ResolvedType> tArgs)
+            //{
+            //    return tArgs
+            //        .Select(t =>
+            //        {
+            //            var tHash = t.GetHashCode();
+            //            typeHashes[tHash] = t;
+            //            return tHash;
+            //        })
+            //        .ToList();
+            //}
 
-            var typeArgHash = QsNullable<List<int>>.Null;
-            if (typeArgs.IsValue)
-            {
-                typeArgHash = QsNullable<List<int>>.NewValue(getTypeArgHash(typeArgs.Item));
-            }
+            //var typeArgHash = QsNullable<List<int>>.Null;
+            //if (typeArgs.IsValue)
+            //{
+            //    typeArgHash = QsNullable<List<int>>.NewValue(getTypeArgHash(typeArgs.Item));
+            //}
 
-            return new SpecializationKey() { Kind = kind, CallableName = parent, TypeArgHash = typeArgHash };
+            return new SpecializationKey() { CallableName = parent, Kind = kind, TypeArgs = typeArgs };
         }
 
         private SpecializationKey SpecToKey(QsSpecialization spec) =>
             SpecInfoToKey(spec.Kind, spec.Parent, spec.TypeArguments);
 
-        private QsNullable<List<ResolvedType>> HashToTypeArgs(QsNullable<List<int>> tArgHash)
-        {
-            if (tArgHash.IsNull)
-            {
-                return QsNullable<List<ResolvedType>>.Null;
-            }
-            else
-            {
-                return QsNullable<List<ResolvedType>>.NewValue(tArgHash.Item
-                    .Select(hash =>
-                    {
-                        if (typeHashes.TryGetValue(hash, out var t))
-                        {
-                            return t;
-                        }
-                        else
-                        {
-                            throw new ArgumentException("no type with the given hash has been listed");
-                        }
-                    })
-                    .ToList());
-            }
-        }
+        //private QsNullable<List<ResolvedType>> HashToTypeArgs(QsNullable<List<int>> tArgHash)
+        //{
+        //    if (tArgHash.IsNull)
+        //    {
+        //        return QsNullable<List<ResolvedType>>.Null;
+        //    }
+        //    else
+        //    {
+        //        return QsNullable<List<ResolvedType>>.NewValue(tArgHash.Item
+        //            .Select(hash =>
+        //            {
+        //                if (typeHashes.TryGetValue(hash, out var t))
+        //                {
+        //                    return t;
+        //                }
+        //                else
+        //                {
+        //                    throw new ArgumentException("no type with the given hash has been listed");
+        //                }
+        //            })
+        //            .ToList());
+        //    }
+        //}
 
         private void RecordDependency(SpecializationKey callerKey, SpecializationKey calledKey)
         {
@@ -124,18 +126,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// the specialization kind, as well as the resolved type arguments.
         /// The returned type arguments are the exact type arguments of the expression,
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
-        public ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<List<ResolvedType>>)> GetDirectDependencies(QsSpecialization callerSpec)
+        public ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<ImmutableArray<ResolvedType>>)> GetDirectDependencies(QsSpecialization callerSpec)
         {
             var key = SpecToKey(callerSpec);
             if (dependencies.TryGetValue(key, out var deps))
             {
                  return deps
-                    .Select(key => (key.CallableName, key.Kind, HashToTypeArgs(key.TypeArgHash)))
+                    .Select(key => (key.CallableName, key.Kind, key.TypeArgs))
                     .ToImmutableArray();
             }
             else
             {
-                return ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<List<ResolvedType>>)>.Empty;
+                return ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<ImmutableArray<ResolvedType>>)>.Empty;
             }
         }
 
@@ -145,7 +147,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// the specialization kind, as well as the resolved type arguments.
         /// The returned type arguments are the exact type arguments of the expression,
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
-        public ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<List<ResolvedType>>)> GetAllDependencies(QsSpecialization callerSpec)
+        public ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<ImmutableArray<ResolvedType>>)> GetAllDependencies(QsSpecialization callerSpec)
         {
             HashSet<SpecializationKey> WalkDependencyTree(SpecializationKey root, HashSet<SpecializationKey> accum)
             {
@@ -165,7 +167,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             var key = SpecToKey(callerSpec);
             return WalkDependencyTree(key, new HashSet<SpecializationKey>())
-                .Select(key => (key.CallableName, key.Kind, HashToTypeArgs(key.TypeArgHash)))
+                .Select(key => (key.CallableName, key.Kind, key.TypeArgs))
                 .ToImmutableArray();
         }
     }
