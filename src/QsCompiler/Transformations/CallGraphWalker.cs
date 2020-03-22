@@ -16,20 +16,19 @@ using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 {
-    using Concretion = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
-    using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
-    using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    //using Concretion = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    //using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
+    //using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
-    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
+    //using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    //using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
 
     /// Class used to track call graph of a compilation.
     /// This class is *not* threadsafe.
     public class CallGraph
     {
-        // ToDo: It might be better to use a tuple with a local alias instead of a struct
-        public struct SpecializationKey
+        public struct CallGraphDependency
         {
             public QsQualifiedName CallableName;
             public QsSpecializationKind Kind;
@@ -37,34 +36,34 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
         }
 
-        private Dictionary<SpecializationKey, HashSet<SpecializationKey>> dependencies = new Dictionary<SpecializationKey, HashSet<SpecializationKey>>();
+        private Dictionary<CallGraphDependency, HashSet<CallGraphDependency>> dependencies = new Dictionary<CallGraphDependency, HashSet<CallGraphDependency>>();
         //private Dictionary<int, ResolvedType> typeHashes = new Dictionary<int, ResolvedType>();
 
-        private SpecializationKey SpecInfoToKey(QsSpecializationKind kind, QsQualifiedName parent, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
-        {
-            //List<int> getTypeArgHash(ImmutableArray<ResolvedType> tArgs)
-            //{
-            //    return tArgs
-            //        .Select(t =>
-            //        {
-            //            var tHash = t.GetHashCode();
-            //            typeHashes[tHash] = t;
-            //            return tHash;
-            //        })
-            //        .ToList();
-            //}
+        //private CallGraphDependency SpecInfoToKey(QsSpecializationKind kind, QsQualifiedName parent, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
+        //{
+        //    //List<int> getTypeArgHash(ImmutableArray<ResolvedType> tArgs)
+        //    //{
+        //    //    return tArgs
+        //    //        .Select(t =>
+        //    //        {
+        //    //            var tHash = t.GetHashCode();
+        //    //            typeHashes[tHash] = t;
+        //    //            return tHash;
+        //    //        })
+        //    //        .ToList();
+        //    //}
+        //
+        //    //var typeArgHash = QsNullable<List<int>>.Null;
+        //    //if (typeArgs.IsValue)
+        //    //{
+        //    //    typeArgHash = QsNullable<List<int>>.NewValue(getTypeArgHash(typeArgs.Item));
+        //    //}
+        //
+        //    return new CallGraphDependency() { CallableName = parent, Kind = kind, TypeArgs = typeArgs };
+        //}
 
-            //var typeArgHash = QsNullable<List<int>>.Null;
-            //if (typeArgs.IsValue)
-            //{
-            //    typeArgHash = QsNullable<List<int>>.NewValue(getTypeArgHash(typeArgs.Item));
-            //}
-
-            return new SpecializationKey() { CallableName = parent, Kind = kind, TypeArgs = typeArgs };
-        }
-
-        private SpecializationKey SpecToKey(QsSpecialization spec) =>
-            SpecInfoToKey(spec.Kind, spec.Parent, spec.TypeArguments);
+        //private CallGraphDependency SpecToKey(QsSpecialization spec) =>
+        //    SpecInfoToKey(spec.Kind, spec.Parent, spec.TypeArguments);
 
         //private QsNullable<List<ResolvedType>> HashToTypeArgs(QsNullable<List<int>> tArgHash)
         //{
@@ -90,7 +89,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         //    }
         //}
 
-        private void RecordDependency(SpecializationKey callerKey, SpecializationKey calledKey)
+        private void RecordDependency(CallGraphDependency callerKey, CallGraphDependency calledKey)
         {
             if (dependencies.TryGetValue(callerKey, out var deps))
             {
@@ -98,25 +97,29 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             }
             else
             {
-                var newDeps = new HashSet<SpecializationKey>();
+                var newDeps = new HashSet<CallGraphDependency>();
                 newDeps.Add(calledKey);
                 dependencies[callerKey] = newDeps;
             }
         }
 
-        public void AddDependency(QsSpecialization callerSpec, QsSpecializationKind calledKind, QsQualifiedName calledName, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs)
+        public void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs)
         {
-            var callerKey = SpecToKey(callerSpec);
-            var calledKey = SpecInfoToKey(calledKind, calledName, calledTypeArgs);
+            //var callerKey = SpecToKey(callerSpec);
+            //var calledKey = SpecInfoToKey(calledKind, calledName, calledTypeArgs);
+            var callerKey = new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = callerSpec.TypeArguments };
+            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = calledTypeArgs };
             RecordDependency(callerKey, calledKey);
         }
 
         public void AddDependency(
-            QsSpecializationKind callerKind, QsQualifiedName callerName, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
-            QsSpecializationKind calledKind, QsQualifiedName calledName, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs)
+            QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
+            QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs)
         {
-            var callerKey = SpecInfoToKey(callerKind, callerName, callerTypeArgs);
-            var calledKey = SpecInfoToKey(calledKind, calledName, calledTypeArgs);
+            //var callerKey = SpecInfoToKey(callerKind, callerName, callerTypeArgs);
+            //var calledKey = SpecInfoToKey(calledKind, calledName, calledTypeArgs);
+            var callerKey = new CallGraphDependency { CallableName = callerName, Kind = callerKind, TypeArgs = callerTypeArgs };
+            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = calledTypeArgs };
             RecordDependency(callerKey, calledKey);
         }
 
@@ -126,18 +129,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// the specialization kind, as well as the resolved type arguments.
         /// The returned type arguments are the exact type arguments of the expression,
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
-        public ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<ImmutableArray<ResolvedType>>)> GetDirectDependencies(QsSpecialization callerSpec)
+        public ImmutableArray<CallGraphDependency> GetDirectDependencies(QsSpecialization callerSpec)
         {
-            var key = SpecToKey(callerSpec);
-            if (dependencies.TryGetValue(key, out var deps))
+            //var key = SpecToKey(callerSpec);
+            var callerKey = new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = callerSpec.TypeArguments };
+            if (dependencies.TryGetValue(callerKey, out var deps))
             {
-                 return deps
-                    .Select(key => (key.CallableName, key.Kind, key.TypeArgs))
+                return deps
+                    //.Select(key => (key.CallableName, key.Kind, key.TypeArgs))
                     .ToImmutableArray();
             }
             else
             {
-                return ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<ImmutableArray<ResolvedType>>)>.Empty;
+                //return ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<ImmutableArray<ResolvedType>>)>.Empty;
+                return ImmutableArray<CallGraphDependency>.Empty;
             }
         }
 
@@ -147,9 +152,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// the specialization kind, as well as the resolved type arguments.
         /// The returned type arguments are the exact type arguments of the expression,
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
-        public ImmutableArray<(QsQualifiedName, QsSpecializationKind, QsNullable<ImmutableArray<ResolvedType>>)> GetAllDependencies(QsSpecialization callerSpec)
+        public ImmutableArray<CallGraphDependency> GetAllDependencies(QsSpecialization callerSpec)
         {
-            HashSet<SpecializationKey> WalkDependencyTree(SpecializationKey root, HashSet<SpecializationKey> accum)
+            HashSet<CallGraphDependency> WalkDependencyTree(CallGraphDependency root, HashSet<CallGraphDependency> accum)
             {
                 if (dependencies.TryGetValue(root, out var next))
                 {
@@ -165,9 +170,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 return accum;
             }
 
-            var key = SpecToKey(callerSpec);
-            return WalkDependencyTree(key, new HashSet<SpecializationKey>())
-                .Select(key => (key.CallableName, key.Kind, key.TypeArgs))
+            //var key = SpecToKey(callerSpec);
+            var callerKey = new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = callerSpec.TypeArguments };
+            return WalkDependencyTree(callerKey, new HashSet<CallGraphDependency>())
+                //.Select(key => (key.CallableName, key.Kind, key.TypeArgs))
                 .ToImmutableArray();
         }
     }
@@ -264,7 +270,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                                 kind = QsSpecializationKind.QsControlled;
                             }
 
-                            SharedState.graph.AddDependency(SharedState.spec, kind, global.Item, typeArgs);
+                            SharedState.graph.AddDependency(SharedState.spec, global.Item, kind, typeArgs);
                         }
                         else
                         {
@@ -272,10 +278,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             // assigned to a variable or passed as an argument to another callable,
                             // which means it could get a functor applied at some later time.
                             // We're conservative and add all 4 possible kinds.
-                            SharedState.graph.AddDependency(SharedState.spec, QsSpecializationKind.QsBody, global.Item, typeArgs);
-                            SharedState.graph.AddDependency(SharedState.spec, QsSpecializationKind.QsControlled, global.Item, typeArgs);
-                            SharedState.graph.AddDependency(SharedState.spec, QsSpecializationKind.QsAdjoint, global.Item, typeArgs);
-                            SharedState.graph.AddDependency(SharedState.spec, QsSpecializationKind.QsControlledAdjoint, global.Item, typeArgs);
+                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsBody, typeArgs);
+                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsControlled, typeArgs);
+                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsAdjoint, typeArgs);
+                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsControlledAdjoint, typeArgs);
                         }
                     }
 
