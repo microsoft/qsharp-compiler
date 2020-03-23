@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -93,12 +94,41 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     decl => decl.QualifiedName,
                     decl => SymbolResolution.TryGetTestName(decl.Attributes).ValueOr(decl.QualifiedName));
 
+            static QsDeclarationAttribute Renamed(QsQualifiedName originalName, Tuple<int, int> declLocation)
+            {
+                var attName = new UserDefinedType(
+                    NonNullable<string>.New(GeneratedAttributes.Namespace),
+                    NonNullable<string>.New(GeneratedAttributes.LoadedViaTestNameInsteadOf), 
+                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                );
+                var attArg = SyntaxGenerator.StringLiteral(
+                    NonNullable<string>.New(originalName.ToString()),
+                    ImmutableArray<TypedExpression>.Empty
+                );
+                return new QsDeclarationAttribute(
+                    QsNullable<UserDefinedType>.NewValue(attName),
+                    attArg,
+                    declLocation,
+                    QsComments.Empty
+                );
+            }
+
             var rename = new RenameReferences(renaming);
-            var callables = headers.Callables.Select(rename.OnCallableDeclarationHeader);
+            var types = headers.Types
+                .Select(type => 
+                    renaming.ContainsKey(type.QualifiedName) && type.Location.IsValue // TODO: we should instead fully support auto-generated attributes
+                    ? type.AddAttribute(Renamed(type.QualifiedName, type.Location.Item.Offset))
+                    : type)
+                .Select(rename.OnTypeDeclarationHeader);
+            var callables = headers.Callables
+                .Select(callable => 
+                    renaming.ContainsKey(callable.QualifiedName) && callable.Location.IsValue // TODO: we should instead fully support auto-generated attributes
+                    ? callable.AddAttribute(Renamed(callable.QualifiedName, callable.Location.Item.Offset))
+                    : callable)
+                .Select(rename.OnCallableDeclarationHeader);
             var specializations = headers.Specializations.Select(
                 specialization => (rename.OnSpecializationDeclarationHeader(specialization.Item1),
                                    rename.Namespaces.OnSpecializationImplementation(specialization.Item2)));
-            var types = headers.Types.Select(rename.OnTypeDeclarationHeader);
             return new Headers(source, callables, specializations, types);
         }
 

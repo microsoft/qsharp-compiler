@@ -180,16 +180,6 @@ module Directives =
     let Distribute  = "distribute"
 
 
-/// contains project specific settings specified during Q# compilation
-module AssemblyConstants = 
-    let OutputPath = "OutputPath"
-    let AssemblyName = "AssemblyName"
-    let ExecutionTarget = "ResolvedExecutionTarget"
-    let HoneywellProcessor = "HoneywellProcessor"
-    let IonQProcessor = "IonQProcessor"
-    let QCIProcessor = "QCIProcessor"
-
-
 /// contains keywords reserved for internal use
 module InternalUse = 
     // IMPORTANT: with the exception of the CsKeyworks the keywords here are expected to follow the pattern __*__ 
@@ -232,6 +222,23 @@ module InternalUse =
         ]
     
     // TODO: ReservedForFutureUse = ...
+
+
+/// contains the names used for compiler-generated Q# attributes 
+/// that do not and should not have a definition in source code
+module GeneratedAttributes =
+    let Namespace = "Microsoft.Quantum.QsCompiler.Metadata.Attributes"
+    let LoadedViaTestNameInsteadOf = "__LoadedViaTestNameInsteadOf__"
+
+
+/// contains project specific settings specified during Q# compilation
+module AssemblyConstants = 
+    let OutputPath = "OutputPath"
+    let AssemblyName = "AssemblyName"
+    let ExecutionTarget = "ResolvedExecutionTarget"
+    let HoneywellProcessor = "HoneywellProcessor"
+    let IonQProcessor = "IonQProcessor"
+    let QCIProcessor = "QCIProcessor"
 
 
 /// contains specific names used within Q# dlls
