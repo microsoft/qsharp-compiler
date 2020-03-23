@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -26,6 +27,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         private Dictionary<CallGraphDependency, HashSet<CallGraphDependency>> _Dependencies = new Dictionary<CallGraphDependency, HashSet<CallGraphDependency>>();
 
+        private QsNullable<ImmutableArray<ResolvedType>> RemovePositionFromTypeArgs(QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
+            tArgs.IsValue
+            ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(tArgs.Item.Select(x => x.RemovePositionInfo()).ToImmutableArray())
+            : tArgs;
+
         private void RecordDependency(CallGraphDependency callerKey, CallGraphDependency calledKey)
         {
             if (_Dependencies.TryGetValue(callerKey, out var deps))
@@ -42,8 +48,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         public void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs)
         {
-            var callerKey = new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = callerSpec.TypeArguments };
-            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = calledTypeArgs };
+            var callerKey = new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) };
+            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = RemovePositionFromTypeArgs(calledTypeArgs) };
             RecordDependency(callerKey, calledKey);
         }
 
@@ -51,8 +57,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
             QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs)
         {
-            var callerKey = new CallGraphDependency { CallableName = callerName, Kind = callerKind, TypeArgs = callerTypeArgs };
-            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = calledTypeArgs };
+            var callerKey = new CallGraphDependency { CallableName = callerName, Kind = callerKind, TypeArgs = RemovePositionFromTypeArgs(callerTypeArgs) };
+            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = RemovePositionFromTypeArgs(calledTypeArgs) };
             RecordDependency(callerKey, calledKey);
         }
 
