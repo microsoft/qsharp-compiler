@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// Class used to track call graph of a compilation.
-    /// This class is *not* threadsafe.
+    /// This class is *not* threadsafe. // ToDo: is this still not threadsafe?
     public class CallGraph
     {
         public enum DependencyType
@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             NoTypeParameters,
             NoForwardingTypeParameters,
             ForwardingTypeParameters,
-            AgumentingTypeParameters
+            AugmentingTypeParameters
         }
 
         public struct CallGraphDependency
@@ -40,6 +40,43 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             tArgs.IsValue
             ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(tArgs.Item.Select(x => x.RemovePositionInfo()).ToImmutableArray())
             : tArgs;
+
+        // ToDo: it might be cleaner to have an F# member function on the ResolvedType class for doing this
+        private bool IsAugmentingTypeParameters(ResolvedType type, QsQualifiedName callerName)
+        {
+            bool isAugmenting(ResolvedType type)
+            {
+                if (type.Resolution is ResolvedTypeKind.ArrayType ary)
+                {
+                    return isAugmenting(ary.Item);
+                }
+                else if (type.Resolution is ResolvedTypeKind.TupleType tup)
+                {
+                    return tup.Item.Any(x => isAugmenting(x));
+                }
+                else if (type.Resolution is ResolvedTypeKind.Operation op)
+                {
+                    return isAugmenting(op.Item1.Item1) || isAugmenting(op.Item1.Item2);
+                }
+                else if (type.Resolution is ResolvedTypeKind.Function func)
+                {
+                    return isAugmenting(func.Item1) || isAugmenting(func.Item2);
+                }
+                else if (type.Resolution is ResolvedTypeKind.TypeParameter tParam)
+                {
+                    return tParam.Item.Origin.Equals(callerName);
+                }
+
+                return false;
+            }
+
+            if (type.Resolution is ResolvedTypeKind.TypeParameter tParam)
+            {
+                return false;
+            }
+
+            return isAugmenting(type);
+        }
 
         private void RecordDependency(CallGraphDependency callerKey, CallGraphDependency calledKey, DependencyType dependencyType)
         {
@@ -67,12 +104,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             callerTypeArgs = RemovePositionFromTypeArgs(callerTypeArgs);
             calledTypeArgs = RemovePositionFromTypeArgs(calledTypeArgs);
 
-            // ToDo: add case for DependencyType.AgumentingTypeParameters
             // ToDo: there is probably a better way to write this if-else structure
             var dependencyType = DependencyType.NoTypeParameters;
             if (calledTypeArgs.IsValue && calledTypeArgs.Item.Any())
             {
-                if (calledTypeArgs.Item.Any(x => x.Resolution is ResolvedTypeKind.TypeParameter tParam && tParam.Item.Origin.Equals(callerName)))
+                if (calledTypeArgs.Item.Any(x => IsAugmentingTypeParameters(x, callerName)))
+                {
+                    dependencyType = DependencyType.AugmentingTypeParameters;
+                }
+                else if (calledTypeArgs.Item.Any(x => x.Resolution is ResolvedTypeKind.TypeParameter tParam && tParam.Item.Origin.Equals(callerName)))
                 {
                     dependencyType = DependencyType.ForwardingTypeParameters;
                 }
