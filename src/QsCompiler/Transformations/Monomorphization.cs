@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         public static QsCompilation Apply(QsCompilation compilation)
         {
 
-            test();
+            //test();
 
 
 
@@ -105,7 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
 
 
-
+            CallGraph cg = BuildCallGraph.Apply(compilation);
 
             if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
 
