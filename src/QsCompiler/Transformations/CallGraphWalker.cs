@@ -106,6 +106,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
     public static class CallGraphWalker
     {
+        public static CallGraph Apply(QsCompilation compilation)
+        {
+            var walker = new BuildGraph();
+            
+            foreach (var ns in compilation.Namespaces)
+            {
+                walker.Namespaces.OnNamespace(ns);
+            }
+
+            return walker.SharedState.graph;
+        }
+
         private class BuildGraph : SyntaxTreeTransformation<BuildGraph.TransformationState>
         {
             public class TransformationState
@@ -119,7 +131,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 internal CallGraph graph = new CallGraph();
             }
 
-            private BuildGraph(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState())
+            public BuildGraph() : base(new TransformationState())
             {
                 this.Namespaces = new NamespaceTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);

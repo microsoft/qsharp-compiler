@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 CallableName = new QsQualifiedName(NonNullable<string>.New("ns1"), NonNullable<string>.New("name1")),
                 Kind = QsSpecializationKind.QsBody,
-                TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.NewValue(node1Types)
+                TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.NewValue(node1Types.Select(typ => typ.RemovePositionInfo()).ToImmutableArray())
             };
 
             var node2TP1 = new QsTypeParameter(
@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 CallableName = new QsQualifiedName(NonNullable<string>.New("ns1"), NonNullable<string>.New("name1")),
                 Kind = QsSpecializationKind.QsBody,
-                TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.NewValue(node2Types)
+                TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.NewValue(node2Types.Select(typ => typ.RemovePositionInfo()).ToImmutableArray())
             };
 
             var set = new HashSet<CallGraph.CallGraphDependency>();

@@ -115,7 +115,6 @@ type QsLocation = {
 
 
 /// used to represent the use of a type parameter within a fully resolved Q# type
-[<CustomComparison; CustomEquality>]
 type QsTypeParameter = {
 // TODO: origin needs adapting if we ever allow to declare type parameters on specializations
 
@@ -127,29 +126,9 @@ type QsTypeParameter = {
     /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
     Range : QsRangeInfo
 }
-    with
-    interface IComparable<QsTypeParameter> with
-        member this.CompareTo other =
-            compare (this.Origin, this.TypeName) (other.Origin, other.TypeName)
-    interface IComparable with
-        member this.CompareTo obj =
-            match obj with
-            | null                        -> 1
-            | :? QsTypeParameter as other -> (this :> IComparable<_>).CompareTo other
-            | _                           -> invalidArg "obj" "not a QsTypeParameter"
-    interface IEquatable<QsTypeParameter> with
-        member this.Equals other =
-            (this.Origin, this.TypeName) = (other.Origin, other.TypeName)
-    override this.Equals obj =
-        match obj with
-        | :? QsTypeParameter as other -> (this :> IEquatable<_>).Equals other
-        | _                           -> false
-    override this.GetHashCode() =
-        hash (this.Origin, this.TypeName)
 
 
 /// used to represent the use of a user defined type within a fully resolved Q# type
-[<CustomComparison; CustomEquality>]
 type UserDefinedType = {
     /// the name of the namespace in which the type is declared
     Namespace : NonNullable<string>
@@ -159,25 +138,6 @@ type UserDefinedType = {
     /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
     Range : QsRangeInfo
 }
-    with
-    interface IComparable<UserDefinedType> with
-        member this.CompareTo other =
-            compare (this.Namespace, this.Name) (other.Namespace, other.Name)
-    interface IComparable with
-        member this.CompareTo obj =
-            match obj with
-            | null                        -> 1
-            | :? UserDefinedType as other -> (this :> IComparable<_>).CompareTo other
-            | _                           -> invalidArg "obj" "not a UserDefinedType"
-    interface IEquatable<UserDefinedType> with
-        member this.Equals other =
-            (this.Namespace, this.Name) = (other.Namespace, other.Name)
-    override this.Equals obj =
-        match obj with
-        | :? UserDefinedType as other -> (this :> IEquatable<_>).Equals other
-        | _                           -> false
-    override this.GetHashCode() =
-        hash (this.Namespace, this.Name)
 
 
 /// Fully resolved operation characteristics used to describe the properties of a Q# callable.
@@ -341,6 +301,16 @@ type ResolvedType = private {
     /// and user defined types are resolved to their fully qualified name.
     /// By construction never contains any arity-0 or arity-1 tuple types.
     member this.Resolution = this._TypeKind
+
+    member this.RemovePositionInfo () =
+        match this.Resolution with
+        | QsTypeKind.TypeParameter tp -> { tp with Range = QsNullable<_>.Null } |> QsTypeKind.TypeParameter |> ResolvedType.New
+        | QsTypeKind.UserDefinedType udt -> { udt with Range = QsNullable<_>.Null } |> QsTypeKind.UserDefinedType |> ResolvedType.New
+        | QsTypeKind.TupleType ts -> ts |> Seq.map (fun x -> x.RemovePositionInfo()) |> fun x -> x.ToImmutableArray() |> TupleType |> ResolvedType.New
+        | QsTypeKind.ArrayType b -> b.RemovePositionInfo() |> ArrayType |> ResolvedType.New
+        | QsTypeKind.Function (it, ot) -> (it.RemovePositionInfo(), ot.RemovePositionInfo()) |> QsTypeKind.Function |> ResolvedType.New
+        | QsTypeKind.Operation ((it, ot), fList) -> ((it.RemovePositionInfo(), ot.RemovePositionInfo()), fList) |> QsTypeKind.Operation |> ResolvedType.New
+        | _ -> this
 
     /// Builds a ResolvedType based on a compatible Q# type kind, and replaces the (inaccessible) record constructor.
     /// Replaces an arity-1 tuple by its item type.
