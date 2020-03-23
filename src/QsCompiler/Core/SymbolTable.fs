@@ -130,10 +130,10 @@ type private PartialNamespace private
         OpenNamespaces.Add(openedNS, alias)
 
     /// Adds the given type declaration for the given type name to the dictionary of declared types.
-    /// Adds the corresponding type constructor to the dictionary of declared callables. 
+    /// Adds the corresponding type constructor to the dictionary of declared callables.
     /// The given location is associated with both the type constructor and the type itself and accessible via the record properties Position and SymbolRange. 
     /// -> Note that this routine will fail with the standard dictionary.Add error if either a type or a callable with that name already exists. 
-    member this.AddType (location : QsLocation) (tName, typeTuple, attributes, modifiers, documentation) = 
+    member this.AddType (location : QsLocation) (tName, typeTuple, attributes, modifiers, documentation) =
         let mutable anonItemId = 0
         let withoutRange sym = {Symbol = sym; Range = Null}
         let replaceAnonymous (itemName : QsSymbol, itemType) = // positional info for types in type constructors is removed upon resolution

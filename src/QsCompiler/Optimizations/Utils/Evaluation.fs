@@ -23,7 +23,7 @@ type private EvalState = Dictionary<string, TypedExpression> * int
 
 /// Represents any interrupt to the normal control flow of a function evaluation.
 /// Includes return statements, errors, and (if they were added) break/continue statements.
-type internal FunctionInterrupt =
+type private FunctionInterrupt =
     /// Represents the function invoking a return statement
     | Returned of TypedExpression
     /// Represents the function invoking a fail statement
