@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -104,6 +105,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             callerTypeArgs = RemovePositionFromTypeArgs(callerTypeArgs);
             calledTypeArgs = RemovePositionFromTypeArgs(calledTypeArgs);
 
+            var callerKey = new CallGraphDependency { CallableName = callerName, Kind = callerKind, TypeArgs = RemovePositionFromTypeArgs(callerTypeArgs) };
+            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = RemovePositionFromTypeArgs(calledTypeArgs) };
+
             // ToDo: there is probably a better way to write this if-else structure
             var dependencyType = DependencyType.NoTypeParameters;
             if (calledTypeArgs.IsValue && calledTypeArgs.Item.Any())
@@ -122,21 +126,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 }
             }
 
-            var callerKey = new CallGraphDependency { CallableName = callerName, Kind = callerKind, TypeArgs = RemovePositionFromTypeArgs(callerTypeArgs) };
-            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = RemovePositionFromTypeArgs(calledTypeArgs) };
             RecordDependency(callerKey, calledKey, dependencyType);
         }
 
-        /// Returns all specializations that are used directly within the given caller,
-        /// whether they are called, partially applied, or assigned.
-        /// The returned specializations are identified by the full name of the callable,
-        /// the specialization kind, as well as the resolved type arguments.
-        /// The returned type arguments are the exact type arguments of the expression,
-        /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
-        public ImmutableArray<(CallGraphDependency, DependencyType)> GetDirectDependencies(QsSpecialization callerSpec)
+        public ImmutableArray<(CallGraphDependency, DependencyType)> GetDirectDependencies(CallGraphDependency callerSpec)
         {
-            var callerKey = new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = callerSpec.TypeArguments };
-            if (_Dependencies.TryGetValue(callerKey, out var deps))
+            if (_Dependencies.TryGetValue(callerSpec, out var deps))
             {
                 return deps.ToImmutableArray();
             }
@@ -146,23 +141,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             }
         }
 
-        /// Returns all specializations directly or indirectly used within the given caller,
+        /// Returns all specializations that are used directly within the given caller,
         /// whether they are called, partially applied, or assigned.
         /// The returned specializations are identified by the full name of the callable,
         /// the specialization kind, as well as the resolved type arguments.
         /// The returned type arguments are the exact type arguments of the expression,
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
-        public ImmutableArray<(CallGraphDependency, DependencyType)> GetAllDependencies(QsSpecialization callerSpec)
+        public ImmutableArray<(CallGraphDependency, DependencyType)> GetDirectDependencies(QsSpecialization callerSpec) =>
+            GetDirectDependencies(new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
+
+        public ImmutableArray<(CallGraphDependency, DependencyType)> GetAllDependencies(CallGraphDependency callerSpec)
         {
-            HashSet<(CallGraphDependency, DependencyType)> WalkDependencyTree(CallGraphDependency root, HashSet<(CallGraphDependency, DependencyType)> accum)
+            HashSet<(CallGraphDependency, DependencyType)> WalkDependencyTree(CallGraphDependency root, HashSet<(CallGraphDependency, DependencyType)> accum, DependencyType parentDepType)
             {
                 if (_Dependencies.TryGetValue(root, out var next))
                 {
                     foreach (var k in next)
                     {
-                        if (accum.Add(k))
+                        // Get the maximum type of dependency between the parent dependency type and the current dependency type
+                        var maxDepType = k.Item2.CompareTo(parentDepType) > 0 ? k.Item2 : parentDepType;
+                        if (accum.Add((k.Item1, maxDepType)))
                         {
-                            WalkDependencyTree(k.Item1, accum);
+                            // ToDo: this won't work once Type specialization are implemented
+                            var noTypeParams = new CallGraphDependency { CallableName = k.Item1.CallableName, Kind = k.Item1.Kind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
+                            WalkDependencyTree(noTypeParams, accum, maxDepType);
                         }
                     }
                 }
@@ -170,9 +172,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 return accum;
             }
 
-            var callerKey = new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = callerSpec.TypeArguments };
-            return WalkDependencyTree(callerKey, new HashSet<(CallGraphDependency, DependencyType)>()).ToImmutableArray();
+            return WalkDependencyTree(callerSpec, new HashSet<(CallGraphDependency, DependencyType)>(), DependencyType.NoTypeParameters).ToImmutableArray();
         }
+
+        /// Returns all specializations directly or indirectly used within the given caller,
+        /// whether they are called, partially applied, or assigned.
+        /// The returned specializations are identified by the full name of the callable,
+        /// the specialization kind, as well as the resolved type arguments.
+        /// The returned type arguments are the exact type arguments of the expression,
+        /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
+        public ImmutableArray<(CallGraphDependency, DependencyType)> GetAllDependencies(QsSpecialization callerSpec) =>
+            GetAllDependencies(new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
     }
 
     public static class BuildCallGraph
