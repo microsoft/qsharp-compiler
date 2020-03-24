@@ -434,10 +434,8 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.Config.GenerateFunctorSupport)
             {
-                this.CompilationStatus.FunctorSupport = Status.Succeeded;
-                void onException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ex);
-                var generated = this.CompilationOutput != null && CodeGeneration.GenerateFunctorSpecializations(this.CompilationOutput, out this.CompilationOutput, onException);
-                if (!generated) this.LogAndUpdate(ref this.CompilationStatus.FunctorSupport, ErrorCode.FunctorGenerationFailed, Enumerable.Empty<string>());
+                var rewriteStep = new RewriteSteps.LoadedStep(new FunctorGeneration(), typeof(IRewriteStep), thisDllUri);
+                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.FunctorSupport);
             }
 
             if (!this.Config.SkipSyntaxTreeTrimming)
