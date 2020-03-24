@@ -2,40 +2,54 @@
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution;
 
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
-    internal class IntrinsicResolution : IRewriteStep
+    internal class FunctorGeneration : IRewriteStep
     {
-        public string Name => "Intrinsic Resolution";
+        public string Name => "Functor Generation";
         public int Priority => 10; // Not used for built-in transformations like this
         public IDictionary<string, string> AssemblyConstants { get; }
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
-        public bool ImplementsPreconditionVerification => false;
+        public bool ImplementsPreconditionVerification => true;
         public bool ImplementsTransformation => true;
         public bool ImplementsPostconditionVerification => false;
 
-        private QsCompilation Environment { get; }
-
-        public IntrinsicResolution(QsCompilation environment)
+        public FunctorGeneration()
         {
             AssemblyConstants = new Dictionary<string, string>();
-            Environment = environment;
         }
 
         public bool PreconditionVerification(QsCompilation compilation)
         {
-            throw new System.NotImplementedException();
+            var requiredNamespace = compilation.Namespaces
+                .FirstOrDefault(ns => ns.Name.Equals(BuiltIn.CoreNamespace));
+
+            if (requiredNamespace == null)
+            {
+                return false;
+            }
+
+            var providedOperations = new QsNamespace[] { requiredNamespace }
+                .Callables()
+                .Select(c => c.FullName)
+                .ToHashSet();
+            var requiredBuiltIns = new HashSet<QsQualifiedName>()
+            {
+                BuiltIn.Length.FullName,
+                BuiltIn.RangeReverse.FullName
+            };
+
+            return requiredBuiltIns.IsSubsetOf(providedOperations);
         }
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = ReplaceWithTargetIntrinsics.Apply(this.Environment, compilation);
-            return true;
+            return CodeGeneration.GenerateFunctorSpecializations(compilation, out transformed);
         }
 
         public bool PostconditionVerification(QsCompilation compilation)
