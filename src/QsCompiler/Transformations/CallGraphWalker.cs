@@ -181,12 +181,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             var walker = new BuildGraph();
 
-            walker.Namespaces.OnNamespace(compilation.Namespaces.First(x => x.Name.Value == "Input"));
-
-            //foreach (var ns in compilation.Namespaces)
-            //{
-            //    walker.Namespaces.OnNamespace(ns);
-            //}
+            foreach (var ns in compilation.Namespaces)
+            {
+                walker.Namespaces.OnNamespace(ns);
+            }
 
             return walker.SharedState.graph;
         }
