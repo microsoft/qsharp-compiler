@@ -39,12 +39,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             public QsCallable concreteCallable;
         }
 
-        private static bool DoesHaveUnsafeLoop(QsCallable callable, CallGraph graph) =>
-            callable.Specializations.Any(spec =>
-                graph.GetAllDependencies(spec).Any(
-                    node => node.Item2 == CallGraph.DependencyType.AugmentingTypeParameters
-                    && node.Item1.CallableName.Equals(spec.Parent)
-                    && node.Item1.Kind.Equals(spec.Kind)));
+        //private static bool DoesHaveUnsafeLoop(QsCallable callable, CallGraph graph) =>
+        //    callable.Specializations.Any(spec =>
+        //        graph.GetAllDependencies(spec).Any(
+        //            node => node.Item2 == CallGraph.DependencyType.AugmentingTypeParameters
+        //            && node.Item1.CallableName.Equals(spec.Parent)
+        //            && node.Item1.Kind.Equals(spec.Kind)));
         // ToDo: Currently not checking if type params match. That will need to change when Type specializations are implemented
 
         public static QsCompilation Apply(QsCompilation compilation)
@@ -75,8 +75,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName.ToString()}");
 
                 // Check if response has an unsafe dependency loop
-                if (DoesHaveUnsafeLoop(originalGlobal, callGraph))
-                    throw new Exception($"Unsafe recursion loop found for {originalGlobal.FullName}");
+                //if (DoesHaveUnsafeLoop(originalGlobal, callGraph))
+                //    throw new Exception($"Unsafe recursion loop found for {originalGlobal.FullName}");
 
                 var currentResponse = new Response
                 {

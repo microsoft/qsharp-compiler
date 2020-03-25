@@ -20,22 +20,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     /// This class is *not* threadsafe. // ToDo: is this still not threadsafe?
     public class CallGraph
     {
-        public enum DependencyType
+        public struct CallGraphEdge
         {
-            NoTypeParameters,
-            NoForwardingTypeParameters,
-            ForwardingTypeParameters,
-            AugmentingTypeParameters
+            // ToDo: Fill out edge information
         }
 
-        public struct CallGraphDependency
+        //public enum DependencyType
+        //{
+        //    NoTypeParameters,
+        //    NoForwardingTypeParameters,
+        //    ForwardingTypeParameters,
+        //    AugmentingTypeParameters
+        //}
+
+        public struct CallGraphNode
         {
             public QsQualifiedName CallableName;
             public QsSpecializationKind Kind;
             public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
         }
 
-        private Dictionary<CallGraphDependency, HashSet<(CallGraphDependency, DependencyType)>> _Dependencies = new Dictionary<CallGraphDependency, HashSet<(CallGraphDependency, DependencyType)>>();
+        private Dictionary<CallGraphNode, HashSet<(CallGraphNode, CallGraphEdge)>> _Dependencies = new Dictionary<CallGraphNode, HashSet<(CallGraphNode, CallGraphEdge)>>();
 
         private QsNullable<ImmutableArray<ResolvedType>> RemovePositionFromTypeArgs(QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
             tArgs.IsValue
@@ -79,16 +84,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             return isAugmenting(type);
         }
 
-        private void RecordDependency(CallGraphDependency callerKey, CallGraphDependency calledKey, DependencyType dependencyType)
+        private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
             if (_Dependencies.TryGetValue(callerKey, out var deps))
             {
-                deps.Add((calledKey, dependencyType));
+                deps.Add((calledKey, edge));
             }
             else
             {
-                var newDeps = new HashSet<(CallGraphDependency, DependencyType)>();
-                newDeps.Add((calledKey, dependencyType));
+                var newDeps = new HashSet<(CallGraphNode, CallGraphEdge)>();
+                newDeps.Add((calledKey, edge));
                 _Dependencies[callerKey] = newDeps;
             }
         }
@@ -102,35 +107,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
             QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs)
         {
-            callerTypeArgs = RemovePositionFromTypeArgs(callerTypeArgs);
-            calledTypeArgs = RemovePositionFromTypeArgs(calledTypeArgs);
+            //callerTypeArgs = RemovePositionFromTypeArgs(callerTypeArgs);
+            //calledTypeArgs = RemovePositionFromTypeArgs(calledTypeArgs);
 
             // ToDo: Setting TypeArgs to Null is temporary
-            var callerKey = new CallGraphDependency { CallableName = callerName, Kind = callerKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
-            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
+            var callerKey = new CallGraphNode { CallableName = callerName, Kind = callerKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
+            var calledKey = new CallGraphNode { CallableName = calledName, Kind = calledKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
 
             // ToDo: there is probably a better way to write this if-else structure
-            var dependencyType = DependencyType.NoTypeParameters;
-            if (calledTypeArgs.IsValue && calledTypeArgs.Item.Any())
-            {
-                if (calledTypeArgs.Item.Any(x => IsAugmentingTypeParameters(x, callerName)))
-                {
-                    dependencyType = DependencyType.AugmentingTypeParameters;
-                }
-                else if (calledTypeArgs.Item.Any(x => x.Resolution is ResolvedTypeKind.TypeParameter tParam && tParam.Item.Origin.Equals(callerName)))
-                {
-                    dependencyType = DependencyType.ForwardingTypeParameters;
-                }
-                else
-                {
-                    dependencyType = DependencyType.NoForwardingTypeParameters;
-                }
-            }
+            //var dependencyType = DependencyType.NoTypeParameters;
+            //if (calledTypeArgs.IsValue && calledTypeArgs.Item.Any())
+            //{
+            //    if (calledTypeArgs.Item.Any(x => IsAugmentingTypeParameters(x, callerName)))
+            //    {
+            //        dependencyType = DependencyType.AugmentingTypeParameters;
+            //    }
+            //    else if (calledTypeArgs.Item.Any(x => x.Resolution is ResolvedTypeKind.TypeParameter tParam && tParam.Item.Origin.Equals(callerName)))
+            //    {
+            //        dependencyType = DependencyType.ForwardingTypeParameters;
+            //    }
+            //    else
+            //    {
+            //        dependencyType = DependencyType.NoForwardingTypeParameters;
+            //    }
+            //}
 
-            RecordDependency(callerKey, calledKey, dependencyType);
+            RecordDependency(callerKey, calledKey, new CallGraphEdge { });
         }
 
-        public ImmutableArray<(CallGraphDependency, DependencyType)> GetDirectDependencies(CallGraphDependency callerSpec)
+        public ImmutableArray<(CallGraphNode, CallGraphEdge)> GetDirectDependencies(CallGraphNode callerSpec)
         {
             if (_Dependencies.TryGetValue(callerSpec, out var deps))
             {
@@ -138,7 +143,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             }
             else
             {
-                return ImmutableArray<(CallGraphDependency, DependencyType)>.Empty;
+                return ImmutableArray<(CallGraphNode, CallGraphEdge)>.Empty;
             }
         }
 
@@ -148,32 +153,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// the specialization kind, as well as the resolved type arguments.
         /// The returned type arguments are the exact type arguments of the expression,
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
-        public ImmutableArray<(CallGraphDependency, DependencyType)> GetDirectDependencies(QsSpecialization callerSpec) =>
-            GetDirectDependencies(new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
+        public ImmutableArray<(CallGraphNode, CallGraphEdge)> GetDirectDependencies(QsSpecialization callerSpec) =>
+            GetDirectDependencies(new CallGraphNode { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
 
-        public ImmutableArray<(CallGraphDependency, DependencyType)> GetAllDependencies(CallGraphDependency callerSpec)
+        // ToDo
+        public ImmutableArray<(CallGraphNode, CallGraphEdge)> GetAllDependencies(CallGraphNode callerSpec)
         {
-            HashSet<(CallGraphDependency, DependencyType)> WalkDependencyTree(CallGraphDependency root, HashSet<(CallGraphDependency, DependencyType)> accum, DependencyType parentDepType)
-            {
-                if (_Dependencies.TryGetValue(root, out var next))
-                {
-                    foreach (var k in next)
-                    {
-                        // Get the maximum type of dependency between the parent dependency type and the current dependency type
-                        var maxDepType = k.Item2.CompareTo(parentDepType) > 0 ? k.Item2 : parentDepType;
-                        if (accum.Add((k.Item1, maxDepType)))
-                        {
-                            // ToDo: this won't work once Type specialization are implemented
-                            var noTypeParams = new CallGraphDependency { CallableName = k.Item1.CallableName, Kind = k.Item1.Kind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
-                            WalkDependencyTree(noTypeParams, accum, maxDepType);
-                        }
-                    }
-                }
+            return ImmutableArray<(CallGraphNode, CallGraphEdge)>.Empty;
 
-                return accum;
-            }
-
-            return WalkDependencyTree(callerSpec, new HashSet<(CallGraphDependency, DependencyType)>(), DependencyType.NoTypeParameters).ToImmutableArray();
+            //HashSet<(CallGraphNode, CallGraphEdge)> WalkDependencyTree(CallGraphNode root, HashSet<(CallGraphNode, CallGraphEdge)> accum, DependencyType parentDepType)
+            //{
+            //    if (_Dependencies.TryGetValue(root, out var next))
+            //    {
+            //        foreach (var k in next)
+            //        {
+            //            // Get the maximum type of dependency between the parent dependency type and the current dependency type
+            //            var maxDepType = k.Item2.CompareTo(parentDepType) > 0 ? k.Item2 : parentDepType;
+            //            if (accum.Add((k.Item1, maxDepType)))
+            //            {
+            //                // ToDo: this won't work once Type specialization are implemented
+            //                var noTypeParams = new CallGraphNode { CallableName = k.Item1.CallableName, Kind = k.Item1.Kind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
+            //                WalkDependencyTree(noTypeParams, accum, maxDepType);
+            //            }
+            //        }
+            //    }
+            //
+            //    return accum;
+            //}
+            //
+            //return WalkDependencyTree(callerSpec, new HashSet<(CallGraphNode, DependencyType)>(), DependencyType.NoTypeParameters).ToImmutableArray();
         }
 
         /// Returns all specializations directly or indirectly used within the given caller,
@@ -182,33 +190,34 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// the specialization kind, as well as the resolved type arguments.
         /// The returned type arguments are the exact type arguments of the expression,
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
-        public ImmutableArray<(CallGraphDependency, DependencyType)> GetAllDependencies(QsSpecialization callerSpec) =>
-            GetAllDependencies(new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
+        public ImmutableArray<(CallGraphNode, CallGraphEdge)> GetAllDependencies(QsSpecialization callerSpec) =>
+            GetAllDependencies(new CallGraphNode { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
 
-        public void GetCallCycles()
+        public HashSet<ImmutableArray<(CallGraphNode, CallGraphEdge)>> GetCallCycles()
         {
-            var active = new Stack<CallGraphDependency>();
-            var activeHash = new Dictionary<CallGraphDependency, int>();
-            var finished = new HashSet<CallGraphDependency>();
-            var cycles = new HashSet<ImmutableArray<CallGraphDependency>>();
+            var active = new Stack<CallGraphNode>();
+            var activeHash = new Dictionary<CallGraphNode, int>();
+            var finished = new HashSet<CallGraphNode>();
+            var cycles = new HashSet<ImmutableArray<(CallGraphNode, CallGraphEdge)>>();
 
-            void MyRecurse(CallGraphDependency depKey)
+            void processDependencies(CallGraphNode depKey)
             {
                 active.Push(depKey);
                 activeHash.Add(depKey, active.Count() - 1);
 
                 foreach (var (dep, depType) in _Dependencies[depKey])
                 {
-                    if (finished.Contains(dep)) continue;
-
-                    if (activeHash.TryGetValue(dep, out var position))
+                    if (!finished.Contains(dep))
                     {
-                        // Cycle detected
-                        cycles.Add(active.Skip(position).ToImmutableArray());
-                    }
-                    else
-                    {
-                        MyRecurse(dep);
+                        if (activeHash.TryGetValue(dep, out var position))
+                        {
+                            // Cycle detected
+                            
+                        }
+                        else
+                        {
+                            processDependencies(dep);
+                        }
                     }
                 }
 
@@ -220,9 +229,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 if (!finished.Contains(key))
                 {
-                    MyRecurse(key);
+                    processDependencies(key);
                 }
             }
+
+            return cycles;
         }
     }
 
