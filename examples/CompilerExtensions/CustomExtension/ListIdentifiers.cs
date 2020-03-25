@@ -77,31 +77,6 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
         }
 
         /// <summary>
-        /// Helper class for ListIdentifiers that defines expression kind transformations.
-        /// It adds any identifier that occurs within an expression to the shared transformation state.
-        /// The transformation does not modify the syntax tree nodes.
-        /// </summary>
-        private class ExpressionKindTransformation
-        : ExpressionKindTransformation<TransformationState>
-        {
-            internal ExpressionKindTransformation(ListIdentifiers parent)
-            : base(parent, TransformationOptions.NoRebuild)
-            { }
-
-            public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> OnIdentifier
-                (Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
-            {
-                var name =
-                    sym is Identifier.LocalVariable var ? var.Item.Value :
-                    sym is Identifier.GlobalCallable global ? global.Item.ToString() :
-                    null;
-
-                if (name != null) this.SharedState.AddIdentifier(name);
-                return base.OnIdentifier(sym, tArgs);
-            }
-        }
-
-        /// <summary>
         /// Helper class for ListIdentifiers that defines namespace transformations.
         /// It adds a comment to each callable listing all identifiers used within the callable
         /// according to the information accumulated in the shared transformation state.
@@ -127,6 +102,31 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
                 this.SharedState.SetCurrentCallable(null);
                 var comment = $" {String.Join(", ", this.SharedState.IdentifiersInCallable(c.FullName))}";
                 return AddComments(c, " Contained identifiers:", comment, "");
+            }
+        }
+
+        /// <summary>
+        /// Class that defines expression kind transformations for ListIdentifiers.
+        /// It adds any identifier that occurs within an expression to the shared transformation state.
+        /// The transformation does not modify the syntax tree nodes.
+        /// </summary>
+        private class ExpressionKindTransformation
+        : ExpressionKindTransformation<TransformationState>
+        {
+            internal ExpressionKindTransformation(ListIdentifiers parent)
+            : base(parent, TransformationOptions.NoRebuild)
+            { }
+
+            public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> OnIdentifier
+                (Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+            {
+                var name =
+                    sym is Identifier.LocalVariable var ? var.Item.Value :
+                    sym is Identifier.GlobalCallable global ? global.Item.ToString() :
+                    null;
+
+                if (name != null) this.SharedState.AddIdentifier(name);
+                return base.OnIdentifier(sym, tArgs);
             }
         }
     }
