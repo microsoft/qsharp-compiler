@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     {
         public struct CallGraphEdge
         {
-            // ToDo: Fill out edge information
+            public ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> ParamResolutions;
         }
 
         //public enum DependencyType
@@ -195,41 +195,50 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         public HashSet<ImmutableArray<(CallGraphNode, CallGraphEdge)>> GetCallCycles()
         {
-            var active = new Stack<CallGraphNode>();
+            var active = new Stack<(CallGraphNode, CallGraphEdge)>();
             var activeHash = new Dictionary<CallGraphNode, int>();
             var finished = new HashSet<CallGraphNode>();
             var cycles = new HashSet<ImmutableArray<(CallGraphNode, CallGraphEdge)>>();
 
             void processDependencies(CallGraphNode depKey)
             {
-                active.Push(depKey);
-                activeHash.Add(depKey, active.Count() - 1);
-
-                foreach (var (dep, depType) in _Dependencies[depKey])
+                foreach (var (node, edge) in _Dependencies[depKey])
                 {
-                    if (!finished.Contains(dep))
+                    if (!finished.Contains(node))
                     {
-                        if (activeHash.TryGetValue(dep, out var position))
+                        if (activeHash.TryGetValue(node, out var position))
                         {
                             // Cycle detected
-                            
+                            cycles.Add(active
+                                .Skip(position + 1)
+                                .Prepend((node, edge))
+                                .ToImmutableArray());
                         }
                         else
                         {
-                            processDependencies(dep);
+                            activeHash.Add(node, active.Count());
+                            active.Push((node, edge));
+
+                            processDependencies(node);
+                            
+                            finished.Add(active.Pop().Item1);
+                            activeHash.Remove(node);
                         }
                     }
                 }
-
-                activeHash.Remove(depKey);
-                finished.Add(active.Pop());
             }
 
             foreach (var key in _Dependencies.Keys)
             {
                 if (!finished.Contains(key))
                 {
+                    activeHash.Add(key, active.Count());
+                    active.Push((key, new CallGraphEdge { }));
+
                     processDependencies(key);
+
+                    finished.Add(active.Pop().Item1);
+                    activeHash.Remove(key);
                 }
             }
 
