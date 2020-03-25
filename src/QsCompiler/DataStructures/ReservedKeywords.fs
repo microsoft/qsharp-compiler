@@ -236,9 +236,9 @@ module AssemblyConstants =
     let OutputPath = "OutputPath"
     let AssemblyName = "AssemblyName"
     let ExecutionTarget = "ResolvedExecutionTarget"
-    let HoneywellProcessor = "HoneywellProcessor"
-    let IonQProcessor = "IonQProcessor"
-    let QCIProcessor = "QCIProcessor"
+    let AlfredProcessor = "AlfredProcessor"
+    let BrunoProcessor = "BrunoProcessor"
+    let ClementineProcessor = "ClementineProcessor"
 
 
 /// contains specific names used within Q# dlls
