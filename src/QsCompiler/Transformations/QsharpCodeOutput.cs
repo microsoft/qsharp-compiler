@@ -115,7 +115,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         // public methods for convenience
 
-        public static SyntaxTreeToQsharp Default = 
+        public static SyntaxTreeToQsharp Default =>
             new SyntaxTreeToQsharp();
 
         public string ToCode(ResolvedType t)
