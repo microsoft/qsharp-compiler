@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
         }
 
         /// <summary>
-        /// Helper class for ListIdentifiers that defines namespace transformations.
+        /// Class that defines namespace transformations for ListIdentifiers.
         /// It adds a comment to each callable listing all identifiers used within the callable
         /// according to the information accumulated in the shared transformation state.
         /// </summary>
