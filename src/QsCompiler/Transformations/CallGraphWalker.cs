@@ -105,8 +105,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             callerTypeArgs = RemovePositionFromTypeArgs(callerTypeArgs);
             calledTypeArgs = RemovePositionFromTypeArgs(calledTypeArgs);
 
-            var callerKey = new CallGraphDependency { CallableName = callerName, Kind = callerKind, TypeArgs = RemovePositionFromTypeArgs(callerTypeArgs) };
-            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = RemovePositionFromTypeArgs(calledTypeArgs) };
+            // ToDo: Setting TypeArgs to Null is temporary
+            var callerKey = new CallGraphDependency { CallableName = callerName, Kind = callerKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
+            var calledKey = new CallGraphDependency { CallableName = calledName, Kind = calledKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
 
             // ToDo: there is probably a better way to write this if-else structure
             var dependencyType = DependencyType.NoTypeParameters;
@@ -183,6 +184,46 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
         public ImmutableArray<(CallGraphDependency, DependencyType)> GetAllDependencies(QsSpecialization callerSpec) =>
             GetAllDependencies(new CallGraphDependency { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
+
+        public void GetCallCycles()
+        {
+            var active = new Stack<CallGraphDependency>();
+            var activeHash = new Dictionary<CallGraphDependency, int>();
+            var finished = new HashSet<CallGraphDependency>();
+            var cycles = new HashSet<ImmutableArray<CallGraphDependency>>();
+
+            void MyRecurse(CallGraphDependency depKey)
+            {
+                active.Push(depKey);
+                activeHash.Add(depKey, active.Count() - 1);
+
+                foreach (var (dep, depType) in _Dependencies[depKey])
+                {
+                    if (finished.Contains(dep)) continue;
+
+                    if (activeHash.TryGetValue(dep, out var position))
+                    {
+                        // Cycle detected
+                        cycles.Add(active.Skip(position).ToImmutableArray());
+                    }
+                    else
+                    {
+                        MyRecurse(dep);
+                    }
+                }
+
+                activeHash.Remove(depKey);
+                finished.Add(active.Pop());
+            }
+
+            foreach (var key in _Dependencies.Keys)
+            {
+                if (!finished.Contains(key))
+                {
+                    MyRecurse(key);
+                }
+            }
+        }
     }
 
     public static class BuildCallGraph
@@ -191,10 +232,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             var walker = new BuildGraph();
 
-            foreach (var ns in compilation.Namespaces)
-            {
-                walker.Namespaces.OnNamespace(ns);
-            }
+            walker.Namespaces.OnNamespace(compilation.Namespaces.First(x => x.Name.Value == "Input"));
+
+            //foreach (var ns in compilation.Namespaces)
+            //{
+            //    walker.Namespaces.OnNamespace(ns);
+            //}
 
             return walker.SharedState.graph;
         }
@@ -273,6 +316,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     if (sym is Identifier.GlobalCallable global)
                     {
                         var typeArgs = tArgs; // ToDo: THIS IS NOT ACCURATE
+
                         if (SharedState.inCall)
                         {
                             var kind = QsSpecializationKind.QsBody;
