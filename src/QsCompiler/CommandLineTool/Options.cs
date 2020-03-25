@@ -42,6 +42,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Path to the NuGet package containing target specific information and implementations.")]
         public string TargetPackage { get; set; }
 
+        [Option("load-test-names", Required = false, Default = false, SetName = CODE_MODE,
+        HelpText = "Specifies whether public types and callables declared in referenced assemblies are exposed via their test name defined by the corresponding attribute.")]
+        public bool ExposeReferencesViaTestNames { get; set; }
+
         [Option("assembly-properties", Required = false, SetName = CODE_MODE,
         HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
         public IEnumerable<string> AdditionalAssemblyProperties { get; set; }

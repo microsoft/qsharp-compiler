@@ -241,7 +241,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public void LoadQsharpUnittest()
+        public void LoadQsharpUnitTest()
         {
             var (projectFile, context) = Context("test5");
             var projDir = Path.GetDirectoryName(projectFile);
@@ -293,7 +293,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     {
         internal static ProjectInformation Load(Uri projectFile)
         {
-            void LogOutput(string msg, MessageType level) =>
+            static void LogOutput(string msg, MessageType level) =>
                 Console.WriteLine($"[{level}]: {msg}");
             return new EditorState(new ProjectLoader(LogOutput), null, null, null, null)
                 .QsProjectLoader(projectFile, out var loaded) ? loaded : null;

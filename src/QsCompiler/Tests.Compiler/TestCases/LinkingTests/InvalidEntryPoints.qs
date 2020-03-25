@@ -212,4 +212,14 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     operation InvalidEntryPoint36 () : (Unit => (Int, Complex) is Ctl + Adj) {
         return Default<(Unit => (Int, Complex) is Ctl + Adj)>();
     }
+
+
+    // no inner tuples in entry point arguments
+    
+    @ EntryPoint()
+    operation InvalidEntryPoint37(arg : (Int, BigInt[])) : Unit {}
+
+    @ EntryPoint()
+    operation InvalidEntryPoint38(arg1 : (Pauli, Result)[], arg2 : Double) : Unit {}
+
 }
