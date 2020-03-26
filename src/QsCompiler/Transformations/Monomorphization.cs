@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         private struct Request
         {
             public QsQualifiedName originalName;
-            public ImmutableConcretion typeResolutions;
+            public ImmutableConcretion typeResolutions; // 
             public QsQualifiedName concreteName;
         }
 
