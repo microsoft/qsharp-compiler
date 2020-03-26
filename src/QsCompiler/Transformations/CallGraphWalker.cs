@@ -154,26 +154,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                 if (_Dependencies.TryGetValue(curr, out var dependencies))
                 {
-                    foreach (var (next, _) in dependencies)
+                    callStack[curr] = new CallGraphNode { };
+
+                    foreach (var node in dependencies)
                     {
+                        var next = node.Key;
+
                         if (!finished.Contains(next))
                         {
                             //if (callStackHash.TryGetValue(node, out var pos))
                             if (callStack.TryGetValue(next, out var temp))
                             {
                                 // Cycle detected
-                                var cycle = new List<CallGraphNode>() { next };
+                                var cycle = new List<CallGraphNode>();
                                 do
                                 {
-                                    cycle.Add(temp);
-                                } while (callStack.TryGetValue(temp, out temp)) ;
+                                    cycle.Add(next);
+                                    next = temp;
+                                } while (callStack.TryGetValue(next, out temp));
 
                                 //cycles.Add(callStack.Skip(pos).ToImmutableArray());
                                 cycles.Add(cycle.ToImmutableArray());
                             }
                             else
                             {
-                                callStack[curr] = next;
+                                callStack[curr] = next; // ToDo: this has got to go somewhere else
 
                                 processDependencies(next);
                             }
