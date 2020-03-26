@@ -144,7 +144,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             var finished = new HashSet<CallGraphNode>();
             var cycles = new List<ImmutableArray<CallGraphNode>>();
 
-            var callStack = new Dictionary<CallGraphNode, CallGraphNode>();
+            var callStack = new Dictionary<CallGraphNode, CallGraphNode?>();
 
             void processDependencies(CallGraphNode curr)
             {
@@ -154,7 +154,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                 if (_Dependencies.TryGetValue(curr, out var dependencies))
                 {
-                    callStack[curr] = new CallGraphNode { };
+                    callStack[curr] = null;
 
                     foreach (var node in dependencies)
                     {
@@ -166,21 +166,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             if (callStack.TryGetValue(next, out var temp))
                             {
                                 // Cycle detected
-                                var cycle = new List<CallGraphNode>();
-                                do
+                                var cycle = new List<CallGraphNode>() { next };
+                                while (temp.HasValue && callStack.TryGetValue(next = temp.Value, out temp))
                                 {
                                     cycle.Add(next);
-                                    next = temp;
-                                } while (callStack.TryGetValue(next, out temp));
+                                }
+
+                                //do
+                                //{
+                                //    cycle.Add(next);
+                                //    next = temp;
+                                //} while (callStack.TryGetValue(next, out temp));
 
                                 //cycles.Add(callStack.Skip(pos).ToImmutableArray());
                                 cycles.Add(cycle.ToImmutableArray());
                             }
                             else
                             {
-                                callStack[curr] = next; // ToDo: this has got to go somewhere else
+                                callStack[curr] = next;
 
                                 processDependencies(next);
+
+                                callStack[curr] = null;
                             }
                         }
                     }
