@@ -25,14 +25,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             public ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> ParamResolutions;
         }
 
-        //public enum DependencyType
-        //{
-        //    NoTypeParameters,
-        //    NoForwardingTypeParameters,
-        //    ForwardingTypeParameters,
-        //    AugmentingTypeParameters
-        //}
-
         public struct CallGraphNode
         {
             public QsQualifiedName CallableName;
@@ -47,43 +39,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             tArgs.IsValue
             ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(tArgs.Item.Select(x => x.RemovePositionInfo()).ToImmutableArray())
             : tArgs;
-
-        // ToDo: it might be cleaner to have an F# member function on the ResolvedType class for doing this
-        private bool IsAugmentingTypeParameters(ResolvedType type, QsQualifiedName callerName)
-        {
-            bool isAugmenting(ResolvedType type)
-            {
-                if (type.Resolution is ResolvedTypeKind.ArrayType ary)
-                {
-                    return isAugmenting(ary.Item);
-                }
-                else if (type.Resolution is ResolvedTypeKind.TupleType tup)
-                {
-                    return tup.Item.Any(x => isAugmenting(x));
-                }
-                else if (type.Resolution is ResolvedTypeKind.Operation op)
-                {
-                    return isAugmenting(op.Item1.Item1) || isAugmenting(op.Item1.Item2);
-                }
-                else if (type.Resolution is ResolvedTypeKind.Function func)
-                {
-                    return isAugmenting(func.Item1) || isAugmenting(func.Item2);
-                }
-                else if (type.Resolution is ResolvedTypeKind.TypeParameter tParam)
-                {
-                    return tParam.Item.Origin.Equals(callerName);
-                }
-
-                return false;
-            }
-
-            if (type.Resolution is ResolvedTypeKind.TypeParameter tParam)
-            {
-                return false;
-            }
-
-            return isAugmenting(type);
-        }
 
         private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
@@ -106,41 +61,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             }
         }
 
-        public void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs) =>
+        public void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs, CallGraphEdge edge) =>
             AddDependency(
                 callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments,
-                calledName, calledKind, calledTypeArgs);
+                calledName, calledKind, calledTypeArgs,
+                edge);
 
         public void AddDependency(
             QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
-            QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs)
+            QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
+            CallGraphEdge edge)
         {
-            //callerTypeArgs = RemovePositionFromTypeArgs(callerTypeArgs);
-            //calledTypeArgs = RemovePositionFromTypeArgs(calledTypeArgs);
-
             // ToDo: Setting TypeArgs to Null is temporary
             var callerKey = new CallGraphNode { CallableName = callerName, Kind = callerKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
             var calledKey = new CallGraphNode { CallableName = calledName, Kind = calledKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
 
-            // ToDo: there is probably a better way to write this if-else structure
-            //var dependencyType = DependencyType.NoTypeParameters;
-            //if (calledTypeArgs.IsValue && calledTypeArgs.Item.Any())
-            //{
-            //    if (calledTypeArgs.Item.Any(x => IsAugmentingTypeParameters(x, callerName)))
-            //    {
-            //        dependencyType = DependencyType.AugmentingTypeParameters;
-            //    }
-            //    else if (calledTypeArgs.Item.Any(x => x.Resolution is ResolvedTypeKind.TypeParameter tParam && tParam.Item.Origin.Equals(callerName)))
-            //    {
-            //        dependencyType = DependencyType.ForwardingTypeParameters;
-            //    }
-            //    else
-            //    {
-            //        dependencyType = DependencyType.NoForwardingTypeParameters;
-            //    }
-            //}
-
-            RecordDependency(callerKey, calledKey, new CallGraphEdge { });
+            RecordDependency(callerKey, calledKey, edge);
         }
 
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(CallGraphNode callerSpec)
@@ -235,7 +171,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                 callStack.RemoveAt(position);
                 callStackHash.Remove(depKey);
-                
+
                 finished.Add(depKey);
             }
 
@@ -257,12 +193,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             var walker = new BuildGraph();
 
-            walker.Namespaces.OnNamespace(compilation.Namespaces.First(x => x.Name.Value == "Input"));
-
-            //foreach (var ns in compilation.Namespaces)
-            //{
-            //    walker.Namespaces.OnNamespace(ns);
-            //}
+            foreach (var ns in compilation.Namespaces)
+            {
+                walker.Namespaces.OnNamespace(ns);
+            }
 
             return walker.SharedState.graph;
         }
@@ -342,6 +276,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     {
                         var typeArgs = tArgs; // ToDo: THIS IS NOT ACCURATE
 
+                        var edge = new CallGraph.CallGraphEdge { }; // ToDo: This is not accurate
+
                         if (SharedState.inCall)
                         {
                             var kind = QsSpecializationKind.QsBody;
@@ -358,7 +294,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                                 kind = QsSpecializationKind.QsControlled;
                             }
 
-                            SharedState.graph.AddDependency(SharedState.spec, global.Item, kind, typeArgs);
+                            SharedState.graph.AddDependency(SharedState.spec, global.Item, kind, typeArgs, edge);
                         }
                         else
                         {
@@ -366,10 +302,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             // assigned to a variable or passed as an argument to another callable,
                             // which means it could get a functor applied at some later time.
                             // We're conservative and add all 4 possible kinds.
-                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsBody, typeArgs);
-                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsControlled, typeArgs);
-                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsAdjoint, typeArgs);
-                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsControlledAdjoint, typeArgs);
+                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsBody, typeArgs, edge);
+                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsControlled, typeArgs, edge);
+                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsAdjoint, typeArgs, edge);
+                            SharedState.graph.AddDependency(SharedState.spec, global.Item, QsSpecializationKind.QsControlledAdjoint, typeArgs, edge);
                         }
                     }
 
