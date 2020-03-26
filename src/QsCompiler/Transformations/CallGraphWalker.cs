@@ -193,36 +193,44 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         public ImmutableArray<(CallGraphNode, CallGraphEdge)> GetAllDependencies(QsSpecialization callerSpec) =>
             GetAllDependencies(new CallGraphNode { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
 
-        public HashSet<ImmutableArray<(CallGraphNode, CallGraphEdge)>> GetCallCycles()
+        // use multiple edges between nodes
+        // only return array of nodes, no edges
+
+        public List<ImmutableArray<(CallGraphNode, CallGraphEdge)>> GetCallCycles()
         {
-            var active = new Stack<(CallGraphNode, CallGraphEdge)>();
-            var activeHash = new Dictionary<CallGraphNode, int>();
+            var callStack = new List<(CallGraphNode, CallGraphEdge)>();
+            var callStackHash = new Dictionary<CallGraphNode, int>();
             var finished = new HashSet<CallGraphNode>();
-            var cycles = new HashSet<ImmutableArray<(CallGraphNode, CallGraphEdge)>>();
+            var cycles = new List<ImmutableArray<(CallGraphNode, CallGraphEdge)>>();
 
             void processDependencies(CallGraphNode depKey)
             {
-                foreach (var (node, edge) in _Dependencies[depKey])
+                if (_Dependencies.TryGetValue(depKey, out var dependencies))
                 {
-                    if (!finished.Contains(node))
+                    foreach (var (node, edge) in dependencies)
                     {
-                        if (activeHash.TryGetValue(node, out var position))
+                        if (!finished.Contains(node))
                         {
-                            // Cycle detected
-                            cycles.Add(active
-                                .Skip(position + 1)
-                                .Prepend((node, edge))
-                                .ToImmutableArray());
-                        }
-                        else
-                        {
-                            activeHash.Add(node, active.Count());
-                            active.Push((node, edge));
+                            if (callStackHash.TryGetValue(node, out var position))
+                            {
+                                // Cycle detected
+                                cycles.Add(callStack
+                                    .Skip(position + 1)
+                                    .Prepend((node, edge))
+                                    .ToImmutableArray());
+                            }
+                            else
+                            {
+                                position = callStack.Count();
+                                callStackHash.Add(node, position);
+                                callStack.Add((node, edge));
 
-                            processDependencies(node);
-                            
-                            finished.Add(active.Pop().Item1);
-                            activeHash.Remove(node);
+                                processDependencies(node);
+                                finished.Add(node);
+
+                                callStack.RemoveAt(position);
+                                callStackHash.Remove(node);
+                            }
                         }
                     }
                 }
@@ -232,13 +240,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 if (!finished.Contains(key))
                 {
-                    activeHash.Add(key, active.Count());
-                    active.Push((key, new CallGraphEdge { }));
+                    var position = callStack.Count();
+                    callStackHash.Add(key, position);
+                    callStack.Add((key, new CallGraphEdge { }));
 
                     processDependencies(key);
+                    finished.Add(key);
 
-                    finished.Add(active.Pop().Item1);
-                    activeHash.Remove(key);
+                    callStack.RemoveAt(position);
+                    callStackHash.Remove(key);
                 }
             }
 
