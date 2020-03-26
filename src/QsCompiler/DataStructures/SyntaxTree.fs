@@ -302,18 +302,6 @@ type ResolvedType = private {
     /// By construction never contains any arity-0 or arity-1 tuple types.
     member this.Resolution = this._TypeKind
 
-    /// Recursively removes all position information for the resolved type and any sub-types,
-    /// setting the Range value to Null.
-    member this.RemovePositionInfo () =
-        match this.Resolution with
-        | QsTypeKind.TypeParameter tp -> { tp with Range = QsNullable<_>.Null } |> QsTypeKind.TypeParameter |> ResolvedType.New
-        | QsTypeKind.UserDefinedType udt -> { udt with Range = QsNullable<_>.Null } |> QsTypeKind.UserDefinedType |> ResolvedType.New
-        | QsTypeKind.TupleType ts -> ts |> Seq.map (fun x -> x.RemovePositionInfo()) |> fun x -> x.ToImmutableArray() |> TupleType |> ResolvedType.New
-        | QsTypeKind.ArrayType b -> b.RemovePositionInfo() |> ArrayType |> ResolvedType.New
-        | QsTypeKind.Function (it, ot) -> (it.RemovePositionInfo(), ot.RemovePositionInfo()) |> QsTypeKind.Function |> ResolvedType.New
-        | QsTypeKind.Operation ((it, ot), fList) -> ((it.RemovePositionInfo(), ot.RemovePositionInfo()), fList) |> QsTypeKind.Operation |> ResolvedType.New
-        | _ -> this
-
     /// Builds a ResolvedType based on a compatible Q# type kind, and replaces the (inaccessible) record constructor.
     /// Replaces an arity-1 tuple by its item type.
     /// Throws an ArgumentException if the given type kind is an empty tuple.

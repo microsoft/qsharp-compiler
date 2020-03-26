@@ -9,7 +9,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
@@ -38,10 +37,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         public static QsCompilation Apply(QsCompilation compilation)
         {
-            CallGraph callGraph = BuildCallGraph.Apply(compilation);
-
-            var cycles = callGraph.GetCallCycles();
-
             if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
 
             var globals = compilation.Namespaces.GlobalCallableResolutions();

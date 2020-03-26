@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         private QsNullable<ImmutableArray<ResolvedType>> RemovePositionFromTypeArgs(QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
             tArgs.IsValue
-            ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(tArgs.Item.Select(x => x.RemovePositionInfo()).ToImmutableArray())
+            ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(tArgs.Item.Select(x => StripPositionInfo.Apply(x)).ToImmutableArray())
             : tArgs;
 
         private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
             CallGraphEdge edge)
         {
-            // ToDo: Setting TypeArgs to Null is temporary
+            // ToDo: Setting TypeArgs to Null because the type specialization is not implemented yet
             var callerKey = new CallGraphNode { CallableName = callerName, Kind = callerKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
             var calledKey = new CallGraphNode { CallableName = calledName, Kind = calledKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
 
@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(QsSpecialization callerSpec) =>
             GetDirectDependencies(new CallGraphNode { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
 
-        // ToDo
+        // ToDo: this method needs a way of resolving type parameters before it can be completed
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(CallGraphNode callerSpec)
         {
             return new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
@@ -276,9 +276,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 {
                     if (sym is Identifier.GlobalCallable global)
                     {
-                        var typeArgs = tArgs; // ToDo: THIS IS NOT ACCURATE
+                        // ToDo: Type arguments need to be resolved for the whole expression to be accurate, though this will not be needed until type specialization is implemented
+                        var typeArgs = tArgs;
 
-                        var edge = new CallGraph.CallGraphEdge { }; // ToDo: This is not accurate
+                        // ToDo: Type argument dictionaries need to be resolved and set here
+                        var edge = new CallGraph.CallGraphEdge { };
 
                         if (SharedState.inCall)
                         {
