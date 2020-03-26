@@ -20,9 +20,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
     using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
-    using Temp = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using RangeTemp = QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>;
-
     public static class Monomorphize
     {
         private struct Request
