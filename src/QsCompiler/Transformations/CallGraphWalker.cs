@@ -143,44 +143,43 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             var finished = new HashSet<CallGraphNode>();
             var cycles = new List<ImmutableArray<CallGraphNode>>();
 
-            void processDependencies(CallGraphNode curr)
+            void processDependencies(CallGraphNode node)
             {
-                if (_Dependencies.TryGetValue(curr, out var dependencies))
+                if (_Dependencies.TryGetValue(node, out var dependencies))
                 {
-                    callStack[curr] = null;
+                    callStack[node] = null;
 
-                    foreach (var node in dependencies)
+                    foreach (var kvp in dependencies)
                     {
-                        var next = node.Key;
+                        var curr = kvp.Key;
 
-                        if (!finished.Contains(next))
+                        if (!finished.Contains(curr))
                         {
-                            if (callStack.TryGetValue(next, out var temp))
+                            if (callStack.TryGetValue(curr, out var next))
                             {
                                 // Cycle detected
-                                var cycle = new List<CallGraphNode>() { next };
-                                while (temp.HasValue && callStack.TryGetValue(next = temp.Value, out temp))
+                                var cycle = new List<CallGraphNode>() { curr };
+                                while (next.HasValue && callStack.TryGetValue(curr = next.Value, out next))
                                 {
-                                    cycle.Add(next);
+                                    cycle.Add(curr);
                                 }
                                 cycles.Add(cycle.ToImmutableArray());
                             }
                             else
                             {
-                                callStack[curr] = next;
+                                callStack[node] = curr;
 
-                                processDependencies(next);
+                                processDependencies(curr);
 
-                                callStack[curr] = null;
+                                callStack[node] = null;
                             }
                         }
                     }
 
-                    // If the key is not in the stack, this will do nothing
-                    callStack.Remove(curr);
+                    callStack.Remove(node);
                 }
 
-                finished.Add(curr);
+                finished.Add(node);
             }
 
             foreach (var key in _Dependencies.Keys)
