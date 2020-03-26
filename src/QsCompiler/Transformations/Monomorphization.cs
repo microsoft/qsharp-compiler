@@ -43,6 +43,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         {
             CallGraph callGraph = BuildCallGraph.Apply(compilation);
 
+            var cycles = callGraph.GetCallCycles();
+
             if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
 
             var globals = compilation.Namespaces.GlobalCallableResolutions();
