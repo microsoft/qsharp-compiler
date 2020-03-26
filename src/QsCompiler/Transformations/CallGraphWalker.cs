@@ -60,12 +60,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             }
         }
 
+        /// <summary>
+        /// Adds a dependency to the call graph using the caller's specialization and the called specialization's information.
+        /// </summary>
         public void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs, CallGraphEdge edge) =>
             AddDependency(
                 callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments,
                 calledName, calledKind, calledTypeArgs,
                 edge);
 
+        /// <summary>
+        /// Adds a dependency to the call graph using the relevant information from the caller's specialization and the called specialization.
+        /// </summary>
         public void AddDependency(
             QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
             QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
@@ -78,6 +84,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             RecordDependency(callerKey, calledKey, edge);
         }
 
+        /// <summary>
+        /// Returns all specializations that are used directly within the given caller, whether they are
+        /// called, partially applied, or assigned. Each key in the returned dictionary represents a
+        /// specialization that is used by the caller. Each value in the dictionary is an array of edges
+        /// representing all the different ways the given caller specialization took a dependency on the
+        /// specialization represented by the associated key.
+        /// </summary>
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(CallGraphNode callerSpec)
         {
             if (_Dependencies.TryGetValue(callerSpec, out var deps))
@@ -90,12 +103,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             }
         }
 
-        /// Returns all specializations that are used directly within the given caller,
-        /// whether they are called, partially applied, or assigned.
-        /// The returned specializations are identified by the full name of the callable,
-        /// the specialization kind, as well as the resolved type arguments.
-        /// The returned type arguments are the exact type arguments of the expression,
-        /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
+        /// <summary>
+        /// Returns all specializations that are used directly within the given caller, whether they are
+        /// called, partially applied, or assigned. Each key in the returned dictionary represents a
+        /// specialization that is used by the caller. Each value in the dictionary is an array of edges
+        /// representing all the different ways the given caller specialization took a dependency on the
+        /// specialization represented by the associated key.
+        /// </summary>
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(QsSpecialization callerSpec) =>
             GetDirectDependencies(new CallGraphNode { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
 
@@ -127,15 +141,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             //return WalkDependencyTree(callerSpec, new HashSet<(CallGraphNode, DependencyType)>(), DependencyType.NoTypeParameters).ToImmutableArray();
         }
 
-        /// Returns all specializations directly or indirectly used within the given caller,
-        /// whether they are called, partially applied, or assigned.
-        /// The returned specializations are identified by the full name of the callable,
-        /// the specialization kind, as well as the resolved type arguments.
-        /// The returned type arguments are the exact type arguments of the expression,
-        /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
+        /// <summary>
+        /// Returns all specializations that are used directly or indirectly within the given caller,
+        /// whether they are called, partially applied, or assigned. Each key in the returned dictionary
+        /// represents a specialization that is used by the caller. Each value in the dictionary is an
+        /// array of edges representing all the different ways the given caller specialization took a
+        /// dependency on the specialization represented by the associated key.
+        /// </summary>
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(QsSpecialization callerSpec) =>
             GetAllDependencies(new CallGraphNode { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
 
+        /// <summary>
+        /// Finds and returns a list of all cycles in the call graph, each one being represented by an array of nodes.
+        /// To get the edges between the nodes of a given cycle, use the GetDirectDependencies method.
+        /// </summary>
         public List<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
             var callStack = new Dictionary<CallGraphNode, CallGraphNode>();
@@ -189,6 +208,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         }
     }
 
+    /// <summary>
+    /// This transformation walks through the compilation without changing it, building up a call graph as it does.
+    /// This call graph is then returned to the user.
+    /// </summary>
     public static class BuildCallGraph
     {
         public static CallGraph Apply(QsCompilation compilation)
