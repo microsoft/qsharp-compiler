@@ -40,7 +40,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
         }
 
-        private Dictionary<CallGraphNode, HashSet<(CallGraphNode, CallGraphEdge)>> _Dependencies = new Dictionary<CallGraphNode, HashSet<(CallGraphNode, CallGraphEdge)>>();
+        private Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> _Dependencies =
+            new Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>>();
 
         private QsNullable<ImmutableArray<ResolvedType>> RemovePositionFromTypeArgs(QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
             tArgs.IsValue
@@ -88,12 +89,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             if (_Dependencies.TryGetValue(callerKey, out var deps))
             {
-                deps.Add((calledKey, edge));
+                if (deps.TryGetValue(calledKey, out var edges))
+                {
+                    deps[calledKey] = edges.Add(edge);
+                }
+                else
+                {
+                    deps[calledKey] = ImmutableArray.Create(edge);
+                }
             }
             else
             {
-                var newDeps = new HashSet<(CallGraphNode, CallGraphEdge)>();
-                newDeps.Add((calledKey, edge));
+                var newDeps = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
+                newDeps[calledKey] = ImmutableArray.Create(edge);
                 _Dependencies[callerKey] = newDeps;
             }
         }
@@ -135,15 +143,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             RecordDependency(callerKey, calledKey, new CallGraphEdge { });
         }
 
-        public ImmutableArray<(CallGraphNode, CallGraphEdge)> GetDirectDependencies(CallGraphNode callerSpec)
+        public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(CallGraphNode callerSpec)
         {
             if (_Dependencies.TryGetValue(callerSpec, out var deps))
             {
-                return deps.ToImmutableArray();
+                return deps;
             }
             else
             {
-                return ImmutableArray<(CallGraphNode, CallGraphEdge)>.Empty;
+                return new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
             }
         }
 
@@ -153,13 +161,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// the specialization kind, as well as the resolved type arguments.
         /// The returned type arguments are the exact type arguments of the expression,
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
-        public ImmutableArray<(CallGraphNode, CallGraphEdge)> GetDirectDependencies(QsSpecialization callerSpec) =>
+        public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(QsSpecialization callerSpec) =>
             GetDirectDependencies(new CallGraphNode { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
 
         // ToDo
-        public ImmutableArray<(CallGraphNode, CallGraphEdge)> GetAllDependencies(CallGraphNode callerSpec)
+        public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(CallGraphNode callerSpec)
         {
-            return ImmutableArray<(CallGraphNode, CallGraphEdge)>.Empty;
+            return new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
 
             //HashSet<(CallGraphNode, CallGraphEdge)> WalkDependencyTree(CallGraphNode root, HashSet<(CallGraphNode, CallGraphEdge)> accum, DependencyType parentDepType)
             //{
@@ -190,65 +198,52 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// the specialization kind, as well as the resolved type arguments.
         /// The returned type arguments are the exact type arguments of the expression,
         /// and may thus be incomplete or correspond to subtypes of a defined specialization bundle.
-        public ImmutableArray<(CallGraphNode, CallGraphEdge)> GetAllDependencies(QsSpecialization callerSpec) =>
+        public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(QsSpecialization callerSpec) =>
             GetAllDependencies(new CallGraphNode { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
 
-        // use multiple edges between nodes
-        // only return array of nodes, no edges
-
-        public List<ImmutableArray<(CallGraphNode, CallGraphEdge)>> GetCallCycles()
+        public List<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
-            var callStack = new List<(CallGraphNode, CallGraphEdge)>();
+            var callStack = new List<CallGraphNode>();
             var callStackHash = new Dictionary<CallGraphNode, int>();
             var finished = new HashSet<CallGraphNode>();
-            var cycles = new List<ImmutableArray<(CallGraphNode, CallGraphEdge)>>();
+            var cycles = new List<ImmutableArray<CallGraphNode>>();
 
             void processDependencies(CallGraphNode depKey)
             {
+                var position = callStack.Count();
+                callStackHash.Add(depKey, position);
+                callStack.Add(depKey);
+
                 if (_Dependencies.TryGetValue(depKey, out var dependencies))
                 {
                     foreach (var (node, edge) in dependencies)
                     {
                         if (!finished.Contains(node))
                         {
-                            if (callStackHash.TryGetValue(node, out var position))
+                            if (callStackHash.TryGetValue(node, out var pos))
                             {
                                 // Cycle detected
-                                cycles.Add(callStack
-                                    .Skip(position + 1)
-                                    .Prepend((node, edge))
-                                    .ToImmutableArray());
+                                cycles.Add(callStack.Skip(pos).ToImmutableArray());
                             }
                             else
                             {
-                                position = callStack.Count();
-                                callStackHash.Add(node, position);
-                                callStack.Add((node, edge));
-
                                 processDependencies(node);
-                                finished.Add(node);
-
-                                callStack.RemoveAt(position);
-                                callStackHash.Remove(node);
                             }
                         }
                     }
                 }
+
+                callStack.RemoveAt(position);
+                callStackHash.Remove(depKey);
+                
+                finished.Add(depKey);
             }
 
             foreach (var key in _Dependencies.Keys)
             {
                 if (!finished.Contains(key))
                 {
-                    var position = callStack.Count();
-                    callStackHash.Add(key, position);
-                    callStack.Add((key, new CallGraphEdge { }));
-
                     processDependencies(key);
-                    finished.Add(key);
-
-                    callStack.RemoveAt(position);
-                    callStackHash.Remove(key);
                 }
             }
 
