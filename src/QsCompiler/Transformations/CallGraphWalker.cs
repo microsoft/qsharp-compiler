@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         public List<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
-            var callStack = new Dictionary<CallGraphNode, CallGraphNode?>();
+            var callStack = new Dictionary<CallGraphNode, CallGraphNode>();
             var finished = new HashSet<CallGraphNode>();
             var cycles = new List<ImmutableArray<CallGraphNode>>();
 
@@ -147,8 +147,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 if (_Dependencies.TryGetValue(node, out var dependencies))
                 {
-                    callStack[node] = null;
-
                     foreach (var kvp in dependencies)
                     {
                         var curr = kvp.Key;
@@ -159,24 +157,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             {
                                 // Cycle detected
                                 var cycle = new List<CallGraphNode>() { curr };
-                                while (next.HasValue && callStack.TryGetValue(curr = next.Value, out next))
+                                if (!curr.Equals(next))
                                 {
-                                    cycle.Add(curr);
+                                    do
+                                    {
+                                        cycle.Add(next);
+                                    } while (callStack.TryGetValue(next, out next));
                                 }
+
                                 cycles.Add(cycle.ToImmutableArray());
                             }
                             else
                             {
                                 callStack[node] = curr;
-
                                 processDependencies(curr);
-
-                                callStack[node] = null;
+                                callStack.Remove(node);
                             }
                         }
                     }
-
-                    callStack.Remove(node);
                 }
 
                 finished.Add(node);
