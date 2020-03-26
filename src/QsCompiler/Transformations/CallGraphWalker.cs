@@ -16,8 +16,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
-    /// Class used to track call graph of a compilation.
-    /// This class is *not* threadsafe. // ToDo: is this still not threadsafe?
+    /// Class used to track call graph of a compilation
     public class CallGraph
     {
         public struct CallGraphEdge
@@ -155,7 +154,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             {
                                 // Cycle detected
                                 var cycle = new List<CallGraphNode>() { curr };
-                                if (!curr.Equals(next))
+                                if (!curr.Equals(next)) // If the cycle is a direct recursion, we only want the one node
                                 {
                                     do
                                     {
