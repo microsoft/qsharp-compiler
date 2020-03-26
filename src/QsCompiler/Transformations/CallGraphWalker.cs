@@ -147,10 +147,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 if (_Dependencies.TryGetValue(node, out var dependencies))
                 {
-                    foreach (var kvp in dependencies)
+                    foreach (var (curr, _) in dependencies)
                     {
-                        var curr = kvp.Key;
-
                         if (!finished.Contains(curr))
                         {
                             if (callStack.TryGetValue(curr, out var next))
