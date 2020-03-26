@@ -139,19 +139,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         public List<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
-            //var callStack = new List<CallGraphNode>();
-            //var callStackHash = new Dictionary<CallGraphNode, int>();
+            var callStack = new Dictionary<CallGraphNode, CallGraphNode?>();
             var finished = new HashSet<CallGraphNode>();
             var cycles = new List<ImmutableArray<CallGraphNode>>();
 
-            var callStack = new Dictionary<CallGraphNode, CallGraphNode?>();
-
             void processDependencies(CallGraphNode curr)
             {
-                //var position = callStack.Count();
-                //callStackHash.Add(depKey, position);
-                //callStack.Add(depKey);
-
                 if (_Dependencies.TryGetValue(curr, out var dependencies))
                 {
                     callStack[curr] = null;
@@ -162,7 +155,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                         if (!finished.Contains(next))
                         {
-                            //if (callStackHash.TryGetValue(node, out var pos))
                             if (callStack.TryGetValue(next, out var temp))
                             {
                                 // Cycle detected
@@ -171,14 +163,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                                 {
                                     cycle.Add(next);
                                 }
-
-                                //do
-                                //{
-                                //    cycle.Add(next);
-                                //    next = temp;
-                                //} while (callStack.TryGetValue(next, out temp));
-
-                                //cycles.Add(callStack.Skip(pos).ToImmutableArray());
                                 cycles.Add(cycle.ToImmutableArray());
                             }
                             else
@@ -195,9 +179,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     // If the key is not in the stack, this will do nothing
                     callStack.Remove(curr);
                 }
-
-                //callStack.RemoveAt(position);
-                //callStackHash.Remove(depKey);
 
                 finished.Add(curr);
             }
@@ -220,12 +201,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             var walker = new BuildGraph();
 
-            walker.Namespaces.OnNamespace(compilation.Namespaces.First(ns => ns.Name.Value.Equals("Input")));
-
-            //foreach (var ns in compilation.Namespaces)
-            //{
-            //    walker.Namespaces.OnNamespace(ns);
-            //}
+            foreach (var ns in compilation.Namespaces)
+            {
+                walker.Namespaces.OnNamespace(ns);
+            }
 
             return walker.SharedState.graph;
         }
