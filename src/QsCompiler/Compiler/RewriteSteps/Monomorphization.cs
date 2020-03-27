@@ -26,8 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
             AssemblyConstants = new Dictionary<string, string>();
         }
 
-        public bool PreconditionVerification(QsCompilation compilation) =>
-            compilation != null && compilation.EntryPoints.Any();
+        public bool PreconditionVerification(QsCompilation compilation) => compilation.EntryPoints.Any();
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
