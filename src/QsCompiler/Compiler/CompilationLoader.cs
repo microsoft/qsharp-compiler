@@ -154,7 +154,7 @@ namespace Microsoft.Quantum.QsCompiler
             public IReadOnlyDictionary<string, string> AssemblyConstants;
             /// <summary>
             /// Path to the assembly that contains a syntax tree with target specific implementations for certain functions and operations.
-            /// The functions and operations defined in that assembly replace the ones declarated within the compilation unit.
+            /// The functions and operations defined in that assembly replace the ones declared within the compilation unit.
             /// If no path is specified here or the specified path is null then this compilation step is omitted.
             /// </summary>
             public string TargetPackageAssembly;
@@ -256,7 +256,7 @@ namespace Microsoft.Quantum.QsCompiler
         public Status Validation => this.CompilationStatus.Validation;
         /// <summary>
         /// Indicates whether target specific implementations for functions and operations
-        /// have been used to replace the ones declarated within the compilation unit.
+        /// have been used to replace the ones declared within the compilation unit.
         /// This step is only executed if the specified configuration contains the path to the target package.
         /// </summary>
         public Status TargetSpecificReplacements => this.CompilationStatus.TargetSpecificReplacements;
