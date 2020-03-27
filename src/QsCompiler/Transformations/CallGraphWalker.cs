@@ -31,6 +31,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
         }
 
+        /// <summary>
+        /// This is a dictionary mapping source nods to information about target nodes. This information is represented
+        /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
+        /// </summary>
         private Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> _Dependencies =
             new Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>>();
 
@@ -196,11 +200,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 finished.Add(node);
             }
 
-            foreach (var key in _Dependencies.Keys)
+            // Loop over all nodes in the call graph, attempting to find cycles by processing their dependencies
+            foreach (var node in _Dependencies.Keys)
             {
-                if (!finished.Contains(key))
+                if (!finished.Contains(node))
                 {
-                    processDependencies(key);
+                    processDependencies(node);
                 }
             }
 
@@ -233,8 +238,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 internal QsSpecialization spec;
 
                 internal bool inCall = false;
-                internal bool adjoint = false;
-                internal bool controlled = false;
+                internal bool hasAdjointDependency = false;
+                internal bool hasControlledDependency = false;
 
                 internal CallGraph graph = new CallGraph();
             }
@@ -280,18 +285,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                 public override ExpressionKind OnAdjointApplication(TypedExpression ex)
                 {
-                    SharedState.adjoint = !SharedState.adjoint;
+                    SharedState.hasAdjointDependency = !SharedState.hasAdjointDependency;
                     var rtrn = base.OnAdjointApplication(ex);
-                    SharedState.adjoint = !SharedState.adjoint;
+                    SharedState.hasAdjointDependency = !SharedState.hasAdjointDependency;
                     return rtrn;
                 }
 
                 public override ExpressionKind OnControlledApplication(TypedExpression ex)
                 {
-                    var contextControlled = SharedState.controlled;
-                    SharedState.controlled = true;
+                    var contextControlled = SharedState.hasControlledDependency;
+                    SharedState.hasControlledDependency = true;
                     var rtrn = base.OnControlledApplication(ex);
-                    SharedState.controlled = contextControlled;
+                    SharedState.hasControlledDependency = contextControlled;
                     return rtrn;
                 }
 
@@ -308,15 +313,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         if (SharedState.inCall)
                         {
                             var kind = QsSpecializationKind.QsBody;
-                            if (SharedState.adjoint && SharedState.controlled)
+                            if (SharedState.hasAdjointDependency && SharedState.hasControlledDependency)
                             {
                                 kind = QsSpecializationKind.QsControlledAdjoint;
                             }
-                            else if (SharedState.adjoint)
+                            else if (SharedState.hasAdjointDependency)
                             {
                                 kind = QsSpecializationKind.QsAdjoint;
                             }
-                            else if (SharedState.controlled)
+                            else if (SharedState.hasControlledDependency)
                             {
                                 kind = QsSpecializationKind.QsControlled;
                             }
