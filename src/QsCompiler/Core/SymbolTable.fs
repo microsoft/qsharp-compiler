@@ -18,7 +18,9 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Newtonsoft.Json
 
 
-/// Note that this class is *not* threadsafe!
+/// Represents the partial declaration of a namespace in a single file.
+///
+/// Note that this class is *not* thread-safe, and access modifiers are always ignored when looking up declarations.
 type private PartialNamespace private
     (name : NonNullable<string>,
      source : NonNullable<string>,
@@ -30,13 +32,14 @@ type private PartialNamespace private
 
     let keySelector (item : KeyValuePair<'k,'v>) = item.Key
     let valueSelector (item : KeyValuePair<'k,'v>) = item.Value
-    let unresolved (location : QsLocation) (definition, attributes, doc) = {
-        Defined = definition;
+    let unresolved (location : QsLocation) (definition, attributes, modifiers, doc) = {
+        Defined = definition
         DefinedAttributes = attributes
-        Resolved = Null;
+        Resolved = Null
         ResolvedAttributes = ImmutableArray.Empty
-        Position = location.Offset;
-        Range = location.Range;
+        Modifiers = modifiers
+        Position = location.Offset
+        Range = location.Range
         Documentation = doc
     }
 
@@ -130,7 +133,7 @@ type private PartialNamespace private
     /// Adds the corresponding type constructor to the dictionary of declared callables.
     /// The given location is associated with both the type constructor and the type itself and accessible via the record properties Position and SymbolRange.
     /// -> Note that this routine will fail with the standard dictionary.Add error if either a type or a callable with that name already exists.
-    member this.AddType (location : QsLocation) (tName, typeTuple, attributes, documentation) =
+    member this.AddType (location : QsLocation) (tName, typeTuple, attributes, modifiers, documentation) =
         let mutable anonItemId = 0
         let withoutRange sym = {Symbol = sym; Range = Null}
         let replaceAnonymous (itemName : QsSymbol, itemType) = // positional info for types in type constructors is removed upon resolution
@@ -165,17 +168,17 @@ type private PartialNamespace private
             if attributes |> Seq.exists (SymbolResolution.IndicatesDeprecation validDeprecatedQualification) then ImmutableArray.Create deprecationWithoutRedirect
             else ImmutableArray.Empty
 
-        TypeDeclarations.Add(tName, (typeTuple, attributes, documentation) |> unresolved location)
-        this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), constructorAttr, ImmutableArray.Empty)
+        TypeDeclarations.Add(tName, (typeTuple, attributes, modifiers, documentation) |> unresolved location)
+        this.AddCallableDeclaration location (tName, (TypeConstructor, constructorSignature), constructorAttr, modifiers, ImmutableArray.Empty) 
         let bodyGen = {TypeArguments = Null; Generator = QsSpecializationGeneratorKind.Intrinsic; Range = Value location.Range}
         this.AddCallableSpecialization location QsBody (tName, bodyGen, ImmutableArray.Empty, ImmutableArray.Empty)
 
     /// Adds a callable declaration of the given kind (operation or function)
     /// with the given callable name and signature to the dictionary of declared callables.
-    /// The given location is associated with the callable declaration and accessible via the record properties Position and SymbolRange.
-    /// -> Note that this routine will fail with the standard dictionary.Add error if a callable with that name already exists.
-    member this.AddCallableDeclaration location (cName, (kind, signature), attributes, documentation) =
-        CallableDeclarations.Add(cName, (kind, (signature, attributes, documentation) |> unresolved location))
+    /// The given location is associated with the callable declaration and accessible via the record properties Position and SymbolRange. 
+    /// -> Note that this routine will fail with the standard dictionary.Add error if a callable with that name already exists. 
+    member this.AddCallableDeclaration location (cName, (kind, signature), attributes, modifiers, documentation) = 
+        CallableDeclarations.Add(cName, (kind, (signature, attributes, modifiers, documentation) |> unresolved location))
 
     /// Adds the callable specialization defined by the given kind and generator for the callable of the given name to the dictionary of declared specializations.
     /// The given location is associated with the given specialization and accessible via the record properties Position and HeaderRange.
@@ -183,10 +186,10 @@ type private PartialNamespace private
     /// *IMPORTANT*: both the verification of whether the length of the given array of type specialization
     /// matches the number of type parameters in the callable declaration, and whether a specialization that clashes with this one
     /// already exists is up to the calling routine!
-    member this.AddCallableSpecialization location kind (cName, generator : QsSpecializationGenerator, attributes, documentation) =
-    // NOTE: all types that are not specialized need to be resolved according to the file in which the callable is declared,
-    // but all specialized types need to be resolved according to *this* file
-        let spec = kind, (generator, attributes, documentation) |> unresolved location
+    member this.AddCallableSpecialization location kind (cName, generator : QsSpecializationGenerator, attributes, documentation) = 
+    // NOTE: all types that are not specialized need to be resolved according to the file in which the callable is declared, 
+    // but all specialized types need to be resolved according to *this* file  
+        let spec = kind, (generator, attributes, {Access = DefaultAccess}, documentation) |> unresolved location
         match CallableSpecializations.TryGetValue cName with
         | true, specs -> specs.Add spec // it is up to the namespace to verify the type specializations
         | false, _ -> CallableSpecializations.Add(cName, new List<_>([spec]))
@@ -230,12 +233,19 @@ type private PartialNamespace private
         | false, _ -> [||]
 
 
-/// Note that this class is *not* threadsafe!
+/// Represents a namespace and all of its declarations.
+///
+/// This class is *not* thread-safe.
+///
+/// Access modifiers are taken into consideration when resolving symbols. Some methods bypass this (e.g., when returning
+/// a list of all declarations). Individual methods will mention if they adhere to symbol accessibility.
 and Namespace private
-    (name, parts : IEnumerable<KeyValuePair<NonNullable<string>,PartialNamespace>>,
-     CallablesInReferences : ImmutableDictionary<NonNullable<string>, CallableDeclarationHeader>,
-     SpecializationsInReferences : ILookup<NonNullable<string>, SpecializationDeclarationHeader * SpecializationImplementation>,
-     TypesInReferences : ImmutableDictionary<NonNullable<string>, TypeDeclarationHeader>) =
+    (name,
+     parts : IEnumerable<KeyValuePair<NonNullable<string>,PartialNamespace>>,
+     CallablesInReferences : ILookup<NonNullable<string>, CallableDeclarationHeader>,
+     SpecializationsInReferences : ILookup<NonNullable<string>,
+                                           SpecializationDeclarationHeader * SpecializationImplementation>,
+     TypesInReferences : ILookup<NonNullable<string>, TypeDeclarationHeader>) =
 
     /// dictionary containing a PartialNamespaces for each source file which implements a part of this namespace -
     /// the key is the source file where each part of the namespace is defined
@@ -243,21 +253,29 @@ and Namespace private
     let mutable TypesDefinedInAllSourcesCache = null
     let mutable CallablesDefinedInAllSourcesCache = null
 
-    /// Given a non-nullable string, returns true if either a callable or a type with that name already exists
-    /// either in a source file, or in a referenced assembly.
-    let IsDefined arg =
-        CallablesInReferences.ContainsKey arg || TypesInReferences.ContainsKey arg ||
-        Parts.Values.Any (fun partial -> partial.ContainsCallable arg || partial.ContainsType arg)
+    /// Returns true if the name is available for use in a new declaration.
+    let isNameAvailable name =
+        let isAvailableWith declarationsGetter accessibilityGetter sameAssembly =
+            declarationsGetter name
+            |> Seq.exists (fun name -> Namespace.IsDeclarationAccessible (sameAssembly, accessibilityGetter name))
+            |> not
 
-    /// Given a selector, determines the source files for which the given selector returns a Value.
-    /// Returns that Value if exactly one such source file exists, or Null if no such file exists.
-    /// Note that files contained in referenced assemblies are *not* considered to be source files for the namespace!
-    /// Throws an ArgumentException if the selector returns a Value for more than one source file.
-    let FromSingleSource (selector : PartialNamespace -> _ Option) =
-        let sources = Parts.Values |> Seq.choose selector
-        if sources.Count() > 1 then ArgumentException "given selector selects more than one partial namespace" |> raise
-        if sources.Any() then Value (sources.Single()) else Null
+        let tryToList = function
+            | true, value -> [value]
+            | false, _ -> []
 
+        isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Modifiers.Access) false &&
+        isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Modifiers.Access) false &&
+        Parts.Values.All (fun partial ->
+            isAvailableWith (partial.TryGetCallable >> tryToList) (fun c -> (snd c).Modifiers.Access) true &&
+            isAvailableWith (partial.TryGetType >> tryToList) (fun t -> t.Modifiers.Access) true)
+
+    /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
+    /// the same assembly as the declaration, and the declaration's access modifier.
+    static member IsDeclarationAccessible (sameAssembly, access) =
+        match access with
+        | DefaultAccess -> true
+        | Internal -> sameAssembly
 
     /// name of the namespace
     member this.Name = name
@@ -280,18 +298,27 @@ and Namespace private
         let callablesInRefs = callablesInRefs.Where(fun (header : CallableDeclarationHeader) -> header.QualifiedName.Namespace = name)
         let specializationsInRefs = specializationsInRefs.Where(fun (header : SpecializationDeclarationHeader, _) -> header.Parent.Namespace = name)
 
-        // ignore ambiguous/clashing references
-        let FilterUnique (g : IGrouping<_,_>) =
-            if g.Count() > 1 then None
-            else g.Single() |> Some
-        let typesInRefs = typesInRefs.GroupBy(fun t -> t.QualifiedName.Name) |> Seq.choose FilterUnique
-        let callablesInRefs = callablesInRefs.GroupBy(fun c -> c.QualifiedName.Name) |> Seq.choose FilterUnique
+        let discardConflicts getAccess (_, nameGroup) =
+            // Only one externally accessible declaration with the same name is allowed.
+            let isAccessible header = Namespace.IsDeclarationAccessible (false, getAccess header)
+            if nameGroup |> Seq.filter isAccessible |> Seq.length > 1
+            then nameGroup |> Seq.filter (not << isAccessible)
+            else nameGroup
 
-        let types = typesInRefs.ToImmutableDictionary(fun t -> t.QualifiedName.Name)
-        let callables = callablesInRefs.ToImmutableDictionary(fun c -> c.QualifiedName.Name)
-        let specializations = specializationsInRefs.Where(fun (s, _) -> callables.ContainsKey s.Parent.Name).ToLookup(fun (s, _) -> s.Parent.Name)
-        new Namespace(name, initialSources, callables, specializations, types)
+        let createLookup getName getAccess headers =
+            headers
+            |> Seq.groupBy getName
+            |> Seq.map (discardConflicts getAccess)
+            |> Seq.concat
+            |> fun headers -> headers.ToLookup (Func<_, _> getName)
 
+        let types = typesInRefs |> createLookup (fun t -> t.QualifiedName.Name) (fun t -> t.Modifiers.Access)
+        let callables = callablesInRefs |> createLookup (fun c -> c.QualifiedName.Name) (fun c -> c.Modifiers.Access)
+        let specializations =
+            specializationsInRefs
+                .Where(fun (s, _) -> callables.[s.Parent.Name].Any())
+                .ToLookup(fun (s, _) -> s.Parent.Name)
+        Namespace (name, initialSources, callables, specializations, types)
 
     /// returns true if the namespace currently contains no source files or referenced content
     member this.IsEmpty =
@@ -335,21 +362,39 @@ and Namespace private
     /// Throws an InvalidOperationExeception if the corresponding type has not been resolved.
     member internal this.TryGetAttributeDeclaredIn source (attName, possibleQualifications : _ seq) =
         let marksAttribute (t : QsDeclarationAttribute) = t.TypeId |> function
-            | Value id -> id.Namespace.Value = BuiltIn.Attribute.FullName.Namespace.Value && id.Name.Value = BuiltIn.Attribute.FullName.Name.Value
+            | Value id ->
+                id.Namespace.Value = BuiltIn.Attribute.FullName.Namespace.Value &&
+                id.Name.Value = BuiltIn.Attribute.FullName.Name.Value
             | Null -> false
+
         let missingResolutionException () = InvalidOperationException "cannot get unresolved attribute" |> raise
-        let compareAttributeName (att : AttributeAnnotation) = att.Id.Symbol |> function
-            | Symbol sym when sym.Value = BuiltIn.Attribute.FullName.Name.Value && possibleQualifications.Contains "" -> true
-            | QualifiedSymbol (ns, sym) when sym.Value = BuiltIn.Attribute.FullName.Name.Value && possibleQualifications.Contains ns.Value -> true
+
+        let compareAttributeName (att : AttributeAnnotation) =
+            match att.Id.Symbol with
+            | Symbol sym when sym.Value = BuiltIn.Attribute.FullName.Name.Value && possibleQualifications.Contains "" ->
+                true
+            | QualifiedSymbol (ns, sym) when sym.Value = BuiltIn.Attribute.FullName.Name.Value &&
+                                             possibleQualifications.Contains ns.Value ->
+                true
             | _ -> false
-        match TypesInReferences.TryGetValue attName with
-        | true, tDecl -> if tDecl.Attributes |> Seq.exists marksAttribute then Some tDecl.Type else None
-        | false, _ -> Parts.TryGetValue source |> function // ok only because/if we have covered that the type is not in a reference!
-            | false, _ -> ArgumentException "given source file is not listed as source of the namespace" |> raise
-            | true, partialNS -> partialNS.TryGetType attName |> function
-                | true, resolution when resolution.DefinedAttributes |> Seq.exists compareAttributeName ->
-                    resolution.Resolved.ValueOrApply missingResolutionException |> fst |> Some
-                | _ -> None
+
+        match Parts.TryGetValue source with
+        | true, partial ->
+            match partial.TryGetType attName with
+            | true, resolution when Seq.exists compareAttributeName resolution.DefinedAttributes ->
+                resolution.Resolved.ValueOrApply missingResolutionException |> fst |> Some
+            | _ -> None
+        | false, _ ->
+            let referenceType =
+                TypesInReferences.[attName]
+                |> Seq.filter (fun qsType -> qsType.SourceFile = source)
+                |> Seq.tryExactlyOne
+            match referenceType with
+            | Some qsType ->
+                if Seq.exists marksAttribute qsType.Attributes
+                then Some qsType.Type
+                else None
+            | None -> ArgumentException "given source file is not part of the namespace" |> raise
 
     /// Returns the type with the given name defined in the given source file within this namespace.
     /// Note that files contained in referenced assemblies are *not* considered to be source files for the namespace!
@@ -413,44 +458,84 @@ and Namespace private
     /// This excludes specializations that are defined in files contained in referenced assemblies.
     /// Throws an ArgumentException if no callable with the given name is defined in this namespace.
     member internal this.SpecializationsDefinedInAllSources cName =
-        match this.ContainsCallable cName with
-        | Value _ -> (Parts.Values.SelectMany (fun partial ->
-            partial.GetSpecializations cName |> Seq.map (fun (kind, decl) -> kind, (partial.Source, decl)))).ToImmutableArray()
-        | Null -> ArgumentException "no callable with the given name exist within the namespace" |> raise
+        let getSpecializationInPartial (partial : PartialNamespace) =
+            partial.GetSpecializations cName
+            |> Seq.map (fun (kind, decl) -> kind, (partial.Source, decl))
 
-    /// If this namespace contains a declaration for the given type name,
-    /// returns a Value with the name of the source file or the name of the file within a referenced assembly
-    /// in which it is declared as well as a string option indicating the redirection for the type if it has been deprecated.
-    /// Returns Null otherwise.
-    /// Whether the type has been deprecated is determined by checking the associated attributes for an attribute with the corresponding name.
-    /// Note that if the type is declared in a source files, the *unresolved* attributes will be checked.
-    /// In that case checkDeprecation is used to validate the namespace qualification of the attribute.
-    /// If checkDeprecation is not specified, it is assumed that no qualification is needed in the relevant namespace and source file.
-    member this.ContainsType (tName, ?checkDeprecation : (string -> bool)) =
-        let checkDeprecation = defaultArg checkDeprecation (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace.Value)
-        match TypesInReferences.TryGetValue tName with
-        | true, tDecl -> Value (tDecl.SourceFile, tDecl.Attributes |> SymbolResolution.TryFindRedirect)
-        | false, _ -> FromSingleSource (fun partialNS -> partialNS.TryGetType tName |> function
-            | true, tDecl -> Some (partialNS.Source, tDecl.DefinedAttributes |> SymbolResolution.TryFindRedirectInUnresolved checkDeprecation)
-            | false, _ -> None)
+        if this.TryFindCallable cName |> ResolutionResult.Exists
+        then (Parts.Values.SelectMany getSpecializationInPartial).ToImmutableArray()
+        else ArgumentException "no callable with the given name exist within the namespace" |> raise
 
-    /// If this namespace contains the declaration for the given callable name,
-    /// returns a Value with the name of the source file or the name of the file within a referenced assembly
-    /// in which it is declared as well as a string option indicating the redirection for the callable if it has been deprecated.
-    /// Returns Null otherwise.
-    /// If the given callable corresponds to the (auto-generated) type constructor for a user defined type,
-    /// returns the file in which that type is declared as source.
-    /// Whether the callable has been deprecated is determined by checking the associated attributes for an attribute with the corresponding name.
-    /// Note that if the type is declared in a source files, the *unresolved* attributes will be checked.
-    /// In that case checkDeprecation is used to validate the namespace qualification of the attribute.
-    /// If checkDeprecation is not specified, it is assumed that no qualification is needed in the relevant namespace and source file.
-    member this.ContainsCallable (cName, ?checkDeprecation : (string -> bool)) =
-        let checkDeprecation = defaultArg checkDeprecation (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace.Value)
-        match CallablesInReferences.TryGetValue cName with
-        | true, cDecl -> Value (cDecl.SourceFile, cDecl.Attributes |> SymbolResolution.TryFindRedirect)
-        | false, _ -> FromSingleSource (fun partialNS -> partialNS.TryGetCallable cName |> function
-            | true, (_, cDecl) -> Some (partialNS.Source, cDecl.DefinedAttributes |> SymbolResolution.TryFindRedirectInUnresolved checkDeprecation)
-            | false, _ -> None)
+
+    /// Returns a resolution result for the type with the given name containing the name of the source file or
+    /// referenced assembly in which it is declared, a string indicating the redirection if it has been deprecated, and
+    /// its access modifier. Resolution is based on accessibility to source files in this compilation unit.
+    ///
+    /// Whether the type has been deprecated is determined by checking the associated attributes for an attribute with
+    /// the corresponding name. Note that if the type is declared in a source files, the *unresolved* attributes will be
+    /// checked. In that case checkDeprecation is used to validate the namespace qualification of the attribute. If
+    /// checkDeprecation is not specified, it is assumed that no qualification is needed in the relevant namespace and
+    /// source file.
+    member this.TryFindType (tName, ?checkDeprecation : (string -> bool)) =
+        let checkDeprecation =
+            defaultArg checkDeprecation
+                       (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace.Value)
+
+        let resolveReferenceType (typeHeader : TypeDeclarationHeader) =
+            if Namespace.IsDeclarationAccessible (false, typeHeader.Modifiers.Access)
+            then Found (typeHeader.SourceFile,
+                        SymbolResolution.TryFindRedirect typeHeader.Attributes,
+                        typeHeader.Modifiers.Access)
+            else Inaccessible
+
+        let findInPartial (partial : PartialNamespace) =
+            match partial.TryGetType tName with
+            | true, qsType ->
+                if Namespace.IsDeclarationAccessible (true, qsType.Modifiers.Access)
+                then Found (partial.Source,
+                            SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
+                            qsType.Modifiers.Access)
+                else Inaccessible
+            | false, _ -> NotFound
+
+        seq { yield Seq.map resolveReferenceType TypesInReferences.[tName] |> ResolutionResult.AtMostOne
+              yield Seq.map findInPartial Parts.Values |> ResolutionResult.AtMostOne }
+        |> ResolutionResult.TryFirstBest
+
+    /// Returns a resolution result for the callable with the given name containing the name of the source file or
+    /// referenced assembly in which it is declared, and a string indicating the redirection if it has been deprecated.
+    /// Resolution is based on accessibility to source files in this compilation unit.
+    ///
+    /// If the given callable corresponds to the (auto-generated) type constructor for a user defined type, returns the
+    /// file in which that type is declared as the source.
+    ///
+    /// Whether the callable has been deprecated is determined by checking the associated attributes for an attribute
+    /// with the corresponding name. Note that if the type is declared in a source files, the *unresolved* attributes
+    /// will be checked. In that case checkDeprecation is used to validate the namespace qualification of the attribute.
+    /// If checkDeprecation is not specified, it is assumed that no qualification is needed in the relevant namespace
+    /// and source file.
+    member this.TryFindCallable (cName, ?checkDeprecation : (string -> bool)) =
+        let checkDeprecation =
+            defaultArg checkDeprecation
+                       (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace.Value)
+
+        let resolveReferenceCallable (callable : CallableDeclarationHeader) =
+            if Namespace.IsDeclarationAccessible (false, callable.Modifiers.Access)
+            then Found (callable.SourceFile, SymbolResolution.TryFindRedirect callable.Attributes)
+            else Inaccessible
+
+        let findInPartial (partial : PartialNamespace) =
+            match partial.TryGetCallable cName with
+            | true, (_, callable) ->
+                if Namespace.IsDeclarationAccessible (true, callable.Modifiers.Access)
+                then Found (partial.Source,
+                            SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes)
+                else Inaccessible
+            | false, _ -> NotFound
+
+        seq { yield Seq.map resolveReferenceCallable CallablesInReferences.[cName] |> ResolutionResult.AtMostOne
+              yield Seq.map findInPartial Parts.Values |> ResolutionResult.AtMostOne }
+        |> ResolutionResult.TryFirstBest
 
     /// Sets the resolution for the type with the given name in the given source file to the given type,
     /// and replaces the resolved attributes with the given values.
@@ -535,15 +620,19 @@ and Namespace private
     /// The given location is associated with both the type constructor and the type itself and accessible via the record properties Position and SymbolRange.
     /// If a type or callable with that name already exists, returns an array of suitable diagnostics.
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
-    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, documentation) : QsCompilerDiagnostic[] =
+    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, modifiers, documentation) : QsCompilerDiagnostic[] =
         match Parts.TryGetValue source with
-        | true, partial when not (IsDefined tName) ->
+        | true, partial when isNameAvailable tName ->
             TypesDefinedInAllSourcesCache <- null
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddType location (tName, typeTuple, attributes, documentation); [||]
-        | true, _ ->  this.ContainsType tName |> function
-            | Value _ -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeRedefinition, [tName.Value]) |]
-            | Null -> [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeConstructorOverlapWithCallable, [tName.Value]) |]
+            partial.AddType location (tName, typeTuple, attributes, modifiers, documentation); [||]
+        | true, _ ->
+            match this.TryFindType tName with
+            | Found _
+            | Ambiguous _ ->
+                [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeRedefinition, [tName.Value]) |]
+            | _ ->
+                [| tRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeConstructorOverlapWithCallable, [tName.Value]) |]
         | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
 
     /// If no callable (function, operation, or type constructor) with the given name exists in this namespace,
@@ -552,14 +641,18 @@ and Namespace private
     /// The given location is associated with the callable declaration and accessible via the record properties Position and SymbolRange.
     /// If a callable with that name already exists, returns an array of suitable diagnostics.
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
-    member this.TryAddCallableDeclaration (source, location) ((cName, cRange), (kind, signature), attributes, documentation) =
+    member this.TryAddCallableDeclaration (source, location) ((cName, cRange), (kind, signature), attributes, modifiers, documentation) =
         match Parts.TryGetValue source with
-        | true, partial when not (IsDefined cName) ->
+        | true, partial when isNameAvailable cName ->
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, documentation); [||]
-        | true, _ -> this.ContainsType cName |> function
-            | Value _ -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableOverlapWithTypeConstructor, [cName.Value]) |]
-            | Null -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableRedefinition, [cName.Value]) |]
+            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, modifiers, documentation); [||]
+        | true, _ ->
+            match this.TryFindType cName with
+            | Found _
+            | Ambiguous _ ->
+                [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableOverlapWithTypeConstructor, [cName.Value]) |]
+            | _ ->
+                [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.CallableRedefinition, [cName.Value]) |]
         | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
 
     /// If a declaration for a callable of the given name exists within this namespace,
@@ -572,24 +665,30 @@ and Namespace private
     /// Throws an ArgumentException if the given source file is not listed as a source for (part of) the namespace.
     /// IMPORTANT: The verification of whether the given specialization kind (body, adjoint, controlled, or controlled adjoint) may exist
     /// for the given callable is up to the calling routine.
-    member this.TryAddCallableSpecialization kind (source, location : QsLocation) ((cName, cRange), generator : QsSpecializationGenerator, attributes, documentation) =
+    member this.TryAddCallableSpecialization kind (source, location : QsLocation) ((cName, cRange), generator : QsSpecializationGenerator, attributes, documentation) = 
         let getRelevantDeclInfo (declSource : NonNullable<string>) =
             let unitOrInvalid fct = function
-                | Item item -> fct item |> function | UnitType | InvalidType -> true | _ -> false
+                | Item item -> match fct item with
+                               | UnitType
+                               | InvalidType -> true
+                               | _ -> false
                 | _ -> false
-            match CallablesInReferences.TryGetValue cName with
-            | true, cDecl ->
-                let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t : ResolvedType) -> t.Resolution)
-                unitReturn, cDecl.Signature.TypeParameters.Length
-            | false, _ ->
-                let _, cDecl = Parts.[declSource].GetCallable cName // ok only because/if we have covered that the callable is not in a reference!
+
+            // Check if the declaration's source file is local first, then look in references.
+            match Parts.TryGetValue declSource with
+            | true, partial ->
+                let _, cDecl = partial.GetCallable cName
                 let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t : QsType) -> t.Type)
                 unitReturn, cDecl.Defined.TypeParameters.Length
+            | false, _ ->
+                let cDecl = CallablesInReferences.[cName] |> Seq.filter (fun c -> c.SourceFile = source) |> Seq.exactlyOne
+                let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t : ResolvedType) -> t.Resolution)
+                unitReturn, cDecl.Signature.TypeParameters.Length
 
         match Parts.TryGetValue source with
         | true, partial ->
-            match this.ContainsCallable cName with
-            | Value (declSource, _) ->
+            match this.TryFindCallable cName with
+            | Found (declSource, _) ->
                 let AddAndClearCache () =
                     CallablesDefinedInAllSourcesCache <- null
                     partial.AddCallableSpecialization location kind (cName, generator, attributes, documentation)
@@ -605,7 +704,7 @@ and Namespace private
                     | QsControlled -> [| location.Range |> QsCompilerDiagnostic.Error (ErrorCode.RequiredUnitReturnForControlled, []) |]
                     | QsControlledAdjoint -> [| location.Range |> QsCompilerDiagnostic.Error (ErrorCode.RequiredUnitReturnForControlledAdjoint, []) |]
                 else AddAndClearCache(); [||]
-            | Null -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.SpecializationForUnknownCallable, [cName.Value]) |]
+            | _ -> [| cRange |> QsCompilerDiagnostic.Error (ErrorCode.SpecializationForUnknownCallable, [cName.Value]) |]
         | false, _ -> ArgumentException "given source is not listed as a source of (parts of) the namespace" |> raise
 
     /// Adds an auto-generated specialization of the given kind to the callable with the given name and declaration in the specified source file.
@@ -629,15 +728,20 @@ and Namespace private
 
 
 /// Threadsafe class for global symbol management.
-/// Takes a lookup for all callables and for all types declared within one of the assemblies
-/// referenced by the compilation unit this namespace manager belongs to.
-/// The key for the given lookups is the name of the namespace the declarations belongs to.
+///
+/// Takes a lookup for all callables and for all types declared within one of the assemblies referenced by the
+/// compilation unit this namespace manager belongs to. The key for the given lookups is the name of the namespace the
+/// declarations belongs to.
+///
+/// The namespace manager takes access modifiers into consideration when resolving symbols. Some methods bypass this
+/// (e.g., when returning a list of all declarations). Individual methods document whether they follow or ignore access
+/// modifiers.
 and NamespaceManager
     (syncRoot : IReaderWriterLock,
      callablesInRefs : IEnumerable<CallableDeclarationHeader>,
      specializationsInRefs : IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
      typesInRefs : IEnumerable<TypeDeclarationHeader>) =
-    // This class itself does not use any concurrency,
+    // This class itself does not use any concurrency, 
     // so anything that is accessible within the class only does not apply any locks.
     // IMPORTANT: the syncRoot is intentionally not exposed externally, since with this class supporting mutation
     // access to that lock needs to be coordinated by whatever coordinates the mutations.
@@ -682,19 +786,15 @@ and NamespaceManager
         | true, ns -> ns, ns.ImportedNamespaces source |> Seq.choose isKnownAndNotAliased |> Seq.toList
         | false, _ -> ArgumentException("no namespace with the given name exists") |> raise
 
-    /// If the given function containsSymbol returns a Value for the namespace with the given name,
-    /// returns a list containing only a single tuple with the given namespace name and the returned value.
-    /// Otherwise returns a list with all possible (namespaceName, returnedValue) tuples that yielded non-Null values
-    /// for namespaces opened within the given namespace and source file.
-    /// Throws an ArgumentException if no namespace with the given name exists,
-    /// or the given source file is not listed as source of that namespace.
-    let PossibleResolutions containsSymbol (nsName, source) =
-        let containsSource (arg : Namespace) =
-            containsSymbol arg |> QsNullable<_>.Map (fun source -> (arg.Name, source))
-        let currentNS, importedNS = OpenNamespaces (nsName, source)
-        currentNS |> containsSource |> function
-        | Value (nsName, source) -> [(nsName, source)]
-        | Null -> importedNS |> List.choose (containsSource >> function | Value v -> Some v | Null -> None)
+    /// Calls the resolver function on each namespace opened within the given namespace name and source file, and
+    /// attempts to find an unambiguous resolution.
+    let resolveInOpenNamespaces resolver (nsName, source) =
+        let resolveWithNsName (ns : Namespace) =
+            resolver ns |> ResolutionResult.Map (fun value -> (ns.Name, value))
+        let currentNs, importedNs = OpenNamespaces (nsName, source)
+        seq { yield resolveWithNsName currentNs
+              yield Seq.map resolveWithNsName importedNs |> ResolutionResult.TryAtMostOne fst }
+        |> ResolutionResult.TryFirstBest
 
     /// Given a qualifier for a symbol name, returns the corresponding namespace as Some
     /// if such a namespace or such a namespace short name within the given parent namespace and source file exists.
@@ -717,57 +817,125 @@ and NamespaceManager
     /// Throws an ArgumentException if no namespace with the given name exists.
     let PossibleQualifications (nsName, source) (builtIn : BuiltIn) =
         match Namespaces.TryGetValue nsName with
-        | true, ns when ns.Sources.Contains source -> (ns.ImportedNamespaces source).TryGetValue builtIn.FullName.Namespace |> function
-            | true, null when ns.ContainsType builtIn.FullName.Name = Null || nsName.Value = builtIn.FullName.Namespace.Value -> [""; builtIn.FullName.Namespace.Value]
+        | true, ns when ns.Sources.Contains source ->
+            match (ns.ImportedNamespaces source).TryGetValue builtIn.FullName.Namespace with
+            | true, null when not (ns.TryFindType builtIn.FullName.Name |> ResolutionResult.IsAccessible) ||
+                              nsName.Value = builtIn.FullName.Namespace.Value ->
+                [""; builtIn.FullName.Namespace.Value]
             | true, null -> [builtIn.FullName.Namespace.Value] // the built-in type or callable is shadowed
             | true, alias -> [alias; builtIn.FullName.Namespace.Value]
             | false, _ -> [builtIn.FullName.Namespace.Value]
         | true, _ -> [builtIn.FullName.Namespace.Value];
         | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
 
-    /// Given the qualified or unqualified name of a type used within the given parent namespace and source file, determines if such a type exists
-    /// and returns its full name and the source file or referenced assembly in which it is defined as Some if it does.
-    /// Returns None if no such type exist, or if the type name is unqualified and ambiguous.
+    /// Given the qualified or unqualified name of a type used within the given parent namespace and source file,
+    /// determines if such a type is accessible, and returns its namespace name and the source file or referenced
+    /// assembly in which it is defined as Some if it is.
+    ///
+    /// Returns None if no such type exists, the type is inaccessible, or if the type name is unqualified and ambiguous.
+    ///
     /// Generates and returns an array with suitable diagnostics.
-    /// Throws an ArgumentException if the given parent namespace does not exist,
-    /// or if no source file with the given name is listed as source of that namespace.
-    let TryResolveTypeName (parentNS, source) ((nsName, symName), symRange) =
-        let orDefault (range : QsNullable<_>) = range.ValueOr QsCompilerDiagnostic.DefaultRange
-        let checkQualificationForDeprecation qual = BuiltIn.Deprecated |> PossibleQualifications (parentNS, source) |> Seq.contains qual
-        let buildAndReturn (ns, declSource, deprecation, errs) =
-            let deprecatedWarnings = deprecation |> SymbolResolution.GenerateDeprecationWarning ({Namespace = ns; Name = symName}, symRange |> orDefault)
-            Some ({Namespace = ns; Name = symName; Range = symRange}, declSource), deprecatedWarnings |> Array.append errs
-        let tryFind (parentNS, source) (tName, tRange) =
-            match (parentNS, source) |> PossibleResolutions (fun ns -> ns.ContainsType (tName, checkQualificationForDeprecation)) with
-            | [] -> Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownType, [tName.Value]) |]
-            | [(nsName, (declSource, deprecated))] -> Value (nsName, declSource, deprecated), [||]
-            | resolutions ->
-                let diagArg = String.Join(", ", resolutions.Select (fun (ns,_) -> ns.Value))
-                Null, [| tRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.AmbiguousType, [tName.Value; diagArg]) |]
-        match nsName with
-        | None -> tryFind (parentNS, source) (symName, symRange) |> function
-            | Value (ns, declSource, deprecation), errs -> buildAndReturn (ns, declSource, deprecation, errs)
-            | Null, errs -> None, errs
-        | Some qualifier -> (parentNS, source) |> TryResolveQualifier qualifier |> function
-            | None -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownNamespace, [qualifier.Value]) |]
-            | Some ns ->
-                ns.ContainsType (symName, checkQualificationForDeprecation) |> function
-                | Value (declSource, deprecation) -> buildAndReturn (ns.Name, declSource, deprecation, [||])
-                | Null -> None, [| symRange |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeInNamespace, [symName.Value; qualifier.Value]) |]
+    ///
+    /// Throws an ArgumentException if the given parent namespace does not exist, or if no source file with the given
+    /// name is listed as source of that namespace.
+    let tryResolveTypeName (parentNS, source) ((nsName, symName), symRange : QsRangeInfo) =
+        let checkQualificationForDeprecation qual =
+            BuiltIn.Deprecated |> PossibleQualifications (parentNS, source) |> Seq.contains qual
 
-    /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given attribute.
-    /// Generates suitable diagnostics if a suitable attribute cannot be determined,
-    /// or if the attribute argument contains expressions that are not supported,
-    /// or if the resolved argument type does not match the expected argument type.
+        let success ns declSource deprecation access errs =
+            let warnings =
+                SymbolResolution.GenerateDeprecationWarning
+                    ({Namespace = ns; Name = symName}, symRange.ValueOr QsCompilerDiagnostic.DefaultRange)
+                    deprecation
+            Some ({Namespace = ns; Name = symName; Range = symRange}, declSource, access), Array.append errs warnings
+
+        let error code args =
+            None, [| QsCompilerDiagnostic.Error (code, args) (symRange.ValueOr QsCompilerDiagnostic.DefaultRange) |]
+
+        let findUnqualified () =
+            match resolveInOpenNamespaces (fun ns -> ns.TryFindType (symName, checkQualificationForDeprecation))
+                                          (parentNS, source) with
+            | Found (nsName, (declSource, deprecation, access)) -> success nsName declSource deprecation access [||]
+            | Ambiguous namespaces ->
+                let names = String.Join(", ", Seq.map (fun (ns : NonNullable<string>) -> ns.Value) namespaces)
+                error ErrorCode.AmbiguousType [symName.Value; names]
+            | Inaccessible -> error ErrorCode.InaccessibleType [symName.Value]
+            | NotFound -> error ErrorCode.UnknownType [symName.Value]
+
+        let findQualified (ns : Namespace) qualifier =
+            match ns.TryFindType (symName, checkQualificationForDeprecation) with
+            | Found (declSource, deprecation, access) -> success ns.Name declSource deprecation access [||]
+            | Ambiguous _ -> QsCompilerError.Raise "Qualified name should not be ambiguous"
+                             Exception () |> raise
+            | Inaccessible -> error ErrorCode.InaccessibleTypeInNamespace [symName.Value; qualifier]
+            | NotFound -> error ErrorCode.UnknownTypeInNamespace [symName.Value; qualifier]
+
+        match nsName with
+        | None -> findUnqualified ()
+        | Some qualifier ->
+            match TryResolveQualifier qualifier (parentNS, source) with
+            | None -> error ErrorCode.UnknownNamespace [qualifier.Value]
+            | Some ns -> findQualified ns qualifier.Value
+
+    /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file. The
+    /// resolution consists of replacing all unqualified names for user defined types by their qualified name.
+    ///
+    /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or
+    /// unqualified) can be found, or if the type is inaccessible. In that case, resolves the user defined type by
+    /// replacing it with the Q# type denoting an invalid type.
+    ///
+    /// Diagnostics can be generated in additional cases when UDTs are referenced by returning an array of diagnostics
+    /// from the given checkUdt function.
+    ///
+    /// Verifies that all used type parameters are defined in the given list of type parameters, and generates suitable
+    /// diagnostics if they are not, replacing them by the Q# type denoting an invalid type. Returns the resolved type
+    /// as well as an array with diagnostics.
+    ///
+    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
+    /// consistent with the defined callables.
+    ///
+    /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
+    /// Throws a NotSupportedException if the QsType to resolve contains a MissingType.
+    let resolveType (parent : QsQualifiedName, tpNames, source) qsType checkUdt =
+        let processUDT = tryResolveTypeName (parent.Namespace, source) >> function
+            | Some (udt, _, access), errs -> UserDefinedType udt, Array.append errs (checkUdt (udt, access))
+            | None, errs -> InvalidType, errs
+        let processTP (symName, symRange) =
+            if tpNames |> Seq.contains symName
+            then TypeParameter {Origin = parent; TypeName = symName; Range = symRange}, [||]
+            else InvalidType, [| symRange.ValueOr QsCompilerDiagnostic.DefaultRange
+                                 |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, [symName.Value]) |]
+        syncRoot.EnterReadLock()
+        try SymbolResolution.ResolveType (processUDT, processTP) qsType
+        finally syncRoot.ExitReadLock()
+
+    /// Compares the accessibility of the parent declaration with the accessibility of the UDT being referenced. If the
+    /// accessibility of a referenced type is less than the accessibility of the parent, returns a diagnostic using the
+    /// given error code. Otherwise, returns an empty array.
+    let checkUdtAccessibility code (parent : NonNullable<string>, parentAccess) (udt : UserDefinedType, udtAccess) =
+        if parentAccess = DefaultAccess && udtAccess = Internal
+        then [| QsCompilerDiagnostic.Error (code, [udt.Name.Value; parent.Value]) (udt.Range.ValueOr QsCompilerDiagnostic.DefaultRange) |]
+        else [||]
+
+
+    /// Given the name of the namespace as well as the source file in which the attribute occurs, resolves the given
+    /// attribute.
+    ///
+    /// Generates suitable diagnostics if a suitable attribute cannot be found or is not accessible, if the attribute
+    /// argument contains expressions that are not supported, or if the resolved argument type does not match the
+    /// expected argument type.
+    ///
     /// Returns the resolved attribute as well as the generated diagnostics.
-    /// The TypeId in the resolved attribute is set to Null if the unresolved Id is not a valid identifier
-    /// or if the correct attribute cannot be determined, and is set to the corresponding type identifier otherwise.
-    /// May throw an ArgumentException if the given parent namespace does not exist,
-    /// or if no source file with the given name is listed as source of that namespace.
-    member private this.ResolveAttribute (parentNS, source) attribute =
-        let getAttribute ((nsName, symName), symRange) =
-            match TryResolveTypeName (parentNS, source) ((nsName, symName), symRange) with
-            | Some (udt, declSource), errs -> // declSource may be the name of an assembly!
+    ///
+    /// The TypeId in the resolved attribute is set to Null if the unresolved Id is not a valid identifier or if the
+    /// correct attribute cannot be determined, and is set to the corresponding type identifier otherwise.
+    ///
+    /// May throw an ArgumentException if the given parent namespace does not exist or if no source file with the given
+    /// name is listed as source of that namespace.
+    member private this.ResolveAttribute (parentNS, source) attribute = 
+        let getAttribute ((nsName, symName), symRange) = 
+            match tryResolveTypeName (parentNS, source) ((nsName, symName), symRange) with
+            | Some (udt, declSource, _), errs -> // declSource may be the name of an assembly!
                 let fullName = sprintf "%s.%s" udt.Namespace.Value udt.Name.Value
                 let validQualifications = BuiltIn.Attribute |> PossibleQualifications (udt.Namespace, declSource)
                 match Namespaces.TryGetValue udt.Namespace with
@@ -858,46 +1026,63 @@ and NamespaceManager
         let resAttr = attr |> List.fold validateAttributes ([], []) |> snd
         resAttr.Reverse() |> ImmutableArray.CreateRange, errs.ToArray()
 
-    /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file.
-    /// The resolution consists of replacing all unqualified names for user defined types by their qualified name.
-    /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or unqualified) can be found.
-    /// In that case, resolves the user defined type by replacing it with the Q# type denoting an invalid type.
-    /// Verifies that all used type parameters are defined in the given list of type parameters,
-    /// and generates suitable diagnostics if they are not, replacing them by the Q# type denoting an invalid type.
-    /// Returns the resolved type as well as an array with diagnostics.
-    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined callables.
+    /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file. The
+    /// resolution consists of replacing all unqualified names for user defined types by their qualified name.
+    ///
+    /// Generates an array of diagnostics for the cases where no user defined type of the specified name (qualified or
+    /// unqualified) can be found or the type is inaccessible. In that case, resolves the user defined type by replacing
+    /// it with the Q# type denoting an invalid type.
+    ///
+    /// Verifies that all used type parameters are defined in the given list of type parameters, and generates suitable
+    /// diagnostics if they are not, replacing them by the Q# type denoting an invalid type. Returns the resolved type
+    /// as well as an array with diagnostics.
+    ///
+    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
+    /// consistent with the defined callables.
+    ///
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined declarations.
-    /// Throws a NonSupportedException if the QsType to resolve contains a MissingType.
-    member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>) (qsType : QsType) : ResolvedType * QsCompilerDiagnostic[] =
-        let processUDT = TryResolveTypeName (parent.Namespace, source) >> function
-            | Some (udt, _), errs -> UserDefinedType udt, errs
-            | None, errs -> InvalidType, errs
-        let processTP (symName, symRange) =
-            if tpNames |> Seq.contains symName then TypeParameter {Origin = parent; TypeName = symName; Range = symRange}, [||]
-            else InvalidType, [| symRange.ValueOr QsCompilerDiagnostic.DefaultRange |> QsCompilerDiagnostic.Error (ErrorCode.UnknownTypeParameterName, [symName.Value]) |]
-        syncRoot.EnterReadLock()
-        try SymbolResolution.ResolveType (processUDT, processTP) qsType
-        finally syncRoot.ExitReadLock()
+    /// Throws a NotSupportedException if the QsType to resolve contains a MissingType.
+    member this.ResolveType (parent : QsQualifiedName, tpNames : ImmutableArray<_>, source : NonNullable<string>) (qsType : QsType) =
+        resolveType (parent, tpNames, source) qsType (fun _ -> [||])
 
-    /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the specified source file.
-    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined types.
-    /// May throw an exception if the given parent and/or source file is inconsistent with the defined types.
-    /// Throws an ArgumentException if the given type tuple is an empty QsTuple.
-    member private this.ResolveTypeDeclaration (fullName : QsQualifiedName, source) typeTuple =
-        let resolveType = this.ResolveType (fullName, ImmutableArray<_>.Empty, source) // currently type parameters for udts are not supported
+    /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the
+    /// specified source file using ResolveType.
+    ///
+    /// Generates the same diagnostics as ResolveType, as well as additional diagnostics when the accessibility of the
+    /// type declaration is greater than the accessibility of any part of its underlying type.
+    ///
+    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
+    /// consistent with the defined types.
+    ///
+    /// May throw an exception if the given parent and/or source file is inconsistent with the defined types. Throws an
+    /// ArgumentException if the given type tuple is an empty QsTuple.
+    member private this.ResolveTypeDeclaration (fullName : QsQualifiedName, source, modifiers) typeTuple =
+        // Currently, type parameters for UDTs are not supported.
+        let checkAccessibility = checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, modifiers.Access)
+        let resolveType qsType = resolveType (fullName, ImmutableArray<_>.Empty, source) qsType checkAccessibility
         SymbolResolution.ResolveTypeDeclaration resolveType typeTuple
 
-    /// Given the namespace and the name of the callable that the given signature belongs to, as well as its kind and the source file it is declared in,
-    /// fully resolves all Q# types in the signature using ResolveType.
-    /// Returns a new signature with the resolved types, the resolved argument tuple, as well as the array of diagnostics created during type resolution.
-    /// The position offset information for the variables declared in the argument tuple will be set to Null.
-    /// Positional information within types is set to Null if the parent callable is a type constructor.
-    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is consistent with the defined callables.
-    /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables.
-    /// Throws an ArgumentException if the given list of characteristics is empty.
-    member private this.ResolveCallableSignature (parentKind, parentName : QsQualifiedName, source) (signature : CallableSignature, specBundleCharacteristics) =
-        let resolveType tpNames t =
-            let res, errs = this.ResolveType (parentName, tpNames, source) t
+    /// Given the namespace and the name of the callable that the given signature belongs to, as well as its kind and
+    /// the source file it is declared in, fully resolves all Q# types in the signature using ResolveType.
+    ///
+    /// Generates the same diagnostics as ResolveType, as well as additional diagnostics when the accessibility of the
+    /// callable declaration is greater than the accessibility of any type in its signature.
+    ///
+    /// Returns a new signature with the resolved types, the resolved argument tuple, as well as the array of
+    /// diagnostics created during type resolution.
+    ///
+    /// The position offset information for the variables declared in the argument tuple will be set to Null. Positional
+    /// information within types is set to Null if the parent callable is a type constructor.
+    ///
+    /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
+    /// consistent with the defined callables.
+    ///
+    /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables. Throws
+    /// an ArgumentException if the given list of characteristics is empty.
+    member private this.ResolveCallableSignature (parentKind, parentName : QsQualifiedName, source, access) (signature, specBundleCharacteristics) =
+        let checkAccessibility = checkUdtAccessibility ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, access)
+        let resolveType tpNames qsType =
+            let res, errs = resolveType (parentName, tpNames, source) qsType checkAccessibility
             if parentKind <> TypeConstructor then res, errs
             else res.WithoutRangeInfo, errs // strip positional info for auto-generated type constructors
         SymbolResolution.ResolveCallableSignature (resolveType, specBundleCharacteristics) signature
@@ -925,8 +1110,8 @@ and NamespaceManager
             ns.TypesDefinedInAllSources() |> Seq.collect (fun kvPair ->
                 let tName, (source, qsType) = kvPair.Key, kvPair.Value
                 let fullName = {Namespace = ns.Name; Name = tName}
-                let resolved, msgs = qsType.Defined |> this.ResolveTypeDeclaration (fullName, source)
-                ns.SetTypeResolution source (tName, resolved |> Value, ImmutableArray.Empty)
+                let resolved, msgs = qsType.Defined |> this.ResolveTypeDeclaration (fullName, source, qsType.Modifiers) 
+                ns.SetTypeResolution source (tName, resolved |> Value, ImmutableArray.Empty) 
                 msgs |> Array.map (fun msg -> source, (qsType.Position, msg))))
         // ... before we can resolve the corresponding attributes.
         let attributeDiagnostics = sortedNamespaces |> Seq.collect (fun ns ->
@@ -980,7 +1165,7 @@ and NamespaceManager
 
                 // and finally we resolve the overall signature (whose characteristics are the intersection of the one of all bundles)
                 let characteristics = props.Values |> Seq.map (fun bundle -> bundle.BundleInfo) |> Seq.toList
-                let resolved, msgs = (signature.Defined, characteristics) |> this.ResolveCallableSignature (kind, parent, source) // no positional info for type constructors
+                let resolved, msgs = (signature.Defined, characteristics) |> this.ResolveCallableSignature (kind, parent, source, signature.Modifiers.Access) // no positional info for type constructors
                 ns.SetCallableResolution source (parent.Name, resolved |> Value, callableAttributes)
                 errs <- (attrErrs |> Array.map (fun m -> source, m)) :: (msgs |> Array.map (fun m -> source, (signature.Position, m))) :: errs
 
@@ -1083,17 +1268,20 @@ and NamespaceManager
             defined.ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
-    /// Returns the source file and CallableDeclarationHeader of all callables imported from referenced assemblies.
-    member this.ImportedCallables () =
+    /// Returns the source file and CallableDeclarationHeader of all callables imported from referenced assemblies,
+    /// regardless of accessibility.
+    member this.ImportedCallables () = 
         // TODO: this needs to be adapted if we support external specializations
         syncRoot.EnterReadLock()
-        try let imported = Namespaces.Values |> Seq.collect (fun ns -> ns.CallablesInReferencedAssemblies.Values)
-            imported.ToImmutableArray()
+        try Namespaces.Values
+            |> Seq.collect (fun ns -> ns.CallablesInReferencedAssemblies.SelectMany (fun g -> g.AsEnumerable ()))
+            |> fun callables -> callables.ToImmutableArray ()
         finally syncRoot.ExitReadLock()
 
-    /// Returns the declaration headers for all callables defined in source files.
+    /// Returns the declaration headers for all callables defined in source files, regardless of accessibility.
+    ///
     /// Throws an InvalidOperationException if the symbols are not currently resolved.
-    member this.DefinedCallables () =
+    member this.DefinedCallables () = 
         let notResolvedException = InvalidOperationException "callables are not resolved"
         syncRoot.EnterReadLock()
         try if not this.ContainsResolutions then notResolvedException |> raise
@@ -1106,6 +1294,7 @@ and NamespaceManager
                         Kind = kind
                         QualifiedName = {Namespace = ns.Name; Name = cName}
                         Attributes = declaration.ResolvedAttributes
+                        Modifiers = declaration.Modifiers
                         SourceFile = source
                         Position = DeclarationHeader.Offset.Defined declaration.Position
                         SymbolRange = DeclarationHeader.Range.Defined declaration.Range
@@ -1116,16 +1305,31 @@ and NamespaceManager
             defined.ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
-    /// Returns the source file and TypeDeclarationHeader of all types imported from referenced assemblies.
+    /// Returns the declaration headers for all callables (either defined in source files or imported from referenced
+    /// assemblies) that are accessible from source files in the compilation unit.
+    ///
+    /// Throws an InvalidOperationException if the symbols are not currently resolved.
+    member this.AccessibleCallables () =
+        Seq.append
+            (Seq.map (fun callable -> callable, true) (this.DefinedCallables()))
+            (Seq.map (fun callable -> callable, false) (this.ImportedCallables()))
+        |> Seq.filter (fun (callable, sameAssembly) ->
+            Namespace.IsDeclarationAccessible (sameAssembly, callable.Modifiers.Access))
+        |> Seq.map fst
+
+    /// Returns the source file and TypeDeclarationHeader of all types imported from referenced assemblies, regardless
+    /// of accessibility.
     member this.ImportedTypes() =
         syncRoot.EnterReadLock()
-        try let imported = Namespaces.Values |> Seq.collect (fun ns -> ns.TypesInReferencedAssemblies.Values)
-            imported.ToImmutableArray()
+        try Namespaces.Values
+            |> Seq.collect (fun ns -> ns.TypesInReferencedAssemblies.SelectMany (fun g -> g.AsEnumerable ()))
+            |> fun types -> types.ToImmutableArray ()
         finally syncRoot.ExitReadLock()
 
-    /// Returns the declaration headers for all types defined in source files.
+    /// Returns the declaration headers for all types defined in source files, regardless of accessibility.
+    ///
     /// Throws an InvalidOperationException if the symbols are not currently resolved.
-    member this.DefinedTypes () =
+    member this.DefinedTypes () = 
         let notResolvedException = InvalidOperationException "types are not resolved"
         syncRoot.EnterReadLock()
         try if not this.ContainsResolutions then notResolvedException |> raise
@@ -1137,6 +1341,7 @@ and NamespaceManager
                     | Value (underlyingType, items) -> Some {
                         QualifiedName = {Namespace = ns.Name; Name = tName}
                         Attributes = qsType.ResolvedAttributes
+                        Modifiers = qsType.Modifiers
                         SourceFile = source
                         Position = DeclarationHeader.Offset.Defined qsType.Position
                         SymbolRange = DeclarationHeader.Range.Defined qsType.Range
@@ -1147,7 +1352,19 @@ and NamespaceManager
             defined.ToImmutableArray()
         finally syncRoot.ExitReadLock()
 
-    /// removes the given source file and all its content from all namespaces
+    /// Returns the declaration headers for all types (either defined in source files or imported from referenced
+    /// assemblies) that are accessible from source files in the compilation unit.
+    ///
+    /// Throws an InvalidOperationException if the symbols are not currently resolved.
+    member this.AccessibleTypes () =
+        Seq.append
+            (Seq.map (fun qsType -> qsType, true) (this.DefinedTypes()))
+            (Seq.map (fun qsType -> qsType, false) (this.ImportedTypes()))
+        |> Seq.filter (fun (qsType, sameAssembly) ->
+            Namespace.IsDeclarationAccessible (sameAssembly, qsType.Modifiers.Access))
+        |> Seq.map fst
+
+    /// removes the given source file and all its content from all namespaces 
     member this.RemoveSource source =
         syncRoot.EnterWriteLock()
         versionNumber <- versionNumber + 1
@@ -1219,19 +1436,27 @@ and NamespaceManager
             | false, _ -> ArgumentException "no such namespace exists" |> raise
         finally syncRoot.ExitWriteLock()
 
-    /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader as Value,
-    /// if the qualifier can be resolved within the given parent namespace and source file, and such a callable indeed exists.
-    /// If the callable is not defined an any of the references and the source file containing the callable declaration is specified (i.e. declSource is Some),
-    /// throws the corresponding exception if no such callable exists in that file.
-    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
+    /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
+    /// the qualifier can be resolved within the given parent namespace and source file, and the callable is accessible.
+    ///
+    /// If the callable is not defined an any of the references and the source file containing the callable declaration
+    /// is specified (i.e. declSource is Some), throws the corresponding exception if no such callable exists in that
+    /// file.
+    ///
+    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent
+    /// namespace does not exist.
     member private this.TryGetCallableHeader (callableName : QsQualifiedName, declSource) (nsName, source) =
-        let BuildHeader fullName (source, kind, declaration : Resolution<_,_>) =
-            let fallback () = (declaration.Defined, [CallableInformation.Invalid]) |> this.ResolveCallableSignature (kind, callableName, source) |> fst
+        let buildHeader fullName (source, kind, declaration) =
+            let fallback () =
+                (declaration.Defined, [CallableInformation.Invalid])
+                |> this.ResolveCallableSignature (kind, callableName, source, declaration.Modifiers.Access)
+                |> fst
             let resolvedSignature, argTuple = declaration.Resolved.ValueOrApply fallback
-            Value {
+            {
                 Kind = kind
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
+                Modifiers = declaration.Modifiers
                 SourceFile = source
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range
@@ -1239,50 +1464,84 @@ and NamespaceManager
                 ArgumentTuple = argTuple
                 Documentation = declaration.Documentation
             }
+
+        let findInReferences (ns : Namespace) =
+            ns.CallablesInReferencedAssemblies.[callableName.Name]
+            |> Seq.map (fun callable ->
+                if Namespace.IsDeclarationAccessible (false, callable.Modifiers.Access)
+                then Found callable
+                else Inaccessible)
+            |> ResolutionResult.AtMostOne
+
+        let findInSources (ns : Namespace) = function
+            | Some source ->
+                // OK to use CallableInSource because this is only evaluated if the callable is not in a
+                // reference.
+                let kind, declaration = ns.CallableInSource source callableName.Name
+                if Namespace.IsDeclarationAccessible (true, declaration.Modifiers.Access)
+                then Found (buildHeader {callableName with Namespace = ns.Name} (source, kind, declaration))
+                else Inaccessible
+            | None ->
+                match ns.CallablesDefinedInAllSources().TryGetValue callableName.Name with
+                | true, (source, (kind, declaration)) ->
+                    if Namespace.IsDeclarationAccessible (true, declaration.Modifiers.Access)
+                    then Found (buildHeader {callableName with Namespace = ns.Name} (source, kind, declaration))
+                    else Inaccessible
+                | false, _ -> NotFound
+
         syncRoot.EnterReadLock()
         try match (nsName, source) |> TryResolveQualifier callableName.Namespace with
-            | None -> Null
-            | Some ns -> ns.CallablesInReferencedAssemblies.TryGetValue callableName.Name |> function
-                | true, cDecl -> Value cDecl
-                | false, _ -> declSource |> function
-                    | Some source ->
-                        let kind, decl = ns.CallableInSource source callableName.Name // ok only because/if we have covered that the callable is not in a reference!
-                        BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl)
-                    | None ->
-                        ns.CallablesDefinedInAllSources().TryGetValue callableName.Name |> function
-                        | true, (source, (kind, decl)) -> BuildHeader {callableName with Namespace = ns.Name} (source, kind, decl)
-                        | false, _ -> Null
+            | None -> NotFound
+            | Some ns ->
+                seq { yield findInReferences ns
+                      yield findInSources ns declSource }
+                |> ResolutionResult.TryFirstBest
         finally syncRoot.ExitReadLock()
 
-    /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader as Value,
-    /// if the qualifier can be resolved within the given parent namespace and source file, and such a callable indeed exists.
-    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
-    member this.TryGetCallable (callableName : QsQualifiedName) (nsName, source) = this.TryGetCallableHeader (callableName, None) (nsName, source)
+    /// Given a qualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
+    /// the qualifier can be resolved within the given parent namespace and source file, and the callable is accessible.
+    ///
+    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent
+    /// namespace does not exist.
+    member this.TryGetCallable (callableName : QsQualifiedName) (nsName, source) =
+        this.TryGetCallableHeader (callableName, None) (nsName, source)
 
-    /// If the given callable name can be uniquely resolved within the given namespace and source file,
-    /// returns the CallableDeclarationHeader with the information on that callable as Value.
-    /// Returns Null as well as a list with namespaces containing a callable with that name if this is not the case.
+    /// Given an unqualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
+    /// the qualifier can be uniquely resolved within the given parent namespace and source file, and the callable is
+    /// accessible.
+    ///
+    /// Returns an Ambiguous result with a list with namespaces containing a type with that name if the name cannot be
+    /// uniquely resolved.
     member this.TryResolveAndGetCallable cName (nsName, source) =
+        let toHeader (declaredNs, (declaredSource, _)) =
+            match this.TryGetCallableHeader ({Namespace = declaredNs; Name = cName}, Some declaredSource)
+                                            (nsName, source) with
+            | Found value -> value
+            | _ -> QsCompilerError.Raise "Expected to find the header corresponding to a possible resolution"
+                   Exception () |> raise
+
         syncRoot.EnterReadLock()
-        try match (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsCallable cName) with
-            | [(declNS, (declSource, _))] -> this.TryGetCallableHeader ({Namespace = declNS; Name = cName}, Some declSource) (nsName, source) |> function
-                | Null -> QsCompilerError.Raise "failed to get the callable information about a resolved callable"; Null, Seq.empty
-                | info -> info, seq {yield declNS}
-            | resolutions -> Null, resolutions.Select fst
+        try resolveInOpenNamespaces (fun ns -> ns.TryFindCallable cName) (nsName, source)
+            |> ResolutionResult.Map toHeader
         finally syncRoot.ExitReadLock()
 
-    /// Given a qualified type name, returns the corresponding TypeDeclarationHeader as Value,
-    /// if the qualifier can be resolved within the given parent namespace and source file, and such a type indeed exists.
-    /// If the type is not defined an any of the references and the source file containing the type declaration is specified (i.e. declSource is Some),
-    /// throws the corresponding exception if no such type exists in that file.
-    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
+    /// Given a qualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
+    /// qualifier can be resolved within the given parent namespace and source file, and the type is accessible.
+    ///
+    /// If the type is not defined an any of the references and the source file containing the type declaration is
+    /// specified (i.e. declSource is Some), throws the corresponding exception if no such type exists in that file.
+    ///
+    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent
+    /// namespace does not exist.
     member private this.TryGetTypeHeader (typeName : QsQualifiedName, declSource) (nsName, source) =
-        let BuildHeader fullName (source, declaration) =
-            let fallback () = declaration.Defined |> this.ResolveTypeDeclaration (typeName, source) |> fst
+        let buildHeader fullName (source, declaration) =
+            let fallback () =
+                declaration.Defined |> this.ResolveTypeDeclaration (typeName, source, declaration.Modifiers) |> fst
             let underlyingType, items = declaration.Resolved.ValueOrApply fallback
-            Value {
+            {
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
+                Modifiers = declaration.Modifiers
                 SourceFile = source
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range
@@ -1290,40 +1549,67 @@ and NamespaceManager
                 TypeItems = items
                 Documentation = declaration.Documentation
             }
+
+        let findInReferences (ns : Namespace) =
+            ns.TypesInReferencedAssemblies.[typeName.Name]
+            |> Seq.map (fun typeHeader ->
+                if Namespace.IsDeclarationAccessible (false, typeHeader.Modifiers.Access)
+                then Found typeHeader
+                else Inaccessible)
+            |> ResolutionResult.AtMostOne
+
+        let findInSources (ns : Namespace) = function
+            | Some source ->
+                // OK to use TypeInSource because this is only evaluated if the type is not in a reference.
+                let declaration = ns.TypeInSource source typeName.Name
+                if Namespace.IsDeclarationAccessible (true, declaration.Modifiers.Access)
+                then Found (buildHeader {typeName with Namespace = ns.Name} (source, declaration))
+                else Inaccessible
+            | None ->
+                match ns.TypesDefinedInAllSources().TryGetValue typeName.Name with
+                | true, (source, declaration) ->
+                    if Namespace.IsDeclarationAccessible (true, declaration.Modifiers.Access)
+                    then Found (buildHeader {typeName with Namespace = ns.Name} (source, declaration))
+                    else Inaccessible
+                | false, _ -> NotFound
+
         syncRoot.EnterReadLock()
         try match (nsName, source) |> TryResolveQualifier typeName.Namespace with
-            | None -> Null
-            | Some ns -> ns.TypesInReferencedAssemblies.TryGetValue typeName.Name |> function
-                | true, tDecl -> Value tDecl
-                | false, _ -> declSource |> function
-                    | Some source ->
-                        let decl = ns.TypeInSource source typeName.Name // ok only because/if we have covered that the type is not in a reference!
-                        BuildHeader {typeName with Namespace = ns.Name} (source, decl)
-                    | None ->
-                        ns.TypesDefinedInAllSources().TryGetValue typeName.Name |> function
-                        | true, (source, decl) -> BuildHeader {typeName with Namespace = ns.Name} (source, decl)
-                        | false, _ -> Null
+            | None -> NotFound
+            | Some ns ->
+                seq { yield findInReferences ns
+                      yield findInSources ns declSource }
+                |> ResolutionResult.TryFirstBest
         finally syncRoot.ExitReadLock()
 
-    /// Given a qualified type name, returns the corresponding TypeDeclarationHeader as Value,
-    /// if the qualifier can be resolved within the given parent namespace and source file, and such a type indeed exists.
-    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent namespace does not exist.
-    member this.TryGetType (typeName : QsQualifiedName) (nsName, source) = this.TryGetTypeHeader (typeName, None) (nsName, source)
+    /// Given a qualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
+    /// qualifier can be resolved within the given parent namespace and source file, and the type is accessible.
+    ///
+    /// Throws an ArgumentException if the qualifier does not correspond to a known namespace and the given parent
+    /// namespace does not exist.
+    member this.TryGetType (typeName : QsQualifiedName) (nsName, source) =
+        this.TryGetTypeHeader (typeName, None) (nsName, source)
 
-    /// If the given type name can be uniquely resolved within the given namespace and source file,
-    /// returns the TypeDeclarationHeader with the information on that type as Value.
-    /// Returns Null as well as a list with namespaces containing a type with that name if this is not the case.
+    /// Given an unqualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
+    /// qualifier can be uniquely resolved within the given parent namespace and source file, and the type is
+    /// accessible.
+    ///
+    /// Returns an Ambiguous result with a list with namespaces containing a type with that name if the name cannot be
+    /// uniquely resolved.
     member this.TryResolveAndGetType tName (nsName, source) =
+        let toHeader (declaredNs, (declaredSource, _, _)) =
+            match this.TryGetTypeHeader ({Namespace = declaredNs; Name = tName}, Some declaredSource)
+                                            (nsName, source) with
+            | Found value -> value
+            | _ -> QsCompilerError.Raise "Expected to find the header corresponding to a possible resolution"
+                   Exception () |> raise
+
         syncRoot.EnterReadLock()
-        try match (nsName, source) |> PossibleResolutions (fun ns -> ns.ContainsType tName) with
-            | [(declNS, (declSource, _))] -> this.TryGetTypeHeader ({Namespace = declNS; Name = tName}, Some declSource) (nsName, source) |> function
-                | Null -> QsCompilerError.Raise "failed to get the type information about a resolved type"; Null, Seq.empty
-                | info -> info, seq {yield declNS}
-            | resolutions -> Null, resolutions.Select fst
+        try resolveInOpenNamespaces (fun ns -> ns.TryFindType tName) (nsName, source)
+            |> ResolutionResult.Map toHeader
         finally syncRoot.ExitReadLock()
 
-
-    /// Returns the fully qualified namespace name of the given namespace alias (short name). If the alias is already a fully qualified name,
+    /// Returns the fully qualified namespace name of the given namespace alias (short name). If the alias is already a fully qualified name, 
     /// returns the name unchanged. Returns null if no such name exists within the given parent namespace and source file.
     /// Throws an ArgumentException if the given parent namespace does not exist.
     member this.TryResolveNamespaceAlias alias (nsName, source) =
@@ -1333,20 +1619,26 @@ and NamespaceManager
             | Some ns -> ns.Name.Value
         finally syncRoot.ExitReadLock()
 
-    /// Returns the names of all namespaces in which a callable with the given name is declared.
+    /// Returns the names of all namespaces in which a callable is declared that has the given name and is accessible
+    /// from source files in the compilation unit.
     member this.NamespacesContainingCallable cName =
         // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
         syncRoot.EnterReadLock()
-        try let containsCallable (ns : Namespace) = ns.ContainsCallable cName |> QsNullable<_>.Map (fun _ -> ns.Name)
-            (Namespaces.Values |> QsNullable<_>.Choose containsCallable).ToImmutableArray()
+        try Namespaces.Values
+            |> Seq.choose (fun ns ->
+                ns.TryFindCallable cName |> ResolutionResult.ToOption |> Option.map (fun _ -> ns.Name))
+            |> fun namespaces -> namespaces.ToImmutableArray ()
         finally syncRoot.ExitReadLock()
 
-    /// Returns the names of all namespaces in which a type with the given name is declared.
+    /// Returns the names of all namespaces in which a type is declared that has the given name and is accessible from
+    /// source files in the compilation unit.
     member this.NamespacesContainingType tName =
         // FIXME: we need to handle the case where a callable/type with the same qualified name is declared in several references!
         syncRoot.EnterReadLock()
-        try let containsType (ns : Namespace) = ns.ContainsType tName |> QsNullable<_>.Map (fun _ -> ns.Name)
-            (Namespaces.Values |> QsNullable<_>.Choose containsType).ToImmutableArray()
+        try Namespaces.Values
+            |> Seq.choose (fun ns ->
+                ns.TryFindType tName |> ResolutionResult.ToOption |> Option.map (fun _ -> ns.Name))
+            |> fun namespaces -> namespaces.ToImmutableArray ()
         finally syncRoot.ExitReadLock()
 
     /// Returns the name of all namespaces declared in source files or referenced assemblies.
@@ -1438,5 +1730,4 @@ and NamespaceManager
             let typesHash = types |> Seq.map (fun (ns, name, t) -> ns, name, typeHash t) |> Seq.toList |> hash
             let importsHash = imports |> Seq.toList |> hash
             hash (callablesHash, typesHash), importsHash
-        finally syncRoot.ExitReadLock()
-
+        finally syncRoot.ExitReadLock() 
