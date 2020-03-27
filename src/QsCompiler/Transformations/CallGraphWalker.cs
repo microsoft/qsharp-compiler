@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         }
 
         /// <summary>
-        /// This is a dictionary mapping source nods to information about target nodes. This information is represented
+        /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
         /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
         /// </summary>
         private Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> _Dependencies =
