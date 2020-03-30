@@ -3,14 +3,13 @@
 
 using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution;
 
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
-    internal class IntrinsicResolution : IRewriteStep
+    internal class FullPreEvaluation : IRewriteStep
     {
-        public string Name => "Intrinsic Resolution";
+        public string Name => "Full Pre-Evaluation";
         public int Priority => 10; // Not used for built-in transformations like this
         public IDictionary<string, string> AssemblyConstants { get; }
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
@@ -19,12 +18,9 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public bool ImplementsTransformation => true;
         public bool ImplementsPostconditionVerification => false;
 
-        private QsCompilation Environment { get; }
-
-        public IntrinsicResolution(QsCompilation environment)
+        public FullPreEvaluation()
         {
             AssemblyConstants = new Dictionary<string, string>();
-            Environment = environment;
         }
 
         public bool PreconditionVerification(QsCompilation compilation)
@@ -34,8 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = ReplaceWithTargetIntrinsics.Apply(this.Environment, compilation);
-            return true;
+            return compilation.PreEvaluateAll(out transformed);
         }
 
         public bool PostconditionVerification(QsCompilation compilation)
