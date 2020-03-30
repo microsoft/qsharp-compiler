@@ -32,8 +32,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         }
 
         /// <summary>
-        /// Get the combined type resolutions for a pair of nested resolutions,
-        /// resolving references in the inner resolutions to the outer resolutions.
+        /// Given a sequence of type resolutions specifying e.g. subsequent concretizations as part of a nested expression, 
+        /// or concretizations as part of a cycle in the call graph, constructs a dictionary containing the resolution
+        /// for the type parameters of the specified parent callable. 
+        /// The given resolutions are expected to be ordered starting with the dictionary containing the initial mapping for the 
+        /// type parameters of the specified parent callable (the "innermost resolutions"). This mapping may potentially be to 
+        /// type parameters of other callables, which are then further concretized by subsequent resolutions. 
+        /// Returns true if the combination of the given resolutions is valid, i.e. if there are no conflicting resolutions 
+        /// and type parameters of the parent callables are uniquely resolved to either a concrete type, 
+        /// a type parameter of another callable, or themselves.
+        /// Throws an ArgumentNullException if the given parent is null. 
+        /// Throws an ArgumentException if the given resolutions imply that type parameters from multiple callables are 
+        /// simultaneously treated as concrete types. 
         /// </summary>
         public static bool TryCombineTypeResolutions
             (QsQualifiedName parent, out ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> combined,
@@ -49,7 +59,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             foreach (var resolution in resolutions)
             {
                 // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated 
-                // if a certain non-native type parameter is resolved by the currently processed dictionary. 
+                // if a certain external type parameter is resolved by the currently processed dictionary. 
+                // External type parameters here means type parameters that do not belong to the parent callable.
                 var mayBeReplaced = combinedBuilder
                     .Select(kv => (kv.Key, kv.Value.Resolution as ResolvedTypeKind.TypeParameter))
                     .Where(entry => entry.Item2 != null && !EqualsParent(entry.Item2.Item.Origin))
@@ -62,27 +73,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     var resolutionToTypeParam = entry.Value.Resolution as ResolvedTypeKind.TypeParameter;
                     var isResolutionToNative = resolutionToTypeParam != null && EqualsParent(resolutionToTypeParam.Item.Origin);
 
-                    // resolution of a non-native type parameter that is currently listed as value in the combined type resolution dictionary
-                    foreach (var keyInCombined in mayBeReplaced[entry.Key])
+                    // resolution of an external type parameter that is currently listed as value in the combined type resolution dictionary
+                    if (mayBeReplaced.Contains(entry.Key))
                     {
-                        // If one of the values is a type parameter from the parent callable, 
-                        // but it isn't mapped to itself then the combined resolution is invalid. 
-                        var nontrivialResolutionToNative = isResolutionToNative && keyInCombined.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
-                        success = success && !nontrivialResolutionToNative;
-                        combinedBuilder[keyInCombined] = entry.Value;
+                        foreach (var keyInCombined in mayBeReplaced[entry.Key])
+                        {
+                            // If one of the values is a type parameter from the parent callable, 
+                            // but it isn't mapped to itself then the combined resolution is invalid. 
+                            var nontrivialResolutionToNative = isResolutionToNative && keyInCombined.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
+                            success = success && !nontrivialResolutionToNative;
+                            combinedBuilder[keyInCombined] = entry.Value;
+                        }
                     }
 
-                    // resolution of a native type parameter, i.e. a type parameter that belongs to the parent callable
-                    if (EqualsParent(entry.Key.Item1)) 
+                    // resolution of a type parameter that belongs to the parent callable and has not already been processed
+                    else if (EqualsParent(entry.Key.Item1)) 
                     {
                         // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
                         var nontrivialResolutionToNative = isResolutionToNative && entry.Key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
                         success = success && !nontrivialResolutionToNative;
-                        // TODO: ALSO CHECK IF THERE IS An EXISTING AND CONFLICTING NON-TRIVIAL RESOLUTION FOR A NATIVE ONE
+                        // Check that there is no conflicting resolution already defined.
+                        var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current) && !current.Equals(entry.Value);
+                        success = success && !conflictingResolutionExists;
                         combinedBuilder[entry.Key] = entry.Value;
                     }
-                    else if (!mayBeReplaced.Contains(entry.Key))
+
+                    else 
                     {
+                        // It does not make sense to support this case, since there is no valid context in which type parameters
+                        // belonging to multiple callables can/should be treated as concrete types simultaneously. 
                         throw new ArgumentException("attempting to define resolution for type parameter that does not belong to parent callable");
                     }
 
