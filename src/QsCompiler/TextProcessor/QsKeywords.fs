@@ -47,7 +47,7 @@ let private addFragmentHeader word =
     _FragmentHeaders.Add  word |> ignore
     qsKeyword word
 
-/// Given the keyword for two functors, constructs and returns the keyword for the compined functor 
+/// Given the keyword for two functors, constructs and returns the keyword for the combined functor 
 /// under the assumption tha the order of the functors does not matter.
 /// Adds the keyword for the combined functor to the list of QsReservedKeywords, QsLanguageKeywords and QsFragmentHeaders.
 let private addFunctorCombination (word1 : QsKeyword, word2 : QsKeyword) = 

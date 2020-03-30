@@ -11,7 +11,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
+namespace Microsoft.Quantum.QsCompiler.Transformations
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
@@ -32,10 +32,75 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         }
 
         /// <summary>
+        /// Get the combined type resolutions for a pair of nested resolutions,
+        /// resolving references in the inner resolutions to the outer resolutions.
+        /// </summary>
+        public static bool TryCombineTypeResolutions
+            (QsQualifiedName parent, out ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> combined,
+            params ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>[] resolutions)
+        {
+            if (parent == null) throw new ArgumentNullException(nameof(parent));
+            var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
+            var success = true;
+
+            bool EqualsParent(QsQualifiedName origin) => origin.Namespace.Value == parent.Namespace.Value && origin.Name.Value == parent.Name.Value;
+            static Tuple<QsQualifiedName, NonNullable<string>> AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
+
+            foreach (var resolution in resolutions)
+            {
+                // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated 
+                // if a certain non-native type parameter is resolved by the currently processed dictionary. 
+                var mayBeReplaced = combinedBuilder
+                    .Select(kv => (kv.Key, kv.Value.Resolution as ResolvedTypeKind.TypeParameter))
+                    .Where(entry => entry.Item2 != null && !EqualsParent(entry.Item2.Item.Origin))
+                    .ToLookup(
+                        entry => AsTypeResolutionKey(entry.Item2.Item),
+                        entry => entry.Key);
+
+                foreach (var entry in resolution)
+                {
+                    var resolutionToTypeParam = entry.Value.Resolution as ResolvedTypeKind.TypeParameter;
+                    var isResolutionToNative = resolutionToTypeParam != null && EqualsParent(resolutionToTypeParam.Item.Origin);
+
+                    // resolution of a non-native type parameter that is currently listed as value in the combined type resolution dictionary
+                    foreach (var keyInCombined in mayBeReplaced[entry.Key])
+                    {
+                        // If one of the values is a type parameter from the parent callable, 
+                        // but it isn't mapped to itself then the combined resolution is invalid. 
+                        var nontrivialResolutionToNative = isResolutionToNative && keyInCombined.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
+                        success = success && !nontrivialResolutionToNative;
+                        combinedBuilder[keyInCombined] = entry.Value;
+                    }
+
+                    // resolution of a native type parameter, i.e. a type parameter that belongs to the parent callable
+                    if (EqualsParent(entry.Key.Item1)) 
+                    {
+                        // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
+                        var nontrivialResolutionToNative = isResolutionToNative && entry.Key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
+                        success = success && !nontrivialResolutionToNative;
+                        // TODO: ALSO CHECK IF THERE IS An EXISTING AND CONFLICTING NON-TRIVIAL RESOLUTION FOR A NATIVE ONE
+                        combinedBuilder[entry.Key] = entry.Value;
+                    }
+                    else if (!mayBeReplaced.Contains(entry.Key))
+                    {
+                        throw new ArgumentException("attempting to define resolution for type parameter that does not belong to parent callable");
+                    }
+
+                }
+            }
+
+            QsCompilerError.Verify(
+                combinedBuilder.Keys.All(key => EqualsParent(key.Item1)), 
+                "for type parameter that does not belong to parent callable");
+            combined = combinedBuilder.ToImmutable();
+            return success;
+        }
+
+        /// <summary>
         /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
         /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
         /// </summary>
-        private Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> _Dependencies =
+        private readonly Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> _Dependencies =
             new Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>>();
 
         private QsNullable<ImmutableArray<ResolvedType>> RemovePositionFromTypeArgs(QsNullable<ImmutableArray<ResolvedType>> tArgs) =>

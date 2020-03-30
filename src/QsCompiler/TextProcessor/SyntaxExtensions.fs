@@ -16,7 +16,7 @@ type QsPositionInfo with
     static member Range (pos1, pos2) = 
         Value (QsPositionInfo.New pos1, QsPositionInfo.New pos2)
 
-    /// If the given right and left range both have contain a Value, returns the given kind as well as a Value with the compined range.
+    /// If the given right and left range both have contain a Value, returns the given kind as well as a Value with the combined range.
     /// Returns the given fallback and Null otherwise. 
     static member WithCombinedRange (lRange, rRange) kind fallback = 
         match (lRange, rRange) with

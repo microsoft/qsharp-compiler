@@ -72,80 +72,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             {
                 public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                private static ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> TryCompineTypeResolution
-                    (QsQualifiedName parent, params ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>[] resolutions)
-                {
-                    var compined = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
-                    if (resolutions.Length == 0) return compined.ToImmutable();
-
-                    //var parent = resolutions[0].Keys.First().Item1; WRONG...
-                    bool EqualsParent(QsQualifiedName origin) => origin.Namespace.Value == parent.Namespace.Value && origin.Name.Value == parent.Name.Value;
-                    static Tuple<QsQualifiedName, NonNullable<string>> AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
-
-                    foreach (var resolution in resolutions)
-                    {
-                        // Contains a lookup of all the keys in compined whose value needs to be updated 
-                        // if a certain type parameter is resolved by the corrently processed dictionary. 
-                        var mayBeReplaced = compined
-                            .Where(kv => kv.Value.Resolution.IsTypeParameter)
-                            .ToLookup(
-                                kv => AsTypeResolutionKey((kv.Value.Resolution as ResolvedTypeKind.TypeParameter).Item),
-                                kv => kv.Key);
-
-                        foreach (var keyValue in resolution)
-                        {
-                            foreach (var keyInCombined in mayBeReplaced[keyValue.Key])
-                            {
-                                // Give an error if one of the values is a type parameter from the parent callable, 
-                                // but it isn't mapped to itself. 
-                                if (keyValue.Value.Resolution is ResolvedTypeKind.TypeParameter tp
-                                    && EqualsParent(tp.Item.Origin)
-                                    && (keyInCombined.Item2.Value != tp.Item.TypeName.Value || !EqualsParent(keyInCombined.Item1)))
-                                {
-                                    throw new Exception("TOO RESTRICTIVE");
-                                    // FIXME: PROPER DIAGNOSTIC
-                                }
-                                compined[keyInCombined] = keyValue.Value;
-                            }
-
-                            if (EqualsParent(keyValue.Key.Item1))
-                            {
-                                compined[keyValue.Key] = keyValue.Value;
-                            }
-                            else if (!mayBeReplaced.Contains(keyValue.Key))
-                            {
-                                // FIXME: WE MAY NEED TO ALLOW THIS TO AVOID CHECKING EACH NODE IN A CYCLE
-                                throw new Exception("ATTEMPTING TO RESOLVE TYPE PARAMETER THAT DOES NOT BELONG TO THIS CALLABLE");
-                            }
-                        }
-                    }
-
-                    return compined.ToImmutable();
-                }
-
-                /// <summary>
-                /// Get the combined type resolutions for a pair of nested resolutions,
-                /// resolving references in the inner resolutions to the outer resolutions.
-                /// </summary>
-                //private static TypeArgsResolution GetCombinedTypeResolution(TypeArgsResolution outer, TypeArgsResolution inner)
-                //{
-                //    var outerDict = outer.ToDictionary(x => (x.Item1, x.Item2), x => x.Item3);
-                //    return inner.Select(innerRes =>
-                //    {
-                //        if (innerRes.Item3.Resolution is ResolvedTypeKind.TypeParameter typeParam &&
-                //            outerDict.TryGetValue((typeParam.Item.Origin, typeParam.Item.TypeName), out var outerRes))
-                //        {
-                //            outerDict.Remove((typeParam.Item.Origin, typeParam.Item.TypeName)); // FIXME: THERE IS A BUG HERE: THIS COULD OCCUR SEVERAL TIMES AS VALUE IN THE INNER DICT
-                //            return Tuple.Create(innerRes.Item1, innerRes.Item2, outerRes);
-                //        }
-                //        else
-                //        {
-                //            return innerRes;
-                //        }
-                //    })
-                //    .Concat(outerDict.Select(x => Tuple.Create(x.Key.Item1, x.Key.Item2, x.Value))).ToImmutableArray();
-                //}
-
                 /// <summary>
                 /// Checks if the scope is valid for conversion to an operation call from the conditional control API.
                 /// It is valid if there is exactly one statement in it and that statement is a call like expression statement.
@@ -175,7 +101,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         {
                             // We are dissolving the application of arguments here, so the call's type argument
                             // resolutions have to be moved to the 'identifier' sub expression.
-                            var combinedTypeArguments = TryCompineTypeResolution(global.Item, idTypeArguments, callTypeArguments);
+                            var combined = CallGraph.TryCombineTypeResolutions(global.Item, out var combinedTypeArguments, idTypeArguments, callTypeArguments);
+                            QsCompilerError.Verify(combined, "failed to compine type parameter resolution");
 
                             var globalCallable = SharedState.Compilation.Namespaces
                                 .Where(ns => ns.Name.Equals(global.Item.Namespace))

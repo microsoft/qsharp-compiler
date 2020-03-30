@@ -25,7 +25,7 @@ let private characteristicsExpression = new OperatorPrecedenceParser<Characteris
 /// builds the corresponding expression with its range set to the combined range. 
 /// If either one of given ranges is Null, builds an invalid expression with its range set to Null. 
 let private buildCombinedExpression kind (lRange, rRange) = 
-    QsPositionInfo.WithCombinedRange (lRange, rRange) kind InvalidSetExpr |> Characteristics.New  // *needs* to be invalid if the compined range is Null!
+    QsPositionInfo.WithCombinedRange (lRange, rRange) kind InvalidSetExpr |> Characteristics.New  // *needs* to be invalid if the combined range is Null!
 
 let private applyBinary operator _ (left : Characteristics) (right : Characteristics) = 
     buildCombinedExpression (operator (left, right)) (left.Range, right.Range)
@@ -186,7 +186,7 @@ let internal typeParser tupleType =
         ]
     let buildArrays p = 
         let combine kind (lRange, rRange) = 
-            QsPositionInfo.WithCombinedRange (lRange, rRange) kind InvalidType |> QsType.New // *needs* to be invalid if the compined range is Null!
+            QsPositionInfo.WithCombinedRange (lRange, rRange) kind InvalidType |> QsType.New // *needs* to be invalid if the combined range is Null!
         let rec applyArrays (t : QsType, item) = 
             match item with
             | [] -> t
