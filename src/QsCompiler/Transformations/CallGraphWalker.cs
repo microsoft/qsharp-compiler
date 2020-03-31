@@ -161,55 +161,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// </summary>
         public List<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
-            var callStack = new Dictionary<CallGraphNode, CallGraphNode>();
-            var finished = new HashSet<CallGraphNode>();
-            var cycles = new List<ImmutableArray<CallGraphNode>>();
-
-            void processDependencies(CallGraphNode node)
-            {
-                if (_Dependencies.TryGetValue(node, out var dependencies))
-                {
-                    foreach (var (curr, _) in dependencies)
-                    {
-                        if (!finished.Contains(curr))
-                        {
-                            if (callStack.TryGetValue(curr, out var next))
-                            {
-                                // Cycle detected
-                                var cycle = new List<CallGraphNode>() { curr };
-                                if (!curr.Equals(next)) // If the cycle is a direct recursion, we only want the one node
-                                {
-                                    do
-                                    {
-                                        cycle.Add(next);
-                                    } while (callStack.TryGetValue(next, out next));
-                                }
-
-                                cycles.Add(cycle.ToImmutableArray());
-                            }
-                            else
-                            {
-                                callStack[node] = curr;
-                                processDependencies(curr);
-                                callStack.Remove(node);
-                            }
-                        }
-                    }
-                }
-
-                finished.Add(node);
-            }
-
-            // Loop over all nodes in the call graph, attempting to find cycles by processing their dependencies
-            foreach (var node in _Dependencies.Keys)
-            {
-                if (!finished.Contains(node))
-                {
-                    processDependencies(node);
-                }
-            }
-
-            return cycles;
+            // ToDo: need to implement a robust algorithm for finding cycles
+            return null;
         }
     }
 
