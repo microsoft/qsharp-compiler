@@ -102,14 +102,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             // We are dissolving the application of arguments here, so the call's type argument
                             // resolutions have to be moved to the 'identifier' sub expression.
                             var combined = CallGraph.TryCombineTypeResolutions(global.Item, out var combinedTypeArguments, idTypeArguments, callTypeArguments);
-                            QsCompilerError.Verify(combined, "failed to compine type parameter resolution");
+                            QsCompilerError.Verify(combined, "failed to combine type parameter resolution");
 
                             var globalCallable = SharedState.Compilation.Namespaces
                                 .Where(ns => ns.Name.Equals(global.Item.Namespace))
                                 .Callables()
                                 .FirstOrDefault(c => c.FullName.Name.Equals(global.Item.Name));
 
-                            QsCompilerError.Verify(globalCallable != null, $"Could not find the global reference {global.Item.Namespace.Value + "." + global.Item.Name.Value}");
+                            QsCompilerError.Verify(globalCallable != null, $"Could not find the global reference {global.Item.ToString()}");
 
                             var callableTypeParameters = globalCallable.Signature.TypeParameters
                                 .Select(x => x as QsLocalSymbol.ValidName);
@@ -121,7 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                     id.Item1,
                                     QsNullable<ImmutableArray<ResolvedType>>.NewValue(
                                         callableTypeParameters
-                                        .Select(x => combinedTypeArguments.First(y => y.Key.Item2.Equals(x.Item)).Value).ToImmutableArray())), // FIXME: THIS IS WITHOUT ANY CHECK OF THE PARENT...
+                                        .Select(x => combinedTypeArguments[Tuple.Create(global.Item, x.Item)]).ToImmutableArray())), 
                                 TypedExpression.AsTypeArguments(combinedTypeArguments),
                                 call.Item1.ResolvedType,
                                 call.Item1.InferredInformation,

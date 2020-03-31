@@ -31,6 +31,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
         }
 
+        // TODO: 
+        // This is the method that should be invoked to verify cycles of interest,
+        // i.e. where each callable in the cycle is type parametrized.
+        // It should probably generate diagnostics; I'll add the doc comment once its use is fully defined. 
+        private static bool VerifyCycle(CallGraphNode rootNode, params CallGraphEdge[] edges)
+        {
+            var parent = rootNode.CallableName;
+            bool EqualsParent(QsQualifiedName origin) => origin.Namespace.Value == parent.Namespace.Value && origin.Name.Value == parent.Name.Value;
+            var validResolution = TryCombineTypeResolutions(parent, out var combined, edges.Select(edge => edge.ParamResolutions).ToArray());
+            var resolvedToConcrete = combined.Values.All(res => !(res.Resolution is ResolvedTypeKind.TypeParameter tp) || EqualsParent(tp.Item.Origin));
+            return validResolution && resolvedToConcrete;
+            //var isClosedCycle = validCycle && combined.Values.Any(res => res.Resolution is ResolvedTypeKind.TypeParameter tp && EqualsParent(tp.Item.Origin));
+            // TODO: check that monomorphization correctly processes closed cycles - meaning add a test...
+        }
+
         /// <summary>
         /// Given a sequence of type resolutions specifying e.g. subsequent concretizations as part of a nested expression, 
         /// or concretizations as part of a cycle in the call graph, constructs a dictionary containing the resolution
@@ -38,12 +53,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// The given resolutions are expected to be ordered starting with the dictionary containing the initial mapping for the 
         /// type parameters of the specified parent callable (the "innermost resolutions"). This mapping may potentially be to 
         /// type parameters of other callables, which are then further concretized by subsequent resolutions. 
-        /// Returns true if the combination of the given resolutions is valid, i.e. if there are no conflicting resolutions 
-        /// and type parameters of the parent callables are uniquely resolved to either a concrete type, 
-        /// a type parameter of another callable, or themselves.
+        /// Returns the constructed dictionary as out parameter. Returns true if the combination of the given resolutions is valid, 
+        /// i.e. if there are no conflicting resolutions and type parameters of the parent callables are uniquely resolved 
+        /// to either a concrete type, a type parameter of another callable, or themselves.
         /// Throws an ArgumentNullException if the given parent is null. 
         /// Throws an ArgumentException if the given resolutions imply that type parameters from multiple callables are 
         /// simultaneously treated as concrete types. 
+        /// NOTE: This routine prioritizes the verifications to ensure the correctness of the resolution over performance.  
         /// </summary>
         public static bool TryCombineTypeResolutions
             (QsQualifiedName parent, out ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> combined,
@@ -108,10 +124,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 }
             }
 
-            QsCompilerError.Verify(
-                combinedBuilder.Keys.All(key => EqualsParent(key.Item1)), 
-                "for type parameter that does not belong to parent callable");
             combined = combinedBuilder.ToImmutable();
+            QsCompilerError.Verify(combined.Keys.All(key => EqualsParent(key.Item1)), "for type parameter that does not belong to parent callable");
             return success;
         }
 
