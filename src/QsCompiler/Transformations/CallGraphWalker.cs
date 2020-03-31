@@ -169,21 +169,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 if (_Dependencies.TryGetValue(node, out var dependencies))
                 {
-                    foreach (var (curr, _) in dependencies)
+                    foreach (var temp in dependencies)
                     {
+                        var (curr, _) = temp;
+
                         if (!finished.Contains(curr))
                         {
-                            if (callStack.TryGetValue(curr, out var next))
+                            if (callStack.ContainsKey(curr))
                             {
                                 // Cycle detected
+
                                 var cycle = new List<CallGraphNode>() { curr };
-                                if (!curr.Equals(next)) // If the cycle is a direct recursion, we only want the one node
+                                while (callStack.TryGetValue(curr, out var next))
                                 {
-                                    do
-                                    {
-                                        cycle.Add(next);
-                                    } while (callStack.TryGetValue(next, out next));
+                                    if (curr.Equals(next)) break;
+                                    cycle.Add(next);
+                                    curr = next;
                                 }
+
+                                //if (!curr.Equals(next)) // If the cycle is a direct recursion, we only want the one node
+                                //{
+                                //    do
+                                //    {
+                                //        cycle.Add(next);
+                                //    } while (callStack.TryGetValue(next, out next));
+                                //}
 
                                 cycles.Add(cycle.ToImmutableArray());
                             }
