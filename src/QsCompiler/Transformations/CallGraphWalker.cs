@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         // This is the method that should be invoked to verify cycles of interest,
         // i.e. where each callable in the cycle is type parametrized.
         // It should probably generate diagnostics; I'll add the doc comment once its use is fully defined. 
-        private static bool VerifyCycle(CallGraphNode rootNode, params CallGraphEdge[] edges)
+        internal static bool VerifyCycle(CallGraphNode rootNode, params CallGraphEdge[] edges)
         {
             var parent = rootNode.CallableName;
             bool EqualsParent(QsQualifiedName origin) => origin.Namespace.Value == parent.Namespace.Value && origin.Name.Value == parent.Name.Value;
