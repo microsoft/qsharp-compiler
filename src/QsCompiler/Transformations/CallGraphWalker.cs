@@ -44,6 +44,89 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(tArgs.Item.Select(x => StripPositionInfo.Apply(x)).ToImmutableArray())
             : tArgs;
 
+        /// <summary>
+        /// This is Tarjan's algorithm for finding all strongly-connected components in a graph.
+        /// A strongly-connected component, or SCC, is a subgraph in which all nodes can reach
+        /// all other nodes.
+        ///
+        /// This implementation was based on the pseudo-code found here:
+        /// https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+        ///
+        /// This returns a list of SCCs, each represented as a set of nodes. The list is
+        /// sorted such that each SCC comes before any of its successors (reverse topological ordering).
+        /// </summary>
+        private List<HashSet<CallGraphNode>> TarjanSCC()
+        {
+            var index = 0;
+            var s = new Stack<CallGraphNode>();
+            var nodeInfo = new Dictionary<CallGraphNode, (int Index, int LowLink, bool OnStack)>();
+            var output = new List<HashSet<CallGraphNode>>();
+
+            foreach (var v in this._Dependencies.Keys)
+            {
+                if (!nodeInfo.ContainsKey(v))
+                {
+                    strongconnect(v);
+                }
+            }
+
+            void setMinLowLink(CallGraphNode v, int potentialMin)
+            {
+                var vInfo = nodeInfo[v];
+                if (vInfo.LowLink > potentialMin)
+                {
+                    vInfo.LowLink = potentialMin;
+                    nodeInfo[v] = vInfo;
+                }
+            }
+
+            void strongconnect(CallGraphNode v)
+            {
+                // Set the depth index for v to the smallest unused index
+                s.Push(v);
+                nodeInfo[v] = (index, index, true);
+                index += 1;
+
+                // Consider successors of v
+                foreach (var w in this._Dependencies[v].Keys)
+                {
+                    if (!nodeInfo.ContainsKey(w))
+                    {
+                        // Successor w has not yet been visited; recurse on it
+                        strongconnect(w);
+                        setMinLowLink(v, nodeInfo[w].LowLink);
+                    }
+                    else if (nodeInfo[w].OnStack)
+                    {
+                        // Successor w is in stack S and hence in the current SCC
+                        // If w is not on stack, then (v, w) is an edge pointing to an SCC already found and must be ignored
+                        // Note: The next line may look odd - but is correct.
+                        // It says w.index not w.lowlink; that is deliberate and from the original paper
+                        setMinLowLink(v, nodeInfo[w].Index);
+                    }
+                }
+
+                // If v is a root node, pop the stack and generate an SCC
+                if (nodeInfo[v].LowLink == nodeInfo[v].Index)
+                {
+                    var scc = new HashSet<CallGraphNode>();
+
+                    CallGraphNode w;
+                    do
+                    {
+                        w = s.Pop();
+                        var wInfo = nodeInfo[w];
+                        wInfo.OnStack = false;
+                        nodeInfo[w] = wInfo;
+                        scc.Add(w);
+                    } while (!v.Equals(w));
+                    output.Add(scc);
+                }
+            }
+
+            return output;
+        }
+
         private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
             if (_Dependencies.TryGetValue(callerKey, out var deps))
