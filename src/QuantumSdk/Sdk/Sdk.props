@@ -28,8 +28,8 @@
   <!-- Q# package references included by default. -->
   <ItemGroup>
     <!-- Packages and libraries included for all execution targets. -->
-    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.10.2001.2831" />
-    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.10.2001.2831" />
+    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.11.2003.3107" />
+    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.11.2003.3107" />
     <!-- Packages included for specific execution targets. -->
     <!-- TODO: UNCOMMENT THESE ONCE WE HAVE THE CORRESPONDING PACKAGES. -->
     <!--PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'OpenQASM'" Include="Microsoft.Quantum.Intrinsics.OpenQASM" Version="0.10.2001.2831" IsTargetPackage='true' />
@@ -38,10 +38,10 @@
 
   <!-- Packages for execution on the simulation framework. -->
   <ItemGroup>
-    <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'" Include="Microsoft.Quantum.Simulators" Version="0.10.2001.2831" IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CsharpGeneration)" Include="Microsoft.Quantum.Runtime.Core" Version="0.10.2001.2831" IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'" Include="Microsoft.Quantum.Simulators" Version="0.11.2003.3107" IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(CsharpGeneration)" Include="Microsoft.Quantum.Runtime.Core" Version="0.11.2003.3107" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CsharpGeneration)" PrivateAssets="All"
-      Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.2001.2831" IsImplicitlyDefined="true" 
+      Include="Microsoft.Quantum.CsharpGeneration" Version="0.11.2003.3107" IsImplicitlyDefined="true" 
       IsQscReference ="true" ExecutionTarget="Any" Priority="-1" />
   </ItemGroup>
 
