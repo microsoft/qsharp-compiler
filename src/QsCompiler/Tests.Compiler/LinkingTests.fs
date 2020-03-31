@@ -118,53 +118,6 @@ type LinkingTests (output:ITestOutputHelper) =
 
         ReplaceWithTargetIntrinsics.Apply(envDS.BuiltCompilation, sourceDS.BuiltCompilation)
 
-    member private this.CompileCycleDetectionTest testNumber =
-        let srcChunks = LinkingTests.ReadAndChunkSourceFile "CycleDetection.qs"
-        srcChunks.Length >= testNumber |> Assert.True
-        //let shared = srcChunks.[0]
-        let compilationDataStructures = this.BuildContent srcChunks.[testNumber-1]
-        let callGraph = BuildCallGraph.Apply compilationDataStructures.BuiltCompilation
-        Assert.NotNull callGraph
-        //Signatures.SignatureCheck [Signatures.ClassicalControlNs] Signatures.ClassicalControlSignatures.[testNumber-1] processedCompilation
-        callGraph.GetCallCycles ()
-    
-    member private this._DecorateWithNamespace (ns : string) (input : string list list) =
-        List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name})) input
-
-    member private this._CyclicEquivalence lst1 lst2 =
-        let size = List.length lst1
-        if size <> List.length lst2 then
-            false
-        else
-            let mutable i = 0
-            let mutable j = 0
-            let mutable k = 0
-            let mutable rtrn = false
-            while not rtrn && i < size && j < size do
-                k <- 1
-                while k <= size && lst1.[(i + k) % size] = lst2.[(j + k) % size] do
-                    k <- k + 1
-                if k > size then
-                    rtrn <- true
-                if lst1.[(i + k) % size] > lst2.[(j + k) % size] then
-                    i <- i + k
-                else
-                    j <- j + k
-            rtrn
-
-    member private this._CheckForExpectedCycles (actualCycles: seq<#seq<CallGraph.CallGraphNode>>) expectedCycles =
-        let expected = expectedCycles |> this._DecorateWithNamespace Signatures.CycleDetection
-        
-        let actual = actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
-
-        Assert.True(actual.Length = expected.Length,
-            sprintf "Expected call graph to have %i cycle(s), but found %i cycle(s)" expected.Length actual.Length)
-
-        for cycle in expected do
-            Assert.True(List.exists (fun x -> this._CyclicEquivalence cycle x) actual,
-                sprintf "Did not find one of the expected cycles") // ToDo: better error message here
-        
-
     member private this.RunIntrinsicResolutionTest testNumber =
 
         let srcChunks = LinkingTests.ReadAndChunkSourceFile "IntrinsicResolution.qs"
@@ -215,76 +168,6 @@ type LinkingTests (output:ITestOutputHelper) =
         Assert.NotEqual (0, beforeCount)
         Assert.Equal (0, afterCountOriginal)
         Assert.Equal (beforeCount, afterCount)
-
-    
-    [<Fact>]
-    member this.``No Cycles`` () =
-        let cycles = this.CompileCycleDetectionTest 1
-        Assert.Empty cycles
-    
-    [<Fact>]
-    member this.``Simple Cycle`` () =
-        let result = this.CompileCycleDetectionTest 2
-
-        [
-            [
-                "Foo"
-                "Bar"
-            ]
-        ]
-        |> this._CheckForExpectedCycles result
-
-    [<Fact>]
-    member this.``Longer Cycle`` () =
-        let result = this.CompileCycleDetectionTest 3
-
-        [
-            [
-                "Foo"
-                "Bar"
-                "Baz"
-            ]
-        ]
-        |> this._CheckForExpectedCycles result
-
-    [<Fact>]
-    member this.``Direct Recursion Cycle`` () =
-        let result = this.CompileCycleDetectionTest 4
-
-        [
-            [
-                "Foo"
-            ]
-        ]
-        |> this._CheckForExpectedCycles result
-
-    [<Fact>]
-    member this.``Figure-Eight Cycles`` () =
-        let result = this.CompileCycleDetectionTest 5
-
-        [
-            [
-                "Foo"
-                "Bar"
-            ]
-            [
-                "Foo"
-                "Baz"
-            ]
-        ]
-        |> this._CheckForExpectedCycles result
-
-    [<Fact(Skip="Not sure what to expect for this case yet")>]
-    member this.``Fully Connected Cycles`` () =
-        let result = this.CompileCycleDetectionTest 6
-
-        // ToDo: What are the expected cycles for this case?
-        [
-            [
-                "???"
-            ]
-        ]
-        |> this._CheckForExpectedCycles result
 
     [<Fact>]
     member this.``Monomorphization`` () =

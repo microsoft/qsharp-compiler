@@ -9,9 +9,7 @@ namespace Microsoft.Quantum.Testing.CycleDetection {
         Bar();
     }
 
-    operation Bar() : Unit {
-
-    }
+    operation Bar() : Unit { }
 }
 
 // =================================
@@ -54,6 +52,23 @@ namespace Microsoft.Quantum.Testing.CycleDetection {
     operation Foo() : Unit {
         Foo();
     }
+}
+
+// =================================
+
+// Loop In Sequence
+namespace Microsoft.Quantum.Testing.CycleDetection {
+
+    operation Foo() : Unit {
+        Bar();
+    }
+
+    operation Bar() : Unit {
+        Bar();
+        Baz();
+    }
+
+    operation Baz() : Unit { }
 }
 
 // =================================

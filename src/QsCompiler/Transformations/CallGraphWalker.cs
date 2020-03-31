@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -186,14 +187,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                                     cycle.Add(next);
                                     curr = next;
                                 }
-
-                                //if (!curr.Equals(next)) // If the cycle is a direct recursion, we only want the one node
-                                //{
-                                //    do
-                                //    {
-                                //        cycle.Add(next);
-                                //    } while (callStack.TryGetValue(next, out next));
-                                //}
 
                                 cycles.Add(cycle.ToImmutableArray());
                             }
