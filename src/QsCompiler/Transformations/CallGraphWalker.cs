@@ -71,6 +71,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
             bool EqualsParent(QsQualifiedName origin) => origin.Namespace.Value == parent.Namespace.Value && origin.Name.Value == parent.Name.Value;
             static Tuple<QsQualifiedName, NonNullable<string>> AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
+            static bool ResolutionToTypeParameter(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
+                res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
 
             foreach (var resolution in resolutions)
             {
@@ -109,7 +111,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         var nontrivialResolutionToNative = isResolutionToNative && entry.Key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
                         success = success && !nontrivialResolutionToNative;
                         // Check that there is no conflicting resolution already defined.
-                        var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current) && !current.Equals(entry.Value);
+                        var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current) 
+                            && !current.Equals(entry.Value) && !ResolutionToTypeParameter(entry.Key, current);
                         success = success && !conflictingResolutionExists;
                         combinedBuilder[entry.Key] = entry.Value;
                     }
