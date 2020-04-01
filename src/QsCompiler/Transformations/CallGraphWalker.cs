@@ -77,25 +77,36 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             foreach (var resolution in resolutions)
             {
                 // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated 
-                // if a certain external type parameter is resolved by the currently processed dictionary. 
-                // External type parameters here means type parameters that do not belong to the parent callable.
+                // if a certain type parameter is resolved by the currently processed dictionary. 
                 var mayBeReplaced = combinedBuilder
-                    .Select(kv => (kv.Key, kv.Value.Resolution as ResolvedTypeKind.TypeParameter))
-                    .Where(entry => entry.Item2 != null && !EqualsParent(entry.Item2.Item.Origin))
+                    .Where(kv => kv.Value.Resolution.IsTypeParameter)
                     .ToLookup(
-                        entry => AsTypeResolutionKey(entry.Item2.Item),
+                        kv => AsTypeResolutionKey(((ResolvedTypeKind.TypeParameter)kv.Value.Resolution).Item),
                         entry => entry.Key);
 
                 // We need to ensure that the mappings for extenal type parameters are processed first, 
                 // to cover an edge case that would otherwise be indicated as a conflicting resolution.
-                var entriesToProcess = resolution.OrderByDescending(entry => mayBeReplaced.Contains(entry.Key));
+                var entriesToProcess = resolution.OrderByDescending(entry => !EqualsParent(entry.Key.Item1));
                 foreach (var entry in entriesToProcess)
                 {
                     var resolutionToTypeParam = entry.Value.Resolution as ResolvedTypeKind.TypeParameter;
                     var isResolutionToNative = resolutionToTypeParam != null && EqualsParent(resolutionToTypeParam.Item.Origin);
 
+                    // resolution of a type parameter that belongs to the parent callable
+                    if (EqualsParent(entry.Key.Item1))
+                    {
+                        // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
+                        var nontrivialResolutionToNative = isResolutionToNative && entry.Key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
+                        success = success && !nontrivialResolutionToNative;
+                        // Check that there is no conflicting resolution already defined.
+                        var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current)
+                            && !current.Equals(entry.Value) && !ResolutionToTypeParameter(entry.Key, current);
+                        success = success && !conflictingResolutionExists;
+                        combinedBuilder[entry.Key] = entry.Value;
+                    }
+
                     // resolution of an external type parameter that is currently listed as value in the combined type resolution dictionary
-                    if (mayBeReplaced.Contains(entry.Key))
+                    else if (mayBeReplaced.Contains(entry.Key))
                     {
                         foreach (var keyInCombined in mayBeReplaced[entry.Key])
                         {
@@ -105,19 +116,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                             success = success && !nontrivialResolutionToNative;
                             combinedBuilder[keyInCombined] = entry.Value;
                         }
-                    }
-
-                    // resolution of a type parameter that belongs to the parent callable and has not already been processed
-                    else if (EqualsParent(entry.Key.Item1)) 
-                    {
-                        // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
-                        var nontrivialResolutionToNative = isResolutionToNative && entry.Key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
-                        success = success && !nontrivialResolutionToNative;
-                        // Check that there is no conflicting resolution already defined.
-                        var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current) 
-                            && !current.Equals(entry.Value) && !ResolutionToTypeParameter(entry.Key, current);
-                        success = success && !conflictingResolutionExists;
-                        combinedBuilder[entry.Key] = entry.Value;
                     }
 
                     else 

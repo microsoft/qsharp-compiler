@@ -101,6 +101,21 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
 
         let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (FooB, BarA |> TypeParameter)
+        ]
+        let res3 = resolution [
+            (BarA, Int)
+        ]
+        let expected = resolution [
+            (FooA, Int)
+            (FooB, Int)
+        ]
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
+
+        let res1 = resolution [
             (FooA, FooA |> TypeParameter)
         ]
         let expected = resolution [
@@ -150,3 +165,56 @@ type CallGraphTests (output:ITestOutputHelper) =
             (FooA, Double)
         ]
         CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2)
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, FooB |> TypeParameter)
+        ]
+        let expected = resolution [
+            (FooA, FooB |> TypeParameter)
+        ]
+        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2)
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, BazA |> TypeParameter)
+        ]
+        let res3 = resolution [
+            (BazA, FooB |> TypeParameter)
+        ]
+        let expected = resolution [
+            (FooA, FooB |> TypeParameter)
+        ]
+        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2, res3)
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, BazA |> TypeParameter)
+        ]
+        let res3 = resolution [
+            (BazA, FooA |> TypeParameter)
+        ]
+        let expected = resolution [
+            (FooA, FooA |> TypeParameter)
+        ]
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, BazA |> TypeParameter)
+        ]
+        let res3 = resolution [
+            (BazA, BarC |> TypeParameter) // FIXME: THIS SHOULD NOT BE OK
+        ]
+        let expected = resolution [
+            (FooA, BarC |> TypeParameter)
+        ]
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
