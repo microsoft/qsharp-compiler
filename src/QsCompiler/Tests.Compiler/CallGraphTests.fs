@@ -46,16 +46,16 @@ type CallGraphTests (output:ITestOutputHelper) =
             keysMismatch.Count = 0 && d1 |> Seq.exists (fun kv -> d2.[kv.Key] <> kv.Value) |> not
         let mutable combined = ImmutableDictionary.Empty
         let success = CallGraph.TryCombineTypeResolutions(parent, &combined, resolutions)
-        Assert.True(compareDict expected combined)
+        Assert.True(compareDict expected combined, "combined resolutions did not match the expected ones")
         success
 
     static member AssertResolution (parent, expected, [<ParamArray>] resolutions) = 
         let success = CallGraphTests.CheckResolution (parent, expected, resolutions)
-        Assert.True(success)
+        Assert.True(success, "overall status indicated as not successful")
 
     static member AssertResolutionFailure (parent, expected, [<ParamArray>] resolutions) = 
         let success = CallGraphTests.CheckResolution (parent, expected, resolutions)
-        Assert.False(success)
+        Assert.False(success, "overall status indicated as success")
 
 
     [<Fact>]
@@ -118,3 +118,35 @@ type CallGraphTests (output:ITestOutputHelper) =
             (FooA, Int)
         ]
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
+
+        let res1 = resolution [
+            (FooA, FooB |> TypeParameter)
+        ]
+        let expected = resolution [
+            (FooA, FooB |> TypeParameter)
+        ]
+        CallGraphTests.AssertResolutionFailure(Foo, expected, res1)
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, Int)
+            (FooA, Int)
+        ]
+        let expected = resolution [
+            (FooA, Int)
+        ]
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2)
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, Int)
+            (FooA, Double)
+        ]
+        let expected = resolution [
+            (FooA, Double)
+        ]
+        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2)

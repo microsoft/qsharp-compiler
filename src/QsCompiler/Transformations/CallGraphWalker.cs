@@ -86,7 +86,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         entry => AsTypeResolutionKey(entry.Item2.Item),
                         entry => entry.Key);
 
-                foreach (var entry in resolution)
+                // We need to ensure that the mappings for extenal type parameters are processed first, 
+                // to cover an edge case that would otherwise be indicated as a conflicting resolution.
+                var entriesToProcess = resolution.OrderByDescending(entry => mayBeReplaced.Contains(entry.Key));
+                foreach (var entry in entriesToProcess)
                 {
                     var resolutionToTypeParam = entry.Value.Resolution as ResolvedTypeKind.TypeParameter;
                     var isResolutionToNative = resolutionToTypeParam != null && EqualsParent(resolutionToTypeParam.Item.Origin);
