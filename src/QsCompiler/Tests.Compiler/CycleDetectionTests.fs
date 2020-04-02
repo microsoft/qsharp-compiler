@@ -132,7 +132,7 @@ type CycleDetectionTests () =
         ]
         |> CheckForExpectedCycles result
 
-    [<Fact(Skip="Cycle detection does not work here yet")>]
+    [<Fact>]
     member this.``Fully Connected Cycles`` () =
         let result = CompileCycleDetectionTest 7
 
