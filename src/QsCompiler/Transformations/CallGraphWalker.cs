@@ -17,46 +17,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
-    /// Class used to track call graph of a compilation
-    public class CallGraph
+    internal class JohnsonCycleFind
     {
-        public struct CallGraphEdge
+        private Stack<(HashSet<int> SCC, int MinNode)> SccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
+
+        public List<List<int>> GetAllCycles(Dictionary<int, List<int>> graph)
         {
-            public ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> ParamResolutions;
-        }
+            var cycles = new List<List<int>>();
 
-        public struct CallGraphNode
-        {
-            public QsQualifiedName CallableName;
-            public QsSpecializationKind Kind;
-            public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
-        }
-
-        public List<ImmutableArray<CallGraphNode>> JohnsonCycleFind()
-        {
-            var indexToNode = _Dependencies.Keys.ToImmutableArray();
-            var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
-            //var graph = indexToNode.Select(node => _Dependencies[node].Keys.Select(dep => nodeToIndex[dep]).ToList()).ToList();
-            var graph = indexToNode
-                .Select((v, i) => (v, i))
-                .ToDictionary(kvp => kvp.i,
-                    kvp => _Dependencies[kvp.v].Keys
-                        .Select(dep => nodeToIndex[dep])
-                        .ToList());
-
-            var sccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
-
-            var cycles = new List<ImmutableArray<CallGraphNode>>();
-            var blockedSet = new HashSet<int>();
-            var blockedMap = new Dictionary<int, HashSet<int>>();
-            var stack = new Stack<int>();
-
-            pushSCCs(graph);
-            while (sccStack.Any())
+            PushSCCs(graph);
+            while (SccStack.Any())
             {
-                var (scc, startNode) = sccStack.Pop();
-                var subGraph = getSubGraph(graph, scc);
-                populateCycles(subGraph, startNode, startNode);
+                var (scc, startNode) = SccStack.Pop();
+                var subGraph = GetSubGraph(graph, scc);
+                cycles.AddRange(GetSccCycles(subGraph, startNode));
 
                 subGraph.Remove(startNode);
                 foreach (var (_, successors) in subGraph)
@@ -64,97 +38,32 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     successors.Remove(startNode);
                 }
 
-                pushSCCs(subGraph);
+                PushSCCs(subGraph);
             }
 
             return cycles;
+        }
 
-            void unblock(int node)
+        private void PushSCCs(Dictionary<int, List<int>> graph)
+        {
+            var sccs = TarjanSCC(graph).OrderByDescending(x => x.MinNode);
+            foreach (var scc in sccs)
             {
-                if (blockedSet.Remove(node) && blockedMap.TryGetValue(node, out var nodesToUnblock))
-                {
-                    blockedMap.Remove(node);
-                    foreach (var n in nodesToUnblock)
-                    {
-                        unblock(n);
-                    }
-                }
-            }
-
-            bool populateCycles(Dictionary<int, List<int>> graph, int startNode, int currNode)
-            {
-                var foundCycle = false;
-                stack.Push(currNode);
-                blockedSet.Add(currNode);
-
-                foreach (var successor in graph[currNode])
-                {
-                    if (successor == startNode)
-                    {
-                        foundCycle = true;
-                        cycles.Add(stack.Select(index => indexToNode[index]).Reverse().ToImmutableArray());
-                    }
-                    else if (!blockedSet.Contains(successor))
-                    {
-                        foundCycle |= populateCycles(graph, startNode, successor);
-                    }
-                }
-
-                stack.Pop();
-
-                if (foundCycle)
-                {
-                    unblock(currNode);
-                }
-                else
-                {
-                    // Mark currNode as being blocked on each of its successors
-                    // If any of currNode's successors unblock, currNode will unblock
-                    foreach (var successor in graph[currNode])
-                    {
-                        if (!blockedMap.ContainsKey(successor))
-                        {
-                            blockedMap[successor] = new HashSet<int>() { currNode };
-                        }
-                        else
-                        {
-                            blockedMap[successor].Add(currNode);
-                        }
-                    }
-                }
-
-                return foundCycle;
-            }
-
-            void pushSCCs(Dictionary<int, List<int>> input)
-            {
-                var sccs = otherTarjanSCC(input).OrderByDescending(x => x.MinNode);
-                foreach (var scc in sccs)
-                {
-                    sccStack.Push(scc);
-                }
+                SccStack.Push(scc);
             }
         }
 
-        private Dictionary<int, List<int>> getSubGraph(Dictionary<int, List<int>> inputGraph, HashSet<int> subGraphNodes) =>
+        private Dictionary<int, List<int>> GetSubGraph(Dictionary<int, List<int>> inputGraph, HashSet<int> subGraphNodes) =>
             inputGraph
                 .Where(kvp => subGraphNodes.Contains(kvp.Key))
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Where(dep => subGraphNodes.Contains(dep)).ToList());
 
-        private List<(HashSet<int> SCC, int MinNode)> otherTarjanSCC(Dictionary<int, List<int>> input)
+        private List<(HashSet<int> SCC, int MinNode)> TarjanSCC(Dictionary<int, List<int>> inputGraph)
         {
             var index = 0; // This algorithm needs its own separate indexing of nodes
             var nodeStack = new Stack<int>();
             var nodeInfo = new Dictionary<int, (int Index, int LowLink, bool OnStack)>();
-            var output = new List<(HashSet<int> SCC, int MinNode)>();
-
-            foreach (var node in input.Keys)
-            {
-                if (!nodeInfo.ContainsKey(node))
-                {
-                    strongconnect(node);
-                }
-            }
+            var SCCs = new List<(HashSet<int> SCC, int MinNode)>();
 
             void setMinLowLink(int node, int potentialMin)
             {
@@ -174,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 index += 1;
 
                 // Consider successors of node
-                foreach (var successor in input[node])
+                foreach (var successor in inputGraph[node])
                 {
                     if (!nodeInfo.ContainsKey(successor))
                     {
@@ -214,12 +123,294 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         }
 
                     } while (node != nodeInScc);
-                    output.Add((scc, minNode));
+                    SCCs.Add((scc, minNode));
                 }
             }
 
-            return output;
+            foreach (var node in inputGraph.Keys)
+            {
+                if (!nodeInfo.ContainsKey(node))
+                {
+                    strongconnect(node);
+                }
+            }
+
+            return SCCs;
         }
+
+        private List<List<int>> GetSccCycles(Dictionary<int, List<int>> intputSCC, int startNode)
+        {
+            var cycles = new List<List<int>>();
+            var blockedSet = new HashSet<int>();
+            var blockedMap = new Dictionary<int, HashSet<int>>();
+            var nodeStack = new Stack<int>();
+
+            void unblock(int node)
+            {
+                if (blockedSet.Remove(node) && blockedMap.TryGetValue(node, out var nodesToUnblock))
+                {
+                    blockedMap.Remove(node);
+                    foreach (var n in nodesToUnblock)
+                    {
+                        unblock(n);
+                    }
+                }
+            }
+
+            bool populateCycles(int currNode)
+            {
+                var foundCycle = false;
+                nodeStack.Push(currNode);
+                blockedSet.Add(currNode);
+
+                foreach (var successor in intputSCC[currNode])
+                {
+                    if (successor == startNode)
+                    {
+                        foundCycle = true;
+                        cycles.Add(nodeStack.Reverse().ToList());
+                    }
+                    else if (!blockedSet.Contains(successor))
+                    {
+                        foundCycle |= populateCycles(successor);
+                    }
+                }
+
+                nodeStack.Pop();
+
+                if (foundCycle)
+                {
+                    unblock(currNode);
+                }
+                else
+                {
+                    // Mark currNode as being blocked on each of its successors
+                    // If any of currNode's successors unblock, currNode will unblock
+                    foreach (var successor in intputSCC[currNode])
+                    {
+                        if (!blockedMap.ContainsKey(successor))
+                        {
+                            blockedMap[successor] = new HashSet<int>() { currNode };
+                        }
+                        else
+                        {
+                            blockedMap[successor].Add(currNode);
+                        }
+                    }
+                }
+
+                return foundCycle;
+            }
+
+            populateCycles(startNode);
+
+            return cycles;
+        }
+    }
+
+    /// Class used to track call graph of a compilation
+    public class CallGraph
+    {
+        public struct CallGraphEdge
+        {
+            public ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> ParamResolutions;
+        }
+
+        public struct CallGraphNode
+        {
+            public QsQualifiedName CallableName;
+            public QsSpecializationKind Kind;
+            public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
+        }
+
+        //public List<ImmutableArray<CallGraphNode>> JohnsonCycleFind()
+        //{
+        //    var indexToNode = _Dependencies.Keys.ToImmutableArray();
+        //    var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
+        //    //var graph = indexToNode.Select(node => _Dependencies[node].Keys.Select(dep => nodeToIndex[dep]).ToList()).ToList();
+        //    var graph = indexToNode
+        //        .Select((v, i) => (v, i))
+        //        .ToDictionary(kvp => kvp.i,
+        //            kvp => _Dependencies[kvp.v].Keys
+        //                .Select(dep => nodeToIndex[dep])
+        //                .ToList());
+
+        //    var sccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
+
+        //    var cycles = new List<ImmutableArray<CallGraphNode>>();
+        //    var blockedSet = new HashSet<int>();
+        //    var blockedMap = new Dictionary<int, HashSet<int>>();
+        //    var stack = new Stack<int>();
+
+        //    pushSCCs(graph);
+        //    while (sccStack.Any())
+        //    {
+        //        var (scc, startNode) = sccStack.Pop();
+        //        var subGraph = getSubGraph(graph, scc);
+        //        populateCycles(subGraph, startNode, startNode);
+
+        //        subGraph.Remove(startNode);
+        //        foreach (var (_, successors) in subGraph)
+        //        {
+        //            successors.Remove(startNode);
+        //        }
+
+        //        pushSCCs(subGraph);
+        //    }
+
+        //    return cycles;
+
+        //    void unblock(int node)
+        //    {
+        //        if (blockedSet.Remove(node) && blockedMap.TryGetValue(node, out var nodesToUnblock))
+        //        {
+        //            blockedMap.Remove(node);
+        //            foreach (var n in nodesToUnblock)
+        //            {
+        //                unblock(n);
+        //            }
+        //        }
+        //    }
+
+        //    bool populateCycles(Dictionary<int, List<int>> graph, int startNode, int currNode)
+        //    {
+        //        var foundCycle = false;
+        //        stack.Push(currNode);
+        //        blockedSet.Add(currNode);
+
+        //        foreach (var successor in graph[currNode])
+        //        {
+        //            if (successor == startNode)
+        //            {
+        //                foundCycle = true;
+        //                cycles.Add(stack.Select(index => indexToNode[index]).Reverse().ToImmutableArray());
+        //            }
+        //            else if (!blockedSet.Contains(successor))
+        //            {
+        //                foundCycle |= populateCycles(graph, startNode, successor);
+        //            }
+        //        }
+
+        //        stack.Pop();
+
+        //        if (foundCycle)
+        //        {
+        //            unblock(currNode);
+        //        }
+        //        else
+        //        {
+        //            // Mark currNode as being blocked on each of its successors
+        //            // If any of currNode's successors unblock, currNode will unblock
+        //            foreach (var successor in graph[currNode])
+        //            {
+        //                if (!blockedMap.ContainsKey(successor))
+        //                {
+        //                    blockedMap[successor] = new HashSet<int>() { currNode };
+        //                }
+        //                else
+        //                {
+        //                    blockedMap[successor].Add(currNode);
+        //                }
+        //            }
+        //        }
+
+        //        return foundCycle;
+        //    }
+
+        //    void pushSCCs(Dictionary<int, List<int>> input)
+        //    {
+        //        var sccs = otherTarjanSCC(input).OrderByDescending(x => x.MinNode);
+        //        foreach (var scc in sccs)
+        //        {
+        //            sccStack.Push(scc);
+        //        }
+        //    }
+        //}
+
+        //private Dictionary<int, List<int>> getSubGraph(Dictionary<int, List<int>> inputGraph, HashSet<int> subGraphNodes) =>
+        //    inputGraph
+        //        .Where(kvp => subGraphNodes.Contains(kvp.Key))
+        //        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Where(dep => subGraphNodes.Contains(dep)).ToList());
+
+        //private List<(HashSet<int> SCC, int MinNode)> otherTarjanSCC(Dictionary<int, List<int>> input)
+        //{
+        //    var index = 0; // This algorithm needs its own separate indexing of nodes
+        //    var nodeStack = new Stack<int>();
+        //    var nodeInfo = new Dictionary<int, (int Index, int LowLink, bool OnStack)>();
+        //    var output = new List<(HashSet<int> SCC, int MinNode)>();
+
+        //    foreach (var node in input.Keys)
+        //    {
+        //        if (!nodeInfo.ContainsKey(node))
+        //        {
+        //            strongconnect(node);
+        //        }
+        //    }
+
+        //    void setMinLowLink(int node, int potentialMin)
+        //    {
+        //        var vInfo = nodeInfo[node];
+        //        if (vInfo.LowLink > potentialMin)
+        //        {
+        //            vInfo.LowLink = potentialMin;
+        //            nodeInfo[node] = vInfo;
+        //        }
+        //    }
+
+        //    void strongconnect(int node)
+        //    {
+        //        // Set the depth index for node to the smallest unused index
+        //        nodeStack.Push(node);
+        //        nodeInfo[node] = (index, index, true);
+        //        index += 1;
+
+        //        // Consider successors of node
+        //        foreach (var successor in input[node])
+        //        {
+        //            if (!nodeInfo.ContainsKey(successor))
+        //            {
+        //                // Successor has not yet been visited; recurse on it
+        //                strongconnect(successor);
+        //                setMinLowLink(node, nodeInfo[successor].LowLink);
+        //            }
+        //            else if (nodeInfo[successor].OnStack)
+        //            {
+        //                // Successor is in stack and hence in the current SCC
+        //                // If successor is not in stack, then (node, successor) is an edge pointing to an SCC already found and must be ignored
+        //                // Note: The next line may look odd - but is correct.
+        //                // It says successor.index not successor.lowlink; that is deliberate and from the original paper
+        //                setMinLowLink(node, nodeInfo[successor].Index);
+        //            }
+        //        }
+
+        //        // If node is a root node, pop the stack and generate an SCC
+        //        if (nodeInfo[node].LowLink == nodeInfo[node].Index)
+        //        {
+        //            var scc = new HashSet<int>();
+
+        //            var minNode = node;
+        //            int nodeInScc;
+        //            do
+        //            {
+        //                nodeInScc = nodeStack.Pop();
+        //                var wInfo = nodeInfo[nodeInScc];
+        //                wInfo.OnStack = false;
+        //                nodeInfo[nodeInScc] = wInfo;
+        //                scc.Add(nodeInScc);
+
+        //                // Keep track of minimum node in scc
+        //                if (minNode > nodeInScc)
+        //                {
+        //                    minNode = nodeInScc;
+        //                }
+
+        //            } while (node != nodeInScc);
+        //            output.Add((scc, minNode));
+        //        }
+        //    }
+
+        //    return output;
+        //}
 
         /// <summary>
         /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
@@ -440,74 +631,87 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// </summary>
         public List<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
-            return JohnsonCycleFind();
+            var indexToNode = _Dependencies.Keys.ToImmutableArray();
+            var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
+            var graph = indexToNode
+                .Select((v, i) => (v, i))
+                .ToDictionary(kvp => kvp.i,
+                    kvp => _Dependencies[kvp.v].Keys
+                        .Select(dep => nodeToIndex[dep])
+                        .ToList());
 
-            var callStack = new Dictionary<CallGraphNode, CallGraphNode>();
-            var finished = new HashSet<CallGraphNode>();
-            var cycles = new List<ImmutableArray<CallGraphNode>>();
-
-            void processDependencies(CallGraphNode node)
-            {
-                if (_Dependencies.TryGetValue(node, out var dependencies))
-                {
-                    foreach (var temp in dependencies)
-                    {
-                        var (curr, _) = temp;
-
-                        if (!finished.Contains(curr))
-                        {
-                            //if (callStack.ContainsKey(curr))
-                            //{
-                            //    // Cycle detected
-                            //
-                            //    var cycle = new List<CallGraphNode>() { curr };
-                            //    while (callStack.TryGetValue(curr, out var next))
-                            //    {
-                            //        if (curr.Equals(next)) break;
-                            //        cycle.Add(next);
-                            //        curr = next;
-                            //    }
-                            //
-                            //    cycles.Add(cycle.ToImmutableArray());
-                            //}
-                            if (curr.Equals(node) || callStack.ContainsKey(curr))
-                            {
-                                // Cycle detected
-
-                                var cycle = new List<CallGraphNode>() { curr };
-                                while (callStack.TryGetValue(curr, out var next))
-                                {
-                                    //if (curr.Equals(next)) break;
-                                    cycle.Add(next);
-                                    curr = next;
-                                }
-
-                                cycles.Add(cycle.ToImmutableArray());
-                            }
-                            else
-                            {
-                                callStack[node] = curr;
-                                processDependencies(curr);
-                                callStack.Remove(node);
-                            }
-                        }
-                    }
-                }
-
-                finished.Add(node);
-            }
-
-            // Loop over all nodes in the call graph, attempting to find cycles by processing their dependencies
-            foreach (var node in _Dependencies.Keys)
-            {
-                if (!finished.Contains(node))
-                {
-                    processDependencies(node);
-                }
-            }
-
-            return cycles;
+            var cycles = new JohnsonCycleFind().GetAllCycles(graph);
+            return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToList();
         }
+
+        //public List<ImmutableArray<CallGraphNode>> GetCallCycles()
+        //{
+        //    var callStack = new Dictionary<CallGraphNode, CallGraphNode>();
+        //    //var finished = new HashSet<CallGraphNode>();
+        //    var cycles = new List<ImmutableArray<CallGraphNode>>();
+
+        //    void processDependencies(CallGraphNode node)
+        //    {
+        //        if (_Dependencies.TryGetValue(node, out var dependencies))
+        //        {
+        //            foreach (var temp in dependencies)
+        //            {
+        //                var (curr, _) = temp;
+
+        //                //if (!finished.Contains(curr))
+        //                //{
+        //                    //if (callStack.ContainsKey(curr))
+        //                    //{
+        //                    //    // Cycle detected
+        //                    //
+        //                    //    var cycle = new List<CallGraphNode>() { curr };
+        //                    //    while (callStack.TryGetValue(curr, out var next))
+        //                    //    {
+        //                    //        if (curr.Equals(next)) break;
+        //                    //        cycle.Add(next);
+        //                    //        curr = next;
+        //                    //    }
+        //                    //
+        //                    //    cycles.Add(cycle.ToImmutableArray());
+        //                    //}
+        //                    if (curr.Equals(node) || callStack.ContainsKey(curr))
+        //                    {
+        //                        // Cycle detected
+
+        //                        var cycle = new List<CallGraphNode>() { curr };
+        //                        while (callStack.TryGetValue(curr, out var next))
+        //                        {
+        //                            //if (curr.Equals(next)) break;
+        //                            cycle.Add(next);
+        //                            curr = next;
+        //                        }
+
+        //                        cycles.Add(cycle.ToImmutableArray());
+        //                    }
+        //                    else
+        //                    {
+        //                        callStack[node] = curr;
+        //                        processDependencies(curr);
+        //                        callStack.Remove(node);
+        //                    }
+        //                //}
+        //            }
+        //        }
+
+        //        //finished.Add(node);
+        //    }
+
+        //    // Loop over all nodes in the call graph, attempting to find cycles by processing their dependencies
+        //    foreach (var node in _Dependencies.Keys)
+        //    {
+        //        //if (!finished.Contains(node))
+        //        //{
+        //            processDependencies(node);
+        //        //}
+        //    }
+
+        //    return cycles;
+        //}
     }
 
     /// <summary>

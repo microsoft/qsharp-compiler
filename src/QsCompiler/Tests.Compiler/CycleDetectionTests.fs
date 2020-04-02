@@ -147,3 +147,23 @@ type CycleDetectionTests () =
             [ "Baz"; "Bar"; "Foo" ]
         ]
         |> CheckForExpectedCycles result
+
+    [<Fact>]
+    member this.``Johnson's Graph Cycles`` () =
+        let result = CompileCycleDetectionTest 8
+
+        [
+            [ "_1"; "_2"; "_k2"; "_k3"; "_2k"; "_2k1" ]
+            [ "_1"; "_3"; "_k2"; "_k3"; "_2k"; "_2k1" ]
+            [ "_1"; "_k1"; "_k2"; "_k3"; "_2k"; "_2k1" ]
+
+            [ "_2k2"; "_2k3"; "_k2" ]
+            [ "_2k2"; "_2k3"; "_k2"; "_k3" ]
+            [ "_2k2"; "_2k3"; "_k2"; "_k3"; "_2k" ]
+            [ "_2k2"; "_2k3"; "_k2"; "_k3"; "_2k"; "_2k1" ]
+
+            [ "_2k2"; "_2k3"; "_3k3" ]
+            [ "_2k2"; "_2k4"; "_3k3" ]
+            [ "_2k2"; "_3k2"; "_3k3" ]
+        ]
+        |> CheckForExpectedCycles result
