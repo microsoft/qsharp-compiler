@@ -136,13 +136,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 {
                     if (!nodeInfo.ContainsKey(child))
                     {
-                        // child has not yet been visited; recurse on it
+                        // Child has not yet been visited; recurse on it
                         strongconnect(child);
                         setMinLowLink(node, nodeInfo[child].LowLink);
                     }
                     else if (nodeInfo[child].OnStack)
                     {
-                        // child is in stack and hence in the current SCC
+                        // Child is in stack and hence in the current SCC
                         // If child is not in stack, then (node, child) is an edge pointing to an SCC already found and must be ignored
                         // Note: The next line may look odd - but is correct.
                         // It says child.index not child.lowlink; that is deliberate and from the original paper
@@ -315,7 +315,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 _Dependencies[callerKey] = newDeps;
             }
 
-            // Need to make sure the Dependencies has an entry for each node in the graph, even if node has no dependencies
+            // Need to make sure the each dependencies has an entry for each node in the graph, even if node has no dependencies
             if (!_Dependencies.ContainsKey(calledKey))
             {
                 _Dependencies[calledKey] = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
