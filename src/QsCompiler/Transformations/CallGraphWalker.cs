@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -17,12 +16,45 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
+    /// <summary>
+    /// Class for using Johnson's algorithm for finding all simple cycles in a graph.
+    /// A simple cycle is one where no node repeats in the cycle until getting back
+    /// to the beginning of the cycle.
+    ///
+    /// The algorithm uses Tarjan's algorithm for finding all strongly-connected
+    /// components in a graph. A strongly-connected component, or SCC, is a subgraph
+    /// in which all nodes can reach all other nodes in the subgraph.
+    ///
+    /// The algorithm begins by using Tarjan's algorithm to find the SCCs of the graph.
+    /// Each SCC is processed for cycles, using the minimum-valued node of the SCC as the
+    /// starting node. Then the starting node is removed from the graph, and Tarjan is used
+    /// again to find SCCs of the new graph, and the next SCC is processed. This repeats
+    /// until there are no more SCCs (and no more nodes) left in the graph.
+    ///
+    /// The starting point for this algorithm in this class is the GetAllCycles method.
+    /// </summary>
     internal class JohnsonCycleFind
     {
         private Stack<(HashSet<int> SCC, int MinNode)> SccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
 
+        /// <summary>
+        /// Johnson's algorithm for finding all cycles in a graph.
+        /// This uses Tarjan's algorithm for finding strongly-connected components, or SCCs,
+        /// of the graph and processes those SCCs individually for finding cycles.
+        ///
+        /// This returns a list of cycles, each represented as a list of nodes. Nodes
+        /// for this algorithm are integers. The cycles are guaranteed to not contain
+        /// any duplicates and the last node in the list is assumed to be connected
+        /// to the first.
+        /// </summary>
         public List<List<int>> GetAllCycles(Dictionary<int, List<int>> graph)
         {
+            // Possible Optimization: Each SCC could be processed in parallel.
+
+            // Possible Optimization: Getting the subgraph for an SCC only needs
+            // to consider the parent graph, not the full graph. A recursive strategy
+            // may be better than using a stack object.
+
             var cycles = new List<List<int>>();
 
             PushSCCs(graph);
@@ -33,9 +65,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 cycles.AddRange(GetSccCycles(subGraph, startNode));
 
                 subGraph.Remove(startNode);
-                foreach (var (_, successors) in subGraph)
+                foreach (var (_, children) in subGraph)
                 {
-                    successors.Remove(startNode);
+                    children.Remove(startNode);
                 }
 
                 PushSCCs(subGraph);
@@ -44,6 +76,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             return cycles;
         }
 
+        /// <summary>
+        /// Uses Tarjan's algorithm for finding strongly-connected components, or SCCs of a
+        /// graph to get all SCC, order them by their minimum-valued node, and push them to
+        /// the SCC stack.
+        /// </summary>
         private void PushSCCs(Dictionary<int, List<int>> graph)
         {
             var sccs = TarjanSCC(graph).OrderByDescending(x => x.MinNode);
@@ -58,6 +95,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 .Where(kvp => subGraphNodes.Contains(kvp.Key))
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Where(dep => subGraphNodes.Contains(dep)).ToList());
 
+        /// <summary>
+        /// Tarjan's algorithm for finding all strongly-connected components in a graph.
+        /// A strongly-connected component, or SCC, is a subgraph in which all nodes can reach
+        /// all other nodes in the subgraph.
+        ///
+        /// This implementation was based on the pseudo-code found here:
+        /// https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+        ///
+        /// This returns a list of SCCs represented by sets of nodes, each paired with the
+        /// value of their lowest valued-node. The list is sorted such that each SCC comes
+        /// before any of its children (reverse topological ordering).
+        /// </summary>
         private List<(HashSet<int> SCC, int MinNode)> TarjanSCC(Dictionary<int, List<int>> inputGraph)
         {
             var index = 0; // This algorithm needs its own separate indexing of nodes
@@ -82,22 +131,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 nodeInfo[node] = (index, index, true);
                 index += 1;
 
-                // Consider successors of node
-                foreach (var successor in inputGraph[node])
+                // Consider children of node
+                foreach (var child in inputGraph[node])
                 {
-                    if (!nodeInfo.ContainsKey(successor))
+                    if (!nodeInfo.ContainsKey(child))
                     {
-                        // Successor has not yet been visited; recurse on it
-                        strongconnect(successor);
-                        setMinLowLink(node, nodeInfo[successor].LowLink);
+                        // child has not yet been visited; recurse on it
+                        strongconnect(child);
+                        setMinLowLink(node, nodeInfo[child].LowLink);
                     }
-                    else if (nodeInfo[successor].OnStack)
+                    else if (nodeInfo[child].OnStack)
                     {
-                        // Successor is in stack and hence in the current SCC
-                        // If successor is not in stack, then (node, successor) is an edge pointing to an SCC already found and must be ignored
+                        // child is in stack and hence in the current SCC
+                        // If child is not in stack, then (node, child) is an edge pointing to an SCC already found and must be ignored
                         // Note: The next line may look odd - but is correct.
-                        // It says successor.index not successor.lowlink; that is deliberate and from the original paper
-                        setMinLowLink(node, nodeInfo[successor].Index);
+                        // It says child.index not child.lowlink; that is deliberate and from the original paper
+                        setMinLowLink(node, nodeInfo[child].Index);
                     }
                 }
 
@@ -138,6 +187,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             return SCCs;
         }
 
+        /// <summary>
+        /// Johnson's algorithm for finding all cycles in an SCC, or strongly-connected component.
+        ///
+        /// It will process an individual SCC for cycles by looking at each of their nodes
+        /// starting with the minimum-valued node of the SCC as the current node. Children of
+        /// the current node are explored, and if any of them are the starting node, a cycle is
+        /// found. Nodes are marked as 'blocked' when visited, and if no cycle is found after
+        /// exploring a node's children, the node is marked as being blocked on its children.
+        /// Only when a cycle is found is a node unblocked and any node blocked on that node is
+        /// also unblocked, recursively.
+        /// </summary>
         private List<List<int>> GetSccCycles(Dictionary<int, List<int>> intputSCC, int startNode)
         {
             var cycles = new List<List<int>>();
@@ -163,16 +223,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 nodeStack.Push(currNode);
                 blockedSet.Add(currNode);
 
-                foreach (var successor in intputSCC[currNode])
+                foreach (var child in intputSCC[currNode])
                 {
-                    if (successor == startNode)
+                    if (child == startNode)
                     {
                         foundCycle = true;
                         cycles.Add(nodeStack.Reverse().ToList());
                     }
-                    else if (!blockedSet.Contains(successor))
+                    else if (!blockedSet.Contains(child))
                     {
-                        foundCycle |= populateCycles(successor);
+                        foundCycle |= populateCycles(child);
                     }
                 }
 
@@ -184,17 +244,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 }
                 else
                 {
-                    // Mark currNode as being blocked on each of its successors
-                    // If any of currNode's successors unblock, currNode will unblock
-                    foreach (var successor in intputSCC[currNode])
+                    // Mark currNode as being blocked on each of its children
+                    // If any of currNode's children unblock, currNode will unblock
+                    foreach (var child in intputSCC[currNode])
                     {
-                        if (!blockedMap.ContainsKey(successor))
+                        if (!blockedMap.ContainsKey(child))
                         {
-                            blockedMap[successor] = new HashSet<int>() { currNode };
+                            blockedMap[child] = new HashSet<int>() { currNode };
                         }
                         else
                         {
-                            blockedMap[successor].Add(currNode);
+                            blockedMap[child].Add(currNode);
                         }
                     }
                 }
@@ -223,195 +283,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
         }
 
-        //public List<ImmutableArray<CallGraphNode>> JohnsonCycleFind()
-        //{
-        //    var indexToNode = _Dependencies.Keys.ToImmutableArray();
-        //    var nodeToIndex = indexToNode.Select((v, i) => (v, i)).ToImmutableDictionary(kvp => kvp.v, kvp => kvp.i);
-        //    //var graph = indexToNode.Select(node => _Dependencies[node].Keys.Select(dep => nodeToIndex[dep]).ToList()).ToList();
-        //    var graph = indexToNode
-        //        .Select((v, i) => (v, i))
-        //        .ToDictionary(kvp => kvp.i,
-        //            kvp => _Dependencies[kvp.v].Keys
-        //                .Select(dep => nodeToIndex[dep])
-        //                .ToList());
-
-        //    var sccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
-
-        //    var cycles = new List<ImmutableArray<CallGraphNode>>();
-        //    var blockedSet = new HashSet<int>();
-        //    var blockedMap = new Dictionary<int, HashSet<int>>();
-        //    var stack = new Stack<int>();
-
-        //    pushSCCs(graph);
-        //    while (sccStack.Any())
-        //    {
-        //        var (scc, startNode) = sccStack.Pop();
-        //        var subGraph = getSubGraph(graph, scc);
-        //        populateCycles(subGraph, startNode, startNode);
-
-        //        subGraph.Remove(startNode);
-        //        foreach (var (_, successors) in subGraph)
-        //        {
-        //            successors.Remove(startNode);
-        //        }
-
-        //        pushSCCs(subGraph);
-        //    }
-
-        //    return cycles;
-
-        //    void unblock(int node)
-        //    {
-        //        if (blockedSet.Remove(node) && blockedMap.TryGetValue(node, out var nodesToUnblock))
-        //        {
-        //            blockedMap.Remove(node);
-        //            foreach (var n in nodesToUnblock)
-        //            {
-        //                unblock(n);
-        //            }
-        //        }
-        //    }
-
-        //    bool populateCycles(Dictionary<int, List<int>> graph, int startNode, int currNode)
-        //    {
-        //        var foundCycle = false;
-        //        stack.Push(currNode);
-        //        blockedSet.Add(currNode);
-
-        //        foreach (var successor in graph[currNode])
-        //        {
-        //            if (successor == startNode)
-        //            {
-        //                foundCycle = true;
-        //                cycles.Add(stack.Select(index => indexToNode[index]).Reverse().ToImmutableArray());
-        //            }
-        //            else if (!blockedSet.Contains(successor))
-        //            {
-        //                foundCycle |= populateCycles(graph, startNode, successor);
-        //            }
-        //        }
-
-        //        stack.Pop();
-
-        //        if (foundCycle)
-        //        {
-        //            unblock(currNode);
-        //        }
-        //        else
-        //        {
-        //            // Mark currNode as being blocked on each of its successors
-        //            // If any of currNode's successors unblock, currNode will unblock
-        //            foreach (var successor in graph[currNode])
-        //            {
-        //                if (!blockedMap.ContainsKey(successor))
-        //                {
-        //                    blockedMap[successor] = new HashSet<int>() { currNode };
-        //                }
-        //                else
-        //                {
-        //                    blockedMap[successor].Add(currNode);
-        //                }
-        //            }
-        //        }
-
-        //        return foundCycle;
-        //    }
-
-        //    void pushSCCs(Dictionary<int, List<int>> input)
-        //    {
-        //        var sccs = otherTarjanSCC(input).OrderByDescending(x => x.MinNode);
-        //        foreach (var scc in sccs)
-        //        {
-        //            sccStack.Push(scc);
-        //        }
-        //    }
-        //}
-
-        //private Dictionary<int, List<int>> getSubGraph(Dictionary<int, List<int>> inputGraph, HashSet<int> subGraphNodes) =>
-        //    inputGraph
-        //        .Where(kvp => subGraphNodes.Contains(kvp.Key))
-        //        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Where(dep => subGraphNodes.Contains(dep)).ToList());
-
-        //private List<(HashSet<int> SCC, int MinNode)> otherTarjanSCC(Dictionary<int, List<int>> input)
-        //{
-        //    var index = 0; // This algorithm needs its own separate indexing of nodes
-        //    var nodeStack = new Stack<int>();
-        //    var nodeInfo = new Dictionary<int, (int Index, int LowLink, bool OnStack)>();
-        //    var output = new List<(HashSet<int> SCC, int MinNode)>();
-
-        //    foreach (var node in input.Keys)
-        //    {
-        //        if (!nodeInfo.ContainsKey(node))
-        //        {
-        //            strongconnect(node);
-        //        }
-        //    }
-
-        //    void setMinLowLink(int node, int potentialMin)
-        //    {
-        //        var vInfo = nodeInfo[node];
-        //        if (vInfo.LowLink > potentialMin)
-        //        {
-        //            vInfo.LowLink = potentialMin;
-        //            nodeInfo[node] = vInfo;
-        //        }
-        //    }
-
-        //    void strongconnect(int node)
-        //    {
-        //        // Set the depth index for node to the smallest unused index
-        //        nodeStack.Push(node);
-        //        nodeInfo[node] = (index, index, true);
-        //        index += 1;
-
-        //        // Consider successors of node
-        //        foreach (var successor in input[node])
-        //        {
-        //            if (!nodeInfo.ContainsKey(successor))
-        //            {
-        //                // Successor has not yet been visited; recurse on it
-        //                strongconnect(successor);
-        //                setMinLowLink(node, nodeInfo[successor].LowLink);
-        //            }
-        //            else if (nodeInfo[successor].OnStack)
-        //            {
-        //                // Successor is in stack and hence in the current SCC
-        //                // If successor is not in stack, then (node, successor) is an edge pointing to an SCC already found and must be ignored
-        //                // Note: The next line may look odd - but is correct.
-        //                // It says successor.index not successor.lowlink; that is deliberate and from the original paper
-        //                setMinLowLink(node, nodeInfo[successor].Index);
-        //            }
-        //        }
-
-        //        // If node is a root node, pop the stack and generate an SCC
-        //        if (nodeInfo[node].LowLink == nodeInfo[node].Index)
-        //        {
-        //            var scc = new HashSet<int>();
-
-        //            var minNode = node;
-        //            int nodeInScc;
-        //            do
-        //            {
-        //                nodeInScc = nodeStack.Pop();
-        //                var wInfo = nodeInfo[nodeInScc];
-        //                wInfo.OnStack = false;
-        //                nodeInfo[nodeInScc] = wInfo;
-        //                scc.Add(nodeInScc);
-
-        //                // Keep track of minimum node in scc
-        //                if (minNode > nodeInScc)
-        //                {
-        //                    minNode = nodeInScc;
-        //                }
-
-        //            } while (node != nodeInScc);
-        //            output.Add((scc, minNode));
-        //        }
-        //    }
-
-        //    return output;
-        //}
-
         /// <summary>
         /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
         /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
@@ -423,89 +294,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             tArgs.IsValue
             ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(tArgs.Item.Select(x => StripPositionInfo.Apply(x)).ToImmutableArray())
             : tArgs;
-
-        /// <summary>
-        /// This is Tarjan's algorithm for finding all strongly-connected components in a graph.
-        /// A strongly-connected component, or SCC, is a subgraph in which all nodes can reach
-        /// all other nodes.
-        ///
-        /// This implementation was based on the pseudo-code found here:
-        /// https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
-        ///
-        /// This returns a list of SCCs, each represented as a set of nodes. The list is
-        /// sorted such that each SCC comes before any of its successors (reverse topological ordering).
-        /// </summary>
-        private List<HashSet<CallGraphNode>> TarjanSCC()
-        {
-            var index = 0;
-            var s = new Stack<CallGraphNode>();
-            var nodeInfo = new Dictionary<CallGraphNode, (int Index, int LowLink, bool OnStack)>();
-            var output = new List<HashSet<CallGraphNode>>();
-
-            foreach (var v in this._Dependencies.Keys)
-            {
-                if (!nodeInfo.ContainsKey(v))
-                {
-                    strongconnect(v);
-                }
-            }
-
-            void setMinLowLink(CallGraphNode v, int potentialMin)
-            {
-                var vInfo = nodeInfo[v];
-                if (vInfo.LowLink > potentialMin)
-                {
-                    vInfo.LowLink = potentialMin;
-                    nodeInfo[v] = vInfo;
-                }
-            }
-
-            void strongconnect(CallGraphNode v)
-            {
-                // Set the depth index for v to the smallest unused index
-                s.Push(v);
-                nodeInfo[v] = (index, index, true);
-                index += 1;
-
-                // Consider successors of v
-                foreach (var w in this._Dependencies[v].Keys)
-                {
-                    if (!nodeInfo.ContainsKey(w))
-                    {
-                        // Successor w has not yet been visited; recurse on it
-                        strongconnect(w);
-                        setMinLowLink(v, nodeInfo[w].LowLink);
-                    }
-                    else if (nodeInfo[w].OnStack)
-                    {
-                        // Successor w is in stack S and hence in the current SCC
-                        // If w is not on stack, then (v, w) is an edge pointing to an SCC already found and must be ignored
-                        // Note: The next line may look odd - but is correct.
-                        // It says w.index not w.lowlink; that is deliberate and from the original paper
-                        setMinLowLink(v, nodeInfo[w].Index);
-                    }
-                }
-
-                // If v is a root node, pop the stack and generate an SCC
-                if (nodeInfo[v].LowLink == nodeInfo[v].Index)
-                {
-                    var scc = new HashSet<CallGraphNode>();
-
-                    CallGraphNode w;
-                    do
-                    {
-                        w = s.Pop();
-                        var wInfo = nodeInfo[w];
-                        wInfo.OnStack = false;
-                        nodeInfo[w] = wInfo;
-                        scc.Add(w);
-                    } while (!v.Equals(w));
-                    output.Add(scc);
-                }
-            }
-
-            return output;
-        }
 
         private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
@@ -643,75 +431,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             var cycles = new JohnsonCycleFind().GetAllCycles(graph);
             return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToList();
         }
-
-        //public List<ImmutableArray<CallGraphNode>> GetCallCycles()
-        //{
-        //    var callStack = new Dictionary<CallGraphNode, CallGraphNode>();
-        //    //var finished = new HashSet<CallGraphNode>();
-        //    var cycles = new List<ImmutableArray<CallGraphNode>>();
-
-        //    void processDependencies(CallGraphNode node)
-        //    {
-        //        if (_Dependencies.TryGetValue(node, out var dependencies))
-        //        {
-        //            foreach (var temp in dependencies)
-        //            {
-        //                var (curr, _) = temp;
-
-        //                //if (!finished.Contains(curr))
-        //                //{
-        //                    //if (callStack.ContainsKey(curr))
-        //                    //{
-        //                    //    // Cycle detected
-        //                    //
-        //                    //    var cycle = new List<CallGraphNode>() { curr };
-        //                    //    while (callStack.TryGetValue(curr, out var next))
-        //                    //    {
-        //                    //        if (curr.Equals(next)) break;
-        //                    //        cycle.Add(next);
-        //                    //        curr = next;
-        //                    //    }
-        //                    //
-        //                    //    cycles.Add(cycle.ToImmutableArray());
-        //                    //}
-        //                    if (curr.Equals(node) || callStack.ContainsKey(curr))
-        //                    {
-        //                        // Cycle detected
-
-        //                        var cycle = new List<CallGraphNode>() { curr };
-        //                        while (callStack.TryGetValue(curr, out var next))
-        //                        {
-        //                            //if (curr.Equals(next)) break;
-        //                            cycle.Add(next);
-        //                            curr = next;
-        //                        }
-
-        //                        cycles.Add(cycle.ToImmutableArray());
-        //                    }
-        //                    else
-        //                    {
-        //                        callStack[node] = curr;
-        //                        processDependencies(curr);
-        //                        callStack.Remove(node);
-        //                    }
-        //                //}
-        //            }
-        //        }
-
-        //        //finished.Add(node);
-        //    }
-
-        //    // Loop over all nodes in the call graph, attempting to find cycles by processing their dependencies
-        //    foreach (var node in _Dependencies.Keys)
-        //    {
-        //        //if (!finished.Contains(node))
-        //        //{
-        //            processDependencies(node);
-        //        //}
-        //    }
-
-        //    return cycles;
-        //}
     }
 
     /// <summary>
