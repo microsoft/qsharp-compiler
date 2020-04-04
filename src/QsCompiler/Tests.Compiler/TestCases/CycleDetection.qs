@@ -116,6 +116,64 @@ namespace Microsoft.Quantum.Testing.CycleDetection {
 
 // =================================
 
+// Sausage Link Graph Cycles
+namespace Microsoft.Quantum.Testing.CycleDetection {
+
+    operation _1() : Unit {
+        _2();
+    }
+
+    operation _2() : Unit {
+        _1();
+        _3();
+    }
+
+    operation _3() : Unit {
+        _2();
+        _4();
+    }
+
+    operation _4() : Unit {
+        _3();
+    }
+
+}
+
+// =================================
+
+// Double Link Graph Cycles
+namespace Microsoft.Quantum.Testing.CycleDetection {
+
+    operation _1() : Unit {
+        _2();
+        _4();
+    }
+
+    operation _2() : Unit {
+        _6();
+    }
+
+    operation _3() : Unit {
+        _1();
+    }
+
+    operation _4() : Unit {
+        _6();
+    }
+
+    operation _5() : Unit {
+        _1();
+    }
+
+    operation _6() : Unit {
+        _5();
+        _3();
+    }
+
+}
+
+// =================================
+
 // Johnson's Graph Cycles
 namespace Microsoft.Quantum.Testing.CycleDetection {
 

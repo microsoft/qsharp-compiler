@@ -31,6 +31,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     /// again to find SCCs of the new graph, and the next SCC is processed. This repeats
     /// until there are no more SCCs (and no more nodes) left in the graph.
     ///
+    /// The algorithm has time complexity of O((n + e)(c + 1)) with n nodes, e edges,
+    /// and c elementary cycles.
+    ///
     /// The starting point for this algorithm in this class is the GetAllCycles method.
     /// </summary>
     internal class JohnsonCycleFind

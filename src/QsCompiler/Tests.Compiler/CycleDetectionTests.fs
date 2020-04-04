@@ -149,8 +149,31 @@ type CycleDetectionTests () =
         |> CheckForExpectedCycles result
 
     [<Fact>]
-    member this.``Johnson's Graph Cycles`` () =
+    member this.``Sausage Link Graph Cycles`` () =
         let result = CompileCycleDetectionTest 8
+
+        [
+            [ "_1"; "_2"; ]
+            [ "_2"; "_3"; ]
+            [ "_3"; "_4"; ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    member this.``Double Link Graph Cycles`` () =
+        let result = CompileCycleDetectionTest 9
+
+        [
+            [ "_1"; "_2"; "_6"; "_5" ]
+            [ "_1"; "_4"; "_6"; "_3" ]
+            [ "_1"; "_2"; "_6"; "_3" ]
+            [ "_1"; "_4"; "_6"; "_5" ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    member this.``Johnson's Graph Cycles`` () =
+        let result = CompileCycleDetectionTest 10
 
         [
             [ "_1"; "_2"; "_k2"; "_k3"; "_2k"; "_2k1" ]
