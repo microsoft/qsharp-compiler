@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
-    /// Class for using Johnson's algorithm for finding all simple cycles in a graph.
+    /// Implementation of Johnson's algorithm for finding all simple cycles in a graph.
     /// A simple cycle is one where no node repeats in the cycle until getting back
     /// to the beginning of the cycle.
     ///
@@ -39,9 +39,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         /// <summary>
         /// Johnson's algorithm for finding all cycles in a graph.
-        /// This uses Tarjan's algorithm for finding strongly-connected components, or SCCs,
-        /// of the graph and processes those SCCs individually for finding cycles.
-        ///
         /// This returns a list of cycles, each represented as a list of nodes. Nodes
         /// for this algorithm are integers. The cycles are guaranteed to not contain
         /// any duplicates and the last node in the list is assumed to be connected
@@ -109,7 +106,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// </summary>
         private List<(HashSet<int> SCC, int MinNode)> TarjanSCC(Dictionary<int, List<int>> inputGraph)
         {
-            var index = 0; // This algorithm needs its own separate indexing of nodes
+            var index = 0; // The index represents the order in which the nodes are discovered by Tarjan's algorithm.
+                           // This is necessarily separate from the node's id value.
             var nodeStack = new Stack<int>();
             var nodeInfo = new Dictionary<int, (int Index, int LowLink, bool OnStack)>();
             var SCCs = new List<(HashSet<int> SCC, int MinNode)>();
