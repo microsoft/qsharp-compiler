@@ -47,9 +47,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         }
 
         /// <summary>
-        /// Given a sequence of type resolutions specifying e.g. subsequent concretizations as part of a nested expression, 
-        /// or concretizations as part of a cycle in the call graph, constructs a dictionary containing the resolution
-        /// for the type parameters of the specified parent callable. 
+        /// Combines subsequent concretions as part of a nested expression, or concretions as part of a cycle in the call graph,
+        /// into a single dictionary containing the resolution for the type parameters of the specified parent callable. 
         /// The given resolutions are expected to be ordered starting with the dictionary containing the initial mapping for the 
         /// type parameters of the specified parent callable (the "innermost resolutions"). This mapping may potentially be to 
         /// type parameters of other callables, which are then further concretized by subsequent resolutions. 
