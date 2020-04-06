@@ -81,7 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         kv => AsTypeResolutionKey(((ResolvedTypeKind.TypeParameter)kv.Value.Resolution).Item),
                         entry => entry.Key);
 
-                // We need to ensure that the mappings for extenal type parameters are processed first, 
+                // We need to ensure that the mappings for external type parameters are processed first, 
                 // to cover an edge case that would otherwise be indicated as a conflicting resolution.
                 var entriesToProcess = resolution.OrderByDescending(entry => !entry.Key.Item1.Equals(parent));
                 foreach (var entry in entriesToProcess)
