@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     /// in which all nodes can reach all other nodes in the subgraph.
     ///
     /// The algorithm begins by using Tarjan's algorithm to find the SCCs of the graph.
-    /// Each SCC is processed for cycles, using the minimum-valued node of the SCC as the
+    /// Each SCC is processed for cycles, using the smallest-id node of the SCC as the
     /// starting node. Then the starting node is removed from the graph, and Tarjan is used
     /// again to find SCCs of the new graph, and the next SCC is processed. This repeats
     /// until there are no more SCCs (and no more nodes) left in the graph.
@@ -78,7 +78,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         /// <summary>
         /// Uses Tarjan's algorithm for finding strongly-connected components, or SCCs of a
-        /// graph to get all SCC, order them by their minimum-valued node, and push them to
+        /// graph to get all SCC, order them by their node with the smallest id, and push them to
         /// the SCC stack.
         /// </summary>
         private void PushSCCs(Dictionary<int, List<int>> graph)
@@ -166,7 +166,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         nodeInfo[nodeInScc] = wInfo;
                         scc.Add(nodeInScc);
 
-                        // Keep track of minimum node in scc
+                        // Keep track of minimum node id in scc
                         if (minNode > nodeInScc)
                         {
                             minNode = nodeInScc;
@@ -192,7 +192,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// Johnson's algorithm for finding all cycles in an SCC, or strongly-connected component.
         ///
         /// It will process an individual SCC for cycles by looking at each of their nodes
-        /// starting with the minimum-valued node of the SCC as the current node. Children of
+        /// starting with the smallest-id node of the SCC as the current node. Children of
         /// the current node are explored, and if any of them are the starting node, a cycle is
         /// found. Nodes are marked as 'blocked' when visited, and if no cycle is found after
         /// exploring a node's children, the node is marked as being blocked on its children.
