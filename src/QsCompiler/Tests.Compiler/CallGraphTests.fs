@@ -51,11 +51,11 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     static member AssertResolution (parent, expected, [<ParamArray>] resolutions) = 
         let success = CallGraphTests.CheckResolution (parent, expected, resolutions)
-        Assert.True(success, "overall status indicated as not successful")
+        Assert.True(success, "Combining type resolutions was not successful.")
 
     static member AssertResolutionFailure (parent, expected, [<ParamArray>] resolutions) = 
         let success = CallGraphTests.CheckResolution (parent, expected, resolutions)
-        Assert.False(success, "overall status indicated as success")
+        Assert.False(success, "Combining type resolutions should have failed.")
 
 
     [<Fact>]
