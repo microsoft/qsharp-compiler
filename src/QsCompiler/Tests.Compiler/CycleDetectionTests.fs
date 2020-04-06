@@ -172,8 +172,20 @@ type CycleDetectionTests () =
         |> CheckForExpectedCycles result
 
     [<Fact>]
-    member this.``Johnson's Graph Cycles`` () =
+    member this.``Multiple SCC Cycles`` () =
         let result = CompileCycleDetectionTest 10
+
+        [
+            [ "SCC1_1" ]
+            [ "SCC2_1"; "SCC2_2" ]
+            [ "SCC3_2"; "SCC3_3"; ]
+            [ "SCC3_1"; "SCC3_2"; "SCC3_3" ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    member this.``Johnson's Graph Cycles`` () =
+        let result = CompileCycleDetectionTest 11
 
         [
             [ "_1"; "_2"; "_k2"; "_k3"; "_2k"; "_2k1" ]

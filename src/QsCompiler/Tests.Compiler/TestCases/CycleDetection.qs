@@ -174,6 +174,40 @@ namespace Microsoft.Quantum.Testing.CycleDetection {
 
 // =================================
 
+// Multiple SCC Cycles
+namespace Microsoft.Quantum.Testing.CycleDetection {
+
+    operation SCC1_1() : Unit {
+        SCC1_1();
+        SCC2_1();
+    }
+
+    operation SCC2_1() : Unit {
+        SCC2_2();
+        SCC3_1();
+    }
+
+    operation SCC2_2() : Unit {
+        SCC2_1();
+        SCC3_2();
+    }
+
+    operation SCC3_1() : Unit {
+        SCC3_2();
+    }
+
+    operation SCC3_2() : Unit {
+        SCC3_3();
+    }
+
+    operation SCC3_3() : Unit {
+        SCC3_2();
+        SCC3_1();
+    }
+}
+
+// =================================
+
 // Johnson's Graph Cycles
 namespace Microsoft.Quantum.Testing.CycleDetection {
 
