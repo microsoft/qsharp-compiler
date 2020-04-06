@@ -212,7 +212,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             (BarA, BazA |> TypeParameter)
         ]
         let res3 = resolution [
-            (BazA, BarC |> TypeParameter) // FIXME: THIS SHOULD NOT BE OK
+            (BazA, BarC |> TypeParameter) // TODO: for performance reasons it would be nice to detect this case as well and error here
         ]
         let expected = resolution [
             (FooA, BarC |> TypeParameter)
