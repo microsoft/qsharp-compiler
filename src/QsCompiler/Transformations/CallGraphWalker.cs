@@ -69,7 +69,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
             var success = true;
 
-            bool EqualsParent(QsQualifiedName origin) => origin.Namespace.Value == parent.Namespace.Value && origin.Name.Value == parent.Name.Value;
             static Tuple<QsQualifiedName, NonNullable<string>> AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
             static bool ResolutionToTypeParameter(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
                 res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
@@ -86,14 +85,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
                 // We need to ensure that the mappings for extenal type parameters are processed first, 
                 // to cover an edge case that would otherwise be indicated as a conflicting resolution.
-                var entriesToProcess = resolution.OrderByDescending(entry => !EqualsParent(entry.Key.Item1));
+                var entriesToProcess = resolution.OrderByDescending(entry => !entry.Key.Item1.Equals(parent));
                 foreach (var entry in entriesToProcess)
                 {
                     var resolutionToTypeParam = entry.Value.Resolution as ResolvedTypeKind.TypeParameter;
-                    var isResolutionToNative = resolutionToTypeParam != null && EqualsParent(resolutionToTypeParam.Item.Origin);
+                    var isResolutionToNative = resolutionToTypeParam != null && resolutionToTypeParam.Item.Origin.Equals(parent);
 
                     // resolution of a type parameter that belongs to the parent callable
-                    if (EqualsParent(entry.Key.Item1))
+                    if (entry.Key.Item1.Equals(parent))
                     {
                         // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
                         var nontrivialResolutionToNative = isResolutionToNative && entry.Key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
@@ -129,7 +128,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             }
 
             combined = combinedBuilder.ToImmutable();
-            QsCompilerError.Verify(combined.Keys.All(key => EqualsParent(key.Item1)), "for type parameter that does not belong to parent callable");
+            QsCompilerError.Verify(combined.Keys.All(key => key.Item1.Equals(parent)), "for type parameter that does not belong to parent callable");
             return success;
         }
 
