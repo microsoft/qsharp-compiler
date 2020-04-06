@@ -109,7 +109,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                 .Callables()
                                 .FirstOrDefault(c => c.FullName.Name.Equals(global.Item.Name));
 
-                            QsCompilerError.Verify(globalCallable != null, $"Could not find the global reference {global.Item.ToString()}");
+                            QsCompilerError.Verify(globalCallable != null, $"Could not find the global reference {global.Item}.");
 
                             var callableTypeParameters = globalCallable.Signature.TypeParameters
                                 .Select(x => x as QsLocalSymbol.ValidName);
