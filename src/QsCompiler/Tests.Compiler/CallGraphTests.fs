@@ -211,6 +211,31 @@ type CallGraphTests (output:ITestOutputHelper) =
         let res2 = resolution [
             (BarA, BazA |> TypeParameter)
         ]
+        let expected = resolution [
+            (FooA, BazA |> TypeParameter)
+        ]
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2)
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, BazA |> TypeParameter)
+        ]
+        let res3 = resolution [
+            (FooA, BazA |> TypeParameter)
+        ]
+        let expected = resolution [
+            (FooA, BazA |> TypeParameter)
+        ]
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, BazA |> TypeParameter)
+        ]
         let res3 = resolution [
             (BazA, BarC |> TypeParameter) // TODO: for performance reasons it would be nice to detect this case as well and error here
         ]
