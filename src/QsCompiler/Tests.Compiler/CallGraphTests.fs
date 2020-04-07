@@ -178,7 +178,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
 
-    [<Fact>]
+    [<Fact(Skip="Not yet supported")>]
     [<Trait("Category","Type resolution")>]
     member this.``Type resolution: multi-stage resolution of multiple resolutions to type parameter`` () = 
 
