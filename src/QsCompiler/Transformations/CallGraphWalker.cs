@@ -93,8 +93,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     if (entry.Key.Item1.Equals(parent))
                     {
                         // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
-                        var nontrivialResolutionToNative = isResolutionToNative && entry.Key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
-                        success = success && !nontrivialResolutionToNative;
+                        var inconsistentResolutionToNative = isResolutionToNative && entry.Key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
+                        success = success && !inconsistentResolutionToNative;
                         // Check that there is no conflicting resolution already defined.
                         var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current)
                             && !current.Equals(entry.Value) && !ResolutionToTypeParameter(entry.Key, current);
@@ -109,8 +109,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         {
                             // If one of the values is a type parameter from the parent callable, 
                             // but it isn't mapped to itself then the combined resolution is invalid. 
-                            var nontrivialResolutionToNative = isResolutionToNative && keyInCombined.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
-                            success = success && !nontrivialResolutionToNative;
+                            var inconsistentResolutionToNative = isResolutionToNative && keyInCombined.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
+                            success = success && !inconsistentResolutionToNative;
                             combinedBuilder[keyInCombined] = entry.Value;
                         }
                     }
