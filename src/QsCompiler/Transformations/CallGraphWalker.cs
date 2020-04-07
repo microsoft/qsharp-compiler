@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             while (SccStack.Any())
             {
                 var (scc, startNode) = SccStack.Pop();
-                var subGraph = GetSubGraphFromNodes(graph, scc);
+                var subGraph = GetSubGraphLimitedToNodes(graph, scc);
                 cycles.AddRange(GetSccCycles(subGraph, startNode));
 
                 subGraph.Remove(startNode);
@@ -93,7 +93,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// <summary>
         /// Gets a subgraph of the input graph where each node in the subgraph is found in the given hash set of nodes.
         /// </summary>
-        private Dictionary<int, List<int>> GetSubGraphFromNodes(Dictionary<int, List<int>> inputGraph, HashSet<int> subGraphNodes) =>
+        private Dictionary<int, List<int>> GetSubGraphLimitedToNodes(Dictionary<int, List<int>> inputGraph, HashSet<int> subGraphNodes) =>
             inputGraph
                 .Where(kvp => subGraphNodes.Contains(kvp.Key)) // filter the keys
                 .ToDictionary(
