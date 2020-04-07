@@ -59,7 +59,8 @@ type CallGraphTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
-    member this.``Type resolution`` () = 
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: resolution to concrete`` () = 
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -74,6 +75,40 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
 
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: resolution to type parameter`` () = 
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, BazA |> TypeParameter)
+        ]
+        let expected = resolution [
+            (FooA, BazA |> TypeParameter)
+        ]
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: resolution via identity mapping`` () = 
+
+        let res1 = resolution [
+            (FooA, FooA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (FooA, Int)
+        ]
+        let expected = resolution [
+            (FooA, Int)
+        ]
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: multi-stage resolution`` () = 
+
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
         ]
@@ -86,6 +121,10 @@ type CallGraphTests (output:ITestOutputHelper) =
             (FooB, Int)
         ]
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: multiple resolutions to concrete`` () = 
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -99,6 +138,30 @@ type CallGraphTests (output:ITestOutputHelper) =
             (FooB, Int)
         ]
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: multiple resolutions to type parameter`` () = 
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+            (FooB, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, BazA |> TypeParameter)
+        ]
+        let res3 = resolution [
+            (BazA, Double)
+        ]
+        let expected = resolution [
+            (FooA, Double)
+            (FooB, Double)
+        ]
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: multi-stage resolution of multiple resolutions to concrete`` () = 
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -115,32 +178,29 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
 
-        let res1 = resolution [
-            (FooA, FooA |> TypeParameter)
-        ]
-        let expected = resolution [
-            (FooA, FooA |> TypeParameter)
-        ]
-        CallGraphTests.AssertResolution(Foo, expected, res1)
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: multi-stage resolution of multiple resolutions to type parameter`` () = 
 
         let res1 = resolution [
-            (FooA, FooA |> TypeParameter)
+            (FooA, BarA |> TypeParameter)
         ]
         let res2 = resolution [
-            (FooA, Int)
+            (BarA, BazA |> TypeParameter)
+            (FooB, BarA |> TypeParameter)
+        ]
+        let res3 = resolution [
+            (BazA, Int)
         ]
         let expected = resolution [
             (FooA, Int)
+            (FooB, Int)
         ]
-        CallGraphTests.AssertResolution(Foo, expected, res1, res2)
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
 
-        let res1 = resolution [
-            (FooA, FooB |> TypeParameter)
-        ]
-        let expected = resolution [
-            (FooA, FooB |> TypeParameter)
-        ]
-        CallGraphTests.AssertResolutionFailure(Foo, expected, res1)
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: redundant resolution to concrete`` () = 
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -154,28 +214,9 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
 
-        let res1 = resolution [
-            (FooA, BarA |> TypeParameter)
-        ]
-        let res2 = resolution [
-            (BarA, Int)
-            (FooA, Double)
-        ]
-        let expected = resolution [
-            (FooA, Double)
-        ]
-        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2)
-
-        let res1 = resolution [
-            (FooA, BarA |> TypeParameter)
-        ]
-        let res2 = resolution [
-            (BarA, FooB |> TypeParameter)
-        ]
-        let expected = resolution [
-            (FooA, FooB |> TypeParameter)
-        ]
-        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2)
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: redundant resolution to type parameter`` () = 
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -184,12 +225,60 @@ type CallGraphTests (output:ITestOutputHelper) =
             (BarA, BazA |> TypeParameter)
         ]
         let res3 = resolution [
-            (BazA, FooB |> TypeParameter)
+            (FooA, BazA |> TypeParameter)
         ]
         let expected = resolution [
-            (FooA, FooB |> TypeParameter)
+            (FooA, BazA |> TypeParameter)
         ]
-        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2, res3)
+        CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: conflicting resolution to concrete`` () = 
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, Int)
+            (FooA, Double)
+        ]
+        let expected = resolution [
+            (FooA, Double)
+        ]
+        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: conflicting resolution to type parameter`` () = 
+
+        let res1 = resolution [
+            (FooA, BarA |> TypeParameter)
+        ]
+        let res2 = resolution [
+            (BarA, BazA |> TypeParameter)
+            (FooA, BarC |> TypeParameter)
+        ]
+        let expected = resolution [
+            (FooA, BarC |> TypeParameter)
+        ]
+        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: direct resolution to native`` () = 
+
+        let res1 = resolution [
+            (FooA, FooA |> TypeParameter)
+        ]
+        let expected = resolution [
+            (FooA, FooA |> TypeParameter)
+        ]
+        CallGraphTests.AssertResolution(Foo, expected, res1)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: indirect resolution to native`` () = 
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -205,16 +294,21 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
 
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: direct resolution constrains native`` () = 
+
         let res1 = resolution [
-            (FooA, BarA |> TypeParameter)
-        ]
-        let res2 = resolution [
-            (BarA, BazA |> TypeParameter)
+            (FooA, FooB |> TypeParameter)
         ]
         let expected = resolution [
-            (FooA, BazA |> TypeParameter)
+            (FooA, FooB |> TypeParameter)
         ]
-        CallGraphTests.AssertResolution(Foo, expected, res1, res2)
+        CallGraphTests.AssertResolutionFailure(Foo, expected, res1)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: indirect resolution constrains native`` () = 
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -223,12 +317,16 @@ type CallGraphTests (output:ITestOutputHelper) =
             (BarA, BazA |> TypeParameter)
         ]
         let res3 = resolution [
-            (FooA, BazA |> TypeParameter)
+            (BazA, FooB |> TypeParameter)
         ]
         let expected = resolution [
-            (FooA, BazA |> TypeParameter)
+            (FooA, FooB |> TypeParameter)
         ]
-        CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
+        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2, res3)
+
+    [<Fact(Skip="Not yet supported")>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Type resolution: inner cycle constrains type parameter`` () = 
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -242,4 +340,4 @@ type CallGraphTests (output:ITestOutputHelper) =
         let expected = resolution [
             (FooA, BarC |> TypeParameter)
         ]
-        CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
+        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2, res3)
