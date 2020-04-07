@@ -57,11 +57,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             var cycles = new List<List<int>>();
 
-            PushSCCs(graph);
+            PushSCCsFromGraph(graph);
             while (SccStack.Any())
             {
                 var (scc, startNode) = SccStack.Pop();
-                var subGraph = GetSubGraph(graph, scc);
+                var subGraph = GetSubGraphFromNodes(graph, scc);
                 cycles.AddRange(GetSccCycles(subGraph, startNode));
 
                 subGraph.Remove(startNode);
@@ -70,7 +70,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     children.Remove(startNode);
                 }
 
-                PushSCCs(subGraph);
+                PushSCCsFromGraph(subGraph);
             }
 
             return cycles;
@@ -81,7 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// graph to get all SCC, order them by their node with the smallest id, and push them to
         /// the SCC stack.
         /// </summary>
-        private void PushSCCs(Dictionary<int, List<int>> graph)
+        private void PushSCCsFromGraph(Dictionary<int, List<int>> graph)
         {
             var sccs = TarjanSCC(graph).OrderByDescending(x => x.MinNode);
             foreach (var scc in sccs)
@@ -90,10 +90,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             }
         }
 
-        private Dictionary<int, List<int>> GetSubGraph(Dictionary<int, List<int>> inputGraph, HashSet<int> subGraphNodes) =>
+        /// <summary>
+        /// Gets a subgraph of the input graph where each node in the subgraph is found in the given hash set of nodes.
+        /// </summary>
+        private Dictionary<int, List<int>> GetSubGraphFromNodes(Dictionary<int, List<int>> inputGraph, HashSet<int> subGraphNodes) =>
             inputGraph
-                .Where(kvp => subGraphNodes.Contains(kvp.Key))
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Where(dep => subGraphNodes.Contains(dep)).ToList());
+                .Where(kvp => subGraphNodes.Contains(kvp.Key)) // filter the keys
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.Where(dep => subGraphNodes.Contains(dep)).ToList()); // filter the adjacency lists
 
         /// <summary>
         /// Tarjan's algorithm for finding all strongly-connected components in a graph.
