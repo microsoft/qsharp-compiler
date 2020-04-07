@@ -71,6 +71,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             static bool ResolutionToTypeParameter(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
                 res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
 
+            // Returns true if the given resolution for the given key constrains the type parameter 
+            // by mapping it to a different type parameter belonging to the same callable. 
             bool InconsistentResolutionToNative(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
             {
                 var resolutionToTypeParam = resolution.Resolution as ResolvedTypeKind.TypeParameter;
@@ -127,7 +129,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         // belonging to multiple callables can/should be treated as concrete types simultaneously. 
                         throw new ArgumentException("attempting to define resolution for type parameter that does not belong to parent callable");
                     }
-
                 }
             }
 
