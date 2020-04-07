@@ -95,40 +95,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
                 // We need to ensure that the mappings for external type parameters are processed first, 
                 // to cover an edge case that would otherwise be indicated as a conflicting resolution.
-                var entriesToProcess = resolution.OrderBy(entry => entry.Key.Item1.Equals(parent));
-                foreach (var entry in entriesToProcess)
+                foreach (var entry in resolution.Where(entry => mayBeReplaced.Contains(entry.Key)))
                 {
-
-                    // resolution of a type parameter that belongs to the parent callable
-                    if (entry.Key.Item1.Equals(parent))
-                    {
-                        // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
-                        success = success && !InconsistentResolutionToNative(entry.Key, entry.Value);
-                        // Check that there is no conflicting resolution already defined.
-                        var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current)
-                            && !current.Equals(entry.Value) && !ResolutionToTypeParameter(entry.Key, current);
-                        success = success && !conflictingResolutionExists;
-                        combinedBuilder[entry.Key] = entry.Value;
-                    }
-
                     // resolution of an external type parameter that is currently listed as value in the combined type resolution dictionary
-                    else if (mayBeReplaced.Contains(entry.Key))
+                    foreach (var keyInCombined in mayBeReplaced[entry.Key])
                     {
-                        foreach (var keyInCombined in mayBeReplaced[entry.Key])
-                        {
-                            // If one of the values is a type parameter from the parent callable, 
-                            // but it isn't mapped to itself then the combined resolution is invalid. 
-                            success = success && !InconsistentResolutionToNative(keyInCombined, entry.Value);
-                            combinedBuilder[keyInCombined] = entry.Value;
-                        }
+                        // If one of the values is a type parameter from the parent callable, 
+                        // but it isn't mapped to itself then the combined resolution is invalid. 
+                        success = success && !InconsistentResolutionToNative(keyInCombined, entry.Value);
+                        combinedBuilder[keyInCombined] = entry.Value;
                     }
+                }
 
-                    else 
-                    {
-                        // It does not make sense to support this case, since there is no valid context in which type parameters
-                        // belonging to multiple callables can/should be treated as concrete types simultaneously. 
-                        throw new ArgumentException("attempting to define resolution for type parameter that does not belong to parent callable");
-                    }
+                // resolution of a type parameter that belongs to the parent callable
+                foreach (var entry in resolution.Where(entry => entry.Key.Item1.Equals(parent)))
+                {
+                    // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
+                    success = success && !InconsistentResolutionToNative(entry.Key, entry.Value);
+                    // Check that there is no conflicting resolution already defined.
+                    var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current)
+                        && !current.Equals(entry.Value) && !ResolutionToTypeParameter(entry.Key, current);
+                    success = success && !conflictingResolutionExists;
+                    combinedBuilder[entry.Key] = entry.Value;
+                }
+
+                if (resolution.Any(entry => !mayBeReplaced.Contains(entry.Key) && !entry.Key.Item1.Equals(parent)))
+                {
+                    // It does not make sense to support this case, since there is no valid context in which type parameters
+                    // belonging to multiple callables can/should be treated as concrete types simultaneously. 
+                    throw new ArgumentException("attempting to define resolution for type parameter that does not belong to parent callable");
                 }
             }
 
