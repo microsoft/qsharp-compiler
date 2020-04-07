@@ -78,8 +78,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         /// <summary>
         /// Uses Tarjan's algorithm for finding strongly-connected components, or SCCs of a
-        /// graph to get all SCC, order them by their node with the smallest id, and push them to
-        /// the SCC stack.
+        /// graph to get all SCC, orders them by their node with the smallest id, and pushes
+        /// them to the SCC stack.
         /// </summary>
         private void PushSCCsFromGraph(Dictionary<int, List<int>> graph)
         {
