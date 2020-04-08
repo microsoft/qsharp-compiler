@@ -46,8 +46,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             keysMismatch.Count = 0 && expected |> Seq.exists (fun kv -> d.[kv.Key] <> kv.Value) |> not
         let mutable combined = ImmutableDictionary.Empty
         let success = CallGraph.TryCombineTypeResolutions(&combined, resolutions)
-        combined <- // TODO: ADAPT TESTS INSTEAD?
-            combined 
+        combined <- combined 
             |> Seq.choose (fun kv -> if (fst kv.Key).Equals parent then Some kv else None)
             |> ImmutableDictionary.CreateRange
         Assert.True(compareWithExpected combined, "combined resolutions did not match the expected ones")

@@ -67,18 +67,37 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             static bool ResolutionToTypeParameter(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
                 res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
 
-            // Returns true if the given resolution for the given key constrains the type parameter 
-            // by mapping it to a different type parameter belonging to the same callable. 
-            static bool InconsistentResolutionToTypeParameter(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
-            {
-                var resolutionToTypeParam = resolution.Resolution as ResolvedTypeKind.TypeParameter;
-                return resolutionToTypeParam != null 
-                    && key.Item1.Equals(resolutionToTypeParam.Item.Origin) 
-                    && key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
-            }
-
             var success = true;
             var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
+
+            void UpdateEntry(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
+            {
+                // Indicate a resolution failure if the given resolution for the given key constrains the type parameter 
+                // by mapping it to a different type parameter belonging to the same callable. 
+                var resolutionToTypeParam = resolution.Resolution as ResolvedTypeKind.TypeParameter;
+                var resolutionToParent = resolutionToTypeParam != null && key.Item1.Equals(resolutionToTypeParam.Item.Origin);
+                var identityResolution = resolutionToParent && key.Item2.Value == resolutionToTypeParam.Item.TypeName.Value;
+                var inconsistentResolutionToTypeParameter = resolutionToParent && key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
+                success = success && !inconsistentResolutionToTypeParameter;
+
+                // ...
+                var valueResolution = resolutionToTypeParam != null
+                    && combinedBuilder.TryGetValue(AsTypeResolutionKey(resolutionToTypeParam.Item), out var value)
+                    && !identityResolution
+                        ? value
+                        : resolution;
+                combinedBuilder[key] = valueResolution;
+            }
+
+            void AddEntry(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
+            {
+                // Check that there is no conflicting resolution already defined.
+                var conflictingResolutionExists = combinedBuilder.TryGetValue(key, out var current)
+                    && !current.Equals(resolution) && !ResolutionToTypeParameter(key, current);
+                success = success && !conflictingResolutionExists;
+                // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
+                UpdateEntry(key, resolution);
+            }
 
             foreach (var resolution in resolutions)
             {
@@ -99,21 +118,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     {
                         // If one of the values is a type parameter from the parent callable, 
                         // but it isn't mapped to itself then the combined resolution is invalid. 
-                        success = success && !InconsistentResolutionToTypeParameter(keyInCombined, entry.Value);
-                        combinedBuilder[keyInCombined] = entry.Value; // TODO: NEED TO CHECK IF THERE IS AN EXISTING MAPPING FOR VALUE
+                        UpdateEntry(keyInCombined, entry.Value);
                     }
+
+                    // ...
+                    AddEntry(entry.Key, entry.Value);
                 }
 
                 // resolution of a type parameter that belongs to the parent callable
-                foreach (var entry in resolution)
+                foreach (var entry in resolution.Where(entry => !mayBeReplaced.Contains(entry.Key)))
                 {
-                    // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
-                    success = success && !InconsistentResolutionToTypeParameter(entry.Key, entry.Value);
-                    // Check that there is no conflicting resolution already defined.
-                    var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current)
-                        && !current.Equals(entry.Value) && !ResolutionToTypeParameter(entry.Key, current);
-                    success = success && !conflictingResolutionExists;
-                    combinedBuilder[entry.Key] = entry.Value; // TODO: NEED TO CHECK IF THERE IS AN EXISTING MAPPING FOR VALUE
+                    // ...
+                    AddEntry(entry.Key, entry.Value);
                 }
             }
 
