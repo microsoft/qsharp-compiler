@@ -38,8 +38,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     /// </summary>
     internal class JohnsonCycleFind
     {
-        private Stack<(HashSet<int> SCC, int MinNode)> SccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
-
         /// <summary>
         /// Johnson's algorithm for finding all cycles in a graph.
         /// This returns a list of cycles, each represented as a list of nodes. Nodes
@@ -51,16 +49,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             // Possible Optimization: Each SCC could be processed in parallel.
 
-            // Possible Optimization: Getting the subgraph for an SCC only needs
-            // to consider the parent graph, not the full graph. A recursive strategy
-            // may be better than using a stack object.
-
             var cycles = new List<List<int>>();
 
-            PushSCCsFromGraph(graph);
-            while (SccStack.Any())
+            var sccs = TarjanSCC(graph).OrderByDescending(x => x.MinNode);
+            foreach (var (scc, startNode) in sccs)
             {
-                var (scc, startNode) = SccStack.Pop();
                 var subGraph = GetSubGraphLimitedToNodes(graph, scc);
                 cycles.AddRange(GetSccCycles(subGraph, startNode));
 
@@ -70,24 +63,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     children.Remove(startNode);
                 }
 
-                PushSCCsFromGraph(subGraph);
+                cycles.AddRange(GetAllCycles(subGraph));
             }
 
             return cycles;
-        }
-
-        /// <summary>
-        /// Uses Tarjan's algorithm for finding strongly-connected components, or SCCs of a
-        /// graph to get all SCC, orders them by their node with the smallest id, and pushes
-        /// them to the SCC stack.
-        /// </summary>
-        private void PushSCCsFromGraph(Dictionary<int, List<int>> graph)
-        {
-            var sccs = TarjanSCC(graph).OrderByDescending(x => x.MinNode);
-            foreach (var scc in sccs)
-            {
-                SccStack.Push(scc);
-            }
         }
 
         /// <summary>
