@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         internal static bool VerifyCycle(CallGraphNode rootNode, params CallGraphEdge[] edges)
         {
             var parent = rootNode.CallableName;
-            var validResolution = TryCombineTypeResolutions(parent, out var combined, edges.Select(edge => edge.ParamResolutions).ToArray());
+            var validResolution = TryCombineTypeResolutions(out var combined, edges.Select(edge => edge.ParamResolutions).ToArray());
             var resolvedToConcrete = combined.Values.All(res => !(res.Resolution is ResolvedTypeKind.TypeParameter tp) || tp.Item.Origin.Equals(parent));
             return validResolution && resolvedToConcrete;
             //var isClosedCycle = validCycle && combined.Values.Any(res => res.Resolution is ResolvedTypeKind.TypeParameter tp && EqualsParent(tp.Item.Origin));
@@ -60,28 +60,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// NOTE: This routine prioritizes the verifications to ensure the correctness of the resolution over performance.  
         /// </summary>
         public static bool TryCombineTypeResolutions
-            (QsQualifiedName parent, out ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> combined,
+            (out ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> combined,
             params ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>[] resolutions)
         {
-            if (parent == null) throw new ArgumentNullException(nameof(parent));
-            var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
-            var success = true;
-
             static Tuple<QsQualifiedName, NonNullable<string>> AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
             static bool ResolutionToTypeParameter(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
                 res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
 
             // Returns true if the given resolution for the given key constrains the type parameter 
             // by mapping it to a different type parameter belonging to the same callable. 
-            bool InconsistentResolutionToNative(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
+            static bool InconsistentResolutionToTypeParameter(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
             {
                 var resolutionToTypeParam = resolution.Resolution as ResolvedTypeKind.TypeParameter;
-                var isResolutionToNative = resolutionToTypeParam != null && resolutionToTypeParam.Item.Origin.Equals(parent);
-                return isResolutionToNative
-                    // We can omit this check as long as combinedBuilder only ever contains native type parameters:
-                    // && key.Item1.Equals(parent) 
+                return resolutionToTypeParam != null 
+                    && key.Item1.Equals(resolutionToTypeParam.Item.Origin) 
                     && key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
             }
+
+            var success = true;
+            var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
 
             foreach (var resolution in resolutions)
             {
@@ -102,33 +99,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     {
                         // If one of the values is a type parameter from the parent callable, 
                         // but it isn't mapped to itself then the combined resolution is invalid. 
-                        success = success && !InconsistentResolutionToNative(keyInCombined, entry.Value);
-                        combinedBuilder[keyInCombined] = entry.Value;
+                        success = success && !InconsistentResolutionToTypeParameter(keyInCombined, entry.Value);
+                        combinedBuilder[keyInCombined] = entry.Value; // TODO: NEED TO CHECK IF THERE IS AN EXISTING MAPPING FOR VALUE
                     }
                 }
 
                 // resolution of a type parameter that belongs to the parent callable
-                foreach (var entry in resolution.Where(entry => entry.Key.Item1.Equals(parent)))
+                foreach (var entry in resolution)
                 {
                     // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
-                    success = success && !InconsistentResolutionToNative(entry.Key, entry.Value);
+                    success = success && !InconsistentResolutionToTypeParameter(entry.Key, entry.Value);
                     // Check that there is no conflicting resolution already defined.
                     var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current)
                         && !current.Equals(entry.Value) && !ResolutionToTypeParameter(entry.Key, current);
                     success = success && !conflictingResolutionExists;
-                    combinedBuilder[entry.Key] = entry.Value;
-                }
-
-                if (resolution.Any(entry => !mayBeReplaced.Contains(entry.Key) && !entry.Key.Item1.Equals(parent)))
-                {
-                    // It does not make sense to support this case, since there is no valid context in which type parameters
-                    // belonging to multiple callables can/should be treated as concrete types simultaneously. 
-                    throw new ArgumentException("attempting to define resolution for type parameter that does not belong to parent callable");
+                    combinedBuilder[entry.Key] = entry.Value; // TODO: NEED TO CHECK IF THERE IS AN EXISTING MAPPING FOR VALUE
                 }
             }
 
             combined = combinedBuilder.ToImmutable();
-            QsCompilerError.Verify(combined.Keys.All(key => key.Item1.Equals(parent)), "for type parameter that does not belong to parent callable");
             return success;
         }
 

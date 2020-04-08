@@ -45,7 +45,11 @@ type CallGraphTests (output:ITestOutputHelper) =
             let keysMismatch = expectedKeys.SymmetricExcept d.Keys 
             keysMismatch.Count = 0 && expected |> Seq.exists (fun kv -> d.[kv.Key] <> kv.Value) |> not
         let mutable combined = ImmutableDictionary.Empty
-        let success = CallGraph.TryCombineTypeResolutions(parent, &combined, resolutions)
+        let success = CallGraph.TryCombineTypeResolutions(&combined, resolutions)
+        combined <- // TODO: ADAPT TESTS INSTEAD?
+            combined 
+            |> Seq.choose (fun kv -> if (fst kv.Key).Equals parent then Some kv else None)
+            |> ImmutableDictionary.CreateRange
         Assert.True(compareWithExpected combined, "combined resolutions did not match the expected ones")
         success
 
@@ -178,7 +182,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
 
-    [<Fact(Skip="Not yet supported")>]
+    [<Fact>]
     [<Trait("Category","Type resolution")>]
     member this.``Type resolution: multi-stage resolution of multiple resolutions to type parameter`` () = 
 
@@ -324,7 +328,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2, res3)
 
-    [<Fact(Skip="Not yet supported")>]
+    [<Fact>]
     [<Trait("Category","Type resolution")>]
     member this.``Type resolution: inner cycle constrains type parameter`` () = 
 
