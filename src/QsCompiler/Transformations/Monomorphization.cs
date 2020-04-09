@@ -15,23 +15,23 @@ using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
-    using Concretion = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
-    using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
-    using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using Concretization = Dictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
+    using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretization*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
+    using ImmutableConcretization = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     public static class Monomorphize
     {
         private struct Request
         {
             public QsQualifiedName originalName;
-            public ImmutableConcretion typeResolutions;
+            public ImmutableConcretization typeResolutions;
             public QsQualifiedName concreteName;
         }
 
         private struct Response
         {
             public QsQualifiedName originalName;
-            public ImmutableConcretion typeResolutions;
+            public ImmutableConcretization typeResolutions;
             public QsCallable concreteCallable;
         }
 
@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 .Select(call => new Request
                 {
                     originalName = call,
-                    typeResolutions = ImmutableConcretion.Empty,
+                    typeResolutions = ImmutableConcretization.Empty,
                     concreteName = call
                 });
 
@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 Stack<Request> requests,
                 List<Response> responses,
                 Identifier.GlobalCallable globalCallable,
-                ImmutableConcretion types)
+                ImmutableConcretization types)
         {
             QsQualifiedName concreteName = globalCallable.Item;
 
@@ -216,7 +216,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             public static Response Apply(Response current)
             {
                 // Nothing to change if the current callable is already concrete
-                if (current.typeResolutions == ImmutableConcretion.Empty) return current;
+                if (current.typeResolutions == ImmutableConcretization.Empty) return current;
 
                 var filter = new ReplaceTypeParamImplementations(current.typeResolutions);
 
@@ -231,15 +231,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             public class TransformationState
             {
-                public readonly ImmutableConcretion TypeParams;
+                public readonly ImmutableConcretization TypeParams;
 
-                public TransformationState(ImmutableConcretion typeParams)
+                public TransformationState(ImmutableConcretization typeParams)
                 {
                     this.TypeParams = typeParams;
                 }
             }
 
-            private ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams)) 
+            private ReplaceTypeParamImplementations(ImmutableConcretization typeParams) : base(new TransformationState(typeParams)) 
             { 
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Types = new TypeTransformation(this);
@@ -299,7 +299,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             public class TransformationState
             {
-                public readonly Concretion CurrentParamTypes = new Concretion();
+                public readonly Concretization CurrentParamTypes = new Concretization();
                 public readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
 
                 public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier)
@@ -335,7 +335,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     return new TypedExpression(kind, typeParamResolutions, exType, inferredInfo, range);
                 }
 
-                public override ImmutableConcretion OnTypeParamResolutions(ImmutableConcretion typeParams)
+                public override ImmutableConcretization OnTypeParamResolutions(ImmutableConcretization typeParams)
                 {
                     // Merge the type params into the current dictionary
                     foreach (var kvp in typeParams)
@@ -343,7 +343,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                         SharedState.CurrentParamTypes.Add(kvp.Key, kvp.Value);
                     }
 
-                    return ImmutableConcretion.Empty;
+                    return ImmutableConcretization.Empty;
                 }
             }
 
@@ -355,7 +355,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     if (sym is Identifier.GlobalCallable global)
                     {
-                        ImmutableConcretion applicableParams = SharedState.CurrentParamTypes
+                        ImmutableConcretization applicableParams = SharedState.CurrentParamTypes
                             .Where(kvp => kvp.Key.Item1.Equals(global.Item))
                             .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
