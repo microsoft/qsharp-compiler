@@ -38,6 +38,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     /// </summary>
     internal class JohnsonCycleFind
     {
+        private Stack<(HashSet<int> SCC, int MinNode)> SccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
+
         /// <summary>
         /// Johnson's algorithm for finding all cycles in a graph.
         /// This returns a list of cycles, each represented as a list of nodes. Nodes
@@ -45,30 +47,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         /// any duplicates and the last node in the list is assumed to be connected
         /// to the first.
         /// </summary>
-        public List<List<int>> GetAllCycles(Dictionary<int, List<int>> graph)
-        {
-            // Possible Optimization: Each SCC could be processed in parallel.
-
-            var cycles = new List<List<int>>();
-
-            var sccs = TarjanSCC(graph).OrderByDescending(x => x.MinNode);
-            foreach (var (scc, startNode) in sccs)
-            {
-                var subGraph = GetSubGraphLimitedToNodes(graph, scc);
-                cycles.AddRange(GetSccCycles(subGraph, startNode));
-
-                subGraph.Remove(startNode);
-                foreach (var (_, children) in subGraph)
+        
+        public List<List<int>> GetAllCycles(Dictionary<int, List<int>> graph) =>
+            TarjanSCC(graph)
+                .OrderByDescending(x => x.MinNode)
+                .SelectMany(item =>
                 {
-                    children.Remove(startNode);
-                }
+                    var cycles = new List<List<int>>();
+                    var (scc, startNode) = item;
+                    var subGraph = GetSubGraphLimitedToNodes(graph, scc);
+                    cycles.AddRange(GetSccCycles(subGraph, startNode));
 
-                cycles.AddRange(GetAllCycles(subGraph));
-            }
+                    subGraph.Remove(startNode);
+                    foreach (var (_, children) in subGraph)
+                    {
+                        children.Remove(startNode);
+                    }
 
-            return cycles;
-        }
-
+                    cycles.AddRange(GetAllCycles(subGraph));
+                    return cycles;
+                })
+                .ToList();
+        
         /// <summary>
         /// Gets a subgraph of the input graph where each node in the subgraph is found in the given hash set of nodes.
         /// </summary>
