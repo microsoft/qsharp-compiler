@@ -16,21 +16,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
+    /// <summary>
+    /// Struct containing information that exists on edges in a call graph.
+    /// </summary>
+    public struct CallGraphEdge
+    {
+        public ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> ParamResolutions;
+    }
+
+    /// <summary>
+    /// Struct containing information that exists on nodes in a call graph.
+    /// </summary>
+    public struct CallGraphNode
+    {
+        public QsQualifiedName CallableName;
+        public QsSpecializationKind Kind;
+        public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
+    }
+
     /// Class used to track call graph of a compilation
     public class CallGraph
     {
-        public struct CallGraphEdge
-        {
-            public ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> ParamResolutions;
-        }
-
-        public struct CallGraphNode
-        {
-            public QsQualifiedName CallableName;
-            public QsSpecializationKind Kind;
-            public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
-        }
-
         /// <summary>
         /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
         /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
@@ -245,7 +251,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     var typeArgs = tArgs;
 
                     // ToDo: Type argument dictionaries need to be resolved and set here
-                    var edge = new CallGraph.CallGraphEdge { };
+                    var edge = new CallGraphEdge { };
 
                     if (SharedState.inCall)
                     {
