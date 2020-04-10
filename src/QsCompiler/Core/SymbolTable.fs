@@ -10,6 +10,7 @@ open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SymbolResolution
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxGenerator
@@ -980,6 +981,15 @@ and NamespaceManager
                 elif tId |> isBuiltIn BuiltIn.EntryPoint then
                     match box decl.Defined with
                     | :? CallableSignature as signature when not (signature.TypeParameters.Any()) ->
+
+                        // verify that the entry point has only a default body specialization
+                        let hasCharacteristics = signature.Characteristics.Characteristics |> function | EmptySet | InvalidSetExpr -> false | _ -> true
+                        match Namespaces.TryGetValue parent.Namespace with
+                        | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
+                        | true, ns when not ((ns.SpecializationsDefinedInAllSources parent.Name).Any(fst >> (<>)QsBody) || hasCharacteristics) -> ()
+                        | _ -> errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
+
+                        // validate entry point argument and return type
                         let validateArgAndReturnTypes argumentRestriction (qsType : QsType) =
                             let rec IsArray = function 
                                 | ArrayType _ -> true
@@ -993,14 +1003,25 @@ and NamespaceManager
                             | TupleType ts when ts.Length > 1 && argumentRestriction -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InnerTupleInEntryPointArgument, [])) |> Seq.singleton
                             | ArrayType bt when argumentRestriction && bt.Type |> IsArray -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.ArrayOfArrayInEntryPointArgument, [])) |> Seq.singleton
                             | _ -> Seq.empty)
-                        let inErrs = signature.Argument.Items.Select(snd) |> Seq.collect (validateArgAndReturnTypes true)
+                        let inErrs = signature.Argument.Items.Select snd |> Seq.collect (validateArgAndReturnTypes true)
                         let outErrs = signature.ReturnType |> validateArgAndReturnTypes false 
                         let signatureErrs = inErrs.Concat outErrs
-                        let hasCharacteristics = signature.Characteristics.Characteristics |> function | EmptySet | InvalidSetExpr -> false | _ -> true
-                        match Namespaces.TryGetValue parent.Namespace with
-                        | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
-                        | true, ns when not ((ns.SpecializationsDefinedInAllSources parent.Name).Any(fst >> (<>)QsBody) || hasCharacteristics) -> ()
-                        | _ -> errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
+
+                        // validate entry point argument names
+                        let asCommandLineArg (str : string) = str.ToLowerInvariant() |> Seq.filter((<>)'_') |> String.Concat
+                        let reservedCommandLineArgs = [CommandLineArguments.SimulatorOption] |> List.map asCommandLineArg
+                        let nameAndRange (sym : QsSymbol) = sym.Symbol |> function
+                            | Symbol name -> Some (asCommandLineArg name.Value, sym.Range)
+                            | _ -> None
+                        let simplifiedArgNames = signature.Argument.Items.Select fst |> Seq.choose nameAndRange |> Seq.toList
+                        let verifyArgument i (arg, range : QsNullable<_>) = 
+                            if i > 0 && simplifiedArgNames.[..i-1] |> Seq.map fst |> Seq.contains arg
+                            then errs.Add (decl.Position, range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.DuplicateEntryPointArgumentName, []))
+                            elif reservedCommandLineArgs.Contains arg
+                            then errs.Add (decl.Position, range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.ReservedEntryPointArgumentName, []))
+                        simplifiedArgNames |> List.iteri verifyArgument
+
+                        // check that there is no more than one entry point
                         if signatureErrs.Any() then returnInvalid signatureErrs
                         else GetEntryPoints() |> Seq.tryHead |> function
                             | None -> attributeHash :: alreadyDefined, att :: resAttr
@@ -1020,6 +1041,7 @@ and NamespaceManager
                         | [] -> signature.ReturnType |> isUnitType
                         | [(_, argType)] -> argType |> isUnitType && signature.ReturnType |> isUnitType
                         | _ -> false
+
                     match box decl.Defined with
                     | :? CallableSignature as signature when signature |> isUnitToUnit && not (signature.TypeParameters.Any()) ->
                         let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument (fun ex -> ex.Expression)

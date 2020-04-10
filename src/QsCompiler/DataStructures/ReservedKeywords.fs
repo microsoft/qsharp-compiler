@@ -231,6 +231,11 @@ module GeneratedAttributes =
     let LoadedViaTestNameInsteadOf = "__LoadedViaTestNameInsteadOf__"
 
 
+/// contains reserved names for command line arguments
+module CommandLineArguments = 
+    let SimulatorOption = "simulator"
+
+
 /// contains project specific settings specified during Q# compilation
 module AssemblyConstants = 
     let OutputPath = "OutputPath"
