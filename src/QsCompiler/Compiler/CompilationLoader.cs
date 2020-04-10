@@ -233,7 +233,7 @@ namespace Microsoft.Quantum.QsCompiler
             private bool WasSuccessful(bool run, Status code) =>
                 (run && code == Status.Succeeded) || (!run && code == Status.NotRun);
 
-            internal bool Success(Configuration options, bool isExe) =>
+            internal bool Success(Configuration options) =>
                 this.SourceFileLoading <= 0 &&
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
@@ -244,7 +244,7 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
 
-                WasSuccessful(isExe && !options.SkipMonomorphization, this.Monomorphization) &&
+                WasSuccessful(options.IsExecutable && !options.SkipMonomorphization, this.Monomorphization) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
@@ -337,7 +337,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Indicates the overall success of all compilation steps.
         /// The compilation is indicated as having been successful if all steps that were configured to execute completed successfully.
         /// </summary>
-        public bool Success => this.CompilationStatus.Success(this.Config, this.CompilationOutput?.EntryPoints.Length != 0);
+        public bool Success => this.CompilationStatus.Success(this.Config);
 
 
         /// <summary>
@@ -446,6 +446,14 @@ namespace Microsoft.Quantum.QsCompiler
             foreach (var diag in this.VerifiedCompilation?.Diagnostics() ?? Enumerable.Empty<Diagnostic>())
             { this.LogAndUpdate(ref this.CompilationStatus.Validation, diag); }
 
+            if (this.Config.IsExecutable && this.CompilationOutput?.EntryPoints.Length == 0)
+            {
+                this.Logger?.Log(WarningCode.MissingEntryPoint, new string[0]);
+            }
+            // TODO: 
+            // give warnings and ignore entry points in libraries, 
+            // and check additional restriction on the return type for execution on quantum processors.
+
             // executing the specified rewrite steps
 
             if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
@@ -462,7 +470,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.ConvertClassicalControl);
             }
 
-            if (!this.Config.SkipMonomorphization && this.CompilationOutput?.EntryPoints.Length != 0)
+            if (!this.Config.SkipMonomorphization)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
                 this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.Monomorphization);
@@ -593,6 +601,14 @@ namespace Microsoft.Quantum.QsCompiler
         {
             this.Logger?.Log(code, args);
             current = Status.Failed;
+        }
+
+        /// <summary>
+        /// Logs a warning with the given warning code and message parameters, and updates the status passed as reference accordingly.
+        /// </summary>
+        private void LogAndUpdate(ref Status current, WarningCode code, IEnumerable<string> args)
+        {
+            this.Logger?.Log(code, args);
         }
 
         /// <summary>

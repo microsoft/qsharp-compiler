@@ -326,6 +326,8 @@ type WarningCode =
     | NamespaceAliasIsAlreadyDefined = 6004 // same alias for the same namespace, hence (only) a warning
     | MissingBodyDeclaration = 6005
     | DuplicateAttribute = 6201
+    | MissingEntryPoint = 6202
+    | IgnoredEntryPoint = 6203
     | GeneratorDirectiveWillBeIgnored = 6301
     | UnreachableCode = 6302
 
@@ -700,6 +702,8 @@ type DiagnosticItem =
             | WarningCode.NamespaceAliasIsAlreadyDefined          -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration                  -> "A body specification for this callable is missing. The callable is assumed to be intrinsic."
             | WarningCode.DuplicateAttribute                      -> "The attribute {0} is a duplication and will be ignored."
+            | WarningCode.MissingEntryPoint                       -> "The project is a Q# command line application but no entry point has been found."
+            | WarningCode.IgnoredEntryPoint                       -> "Entry point will be ignored. The project is a Q# library and cannot have any entry points."
             | WarningCode.GeneratorDirectiveWillBeIgnored         -> "Generation directive ignored. A specialization of this callable has been declared as intrinsic."
             | WarningCode.UnreachableCode                         -> "This statement will never be executed."
                                                                   
