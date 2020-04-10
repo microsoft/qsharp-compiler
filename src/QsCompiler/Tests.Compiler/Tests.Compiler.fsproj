@@ -143,6 +143,7 @@
     <Compile Include="TransformationTests.fs" />
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="LinkingTests.fs" />
+    <Compile Include="CallGraphTests.fs" />
     <Compile Include="ClassicalControlTests.fs" />
     <Compile Include="RegexTests.fs" />
     <Compile Include="SerializationTests.fs" />
@@ -179,9 +180,7 @@
       <ExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.1\Example.dll</ExecutionTarget>
       <LibraryTarget>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\netcoreapp3.1\Library1.dll</LibraryTarget>
     </PropertyGroup>
-    <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt"
-                      Lines="$(ExecutionTarget); $(LibraryTarget)"
-                      Overwrite="true" />
+    <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt" Lines="$(ExecutionTarget); $(LibraryTarget)" Overwrite="true" />
   </Target>
 
 </Project>
