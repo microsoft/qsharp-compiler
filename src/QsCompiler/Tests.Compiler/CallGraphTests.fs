@@ -178,26 +178,6 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
 
-    [<Fact(Skip="Not yet supported")>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: multi-stage resolution of multiple resolutions to type parameter`` () = 
-
-        let res1 = resolution [
-            (FooA, BarA |> TypeParameter)
-        ]
-        let res2 = resolution [
-            (BarA, BazA |> TypeParameter)
-            (FooB, BarA |> TypeParameter)
-        ]
-        let res3 = resolution [
-            (BazA, Int)
-        ]
-        let expected = resolution [
-            (FooA, Int)
-            (FooB, Int)
-        ]
-        CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
-
     [<Fact>]
     [<Trait("Category","Type resolution")>]
     member this.``Type resolution: redundant resolution to concrete`` () = 
@@ -324,20 +304,3 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2, res3)
 
-    [<Fact(Skip="Not yet supported")>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: inner cycle constrains type parameter`` () = 
-
-        let res1 = resolution [
-            (FooA, BarA |> TypeParameter)
-        ]
-        let res2 = resolution [
-            (BarA, BazA |> TypeParameter)
-        ]
-        let res3 = resolution [
-            (BazA, BarC |> TypeParameter) // TODO: for performance reasons it would be nice to detect this case as well and error here
-        ]
-        let expected = resolution [
-            (FooA, BarC |> TypeParameter)
-        ]
-        CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2, res3)
