@@ -109,6 +109,9 @@ May contain additional arguments to pass to the Q# command line compiler. Valid 
 - `CsharpGeneration`:    
 Specifies whether to generate C# code as part of the compilation process. Setting this property to false may prevent certain interoperability features or integration with other pieces of the Quantum Development Kit. 
 
+- `DefaultSimulator`:
+Specifies the simulator to use by default for execution. 
+
 - `IncludeQsharpCorePackages`:     
 Specifies whether the packages providing the basic language support for Q# are referenced. This property is set to true by default. If set to false, the Sdk will not reference any Q# libraries. 
 

@@ -244,6 +244,7 @@ module AssemblyConstants =
     let AlfredProcessor = "AlfredProcessor"
     let BrunoProcessor = "BrunoProcessor"
     let ClementineProcessor = "ClementineProcessor"
+    let DefaultSimulator = "DefaultSimulator"
 
 
 /// contains specific names used within Q# dlls
