@@ -111,6 +111,12 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public RuntimeCapabilities RuntimeCapabilities;
             /// <summary>
+            /// Specifies whether the project to build is a Q# command line application. 
+            /// If set to true, a warning will be raised if no entry point is defined. 
+            /// If set to false, then defined entry points will be ignored and a warning will be raised.
+            /// </summary>
+            public bool IsExecutable;
+            /// <summary>
             /// Unless this is set to true, all usages of type-parameterized callables are replaced with
             /// the concrete callable instantiation if an entry point is specified for the compilation.
             /// Removes all type-parameterizations in the syntax tree.

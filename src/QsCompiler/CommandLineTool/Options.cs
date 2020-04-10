@@ -54,6 +54,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
         public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
 
+        [Option("build-exe", Required = false, Default = false, SetName = CODE_MODE,
+        HelpText = "Specifies whether to build a Q# command line application.")]
+        public bool MakeExecutable { get; set; }
+
         /// <summary>
         /// Returns a dictionary with the specified assembly properties as out parameter. 
         /// Returns a boolean indicating whether all specified properties were successfully added.
