@@ -38,11 +38,6 @@ type BuiltIn = {
         ["QuantumSimulator"; "ToffoliSimulator"; "ResourcesEstimator"]
         |> ImmutableHashSet.CreateRange
 
-    /// Returns the names of all reserved names for command line arguments.
-    static member internal ReserveCommandLineArguments = 
-        [ReservedKeywords.CommandLineArguments.SimulatorOption]
-        |> ImmutableHashSet.CreateRange
-
     /// Returns true if the given attribute marks the corresponding declaration as entry point.
     static member MarksEntryPoint (att : QsDeclarationAttribute) = att.TypeId |> function
         | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.FullName.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.FullName.Name.Value
