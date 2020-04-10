@@ -39,17 +39,22 @@ type CallGraphTests (output:ITestOutputHelper) =
     let BarC = typeParameter "Bar.C"
     let BazA = typeParameter "Baz.A"
 
-    static member CheckResolution (parent, expected : IDictionary<_,_>, [<ParamArray>] resolutions) = 
+    static member CheckResolution (parent, expected : IDictionary<_,_>, [<ParamArray>] resolutions : _ []) = 
         let expectedKeys = ImmutableHashSet.CreateRange(expected.Keys) 
         let compareWithExpected (d : ImmutableDictionary<_,_>) = 
             let keysMismatch = expectedKeys.SymmetricExcept d.Keys 
             keysMismatch.Count = 0 && expected |> Seq.exists (fun kv -> d.[kv.Key] <> kv.Value) |> not
-        let mutable combined = ImmutableDictionary.Empty
-        let success = CallGraph.TryCombineTypeResolutions(&combined, resolutions)
-        combined <- combined 
-            |> Seq.choose (fun kv -> if (fst kv.Key).Equals parent then Some kv else None)
-            |> ImmutableDictionary.CreateRange
-        Assert.True(compareWithExpected combined, "combined resolutions did not match the expected ones")
+        let mutable combined, success = ImmutableDictionary.Empty, true
+
+        let VerifyResolution dicts = 
+            success <- success && CallGraph.TryCombineTypeResolutions(&combined, dicts)
+            combined <- combined 
+                |> Seq.choose (fun kv -> if (fst kv.Key).Equals parent then Some kv else None)
+                |> ImmutableDictionary.CreateRange
+            Assert.True(compareWithExpected combined, "combined resolutions did not match the expected ones")
+
+        for startIndex = 1 to resolutions.Length do
+            Array.concat [resolutions.[startIndex ..]; resolutions.[..startIndex - 1]] |> VerifyResolution
         success
 
     static member AssertResolution (parent, expected, [<ParamArray>] resolutions) = 

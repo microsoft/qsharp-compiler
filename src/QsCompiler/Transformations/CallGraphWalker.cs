@@ -70,7 +70,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             var success = true;
             var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
 
-            void UpdateEntry(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
+            ResolvedType UpdateEntry(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
             {
                 // Indicate a resolution failure if the given resolution for the given key constrains the type parameter 
                 // by mapping it to a different type parameter belonging to the same callable. 
@@ -81,22 +81,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 success = success && !inconsistentResolutionToTypeParameter;
 
                 // ...
-                var valueResolution = resolutionToTypeParam != null
+                var valueResolution = resolutionToTypeParam != null && !identityResolution
                     && combinedBuilder.TryGetValue(AsTypeResolutionKey(resolutionToTypeParam.Item), out var value)
-                    && !identityResolution
                         ? value
                         : resolution;
                 combinedBuilder[key] = valueResolution;
+                return valueResolution;
             }
 
             void AddEntry(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
             {
-                // Check that there is no conflicting resolution already defined.
-                var conflictingResolutionExists = combinedBuilder.TryGetValue(key, out var current)
-                    && !current.Equals(resolution) && !ResolutionToTypeParameter(key, current);
-                success = success && !conflictingResolutionExists;
                 // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
-                UpdateEntry(key, resolution);
+                var hasCurrent = combinedBuilder.TryGetValue(key, out var current);
+                var resolvedValue = UpdateEntry(key, resolution);
+                // Check that there is no conflicting resolution already defined.
+                // FIXME: WE NEED TO DO THIS CHECK ALL THE WAY AT THE END...  BUT WE CAN'T??
+                var conflictingResolutionExists = hasCurrent && !current.Equals(resolvedValue) && !ResolutionToTypeParameter(key, current);
+                success = success && !conflictingResolutionExists;
             }
 
             foreach (var resolution in resolutions)
@@ -130,6 +131,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 {
                     // ...
                     AddEntry(entry.Key, entry.Value);
+                }
+            }
+
+            // ..
+            var current = combinedBuilder.ToArray();
+            foreach (var entry in current)
+            {
+                if (entry.Value.Resolution is ResolvedTypeKind.TypeParameter tp &&
+                    combinedBuilder.TryGetValue(AsTypeResolutionKey(tp.Item), out var value))
+                {
+                    combinedBuilder[entry.Key] = value;
                 }
             }
 
