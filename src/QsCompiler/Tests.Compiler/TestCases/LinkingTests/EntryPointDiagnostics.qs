@@ -15,7 +15,15 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
     @ EntryPoint()
-    operation InvalidEntryPoint43(argName : Int, argname : Int) : Unit {}
+    operation InvalidEntryPoint43(argName : Int, ArgName : Int) : Unit {}
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.EntryPoints {
+
+    @ EntryPoint()
+    operation InvalidEntryPoint43(argName : Int, Arg_Name : Int) : Unit {}
 }
 
 // =================================
