@@ -127,3 +127,11 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
         return Default<((Bool, String)[][], (Unit, Range))>();
     }
 }
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.EntryPoints {
+
+    @ EntryPoint()
+    operation ValidEntryPoint15(a : Int[], (b : Double[], c : String[])) : Unit { }
+}

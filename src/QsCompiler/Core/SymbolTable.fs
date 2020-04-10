@@ -980,13 +980,18 @@ and NamespaceManager
                 elif tId |> isBuiltIn BuiltIn.EntryPoint then
                     match box decl.Defined with
                     | :? CallableSignature as signature when not (signature.TypeParameters.Any()) ->
-                        let validateArgAndReturnTypes preventTuples (qsType : QsType) =
+                        let validateArgAndReturnTypes argumentRestriction (qsType : QsType) =
+                            let rec IsArray = function 
+                                | ArrayType _ -> true
+                                | TupleType (ts : ImmutableArray<QsType>) when ts.Length = 1 -> IsArray ts.[0].Type
+                                | _ -> false                            
                             qsType.ExtractAll (fun t -> t.Type |> function // ExtractAll recurs on all subtypes (e.g. callable in- and output types as well)
                             | Qubit -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.QubitTypeInEntryPointSignature, [])) |> Seq.singleton
                             | QsTypeKind.Operation _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
                             | QsTypeKind.Function _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
                             | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPointSignature, [])) |> Seq.singleton
-                            | TupleType ts when ts.Length > 1 && preventTuples -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InnerTupleInEntryPointArgument, [])) |> Seq.singleton
+                            | TupleType ts when ts.Length > 1 && argumentRestriction -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InnerTupleInEntryPointArgument, [])) |> Seq.singleton
+                            | ArrayType bt when argumentRestriction && bt.Type |> IsArray -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.ArrayOfArrayInEntryPointArgument, [])) |> Seq.singleton
                             | _ -> Seq.empty)
                         let inErrs = signature.Argument.Items.Select(snd) |> Seq.collect (validateArgAndReturnTypes true)
                         let outErrs = signature.ReturnType |> validateArgAndReturnTypes false 

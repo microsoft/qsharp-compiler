@@ -235,13 +235,14 @@ type ErrorCode =
     | CallableTypeInEntryPointSignature = 6232
     | UserDefinedTypeInEntryPointSignature = 6233
     | InnerTupleInEntryPointArgument = 6234
-    | MultipleEntryPoints = 6235
-    | InvalidEntryPointSpecialization = 6236
-    | InvalidTestAttributePlacement = 6237
-    | InvalidExecutionTargetForTest = 6238
-    | ExpectingFullNameAsAttributeArgument = 6239
-    | AttributeInvalidOnSpecialization = 6240
-    | AttributeInvalidOnCallable = 6241
+    | ArrayOfArrayInEntryPointArgument = 6235
+    | MultipleEntryPoints = 6236
+    | InvalidEntryPointSpecialization = 6237
+    | InvalidTestAttributePlacement = 6238
+    | InvalidExecutionTargetForTest = 6239
+    | ExpectingFullNameAsAttributeArgument = 6240
+    | AttributeInvalidOnSpecialization = 6241
+    | AttributeInvalidOnCallable = 6242
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -603,6 +604,7 @@ type DiagnosticItem =
             | ErrorCode.CallableTypeInEntryPointSignature         -> "Invalid entry point. Values of operation or function type may not be used as arguments or return values to entry points."
             | ErrorCode.UserDefinedTypeInEntryPointSignature      -> "Invalid entry point. Values of user defined type may not be used as arguments or return values to entry points."
             | ErrorCode.InnerTupleInEntryPointArgument            -> "Anonymous tuple items or arrays of tuples are not supported in entry point arguments. All items need to be named."
+            | ErrorCode.ArrayOfArrayInEntryPointArgument          -> "Multi-dimensional arrays are not supported in entry point arguments."
             | ErrorCode.MultipleEntryPoints                       -> "Invalid entry point. An entry point {0} already exists in {1}."
             | ErrorCode.InvalidEntryPointSpecialization           -> "Entry points cannot have any other specializations besides the default body."
             | ErrorCode.InvalidTestAttributePlacement             -> "Invalid test attribute. Test attributes may only occur on callables that have no arguments and return Unit."
