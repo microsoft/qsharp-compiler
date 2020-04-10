@@ -108,10 +108,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
             var references = GetItemsByType(projectInstance, "Reference");
             var version = projectInstance.GetPropertyValue("QsharpLangVersion");
+            var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.InvariantCultureIgnoreCase);
 
             var telemetryMeas = new Dictionary<string, int> { ["sources"] = sourceFiles.Count() };
             this.SendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
-            info = new ProjectInformation(version, outputPath, sourceFiles, projectReferences, references);
+            info = new ProjectInformation(version, outputPath, loadTestNames, sourceFiles, projectReferences, references);
             return true;
         }
 

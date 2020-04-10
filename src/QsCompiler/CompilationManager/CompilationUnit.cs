@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -32,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public readonly ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)> Specializations;
             public readonly ImmutableArray<TypeDeclarationHeader> Types;
 
-            private Headers(string source,
+            internal Headers(string source,
                 IEnumerable<CallableDeclarationHeader> callables = null, 
                 IEnumerable<(SpecializationDeclarationHeader, SpecializationImplementation)> specs = null, 
                 IEnumerable<TypeDeclarationHeader> types = null)
@@ -78,6 +79,59 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             attributes.Select(IsDeclaration("TypeDeclarationAttribute")).Where(v => v != null)
                 .Select(TypeDeclarationHeader.FromJson).Select(built => built.Item2);
 
+        /// <summary>
+        /// Renames all declarations in the headers for which an alternative name is specified
+        /// that may be used when loading a type or callable for testing purposes.
+        /// Leaves declarations for which no such name is defined unchanged.
+        /// Does not check whether there are any conflicts when using alternative names. 
+        /// </summary>
+        private static Headers LoadTestNames(string source, Headers headers)
+        {
+            var renaming = headers.Callables.Where(callable => !callable.Kind.IsTypeConstructor)
+                .Select(callable => (callable.QualifiedName, callable.Attributes))
+                .Concat(headers.Types.Select(type => (type.QualifiedName, type.Attributes)))
+                .ToImmutableDictionary(
+                    decl => decl.QualifiedName,
+                    decl => SymbolResolution.TryGetTestName(decl.Attributes).ValueOr(decl.QualifiedName));
+
+            static QsDeclarationAttribute Renamed(QsQualifiedName originalName, Tuple<int, int> declLocation)
+            {
+                var attName = new UserDefinedType(
+                    NonNullable<string>.New(GeneratedAttributes.Namespace),
+                    NonNullable<string>.New(GeneratedAttributes.LoadedViaTestNameInsteadOf), 
+                    QsNullable<Tuple<QsPositionInfo, QsPositionInfo>>.Null
+                );
+                var attArg = SyntaxGenerator.StringLiteral(
+                    NonNullable<string>.New(originalName.ToString()),
+                    ImmutableArray<TypedExpression>.Empty
+                );
+                return new QsDeclarationAttribute(
+                    QsNullable<UserDefinedType>.NewValue(attName),
+                    attArg,
+                    declLocation,
+                    QsComments.Empty
+                );
+            }
+
+            var rename = new RenameReferences(renaming);
+            var types = headers.Types
+                .Select(type => 
+                    renaming.ContainsKey(type.QualifiedName) && type.Location.IsValue // TODO: we should instead fully support auto-generated attributes
+                    ? type.AddAttribute(Renamed(type.QualifiedName, type.Location.Item.Offset))
+                    : type)
+                .Select(rename.OnTypeDeclarationHeader);
+            var callables = headers.Callables
+                .Select(callable => 
+                    renaming.ContainsKey(callable.QualifiedName) && callable.Location.IsValue // TODO: we should instead fully support auto-generated attributes
+                    ? callable.AddAttribute(Renamed(callable.QualifiedName, callable.Location.Item.Offset))
+                    : callable)
+                .Select(rename.OnCallableDeclarationHeader);
+            var specializations = headers.Specializations.Select(
+                specialization => (rename.OnSpecializationDeclarationHeader(specialization.Item1),
+                                   rename.Namespaces.OnSpecializationImplementation(specialization.Item2)));
+            return new Headers(source, callables, specializations, types);
+        }
+
 
         /// <summary>
         /// Dictionary that maps the id of a referenced assembly (given by its location on disk) to the headers defined in that assembly.
@@ -85,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly ImmutableDictionary<NonNullable<string>, Headers> Declarations; 
 
         public static References Empty = 
-            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty, null);
+            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty);
 
         /// <summary>
         /// Combines the current references with the given references, and verifies that there are no conflicts. 
@@ -98,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (other == null) throw new ArgumentNullException(nameof(other));
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any()) throw new ArgumentException("common references exist");
-            return new References (this.Declarations.AddRange(other.Declarations), onError); 
+            return new References (this.Declarations.AddRange(other.Declarations), onError: onError); 
         }
 
         /// <summary>
@@ -109,20 +163,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics are null. 
         /// </summary>
         internal References Remove(NonNullable<string> source, Action<ErrorCode, string[]> onError = null) =>
-            new References(this.Declarations.Remove(source), onError);
+            new References(this.Declarations.Remove(source), onError: onError);
 
         /// <summary>
         /// Given a dictionary that maps the ids of dll files to the corresponding headers,
         /// initializes a new set of references based on the given headers and verifies that there are no conflicts. 
         /// Calls the given Action onError with suitable diagnostics if two or more references conflict, 
         /// i.e. if two or more references contain a declaration with the same fully qualified name. 
+        /// If loadTestNames is set to true, then public types and callables declared in referenced assemblies 
+        /// are exposed via their test name defined by the corresponding attribute. 
         /// Throws an ArgumentNullException if the given dictionary of references is null. 
         /// </summary>
-        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, Action<ErrorCode, string[]> onError = null)
+        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, bool loadTestNames = false, Action<ErrorCode, string[]> onError = null)
         {
             this.Declarations = refs ?? throw new ArgumentNullException(nameof(refs));
+            if (loadTestNames)
+            {
+                this.Declarations = this.Declarations
+                    .ToImmutableDictionary(
+                        reference => reference.Key, 
+                        reference => LoadTestNames(reference.Key.Value, reference.Value)
+                    );
+            }
+            
             if (onError == null) return;
-
             var conflictingCallables = refs.Values
                 .SelectMany(r => r.Callables)
                 .Where(c => Namespace.IsDeclarationAccessible(false, c.Modifiers.Access))

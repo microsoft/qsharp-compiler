@@ -165,7 +165,7 @@ seeAlso:
         [Fact]
         public void ParseOp()
         {
-            ArgDeclType BuildArgument(string name, ResolvedType t)
+            static ArgDeclType BuildArgument(string name, ResolvedType t)
             {
                 var validName = QsLocalSymbol.NewValidName(NonNullable<string>.New(name));
                 var info = new InferredExpressionInformation(false, false);

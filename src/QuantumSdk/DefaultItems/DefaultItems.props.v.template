@@ -33,6 +33,7 @@
     <CsharpGeneration>true</CsharpGeneration> <!-- at some point we may want to make False the default -->
     <IncludeQsharpCorePackages>true</IncludeQsharpCorePackages> 
     <QsharpDocsGeneration>false</QsharpDocsGeneration>
+    <ExposeReferencesViaTestNames>false</ExposeReferencesViaTestNames> <!-- IMPORTANT: If the name of this property is changed, the property name in the language server needs to be adapted! -->
     <DefaultQscBuildConfigExe>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Sdk.BuildConfiguration.dll"</DefaultQscBuildConfigExe> 
     <QscBuildConfigExe>$(DefaultQscBuildConfigExe)</QscBuildConfigExe> 
     <DefaultQscExe>dotnet "$(MSBuildThisFileDirectory)../tools/qsc/qsc.dll"</DefaultQscExe> 
