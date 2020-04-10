@@ -20,8 +20,10 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json.Bson;
+
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 using OptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
+using RuntimeCapabilities = Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants.RuntimeCapabilities;
 
 
 namespace Microsoft.Quantum.QsCompiler
@@ -104,10 +106,10 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool AttemptFullPreEvaluation;
             /// <summary>
-            /// If set to true, the compiler will remove if-statements and replace them with calls to appropriate
-            /// intrinsic operations.
+            /// Specifies the capabilities of the runtime. 
+            /// The specified capabilities determine what QIR profile to compile to.
             /// </summary>
-            public bool ConvertClassicalControl;
+            public RuntimeCapabilities RuntimeCapabilities;
             /// <summary>
             /// Unless this is set to true, all usages of type-parameterized callables are replaced with
             /// the concrete callable instantiation if an entry point is specified for the compilation.
@@ -170,6 +172,12 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal bool SerializeSyntaxTree =>
                 BuildOutputFolder != null || DllOutputPath != null;
+
+            /// <summary>
+            /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
+            /// </summary>
+            internal bool ConvertClassicalControl =>
+                RuntimeCapabilities == RuntimeCapabilities.QPRGen1;
 
             /// <summary>
             /// If the ProjectName does not have an ending "proj", appends a .qsproj ending to the project name.

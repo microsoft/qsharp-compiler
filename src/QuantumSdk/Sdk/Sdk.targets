@@ -73,14 +73,14 @@
       <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</_QscCommandInputFlag>
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
-      <_QscCommandTrimFlag Condition="'$(ResolvedQuantumProcessor)' == 'QPGen1'">--trim 2</_QscCommandTrimFlag> <!-- TODO: this needs to be revised -->
+      <_QscCommandRuntimeFlag>--runtime $(ResolvedRuntimeCapabilites)</_QscCommandRuntimeFlag> 
       <_QscCommandTargetPackageFlag Condition="'$(ResolvedTargetPackage)' != ''">--target-package "$(ResolvedTargetPackage)"</_QscCommandTargetPackageFlag>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">--load-test-names</_QscCommandTestNamesFlag>
       <_QscCommandPredefinedAssemblyProperties>ResolvedExecutionTarget:$(ResolvedQsharpExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(DefaultSimulator) != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandAssemblyPropertiesFlag>--assembly-properties $(_QscCommandPredefinedAssemblyProperties) $(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">--package-load-fallback-folders "@(ResolvedPackageLoadFallbackFolders,'" "')"</_QscPackageLoadFallbackFoldersFlag>
-      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandTrimFlag) $(_QscCommandTargetPackageFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
+      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandRuntimeFlag) $(_QscCommandTargetPackageFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
       <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
       <QscCommand>$(QscExe) build --format MsBuild $(_VerbosityFlag) --response-files $(_QscCommandArgsFile)</QscCommand>
     </PropertyGroup>

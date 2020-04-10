@@ -44,12 +44,12 @@
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' != 'AlfredProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'BrunoProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'ClementineProcessor'">Default</ResolvedQuantumIntrinsics>
   </PropertyGroup>
 
-  <!-- Resolving the QuantumProcessor to either QPGen0, QPGen1, or Unknown.-->
+  <!-- Resolving the RuntimeCapabilites to either QPRGen0, QPRGen1, or Unknown.-->
   <PropertyGroup>
-    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'AlfredProcessor'">QPGen1</ResolvedQuantumProcessor>
-    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'BrunoProcessor'">QPGen0</ResolvedQuantumProcessor>
-    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' == 'ClementineProcessor'">QPGen1</ResolvedQuantumProcessor>
-    <ResolvedQuantumProcessor Condition="'$(ResolvedQsharpExecutionTarget)' != 'AlfredProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'BrunoProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'ClementineProcessor'">Unknown</ResolvedQuantumProcessor>
+    <ResolvedRuntimeCapabilites Condition="'$(ResolvedQsharpExecutionTarget)' == 'AlfredProcessor'">QPRGen1</ResolvedRuntimeCapabilites>
+    <ResolvedRuntimeCapabilites Condition="'$(ResolvedQsharpExecutionTarget)' == 'BrunoProcessor'">QPRGen0</ResolvedRuntimeCapabilites>
+    <ResolvedRuntimeCapabilites Condition="'$(ResolvedQsharpExecutionTarget)' == 'ClementineProcessor'">QPRGen1</ResolvedRuntimeCapabilites>
+    <ResolvedRuntimeCapabilites Condition="'$(ResolvedQsharpExecutionTarget)' != 'AlfredProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'BrunoProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'ClementineProcessor'">Unknown</ResolvedRuntimeCapabilites>
   </PropertyGroup>
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->

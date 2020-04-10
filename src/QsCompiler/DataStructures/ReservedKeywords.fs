@@ -246,6 +246,12 @@ module AssemblyConstants =
     let ClementineProcessor = "ClementineProcessor"
     let DefaultSimulator = "DefaultSimulator"
 
+    // Note: The names of the capabilities here need to match the ones defined by the Sdk.
+    type RuntimeCapabilities = 
+    | Unknown = 0 
+    | QPRGen0 = 1
+    | QPRGen1 = 2
+
 
 /// contains specific names used within Q# dlls
 module DotnetCoreDll = 

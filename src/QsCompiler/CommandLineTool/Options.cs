@@ -50,6 +50,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         HelpText = "Additional properties to populate the AssemblyConstants dictionary with. Each item is expected to be of the form \"key:value\".")]
         public IEnumerable<string> AdditionalAssemblyProperties { get; set; }
 
+        [Option("runtime", Required = false, SetName = CODE_MODE, 
+        HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
+        public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
+
         /// <summary>
         /// Returns a dictionary with the specified assembly properties as out parameter. 
         /// Returns a boolean indicating whether all specified properties were successfully added.
