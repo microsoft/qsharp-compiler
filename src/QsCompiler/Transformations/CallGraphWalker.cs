@@ -37,10 +37,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// Class used to track call graph of a compilation
     public class CallGraph
     {
-        // TODO: 
+        // TODO:
         // This is the method that should be invoked to verify cycles of interest,
         // i.e. where each callable in the cycle is type parametrized.
-        // It should probably generate diagnostics; I'll add the doc comment once its use is fully defined. 
+        // It should probably generate diagnostics; I'll add the doc comment once its use is fully defined.
         internal static bool VerifyCycle(CallGraphNode rootNode, params CallGraphEdge[] edges)
         {
             var parent = rootNode.CallableName;
@@ -53,17 +53,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
         /// <summary>
         /// Combines subsequent concretions as part of a nested expression, or concretions as part of a cycle in the call graph,
-        /// into a single dictionary containing the resolution for the type parameters of the specified parent callable. 
-        /// The given resolutions are expected to be ordered starting with the dictionary containing the initial mapping for the 
-        /// type parameters of the specified parent callable (the "innermost resolutions"). This mapping may potentially be to 
-        /// type parameters of other callables, which are then further concretized by subsequent resolutions. 
-        /// Returns the constructed dictionary as out parameter. Returns true if the combination of the given resolutions is valid, 
-        /// i.e. if there are no conflicting resolutions and type parameters of the parent callables are uniquely resolved 
+        /// into a single dictionary containing the resolution for the type parameters of the specified parent callable.
+        /// The given resolutions are expected to be ordered starting with the dictionary containing the initial mapping for the
+        /// type parameters of the specified parent callable (the "innermost resolutions"). This mapping may potentially be to
+        /// type parameters of other callables, which are then further concretized by subsequent resolutions.
+        /// Returns the constructed dictionary as out parameter. Returns true if the combination of the given resolutions is valid,
+        /// i.e. if there are no conflicting resolutions and type parameters of the parent callables are uniquely resolved
         /// to either a concrete type, a type parameter of another callable, or themselves.
-        /// Throws an ArgumentNullException if the given parent is null. 
-        /// Throws an ArgumentException if the given resolutions imply that type parameters from multiple callables are 
-        /// simultaneously treated as concrete types. 
-        /// NOTE: This routine prioritizes the verifications to ensure the correctness of the resolution over performance.  
+        /// Throws an ArgumentNullException if the given parent is null.
+        /// Throws an ArgumentException if the given resolutions imply that type parameters from multiple callables are
+        /// simultaneously treated as concrete types.
+        /// NOTE: This routine prioritizes the verifications to ensure the correctness of the resolution over performance.
         /// </summary>
         public static bool TryCombineTypeResolutions
             (QsQualifiedName parent, out ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> combined,
@@ -77,37 +77,37 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             static bool ResolutionToTypeParameter(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
                 res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
 
-            // Returns true if the given resolution for the given key constrains the type parameter 
-            // by mapping it to a different type parameter belonging to the same callable. 
+            // Returns true if the given resolution for the given key constrains the type parameter
+            // by mapping it to a different type parameter belonging to the same callable.
             bool InconsistentResolutionToNative(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
             {
                 var resolutionToTypeParam = resolution.Resolution as ResolvedTypeKind.TypeParameter;
                 var isResolutionToNative = resolutionToTypeParam != null && resolutionToTypeParam.Item.Origin.Equals(parent);
                 return isResolutionToNative
                     // We can omit this check as long as combinedBuilder only ever contains native type parameters:
-                    // && key.Item1.Equals(parent) 
+                    // && key.Item1.Equals(parent)
                     && key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
             }
 
             foreach (var resolution in resolutions)
             {
-                // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated 
-                // if a certain type parameter is resolved by the currently processed dictionary. 
+                // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated
+                // if a certain type parameter is resolved by the currently processed dictionary.
                 var mayBeReplaced = combinedBuilder
                     .Where(kv => kv.Value.Resolution.IsTypeParameter)
                     .ToLookup(
                         kv => AsTypeResolutionKey(((ResolvedTypeKind.TypeParameter)kv.Value.Resolution).Item),
                         entry => entry.Key);
 
-                // We need to ensure that the mappings for external type parameters are processed first, 
+                // We need to ensure that the mappings for external type parameters are processed first,
                 // to cover an edge case that would otherwise be indicated as a conflicting resolution.
                 foreach (var entry in resolution.Where(entry => mayBeReplaced.Contains(entry.Key)))
                 {
                     // resolution of an external type parameter that is currently listed as value in the combined type resolution dictionary
                     foreach (var keyInCombined in mayBeReplaced[entry.Key])
                     {
-                        // If one of the values is a type parameter from the parent callable, 
-                        // but it isn't mapped to itself then the combined resolution is invalid. 
+                        // If one of the values is a type parameter from the parent callable,
+                        // but it isn't mapped to itself then the combined resolution is invalid.
                         success = success && !InconsistentResolutionToNative(keyInCombined, entry.Value);
                         combinedBuilder[keyInCombined] = entry.Value;
                     }
@@ -116,7 +116,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 // resolution of a type parameter that belongs to the parent callable
                 foreach (var entry in resolution.Where(entry => entry.Key.Item1.Equals(parent)))
                 {
-                    // A native type parameter cannot be resolved to another native type parameter, since this would constrain them. 
+                    // A native type parameter cannot be resolved to another native type parameter, since this would constrain them.
                     success = success && !InconsistentResolutionToNative(entry.Key, entry.Value);
                     // Check that there is no conflicting resolution already defined.
                     var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current)
@@ -128,7 +128,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 if (resolution.Any(entry => !mayBeReplaced.Contains(entry.Key) && !entry.Key.Item1.Equals(parent)))
                 {
                     // It does not make sense to support this case, since there is no valid context in which type parameters
-                    // belonging to multiple callables can/should be treated as concrete types simultaneously. 
+                    // belonging to multiple callables can/should be treated as concrete types simultaneously.
                     throw new ArgumentException("attempting to define resolution for type parameter that does not belong to parent callable");
                 }
             }

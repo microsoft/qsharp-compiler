@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
                 // If there is a call to an unknown callable, throw exception
                 if (!globals.TryGetValue(currentRequest.originalName, out QsCallable originalGlobal))
-                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName.ToString()}");
+                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName}");
 
                 var currentResponse = new Response
                 {

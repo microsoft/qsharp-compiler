@@ -99,8 +99,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         {
                             // We are dissolving the application of arguments here, so the call's type argument
                             // resolutions have to be moved to the 'identifier' sub expression.
-                            var combined = CallGraph.TryCombineTypeResolutions(global.Item, 
-                                out var combinedTypeArguments, 
+                            var combined = CallGraph.TryCombineTypeResolutions(global.Item,
+                                out var combinedTypeArguments,
                                 newCallIdentifier.TypeParameterResolutions, callTypeArguments);
                             QsCompilerError.Verify(combined, "failed to combine type parameter resolution");
 
@@ -121,7 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                     id.Item1,
                                     QsNullable<ImmutableArray<ResolvedType>>.NewValue(
                                         callableTypeParameters
-                                        .Select(x => combinedTypeArguments[Tuple.Create(global.Item, x.Item)]).ToImmutableArray())), 
+                                        .Select(x => combinedTypeArguments[Tuple.Create(global.Item, x.Item)]).ToImmutableArray())),
                                 TypedExpression.AsTypeArguments(combinedTypeArguments),
                                 call.Item1.ResolvedType,
                                 call.Item1.InferredInformation,
