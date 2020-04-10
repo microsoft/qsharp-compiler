@@ -222,6 +222,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     @ EntryPoint()
     operation InvalidEntryPoint38(arg1 : (Pauli, Result)[], arg2 : Double) : Unit {}
 
+
     // no arrays of arrays in entry point arguments
 
     @ EntryPoint()

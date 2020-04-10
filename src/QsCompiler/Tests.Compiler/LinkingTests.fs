@@ -239,10 +239,19 @@ type LinkingTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
-    member this.``Entry point verification`` () =
+    member this.``Entry point validation`` () =
 
         for entryPoint in LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs" do
             this.CompileAndVerify entryPoint []
+
+
+    [<Fact>]
+    member this.``Entry point argument name verification`` () =
+
+        let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs" 
+        this.CompileAndVerify tests.[0] [Error ErrorCode.DuplicateEntryPointArgumentName]
+        this.CompileAndVerify tests.[1] [Error ErrorCode.DuplicateEntryPointArgumentName]
+        this.CompileAndVerify tests.[2] [Error ErrorCode.ReservedEntryPointArgumentName]
 
 
     [<Fact>]
