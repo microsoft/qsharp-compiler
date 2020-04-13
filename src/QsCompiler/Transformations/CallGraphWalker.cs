@@ -11,6 +11,8 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
+// ToDo: Review access modifiers
+
 namespace Microsoft.Quantum.QsCompiler.Transformations
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
