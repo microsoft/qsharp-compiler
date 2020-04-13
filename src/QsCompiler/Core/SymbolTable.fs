@@ -959,7 +959,7 @@ and NamespaceManager
             errs.AddRange signatureErrs
 
             // validate entry point argument names
-            let asCommandLineArg (str : string) = str.ToLowerInvariant() |> Seq.filter((<>)'_') |> String.Concat
+            let asCommandLineArg (str : string) = str.ToLowerInvariant() |> String.filter((<>)'_')
             let reservedCommandLineArgs = CommandLineArguments.ReservedArguments |> Seq.map asCommandLineArg |> Seq.toArray
             let nameAndRange (sym : QsSymbol) = sym.Symbol |> function
                 | Symbol name -> Some (asCommandLineArg name.Value, sym.Range)
@@ -968,8 +968,8 @@ and NamespaceManager
             let verifyArgument i (arg, range : QsNullable<_>) = 
                 if i > 0 && simplifiedArgNames.[..i-1] |> Seq.map fst |> Seq.contains arg
                 then errs.Add (decl.Position, range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.DuplicateEntryPointArgumentName, []))
-                elif reservedCommandLineArgs.Contains arg
-                then errs.Add (decl.Position, range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.ReservedEntryPointArgumentName, []))
+                elif reservedCommandLineArgs.Contains arg || (arg.Length = 1 && CommandLineArguments.ReservedArgumentAbbreviations.Contains arg.[0])
+                then errs.Add (decl.Position, range.ValueOr decl.Range |> QsCompilerDiagnostic.Warning (WarningCode.ReservedEntryPointArgumentName, []))
             simplifiedArgNames |> List.iteri verifyArgument
 
             // check that there is no more than one entry point

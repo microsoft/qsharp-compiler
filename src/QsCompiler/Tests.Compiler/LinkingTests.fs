@@ -252,7 +252,8 @@ type LinkingTests (output:ITestOutputHelper) =
         this.CompileAndVerify tests.[0] [Error ErrorCode.DuplicateEntryPointArgumentName]
         this.CompileAndVerify tests.[1] [Error ErrorCode.DuplicateEntryPointArgumentName]
         this.CompileAndVerify tests.[2] [Error ErrorCode.DuplicateEntryPointArgumentName]
-        this.CompileAndVerify tests.[3] [Error ErrorCode.ReservedEntryPointArgumentName]
+        this.CompileAndVerify tests.[3] [Warning WarningCode.ReservedEntryPointArgumentName]
+        this.CompileAndVerify tests.[4] [Warning WarningCode.ReservedEntryPointArgumentName]
 
 
     [<Fact>]

@@ -254,6 +254,7 @@ module AssemblyConstants =
 module CommandLineArguments = 
     let SimulatorOption = "simulator"
     let ReservedArguments = ImmutableArray.Create SimulatorOption
+    let ReservedArgumentAbbreviations = ImmutableArray.Create SimulatorOption.[0] 
 
     let BuiltInSimulators =
         // Note: If this is adapted, then the error message for InvalidExecutionTargetForTest needs to be adapted as well.

@@ -34,3 +34,10 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     operation InvalidEntryPoint44(simulator : Int) : Unit {}
 }
 
+// =================================
+
+namespace Microsoft.Quantum.Testing.EntryPoints {
+
+    @ EntryPoint()
+    operation InvalidEntryPoint45(s : Int) : Unit {}
+}

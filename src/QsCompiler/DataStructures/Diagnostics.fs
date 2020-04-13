@@ -239,12 +239,11 @@ type ErrorCode =
     | MultipleEntryPoints = 6236
     | InvalidEntryPointSpecialization = 6237
     | DuplicateEntryPointArgumentName = 6238
-    | ReservedEntryPointArgumentName = 6239
-    | InvalidTestAttributePlacement = 6240
-    | InvalidExecutionTargetForTest = 6241
-    | ExpectingFullNameAsAttributeArgument = 6242
-    | AttributeInvalidOnSpecialization = 6243
-    | AttributeInvalidOnCallable = 6244
+    | InvalidTestAttributePlacement = 6239
+    | InvalidExecutionTargetForTest = 6240
+    | ExpectingFullNameAsAttributeArgument = 6241
+    | AttributeInvalidOnSpecialization = 6242
+    | AttributeInvalidOnCallable = 6243
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -328,6 +327,7 @@ type WarningCode =
     | DuplicateAttribute = 6201
     | MissingEntryPoint = 6202
     | IgnoredEntryPoint = 6203
+    | ReservedEntryPointArgumentName = 6204
     | GeneratorDirectiveWillBeIgnored = 6301
     | UnreachableCode = 6302
 
@@ -612,7 +612,6 @@ type DiagnosticItem =
             | ErrorCode.MultipleEntryPoints                       -> "Invalid entry point. An entry point {0} already exists in {1}."
             | ErrorCode.InvalidEntryPointSpecialization           -> "Entry points cannot have any other specializations besides the default body."
             | ErrorCode.DuplicateEntryPointArgumentName           -> "Invalid name for entry point argument. A similar argument name is already in use."
-            | ErrorCode.ReservedEntryPointArgumentName            -> "Invalid name for entry point argument. The name has been reserved and cannot be used."
             | ErrorCode.InvalidTestAttributePlacement             -> "Invalid test attribute. Test attributes may only occur on callables that have no arguments and return Unit."
             | ErrorCode.InvalidExecutionTargetForTest             -> "Invalid execution target. Currently, valid execution targets for tests are the QuantumSimulator, the ToffoliSimulator, or the ResourcesEstimator."
             | ErrorCode.ExpectingFullNameAsAttributeArgument      -> "Invalid attribute argument. Expecting a fully qualified name as argument to the {0} attribute."
@@ -704,6 +703,7 @@ type DiagnosticItem =
             | WarningCode.DuplicateAttribute                      -> "The attribute {0} is a duplication and will be ignored."
             | WarningCode.MissingEntryPoint                       -> "The project is a Q# command line application but no entry point has been found. The project should be a library, and any C# driver code should be defined in a separate project."
             | WarningCode.IgnoredEntryPoint                       -> "Entry point will be ignored. The project is a Q# library and cannot have any entry points."
+            | WarningCode.ReservedEntryPointArgumentName          -> "The argument name conflicts with a default argument for a Q# command line application."            
             | WarningCode.GeneratorDirectiveWillBeIgnored         -> "Generation directive ignored. A specialization of this callable has been declared as intrinsic."
             | WarningCode.UnreachableCode                         -> "This statement will never be executed."
                                                                   
