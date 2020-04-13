@@ -243,7 +243,6 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
-
                 WasSuccessful(options.IsExecutable && !options.SkipMonomorphization, this.Monomorphization) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
@@ -470,7 +469,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.ConvertClassicalControl);
             }
 
-            if (!this.Config.SkipMonomorphization)
+            if (!this.Config.SkipMonomorphization && this.CompilationOutput?.EntryPoints.Length != 0)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
                 this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.Monomorphization);
@@ -601,14 +600,6 @@ namespace Microsoft.Quantum.QsCompiler
         {
             this.Logger?.Log(code, args);
             current = Status.Failed;
-        }
-
-        /// <summary>
-        /// Logs a warning with the given warning code and message parameters, and updates the status passed as reference accordingly.
-        /// </summary>
-        private void LogAndUpdate(ref Status current, WarningCode code, IEnumerable<string> args)
-        {
-            this.Logger?.Log(code, args);
         }
 
         /// <summary>
