@@ -9,6 +9,7 @@ open System.Collections.Immutable
 open System.Linq
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -231,7 +232,7 @@ module SymbolResolution =
     /// The returned sequence is empty if the declaration does not contain a unit test.
     let TryFindTestTargets attributes =
         let getTarget (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksTestOperation then Some att.Argument else None
-        let validTargets = BuiltIn.ValidExecutionTargets.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
+        let validTargets = CommandLineArguments.BuiltInSimulators.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
         let targetName (target : string) =
             if target = null then null
             elif SyntaxGenerator.FullyQualifiedName.IsMatch target then target

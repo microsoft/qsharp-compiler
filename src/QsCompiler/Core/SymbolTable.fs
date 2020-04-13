@@ -934,11 +934,13 @@ and NamespaceManager
             let hasCharacteristics = signature.Characteristics.Characteristics |> function | EmptySet | InvalidSetExpr -> false | _ -> true
             match Namespaces.TryGetValue parent.Namespace with
             | false, _ -> ArgumentException "no namespace with the given name exists" |> raise
-            | true, ns when not ((ns.SpecializationsDefinedInAllSources parent.Name).Any(fst >> (<>)QsBody) || hasCharacteristics) -> ()
-            | _ -> errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
+            | true, ns -> 
+                let specializations = ns.SpecializationsDefinedInAllSources parent.Name
+                if hasCharacteristics || specializations.Any(fst >> (<>)QsBody) then 
+                    errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
 
             // validate entry point argument and return type
-            let validateArgAndReturnTypes argumentRestriction (qsType : QsType) =
+            let validateArgAndReturnTypes isArg (qsType : QsType) =
                 let rec IsArray = function 
                     | ArrayType _ -> true
                     | TupleType (ts : ImmutableArray<QsType>) when ts.Length = 1 -> IsArray ts.[0].Type
@@ -948,8 +950,8 @@ and NamespaceManager
                 | QsTypeKind.Operation _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
                 | QsTypeKind.Function _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
                 | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPointSignature, [])) |> Seq.singleton
-                | TupleType ts when ts.Length > 1 && argumentRestriction -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InnerTupleInEntryPointArgument, [])) |> Seq.singleton
-                | ArrayType bt when argumentRestriction && bt.Type |> IsArray -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.ArrayOfArrayInEntryPointArgument, [])) |> Seq.singleton
+                | TupleType ts when ts.Length > 1 && isArg -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InnerTupleInEntryPointArgument, [])) |> Seq.singleton
+                | ArrayType bt when isArg && bt.Type |> IsArray -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.ArrayOfArrayInEntryPointArgument, [])) |> Seq.singleton
                 | _ -> Seq.empty)
             let inErrs = signature.Argument.Items.Select snd |> Seq.collect (validateArgAndReturnTypes true)
             let outErrs = signature.ReturnType |> validateArgAndReturnTypes false 
@@ -958,7 +960,7 @@ and NamespaceManager
 
             // validate entry point argument names
             let asCommandLineArg (str : string) = str.ToLowerInvariant() |> Seq.filter((<>)'_') |> String.Concat
-            let reservedCommandLineArgs = [CommandLineArguments.SimulatorOption] |> List.map asCommandLineArg
+            let reservedCommandLineArgs = CommandLineArguments.ReservedArguments |> Seq.map asCommandLineArg |> Seq.toArray
             let nameAndRange (sym : QsSymbol) = sym.Symbol |> function
                 | Symbol name -> Some (asCommandLineArg name.Value, sym.Range)
                 | _ -> None
@@ -1064,7 +1066,7 @@ and NamespaceManager
                     match box decl.Defined with
                     | :? CallableSignature as signature when signature |> isUnitToUnit && not (signature.TypeParameters.Any()) ->
                         let arg = att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument (fun ex -> ex.Expression)
-                        let validExecutionTargets = BuiltIn.ValidExecutionTargets |> Seq.map (fun x -> x.ToLowerInvariant())
+                        let validExecutionTargets = CommandLineArguments.BuiltInSimulators |> Seq.map (fun x -> x.ToLowerInvariant())
                         if arg <> null && (validExecutionTargets |> Seq.contains (arg.ToLowerInvariant()) || SyntaxGenerator.FullyQualifiedName.IsMatch arg) then
                             attributeHash :: alreadyDefined, att :: resAttr
                         else (att.Offset, att.Argument.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidExecutionTargetForTest, [])) |> Seq.singleton |> returnInvalid

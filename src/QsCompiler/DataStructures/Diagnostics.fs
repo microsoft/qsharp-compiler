@@ -702,7 +702,7 @@ type DiagnosticItem =
             | WarningCode.NamespaceAliasIsAlreadyDefined          -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration                  -> "A body specification for this callable is missing. The callable is assumed to be intrinsic."
             | WarningCode.DuplicateAttribute                      -> "The attribute {0} is a duplication and will be ignored."
-            | WarningCode.MissingEntryPoint                       -> "The project is a Q# command line application but no entry point has been found."
+            | WarningCode.MissingEntryPoint                       -> "The project is a Q# command line application but no entry point has been found. The project should be a library, and any C# driver code should be defined in a separate project."
             | WarningCode.IgnoredEntryPoint                       -> "Entry point will be ignored. The project is a Q# library and cannot have any entry points."
             | WarningCode.GeneratorDirectiveWillBeIgnored         -> "Generation directive ignored. A specialization of this callable has been declared as intrinsic."
             | WarningCode.UnreachableCode                         -> "This statement will never be executed."

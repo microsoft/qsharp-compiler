@@ -230,12 +230,6 @@ module GeneratedAttributes =
     let Namespace = "Microsoft.Quantum.QsCompiler.Metadata.Attributes"
     let LoadedViaTestNameInsteadOf = "__LoadedViaTestNameInsteadOf__"
 
-
-/// contains reserved names for command line arguments
-module CommandLineArguments = 
-    let SimulatorOption = "simulator"
-
-
 /// contains project specific settings specified during Q# compilation
 module AssemblyConstants = 
     let OutputPath = "OutputPath"
@@ -245,12 +239,26 @@ module AssemblyConstants =
     let BrunoProcessor = "BrunoProcessor"
     let ClementineProcessor = "ClementineProcessor"
     let DefaultSimulator = "DefaultSimulator"
+    let QuantumSimulator = "QuantumSimulator"
+    let ToffoliSimulator = "ToffoliSimulator"
+    let ResourcesEstimator = "ResourcesEstimator"
 
     // Note: The names of the capabilities here need to match the ones defined by the Sdk.
     type RuntimeCapabilities = 
     | Unknown = 0 
     | QPRGen0 = 1
     | QPRGen1 = 2
+
+
+/// contains reserved names for command line arguments
+module CommandLineArguments = 
+    let SimulatorOption = "simulator"
+    let ReservedArguments = ImmutableArray.Create SimulatorOption
+
+    let BuiltInSimulators =
+        // Note: If this is adapted, then the error message for InvalidExecutionTargetForTest needs to be adapted as well.
+        [AssemblyConstants.QuantumSimulator; AssemblyConstants.ToffoliSimulator; AssemblyConstants.ResourcesEstimator]
+        |> ImmutableHashSet.CreateRange
 
 
 /// contains specific names used within Q# dlls
