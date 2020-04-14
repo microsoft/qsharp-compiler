@@ -435,10 +435,7 @@ namespace Microsoft.Quantum.QsCompiler
             RaiseCompilationTaskStart("OverallCompilation", "Build");
             this.CompilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
-
-            // FIXME: INSTEAD OF PASSING PROJECT PROPERTIES, IT'S PROBABLY BETTER TO JUST PASS THE TWO CONFIGS NEEDED ...
-            var projectProps = new ProjectInformation.Properties("Latest", this.DllOutputPath ?? "", this.Config.RuntimeCapabilities, this.Config.IsExecutable, this.Config.ExposeReferencesViaTestNames);
-            var compilationManager = new CompilationUnitManager(projectProps, this.OnCompilerException); 
+            var compilationManager = new CompilationUnitManager(this.OnCompilerException, capabilities: this.Config.RuntimeCapabilities, isExecutable: this.Config.IsExecutable); 
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);
             this.VerifiedCompilation = compilationManager.Build();

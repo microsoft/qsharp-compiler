@@ -18,7 +18,7 @@ open Xunit
 
 type ClassicalControlTests () =
 
-    let compilationManager = new CompilationUnitManager(ProjectInformation.Properties.Default, new Action<Exception> (fun ex -> failwith ex.Message))
+    let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
 
     let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)

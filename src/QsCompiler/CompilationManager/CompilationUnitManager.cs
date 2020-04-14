@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -62,8 +63,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If an <see cref="Action"/> for publishing diagnostics is given and is not null, 
         /// that action is called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
-        public CompilationUnitManager(ProjectInformation.Properties projectProperties,
-            Action<Exception> exceptionLogger = null, Action<PublishDiagnosticParams> publishDiagnostics = null, bool syntaxCheckOnly = false)
+        public CompilationUnitManager(
+            Action<Exception> exceptionLogger = null, Action<PublishDiagnosticParams> publishDiagnostics = null, bool syntaxCheckOnly = false,
+            AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.Unknown, bool isExecutable = false)
         {
             this.EnableVerification = !syntaxCheckOnly;
             this.CompilationUnit = new CompilationUnit();

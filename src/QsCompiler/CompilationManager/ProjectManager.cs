@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     public class ProjectInformation
     {
-        public class Properties
+        internal class Properties
         {
             public readonly string Version;
             public readonly string OutputPath;
@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public delegate bool Loader(Uri projectFile, out ProjectInformation projectInfo);
 
-        public readonly Properties ProjectProperties;
+        internal readonly Properties ProjectProperties;
         public readonly ImmutableArray<string> SourceFiles;
         public readonly ImmutableArray<string> ProjectReferences;
         public readonly ImmutableArray<string> References;
@@ -145,7 +145,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // We track the file contents for unsupported projects in case the files are migrated to newer projects while editing,
                 // but we don't do any semantic verification, and we don't publish diagnostics for them. 
                 this.Processing = new ProcessingQueue(onException);
-                this.Manager = new CompilationUnitManager(this.Properties, onException, ignore ? null : publishDiagnostics, syntaxCheckOnly: ignore); 
+                this.Manager = new CompilationUnitManager(
+                    onException, ignore ? null : publishDiagnostics, syntaxCheckOnly: ignore,
+                    this.Properties.RuntimeCapabilities, this.Properties.IsExecutable); 
                 this.Log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
 
                 this.LoadedSourceFiles = ImmutableHashSet<Uri>.Empty;
@@ -586,7 +588,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             this.Load = new ProcessingQueue(exceptionLogger);
             this.Projects = new ConcurrentDictionary<Uri, Project>();
-            this.DefaultManager = new CompilationUnitManager(ProjectInformation.Properties.Default, exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
+            this.DefaultManager = new CompilationUnitManager(exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
             this.PublishDiagnostics = publishDiagnostics;
             this.LogException = exceptionLogger;
             this.Log = log;

@@ -92,7 +92,7 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation, output:ITe
 
     static member Compile srcFolder files references =
         let compileFiles (files : IEnumerable<_>) =
-            let mgr = new CompilationUnitManager(ProjectInformation.Properties.Default, fun ex -> failwith ex.Message)
+            let mgr = new CompilationUnitManager(fun ex -> failwith ex.Message)
             files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText)
             |> CompilationUnitManager.InitializeFileManagers
             |> mgr.AddOrUpdateSourceFilesAsync
