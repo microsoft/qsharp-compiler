@@ -450,9 +450,6 @@ namespace Microsoft.Quantum.QsCompiler
                 this.Logger?.Log(WarningCode.MissingEntryPoint, Array.Empty<string>());
 
             }
-            // TODO: 
-            // give warnings and ignore entry points in libraries, 
-            // and check additional restriction on the return type for execution on quantum processors.
 
             // executing the specified rewrite steps
 
