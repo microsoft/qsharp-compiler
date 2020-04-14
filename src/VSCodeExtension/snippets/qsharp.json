@@ -28,7 +28,7 @@
 	"Function": {
 		"prefix": "function",
 		"body": [
-			"function ${1:Name}(${input : InputType}) : ${3:OutputType} {",
+			"function ${1:Name}(${2:input : InputType}) : ${3:OutputType} {",
 			"    ${4:// ...}",
 			"}"
 		],
