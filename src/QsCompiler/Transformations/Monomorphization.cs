@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
                 // If there is a call to an unknown callable, throw exception
                 if (!globals.TryGetValue(currentRequest.originalName, out QsCallable originalGlobal))
-                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName.ToString()}");
+                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName}");
 
                 var currentResponse = new Response
                 {
@@ -180,8 +180,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
             /// </summary>
             /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            private ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables)) 
-            { 
+            private ResolveGenerics(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new TransformationState(namespaceCallables))
+            {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -239,8 +239,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            private ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams)) 
-            { 
+            private ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams))
+            {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Types = new TypeTransformation(this);
             }
@@ -308,8 +308,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier) : base(new TransformationState(getConcreteIdentifier)) 
-            { 
+            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier) : base(new TransformationState(getConcreteIdentifier))
+            {
                 this.Expressions = new ExpressionTransformation(this);
                 this.ExpressionKinds = new ExpressionKindTransformation(this);
                 this.Types = new TypeTransformation(this);
