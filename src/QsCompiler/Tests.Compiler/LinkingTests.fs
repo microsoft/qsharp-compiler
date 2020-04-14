@@ -237,8 +237,23 @@ type LinkingTests (output:ITestOutputHelper) =
         for entryPoint in LinkingTests.ReadAndChunkSourceFile "EntryPointSpecializations.qs" do
             this.CompileAndVerify entryPoint [Error ErrorCode.InvalidEntryPointSpecialization]
 
+
+    [<Fact>]
+    member this.``Entry point validation`` () =
+
         for entryPoint in LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs" do
             this.CompileAndVerify entryPoint []
+
+
+    [<Fact>]
+    member this.``Entry point argument name verification`` () =
+
+        let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs" 
+        this.CompileAndVerify tests.[0] [Error ErrorCode.DuplicateEntryPointArgumentName]
+        this.CompileAndVerify tests.[1] [Error ErrorCode.DuplicateEntryPointArgumentName]
+        this.CompileAndVerify tests.[2] [Error ErrorCode.DuplicateEntryPointArgumentName]
+        this.CompileAndVerify tests.[3] [Warning WarningCode.ReservedEntryPointArgumentName]
+        this.CompileAndVerify tests.[4] [Warning WarningCode.ReservedEntryPointArgumentName]
 
 
     [<Fact>]
@@ -303,6 +318,9 @@ type LinkingTests (output:ITestOutputHelper) =
         this.Expect "InvalidEntryPoint36" [Error ErrorCode.CallableTypeInEntryPointSignature; Error ErrorCode.UserDefinedTypeInEntryPointSignature]
         this.Expect "InvalidEntryPoint37" [Error ErrorCode.InnerTupleInEntryPointArgument]
         this.Expect "InvalidEntryPoint38" [Error ErrorCode.InnerTupleInEntryPointArgument]
+        this.Expect "InvalidEntryPoint39" [Error ErrorCode.ArrayOfArrayInEntryPointArgument]
+        this.Expect "InvalidEntryPoint40" [Error ErrorCode.ArrayOfArrayInEntryPointArgument]
+        this.Expect "InvalidEntryPoint41" [Error ErrorCode.ArrayOfArrayInEntryPointArgument]
 
 
     [<Fact>]
