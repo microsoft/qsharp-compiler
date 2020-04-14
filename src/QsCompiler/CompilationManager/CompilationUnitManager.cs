@@ -58,11 +58,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         protected readonly ProcessingQueue Processing;
 
         /// <summary>
-        /// Initializes a CompilationUnitManager instance.
-        /// If an <see cref="System.Action"/> for publishing diagnostics is given and is not null, 
+        /// Initializes a CompilationUnitManager instance for a project with the given properties.
+        /// If an <see cref="Action"/> for publishing diagnostics is given and is not null, 
         /// that action is called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
-        public CompilationUnitManager(Action<Exception> exceptionLogger = null, Action<PublishDiagnosticParams> publishDiagnostics = null, bool syntaxCheckOnly = false)
+        public CompilationUnitManager(ProjectInformation.Properties projectProperties,
+            Action<Exception> exceptionLogger = null, Action<PublishDiagnosticParams> publishDiagnostics = null, bool syntaxCheckOnly = false)
         {
             this.EnableVerification = !syntaxCheckOnly;
             this.CompilationUnit = new CompilationUnit();

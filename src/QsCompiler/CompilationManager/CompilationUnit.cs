@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly ImmutableDictionary<NonNullable<string>, Headers> Declarations; 
 
         public static References Empty = 
-            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty);
+            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty, false);
 
         /// <summary>
         /// Combines the current references with the given references, and verifies that there are no conflicts. 
@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (other == null) throw new ArgumentNullException(nameof(other));
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any()) throw new ArgumentException("common references exist");
-            return new References (this.Declarations.AddRange(other.Declarations), onError: onError); 
+            return new References (this.Declarations.AddRange(other.Declarations), false, onError: onError); 
         }
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics are null. 
         /// </summary>
         internal References Remove(NonNullable<string> source, Action<ErrorCode, string[]> onError = null) =>
-            new References(this.Declarations.Remove(source), onError: onError);
+            new References(this.Declarations.Remove(source), false, onError: onError);
 
         /// <summary>
         /// Given a dictionary that maps the ids of dll files to the corresponding headers,
@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// are exposed via their test name defined by the corresponding attribute. 
         /// Throws an ArgumentNullException if the given dictionary of references is null. 
         /// </summary>
-        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, bool loadTestNames = false, Action<ErrorCode, string[]> onError = null)
+        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, bool loadTestNames, Action<ErrorCode, string[]> onError = null)
         {
             this.Declarations = refs ?? throw new ArgumentNullException(nameof(refs));
             if (loadTestNames)
