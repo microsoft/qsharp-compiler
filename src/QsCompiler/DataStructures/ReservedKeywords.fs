@@ -250,7 +250,7 @@ module AssemblyConstants =
     | QPRGen1 = 2
 
 
-/// contains reserved names for command line arguments
+/// contains reserved names for command line arguments of Q# projects
 module CommandLineArguments = 
     let SimulatorOption = "simulator"
     let ReservedArguments = ImmutableArray.Create SimulatorOption
