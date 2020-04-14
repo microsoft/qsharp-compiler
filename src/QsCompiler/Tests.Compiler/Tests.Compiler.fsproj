@@ -146,6 +146,7 @@
     <Compile Include="TransformationTests.fs" />
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="LinkingTests.fs" />
+    <Compile Include="CallGraphTests.fs" />
     <Compile Include="ClassicalControlTests.fs" />
     <Compile Include="CycleDetectionTests.fs" />
     <Compile Include="RegexTests.fs" />
