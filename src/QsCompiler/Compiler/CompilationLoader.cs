@@ -20,8 +20,10 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json.Bson;
+
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 using OptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
+using RuntimeCapabilities = Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants.RuntimeCapabilities;
 
 
 namespace Microsoft.Quantum.QsCompiler
@@ -104,10 +106,16 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public bool AttemptFullPreEvaluation;
             /// <summary>
-            /// If set to true, the compiler will remove if-statements and replace them with calls to appropriate
-            /// intrinsic operations.
+            /// Specifies the capabilities of the runtime. 
+            /// The specified capabilities determine what QIR profile to compile to.
             /// </summary>
-            public bool ConvertClassicalControl;
+            public RuntimeCapabilities RuntimeCapabilities;
+            /// <summary>
+            /// Specifies whether the project to build is a Q# command line application. 
+            /// If set to true, a warning will be raised if no entry point is defined. 
+            /// If set to false, then defined entry points will be ignored and a warning will be raised.
+            /// </summary>
+            public bool IsExecutable;
             /// <summary>
             /// Unless this is set to true, all usages of type-parameterized callables are replaced with
             /// the concrete callable instantiation if an entry point is specified for the compilation.
@@ -172,6 +180,12 @@ namespace Microsoft.Quantum.QsCompiler
                 BuildOutputFolder != null || DllOutputPath != null;
 
             /// <summary>
+            /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
+            /// </summary>
+            internal bool ConvertClassicalControl =>
+                RuntimeCapabilities == RuntimeCapabilities.QPRGen1;
+
+            /// <summary>
             /// If the ProjectName does not have an ending "proj", appends a .qsproj ending to the project name.
             /// Returns null if the project name is null.
             /// </summary>
@@ -219,7 +233,7 @@ namespace Microsoft.Quantum.QsCompiler
             private bool WasSuccessful(bool run, Status code) =>
                 (run && code == Status.Succeeded) || (!run && code == Status.NotRun);
 
-            internal bool Success(Configuration options, bool isExe) =>
+            internal bool Success(Configuration options) =>
                 this.SourceFileLoading <= 0 &&
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
@@ -229,8 +243,7 @@ namespace Microsoft.Quantum.QsCompiler
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
-
-                WasSuccessful(isExe && !options.SkipMonomorphization, this.Monomorphization) &&
+                WasSuccessful(options.IsExecutable && !options.SkipMonomorphization, this.Monomorphization) &&
                 WasSuccessful(options.DocumentationOutputFolder != null, this.Documentation) &&
                 WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
@@ -323,7 +336,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Indicates the overall success of all compilation steps.
         /// The compilation is indicated as having been successful if all steps that were configured to execute completed successfully.
         /// </summary>
-        public bool Success => this.CompilationStatus.Success(this.Config, this.CompilationOutput?.EntryPoints.Length != 0);
+        public bool Success => this.CompilationStatus.Success(this.Config);
 
 
         /// <summary>
@@ -431,6 +444,15 @@ namespace Microsoft.Quantum.QsCompiler
 
             foreach (var diag in this.VerifiedCompilation?.Diagnostics() ?? Enumerable.Empty<Diagnostic>())
             { this.LogAndUpdate(ref this.CompilationStatus.Validation, diag); }
+
+            if (this.Config.IsExecutable && this.CompilationOutput?.EntryPoints.Length == 0)
+            {
+                this.Logger?.Log(WarningCode.MissingEntryPoint, Array.Empty<string>());
+
+            }
+            // TODO: 
+            // give warnings and ignore entry points in libraries, 
+            // and check additional restriction on the return type for execution on quantum processors.
 
             // executing the specified rewrite steps
 

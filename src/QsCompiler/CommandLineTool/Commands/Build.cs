@@ -159,13 +159,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 ProjectName = options.ProjectName,
                 AssemblyConstants = assemblyConstants,
                 TargetPackageAssembly = options.GetTargetPackageAssemblyPath(logger),
+                RuntimeCapabilities = options.RuntimeCapabilites,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
-                ConvertClassicalControl = options.TrimLevel >= 2,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
                 DocumentationOutputFolder = options.DocFolder,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
+                IsExecutable = options.MakeExecutable,
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false, // todo: enable debug mode?
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames

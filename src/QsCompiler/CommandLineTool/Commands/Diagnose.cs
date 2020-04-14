@@ -218,10 +218,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 AssemblyConstants = assemblyConstants,
                 TargetPackageAssembly = options.GetTargetPackageAssemblyPath(logger),
+                RuntimeCapabilities = options.RuntimeCapabilites,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
-                ConvertClassicalControl = options.TrimLevel >= 2,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
+                IsExecutable = options.MakeExecutable,
                 RewriteSteps = options.Plugins?.Select(step => (step, (string)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = true,
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
