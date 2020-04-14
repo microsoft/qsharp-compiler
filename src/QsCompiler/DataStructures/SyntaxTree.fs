@@ -364,6 +364,11 @@ type TypedExpression = {
     member this.TypeParameterResolutions =
         this.TypeArguments.ToImmutableDictionary((fun (origin, name, _) -> origin, name), (fun (_,_,t) -> t))
 
+    /// Given a dictionary containing the type resolutions for an expression,
+    /// returns the corresponding ImmutableArray to initialize the TypeArguments with.
+    static member AsTypeArguments (typeParamResolutions : ImmutableDictionary<_,_>) =
+        typeParamResolutions |> Seq.map (fun kv -> fst kv.Key, snd kv.Key, kv.Value) |> ImmutableArray.CreateRange
+
     /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
     /// Returns false otherwise.
     static member public IsPartialApplication kind =
