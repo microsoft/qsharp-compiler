@@ -185,7 +185,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
             CallGraphEdge edge)
         {
-            // ToDo: Setting TypeArgs to Null because the type specialization is not implemented yet
+            // Setting TypeArgs to Null because the type specialization is not implemented yet
             var callerKey = new CallGraphNode { CallableName = callerName, Kind = callerKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
             var calledKey = new CallGraphNode { CallableName = calledName, Kind = calledKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
             RecordDependency(callerKey, calledKey, edge);
@@ -315,7 +315,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         {
             public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild) { }
 
-            private ExpressionKind HandleCall(TypedExpression method, TypedExpression arg)
+            public override ExpressionKind OnCallLikeExpression(TypedExpression method, TypedExpression arg)
             {
                 var contextInCall = SharedState.inCall;
                 SharedState.inCall = true;
@@ -324,10 +324,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 this.Expressions.OnTypedExpression(arg);
                 return ExpressionKind.InvalidExpr;
             }
-
-            public override ExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg) => HandleCall(method, arg);
-
-            public override ExpressionKind OnFunctionCall(TypedExpression method, TypedExpression arg) => HandleCall(method, arg);
 
             public override ExpressionKind OnAdjointApplication(TypedExpression ex)
             {
@@ -350,7 +346,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             {
                 if (sym is Identifier.GlobalCallable global)
                 {
-                    // ToDo: Type arguments need to be resolved for the whole expression to be accurate, though this will not be needed until type specialization is implemented
+                    // Type arguments need to be resolved for the whole expression to be accurate
+                    // ToDo: this needs adaption if we want to support type specializations
                     var typeArgs = tArgs;
 
                     // ToDo: Type argument dictionaries need to be resolved and set here
