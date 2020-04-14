@@ -8,7 +8,7 @@ open System.IO
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
+open Microsoft.Quantum.QsCompiler.Transformations
 open Xunit
 
 
@@ -69,7 +69,7 @@ type CycleDetectionTests () =
                     j <- j + k
             rtrn
 
-    let CheckForExpectedCycles (actualCycles: seq<#seq<CallGraph.CallGraphNode>>) expectedCycles =
+    let CheckForExpectedCycles (actualCycles: seq<#seq<CallGraphNode>>) expectedCycles =
         let expected = expectedCycles |> DecorateWithNamespace Signatures.CycleDetection
 
         let actual = actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
