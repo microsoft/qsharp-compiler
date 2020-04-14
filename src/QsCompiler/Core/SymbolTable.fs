@@ -741,7 +741,8 @@ and NamespaceManager
     (syncRoot : IReaderWriterLock,
      callablesInRefs : IEnumerable<CallableDeclarationHeader>,
      specializationsInRefs : IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
-     typesInRefs : IEnumerable<TypeDeclarationHeader>) =
+     typesInRefs : IEnumerable<TypeDeclarationHeader>, 
+     runtimeCapabilites, isExecutable) =
     // This class itself does not use any concurrency, 
     // so anything that is accessible within the class only does not apply any locks.
     // IMPORTANT: the syncRoot is intentionally not exposed externally, since with this class supporting mutation
@@ -972,10 +973,13 @@ and NamespaceManager
                 then errs.Add (decl.Position, range.ValueOr decl.Range |> QsCompilerDiagnostic.Warning (WarningCode.ReservedEntryPointArgumentName, []))
             simplifiedArgNames |> List.iteri verifyArgument
 
-            // check that there is no more than one entry point
+            // check that there is no more than one entry point, and no entry point if the project is not executable
             if signatureErrs.Any() then false, errs
+            elif not isExecutable then 
+                errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.EntryPointInLibrary, [])) 
+                false, errs
             else GetEntryPoints() |> Seq.tryHead |> function
-                | None -> true, errs
+                | None -> isExecutable, errs
                 | Some (epName, epSource) ->
                     let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
                     errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs))

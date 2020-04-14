@@ -25,7 +25,7 @@ open Xunit.Abstractions
 type LinkingTests (output:ITestOutputHelper) =
     inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"] [], output)
 
-    let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
+    let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message), isExecutable = true)
 
     // The file name needs to end in ".qs" so that it isn't ignored by the References.Headers class during the internal renaming tests.
     let getTempFile () = Path.GetRandomFileName () + ".qs" |> Path.GetFullPath |> Uri
@@ -242,6 +242,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
         for entryPoint in LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs" do
             this.CompileAndVerify entryPoint []
+        this.Expect "EntryPointInLibrary" [Error ErrorCode.EntryPointInLibrary]
 
 
     [<Fact>]
