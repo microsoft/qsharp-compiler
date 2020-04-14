@@ -11,6 +11,7 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
@@ -66,7 +67,7 @@ type LinkingTests (output:ITestOutputHelper) =
         let name = name |> NonNullable<_>.New
         this.Verify (QsQualifiedName.New (ns, name), diag)
 
-    member private this.CompileAndVerify input (diag : DiagnosticItem seq) =
+    member private this.CompileAndVerify (compilationManager : CompilationUnitManager) input (diag : DiagnosticItem seq) =
 
         let fileId = getTempFile()
         let file = getManager fileId input
@@ -226,22 +227,15 @@ type LinkingTests (output:ITestOutputHelper) =
         let fileId = getTempFile()
         let file = getManager fileId entryPoints.[0]
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-        this.CompileAndVerify entryPoints.[1] [Error ErrorCode.MultipleEntryPoints]
+        this.CompileAndVerify compilationManager entryPoints.[1] [Error ErrorCode.MultipleEntryPoints]
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
-
-
-    [<Fact>]
-    member this.``Entry point specialization verification`` () =
-
-        for entryPoint in LinkingTests.ReadAndChunkSourceFile "EntryPointSpecializations.qs" do
-            this.CompileAndVerify entryPoint [Error ErrorCode.InvalidEntryPointSpecialization]
 
 
     [<Fact>]
     member this.``Entry point validation`` () =
 
         for entryPoint in LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs" do
-            this.CompileAndVerify entryPoint []
+            this.CompileAndVerify compilationManager entryPoint []
         this.Expect "EntryPointInLibrary" [Error ErrorCode.EntryPointInLibrary]
 
 
@@ -249,11 +243,18 @@ type LinkingTests (output:ITestOutputHelper) =
     member this.``Entry point argument name verification`` () =
 
         let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs" 
-        this.CompileAndVerify tests.[0] [Error ErrorCode.DuplicateEntryPointArgumentName]
-        this.CompileAndVerify tests.[1] [Error ErrorCode.DuplicateEntryPointArgumentName]
-        this.CompileAndVerify tests.[2] [Error ErrorCode.DuplicateEntryPointArgumentName]
-        this.CompileAndVerify tests.[3] [Warning WarningCode.ReservedEntryPointArgumentName]
-        this.CompileAndVerify tests.[4] [Warning WarningCode.ReservedEntryPointArgumentName]
+        this.CompileAndVerify compilationManager tests.[0] [Error ErrorCode.DuplicateEntryPointArgumentName]
+        this.CompileAndVerify compilationManager tests.[1] [Error ErrorCode.DuplicateEntryPointArgumentName]
+        this.CompileAndVerify compilationManager tests.[2] [Error ErrorCode.DuplicateEntryPointArgumentName]
+        this.CompileAndVerify compilationManager tests.[3] [Warning WarningCode.ReservedEntryPointArgumentName]
+        this.CompileAndVerify compilationManager tests.[4] [Warning WarningCode.ReservedEntryPointArgumentName]
+
+
+    [<Fact>]
+    member this.``Entry point specialization verification`` () =
+
+        for entryPoint in LinkingTests.ReadAndChunkSourceFile "EntryPointSpecializations.qs" do
+            this.CompileAndVerify compilationManager entryPoint [Error ErrorCode.InvalidEntryPointSpecialization]
 
 
     [<Fact>]
@@ -269,6 +270,24 @@ type LinkingTests (output:ITestOutputHelper) =
         this.Expect "InvalidEntryPointPlacement5" [Error ErrorCode.MisplacedDeclarationAttribute]
         this.Expect "InvalidEntryPointPlacement6" [Error ErrorCode.MisplacedDeclarationAttribute]
         this.Expect "InvalidEntryPointPlacement7" [Error ErrorCode.MisplacedDeclarationAttribute]
+
+
+    [<Fact>]
+    member this.``Entry point return type restriction for quantum processors`` () =
+
+        let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs" 
+        let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message), isExecutable = true, capabilities = RuntimeCapabilities.QPRGen0)
+        let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
+        Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
+        
+        this.CompileAndVerify compilationManager tests.[5]  []
+        this.CompileAndVerify compilationManager tests.[6]  []
+        this.CompileAndVerify compilationManager tests.[7]  []
+        this.CompileAndVerify compilationManager tests.[8]  []
+        this.CompileAndVerify compilationManager tests.[9]  [Warning WarningCode.NonResultTypeReturnedInEntryPoint]
+        this.CompileAndVerify compilationManager tests.[10] [Warning WarningCode.NonResultTypeReturnedInEntryPoint]
+        this.CompileAndVerify compilationManager tests.[11] [Warning WarningCode.NonResultTypeReturnedInEntryPoint]
+        this.CompileAndVerify compilationManager tests.[12] [Warning WarningCode.NonResultTypeReturnedInEntryPoint]
 
 
     [<Fact>]

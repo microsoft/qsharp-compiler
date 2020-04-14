@@ -329,6 +329,7 @@ type WarningCode =
     | MissingEntryPoint = 6202
     | IgnoredEntryPoint = 6203
     | ReservedEntryPointArgumentName = 6204
+    | NonResultTypeReturnedInEntryPoint = 6205
     | GeneratorDirectiveWillBeIgnored = 6301
     | UnreachableCode = 6302
 
@@ -706,6 +707,7 @@ type DiagnosticItem =
             | WarningCode.MissingEntryPoint                       -> "The project is a Q# command line application but no entry point has been found. The project should be a library, and any C# driver code should be defined in a separate project."
             | WarningCode.IgnoredEntryPoint                       -> "Entry point will be ignored. The project is a Q# library and cannot have any entry points."
             | WarningCode.ReservedEntryPointArgumentName          -> "The argument name conflicts with a default argument for a Q# command line application."            
+            | WarningCode.NonResultTypeReturnedInEntryPoint       -> "Only values of type Result, Result[], and tuples thereof can be returned when executing on a quantum processor."
             | WarningCode.GeneratorDirectiveWillBeIgnored         -> "Generation directive ignored. A specialization of this callable has been declared as intrinsic."
             | WarningCode.UnreachableCode                         -> "This statement will never be executed."
                                                                   

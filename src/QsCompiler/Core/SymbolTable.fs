@@ -959,6 +959,13 @@ and NamespaceManager
             let signatureErrs = inErrs.Concat outErrs
             errs.AddRange signatureErrs
 
+            // currently, only return values of type Result, Result[], and tuples thereof are supported on quantum processors
+            if runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.QPRGen0 || runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.QPRGen1 then
+                let invalid = signature.ReturnType.ExtractAll (fun t -> t.Type |> function 
+                    | Result | ArrayType _ | TupleType _ | InvalidType -> Seq.empty
+                    | _ -> Seq.singleton t)
+                if invalid.Any() then errs.Add (decl.Position, signature.ReturnType.Range |> orDefault |> QsCompilerDiagnostic.Warning (WarningCode.NonResultTypeReturnedInEntryPoint, [])) 
+
             // validate entry point argument names
             let asCommandLineArg (str : string) = str.ToLowerInvariant() |> String.filter((<>)'_')
             let reservedCommandLineArgs = CommandLineArguments.ReservedArguments |> Seq.map asCommandLineArg |> Seq.toArray
