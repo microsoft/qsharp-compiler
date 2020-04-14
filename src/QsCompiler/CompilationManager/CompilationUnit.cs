@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// are exposed via their test name defined by the corresponding attribute. 
         /// Throws an ArgumentNullException if the given dictionary of references is null. 
         /// </summary>
-        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, bool loadTestNames, Action<ErrorCode, string[]> onError = null)
+        public References(ImmutableDictionary<NonNullable<string>, Headers> refs, bool loadTestNames = false, Action<ErrorCode, string[]> onError = null)
         {
             this.Declarations = refs ?? throw new ArgumentNullException(nameof(refs));
             if (loadTestNames)
