@@ -470,7 +470,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.ConvertClassicalControl);
             }
 
-            if (!this.Config.SkipMonomorphization && this.CompilationOutput?.EntryPoints.Length != 0)
+            if (this.Config.IsExecutable && !this.Config.SkipMonomorphization)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
                 this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.Monomorphization);
