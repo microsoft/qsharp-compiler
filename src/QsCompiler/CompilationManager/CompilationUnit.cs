@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly ImmutableDictionary<NonNullable<string>, Headers> Declarations; 
 
         public static References Empty = 
-            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty, false);
+            new References(ImmutableDictionary<NonNullable<string>, Headers>.Empty);
 
         /// <summary>
         /// Combines the current references with the given references, and verifies that there are no conflicts. 
@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (other == null) throw new ArgumentNullException(nameof(other));
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any()) throw new ArgumentException("common references exist");
-            return new References (this.Declarations.AddRange(other.Declarations), false, onError: onError); 
+            return new References (this.Declarations.AddRange(other.Declarations), onError: onError); 
         }
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if the given diagnostics are null. 
         /// </summary>
         internal References Remove(NonNullable<string> source, Action<ErrorCode, string[]> onError = null) =>
-            new References(this.Declarations.Remove(source), false, onError: onError);
+            new References(this.Declarations.Remove(source), onError: onError);
 
         /// <summary>
         /// Given a dictionary that maps the ids of dll files to the corresponding headers,
