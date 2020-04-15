@@ -6,6 +6,8 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
+open System.IO
+open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -27,9 +29,6 @@ type CallGraphTests (output:ITestOutputHelper) =
         let name = pieces.[1] |> NonNullable<string>.New
         QsTypeParameter.New (parent, name, Null)
 
-    let resolution (res : (QsTypeParameter * QsTypeKind<_,_,_,_>) list) =
-        res.ToImmutableDictionary((fun (tp,_) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
-
     let Foo  = qualifiedName "Foo"
     let Bar  = qualifiedName "Bar"
 
@@ -38,6 +37,79 @@ type CallGraphTests (output:ITestOutputHelper) =
     let BarA = typeParameter "Bar.A"
     let BarC = typeParameter "Bar.C"
     let BazA = typeParameter "Baz.A"
+
+    let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
+
+    let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+    let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
+
+    let DecorateWithNamespace (ns : string) (input : string list list) =
+        List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name})) input
+
+    let resolution (res : (QsTypeParameter * QsTypeKind<_,_,_,_>) list) =
+        res.ToImmutableDictionary((fun (tp,_) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
+
+    let ReadAndChunkSourceFile fileName =
+        let sourceInput = Path.Combine ("TestCases", fileName) |> File.ReadAllText
+        sourceInput.Split ([|"==="|], StringSplitOptions.RemoveEmptyEntries)
+
+    let BuildContent content =
+
+        let fileId = getTempFile()
+        let file = getManager fileId content
+
+        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
+        let compilationDataStructures = compilationManager.Build()
+        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
+
+        compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
+        Assert.NotNull compilationDataStructures.BuiltCompilation
+
+        compilationDataStructures
+
+    let CompileCycleDetectionTest testNumber =
+        let srcChunks = ReadAndChunkSourceFile "CycleDetection.qs"
+        srcChunks.Length >= testNumber |> Assert.True
+        let compilationDataStructures = BuildContent srcChunks.[testNumber-1]
+        let callGraph = BuildCallGraph.Apply compilationDataStructures.BuiltCompilation
+        Assert.NotNull callGraph
+        callGraph.GetCallCycles ()
+
+    let CyclicEquivalence lst1 lst2 =
+        let size = List.length lst1
+        if size <> List.length lst2 then
+            false
+        else
+            let mutable i = 0
+            let mutable j = 0
+            let mutable k = 0
+            let mutable rtrn = false
+            while not rtrn && i < size && j < size do
+                k <- 1
+                while k <= size && lst1.[(i + k) % size] = lst2.[(j + k) % size] do
+                    k <- k + 1
+                if k > size then
+                    rtrn <- true
+                if lst1.[(i + k) % size] > lst2.[(j + k) % size] then
+                    i <- i + k
+                else
+                    j <- j + k
+            rtrn
+
+    let CheckForExpectedCycles (actualCycles: seq<#seq<CallGraphNode>>) expectedCycles =
+        let expected = expectedCycles |> DecorateWithNamespace Signatures.CycleDetection
+
+        let actual = actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
+
+        Assert.True(actual.Length = expected.Length,
+            sprintf "Expected call graph to have %i cycle(s), but found %i cycle(s)" expected.Length actual.Length)
+
+        let cycleToString (cycle : QsQualifiedName list) =
+            String.Join(" -> ", List.map (fun node -> node.ToString()) cycle)
+
+        for cycle in expected do
+            Assert.True(List.exists (fun x -> CyclicEquivalence cycle x) actual,
+                sprintf "Did not find expected cycle: %s" (cycleToString cycle))
 
     static member CheckResolution (parent, expected : IDictionary<_,_>, [<ParamArray>] resolutions) =
         let expectedKeys = ImmutableHashSet.CreateRange(expected.Keys)
@@ -59,8 +131,8 @@ type CallGraphTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: resolution to concrete`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Resolution to Concrete`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -76,8 +148,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: resolution to type parameter`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Resolution to Type Parameter`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -91,8 +163,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: resolution via identity mapping`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Resolution via Identity Mapping`` () =
 
         let res1 = resolution [
             (FooA, FooA |> TypeParameter)
@@ -106,8 +178,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: multi-stage resolution`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Multi-Stage Resolution`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -123,8 +195,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: multiple resolutions to concrete`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Multiple Resolutions to Concrete`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -140,8 +212,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: multiple resolutions to type parameter`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Multiple Resolutions to Type Parameter`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -160,8 +232,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: multi-stage resolution of multiple resolutions to concrete`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Multi-Stage Resolution of Multiple Resolutions to Concrete`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -179,8 +251,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: redundant resolution to concrete`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Redundant Resolution to Concrete`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -195,8 +267,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: redundant resolution to type parameter`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Redundant Resolution to Type Parameter`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -213,8 +285,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: conflicting resolution to concrete`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Conflicting Resolution to Concrete`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -229,8 +301,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: conflicting resolution to type parameter`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Conflicting Resolution to Type Parameter`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -245,8 +317,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: direct resolution to native`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Direct Resolution to Native`` () =
 
         let res1 = resolution [
             (FooA, FooA |> TypeParameter)
@@ -257,8 +329,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: indirect resolution to native`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Indirect Resolution to Native`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -275,8 +347,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolution(Foo, expected, res1, res2, res3)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: direct resolution constrains native`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Direct Resolution Constrains Native`` () =
 
         let res1 = resolution [
             (FooA, FooB |> TypeParameter)
@@ -287,8 +359,8 @@ type CallGraphTests (output:ITestOutputHelper) =
         CallGraphTests.AssertResolutionFailure(Foo, expected, res1)
 
     [<Fact>]
-    [<Trait("Category","Type resolution")>]
-    member this.``Type resolution: indirect resolution constrains native`` () =
+    [<Trait("Category","Type Resolution")>]
+    member this.``Indirect Resolution Constrains Native`` () =
 
         let res1 = resolution [
             (FooA, BarA |> TypeParameter)
@@ -304,3 +376,76 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         CallGraphTests.AssertResolutionFailure(Foo, expected, res1, res2, res3)
 
+    [<Fact>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``No Cycles`` () =
+        let cycles = CompileCycleDetectionTest 1
+        Assert.Empty cycles
+
+    [<Fact>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``Simple Cycle`` () =
+        let result = CompileCycleDetectionTest 2
+
+        [
+            [ "Foo"; "Bar" ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``Longer Cycle`` () =
+        let result = CompileCycleDetectionTest 3
+
+        [
+            [ "Foo"; "Bar"; "Baz" ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``Direct Recursion Cycle`` () =
+        let result = CompileCycleDetectionTest 4
+
+        [
+            [ "Foo" ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``Loop In Sequence`` () =
+        let result = CompileCycleDetectionTest 5
+
+        [
+            [ "Bar" ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``Figure-Eight Cycles`` () =
+        let result = CompileCycleDetectionTest 6
+
+        [
+            [ "Foo"; "Bar" ]
+            [ "Foo"; "Baz" ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact(Skip="Cycle detection does not work here yet")>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``Fully Connected Cycles`` () =
+        let result = CompileCycleDetectionTest 7
+
+        [
+            [ "Foo" ]
+            [ "Bar" ]
+            [ "Baz" ]
+            [ "Foo"; "Bar" ]
+            [ "Foo"; "Baz" ]
+            [ "Bar"; "Baz" ]
+            [ "Foo"; "Bar"; "Baz" ]
+            [ "Baz"; "Bar"; "Foo" ]
+        ]
+        |> CheckForExpectedCycles result
