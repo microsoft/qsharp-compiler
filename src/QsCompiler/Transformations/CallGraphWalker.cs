@@ -17,13 +17,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     /// <summary>
     /// Struct containing information that exists on edges in a call graph.
     /// </summary>
     public struct CallGraphEdge
     {
-        public ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> ParamResolutions;
+        public TypeParameterResolutions ParamResolutions;
     }
 
     /// <summary>
@@ -55,23 +56,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
         /// <summary>
         /// Combines subsequent concretions as part of a nested expression, or concretions as part of a cycle in the call graph,
-        /// into a single dictionary containing the resolution for the type parameters of the specified parent callable.
+        /// into a single dictionary containing the resolution for the type parameters of the specified target callable.
         /// The given resolutions are expected to be ordered starting with the dictionary containing the initial mapping for the
-        /// type parameters of the specified parent callable (the "innermost resolutions"). This mapping may potentially be to
+        /// type parameters of the specified target callable (the "innermost resolutions"). This mapping may potentially be to
         /// type parameters of other callables, which are then further concretized by subsequent resolutions.
         /// Returns the constructed dictionary as out parameter. Returns true if the combination of the given resolutions is valid,
-        /// i.e. if there are no conflicting resolutions and type parameters of the parent callables are uniquely resolved
+        /// i.e. if there are no conflicting resolutions and type parameters of the target callable are uniquely resolved
         /// to either a concrete type, a type parameter of another callable, or themselves.
-        /// Throws an ArgumentNullException if the given parent is null.
+        /// Throws an ArgumentNullException if the given target is null.
         /// Throws an ArgumentException if the given resolutions imply that type parameters from multiple callables are
         /// simultaneously treated as concrete types.
         /// NOTE: This routine prioritizes the verifications to ensure the correctness of the resolution over performance.
         /// </summary>
         public static bool TryCombineTypeResolutions
-            (QsQualifiedName parent, out ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType> combined,
-            params ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>[] resolutions)
+            (QsQualifiedName target, out TypeParameterResolutions combined,
+            params TypeParameterResolutions[] resolutions)
         {
-            if (parent == null) throw new ArgumentNullException(nameof(parent));
+            if (target == null) throw new ArgumentNullException(nameof(target));
             var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
             var success = true;
 
@@ -84,10 +85,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             bool InconsistentResolutionToNative(Tuple<QsQualifiedName, NonNullable<string>> key, ResolvedType resolution)
             {
                 var resolutionToTypeParam = resolution.Resolution as ResolvedTypeKind.TypeParameter;
-                var isResolutionToNative = resolutionToTypeParam != null && resolutionToTypeParam.Item.Origin.Equals(parent);
+                var isResolutionToNative = resolutionToTypeParam != null && resolutionToTypeParam.Item.Origin.Equals(target);
                 return isResolutionToNative
                     // We can omit this check as long as combinedBuilder only ever contains native type parameters:
-                    // && key.Item1.Equals(parent)
+                    // && key.Item1.Equals(target)
                     && key.Item2.Value != resolutionToTypeParam.Item.TypeName.Value;
             }
 
@@ -103,40 +104,40 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
                 // We need to ensure that the mappings for external type parameters are processed first,
                 // to cover an edge case that would otherwise be indicated as a conflicting resolution.
-                foreach (var entry in resolution.Where(entry => mayBeReplaced.Contains(entry.Key)))
+                foreach (var (typeParam, paramRes) in resolution.Where(entry => mayBeReplaced.Contains(entry.Key)))
                 {
                     // resolution of an external type parameter that is currently listed as value in the combined type resolution dictionary
-                    foreach (var keyInCombined in mayBeReplaced[entry.Key])
+                    foreach (var keyInCombined in mayBeReplaced[typeParam])
                     {
-                        // If one of the values is a type parameter from the parent callable,
+                        // If one of the values is a type parameter from the target callable,
                         // but it isn't mapped to itself then the combined resolution is invalid.
-                        success = success && !InconsistentResolutionToNative(keyInCombined, entry.Value);
-                        combinedBuilder[keyInCombined] = entry.Value;
+                        success = success && !InconsistentResolutionToNative(keyInCombined, paramRes);
+                        combinedBuilder[keyInCombined] = paramRes;
                     }
                 }
 
-                // resolution of a type parameter that belongs to the parent callable
-                foreach (var entry in resolution.Where(entry => entry.Key.Item1.Equals(parent)))
+                // resolution of a type parameter that belongs to the target callable
+                foreach (var (typeParam, paramRes) in resolution.Where(entry => entry.Key.Item1.Equals(target)))
                 {
                     // A native type parameter cannot be resolved to another native type parameter, since this would constrain them.
-                    success = success && !InconsistentResolutionToNative(entry.Key, entry.Value);
+                    success = success && !InconsistentResolutionToNative(typeParam, paramRes);
                     // Check that there is no conflicting resolution already defined.
-                    var conflictingResolutionExists = combinedBuilder.TryGetValue(entry.Key, out var current)
-                        && !current.Equals(entry.Value) && !ResolutionToTypeParameter(entry.Key, current);
+                    var conflictingResolutionExists = combinedBuilder.TryGetValue(typeParam, out var current)
+                        && !current.Equals(paramRes) && !ResolutionToTypeParameter(typeParam, current);
                     success = success && !conflictingResolutionExists;
-                    combinedBuilder[entry.Key] = entry.Value;
+                    combinedBuilder[typeParam] = paramRes;
                 }
 
-                if (resolution.Any(entry => !mayBeReplaced.Contains(entry.Key) && !entry.Key.Item1.Equals(parent)))
+                if (resolution.Any(entry => !mayBeReplaced.Contains(entry.Key) && !entry.Key.Item1.Equals(target)))
                 {
                     // It does not make sense to support this case, since there is no valid context in which type parameters
                     // belonging to multiple callables can/should be treated as concrete types simultaneously.
-                    throw new ArgumentException("attempting to define resolution for type parameter that does not belong to parent callable");
+                    throw new ArgumentException("attempting to define resolution for type parameter that does not belong to target callable");
                 }
             }
 
             combined = combinedBuilder.ToImmutable();
-            QsCompilerError.Verify(combined.Keys.All(key => key.Item1.Equals(parent)), "for type parameter that does not belong to parent callable");
+            QsCompilerError.Verify(combined.Keys.All(key => key.Item1.Equals(target)), "for type parameter that does not belong to target callable");
             return success;
         }
 
@@ -269,10 +270,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         public static CallGraph Apply(QsCompilation compilation)
         {
             var walker = new BuildGraph();
-            foreach (var ns in compilation.Namespaces)
-            {
-                walker.Namespaces.OnNamespace(ns);
-            }
+
+            walker.Namespaces.OnNamespace(compilation.Namespaces.First(ns => ns.Name.Equals(NonNullable<string>.New("Input"))));
+
+            //foreach (var ns in compilation.Namespaces)
+            //{
+            //    walker.Namespaces.OnNamespace(ns);
+            //}
             return walker.SharedState.graph;
         }
 
@@ -283,7 +287,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
                 this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
-                this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
+                this.Expressions = new ExpressionTransformation(this);
                 this.ExpressionKinds = new ExpressionKindTransformation(this);
                 this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
             }
@@ -298,6 +302,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             internal bool hasControlledDependency = false;
 
             internal CallGraph graph = new CallGraph();
+
+            internal Stack<TypeParameterResolutions> typeParameterResolutions = new Stack<TypeParameterResolutions>();
         }
 
         private class NamespaceTransformation : NamespaceTransformation<TransformationState>
@@ -308,6 +314,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             {
                 SharedState.spec = spec;
                 return base.OnSpecializationDeclaration(spec);
+            }
+        }
+
+        private class ExpressionTransformation : ExpressionTransformation<TransformationState>
+        {
+            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild) { }
+
+            public override TypedExpression OnTypedExpression(TypedExpression ex)
+            {
+                if (ex.TypeParameterResolutions.Any())
+                {
+                    SharedState.typeParameterResolutions.Push(ex.TypeParameterResolutions);
+                    var result = base.OnTypedExpression(ex);
+                    SharedState.typeParameterResolutions.Pop();
+                    return result;
+                }
+                else
+                {
+                    return base.OnTypedExpression(ex);
+                }
             }
         }
 
@@ -350,11 +376,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     // ToDo: this needs adaption if we want to support type specializations
                     var typeArgs = tArgs;
 
-                    // ToDo: Type argument dictionaries need to be resolved and set here
                     var edge = new CallGraphEdge { };
 
                     if (SharedState.inCall)
                     {
+                        CallGraph.TryCombineTypeResolutions(global.Item, out var combined, SharedState.typeParameterResolutions.ToArray());
+                        edge.ParamResolutions = combined;
+
                         var kind = QsSpecializationKind.QsBody;
                         if (SharedState.hasAdjointDependency && SharedState.hasControlledDependency)
                         {
