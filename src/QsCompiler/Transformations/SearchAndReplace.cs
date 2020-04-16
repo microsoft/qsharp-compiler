@@ -430,8 +430,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public class TransformationState
         {
             private int VariableNr = 0;
-            private Dictionary<NonNullable<string>, NonNullable<string>> UniqueNames =
+            private readonly Dictionary<NonNullable<string>, NonNullable<string>> UniqueNames =
                 new Dictionary<NonNullable<string>, NonNullable<string>>();
+
+            internal bool TryGetUniqueName(NonNullable<string> name, out NonNullable<string> unique) =>
+                this.UniqueNames.TryGetValue(name, out unique);
 
             internal QsExpressionKind AdaptIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
                 sym is Identifier.LocalVariable varName && this.UniqueNames.TryGetValue(varName.Item, out var unique)
@@ -453,6 +456,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public UniqueVariableNames()
         : base(new TransformationState())
         {
+            this.Statements = new StatementTransformation(this);
             this.StatementKinds = new StatementKindTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -471,6 +475,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
         // helper classes
+
+        private class StatementTransformation
+        : StatementTransformation<TransformationState>
+        {
+            public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
+            : base(parent) { }
+
+            public override LocalDeclarations OnLocalDeclarations(LocalDeclarations decl)
+            {
+                var variables = decl.Variables.Select(decl =>
+                    this.SharedState.TryGetUniqueName(decl.VariableName, out var unique)
+                    ? new LocalVariableDeclaration<NonNullable<string>>(unique, decl.Type, decl.InferredInformation, decl.Position, decl.Range)
+                    : decl
+                );
+                return base.OnLocalDeclarations(new LocalDeclarations(variables.ToImmutableArray()));
+            }
+        }
 
         private class StatementKindTransformation
         : StatementKindTransformation<TransformationState>
