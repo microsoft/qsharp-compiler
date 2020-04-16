@@ -40,8 +40,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// </summary>
     internal class JohnsonCycleFind
     {
-        private Stack<(HashSet<int> SCC, int MinNode)> SccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
-
         /// <summary>
         /// Johnson's algorithm for finding all cycles in a graph.
         /// This returns a list of cycles, each represented as a list of nodes. Nodes
