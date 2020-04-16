@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     ///
     /// The starting point for this algorithm in this class is the GetAllCycles method.
     /// </summary>
-    internal class JohnsonCycleFind
+    public class JohnsonCycleFind
     {
         private Stack<(HashSet<int> SCC, int MinNode)> SccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
 
@@ -49,10 +49,69 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// any duplicates and the last node in the list is assumed to be connected
         /// to the first.
         /// </summary>
-        
-        public List<List<int>> GetAllCycles(Dictionary<int, List<int>> graph) =>
-            TarjanSCC(graph)
-                .OrderByDescending(x => x.MinNode)
+        public List<List<int>> GetAllCyclesStack(Dictionary<int, List<int>> graph)
+        {
+            // Possible Optimization: Each SCC could be processed in parallel.
+
+            // Possible Optimization: Getting the subgraph for an SCC only needs
+            // to consider the parent graph, not the full graph. A recursive strategy
+            // may be better than using a stack object.
+
+            var cycles = new List<List<int>>();
+
+            PushSCCsFromGraph(graph);
+            while (SccStack.Any())
+            {
+                var (scc, startNode) = SccStack.Pop();
+                var subGraph = GetSubGraphLimitedToNodes(graph, scc);
+                cycles.AddRange(GetSccCycles(subGraph, startNode));
+
+                subGraph.Remove(startNode);
+                foreach (var (_, children) in subGraph)
+                {
+                    children.Remove(startNode);
+                }
+
+                PushSCCsFromGraph(subGraph);
+            }
+
+            return cycles;
+        }
+
+        public List<List<int>> GetAllCyclesRecursive(Dictionary<int, List<int>> graph)
+        {
+            // Possible Optimization: Each SCC could be processed in parallel.
+
+            var cycles = new List<List<int>>();
+
+            var sccs = TarjanSCC(graph).OrderByDescending(x => x.MinNode);
+
+            foreach (var (scc, startNode) in sccs)
+            {
+                var subGraph = GetSubGraphLimitedToNodes(graph, scc);
+                cycles.AddRange(GetSccCycles(subGraph, startNode));
+
+                subGraph.Remove(startNode);
+                foreach (var (_, children) in subGraph)
+                {
+                    children.Remove(startNode);
+                }
+
+                cycles.AddRange(GetAllCyclesRecursive(subGraph));
+            }
+
+            return cycles;
+        }
+
+        public List<List<int>> GetAllCyclesLINQ(Dictionary<int, List<int>> graph)
+        {
+            // Possible Optimization: Each SCC could be processed in parallel.
+
+            var cycles = new List<List<int>>();
+
+            var sccs = TarjanSCC(graph).OrderByDescending(x => x.MinNode);
+
+            return sccs
                 .SelectMany(item =>
                 {
                     var cycles = new List<List<int>>();
@@ -66,11 +125,53 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         children.Remove(startNode);
                     }
 
-                    cycles.AddRange(GetAllCycles(subGraph));
+                    cycles.AddRange(GetAllCyclesLINQ(subGraph));
                     return cycles;
                 })
                 .ToList();
-        
+        }
+
+        public List<List<int>> GetAllCyclesParallel(Dictionary<int, List<int>> graph)
+        {
+            var cycles = new List<List<int>>();
+
+            var sccs = TarjanSCC(graph).OrderByDescending(x => x.MinNode);
+
+            return sccs
+                .AsParallel()
+                .SelectMany(item =>
+                {
+                    var cycles = new List<List<int>>();
+                    var (scc, startNode) = item;
+                    var subGraph = GetSubGraphLimitedToNodes(graph, scc);
+                    cycles.AddRange(GetSccCycles(subGraph, startNode));
+
+                    subGraph.Remove(startNode);
+                    foreach (var (_, children) in subGraph)
+                    {
+                        children.Remove(startNode);
+                    }
+
+                    cycles.AddRange(GetAllCyclesParallel(subGraph));
+                    return cycles;
+                })
+                .ToList();
+        }
+
+        /// <summary>
+        /// Uses Tarjan's algorithm for finding strongly-connected components, or SCCs of a
+        /// graph to get all SCC, orders them by their node with the smallest id, and pushes
+        /// them to the SCC stack.
+        /// </summary>
+        private void PushSCCsFromGraph(Dictionary<int, List<int>> graph)
+        {
+            var sccs = TarjanSCC(graph).OrderByDescending(x => x.MinNode);
+            foreach (var scc in sccs)
+            {
+                SccStack.Push(scc);
+            }
+        }
+
         /// <summary>
         /// Gets a subgraph of the input graph where each node in the subgraph is found in the given hash set of nodes.
         /// </summary>
@@ -507,7 +608,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         .Select(dep => nodeToIndex[dep])
                         .ToList());
 
-            var cycles = new JohnsonCycleFind().GetAllCycles(graph);
+            var cycles = new JohnsonCycleFind().GetAllCyclesLINQ(graph);
             return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToList();
         }
     }

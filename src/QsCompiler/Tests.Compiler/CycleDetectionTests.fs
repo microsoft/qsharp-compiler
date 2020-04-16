@@ -10,9 +10,10 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
 open Xunit
+open Xunit.Abstractions
 
 
-type CycleDetectionTests () =
+type CycleDetectionTests (output: ITestOutputHelper) =
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message))
 
@@ -202,3 +203,80 @@ type CycleDetectionTests () =
             [ "_2k2"; "_3k2"; "_3k3" ]
         ]
         |> CheckForExpectedCycles result
+
+    [<Fact>]
+    member this.``Performance Test`` () =
+        let rand = System.Random()
+        let numNodes = 14
+        let numAdjacencies = 7
+
+        let nums = { 0 .. numNodes-1 }
+
+        let swap (a: _[] ) x y =
+            let tmp = a.[x]
+            a.[x] <- a.[y]
+            a.[y] <- tmp
+
+        let shuffle a =
+            Seq.iteri (fun i _ -> swap a i (rand.Next(i, Seq.length a))) a
+            a
+
+        let getAdjacencyList () =
+            List.take numAdjacencies (Array.toList (shuffle (Seq.toArray nums))) |> Collections.Generic.List<int>
+
+        let dict = new Collections.Generic.Dictionary<int, Collections.Generic.List<int>>()
+
+        for i in 0 .. numNodes-1 do
+            dict.Add(i, getAdjacencyList())
+
+        let timer = new System.Diagnostics.Stopwatch()
+
+        let doStackTest () =
+            let johnson_stack = new JohnsonCycleFind()
+            timer.Start()
+            let cycles_stack = johnson_stack.GetAllCyclesStack(dict)
+            timer.Stop()
+        
+            output.WriteLine("Stack:")
+            output.WriteLine(sprintf "\tNumber of Cycles Found: %i" cycles_stack.Count)
+            output.WriteLine(sprintf "\tElapsed Time: %i" timer.ElapsedMilliseconds)
+        
+        let doRecursiveTest () =
+            let johnson_recursive = new JohnsonCycleFind()
+            timer.Restart()
+            let cycles_recursive = johnson_recursive.GetAllCyclesRecursive(dict)
+            timer.Stop()
+        
+            output.WriteLine("Recursive:")
+            output.WriteLine(sprintf "\tNumber of Cycles Found: %i" cycles_recursive.Count)
+            output.WriteLine(sprintf "\tElapsed Time: %i" timer.ElapsedMilliseconds)
+        
+        let doLinqTest () =
+            let johnson_linq = new JohnsonCycleFind()
+            timer.Restart()
+            let cycles_linq = johnson_linq.GetAllCyclesLINQ(dict)
+            timer.Stop()
+        
+            output.WriteLine("LINQ:")
+            output.WriteLine(sprintf "\tNumber of Cycles Found: %i" cycles_linq.Count)
+            output.WriteLine(sprintf "\tElapsed Time: %i" timer.ElapsedMilliseconds)
+        
+        let doParallelTest () =
+            let johnson_parallel = new JohnsonCycleFind()
+            timer.Restart()
+            let cycles_parallel = johnson_parallel.GetAllCyclesParallel(dict)
+            timer.Stop()
+        
+            output.WriteLine("Parallel:")
+            output.WriteLine(sprintf "\tNumber of Cycles Found: %i" cycles_parallel.Count)
+            output.WriteLine(sprintf "\tElapsed Time: %i" timer.ElapsedMilliseconds)
+        
+        doParallelTest()
+        doLinqTest()
+        doRecursiveTest()
+        doStackTest()
+
+        doStackTest()
+        doRecursiveTest()
+        doLinqTest()
+        doParallelTest()
