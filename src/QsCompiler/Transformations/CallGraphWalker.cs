@@ -73,6 +73,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             params TypeParameterResolutions[] resolutions)
         {
             if (target == null) throw new ArgumentNullException(nameof(target));
+
+            // Short-cut some edge cases
+            if (!resolutions.Any())
+            {
+                combined = TypeParameterResolutions.Empty;
+                return true;
+            }
+
+            if (resolutions.Length == 1)
+            {
+                combined = resolutions[0];
+                return true;
+            }
+
             var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
             var success = true;
 
@@ -271,7 +285,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         {
             var walker = new BuildGraph();
 
-            walker.Namespaces.OnNamespace(compilation.Namespaces.First(ns => ns.Name.Equals(NonNullable<string>.New("Input"))));
+            var targetNs = NonNullable<string>.New("Microsoft.Quantum.Testing.TypeParameterResolution");
+            walker.Namespaces.OnNamespace(compilation.Namespaces.First(ns => ns.Name.Equals(targetNs)));
 
             //foreach (var ns in compilation.Namespaces)
             //{
@@ -303,7 +318,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
             internal CallGraph graph = new CallGraph();
 
-            internal Stack<TypeParameterResolutions> typeParameterResolutions = new Stack<TypeParameterResolutions>();
+            internal IEnumerable<TypeParameterResolutions> typeParameterResolutions = new List<TypeParameterResolutions>();
         }
 
         private class NamespaceTransformation : NamespaceTransformation<TransformationState>
@@ -325,15 +340,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             {
                 if (ex.TypeParameterResolutions.Any())
                 {
-                    SharedState.typeParameterResolutions.Push(ex.TypeParameterResolutions);
-                    var result = base.OnTypedExpression(ex);
-                    SharedState.typeParameterResolutions.Pop();
-                    return result;
+                    SharedState.typeParameterResolutions = SharedState.typeParameterResolutions.Prepend(ex.TypeParameterResolutions);
                 }
-                else
-                {
-                    return base.OnTypedExpression(ex);
-                }
+                return base.OnTypedExpression(ex);
             }
         }
 
@@ -376,13 +385,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     // ToDo: this needs adaption if we want to support type specializations
                     var typeArgs = tArgs;
 
-                    var edge = new CallGraphEdge { };
+                    CallGraph.TryCombineTypeResolutions(global.Item, out var combined, SharedState.typeParameterResolutions.ToArray());
+                    SharedState.typeParameterResolutions = new List<TypeParameterResolutions>();
+                    var edge = new CallGraphEdge { ParamResolutions = combined };
 
                     if (SharedState.inCall)
                     {
-                        CallGraph.TryCombineTypeResolutions(global.Item, out var combined, SharedState.typeParameterResolutions.ToArray());
-                        edge.ParamResolutions = combined;
-
                         var kind = QsSpecializationKind.QsBody;
                         if (SharedState.hasAdjointDependency && SharedState.hasControlledDependency)
                         {

@@ -433,6 +433,8 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReplaceTargetSpecificImplementations(thisDllUri, out this.CompilationOutput);
             }
 
+            var graph = Transformations.BuildCallGraph.Apply(this.CompilationOutput);
+
             if (this.Config.ConvertClassicalControl)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
