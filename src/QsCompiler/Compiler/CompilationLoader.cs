@@ -447,8 +447,8 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.Config.IsExecutable && this.CompilationOutput?.EntryPoints.Length == 0)
             {
-                this.Logger?.Log(WarningCode.MissingEntryPoint, Array.Empty<string>());
-
+                if (this.Config.RuntimeCapabilities == RuntimeCapabilities.Unknown) this.Logger?.Log(WarningCode.MissingEntryPoint, Array.Empty<string>());
+                else this.LogAndUpdate(ref this.CompilationStatus.Validation, ErrorCode.MissingEntryPoint, Array.Empty<string>());
             }
             // TODO: 
             // give warnings and ignore entry points in libraries, 
