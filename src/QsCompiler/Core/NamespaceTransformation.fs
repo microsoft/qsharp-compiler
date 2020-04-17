@@ -53,7 +53,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     default this.OnAttribute att = att 
 
     abstract member OnItemName : NonNullable<string> -> NonNullable<string>
-    default this.OnItemName name = this.Statements.OnVariableName name
+    default this.OnItemName name = name
 
     abstract member OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
     default this.OnTypeItems tItem = 
