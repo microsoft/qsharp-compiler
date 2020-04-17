@@ -5,9 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -18,6 +16,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -221,10 +220,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         internal References Externals { get; private set; }
         internal NamespaceManager GlobalSymbols { get; private set; }
+
         private readonly Dictionary<QsQualifiedName, QsCallable> CompiledCallables;
         private readonly Dictionary<QsQualifiedName, QsCustomType> CompiledTypes;
+
         private readonly ReaderWriterLockSlim SyncRoot;
         private readonly HashSet<ReaderWriterLockSlim> DependentLocks;
+
+        internal readonly RuntimeCapabilities RuntimeCapabilities;
+        internal readonly bool IsExecutable;
 
         public void Dispose()
         { this.SyncRoot.Dispose(); }
@@ -234,13 +238,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// with the given sequence of locks registered as dependent locks if the sequence is not null.
         /// Throws an ArgumentNullException if any of the given locks is.
         /// </summary>
-        internal CompilationUnit(References externals = null, IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
+        internal CompilationUnit(RuntimeCapabilities capabilities, bool isExecutable,
+            References externals = null, IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
         {
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.DependentLocks = dependentLocks == null
                 ? new HashSet<ReaderWriterLockSlim>()
                 : new HashSet<ReaderWriterLockSlim>(dependentLocks);
             if (dependentLocks?.Contains(null) ?? false) throw new ArgumentNullException(nameof(dependentLocks), "one or more of the given locks is null");
+
+            this.RuntimeCapabilities = capabilities;
+            this.IsExecutable = isExecutable;
+
             this.CompiledCallables = new Dictionary<QsQualifiedName, QsCallable>();
             this.CompiledTypes = new Dictionary<QsQualifiedName, QsCustomType>();
             this.UpdateReferences(externals ?? References.Empty);
@@ -260,7 +269,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.GlobalSymbols = new NamespaceManager(this, 
                     this.Externals.Declarations.Values.SelectMany(h => h.Callables), 
                     this.Externals.Declarations.Values.SelectMany(h => h.Specializations.Select(t => new Tuple<SpecializationDeclarationHeader, SpecializationImplementation>(t.Item1, t.Item2))), 
-                    this.Externals.Declarations.Values.SelectMany(h => h.Types));
+                    this.Externals.Declarations.Values.SelectMany(h => h.Types),
+                    this.RuntimeCapabilities, this.IsExecutable);
             }
             finally { this.ExitWriteLock(); }
         }

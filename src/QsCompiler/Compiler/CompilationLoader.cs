@@ -23,7 +23,7 @@ using Newtonsoft.Json.Bson;
 
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 using OptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
-using RuntimeCapabilities = Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants.RuntimeCapabilities;
+using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 
 namespace Microsoft.Quantum.QsCompiler
@@ -435,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler
             RaiseCompilationTaskStart("OverallCompilation", "Build");
             this.CompilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
-            var compilationManager = new CompilationUnitManager(this.OnCompilerException);
+            var compilationManager = new CompilationUnitManager(this.OnCompilerException, capabilities: this.Config.RuntimeCapabilities, isExecutable: this.Config.IsExecutable); 
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);
             this.VerifiedCompilation = compilationManager.Build();
@@ -450,9 +450,6 @@ namespace Microsoft.Quantum.QsCompiler
                 this.Logger?.Log(WarningCode.MissingEntryPoint, Array.Empty<string>());
 
             }
-            // TODO: 
-            // give warnings and ignore entry points in libraries, 
-            // and check additional restriction on the return type for execution on quantum processors.
 
             // executing the specified rewrite steps
 
