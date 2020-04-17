@@ -19,20 +19,20 @@
 
   <!-- Resolving the OutputType to either QsharpExe or QsharpLibrary. -->
   <PropertyGroup>
-    <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library'">QsharpLibrary</ResolvedQsharpOutputType>
-    <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Exe'">QsharpExe</ResolvedQsharpOutputType>
+    <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Library' Or '$(NoEntryPoint)' == 'true'">QsharpLibrary</ResolvedQsharpOutputType>
+    <ResolvedQsharpOutputType Condition="'$(OutputType)' == 'Exe' And '$(NoEntryPoint)' != 'true'">QsharpExe</ResolvedQsharpOutputType>
     <ResolvedQsharpOutputType Condition="'$(ResolvedQsharpOutputType)' != 'QsharpLibrary' And '$(ResolvedQsharpOutputType)' != 'QsharpExe'"></ResolvedQsharpOutputType>
     <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
   </PropertyGroup>
 
   <!-- Resolving the ExecutionTarget to either AlfredProcessor, BrunoProcessor, ClementineProcessor or Unspecified.-->
   <PropertyGroup>
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And '$(ExecutionTarget)' == 'Alfred'">AlfredProcessor</ResolvedQsharpExecutionTarget>
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And '$(ExecutionTarget)' == 'Bruno'">BrunoProcessor</ResolvedQsharpExecutionTarget>
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' And '$(ExecutionTarget)' == 'Clementine'">ClementineProcessor</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And '$(ExecutionTarget)' == 'Alfred'">AlfredProcessor</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And '$(ExecutionTarget)' == 'Bruno'">BrunoProcessor</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And '$(ExecutionTarget)' == 'Clementine'">ClementineProcessor</ResolvedQsharpExecutionTarget>
     <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'Any'">Unspecified</ResolvedQsharpExecutionTarget>
     <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'AlfredProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'BrunoProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'ClementineProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'Unspecified'"></ResolvedQsharpExecutionTarget>
-    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">Possible values are 'Alfred', 'Bruno', 'Clementine', or 'Any'.</ValidExecutionTargets>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values are 'Alfred', 'Bruno', 'Clementine', or 'Any'.</ValidExecutionTargets>
     <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
   </PropertyGroup>
 
