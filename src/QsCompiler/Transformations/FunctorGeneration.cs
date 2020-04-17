@@ -47,16 +47,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         private static readonly NonNullable<string> ControlQubitsName =
             NonNullable<string>.New(InternalUse.ControlQubitsName);
 
-        private static readonly LocalVariableDeclaration<NonNullable<string>> ControlQubitsDeclaration =
-            new LocalVariableDeclaration<NonNullable<string>>(
-                ControlQubitsName, 
-                ControlQubits.ResolvedType, 
-                ControlQubits.InferredInformation, 
-                QsNullable<Tuple<int, int>>.Null,
-                QsCompilerDiagnostic.DefaultRange); 
-
         private static readonly TypedExpression ControlQubits =
             SyntaxGenerator.ImmutableQubitArrayWithName(ControlQubitsName);
+
+        private static readonly LocalVariableDeclaration<NonNullable<string>> ControlQubitsDeclaration =
+            new LocalVariableDeclaration<NonNullable<string>>(
+                ControlQubitsName,
+                ControlQubits.ResolvedType,
+                ControlQubits.InferredInformation,
+                QsNullable<Tuple<int, int>>.Null,
+                QsCompilerDiagnostic.DefaultRange);
 
         public static readonly Func<QsScope, QsScope> ApplyAdjoint =
             new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Statements.OnScope;
@@ -108,7 +108,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<NonNullable<string>>[] addedVars)
         : base(parent) =>
-            AddedVariableDeclarations = addedVars ?? throw new ArgumentNullException(nameof(addedVars));
+            this.AddedVariableDeclarations = addedVars ?? throw new ArgumentNullException(nameof(addedVars));
 
         public override LocalDeclarations OnLocalDeclarations(LocalDeclarations decl) =>
             base.OnLocalDeclarations(new LocalDeclarations(decl.Variables.AddRange(this.AddedVariableDeclarations)));
