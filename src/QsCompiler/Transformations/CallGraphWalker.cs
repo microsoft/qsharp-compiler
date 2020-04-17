@@ -365,17 +365,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             while (SccStack.Any())
             {
                 var (scc, startNode) = SccStack.Pop();
-                //var subGraph = GetSubGraphLimitedToNodes(graph, scc);
                 cycles.AddRange(GetSccCyclesFilter(graph, scc, startNode));
-
-                //subGraph.Remove(startNode);
-                //foreach (var (_, children) in subGraph)
-                //{
-                //    children.Remove(startNode);
-                //}
-
                 scc.Remove(startNode);
-
                 PushSCCsFromGraphFilter(graph, scc);
             }
 
