@@ -23,7 +23,7 @@ using Newtonsoft.Json.Bson;
 
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 using OptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
-using RuntimeCapabilities = Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants.RuntimeCapabilities;
+using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 
 namespace Microsoft.Quantum.QsCompiler

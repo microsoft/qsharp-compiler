@@ -17,32 +17,32 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
+    internal class ProjectProperties
+    {
+        public readonly string Version;
+        public readonly string OutputPath;
+        public readonly AssemblyConstants.RuntimeCapabilities RuntimeCapabilities;
+        public readonly bool IsExecutable;
+        public readonly bool ExposeReferencesViaTestNames;
+
+        internal static ProjectProperties Default =>
+            new ProjectProperties("Latest", "", AssemblyConstants.RuntimeCapabilities.Unknown, false, false);
+
+        public ProjectProperties(string version, string outputPath, AssemblyConstants.RuntimeCapabilities runtimeCapabilities, bool isExecutable, bool loadTestNames)
+        {
+            this.Version = version ?? "";
+            this.OutputPath = outputPath ?? throw new ArgumentNullException(nameof(outputPath));
+            this.RuntimeCapabilities = runtimeCapabilities;
+            this.IsExecutable = isExecutable;
+            this.ExposeReferencesViaTestNames = loadTestNames;
+        }
+    }
+
     public class ProjectInformation
     {
-        internal class Properties
-        {
-            public readonly string Version;
-            public readonly string OutputPath;
-            public readonly AssemblyConstants.RuntimeCapabilities RuntimeCapabilities;
-            public readonly bool IsExecutable;
-            public readonly bool ExposeReferencesViaTestNames;
-
-            internal static Properties Default =>
-                new Properties("Latest", "", AssemblyConstants.RuntimeCapabilities.Unknown, false, false);
-
-            public Properties(string version, string outputPath, AssemblyConstants.RuntimeCapabilities runtimeCapabilities, bool isExecutable, bool loadTestNames)
-            {
-                this.Version = version ?? "";
-                this.OutputPath = outputPath ?? throw new ArgumentNullException(nameof(outputPath));
-                this.RuntimeCapabilities = runtimeCapabilities;
-                this.IsExecutable = isExecutable;
-                this.ExposeReferencesViaTestNames = loadTestNames;
-            }
-        }
-
         public delegate bool Loader(Uri projectFile, out ProjectInformation projectInfo);
 
-        internal readonly Properties ProjectProperties;
+        internal readonly ProjectProperties Properties;
         public readonly ImmutableArray<string> SourceFiles;
         public readonly ImmutableArray<string> ProjectReferences;
         public readonly ImmutableArray<string> References;
@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public ProjectInformation(string version, string outputPath, AssemblyConstants.RuntimeCapabilities runtimeCapabilities, bool isExecutable, bool loadTestNames,
             IEnumerable<string> sourceFiles, IEnumerable<string> projectReferences, IEnumerable<string> references)
         {
-            this.ProjectProperties = new Properties(version, outputPath, runtimeCapabilities, isExecutable, loadTestNames);
+            this.Properties = new ProjectProperties(version, outputPath, runtimeCapabilities, isExecutable, loadTestNames);
             this.SourceFiles = sourceFiles?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(sourceFiles));
             this.ProjectReferences = projectReferences?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(projectReferences));
             this.References = references?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(references));
@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             public readonly Uri ProjectFile;
             public Uri OutputPath { get; private set; }
-            public ProjectInformation.Properties Properties { get; private set; }
+            public ProjectProperties Properties { get; private set; }
             private bool IsLoaded;
 
             /// <summary>
@@ -138,8 +138,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.ProjectFile = projectFile ?? throw new ArgumentNullException(nameof(projectFile));
                 this.SetProjectInformation(projectInfo ?? throw new ArgumentNullException(nameof(projectInfo)));
 
-                var version = Version.TryParse(projectInfo.ProjectProperties.Version, out Version v) ? v : null;
-                if (projectInfo.ProjectProperties.Version.Equals("Latest", StringComparison.InvariantCultureIgnoreCase)) version = new Version(0, 3);
+                var version = Version.TryParse(projectInfo.Properties.Version, out Version v) ? v : null;
+                if (projectInfo.Properties.Version.Equals("Latest", StringComparison.InvariantCultureIgnoreCase)) version = new Version(0, 3);
                 var ignore = version == null || version < new Version(0, 3) ? true : false;
 
                 // We track the file contents for unsupported projects in case the files are migrated to newer projects while editing,
@@ -164,10 +164,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             private void SetProjectInformation(ProjectInformation projectInfo)
             {
                 if (projectInfo == null) throw new ArgumentNullException(nameof(projectInfo));
-                this.Properties = projectInfo.ProjectProperties;
+                this.Properties = projectInfo.Properties;
                 this.IsLoaded = false;
 
-                var outputPath = projectInfo.ProjectProperties.OutputPath;
+                var outputPath = projectInfo.Properties.OutputPath;
                 try { outputPath = Path.GetFullPath(outputPath); }
                 catch { outputPath = null; }
                 var outputUri = Uri.TryCreate(outputPath, UriKind.Absolute, out Uri uri) ? uri : null;

@@ -5,9 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -18,6 +16,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
@@ -228,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly ReaderWriterLockSlim SyncRoot;
         private readonly HashSet<ReaderWriterLockSlim> DependentLocks;
 
-        internal readonly AssemblyConstants.RuntimeCapabilities RuntimeCapabilities;
+        internal readonly RuntimeCapabilities RuntimeCapabilities;
         internal readonly bool IsExecutable;
 
         public void Dispose()
@@ -239,7 +238,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// with the given sequence of locks registered as dependent locks if the sequence is not null.
         /// Throws an ArgumentNullException if any of the given locks is.
         /// </summary>
-        internal CompilationUnit(AssemblyConstants.RuntimeCapabilities capabilities, bool isExecutable,
+        internal CompilationUnit(RuntimeCapabilities capabilities, bool isExecutable,
             References externals = null, IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
         {
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);

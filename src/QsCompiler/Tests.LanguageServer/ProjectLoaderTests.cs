@@ -113,8 +113,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var (projectFile, context) = Context("test9");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
-            Assert.AreEqual("test9.dll", Path.GetFileName(context.ProjectProperties.OutputPath));
-            Assert.IsTrue(Path.GetDirectoryName(context.ProjectProperties.OutputPath).StartsWith(projDir));
+            Assert.AreEqual("test9.dll", Path.GetFileName(context.Properties.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.Properties.OutputPath).StartsWith(projDir));
 
             var qsFiles = new string[]
             {
@@ -133,8 +133,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var (projectFile, context) = Context("test3");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
-            Assert.AreEqual("test3.dll", Path.GetFileName(context.ProjectProperties.OutputPath));
-            Assert.IsTrue(Path.GetDirectoryName(context.ProjectProperties.OutputPath).StartsWith(projDir));
+            Assert.AreEqual("test3.dll", Path.GetFileName(context.Properties.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.Properties.OutputPath).StartsWith(projDir));
 
             var qsFiles = new string[]
             {
@@ -152,8 +152,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             (projectFile, context) = Context("test12");
             projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
-            Assert.AreEqual("test12.dll", Path.GetFileName(context.ProjectProperties.OutputPath));
-            Assert.IsTrue(Path.GetDirectoryName(context.ProjectProperties.OutputPath).StartsWith(projDir));
+            Assert.AreEqual("test12.dll", Path.GetFileName(context.Properties.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.Properties.OutputPath).StartsWith(projDir));
 
             qsFiles = new string[]
             {
@@ -175,8 +175,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var (projectFile, context) = Context("test7");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
-            Assert.AreEqual("test7.dll", Path.GetFileName(context.ProjectProperties.OutputPath));
-            Assert.IsTrue(Path.GetDirectoryName(context.ProjectProperties.OutputPath).StartsWith(projDir));
+            Assert.AreEqual("test7.dll", Path.GetFileName(context.Properties.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.Properties.OutputPath).StartsWith(projDir));
 
             var qsFiles = new string[]
             {
@@ -195,8 +195,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var (projectFile, context) = Context("test4");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
-            Assert.AreEqual("test4.dll", Path.GetFileName(context.ProjectProperties.OutputPath));
-            Assert.IsTrue(Path.GetDirectoryName(context.ProjectProperties.OutputPath).StartsWith(projDir));
+            Assert.AreEqual("test4.dll", Path.GetFileName(context.Properties.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.Properties.OutputPath).StartsWith(projDir));
 
             var qsFiles = new string[]
             {
@@ -212,8 +212,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             (projectFile, context) = Context("test10");
             projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
-            Assert.AreEqual("test10.dll", Path.GetFileName(context.ProjectProperties.OutputPath));
-            Assert.IsTrue(Path.GetDirectoryName(context.ProjectProperties.OutputPath).StartsWith(projDir));
+            Assert.AreEqual("test10.dll", Path.GetFileName(context.Properties.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.Properties.OutputPath).StartsWith(projDir));
 
             qsFiles = new string[]
             {
@@ -227,8 +227,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             (projectFile, context) = Context("test11");
             projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
-            Assert.AreEqual("test11.dll", Path.GetFileName(context.ProjectProperties.OutputPath));
-            Assert.IsTrue(Path.GetDirectoryName(context.ProjectProperties.OutputPath).StartsWith(projDir));
+            Assert.AreEqual("test11.dll", Path.GetFileName(context.Properties.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.Properties.OutputPath).StartsWith(projDir));
 
             qsFiles = new string[]
             {
@@ -246,8 +246,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var (projectFile, context) = Context("test5");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
-            Assert.AreEqual("test5.dll", Path.GetFileName(context.ProjectProperties.OutputPath));
-            Assert.IsTrue(Path.GetDirectoryName(context.ProjectProperties.OutputPath).StartsWith(projDir));
+            Assert.AreEqual("test5.dll", Path.GetFileName(context.Properties.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.Properties.OutputPath).StartsWith(projDir));
 
             var qsFiles = new string[]
             {
@@ -270,8 +270,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var (projectFile, context) = Context("test6");
             var projDir = Path.GetDirectoryName(projectFile);
             Assert.IsNotNull(context);
-            Assert.AreEqual("test6.dll", Path.GetFileName(context.ProjectProperties.OutputPath));
-            Assert.IsTrue(Path.GetDirectoryName(context.ProjectProperties.OutputPath).StartsWith(projDir));
+            Assert.AreEqual("test6.dll", Path.GetFileName(context.Properties.OutputPath));
+            Assert.IsTrue(Path.GetDirectoryName(context.Properties.OutputPath).StartsWith(projDir));
 
             var qsFiles = new string[]
             {
