@@ -264,9 +264,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             {
                 if (_Dependencies.TryGetValue(node, out var dependencies))
                 {
-                    foreach (var temp in dependencies)
+                    foreach (var dependency in dependencies)
                     {
-                        var (curr, _) = temp;
+                        var (curr, _) = dependency;
 
                         if (finished.Contains(curr)) continue;
 
