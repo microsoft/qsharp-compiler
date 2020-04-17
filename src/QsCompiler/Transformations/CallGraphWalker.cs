@@ -268,28 +268,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     {
                         var (curr, _) = temp;
 
-                        if (!finished.Contains(curr))
+                        if (finished.Contains(curr)) continue;
+
+                        if (callStack.ContainsKey(curr))
                         {
-                            if (callStack.ContainsKey(curr))
-                            {
-                                // Cycle detected
+                            // Cycle detected
 
-                                var cycle = new List<CallGraphNode>() { curr };
-                                while (callStack.TryGetValue(curr, out var next))
-                                {
-                                    if (curr.Equals(next)) break;
-                                    cycle.Add(next);
-                                    curr = next;
-                                }
-
-                                cycles.Add(cycle.ToImmutableArray());
-                            }
-                            else
+                            var cycle = new List<CallGraphNode>() { curr };
+                            while (callStack.TryGetValue(curr, out var next))
                             {
-                                callStack[node] = curr;
-                                processDependencies(curr);
-                                callStack.Remove(node);
+                                if (curr.Equals(next)) break;
+                                cycle.Add(next);
+                                curr = next;
                             }
+
+                            cycles.Add(cycle.ToImmutableArray());
+                        }
+                        else
+                        {
+                            callStack[node] = curr;
+                            processDependencies(curr);
+                            callStack.Remove(node);
                         }
                     }
                 }
