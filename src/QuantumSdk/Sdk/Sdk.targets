@@ -77,7 +77,7 @@
       <_QscCommandRuntimeFlag>--runtime $(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag> 
       <_QscCommandTargetPackageFlag Condition="'$(ResolvedTargetPackage)' != ''">--target-package "$(ResolvedTargetPackage)"</_QscCommandTargetPackageFlag>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">--load-test-names</_QscCommandTestNamesFlag>
-      <_QscCommandPredefinedAssemblyProperties>ResolvedExecutionTarget:$(ResolvedQsharpExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties>ResolvedExecutionTarget:$(ResolvedQsharpExecutionTarget) ResolvedQsharpOutputType:$(ResolvedQsharpOutputType)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(DefaultSimulator) != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandAssemblyPropertiesFlag>--assembly-properties $(_QscCommandPredefinedAssemblyProperties) $(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">--package-load-fallback-folders "@(ResolvedPackageLoadFallbackFolders,'" "')"</_QscPackageLoadFallbackFoldersFlag>

@@ -237,14 +237,15 @@ type ErrorCode =
     | InnerTupleInEntryPointArgument = 6234
     | ArrayOfArrayInEntryPointArgument = 6235
     | MultipleEntryPoints = 6236
-    | InvalidEntryPointSpecialization = 6237
-    | DuplicateEntryPointArgumentName = 6238
-    | EntryPointInLibrary = 6239
-    | InvalidTestAttributePlacement = 6240
-    | InvalidExecutionTargetForTest = 6241
-    | ExpectingFullNameAsAttributeArgument = 6242
-    | AttributeInvalidOnSpecialization = 6243
-    | AttributeInvalidOnCallable = 6244
+    | MissingEntryPoint = 6237
+    | InvalidEntryPointSpecialization = 6238
+    | DuplicateEntryPointArgumentName = 6239
+    | EntryPointInLibrary = 6240
+    | InvalidTestAttributePlacement = 6241
+    | InvalidExecutionTargetForTest = 6242
+    | ExpectingFullNameAsAttributeArgument = 6243
+    | AttributeInvalidOnSpecialization = 6244
+    | AttributeInvalidOnCallable = 6245
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -612,6 +613,7 @@ type DiagnosticItem =
             | ErrorCode.InnerTupleInEntryPointArgument            -> "Anonymous tuple items or arrays of tuples are not supported in entry point arguments. All items need to be named."
             | ErrorCode.ArrayOfArrayInEntryPointArgument          -> "Multi-dimensional arrays are not supported in entry point arguments."
             | ErrorCode.MultipleEntryPoints                       -> "Invalid entry point. An entry point {0} already exists in {1}."
+            | ErrorCode.MissingEntryPoint                         -> "Missing entry point. Execution on a quantum processor requires that a Q# entry point is defined using the @EntryPoint() attribute. Any C# driver code should be defined in a separate project."
             | ErrorCode.InvalidEntryPointSpecialization           -> "Entry points cannot have any other specializations besides the default body."
             | ErrorCode.DuplicateEntryPointArgumentName           -> "Invalid name for entry point argument. A similar argument name is already in use."
             | ErrorCode.EntryPointInLibrary                       -> "Invalid entry point. Only executable Q# projects can have entry points."
