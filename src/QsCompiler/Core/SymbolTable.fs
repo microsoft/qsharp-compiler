@@ -741,7 +741,8 @@ and NamespaceManager
     (syncRoot : IReaderWriterLock,
      callablesInRefs : IEnumerable<CallableDeclarationHeader>,
      specializationsInRefs : IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
-     typesInRefs : IEnumerable<TypeDeclarationHeader>) =
+     typesInRefs : IEnumerable<TypeDeclarationHeader>, 
+     runtimeCapabilites, isExecutable) =
     // This class itself does not use any concurrency, 
     // so anything that is accessible within the class only does not apply any locks.
     // IMPORTANT: the syncRoot is intentionally not exposed externally, since with this class supporting mutation
@@ -958,9 +959,18 @@ and NamespaceManager
             let signatureErrs = inErrs.Concat outErrs
             errs.AddRange signatureErrs
 
+            // currently, only return values of type Result, Result[], and tuples thereof are supported on quantum processors
+            if runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.QPRGen0 || runtimeCapabilites = AssemblyConstants.RuntimeCapabilities.QPRGen1 then
+                let invalid = signature.ReturnType.ExtractAll (fun t -> t.Type |> function 
+                    | Result | ArrayType _ | TupleType _ | InvalidType -> Seq.empty
+                    | _ -> Seq.singleton t)
+                if invalid.Any() then errs.Add (decl.Position, signature.ReturnType.Range |> orDefault |> QsCompilerDiagnostic.Warning (WarningCode.NonResultTypeReturnedInEntryPoint, [])) 
+
             // validate entry point argument names
             let asCommandLineArg (str : string) = str.ToLowerInvariant() |> String.filter((<>)'_')
-            let reservedCommandLineArgs = CommandLineArguments.ReservedArguments |> Seq.map asCommandLineArg |> Seq.toArray
+            let reservedCommandLineArgs = 
+                CommandLineArguments.ReservedArguments.Concat CommandLineArguments.ReservedArgumentAbbreviations 
+                |> Seq.map asCommandLineArg |> Seq.toArray
             let nameAndRange (sym : QsSymbol) = sym.Symbol |> function
                 | Symbol name -> Some (asCommandLineArg name.Value, sym.Range)
                 | _ -> None
@@ -968,14 +978,17 @@ and NamespaceManager
             let verifyArgument i (arg, range : QsNullable<_>) = 
                 if i > 0 && simplifiedArgNames.[..i-1] |> Seq.map fst |> Seq.contains arg
                 then errs.Add (decl.Position, range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.DuplicateEntryPointArgumentName, []))
-                elif reservedCommandLineArgs.Contains arg || (arg.Length = 1 && CommandLineArguments.ReservedArgumentAbbreviations.Contains arg.[0])
+                elif reservedCommandLineArgs.Contains arg
                 then errs.Add (decl.Position, range.ValueOr decl.Range |> QsCompilerDiagnostic.Warning (WarningCode.ReservedEntryPointArgumentName, []))
             simplifiedArgNames |> List.iteri verifyArgument
 
-            // check that there is no more than one entry point
+            // check that there is no more than one entry point, and no entry point if the project is not executable
             if signatureErrs.Any() then false, errs
+            elif not isExecutable then 
+                errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.EntryPointInLibrary, [])) 
+                false, errs
             else GetEntryPoints() |> Seq.tryHead |> function
-                | None -> true, errs
+                | None -> isExecutable, errs
                 | Some (epName, epSource) ->
                     let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
                     errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs))

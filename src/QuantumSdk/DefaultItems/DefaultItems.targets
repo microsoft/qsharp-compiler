@@ -46,10 +46,10 @@
 
   <!-- Resolving the RuntimeCapabilites to either QPRGen0, QPRGen1, or Unknown.-->
   <PropertyGroup>
-    <ResolvedRuntimeCapabilites Condition="'$(ResolvedQsharpExecutionTarget)' == 'AlfredProcessor'">QPRGen1</ResolvedRuntimeCapabilites>
-    <ResolvedRuntimeCapabilites Condition="'$(ResolvedQsharpExecutionTarget)' == 'BrunoProcessor'">QPRGen0</ResolvedRuntimeCapabilites>
-    <ResolvedRuntimeCapabilites Condition="'$(ResolvedQsharpExecutionTarget)' == 'ClementineProcessor'">QPRGen1</ResolvedRuntimeCapabilites>
-    <ResolvedRuntimeCapabilites Condition="'$(ResolvedQsharpExecutionTarget)' != 'AlfredProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'BrunoProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'ClementineProcessor'">Unknown</ResolvedRuntimeCapabilites>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' == 'AlfredProcessor'">QPRGen1</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' == 'BrunoProcessor'">QPRGen0</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' == 'ClementineProcessor'">QPRGen1</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' != 'AlfredProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'BrunoProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'ClementineProcessor'">Unknown</ResolvedRuntimeCapabilities>
   </PropertyGroup>
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
