@@ -482,15 +482,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
             : base(parent) { }
 
-            public override LocalDeclarations OnLocalDeclarations(LocalDeclarations decl)
-            {
-                var variables = decl.Variables.Select(decl =>
-                    this.SharedState.TryGetUniqueName(decl.VariableName, out var unique)
-                    ? new LocalVariableDeclaration<NonNullable<string>>(unique, decl.Type, decl.InferredInformation, decl.Position, decl.Range)
-                    : decl
-                );
-                return base.OnLocalDeclarations(new LocalDeclarations(variables.ToImmutableArray()));
-            }
+            public override NonNullable<string> OnVariableName(NonNullable<string> name) =>
+                this.SharedState.TryGetUniqueName(name, out var unique) ? unique : name;
         }
 
         private class StatementKindTransformation
