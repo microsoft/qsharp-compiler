@@ -40,44 +40,48 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// </summary>
     internal class JohnsonCycleFind
     {
+        private Stack<(HashSet<int> SCC, int MinNode)> SccStack = new Stack<(HashSet<int> SCC, int MinNode)>();
+
         /// <summary>
         /// Johnson's algorithm for finding all cycles in a graph.
         /// This returns a list of cycles, each represented as a list of nodes. Nodes
         /// for this algorithm are integers. The cycles are guaranteed to not contain
         /// any duplicates and the last node in the list is assumed to be connected
         /// to the first.
+        /// 
+        /// This implementation passes the full graph along with a hash set of nodes
+        /// to represent subgraphs because it is more performant to check if a node
+        /// is in the hash set than to build a dictionary for the subgraph.
         /// </summary>
-        
-        public List<List<int>> GetAllCycles(Dictionary<int, List<int>> graph) =>
-            TarjanSCC(graph)
-                .OrderByDescending(x => x.MinNode)
-                .SelectMany(item =>
-                {
-                    var cycles = new List<List<int>>();
-                    var (scc, startNode) = item;
-                    var subGraph = GetSubGraphLimitedToNodes(graph, scc);
-                    cycles.AddRange(GetSccCycles(subGraph, startNode));
+        public List<List<int>> GetAllCycles(Dictionary<int, List<int>> graph)
+        {
+            var cycles = new List<List<int>>();
 
-                    subGraph.Remove(startNode);
-                    foreach (var (_, children) in subGraph)
-                    {
-                        children.Remove(startNode);
-                    }
+            PushSCCsFromGraph(graph, graph.Keys.ToHashSet());
+            while (SccStack.Any())
+            {
+                var (scc, startNode) = SccStack.Pop();
+                cycles.AddRange(GetSccCycles(graph, scc, startNode));
+                scc.Remove(startNode);
+                PushSCCsFromGraph(graph, scc);
+            }
 
-                    cycles.AddRange(GetAllCycles(subGraph));
-                    return cycles;
-                })
-                .ToList();
-        
+            return cycles;
+        }
+
         /// <summary>
-        /// Gets a subgraph of the input graph where each node in the subgraph is found in the given hash set of nodes.
+        /// Uses Tarjan's algorithm for finding strongly-connected components, or SCCs of a
+        /// graph to get all SCC, orders them by their node with the smallest id, and pushes
+        /// them to the SCC stack.
         /// </summary>
-        private Dictionary<int, List<int>> GetSubGraphLimitedToNodes(Dictionary<int, List<int>> inputGraph, HashSet<int> subGraphNodes) =>
-            inputGraph
-                .Where(kvp => subGraphNodes.Contains(kvp.Key)) // filter the keys
-                .ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.Where(dep => subGraphNodes.Contains(dep)).ToList()); // filter the adjacency lists
+        private void PushSCCsFromGraph(Dictionary<int, List<int>> graph, HashSet<int> filter)
+        {
+            var sccs = TarjanSCC(graph, filter).OrderByDescending(x => x.MinNode);
+            foreach (var scc in sccs)
+            {
+                SccStack.Push(scc);
+            }
+        }
 
         /// <summary>
         /// Tarjan's algorithm for finding all strongly-connected components in a graph.
@@ -91,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// value of their lowest valued-node. The list is sorted such that each SCC comes
         /// before any of its children (reverse topological ordering).
         /// </summary>
-        private List<(HashSet<int> SCC, int MinNode)> TarjanSCC(Dictionary<int, List<int>> inputGraph)
+        private List<(HashSet<int> SCC, int MinNode)> TarjanSCC(Dictionary<int, List<int>> inputGraph, HashSet<int> filter)
         {
             var index = 0; // The index represents the order in which the nodes are discovered by Tarjan's algorithm.
                            // This is necessarily separate from the node's id value.
@@ -119,19 +123,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 // Consider children of node
                 foreach (var child in inputGraph[node])
                 {
-                    if (!nodeInfo.ContainsKey(child))
+                    if (filter.Contains(child))
                     {
-                        // Child has not yet been visited; recurse on it
-                        strongconnect(child);
-                        setMinLowLink(node, nodeInfo[child].LowLink);
-                    }
-                    else if (nodeInfo[child].OnStack)
-                    {
-                        // Child is in stack and hence in the current SCC
-                        // If child is not in stack, then (node, child) is an edge pointing to an SCC already found and must be ignored
-                        // Note: The next line may look odd - but is correct.
-                        // It says child.index not child.lowlink; that is deliberate and from the original paper
-                        setMinLowLink(node, nodeInfo[child].Index);
+                        if (!nodeInfo.ContainsKey(child))
+                        {
+                            // Child has not yet been visited; recurse on it
+                            strongconnect(child);
+                            setMinLowLink(node, nodeInfo[child].LowLink);
+                        }
+                        else if (nodeInfo[child].OnStack)
+                        {
+                            // Child is in stack and hence in the current SCC
+                            // If child is not in stack, then (node, child) is an edge pointing to an SCC already found and must be ignored
+                            // Note: The next line may look odd - but is correct.
+                            // It says child.index not child.lowlink; that is deliberate and from the original paper
+                            setMinLowLink(node, nodeInfo[child].Index);
+                        }
                     }
                 }
 
@@ -161,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 }
             }
 
-            foreach (var node in inputGraph.Keys)
+            foreach (var node in filter)
             {
                 if (!nodeInfo.ContainsKey(node))
                 {
@@ -183,7 +190,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// Only when a cycle is found is a node unblocked and any node blocked on that node is
         /// also unblocked, recursively.
         /// </summary>
-        private List<List<int>> GetSccCycles(Dictionary<int, List<int>> intputSCC, int startNode)
+        private List<List<int>> GetSccCycles(Dictionary<int, List<int>> intputSCC, HashSet<int> filter, int startNode)
         {
             var cycles = new List<List<int>>();
             var blockedSet = new HashSet<int>();
@@ -210,14 +217,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
                 foreach (var child in intputSCC[currNode])
                 {
-                    if (child == startNode)
+                    if (filter.Contains(child))
                     {
-                        foundCycle = true;
-                        cycles.Add(nodeStack.Reverse().ToList());
-                    }
-                    else if (!blockedSet.Contains(child))
-                    {
-                        foundCycle |= populateCycles(child);
+                        if (child == startNode)
+                        {
+                            foundCycle = true;
+                            cycles.Add(nodeStack.Reverse().ToList());
+                        }
+                        else if (!blockedSet.Contains(child))
+                        {
+                            foundCycle |= populateCycles(child);
+                        }
                     }
                 }
 
@@ -233,13 +243,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     // If any of currNode's children unblock, currNode will unblock
                     foreach (var child in intputSCC[currNode])
                     {
-                        if (!blockedMap.ContainsKey(child))
+                        if (filter.Contains(child))
                         {
-                            blockedMap[child] = new HashSet<int>() { currNode };
-                        }
-                        else
-                        {
-                            blockedMap[child].Add(currNode);
+                            if (!blockedMap.ContainsKey(child))
+                            {
+                                blockedMap[child] = new HashSet<int>() { currNode };
+                            }
+                            else
+                            {
+                                blockedMap[child].Add(currNode);
+                            }
                         }
                     }
                 }
