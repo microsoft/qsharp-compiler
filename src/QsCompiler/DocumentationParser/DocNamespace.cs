@@ -313,7 +313,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             var yamlStream = new YamlStream(doc);
 
             using var output = new StreamWriter(stream);
-            output.WriteLine("### " + Utils.QsNamespaceYamlMime);
+            output.WriteLine("### " + Utils.QsNamespaceYamlMime + Utils.AutogenerationWarning);
             yamlStream.Save(output, false);
         }
 
