@@ -18,7 +18,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     /// <summary>
     /// Scope transformation that replaces each operation call within a given scope
     /// with a call to the operation after application of the functor given on initialization. 
-    /// The default values used for auto-generation will be used for the additional functor arguments.  
+    /// The default values used for auto-generation will be used for the additional functor arguments. 
+    /// Additional functor arguments will be added to the list of defined variables for each scope. 
     /// </summary>
     public class ApplyFunctorToOperationCalls 
     : SyntaxTreeTransformation<ApplyFunctorToOperationCalls.TransformationsState>
@@ -31,10 +32,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 this.FunctorToApply = functor ?? throw new ArgumentNullException(nameof(functor));
         }
 
-
         public ApplyFunctorToOperationCalls(QsFunctor functor)
         : base(new TransformationsState(functor)) 
-        { 
+        {
+            if (functor.IsControlled) this.Statements = new AddVariableDeclarations<TransformationsState>(this, ControlQubitsDeclaration);
             this.StatementKinds = new IgnoreOuterBlockInConjugations<TransformationsState>(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<TransformationsState>(this, TransformationOptions.Disabled);
@@ -43,8 +44,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 
         // static methods for convenience
 
+        private static readonly NonNullable<string> ControlQubitsName =
+            NonNullable<string>.New(InternalUse.ControlQubitsName);
+
+        private static readonly LocalVariableDeclaration<NonNullable<string>> ControlQubitsDeclaration =
+            new LocalVariableDeclaration<NonNullable<string>>(
+                ControlQubitsName, 
+                ControlQubits.ResolvedType, 
+                ControlQubits.InferredInformation, 
+                QsNullable<Tuple<int, int>>.Null,
+                QsCompilerDiagnostic.DefaultRange); 
+
         private static readonly TypedExpression ControlQubits =
-            SyntaxGenerator.ImmutableQubitArrayWithName(NonNullable<string>.New(InternalUse.ControlQubitsName));
+            SyntaxGenerator.ImmutableQubitArrayWithName(ControlQubitsName);
 
         public static readonly Func<QsScope, QsScope> ApplyAdjoint =
             new ApplyFunctorToOperationCalls(QsFunctor.Adjoint).Statements.OnScope;
@@ -86,6 +98,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         }
     }
 
+    /// <summary>
+    /// Adds the given variable declarations to the list of defined variables for each scope.
+    /// </summary>
+    public class AddVariableDeclarations<T>
+    : StatementTransformation<T>
+    {
+        private readonly IEnumerable<LocalVariableDeclaration<NonNullable<string>>> AddedVariableDeclarations;
+
+        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<NonNullable<string>>[] addedVars)
+        : base(parent) =>
+            AddedVariableDeclarations = addedVars ?? throw new ArgumentNullException(nameof(addedVars));
+
+        public override LocalDeclarations OnLocalDeclarations(LocalDeclarations decl) =>
+            base.OnLocalDeclarations(new LocalDeclarations(decl.Variables.AddRange(this.AddedVariableDeclarations)));
+    }
 
     /// <summary>
     /// Ensures that the outer block of conjugations is ignored during transformation. 
