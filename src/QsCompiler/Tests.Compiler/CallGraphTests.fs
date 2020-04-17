@@ -422,7 +422,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         |> CheckForExpectedCycles result
 
-    [<Fact(Skip="Cycle detection does not work here yet")>]
+    [<Fact>]
     [<Trait("Category","Cycle Detection")>]
     member this.``Fully Connected Cycles`` () =
         let result = CompileCycleDetectionTest 7
@@ -436,5 +436,64 @@ type CallGraphTests (output:ITestOutputHelper) =
             [ "Bar"; "Baz" ]
             [ "Foo"; "Bar"; "Baz" ]
             [ "Baz"; "Bar"; "Foo" ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``Sausage Link Graph Cycles`` () =
+        let result = CompileCycleDetectionTest 8
+
+        [
+            [ "_1"; "_2"; ]
+            [ "_2"; "_3"; ]
+            [ "_3"; "_4"; ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``Double Link Graph Cycles`` () =
+        let result = CompileCycleDetectionTest 9
+
+        [
+            [ "_1"; "_2"; "_6"; "_5" ]
+            [ "_1"; "_4"; "_6"; "_3" ]
+            [ "_1"; "_2"; "_6"; "_3" ]
+            [ "_1"; "_4"; "_6"; "_5" ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``Multiple SCC Cycles`` () =
+        let result = CompileCycleDetectionTest 10
+
+        [
+            [ "SCC1_1" ]
+            [ "SCC2_1"; "SCC2_2" ]
+            [ "SCC3_2"; "SCC3_3"; ]
+            [ "SCC3_1"; "SCC3_2"; "SCC3_3" ]
+        ]
+        |> CheckForExpectedCycles result
+
+    [<Fact>]
+    [<Trait("Category","Cycle Detection")>]
+    member this.``Johnson's Graph Cycles`` () =
+        let result = CompileCycleDetectionTest 11
+
+        [
+            [ "_1"; "_2"; "_k2"; "_k3"; "_2k"; "_2k1" ]
+            [ "_1"; "_3"; "_k2"; "_k3"; "_2k"; "_2k1" ]
+            [ "_1"; "_k1"; "_k2"; "_k3"; "_2k"; "_2k1" ]
+
+            [ "_2k2"; "_2k3"; "_k2" ]
+            [ "_2k2"; "_2k3"; "_k2"; "_k3" ]
+            [ "_2k2"; "_2k3"; "_k2"; "_k3"; "_2k" ]
+            [ "_2k2"; "_2k3"; "_k2"; "_k3"; "_2k"; "_2k1" ]
+
+            [ "_2k2"; "_2k3"; "_3k3" ]
+            [ "_2k2"; "_2k4"; "_3k3" ]
+            [ "_2k2"; "_3k2"; "_3k3" ]
         ]
         |> CheckForExpectedCycles result
