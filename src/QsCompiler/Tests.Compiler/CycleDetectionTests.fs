@@ -270,13 +270,26 @@ type CycleDetectionTests (output: ITestOutputHelper) =
             output.WriteLine("Parallel:")
             output.WriteLine(sprintf "\tNumber of Cycles Found: %i" cycles_parallel.Count)
             output.WriteLine(sprintf "\tElapsed Time: %i" timer.ElapsedMilliseconds)
-        
-        doParallelTest()
-        doLinqTest()
-        doRecursiveTest()
-        doStackTest()
 
-        doStackTest()
-        doRecursiveTest()
+        let doFilterTest () =
+            let johnson_filter = new JohnsonCycleFind()
+            timer.Restart()
+            let cycles_filter = johnson_filter.GetAllCyclesFilter(dict)
+            timer.Stop()
+        
+            output.WriteLine("Filter:")
+            output.WriteLine(sprintf "\tNumber of Cycles Found: %i" cycles_filter.Count)
+            output.WriteLine(sprintf "\tElapsed Time: %i" timer.ElapsedMilliseconds)
+        
+        //doStackTest();
+        //doParallelTest()
         doLinqTest()
-        doParallelTest()
+        doFilterTest()
+        doRecursiveTest()
+        //doStackTest()
+
+        //doStackTest()
+        doRecursiveTest()
+        doFilterTest()
+        doLinqTest()
+        //doParallelTest()

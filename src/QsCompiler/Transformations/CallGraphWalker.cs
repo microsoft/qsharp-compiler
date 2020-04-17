@@ -354,6 +354,232 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
             return cycles;
         }
+
+        #region Filter
+
+        public List<List<int>> GetAllCyclesFilter(Dictionary<int, List<int>> graph)
+        {
+            var cycles = new List<List<int>>();
+
+            PushSCCsFromGraphFilter(graph, graph.Keys.ToHashSet());
+            while (SccStack.Any())
+            {
+                var (scc, startNode) = SccStack.Pop();
+                //var subGraph = GetSubGraphLimitedToNodes(graph, scc);
+                cycles.AddRange(GetSccCyclesFilter(graph, scc, startNode));
+
+                //subGraph.Remove(startNode);
+                //foreach (var (_, children) in subGraph)
+                //{
+                //    children.Remove(startNode);
+                //}
+
+                scc.Remove(startNode);
+
+                PushSCCsFromGraphFilter(graph, scc);
+            }
+
+            return cycles;
+        }
+
+        /// <summary>
+        /// Uses Tarjan's algorithm for finding strongly-connected components, or SCCs of a
+        /// graph to get all SCC, orders them by their node with the smallest id, and pushes
+        /// them to the SCC stack.
+        /// </summary>
+        private void PushSCCsFromGraphFilter(Dictionary<int, List<int>> graph, HashSet<int> filter)
+        {
+            var sccs = TarjanSCCFilter(graph, filter).OrderByDescending(x => x.MinNode);
+            foreach (var scc in sccs)
+            {
+                SccStack.Push(scc);
+            }
+        }
+
+        /// <summary>
+        /// Tarjan's algorithm for finding all strongly-connected components in a graph.
+        /// A strongly-connected component, or SCC, is a subgraph in which all nodes can reach
+        /// all other nodes in the subgraph.
+        ///
+        /// This implementation was based on the pseudo-code found here:
+        /// https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+        ///
+        /// This returns a list of SCCs represented by sets of nodes, each paired with the
+        /// value of their lowest valued-node. The list is sorted such that each SCC comes
+        /// before any of its children (reverse topological ordering).
+        /// </summary>
+        private List<(HashSet<int> SCC, int MinNode)> TarjanSCCFilter(Dictionary<int, List<int>> inputGraph, HashSet<int> filter)
+        {
+            var index = 0; // The index represents the order in which the nodes are discovered by Tarjan's algorithm.
+                           // This is necessarily separate from the node's id value.
+            var nodeStack = new Stack<int>();
+            var nodeInfo = new Dictionary<int, (int Index, int LowLink, bool OnStack)>();
+            var SCCs = new List<(HashSet<int> SCC, int MinNode)>();
+
+            void setMinLowLink(int node, int potentialMin)
+            {
+                var vInfo = nodeInfo[node];
+                if (vInfo.LowLink > potentialMin)
+                {
+                    vInfo.LowLink = potentialMin;
+                    nodeInfo[node] = vInfo;
+                }
+            }
+
+            void strongconnect(int node)
+            {
+                // Set the depth index for node to the smallest unused index
+                nodeStack.Push(node);
+                nodeInfo[node] = (index, index, true);
+                index += 1;
+
+                // Consider children of node
+                foreach (var child in inputGraph[node])
+                {
+                    if (filter.Contains(child))
+                    {
+                        if (!nodeInfo.ContainsKey(child))
+                        {
+                            // Child has not yet been visited; recurse on it
+                            strongconnect(child);
+                            setMinLowLink(node, nodeInfo[child].LowLink);
+                        }
+                        else if (nodeInfo[child].OnStack)
+                        {
+                            // Child is in stack and hence in the current SCC
+                            // If child is not in stack, then (node, child) is an edge pointing to an SCC already found and must be ignored
+                            // Note: The next line may look odd - but is correct.
+                            // It says child.index not child.lowlink; that is deliberate and from the original paper
+                            setMinLowLink(node, nodeInfo[child].Index);
+                        }
+                    }
+                }
+
+                // If node is a root node, pop the stack and generate an SCC
+                if (nodeInfo[node].LowLink == nodeInfo[node].Index)
+                {
+                    var scc = new HashSet<int>();
+
+                    var minNode = node;
+                    int nodeInScc;
+                    do
+                    {
+                        nodeInScc = nodeStack.Pop();
+                        var wInfo = nodeInfo[nodeInScc];
+                        wInfo.OnStack = false;
+                        nodeInfo[nodeInScc] = wInfo;
+                        scc.Add(nodeInScc);
+
+                        // Keep track of minimum node id in scc
+                        if (minNode > nodeInScc)
+                        {
+                            minNode = nodeInScc;
+                        }
+
+                    } while (node != nodeInScc);
+                    SCCs.Add((scc, minNode));
+                }
+            }
+
+            foreach (var node in filter)
+            {
+                if (!nodeInfo.ContainsKey(node))
+                {
+                    strongconnect(node);
+                }
+            }
+
+            return SCCs;
+        }
+
+        /// <summary>
+        /// Johnson's algorithm for finding all cycles in an SCC, or strongly-connected component.
+        ///
+        /// It will process an individual SCC for cycles by looking at each of their nodes
+        /// starting with the smallest-id node of the SCC as the current node. Children of
+        /// the current node are explored, and if any of them are the starting node, a cycle is
+        /// found. Nodes are marked as 'blocked' when visited, and if no cycle is found after
+        /// exploring a node's children, the node is marked as being blocked on its children.
+        /// Only when a cycle is found is a node unblocked and any node blocked on that node is
+        /// also unblocked, recursively.
+        /// </summary>
+        private List<List<int>> GetSccCyclesFilter(Dictionary<int, List<int>> intputSCC, HashSet<int> filter, int startNode)
+        {
+            var cycles = new List<List<int>>();
+            var blockedSet = new HashSet<int>();
+            var blockedMap = new Dictionary<int, HashSet<int>>();
+            var nodeStack = new Stack<int>();
+
+            void unblock(int node)
+            {
+                if (blockedSet.Remove(node) && blockedMap.TryGetValue(node, out var nodesToUnblock))
+                {
+                    blockedMap.Remove(node);
+                    foreach (var n in nodesToUnblock)
+                    {
+                        unblock(n);
+                    }
+                }
+            }
+
+            bool populateCycles(int currNode)
+            {
+                var foundCycle = false;
+                nodeStack.Push(currNode);
+                blockedSet.Add(currNode);
+
+                foreach (var child in intputSCC[currNode])
+                {
+                    if (filter.Contains(child))
+                    {
+                        if (child == startNode)
+                        {
+                            foundCycle = true;
+                            cycles.Add(nodeStack.Reverse().ToList());
+                        }
+                        else if (!blockedSet.Contains(child))
+                        {
+                            foundCycle |= populateCycles(child);
+                        }
+                    }
+                }
+
+                nodeStack.Pop();
+
+                if (foundCycle)
+                {
+                    unblock(currNode);
+                }
+                else
+                {
+                    // Mark currNode as being blocked on each of its children
+                    // If any of currNode's children unblock, currNode will unblock
+                    foreach (var child in intputSCC[currNode])
+                    {
+                        if (filter.Contains(child))
+                        {
+                            if (!blockedMap.ContainsKey(child))
+                            {
+                                blockedMap[child] = new HashSet<int>() { currNode };
+                            }
+                            else
+                            {
+                                blockedMap[child].Add(currNode);
+                            }
+                        }
+                    }
+                }
+
+                return foundCycle;
+            }
+
+            populateCycles(startNode);
+
+            return cycles;
+        }
+
+        #endregion
+
     }
 
     /// <summary>
@@ -608,7 +834,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         .Select(dep => nodeToIndex[dep])
                         .ToList());
 
-            var cycles = new JohnsonCycleFind().GetAllCyclesLINQ(graph);
+            var cycles = new JohnsonCycleFind().GetAllCyclesFilter(graph);
             return cycles.Select(cycle => cycle.Select(index => indexToNode[index]).ToImmutableArray()).ToList();
         }
     }
