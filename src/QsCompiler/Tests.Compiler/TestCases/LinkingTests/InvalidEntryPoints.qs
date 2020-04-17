@@ -9,6 +9,9 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     // tests related to entry point placement verification
 
     @ EntryPoint()
+    operation EntryPointInLibrary() : Unit { }
+
+    @ EntryPoint()
     newtype InvalidEntryPointPlacement1 = Int;
 
     @ EntryPoint()

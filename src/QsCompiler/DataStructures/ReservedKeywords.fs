@@ -250,11 +250,11 @@ module AssemblyConstants =
     | QPRGen1 = 2
 
 
-/// contains reserved names for command line arguments
+/// contains reserved names for command line arguments of Q# projects
 module CommandLineArguments = 
-    let SimulatorOption = "simulator"
-    let ReservedArguments = ImmutableArray.Create SimulatorOption
-    let ReservedArgumentAbbreviations = ImmutableArray.Create SimulatorOption.[0] 
+    let SimulatorOption = ("simulator", "s")
+    let ReservedArguments = ImmutableArray.Create (fst SimulatorOption)
+    let ReservedArgumentAbbreviations = ImmutableArray.Create (snd SimulatorOption) 
 
     let BuiltInSimulators =
         [AssemblyConstants.QuantumSimulator; AssemblyConstants.ToffoliSimulator; AssemblyConstants.ResourcesEstimator]

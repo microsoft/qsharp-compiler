@@ -74,7 +74,7 @@
       <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</_QscCommandInputFlag>
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
-      <_QscCommandRuntimeFlag>--runtime $(ResolvedRuntimeCapabilites)</_QscCommandRuntimeFlag> 
+      <_QscCommandRuntimeFlag>--runtime $(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag> 
       <_QscCommandTargetPackageFlag Condition="'$(ResolvedTargetPackage)' != ''">--target-package "$(ResolvedTargetPackage)"</_QscCommandTargetPackageFlag>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">--load-test-names</_QscCommandTestNamesFlag>
       <_QscCommandPredefinedAssemblyProperties>ResolvedExecutionTarget:$(ResolvedQsharpExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
