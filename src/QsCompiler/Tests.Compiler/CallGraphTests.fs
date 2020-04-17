@@ -44,7 +44,7 @@ type CallGraphTests (output:ITestOutputHelper) =
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
     let DecorateWithNamespace (ns : string) (input : string list list) =
-        List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name})) input
+        List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name })) input
 
     let resolution (res : (QsTypeParameter * QsTypeKind<_,_,_,_>) list) =
         res.ToImmutableDictionary((fun (tp,_) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
@@ -75,29 +75,18 @@ type CallGraphTests (output:ITestOutputHelper) =
         Assert.NotNull callGraph
         callGraph.GetCallCycles ()
 
+    /// Checks if one of the given lists can be rotated into the other given list
     let CyclicEquivalence lst1 lst2 =
-        let size = List.length lst1
-        if size <> List.length lst2 then
+        let size1 = List.length lst1
+        if size1 <> List.length lst2 then
             false
         else
-            let mutable i = 0
-            let mutable j = 0
-            let mutable k = 0
-            let mutable rtrn = false
-            while not rtrn && i < size && j < size do
-                k <- 1
-                while k <= size && lst1.[(i + k) % size] = lst2.[(j + k) % size] do
-                    k <- k + 1
-                if k > size then
-                    rtrn <- true
-                if lst1.[(i + k) % size] > lst2.[(j + k) % size] then
-                    i <- i + k
-                else
-                    j <- j + k
-            rtrn
+            let rotate n = lst1 |> List.permute (fun index -> (index + n) % size1)
+            let rotations = [0 .. size1 - 1] |> List.map rotate
+            List.contains lst2 rotations
 
     let CheckForExpectedCycles (actualCycles: seq<#seq<CallGraphNode>>) expectedCycles =
-        let expected = expectedCycles |> DecorateWithNamespace Signatures.CycleDetection
+        let expected = expectedCycles |> DecorateWithNamespace Signatures.CycleDetectionNS
 
         let actual = actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
 
@@ -108,7 +97,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             String.Join(" -> ", List.map (fun node -> node.ToString()) cycle)
 
         for cycle in expected do
-            Assert.True(List.exists (fun x -> CyclicEquivalence cycle x) actual,
+            Assert.True(List.exists (CyclicEquivalence cycle) actual,
                 sprintf "Did not find expected cycle: %s" (cycleToString cycle))
 
     static member CheckResolution (parent, expected : IDictionary<_,_>, [<ParamArray>] resolutions) =
