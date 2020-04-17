@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -255,8 +256,56 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// </summary>
         public List<ImmutableArray<CallGraphNode>> GetCallCycles()
         {
-            // ToDo: need to implement a robust algorithm for finding cycles
-            throw new NotImplementedException();
+            var callStack = new Dictionary<CallGraphNode, CallGraphNode>();
+            var finished = new HashSet<CallGraphNode>();
+            var cycles = new List<ImmutableArray<CallGraphNode>>();
+
+            void processDependencies(CallGraphNode node)
+            {
+                if (_Dependencies.TryGetValue(node, out var dependencies))
+                {
+                    foreach (var dependency in dependencies)
+                    {
+                        var (curr, _) = dependency;
+
+                        if (finished.Contains(curr)) continue;
+
+                        if (callStack.ContainsKey(curr))
+                        {
+                            // Cycle detected
+
+                            var cycle = new List<CallGraphNode>() { curr };
+                            while (callStack.TryGetValue(curr, out var next))
+                            {
+                                if (curr.Equals(next)) break;
+                                cycle.Add(next);
+                                curr = next;
+                            }
+
+                            cycles.Add(cycle.ToImmutableArray());
+                        }
+                        else
+                        {
+                            callStack[node] = curr;
+                            processDependencies(curr);
+                            callStack.Remove(node);
+                        }
+                    }
+                }
+
+                finished.Add(node);
+            }
+
+            // Loop over all nodes in the call graph, attempting to find cycles by processing their dependencies
+            foreach (var node in _Dependencies.Keys)
+            {
+                if (!finished.Contains(node))
+                {
+                    processDependencies(node);
+                }
+            }
+
+            return cycles;
         }
     }
 
