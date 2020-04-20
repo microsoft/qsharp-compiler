@@ -131,7 +131,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     // do *not* dispose of the FileContentManagers!
                     this.UnsubscribeFromFileManagerEvents(file);
-                    this.PublishDiagnostics(new PublishDiagnosticParams { Uri = file.Uri, Diagnostics = new Diagnostic[0] });
+                    this.PublishDiagnostics(new PublishDiagnosticParams { Uri = file.Uri, Diagnostics = Array.Empty<Diagnostic>() });
                 }      
                 return null;
             });
@@ -346,7 +346,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.CompilationUnit.UnregisterDependentLock(file.SyncRoot); // do *not* dispose of the FileContentManager!
                 this.UnsubscribeFromFileManagerEvents(file);                 // ... but unsubscribe from all file events
                 this.CompilationUnit.GlobalSymbols.RemoveSource(docKey);
-                if (publishEmptyDiagnostics) this.PublishDiagnostics(new PublishDiagnosticParams { Uri = uri, Diagnostics = new Diagnostic[0] });
+                if (publishEmptyDiagnostics) this.PublishDiagnostics(new PublishDiagnosticParams { Uri = uri, Diagnostics = Array.Empty<Diagnostic>() });
                 if (this.EnableVerification) this.QueueGlobalTypeCheckingAsync(); // we need to trigger a global type checking for the remaining files...
             });
         }
@@ -375,7 +375,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.CompilationUnit.UnregisterDependentLock(file.SyncRoot); // do *not* dispose of the FileContentManager!
                     this.UnsubscribeFromFileManagerEvents(file);                 // ... but unsubscribe from all file events
                     this.CompilationUnit.GlobalSymbols.RemoveSource(docKey);
-                    if (publishEmptyDiagnostics) this.PublishDiagnostics(new PublishDiagnosticParams { Uri = uri, Diagnostics = new Diagnostic[0] });
+                    if (publishEmptyDiagnostics) this.PublishDiagnostics(new PublishDiagnosticParams { Uri = uri, Diagnostics = Array.Empty<Diagnostic>() });
                     if (this.EnableVerification) this.QueueGlobalTypeCheckingAsync(); // we need to trigger a global type checking for the remaining files...
                 }
                 if (this.EnableVerification && !suppressVerification) this.QueueGlobalTypeCheckingAsync();

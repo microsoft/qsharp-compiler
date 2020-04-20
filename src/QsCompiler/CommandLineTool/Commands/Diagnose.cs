@@ -211,7 +211,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             if (!options.ParseAssemblyProperties(out var assemblyConstants))
             {
-                logger.Log(WarningCode.InvalidAssemblyProperties, new string[0]);
+                logger.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
             }
 
             var loadOptions = new CompilationLoader.Configuration

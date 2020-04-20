@@ -200,7 +200,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     this.IgnoreEditorUpdatesFor(textDocument.Uri); 
                     this.OpenFiles.TryRemove(textDocument.Uri, out FileContentManager _);
                     if (!associatedWithProject) _ = manager.TryRemoveSourceFileAsync(textDocument.Uri);
-                    this.Publish(new PublishDiagnosticParams { Uri = textDocument.Uri, Diagnostics = new Diagnostic[0] });
+                    this.Publish(new PublishDiagnosticParams { Uri = textDocument.Uri, Diagnostics = Array.Empty<Diagnostic>() });
                     return;
                 }
 
@@ -282,7 +282,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 if (!removed) onError?.Invoke($"Attempting to close file '{textDocument.Uri.LocalPath}' that is not currently listed as open in the editor.", MessageType.Error);
                 #endif
                 if (!associatedWithProject) _ = manager.TryRemoveSourceFileAsync(textDocument.Uri);
-                this.Publish(new PublishDiagnosticParams { Uri = textDocument.Uri, Diagnostics = new Diagnostic[0] });
+                this.Publish(new PublishDiagnosticParams { Uri = textDocument.Uri, Diagnostics = Array.Empty<Diagnostic>() });
             });
             // When edits are made in a file, but those are discarded by closing the file and hitting "no, don't save",
             // no notification is sent for the now discarded changes;

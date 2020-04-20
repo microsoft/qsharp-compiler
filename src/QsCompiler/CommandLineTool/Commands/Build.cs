@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private static IEnumerable<string> SplitCommandLineArguments(string commandLine)
         {
-            var parmChars = commandLine?.ToCharArray() ?? new char[0];
+            var parmChars = commandLine?.ToCharArray() ?? Array.Empty<char>();
             var inQuote = false;
             for (int index = 0; index < parmChars.Length; index++)
             {
@@ -144,14 +144,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (logger == null) throw new ArgumentNullException(nameof(logger));
             if (!BuildOptions.IncorporateResponseFiles(options, out options))
             {
-                logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, new string[0]);
+                logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, Array.Empty<string>());
                 return ReturnCode.INVALID_ARGUMENTS;
             }
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
             if (!options.ParseAssemblyProperties(out var assemblyConstants))
             {
-                logger.Log(WarningCode.InvalidAssemblyProperties, new string[0]);
+                logger.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
             }
 
             var loadOptions = new CompilationLoader.Configuration

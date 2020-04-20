@@ -132,7 +132,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             (declarationLocation, referenceLocations) = (null, null);
             if (compilation == null || fullName == null) return false;
 
-            var emptyDoc = new NonNullable<string>[0].ToLookup(i => i, _ => ImmutableArray<string>.Empty);
+            var emptyDoc = Array.Empty<NonNullable<string>>().ToLookup(i => i, _ => ImmutableArray<string>.Empty);
             var namespaces = compilation.GetCallables()
                 .ToLookup(c => c.Key.Namespace, c => c.Value)
                 .Select(ns => new QsNamespace(ns.Key, ns.Select(QsNamespaceElement.NewQsCallable).ToImmutableArray(), emptyDoc));
