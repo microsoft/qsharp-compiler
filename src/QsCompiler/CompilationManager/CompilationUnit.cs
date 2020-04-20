@@ -459,7 +459,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.SyncRoot.EnterWriteLock();
             try
             {
-                foreach (var c in updates ?? new QsCallable[0])
+                foreach (var c in updates ?? Array.Empty<QsCallable>())
                 {
                     if (c?.Specializations == null || c.Specializations.Contains(null))
                     { throw new ArgumentNullException(nameof(updates), "the given compiled callable or specialization is null"); }
@@ -631,7 +631,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (callables == null) throw new ArgumentNullException(nameof(callables));
             if (types == null) throw new ArgumentNullException(nameof(types));
-            var emptyLookup = new NonNullable<string>[0].ToLookup(ns => ns, _ => ImmutableArray<string>.Empty);
+            var emptyLookup = Array.Empty<NonNullable<string>>().ToLookup(ns => ns, _ => ImmutableArray<string>.Empty);
 
             static string QualifiedName(QsQualifiedName fullName) => $"{fullName.Namespace.Value}.{fullName.Name.Value}";
             static string ElementName(QsNamespaceElement e) =>

@@ -308,10 +308,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             try
             {
                 return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.DocumentHighlights(param) ?? new DocumentHighlight[0],
+                this.EditorState.DocumentHighlights(param) ?? Array.Empty<DocumentHighlight>(),
                 "DocumentHighlight threw an exception"); 
             }
-            catch { return new DocumentHighlight[0]; }
+            catch { return Array.Empty<DocumentHighlight>(); }
         }
 
         [JsonRpcMethod(Methods.TextDocumentReferencesName)]
@@ -322,10 +322,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             try
             {
                 return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.SymbolReferences(param) ?? new Location[0],
+                this.EditorState.SymbolReferences(param) ?? Array.Empty<Location>(),
                 "FindReferences threw an exception");
             }
-            catch { return new Location[0]; }
+            catch { return Array.Empty<Location>(); }
         }
 
         [JsonRpcMethod(Methods.TextDocumentHoverName)]
@@ -376,10 +376,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             try
             {
                 return QsCompilerError.RaiseOnFailure(() =>
-                this.EditorState.DocumentSymbols(param) ?? new SymbolInformation[0], 
+                this.EditorState.DocumentSymbols(param) ?? Array.Empty<SymbolInformation>(), 
                 "DocumentSymbols threw an exception");
             }
-            catch { return new SymbolInformation[0]; } 
+            catch { return Array.Empty<SymbolInformation>(); } 
         }
 
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
@@ -441,7 +441,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 "CodeAction threw an exception")
                 .ToArray();
             }
-            catch { return new Command[0]; }
+            catch { return Array.Empty<Command>(); }
         }
 
         [JsonRpcMethod(Methods.WorkspaceExecuteCommandName)]
