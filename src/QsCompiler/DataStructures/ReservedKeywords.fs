@@ -155,6 +155,9 @@ module Declarations =
 
     /// keyword for a Q# declaration
     let Namespace   = "namespace"
+    
+    /// keyword for a Q# declaration modifier
+    let Internal    = "internal"
 
 
 /// contains keywords for Q# directives
@@ -175,12 +178,6 @@ module Directives =
     let Invert      = "invert"
     /// keyword for a Q# directive
     let Distribute  = "distribute"
-
-
-/// contains project specific settings specified during Q# compilation
-module AssemblyConstants = 
-    let OutputPath = "OutputPath"
-    let AssemblyName = "AssemblyName"
 
 
 /// contains keywords reserved for internal use
@@ -225,6 +222,46 @@ module InternalUse =
         ]
     
     // TODO: ReservedForFutureUse = ...
+
+
+/// contains the names used for compiler-generated Q# attributes 
+/// that do not and should not have a definition in source code
+module GeneratedAttributes =
+    let Namespace = "Microsoft.Quantum.QsCompiler.Metadata.Attributes"
+    let LoadedViaTestNameInsteadOf = "__LoadedViaTestNameInsteadOf__"
+
+/// contains project specific settings specified during Q# compilation
+module AssemblyConstants = 
+    let OutputPath = "OutputPath"
+    let AssemblyName = "AssemblyName"
+    let QsharpOutputType = "ResolvedQsharpOutputType"
+    let QsharpExe = "QsharpExe"
+    let QsharpLibrary = "QsharpLibrary"
+    let ExecutionTarget = "ResolvedExecutionTarget"
+    let AlfredProcessor = "AlfredProcessor"
+    let BrunoProcessor = "BrunoProcessor"
+    let ClementineProcessor = "ClementineProcessor"
+    let DefaultSimulator = "DefaultSimulator"
+    let QuantumSimulator = "QuantumSimulator"
+    let ToffoliSimulator = "ToffoliSimulator"
+    let ResourcesEstimator = "ResourcesEstimator"
+
+    // Note: The names of the capabilities here need to match the ones defined by the Sdk.
+    type RuntimeCapabilities = 
+    | Unknown = 0 
+    | QPRGen0 = 1
+    | QPRGen1 = 2
+
+
+/// contains reserved names for command line arguments of Q# projects
+module CommandLineArguments = 
+    let SimulatorOption = ("simulator", "s")
+    let ReservedArguments = ImmutableArray.Create (fst SimulatorOption)
+    let ReservedArgumentAbbreviations = ImmutableArray.Create (snd SimulatorOption) 
+
+    let BuiltInSimulators =
+        [AssemblyConstants.QuantumSimulator; AssemblyConstants.ToffoliSimulator; AssemblyConstants.ResourcesEstimator]
+        |> ImmutableHashSet.CreateRange
 
 
 /// contains specific names used within Q# dlls

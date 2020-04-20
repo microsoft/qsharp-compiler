@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -58,14 +59,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         protected readonly ProcessingQueue Processing;
 
         /// <summary>
-        /// Initializes a CompilationUnitManager instance.
-        /// If an <see cref="System.Action"/> for publishing diagnostics is given and is not null, 
+        /// Initializes a CompilationUnitManager instance for a project with the given properties.
+        /// If an <see cref="Action"/> for publishing diagnostics is given and is not null, 
         /// that action is called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
-        public CompilationUnitManager(Action<Exception> exceptionLogger = null, Action<PublishDiagnosticParams> publishDiagnostics = null, bool syntaxCheckOnly = false)
+        public CompilationUnitManager(
+            Action<Exception> exceptionLogger = null, Action<PublishDiagnosticParams> publishDiagnostics = null, bool syntaxCheckOnly = false,
+            AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.Unknown, bool isExecutable = false)
         {
             this.EnableVerification = !syntaxCheckOnly;
-            this.CompilationUnit = new CompilationUnit();
+            this.CompilationUnit = new CompilationUnit(capabilities, isExecutable);
             this.FileContentManagers = new ConcurrentDictionary<NonNullable<string>, FileContentManager>();
             this.ChangedFiles = new ManagedHashSet<NonNullable<string>>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
             this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
@@ -437,7 +440,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // work with a separate compilation unit instance such that processing of all further edits can go on in parallel
             var sourceFiles = this.FileContentManagers.Values.OrderBy(m => m.FileName);
             this.ChangedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName.Value == f.Value));
-            var compilation = new CompilationUnit(this.CompilationUnit.Externals, sourceFiles.Select(file => file.SyncRoot));
+            var compilation = new CompilationUnit(this.CompilationUnit.RuntimeCapabilities, this.CompilationUnit.IsExecutable, this.CompilationUnit.Externals, sourceFiles.Select(file => file.SyncRoot));
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
             foreach (var file in sourceFiles) this.PublishDiagnostics(file.Diagnostics());
 

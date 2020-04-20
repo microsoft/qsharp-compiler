@@ -94,7 +94,7 @@ let private operationTopLevelStatement =
         Keyword "controlled"
     ]
 
-let testElifElse scope previous =
+let private testElifElse scope previous =
     let statement =
         match scope with
         | Operation | OperationTopLevel -> operationStatement
@@ -108,6 +108,12 @@ let testElifElse scope previous =
         ("elif (true)", [])
         ("else ", [])
     ]
+
+let private testWithModifiers tests =
+    List.concat [
+        tests
+        List.map (fun (input, result) -> ("internal " + input, result)) tests
+    ] |> List.iter (matches NamespaceTopLevel Null)
 
 [<Fact>]
 let ``Top-level parser tests`` () =
@@ -128,6 +134,7 @@ let ``Namespace top-level parser tests`` () =
         Keyword "function"
         Keyword "operation"
         Keyword "newtype"
+        Keyword "internal"
         Keyword "open"
     ]
     List.iter (matches NamespaceTopLevel Null) [
@@ -143,11 +150,15 @@ let ``Namespace top-level parser tests`` () =
         ("newt", keywords)
         ("newtype", keywords)
         ("open", keywords)
+        ("pri", keywords)
+        ("int", keywords)
+        ("internal", keywords)
+        ("internal ", [Keyword "function"; Keyword "operation"; Keyword "newtype"])
     ]
 
 [<Fact>]
 let ``Function declaration parser tests`` () =
-    List.iter (matches NamespaceTopLevel Null) [
+    testWithModifiers [
         ("function ", [Declaration])
         ("function Foo", [Declaration])
         ("function Foo ", [])
@@ -200,7 +211,7 @@ let ``Operation declaration parser tests`` () =
         Keyword "Adj"
         Keyword "Ctl"
     ]
-    List.iter (matches NamespaceTopLevel Null) [
+    testWithModifiers [
         ("operation ", [Declaration])
         ("operation Foo", [Declaration])
         ("operation Foo ", [])
@@ -281,7 +292,7 @@ let ``Operation declaration parser tests`` () =
 
 [<Fact>]
 let ``Type declaration parser tests`` () =
-    List.iter (matches NamespaceTopLevel Null) [
+    testWithModifiers [
         ("newtype ", [Declaration])
         ("newtype MyType", [Declaration])
         ("newtype MyType ", [])

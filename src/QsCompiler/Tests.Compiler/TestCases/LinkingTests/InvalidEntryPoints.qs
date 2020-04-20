@@ -9,6 +9,9 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     // tests related to entry point placement verification
 
     @ EntryPoint()
+    operation EntryPointInLibrary() : Unit { }
+
+    @ EntryPoint()
     newtype InvalidEntryPointPlacement1 = Int;
 
     @ EntryPoint()
@@ -212,4 +215,26 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     operation InvalidEntryPoint36 () : (Unit => (Int, Complex) is Ctl + Adj) {
         return Default<(Unit => (Int, Complex) is Ctl + Adj)>();
     }
+
+
+    // no inner tuples in entry point arguments
+    
+    @ EntryPoint()
+    operation InvalidEntryPoint37(arg : (Int, BigInt[])) : Unit {}
+
+    @ EntryPoint()
+    operation InvalidEntryPoint38(arg1 : (Pauli, Result)[], arg2 : Double) : Unit {}
+
+
+    // no arrays of arrays in entry point arguments
+
+    @ EntryPoint()
+    operation InvalidEntryPoint39(arg : Int[][]) : Unit {}
+
+    @ EntryPoint()
+    operation InvalidEntryPoint40(arg : (Int[])[]) : Unit {}
+
+    @ EntryPoint()
+    operation InvalidEntryPoint41(a : Int[], (b : Int[][], c : Double)) : Unit {}
+
 }

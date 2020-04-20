@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 
@@ -104,14 +105,22 @@ namespace Microsoft.Quantum.QsLanguageServer
             var targetFile = projectInstance.GetPropertyValue("TargetFileName");
             var outputPath = Path.Combine(projectInstance.Directory, outputDir, targetFile);
 
+            var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
+            var runtimeCapabilities = Enum.TryParse(resRuntimeCapability, out AssemblyConstants.RuntimeCapabilities capability) 
+                ? capability 
+                : AssemblyConstants.RuntimeCapabilities.Unknown;
+
             var sourceFiles = GetItemsByType(projectInstance, "QsharpCompile");
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
             var references = GetItemsByType(projectInstance, "Reference");
+
             var version = projectInstance.GetPropertyValue("QsharpLangVersion");
+            var isExecutable = "QsharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQsharpOutputType"), StringComparison.InvariantCultureIgnoreCase);
+            var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.InvariantCultureIgnoreCase);
 
             var telemetryMeas = new Dictionary<string, int> { ["sources"] = sourceFiles.Count() };
             this.SendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
-            info = new ProjectInformation(version, outputPath, sourceFiles, projectReferences, references);
+            info = new ProjectInformation(version, outputPath, runtimeCapabilities, isExecutable, loadTestNames, sourceFiles, projectReferences, references);
             return true;
         }
 

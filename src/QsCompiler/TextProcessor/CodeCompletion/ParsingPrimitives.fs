@@ -110,6 +110,11 @@ let expectedQualifiedSymbol kind =
     attempt (term qualifiedSymbol |>> fst .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> optional eot) <|>
     (term qualifiedSymbol >>% [])
 
+/// Optionally parses `p`, backtracking if it consumes EOT so another parser can try, too. Best if used with `@>>`,
+/// e.g., `optR foo @>> bar`.
+let optR p =
+    attempt (p .>> previousCharSatisfies ((<>) '\u0004')) <|> lookAhead p <|>% []
+
 /// `manyR p shouldBacktrack` is like `many p` but is reentrant on the last item if
 ///     1. The last item is followed by EOT; and
 ///     2. `shouldBacktrack` succeeds at the beginning of the last item, or the last item consists of only EOT.

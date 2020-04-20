@@ -41,12 +41,12 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public Stage Stage { get; set; }
             /// <summary>
-            /// Position in the source file where the code that caused the generation of the diagnostic starts.
+            /// Zero-based position in the source file where the code that caused the generation of the diagnostic starts.
             /// The position is null if the diagnostic is not caused by a piece of source code. 
             /// </summary>
             public Tuple<int, int> Start { get; set; }
             /// <summary>
-            /// Position in the source file where the code that caused the generation of the diagnostic ends.
+            /// Zero-based position in the source file where the code that caused the generation of the diagnostic ends.
             /// The position is null if the diagnostic is not caused by a piece of source code. 
             /// </summary>
             public Tuple<int, int> End { get; set; }

@@ -101,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <param name="replacement">The name of the replacement element for deprecated elements, if given</param>
         public DocComment(IEnumerable<string> docComments, string name, bool deprecated, string replacement)
         {
-            string GetHeadingText(HeadingBlock heading)
+            static string GetHeadingText(HeadingBlock heading)
             {
                 var sb = new StringBuilder();
                 foreach (var item in heading.Inline)
@@ -111,7 +111,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 return sb.ToString();
             }
 
-            string GetParagraphText(LeafBlock leaf)
+            static string GetParagraphText(LeafBlock leaf)
             {
                 var sb = new StringBuilder();
                 foreach (var item in leaf.Inline)
@@ -121,7 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 return sb.ToString();
             }
 
-            string ToMarkdown(IEnumerable<Block> blocks)
+            static string ToMarkdown(IEnumerable<Block> blocks)
             {
                 var writer = new StringWriter();
                 var renderer = new NormalizeRenderer(writer);
@@ -136,7 +136,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 return writer.ToString().TrimEnd().Replace('\n', '\r');
             }
 
-            List<ValueTuple<string, List<Block>>> BreakIntoSections(IEnumerable<Block> blocks, int level)
+            static List<ValueTuple<string, List<Block>>> BreakIntoSections(IEnumerable<Block> blocks, int level)
             {
                 var key = "";
                 var accum = new List<Block>();
@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 return result;
             }
 
-            void ParseListSection(IEnumerable<Block> blocks, List<string> accum, bool lowerCase)
+            static void ParseListSection(IEnumerable<Block> blocks, List<string> accum, bool lowerCase)
             {
                 foreach (var block in blocks)
                 {
@@ -202,7 +202,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 }
             }
 
-            void ParseMapSection(IEnumerable<Block> blocks, Dictionary<string, string> accum)
+            static void ParseMapSection(IEnumerable<Block> blocks, Dictionary<string, string> accum)
             {
                 var subsections = BreakIntoSections(blocks, 2);
                 foreach ((var key, var subs) in subsections)
@@ -214,7 +214,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             }
 
             // First element is not matching, second is matching
-            (List<Block>, List<Block>) PartitionNestedSection(IEnumerable<Block> blocks, int level, string name)
+            static (List<Block>, List<Block>) PartitionNestedSection(IEnumerable<Block> blocks, int level, string name)
             {
                 var inMatch = false;
                 var result = (new List<Block>(), new List<Block>());

@@ -153,7 +153,8 @@ let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHead
         | QsTypeKind.Function (it, ot) 
         | QsTypeKind.Operation ((it,ot), _) -> [it; ot]
         | QsTypeKind.TupleType vtypeList -> vtypeList |> Seq.toList
-        | QsTypeKind.UserDefinedType udt -> updateContainedReferences rootIndex (location, QsQualifiedName.New(udt.Namespace, udt.Name))
+        | QsTypeKind.UserDefinedType udt ->
+            updateContainedReferences rootIndex (location, QsQualifiedName.New(udt.Namespace, udt.Name))
         | _ -> [] 
 
     let walk_udts () = // builds up containedTypes and containedIn
