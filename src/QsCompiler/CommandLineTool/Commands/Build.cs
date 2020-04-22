@@ -9,6 +9,7 @@ using System.Linq;
 using CommandLine;
 using CommandLine.Text;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
@@ -160,6 +161,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 AssemblyConstants = assemblyConstants,
                 TargetPackageAssembly = options.GetTargetPackageAssemblyPath(logger),
                 RuntimeCapabilities = options.RuntimeCapabilites,
+                SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
