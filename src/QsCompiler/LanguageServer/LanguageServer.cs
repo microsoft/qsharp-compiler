@@ -27,6 +27,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         private readonly ManualResetEvent DisconnectEvent; // used to keep the server running until it is no longer needed
         private ManualResetEvent WaitForInit; // set to null after initialization
         internal bool ReadyForExit { get; private set; }
+        
+        private readonly System.Timers.Timer InternalErrorTimer; // used to avoid spamming users with a lot of errors at once
+        private bool ShowInteralErrorMessage = true; // set via timer as needed
 
         private string WorkspaceFolder = null;
         private readonly HashSet<Uri> ProjectsInWorkspace;
@@ -71,6 +74,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.DisconnectEvent = new ManualResetEvent(false);
             this.Rpc.Disconnected += (object s, JsonRpcDisconnectedEventArgs e) => { this.DisconnectEvent.Set(); }; // let's make the server exit if the stream is disconnected
             this.ReadyForExit = false;
+
+            this.InternalErrorTimer = new System.Timers.Timer(60000);
+            this.InternalErrorTimer.Elapsed += (_, __) => { this.ShowInteralErrorMessage = true; };
+            this.InternalErrorTimer.AutoReset = false;
 
             void ProcessFileEvents(IEnumerable<FileEvent> e) =>
                 this.OnDidChangeWatchedFiles(JToken.Parse(JsonConvert.SerializeObject(
@@ -135,7 +142,12 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.LogToWindow($"{line}{ex}{line}", MessageType.Error);
             var logLocation = "the output window";  // todo: generate a proper error log in a file somewhere
             var message = "The Q# Language Server has encountered an error. Diagnostics will be reloaded upon saving the file.";
-            this.ShowInWindow($"{message}\nDetails on the encountered error have been logged to {logLocation}.", MessageType.Error);
+            if (this.ShowInteralErrorMessage)
+            {
+                this.ShowInteralErrorMessage = false;
+                this.InternalErrorTimer.Start();
+                this.ShowInWindow($"{message}\nDetails on the encountered error have been logged to {logLocation}.", MessageType.Error);
+            }
         }
 
 
