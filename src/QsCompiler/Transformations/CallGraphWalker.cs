@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// for this algorithm are integers. The cycles are guaranteed to not contain
         /// any duplicates and the last node in the list is assumed to be connected
         /// to the first.
-        /// 
+        ///
         /// This implementation passes the full graph along with a hash set of nodes
         /// to represent subgraphs because it is more performant to check if a node
         /// is in the hash set than to build a dictionary for the subgraph.
@@ -390,12 +390,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     combinedBuilder[typeParam] = paramRes;
                 }
 
-                if (resolution.Any(entry => !mayBeReplaced.Contains(entry.Key) && !entry.Key.Item1.Equals(target)))
-                {
-                    // It does not make sense to support this case, since there is no valid context in which type parameters
-                    // belonging to multiple callables can/should be treated as concrete types simultaneously.
-                    throw new ArgumentException("attempting to define resolution for type parameter that does not belong to target callable");
-                }
+                // ToDo: Handle type arguments that are not useful for resolving the type parameters of 'target'
+                //if (resolution.Any(entry => !mayBeReplaced.Contains(entry.Key) && !entry.Key.Item1.Equals(target)))
+                //{
+                //    // It does not make sense to support this case, since there is no valid context in which type parameters
+                //    // belonging to multiple callables can/should be treated as concrete types simultaneously.
+                //    throw new ArgumentException("attempting to define resolution for type parameter that does not belong to target callable");
+                //}
             }
 
             combined = combinedBuilder.ToImmutable();
@@ -415,13 +416,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(tArgs.Item.Select(StripPositionInfo.Apply).ToImmutableArray())
             : tArgs;
 
+        private CallGraphEdge RemovePositionFromEdge(CallGraphEdge edge) =>
+            new CallGraphEdge() { ParamResolutions = edge.ParamResolutions.ToImmutableDictionary(kvp => kvp.Key,
+                kvp => StripPositionInfo.Apply(kvp.Value)) };
+
         private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
+            // Remove position info from edge
+            edge = RemovePositionFromEdge(edge);
+
             if (_Dependencies.TryGetValue(callerKey, out var deps))
             {
-                deps[calledKey] = deps.TryGetValue(calledKey, out var edges)
-                    ? edges.Add(edge)
-                    : ImmutableArray.Create(edge);
+                if (!deps.TryGetValue(calledKey, out var edges))
+                {
+                    deps[calledKey] = ImmutableArray.Create(edge);
+                }
+                else if (!edges.Contains(edge, CallGraphEdgeComparer.Instance))
+                {
+                    deps[calledKey] = edges.Add(edge);
+                }
             }
             else
             {
@@ -480,32 +493,68 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(QsSpecialization callerSpec) =>
             GetDirectDependencies(new CallGraphNode { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
 
-        // ToDo: this method needs a way of resolving type parameters before it can be completed
+        private CallGraphEdge CombineEdges(CallGraphNode targetNode, params CallGraphEdge[] edges)
+        {
+            if(TryCombineTypeResolutions(targetNode.CallableName, out var combinedEdge, edges.Select(e => e.ParamResolutions).ToArray()))
+            {
+                return new CallGraphEdge() { ParamResolutions = combinedEdge };
+            }
+            else
+            {
+                return new CallGraphEdge() { ParamResolutions = TypeParameterResolutions.Empty };
+            }
+        }
+
+        /// <summary>
+        /// Comparer class used to check for equality between call graph edges.
+        /// Uses the Singleton pattern.
+        /// </summary>
+        private class CallGraphEdgeComparer : IEqualityComparer<CallGraphEdge>
+        {
+            public static CallGraphEdgeComparer Instance { get; } = new CallGraphEdgeComparer();
+
+            private CallGraphEdgeComparer() { }
+
+            public bool Equals(CallGraphEdge x, CallGraphEdge y) =>
+                x.ParamResolutions.ToImmutableHashSet().SetEquals(y.ParamResolutions.ToImmutableHashSet());
+
+            public int GetHashCode(CallGraphEdge obj) =>
+                obj.ParamResolutions.Aggregate(0, (hash, kvp) => hash ^ kvp.GetHashCode());
+        }
+
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(CallGraphNode callerSpec)
         {
-            throw new NotImplementedException();
+            var accum = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
 
-            //HashSet<(CallGraphNode, CallGraphEdge)> WalkDependencyTree(CallGraphNode root, HashSet<(CallGraphNode, CallGraphEdge)> accum, DependencyType parentDepType)
-            //{
-            //    if (_Dependencies.TryGetValue(root, out var next))
-            //    {
-            //        foreach (var k in next)
-            //        {
-            //            // Get the maximum type of dependency between the parent dependency type and the current dependency type
-            //            var maxDepType = k.Item2.CompareTo(parentDepType) > 0 ? k.Item2 : parentDepType;
-            //            if (accum.Add((k.Item1, maxDepType)))
-            //            {
-            //                // ToDo: this won't work once Type specialization are implemented
-            //                var noTypeParams = new CallGraphNode { CallableName = k.Item1.CallableName, Kind = k.Item1.Kind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
-            //                WalkDependencyTree(noTypeParams, accum, maxDepType);
-            //            }
-            //        }
-            //    }
-            //
-            //    return accum;
-            //}
-            //
-            //return WalkDependencyTree(callerSpec, new HashSet<(CallGraphNode, DependencyType)>(), DependencyType.NoTypeParameters).ToImmutableArray();
+            void WalkDependencyTree(CallGraphNode root, CallGraphEdge edgeFromRoot)
+            {
+                if (_Dependencies.TryGetValue(root, out var next))
+                {
+                    foreach (var (dependent, edges) in next)
+                    {
+                        var combinedEdges = edges.Select(e => CombineEdges(dependent, e, edgeFromRoot));
+
+                        if (accum.TryGetValue(dependent, out var existingEdges))
+                        {
+                            combinedEdges = combinedEdges.Except(existingEdges, CallGraphEdgeComparer.Instance);
+                            accum[dependent] = existingEdges.AddRange(combinedEdges);
+                        }
+                        else
+                        {
+                            accum[dependent] = combinedEdges.ToImmutableArray();
+                        }
+
+                        foreach (var edge in combinedEdges)
+                        {
+                            WalkDependencyTree(dependent, edge);
+                        }
+                    }
+                }
+            }
+
+            WalkDependencyTree(callerSpec, new CallGraphEdge() { ParamResolutions = TypeParameterResolutions.Empty });
+
+            return accum;
         }
 
         /// <summary>
@@ -544,17 +593,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// </summary>
     public static class BuildCallGraph
     {
-        public static CallGraph Apply(QsCompilation compilation)
+        public static void Test(QsCompilation compilation)
         {
             var walker = new BuildGraph();
 
             var targetNs = NonNullable<string>.New("Microsoft.Quantum.Testing.TypeParameterResolution");
             walker.Namespaces.OnNamespace(compilation.Namespaces.First(ns => ns.Name.Equals(targetNs)));
 
-            //foreach (var ns in compilation.Namespaces)
-            //{
-            //    walker.Namespaces.OnNamespace(ns);
-            //}
+            var graph = walker.SharedState.graph;
+
+            var temp = graph.GetAllDependencies(new CallGraphNode()
+            {
+                CallableName = new QsQualifiedName(targetNs, NonNullable<string>.New("Main")),
+                Kind = QsSpecializationKind.QsBody,
+                TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null
+            });
+
+        }
+
+        public static CallGraph Apply(QsCompilation compilation)
+        {
+            var walker = new BuildGraph();
+            foreach (var ns in compilation.Namespaces)
+            {
+                walker.Namespaces.OnNamespace(ns);
+            }
             return walker.SharedState.graph;
         }
 

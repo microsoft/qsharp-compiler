@@ -3,6 +3,27 @@
 
 // ToDo: Create unit tests that can run and check these programmatically
 
+// Get All Dependencies
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    operation Main() : Unit {
+        Foo(3, "Hello");
+        Bar("World");    // Different as call in Foo
+        Baz("!");        // Same as call in Foo
+    }
+
+    operation Foo<'A, 'B>(a : 'A, b : 'B) : Unit {
+        Bar(a);
+        Baz(b);
+    }
+
+    operation Bar<'X>(x : 'X) : Unit { }
+
+    operation Baz<'Y>(y : 'Y) : Unit { }
+}
+
+// =================================
+
 // Argument Resolution
 namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 
