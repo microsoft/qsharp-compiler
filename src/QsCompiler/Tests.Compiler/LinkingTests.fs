@@ -227,7 +227,7 @@ type LinkingTests (output:ITestOutputHelper) =
         let fileId = getTempFile()
         let file = getManager fileId entryPoints.[0]
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-        this.CompileAndVerify compilationManager entryPoints.[1] [Error ErrorCode.MultipleEntryPoints]
+        this.CompileAndVerify compilationManager entryPoints.[1] [Error ErrorCode.OtherEntryPointExists]
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
 

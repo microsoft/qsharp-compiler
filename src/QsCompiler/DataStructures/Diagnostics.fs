@@ -238,7 +238,7 @@ type ErrorCode =
     | ArrayOfArrayInEntryPointArgument = 6235
     | UnsupportedItemTypeInEntryPointArgument = 6236
     | OtherEntryPointExists = 6237
-    | MoreThanOneEntryPoint = 6238
+    | MultipleEntryPoints = 6238
     | MissingEntryPoint = 6239
     | InvalidEntryPointSpecialization = 6240
     | DuplicateEntryPointArgumentName = 6241
@@ -616,7 +616,7 @@ type DiagnosticItem =
             | ErrorCode.ArrayOfArrayInEntryPointArgument          -> "Multi-dimensional arrays are not supported in entry point arguments."
             | ErrorCode.UnsupportedItemTypeInEntryPointArgument   -> "Unsupported item type in entry point argument. Array items may only contain values of type Int, Double, Bool, and String."
             | ErrorCode.OtherEntryPointExists                     -> "Invalid entry point. An entry point {0} already exists in {1}."
-            | ErrorCode.MoreThanOneEntryPoint                     -> "The project contains more than one entry point."
+            | ErrorCode.MultipleEntryPoints                       -> "The project contains more than one entry point."
             | ErrorCode.MissingEntryPoint                         -> "Missing entry point. Execution on a quantum processor requires that a Q# entry point is defined using the @EntryPoint() attribute. Any C# driver code should be defined in a separate project."
             | ErrorCode.InvalidEntryPointSpecialization           -> "Entry points cannot have any other specializations besides the default body."
             | ErrorCode.DuplicateEntryPointArgumentName           -> "Invalid name for entry point argument. A similar argument name is already in use."
