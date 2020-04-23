@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-// ToDo: Create unit tests that can run and check these programmatically
-
 // Get All Dependencies
 namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 
@@ -120,7 +118,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 
     operation Foo<'A>(a : 'A) : Unit { }
 
-    operation Bar<'B>(b : 'B) : 'B { return y; }
+    operation Bar<'B>(b : 'B) : 'B { return b; }
 }
 
 // Foo.A -> Int
@@ -152,9 +150,9 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
         Bar(Foo<Int>, 3);
     }
 
-    operation Foo<'B>(b : 'B) : Unit { }
+    operation Foo<'A>(a : 'A) : Unit { }
 
-    operation Bar<'A>(op : ('A => Unit), a : 'A) : Unit { }
+    operation Bar<'B>(op : ('B => Unit), b : 'B) : Unit { }
 }
 
 // Foo.A -> Int
