@@ -10,6 +10,7 @@ namespace Microsoft.Quantum.Testing.Simulation
     /// # Summary
     /// This operation serves as main entry point of the application
     /// and will be executed on the quantum simulator.  
+    @EntryPoint()
     operation Main () : Unit {
 
         // add the code to execute
