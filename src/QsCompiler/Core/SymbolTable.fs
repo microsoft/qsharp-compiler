@@ -996,7 +996,7 @@ and NamespaceManager
                 | None -> isExecutable, errs
                 | Some (epName, epSource) ->
                     let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
-                    errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs))
+                    errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.OtherEntryPointExists, msgArgs))
                     false, errs
         | _ -> 
             errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) 
