@@ -135,3 +135,36 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     @ EntryPoint()
     operation ValidEntryPoint15(a : Int[], (b : Double[], c : String[])) : Unit { }
 }
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.EntryPoints {
+
+    @ EntryPoint()
+    operation ValidEntryPoint16(a : BigInt[]) : Unit {}
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.EntryPoints {
+
+    @ EntryPoint()
+    operation ValidEntryPoint17(a : Range[]) : Unit {}
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.EntryPoints {
+
+    @ EntryPoint()
+    operation ValidEntryPoint18(a : Result[]) : Unit {}
+}
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.EntryPoints {
+
+    @ EntryPoint()
+    operation ValidEntryPoint19(a : Pauli[]) : Unit {}
+}
+
