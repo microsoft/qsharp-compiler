@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
     @ EntryPoint()
-    operation ValidEntryPoint6(a : Int, b: Double[]) : Unit {}
+    operation ValidEntryPoint6(a : Int, b: BigInt[]) : Unit {}
 }
 
 // =================================
@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
     @ EntryPoint()
-    operation ValidEntryPoint7(arg1 : (Int)[], arg2 : Double) : Unit {}
+    operation ValidEntryPoint7(arg1 : (Pauli)[], arg2 : Double) : Unit {}
 }
 
 // =================================
