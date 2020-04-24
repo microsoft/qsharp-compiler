@@ -666,8 +666,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         $"{declaration.QualifiedName.Namespace.Value}.{declaration.QualifiedName.Name.Value} defined in '{declaration.SourceFile.Value}'");
                 }
 
+                var entryPoints = ImmutableArray.CreateBuilder<QsQualifiedName>();
                 foreach (var declaration in this.GlobalSymbols.DefinedCallables())
                 {
+                    if (declaration.Attributes.Any(BuiltIn.MarksEntryPoint))
+                    {
+                        entryPoints.Add(declaration.QualifiedName);
+                    }
+
                     var compilationExists = this.CompiledCallables.TryGetValue(declaration.QualifiedName, out QsCallable compiled);
                     if (!compilationExists) throw new InvalidOperationException($"missing compilation for callable " +
                         $"{declaration.QualifiedName.Namespace.Value}.{declaration.QualifiedName.Name.Value} defined in '{declaration.SourceFile.Value}'");
@@ -688,8 +694,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // having duplicate names in the syntax tree.
                 var (taggedCallables, taggedTypes) = TagImportedInternalNames(callables, types);
                 var tree = NewSyntaxTree(taggedCallables, taggedTypes, this.GlobalSymbols.Documentation());
-                var entryPoints = tree.Callables().Where(c => c.Attributes.Any(BuiltIn.MarksEntryPoint)).Select(c => c.FullName).ToImmutableArray();
-                return new QsCompilation(tree, entryPoints);
+                return new QsCompilation(tree, entryPoints.ToImmutable());
             }
             finally { this.SyncRoot.ExitReadLock(); }
         }
