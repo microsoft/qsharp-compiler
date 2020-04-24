@@ -285,8 +285,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
     }
 
-    /// Class used to track call graph of a compilation
-    public class CallGraph
+    /// <summary>
+    /// Comparer class used to check for equality between call graph edges.
+    /// Uses the Singleton pattern.
+    /// </summary>
+    public class CallGraphEdgeComparer : IEqualityComparer<CallGraphEdge>
+    {
+        public static CallGraphEdgeComparer Instance { get; } = new CallGraphEdgeComparer();
+
+        private CallGraphEdgeComparer() { }
+
+        public bool Equals(CallGraphEdge x, CallGraphEdge y) =>
+            x.ParamResolutions.ToImmutableHashSet().SetEquals(y.ParamResolutions.ToImmutableHashSet());
+
+        public int GetHashCode(CallGraphEdge obj) =>
+            obj.ParamResolutions.Aggregate(0, (hash, kvp) => hash ^ kvp.GetHashCode());
+    }
+
+    public static class TypeParamStuff
     {
         // TODO:
         // This is the method that should be invoked to verify cycles of interest,
@@ -300,6 +316,96 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             return validResolution && resolvedToConcrete;
             //var isClosedCycle = validCycle && combined.Values.Any(res => res.Resolution is ResolvedTypeKind.TypeParameter tp && EqualsParent(tp.Item.Origin));
             // TODO: check that monomorphization correctly processes closed cycles - meaning add a test...
+        }
+
+        public static TypeParameterResolutions Other(TypeParameterResolutions input)
+        {
+            static Tuple<QsQualifiedName, NonNullable<string>> AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
+
+            var output = input.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            var mayBeReplaced = output
+                    .Where(kv => kv.Value.Resolution.IsTypeParameter)
+                    .ToLookup(
+                        kv => AsTypeResolutionKey(((ResolvedTypeKind.TypeParameter)kv.Value.Resolution).Item),
+                        entry => entry.Key);
+
+            var replacingParams = input.Where(kvp => mayBeReplaced.Contains(kvp.Key));
+            foreach (var (typeParam, paramRes) in replacingParams)
+            {
+                foreach (var keyInCombined in mayBeReplaced[typeParam])
+                {
+                    output[keyInCombined] = paramRes;
+                }
+            }
+
+            return output.ToImmutableDictionary();
+        }
+
+        public static bool TryCombineTypeResolutions(QsQualifiedName target, out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutions)
+        {
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            var success = Temp(out combined, resolutions);
+            combined = combined.Where(kvp => kvp.Key.Item1.Equals(target)).ToImmutableDictionary();
+            return success;
+        }
+
+        public static bool Temp(out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutionDictionaries)
+        {
+            if (!resolutionDictionaries.Any())
+            {
+                combined = TypeParameterResolutions.Empty;
+                return true;
+            }
+
+            var combinedBuilder = ImmutableDictionary.CreateBuilder<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>();
+            var success = true;
+
+            static Tuple<QsQualifiedName, NonNullable<string>> AsTypeResolutionKey(QsTypeParameter tp) => Tuple.Create(tp.Origin, tp.TypeName);
+            static bool IsSelfResolution(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
+                res.Resolution is ResolvedTypeKind.TypeParameter tp && tp.Item.Origin.Equals(typeParam.Item1) && tp.Item.TypeName.Equals(typeParam.Item2);
+            static bool IsConstrictiveResolution(Tuple<QsQualifiedName, NonNullable<string>> typeParam, ResolvedType res) =>
+                res.Resolution is ResolvedTypeKind.TypeParameter tp && typeParam.Item1.Equals(tp.Item.Origin) && typeParam.Item2.Value != tp.Item.TypeName.Value;
+
+            foreach (var resolutionDictionary in resolutionDictionaries)
+            {
+                // Contains a lookup of all the keys in the combined resolutions whose value needs to be updated
+                // if a certain type parameter is resolved by the currently processed dictionary.
+                var mayBeReplaced = combinedBuilder
+                    .Where(kv => kv.Value.Resolution.IsTypeParameter)
+                    .ToLookup(
+                        kv => AsTypeResolutionKey(((ResolvedTypeKind.TypeParameter)kv.Value.Resolution).Item),
+                        entry => entry.Key);
+
+                // Do any replacements for type parameters that may be replaced with values in the current dictionary.
+                // This needs to be done first to cover an edge case.
+                foreach (var (typeParam, paramRes) in resolutionDictionary.Where(entry => mayBeReplaced.Contains(entry.Key)))
+                {
+                    // Get all the parameters whose value is dependent on the current resolution's type parameter,
+                    // and update their values with this resolution's value.
+                    foreach (var keyInCombined in mayBeReplaced[typeParam])
+                    {
+                        // Check that we are not doing an excessively constrictive resolution.
+                        success = success && !IsConstrictiveResolution(keyInCombined, paramRes);
+                        combinedBuilder[keyInCombined] = paramRes;
+                    }
+                }
+
+                // Add all resolutions to the current dictionary.
+                foreach (var (typeParam, paramRes) in resolutionDictionary)
+                {
+                    // Check that we are not doing an excessively constrictive resolution.
+                    success = success && !IsConstrictiveResolution(typeParam, paramRes);
+                    // Check that there is no conflicting resolution already defined.
+                    var conflictingResolutionExists = combinedBuilder.TryGetValue(typeParam, out var current)
+                        && !current.Equals(paramRes) && !IsSelfResolution(typeParam, current);
+                    success = success && !conflictingResolutionExists;
+                    combinedBuilder[typeParam] = paramRes;
+                }
+            }
+
+            combined = combinedBuilder.ToImmutable();
+            return success;
         }
 
         /// <summary>
@@ -316,7 +422,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// simultaneously treated as concrete types.
         /// NOTE: This routine prioritizes the verifications to ensure the correctness of the resolution over performance.
         /// </summary>
-        public static bool TryCombineTypeResolutions
+        public static bool OldTryCombineTypeResolutions
             (QsQualifiedName target, out TypeParameterResolutions combined,
             params TypeParameterResolutions[] resolutions)
         {
@@ -403,7 +509,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             QsCompilerError.Verify(combined.Keys.All(key => key.Item1.Equals(target)), "for type parameter that does not belong to target callable");
             return success;
         }
+    }
 
+    /// Class used to track call graph of a compilation
+    public class CallGraph
+    {
         /// <summary>
         /// This is a dictionary mapping source nodes to information about target nodes. This information is represented
         /// by a dictionary mapping target node to the edges pointing from the source node to the target node.
@@ -495,7 +605,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
         private CallGraphEdge CombineEdges(CallGraphNode targetNode, params CallGraphEdge[] edges)
         {
-            if(TryCombineTypeResolutions(targetNode.CallableName, out var combinedEdge, edges.Select(e => e.ParamResolutions).ToArray()))
+            if(TypeParamStuff.TryCombineTypeResolutions(targetNode.CallableName, out var combinedEdge, edges.Select(e => e.ParamResolutions).ToArray()))
             {
                 return new CallGraphEdge() { ParamResolutions = combinedEdge };
             }
@@ -503,23 +613,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             {
                 return new CallGraphEdge() { ParamResolutions = TypeParameterResolutions.Empty };
             }
-        }
-
-        /// <summary>
-        /// Comparer class used to check for equality between call graph edges.
-        /// Uses the Singleton pattern.
-        /// </summary>
-        private class CallGraphEdgeComparer : IEqualityComparer<CallGraphEdge>
-        {
-            public static CallGraphEdgeComparer Instance { get; } = new CallGraphEdgeComparer();
-
-            private CallGraphEdgeComparer() { }
-
-            public bool Equals(CallGraphEdge x, CallGraphEdge y) =>
-                x.ParamResolutions.ToImmutableHashSet().SetEquals(y.ParamResolutions.ToImmutableHashSet());
-
-            public int GetHashCode(CallGraphEdge obj) =>
-                obj.ParamResolutions.Aggregate(0, (hash, kvp) => hash ^ kvp.GetHashCode());
         }
 
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(CallGraphNode callerSpec)
@@ -711,7 +804,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     // ToDo: this needs adaption if we want to support type specializations
                     var typeArgs = tArgs;
 
-                    CallGraph.TryCombineTypeResolutions(global.Item, out var combined, SharedState.typeParameterResolutions.ToArray());
+                    TypeParamStuff.TryCombineTypeResolutions(global.Item, out var combined, SharedState.typeParameterResolutions.ToArray());
                     SharedState.typeParameterResolutions = new List<TypeParameterResolutions>();
                     var edge = new CallGraphEdge { ParamResolutions = combined };
 

@@ -136,7 +136,7 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     let CheckCombinedResolution (parent, expected : ImmutableDictionary<_,_>, [<ParamArray>] resolutions) =
         let mutable combined = ImmutableDictionary.Empty
-        let success = CallGraph.TryCombineTypeResolutions(parent, &combined, resolutions)
+        let success = TypeParamStuff.TryCombineTypeResolutions(parent, &combined, resolutions)
         AssertExpectedResolution expected combined
         success
 
@@ -147,7 +147,6 @@ type CallGraphTests (output:ITestOutputHelper) =
     let AssertCombinedResolutionFailure (parent, expected, [<ParamArray>] resolutions) =
         let success = CheckCombinedResolution (parent, expected, resolutions)
         Assert.False(success, "Combining type resolutions should have failed.")
-
 
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
@@ -404,7 +403,7 @@ type CallGraphTests (output:ITestOutputHelper) =
 
         AssertCombinedResolution(Foo, expected, given)
 
-    [<Fact(Skip="Single Type Resolutions Should not be Checked")>]
+    [<Fact>]
     [<Trait("Category","Type Resolution")>]
     member this.``Direct Resolution Constrains Native`` () =
 
