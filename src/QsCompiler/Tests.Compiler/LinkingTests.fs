@@ -340,10 +340,6 @@ type LinkingTests (output:ITestOutputHelper) =
         this.Expect "InvalidEntryPoint39" [Error ErrorCode.ArrayOfArrayInEntryPointArgument]
         this.Expect "InvalidEntryPoint40" [Error ErrorCode.ArrayOfArrayInEntryPointArgument]
         this.Expect "InvalidEntryPoint41" [Error ErrorCode.ArrayOfArrayInEntryPointArgument]
-        this.Expect "InvalidEntryPoint42" [Error ErrorCode.UnsupportedItemTypeInEntryPointArgument]
-        this.Expect "InvalidEntryPoint43" [Error ErrorCode.UnsupportedItemTypeInEntryPointArgument]
-        this.Expect "InvalidEntryPoint44" [Error ErrorCode.UnsupportedItemTypeInEntryPointArgument]
-        this.Expect "InvalidEntryPoint45" [Error ErrorCode.UnsupportedItemTypeInEntryPointArgument]
 
 
     [<Fact>]
