@@ -52,6 +52,9 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
     abstract member OnAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att 
 
+    abstract member OnItemName : NonNullable<string> -> NonNullable<string>
+    default this.OnItemName name = name
+
     abstract member OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
     default this.OnTypeItems tItem = 
         match tItem with 
@@ -63,10 +66,17 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
             QsTupleItem << Anonymous |> Node.BuildOr original t
         | QsTupleItem (Named item) as original -> 
             let loc  = item.Position, item.Range
+            let name = this.OnItemName item.VariableName
             let t    = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
-            QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable |> Node.BuildOr original (loc, item.VariableName, t, info.HasLocalQuantumDependency)
+            QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
             
+    abstract member OnArgumentName : QsLocalSymbol -> QsLocalSymbol
+    default this.OnArgumentName arg = 
+        match arg with 
+        | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.OnVariableName name)
+        | InvalidName -> arg
+
     abstract member OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
     default this.OnArgumentTuple arg = 
         match arg with 
@@ -75,9 +85,10 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
             QsTuple |> Node.BuildOr original transformed 
         | QsTupleItem item as original -> 
             let loc  = item.Position, item.Range
+            let name = this.OnArgumentName item.VariableName
             let t    = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
-            QsTupleItem << LocalVariableDeclaration<_>.New info.IsMutable |> Node.BuildOr original (loc, item.VariableName, t, info.HasLocalQuantumDependency)
+            QsTupleItem << LocalVariableDeclaration<_>.New info.IsMutable |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
     abstract member OnSignature : ResolvedSignature -> ResolvedSignature
     default this.OnSignature (s : ResolvedSignature) = 
@@ -178,7 +189,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let specializations = c.Specializations |> Seq.sortBy (fun c -> c.Kind) |> Seq.map this.OnSpecializationDeclaration |> ImmutableArray.CreateRange
         let doc = this.OnDocumentation c.Documentation
         let comments = c.Comments
-        QsCallable.New c.Kind (source, loc) |> Node.BuildOr c (c.FullName, attributes, argTuple, signature, specializations, doc, comments)
+        QsCallable.New c.Kind (source, loc) |> Node.BuildOr c (c.FullName, attributes, c.Modifiers, argTuple, signature, specializations, doc, comments)
 
     abstract member OnOperation : QsCallable -> QsCallable
     default this.OnOperation c = this.OnCallableKind c
@@ -205,7 +216,7 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let typeItems = this.OnTypeItems t.TypeItems
         let doc = this.OnDocumentation t.Documentation
         let comments = t.Comments
-        QsCustomType.New (source, loc) |> Node.BuildOr t (t.FullName, attributes, typeItems, underlyingType, doc, comments)
+        QsCustomType.New (source, loc) |> Node.BuildOr t (t.FullName, attributes, t.Modifiers, typeItems, underlyingType, doc, comments)
 
 
     // transformation roots called on each namespace or namespace element

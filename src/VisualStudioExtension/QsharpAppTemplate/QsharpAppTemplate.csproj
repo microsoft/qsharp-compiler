@@ -61,7 +61,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="AssemblyInfo.cs" />
-    <None Include="Driver.cs" />
     <None Include="Program.qs" />
     <Content Include="AppProjectTemplate.xml">
       <SubType>Designer</SubType>

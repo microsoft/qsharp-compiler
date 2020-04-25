@@ -35,8 +35,8 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given the body of an operation, auto-generates the (content of the) controlled specialization
-        /// using the default name for control qubits.
+        /// Given the body of an operation, auto-generates the (content of the) controlled specialization using the default name 
+        /// for control qubits. Adds the control qubits names to the list of defined variables for the scope and each subscope. 
         /// Throws an ArgumentNullException if the given scope is null.
         /// </summary>
         public static QsScope GenerateControlled(this QsScope scope)

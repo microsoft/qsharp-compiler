@@ -10,6 +10,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -22,9 +23,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         /// <summary>
         /// Returns the given edit for the specified file as WorkspaceEdit.
-        /// Throws an ArgumentNullException if the given file or any of the given edits is null. 
+        /// Throws an ArgumentNullException if the given file or any of the given edits is null.
         /// </summary>
-        private static WorkspaceEdit GetWorkspaceEdit(this FileContentManager file, params TextEdit[] edits) 
+        private static WorkspaceEdit GetWorkspaceEdit(this FileContentManager file, params TextEdit[] edits)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
             if (edits == null || edits.Any(edit => edit == null)) throw new ArgumentNullException(nameof(edits));
@@ -38,9 +39,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all namespaces in which a callable with the name of the symbol at the given position in the given file belongs to.
-        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location. 
-        /// Returns the name of the identifier as out parameter if an unqualified symbol exists at that location.
+        /// Returns all namespaces in which a callable with the name of the symbol at the given position in the given
+        /// file belongs to.
+        ///
+        /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at that
+        /// location, or if the position is not part of a namespace.
+        ///
+        /// Returns the name of the identifier as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForIdAtPosition
             (this FileContentManager file, Position pos, CompilationUnit compilation, out string idName)
@@ -53,9 +58,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all namespaces in which a type with the name of the symbol at the given position in the given file belongs to.
-        /// Returns an empty collection if any of the arguments is null or if no unqualified symbol exists at that location. 
-        /// Returns the name of the type as out parameter if an unqualified symbol exists at that location.
+        /// Returns all namespaces in which a type with the name of the symbol at the given position in the given file
+        /// belongs to.
+        ///
+        /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at that
+        /// location, or if the position is not part of a namespace.
+        ///
+        /// Returns the name of the type as an out parameter if an unqualified symbol exists at that location.
         /// </summary>
         private static IEnumerable<NonNullable<string>> NamespaceSuggestionsForTypeAtPosition
             (this FileContentManager file, Position pos, CompilationUnit compilation, out string typeName)
@@ -70,8 +79,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all code fragments in the specified file that overlap with the given range. 
-        /// Returns an empty sequence if any of the given arguments is null. 
+        /// Returns all code fragments in the specified file that overlap with the given range.
+        /// Returns an empty sequence if any of the given arguments is null.
         /// </summary>
         private static IEnumerable<CodeFragment> FragmentsOverlappingWithRange(this FileContentManager file, LSP.Range range)
         {
@@ -92,9 +101,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Return an enumerable of suitable edits to add open directives for all given namespaces for which no open directive already exists. 
-        /// Returns an edit for opening a given namespace even if an alias is already defined for that namespace. 
-        /// Returns an empty enumerable if suitable edits could not be determined. 
+        /// Return an enumerable of suitable edits to add open directives for all given namespaces for which no open directive already exists.
+        /// Returns an edit for opening a given namespace even if an alias is already defined for that namespace.
+        /// Returns an empty enumerable if suitable edits could not be determined.
         /// </summary>
         private static IEnumerable<TextEdit> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, params NonNullable<string>[] namespaces)
         {
@@ -131,9 +140,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions on how errors for ambiguous types and callable in the given diagnostics can be fixed, 
-        /// given the file for which those diagnostics were generated and the corresponding compilation. 
-        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// Returns a sequence of suggestions on how errors for ambiguous types and callable in the given diagnostics can be fixed,
+        /// given the file for which those diagnostics were generated and the corresponding compilation.
+        /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForAmbiguousIdentifiers
             (this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic> diagnostics)
@@ -159,10 +168,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions on how errors for unknown types and callable in the given diagnostics can be fixed, 
-        /// given the file for which those diagnostics were generated and the corresponding compilation. 
-        /// The given line number is used to determine the containing namespace. 
-        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// Returns a sequence of suggestions on how errors for unknown types and callable in the given diagnostics can be fixed,
+        /// given the file for which those diagnostics were generated and the corresponding compilation.
+        /// The given line number is used to determine the containing namespace.
+        /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnknownIdentifiers
             (this FileContentManager file, CompilationUnit compilation, int lineNr, IEnumerable<Diagnostic> diagnostics)
@@ -181,9 +190,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions on how deprecated syntax can be updated based on the generated diagnostics, 
-        /// and given the file for which those diagnostics were generated. 
-        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// Returns a sequence of suggestions on how deprecated syntax can be updated based on the generated diagnostics,
+        /// and given the file for which those diagnostics were generated.
+        /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForDeprecatedSyntax
             (this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
@@ -197,7 +206,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             (string, WorkspaceEdit) ReplaceWith(string text, LSP.Range range)
             {
-                bool NeedsWs(Char ch) => Char.IsLetterOrDigit(ch) || ch == '_';
+                static bool NeedsWs(Char ch) => Char.IsLetterOrDigit(ch) || ch == '_';
                 if (range?.Start != null && range.End != null)
                 {
                     var beforeEdit = file.GetLine(range.Start.Line).Text.Substring(0, range.Start.Character);
@@ -218,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // update deprecated operation characteristics syntax
 
-            string CharacteristicsAnnotation(Characteristics c)
+            static string CharacteristicsAnnotation(Characteristics c)
             {
                 var charEx = SyntaxTreeToQsharp.CharacteristicsExpression(SymbolResolution.ResolveCharacteristics(c));
                 return charEx == null ? "" : $"{Keywords.qsCharacteristics.id} {charEx}";
@@ -226,15 +235,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var suggestionsForOpCharacteristics = deprecatedOpCharacteristics.SelectMany(d =>
             {
-                // TODO: TryGetQsSymbolInfo currently only returns information about the inner most leafs rather than all types etc. 
-                // Once it returns indeed all types in the fragment, the following code block should be replaced by the commented out code below. 
+                // TODO: TryGetQsSymbolInfo currently only returns information about the inner most leafs rather than all types etc.
+                // Once it returns indeed all types in the fragment, the following code block should be replaced by the commented out code below.
                 var fragment = file.TryGetFragmentAt(d.Range.Start, out var _);
-                IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
+
+                static IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
                     SyntaxGenerator.ExtractItems(argTuple).SelectMany(item => item.Item2.ExtractCharacteristics()).Distinct();
                 var characteristicsInFragment =
-                    fragment?.Kind is QsFragmentKind.FunctionDeclaration function ? GetCharacteristics(function.Item2.Argument) :
-                    fragment?.Kind is QsFragmentKind.OperationDeclaration operation ? GetCharacteristics(operation.Item2.Argument) :
-                    fragment?.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item2) :
+                    fragment?.Kind is QsFragmentKind.FunctionDeclaration function ? GetCharacteristics(function.Item3.Argument) :
+                    fragment?.Kind is QsFragmentKind.OperationDeclaration operation ? GetCharacteristics(operation.Item3.Argument) :
+                    fragment?.Kind is QsFragmentKind.TypeDefinition type ? GetCharacteristics(type.Item3) :
                     Enumerable.Empty<Characteristics>();
 
                 //var symbolInfo = file.TryGetQsSymbolInfo(d.Range.Start, false, out var fragment);
@@ -254,9 +264,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions for update-and-reassign statements based on the generated diagnostics, 
-        /// and given the file for which those diagnostics were generated. 
-        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// Returns a sequence of suggestions for update-and-reassign statements based on the generated diagnostics,
+        /// and given the file for which those diagnostics were generated.
+        /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUpdateAndReassignStatements
             (this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
@@ -286,29 +296,44 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions for replacing ranges over array indices with the corresponding library call, 
-        /// provided the corresponding library is referenced. 
-        /// Returns an empty enumerable if this is not the case or any of the given arguments is null. 
+        /// Returns a sequence of suggestions for replacing ranges over array indices with the corresponding library call,
+        /// provided the corresponding library is referenced.
+        /// Returns an empty enumerable if this is not the case or any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForIndexRange
             (this FileContentManager file, CompilationUnit compilation, LSP.Range range)
         {
-            if (file == null || compilation == null || range?.Start == null) return Enumerable.Empty<(string, WorkspaceEdit)>();
-            var indexRangeNamespaces = compilation.GlobalSymbols.NamespacesContainingCallable(BuiltIn.IndexRange.Name);
-            if (!indexRangeNamespaces.Contains(BuiltIn.IndexRange.Namespace)) return Enumerable.Empty<(string, WorkspaceEdit)>();
-            var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, BuiltIn.IndexRange.Namespace);
+            if (file == null || compilation == null || range?.Start == null)
+            {
+                return Enumerable.Empty<(string, WorkspaceEdit)>();
+            }
 
-            /// Returns true the given expression is of the form "0 .. Length(args) - 1", 
-            /// as well as the range of the entire expression and the argument tuple "(args)" as out parameters. 
-            bool IsIndexRange(QsExpression iterExpr, Position offset, out LSP.Range exprRange, out LSP.Range argRange)
+            // Ensure that the IndexRange library function exists in this compilation unit.
+            var nsName = file.TryGetNamespaceAt(range.Start);
+            if (nsName == null)
+            {
+                return Enumerable.Empty<(string, WorkspaceEdit)>();
+            }
+            var indexRange = compilation.GlobalSymbols.TryGetCallable(
+                new QsQualifiedName(BuiltIn.IndexRange.FullName.Namespace, BuiltIn.IndexRange.FullName.Name),
+                NonNullable<string>.New(nsName),
+                file.FileName);
+            if (!indexRange.IsFound)
+            {
+                return Enumerable.Empty<(string, WorkspaceEdit)>();
+            }
+
+            /// Returns true the given expression is of the form "0 .. Length(args) - 1",
+            /// as well as the range of the entire expression and the argument tuple "(args)" as out parameters.
+            static bool IsIndexRange(QsExpression iterExpr, Position offset, out LSP.Range exprRange, out LSP.Range argRange)
             {
                 if (iterExpr.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.RangeLiteral rangeExpression && iterExpr.Range.IsValue &&                               // iterable expression is a valid range literal
                     rangeExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral intLiteralExpression && intLiteralExpression.Item == 0L &&      // .. starting at 0 ..
-                    rangeExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.SUB SUBExpression &&                                                       // .. and ending in subracting ..
+                    rangeExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.SUB SUBExpression &&                                                       // .. and ending in subtracting ..
                     SUBExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral subIntLiteralExpression && subIntLiteralExpression.Item == 1L &&  // .. 1 from ..
                     SUBExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.CallLikeExpression callLikeExression &&                                      // .. a call ..
                     callLikeExression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.Identifier identifier &&                                                 // .. to and identifier ..
-                    identifier.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol symName && symName.Item.Value == BuiltIn.Length.Name.Value &&                                          // .. "Length" called with ..
+                    identifier.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol symName && symName.Item.Value == BuiltIn.Length.FullName.Name.Value &&                                          // .. "Length" called with ..
                     callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple && callLikeExression.Item2.Range.IsValue)          // .. a valid argument tuple
                 {
                     exprRange = DiagnosticTools.GetAbsoluteRange(offset, iterExpr.Range.Item);
@@ -321,8 +346,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// Returns the text edits for replacing an range over the indices with the corresponding library call if the given code fragment is a suitable for-loop intro.
-            /// The returned edits do *not* include an edit for adding the corresponding open-directive if necessary. 
-            IEnumerable<TextEdit> IndexRangeEdits(CodeFragment fragment)
+            /// The returned edits do *not* include an edit for adding the corresponding open-directive if necessary.
+            static IEnumerable<TextEdit> IndexRangeEdits(CodeFragment fragment)
             {
                 if (fragment.Kind is QsFragmentKind.ForLoopIntro forLoopIntro && // todo: in principle we could give these suggestions for any index range
                     IsIndexRange(forLoopIntro.Item2, fragment.GetRange().Start, out var iterExprRange, out var argTupleRange))
@@ -330,7 +355,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     yield return new TextEdit()
                     {
                         Range = new LSP.Range() { Start = iterExprRange.Start, End = argTupleRange.Start },
-                        NewText = BuiltIn.IndexRange.Name.Value
+                        NewText = BuiltIn.IndexRange.FullName.Name.Value
                     };
                     yield return new TextEdit()
                     {
@@ -342,15 +367,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var fragments = file.FragmentsOverlappingWithRange(range);
             var edits = fragments.SelectMany(IndexRangeEdits);
+            var suggestedOpenDir = file.OpenDirectiveSuggestions(range.Start.Line, BuiltIn.IndexRange.FullName.Namespace);
             return edits.Any() 
                 ? new[] { ("Use IndexRange to iterate over indices.", file.GetWorkspaceEdit(suggestedOpenDir.Concat(edits).ToArray())) } 
                 : Enumerable.Empty<(string, WorkspaceEdit)>();
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions for removing code that is never executed based on the generated diagnostics, 
-        /// and given the file for which those diagnostics were generated. 
-        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// Returns a sequence of suggestions for removing code that is never executed based on the generated diagnostics,
+        /// and given the file for which those diagnostics were generated.
+        /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForUnreachableCode
             (this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
@@ -380,7 +406,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // determine the whitespace for the replacement string
                 var lastLine = file.GetLine(lastFragToken.Line).Text.Substring(0, lastInScope.GetRange().Start.Character);
                 var trimmedLastLine = lastLine.TrimEnd();
-                var whitespace = lastLine.Substring(trimmedLastLine.Length, lastLine.Length - trimmedLastLine.Length);
+                var whitespace = lastLine[trimmedLastLine.Length..];
 
                 // build the replacement string
                 var replaceString = lastBeforeErase.FollowedBy == CodeFragment.MissingDelimiter ? "" : $"{lastBeforeErase.FollowedBy}";
@@ -398,11 +424,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions to insert doc comments for an undocumented declaration that overlap with the given range in the given file. 
+        /// Returns a sequence of suggestions to insert doc comments for an undocumented declaration that overlap with the given range in the given file.
         /// Returns an empty enumerable if more than one code fragment overlaps with the given range,
         /// or the overlapping fragment does not contain a declaration,
         /// or the overlapping fragment contains a declaration that is already documented,
-        /// or if any of the given arguments is null. 
+        /// or if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(this FileContentManager file, LSP.Range range)
         {
@@ -411,14 +437,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             if (fragment?.Kind == null || overlapping.Count() != 1) return Enumerable.Empty<(string, WorkspaceEdit)>(); // only suggest doc comment directly on the declaration
 
             var (nsDecl, callableDecl, typeDecl) = (fragment.Kind.DeclaredNamespace(), fragment.Kind.DeclaredCallable(), fragment.Kind.DeclaredType());
-            var declSymbol = nsDecl.IsValue ? nsDecl.Item.Item1.Symbol 
+            var declSymbol = nsDecl.IsValue ? nsDecl.Item.Item1.Symbol
                 : callableDecl.IsValue ? callableDecl.Item.Item1.Symbol
                 : typeDecl.IsValue ? typeDecl.Item.Item1.Symbol : null;
             var declStart = fragment.GetRange().Start;
             if (declSymbol == null || file.DocumentingComments(declStart).Any()) return Enumerable.Empty<(string, WorkspaceEdit)>();
 
             // set declStart to the position of the first attribute attached to the declaration
-            bool EmptyOrFirstAttribute(IEnumerable<CodeFragment> line, out CodeFragment att)
+            static bool EmptyOrFirstAttribute(IEnumerable<CodeFragment> line, out CodeFragment att)
             {
                 att = line?.Reverse().TakeWhile(t => t.Kind is QsFragmentKind.DeclarationAttribute).LastOrDefault();
                 return att != null || (line != null && !line.Any());
@@ -436,10 +462,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var docString = $"{docPrefix}# Summary{endLine}{docPrefix}{endLine}";
 
             var (argTuple, typeParams) =
-                callableDecl.IsValue ? (callableDecl.Item.Item2.Item2.Argument, callableDecl.Item.Item2.Item2.TypeParameters) :
-                typeDecl.IsValue ? (typeDecl.Item.Item2, ImmutableArray<QsSymbol>.Empty) :
-                (null, ImmutableArray<QsSymbol>.Empty);
-            var hasOutput = callableDecl.IsValue && !callableDecl.Item.Item2.Item2.ReturnType.Type.IsUnitType;
+                callableDecl.IsValue ? (callableDecl.Item.Item2.Item3.Argument,
+                                        callableDecl.Item.Item2.Item3.TypeParameters)
+                : typeDecl.IsValue ? (typeDecl.Item.Item2.Item2, ImmutableArray<QsSymbol>.Empty)
+                : (null, ImmutableArray<QsSymbol>.Empty);
+            var hasOutput = callableDecl.IsValue && !callableDecl.Item.Item2.Item3.ReturnType.Type.IsUnitType;
 
             var args = argTuple == null ? ImmutableArray<Tuple<QsSymbol, QsType>>.Empty : SyntaxGenerator.ExtractItems(argTuple);
             docString = String.Concat(
@@ -447,7 +474,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // Document Input Parameters
                 args.Any() ? $"{docPrefix}# Input{endLine}" : String.Empty,
                 String.Concat(args.Select(x => $"{docPrefix}## {x.Item1.Symbol.AsDeclarationName(null)}{endLine}{docPrefix}{endLine}")),
-                // Document Output 
+                // Document Output
                 hasOutput ? $"{docPrefix}# Output{endLine}{docPrefix}{endLine}" : String.Empty,
                 // Document Type Parameters
                 typeParams.Any() ? $"{docPrefix}# Type Parameters{endLine}" : String.Empty,

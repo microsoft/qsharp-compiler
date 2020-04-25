@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled;
 
@@ -12,24 +11,18 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     internal class ClassicallyControlled : IRewriteStep
     {
-        public string Name => "ClassicallyControlled";
+        public string Name => "Classically Controlled";
         public int Priority => 10; // Not used for built-in transformations like this
         public IDictionary<string, string> AssemblyConstants { get; }
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
-        public bool ImplementsTransformation => true;
         public bool ImplementsPreconditionVerification => true;
+        public bool ImplementsTransformation => true;
         public bool ImplementsPostconditionVerification => false;
 
         public ClassicallyControlled()
         {
             AssemblyConstants = new Dictionary<string, string>();
-        }
-
-        public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
-        {
-            transformed = ReplaceClassicalControl.Apply(compilation);
-            return true;
         }
 
         public bool PreconditionVerification(QsCompilation compilation)
@@ -42,26 +35,35 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
                 return false;
             }
 
-            var providedOperations = new QsNamespace[] { controlNs }.Callables().Select(c => c.FullName.Name);
-            var requiredBuiltIns = new List<NonNullable<string>>()
+            var providedOperations = new QsNamespace[] { controlNs }
+                .Callables()
+                .Select(c => c.FullName)
+                .ToHashSet();
+            var requiredBuiltIns = new HashSet<QsQualifiedName>()
             {
-                BuiltIn.ApplyIfZero.Name,
-                BuiltIn.ApplyIfZeroA.Name,
-                BuiltIn.ApplyIfZeroC.Name,
-                BuiltIn.ApplyIfZeroCA.Name,
+                BuiltIn.ApplyIfZero.FullName,
+                BuiltIn.ApplyIfZeroA.FullName,
+                BuiltIn.ApplyIfZeroC.FullName,
+                BuiltIn.ApplyIfZeroCA.FullName,
 
-                BuiltIn.ApplyIfOne.Name,
-                BuiltIn.ApplyIfOneA.Name,
-                BuiltIn.ApplyIfOneC.Name,
-                BuiltIn.ApplyIfOneCA.Name,
+                BuiltIn.ApplyIfOne.FullName,
+                BuiltIn.ApplyIfOneA.FullName,
+                BuiltIn.ApplyIfOneC.FullName,
+                BuiltIn.ApplyIfOneCA.FullName,
 
-                BuiltIn.ApplyIfElseR.Name,
-                BuiltIn.ApplyIfElseRA.Name,
-                BuiltIn.ApplyIfElseRC.Name,
-                BuiltIn.ApplyIfElseRCA.Name
+                BuiltIn.ApplyIfElseR.FullName,
+                BuiltIn.ApplyIfElseRA.FullName,
+                BuiltIn.ApplyIfElseRC.FullName,
+                BuiltIn.ApplyIfElseRCA.FullName
             };
 
-            return requiredBuiltIns.All(builtIn => providedOperations.Any(provided => provided.Equals(builtIn)));
+            return requiredBuiltIns.IsSubsetOf(providedOperations);
+        }
+
+        public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
+        {
+            transformed = ReplaceClassicalControl.Apply(compilation);
+            return true;
         }
 
         public bool PostconditionVerification(QsCompilation compilation)

@@ -96,6 +96,7 @@ module DeclarationHeader =
 type TypeDeclarationHeader = {
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
+    Modifiers       : Modifiers
     SourceFile      : NonNullable<string>
     Position        : DeclarationHeader.Offset
     SymbolRange     : DeclarationHeader.Range
@@ -107,10 +108,12 @@ type TypeDeclarationHeader = {
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.SymbolRange)
     member this.FromSource source = {this with SourceFile = source}
+    member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
 
     static member New (customType : QsCustomType) = {
         QualifiedName   = customType.FullName
         Attributes      = customType.Attributes
+        Modifiers       = customType.Modifiers
         SourceFile      = customType.SourceFile
         Position        = customType.Location |> DeclarationHeader.CreateOffset
         SymbolRange     = customType.Location |> DeclarationHeader.CreateRange
@@ -135,6 +138,7 @@ type CallableDeclarationHeader = {
     Kind            : QsCallableKind
     QualifiedName   : QsQualifiedName
     Attributes      : ImmutableArray<QsDeclarationAttribute>
+    Modifiers       : Modifiers
     SourceFile      : NonNullable<string>
     Position        : DeclarationHeader.Offset
     SymbolRange     : DeclarationHeader.Range
@@ -146,11 +150,13 @@ type CallableDeclarationHeader = {
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation (this.Position, this.SymbolRange)
     member this.FromSource source = {this with SourceFile = source}
+    member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
 
     static member New (callable : QsCallable) = {
         Kind            = callable.Kind
         QualifiedName   = callable.FullName
         Attributes      = callable.Attributes
+        Modifiers       = callable.Modifiers
         SourceFile      = callable.SourceFile
         Position        = callable.Location |> DeclarationHeader.CreateOffset
         SymbolRange     = callable.Location |> DeclarationHeader.CreateRange

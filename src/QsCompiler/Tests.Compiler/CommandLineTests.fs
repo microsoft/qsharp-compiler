@@ -156,6 +156,31 @@ let ``diagnose outputs`` () =
 
 
 [<Fact>]
+let ``options from response files`` () = 
+    let configFile = ("TestCases", "qsc-config.txt") |> Path.Combine
+    let configArgs = 
+        [|
+            "-i"
+            ("TestCases","LinkingTests","Core.qs") |> Path.Combine
+            ("TestCases","LinkingTests","Diagnostics.qs") |> Path.Combine
+        |]        
+    File.WriteAllText(configFile, String.Join (" ", configArgs))
+    let commandLineArgs = 
+        [|
+            "build"
+            "-v"
+            "Detailed"
+            "--format"
+            "MsBuild"
+            "--response-files"
+            configFile
+        |]        
+
+    let result = Program.Main commandLineArgs
+    Assert.Equal(ReturnCode.SUCCESS, result)
+
+
+[<Fact>]
 let ``generate docs`` () =
     let docsFolder = ("TestCases", "docs.Out") |> Path.Combine
     if (Directory.Exists docsFolder) then
