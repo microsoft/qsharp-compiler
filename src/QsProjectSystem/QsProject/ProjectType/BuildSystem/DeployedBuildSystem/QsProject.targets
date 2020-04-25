@@ -12,10 +12,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectCapability Include="QSharpProject" />
+    <!-- capabilities needed for integration with NuGet -->
+    <ProjectCapability Include="UserSourceItems" />
     <ProjectCapability Include="DeclaredSourceItems" />
-    <ProjectCapability Include="ReferencesFolder" />
     <ProjectCapability Include="AssemblyReferences" />
+    <!-- other capabilites -->
+    <ProjectCapability Include="QSharpProject" />
+    <ProjectCapability Include="ReferencesFolder" />
     <ProjectCapability Include="ProjectReferences" />
     <ProjectCapability Include="PackageReferences" />
     <!--ProjectCapability Include="SDKReferences" /-->
