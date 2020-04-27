@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
-    public static class TypeParamStuff
+    public static class TypeParamUtils
     {
         // TODO:
         // This is the method that should be invoked to verify cycles of interest,
@@ -491,7 +491,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
 
         private CallGraphEdge CombineEdges(CallGraphNode targetNode, params CallGraphEdge[] edges)
         {
-            if (TypeParamStuff.TryCombineTypeResolutionsWithTarget(targetNode.CallableName, out var combinedEdge, edges.Select(e => e.ParamResolutions).ToArray()))
+            if (TypeParamUtils.TryCombineTypeResolutionsWithTarget(targetNode.CallableName, out var combinedEdge, edges.Select(e => e.ParamResolutions).ToArray()))
             {
                 return new CallGraphEdge() { ParamResolutions = combinedEdge };
             }

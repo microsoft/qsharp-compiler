@@ -46,10 +46,10 @@ type CallGraphTests (output:ITestOutputHelper) =
     let DecorateWithNamespace (ns : string) (input : string list list) =
         List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name })) input
 
-    let resolution (res : (QsTypeParameter * QsTypeKind<_,_,_,_>) list) =
+    let ResolutionFromParam (res : (QsTypeParameter * QsTypeKind<_,_,_,_>) list) =
         res.ToImmutableDictionary((fun (tp,_) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
 
-    let otherResolution (res : (QsQualifiedName * NonNullable<string> * QsTypeKind<_,_,_,_>) list) =
+    let ResolutionFromParamName (res : (QsQualifiedName * NonNullable<string> * QsTypeKind<_,_,_,_>) list) =
         res.ToImmutableDictionary((fun (op, param, _) -> op, param), (fun (_, _, resolution) -> ResolvedType.New resolution))
 
     let ReadAndChunkSourceFile fileName =
@@ -117,17 +117,15 @@ type CallGraphTests (output:ITestOutputHelper) =
     let AssertExpectedResolution (expected : ImmutableDictionary<_,_>) (given : ImmutableDictionary<_,_> ) =
         Assert.True(CheckResolutionMatch expected given, "Given resolutions did not match the expected resolutions.")
 
-    let CheckResolutionListMatch (resList1 : ImmutableDictionary<_,_> list) (resList2 : ImmutableDictionary<_,_> list) =
-        let sameLength = resList1.Length = resList2.Length
-        sameLength && resList1 |> List.forall (fun res1 -> resList2 |> List.exists (fun res2 -> CheckResolutionMatch res1 res2))
-
     let AssertExpectedResolutionList (expected : ImmutableDictionary<_,_> list) (given : ImmutableDictionary<_,_> list) =
-        Assert.True(CheckResolutionListMatch expected given, "Given resolutions did not match the expected resolutions.")
+        let sameLength = expected.Length = given.Length
+        let isMatch = sameLength && expected |> List.forall (fun res1 -> given |> List.exists (fun res2 -> CheckResolutionMatch res1 res2))
+        Assert.True(isMatch, "Given resolutions did not match the expected resolutions.")
 
-    let OtherAssertExpectedResolutions name (given : Dictionary<_,ImmutableArray<_>>) expected =
+    let AssertExpectedDepencency name (given : Dictionary<_,ImmutableArray<_>>) expected =
         let opName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
         let opNode = new CallGraphNode(CallableName = opName, Kind = QsSpecializationKind.QsBody, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null)
-        let expected = expected |> List.map (fun x -> x |> List.map (fun y -> (opName, fst y, snd y)) |> otherResolution)
+        let expected = expected |> List.map (fun x -> x |> List.map (fun y -> (opName, fst y, snd y)) |> ResolutionFromParamName)
         Assert.True(given.ContainsKey(opNode), sprintf "Expected Main to take dependency on %s." name)
         let edges = given.[opNode]
         Assert.True(edges.Length = expected.Length, sprintf "Expected exactly %i edge(s) from Main to %s." expected.Length name);
@@ -136,7 +134,7 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     let CheckCombinedResolution (parent, expected : ImmutableDictionary<_,_>, [<ParamArray>] resolutions) =
         let mutable combined = ImmutableDictionary.Empty
-        let success = TypeParamStuff.TryCombineTypeResolutionsWithTarget(parent, &combined, resolutions)
+        let success = TypeParamUtils.TryCombineTypeResolutionsWithTarget(parent, &combined, resolutions)
         AssertExpectedResolution expected combined
         success
 
@@ -153,15 +151,15 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Resolution to Concrete`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
                 (FooB, Int)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, Int)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, Int)
             (FooB, Int)
         ]
@@ -173,14 +171,14 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Resolution to Type Parameter`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, BazA |> TypeParameter)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, BazA |> TypeParameter)
         ]
 
@@ -191,14 +189,14 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Resolution via Identity Mapping`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, FooA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (FooA, Int)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, Int)
         ]
 
@@ -209,15 +207,15 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Multi-Stage Resolution`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, Int)
                 (FooB, Int)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, Int)
             (FooB, Int)
         ]
@@ -229,15 +227,15 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Multiple Resolutions to Concrete`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
                 (FooB, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, Int)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, Int)
             (FooB, Int)
         ]
@@ -249,18 +247,18 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Multiple Resolutions to Type Parameter`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
                 (FooB, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, BazA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BazA, Double)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, Double)
             (FooB, Double)
         ]
@@ -272,17 +270,17 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Multi-Stage Resolution of Multiple Resolutions to Concrete`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (FooB, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, Int)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, Int)
             (FooB, Int)
         ]
@@ -294,15 +292,15 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Redundant Resolution to Concrete`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, Int)
                 (FooA, Int)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, Int)
         ]
 
@@ -313,17 +311,17 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Redundant Resolution to Type Parameter`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, BazA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (FooA, BazA |> TypeParameter)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, BazA |> TypeParameter)
         ]
 
@@ -334,15 +332,15 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Conflicting Resolution to Concrete`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, Int)
                 (FooA, Double)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, Double)
         ]
 
@@ -353,15 +351,15 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Conflicting Resolution to Type Parameter`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, BazA |> TypeParameter)
                 (FooA, BarC |> TypeParameter)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, BarC |> TypeParameter)
         ]
 
@@ -372,11 +370,11 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Direct Resolution to Native`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, FooA |> TypeParameter)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, FooA |> TypeParameter)
         ]
 
@@ -387,17 +385,17 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Indirect Resolution to Native`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, BazA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BazA, FooA |> TypeParameter)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, FooA |> TypeParameter)
         ]
 
@@ -408,11 +406,11 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Direct Resolution Constrains Native`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, FooB |> TypeParameter)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, FooB |> TypeParameter)
         ]
 
@@ -423,17 +421,17 @@ type CallGraphTests (output:ITestOutputHelper) =
     member this.``Indirect Resolution Constrains Native`` () =
 
         let given = [|
-            resolution [
+            ResolutionFromParam [
                 (FooA, BarA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BarA, BazA |> TypeParameter)
             ]
-            resolution [
+            ResolutionFromParam [
                 (BazA, FooB |> TypeParameter)
             ]
         |]
-        let expected = resolution [
+        let expected = ResolutionFromParam [
             (FooA, FooB |> TypeParameter)
         ]
 
@@ -454,7 +452,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "B", String)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Foo" dependencies
+        |> AssertExpectedDepencency "Foo" dependencies
 
         [
             [
@@ -464,14 +462,14 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "X", String)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Bar" dependencies
+        |> AssertExpectedDepencency "Bar" dependencies
 
         [
             [
                 (NonNullable<_>.New "Y", String)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Baz" dependencies
+        |> AssertExpectedDepencency "Baz" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -487,7 +485,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Foo" dependencies
+        |> AssertExpectedDepencency "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -503,7 +501,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Foo" dependencies
+        |> AssertExpectedDepencency "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -519,7 +517,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Foo" dependencies
+        |> AssertExpectedDepencency "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -535,7 +533,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Foo" dependencies
+        |> AssertExpectedDepencency "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -552,7 +550,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "B", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Foo" dependencies
+        |> AssertExpectedDepencency "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -570,7 +568,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "C", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Foo" dependencies
+        |> AssertExpectedDepencency "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -586,14 +584,14 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Foo" dependencies
+        |> AssertExpectedDepencency "Foo" dependencies
 
         [
             [
                 (NonNullable<_>.New "B", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Bar" dependencies
+        |> AssertExpectedDepencency "Bar" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -609,14 +607,14 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Foo" dependencies
+        |> AssertExpectedDepencency "Foo" dependencies
 
         [
             [
                 (NonNullable<_>.New "B", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Bar" dependencies
+        |> AssertExpectedDepencency "Bar" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -632,14 +630,14 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Foo" dependencies
+        |> AssertExpectedDepencency "Foo" dependencies
 
         [
             [
                 (NonNullable<_>.New "B", Int)
             ]
         ]
-        |> OtherAssertExpectedResolutions "Bar" dependencies
+        |> AssertExpectedDepencency "Bar" dependencies
 
     [<Fact>]
     [<Trait("Category","Cycle Detection")>]
