@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
                     // ToDo: this needs adaption if we want to support type specializations
                     var typeArgs = tArgs;
 
-                    TypeParamStuff.TryCombineTypeResolutions(global.Item, out var typeParamRes, SharedState.typeParameterResolutions.ToArray());
+                    TypeParamStuff.TryCombineTypeResolutionsWithTarget(global.Item, out var typeParamRes, SharedState.typeParameterResolutions.ToArray());
                     SharedState.typeParameterResolutions = new List<TypeParameterResolutions>();
 
                     if (SharedState.inCall)

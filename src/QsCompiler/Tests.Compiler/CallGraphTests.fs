@@ -136,7 +136,7 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     let CheckCombinedResolution (parent, expected : ImmutableDictionary<_,_>, [<ParamArray>] resolutions) =
         let mutable combined = ImmutableDictionary.Empty
-        let success = TypeParamStuff.TryCombineTypeResolutions(parent, &combined, resolutions)
+        let success = TypeParamStuff.TryCombineTypeResolutionsWithTarget(parent, &combined, resolutions)
         AssertExpectedResolution expected combined
         success
 
