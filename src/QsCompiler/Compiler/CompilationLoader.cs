@@ -18,6 +18,7 @@ using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
+using Microsoft.Quantum.QsCompiler.Transformations.CodeTransformationsNS;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json.Bson;
 using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
@@ -432,8 +433,6 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.ReplaceTargetSpecificImplementations(thisDllUri, out this.CompilationOutput);
             }
-
-            Transformations.BuildCallGraph.Test(this.CompilationOutput);
 
             if (this.Config.ConvertClassicalControl)
             {

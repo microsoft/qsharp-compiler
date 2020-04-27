@@ -12,7 +12,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations
+open Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
 open Xunit
 open Xunit.Abstractions
 

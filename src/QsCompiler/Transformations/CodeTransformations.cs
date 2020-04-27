@@ -11,7 +11,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
-namespace Microsoft.Quantum.QsCompiler
+namespace Microsoft.Quantum.QsCompiler.Transformations.CodeTransformationsNS
 {
     /// <summary>
     /// Static base class to accumulate the handles to individual syntax tree rewrite steps.
@@ -83,5 +83,3 @@ namespace Microsoft.Quantum.QsCompiler
         }
     }
 }
-
-
