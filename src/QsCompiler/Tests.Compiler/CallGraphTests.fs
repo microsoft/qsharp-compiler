@@ -440,6 +440,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         AssertCombinedResolutionFailure(Foo, expected, given)
 
     [<Fact>]
+    [<Trait("Category","Get Dependencies")>]
     member this.``Get All Dependencies`` () =
         let graph = CompileTypeParameterResolutionTest 1
 
@@ -473,6 +474,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> OtherAssertExpectedResolutions "Baz" dependencies
 
     [<Fact>]
+    [<Trait("Category","Get Dependencies")>]
     member this.``Argument Resolution`` () =
         let graph = CompileTypeParameterResolutionTest 2
 
@@ -488,6 +490,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> OtherAssertExpectedResolutions "Foo" dependencies
 
     [<Fact>]
+    [<Trait("Category","Get Dependencies")>]
     member this.``Type List Resolution`` () =
         let graph = CompileTypeParameterResolutionTest 3
 
@@ -503,6 +506,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> OtherAssertExpectedResolutions "Foo" dependencies
 
     [<Fact>]
+    [<Trait("Category","Get Dependencies")>]
     member this.``Argument and Type List Resolution`` () =
         let graph = CompileTypeParameterResolutionTest 4
 
@@ -518,6 +522,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> OtherAssertExpectedResolutions "Foo" dependencies
 
     [<Fact>]
+    [<Trait("Category","Get Dependencies")>]
     member this.``Partial Application One Argument`` () =
         let graph = CompileTypeParameterResolutionTest 5
 
@@ -533,6 +538,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> OtherAssertExpectedResolutions "Foo" dependencies
 
     [<Fact>]
+    [<Trait("Category","Get Dependencies")>]
     member this.``Partial Application Two Arguments`` () =
         let graph = CompileTypeParameterResolutionTest 6
 
@@ -549,6 +555,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> OtherAssertExpectedResolutions "Foo" dependencies
 
     [<Fact>]
+    [<Trait("Category","Get Dependencies")>]
     member this.``Complex Partial Application`` () =
         let graph = CompileTypeParameterResolutionTest 7
 
@@ -566,6 +573,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> OtherAssertExpectedResolutions "Foo" dependencies
 
     [<Fact>]
+    [<Trait("Category","Get Dependencies")>]
     member this.``Nested Partial Application`` () =
         let graph = CompileTypeParameterResolutionTest 8
 
@@ -588,6 +596,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> OtherAssertExpectedResolutions "Bar" dependencies
 
     [<Fact>]
+    [<Trait("Category","Get Dependencies")>]
     member this.``Operation Returns Operation`` () =
         let graph = CompileTypeParameterResolutionTest 9
 
@@ -610,6 +619,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> OtherAssertExpectedResolutions "Bar" dependencies
 
     [<Fact>]
+    [<Trait("Category","Get Dependencies")>]
     member this.``Operation Takes Operation`` () =
         let graph = CompileTypeParameterResolutionTest 10
 
