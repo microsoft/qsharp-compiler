@@ -10,7 +10,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
     /// Replaces all functor generation directives with the corresponding implementation.  
-    /// Rewrite step with priority 600.
     /// </summary>
     internal class FunctorGeneration : IRewriteStep
     {

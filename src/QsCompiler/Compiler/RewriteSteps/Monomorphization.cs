@@ -12,7 +12,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
     /// Replaces all type parametrized callables with concrete instantiations, dropping any unused callables. 
-    /// Rewrite step with priority 1000.
     /// </summary>
     internal class Monomorphization : IRewriteStep
     {

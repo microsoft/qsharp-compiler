@@ -8,6 +8,9 @@ using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
+    /// <summary>
+    /// Replaces any syntax tree element in the compilation with the one in the environment tree given upon construction. 
+    /// </summary>
     internal class IntrinsicResolution : IRewriteStep
     {
         public string Name => "Intrinsic Resolution";

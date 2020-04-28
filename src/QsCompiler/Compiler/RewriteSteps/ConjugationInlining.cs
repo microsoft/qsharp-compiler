@@ -9,7 +9,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
     /// Inlines all conjugations, eliminating that construct from the syntax tree.  
-    /// Rewrite step with priority 500.
     /// </summary>
     internal class ConjugationInlining : IRewriteStep
     {

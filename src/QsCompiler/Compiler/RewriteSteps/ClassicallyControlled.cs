@@ -11,7 +11,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
     /// Replaces if-statements with the corresponding calls to built-in quantum operations if possible. 
-    /// Rewrite step with priority 1100.
     /// </summary>
     internal class ClassicallyControlled : IRewriteStep
     {

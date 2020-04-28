@@ -9,7 +9,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
     /// Evaluates classical computations as much as possible.   
-    /// Rewrite step with priority 100.
     /// </summary>
     internal class FullPreEvaluation : IRewriteStep
     {
