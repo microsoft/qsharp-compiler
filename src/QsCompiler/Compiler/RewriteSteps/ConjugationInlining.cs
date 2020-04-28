@@ -7,10 +7,14 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
+    /// <summary>
+    /// Inlines all conjugations, eliminating that construct from the syntax tree.  
+    /// Rewrite step with priority 500.
+    /// </summary>
     internal class ConjugationInlining : IRewriteStep
     {
         public string Name => "Conjugation Inlining";
-        public int Priority => 10; // Not used for built-in transformations like this
+        public int Priority => RewriteStepPriorities.InliningOfConjugations;
         public IDictionary<string, string> AssemblyConstants { get; }
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 

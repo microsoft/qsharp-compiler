@@ -9,6 +9,18 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler
 {
+    /// <summary>
+    /// Lists the priorities for built-in rewrite steps. 
+    /// </summary>
+    public static class RewriteStepPriorities
+    {
+        public const int ControlFlowSubstitutions = 1100;
+        public const int TypeParameterElimination = 1000;
+        public const int GenerationOfFunctorSupport = 600;
+        public const int InliningOfConjugations = 500;
+        public const int EvaluationOfClassicalComputations = 100;
+    }
+
     public interface IRewriteStep
     {
         public enum Stage 

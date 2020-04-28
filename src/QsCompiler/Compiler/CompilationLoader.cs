@@ -78,7 +78,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// If LoadAssembly is not null, it will be used to load the dlls that are search for classes defining rewrite steps.
         /// </summary>
         public static Func<string, Assembly> LoadAssembly { get; set; }
-
+        /// <summary>
+        /// Sorts the given list of step according to their relative priority give by getPriority. 
+        /// Throws the corresponding exception if getPriority is null. 
+        /// </summary>
+        internal static void SortRewriteSteps<T>(List<T> steps, Func<T, int> getPriority) =>
+            steps?.Sort((fst, snd) => getPriority(snd) - getPriority(fst));
 
         /// <summary>
         /// may be specified via configuration (or project) file in the future
@@ -451,49 +456,68 @@ namespace Microsoft.Quantum.QsCompiler
                 else this.LogAndUpdate(ref this.CompilationStatus.Validation, ErrorCode.MissingEntryPoint, Array.Empty<string>());
             }
 
-            // executing the specified rewrite steps
-
             if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
             { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
 
             if (!String.IsNullOrWhiteSpace(this.Config.TargetPackageAssembly))
             {
+                RaiseCompilationTaskStart("Build", "ReplaceTargetSpecificImplementations");
                 this.ReplaceTargetSpecificImplementations(thisDllUri, out this.CompilationOutput);
+                RaiseCompilationTaskEnd("Build", "ReplaceTargetSpecificImplementations");
             }
+
+            RaiseCompilationTaskEnd("OverallCompilation", "Build");
+
+            // executing the specified rewrite steps
+
+            var steps = new List<(int, Func<QsCompilation>)>();
 
             if (this.Config.ConvertClassicalControl)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.ConvertClassicalControl);
+                steps.Add((rewriteStep.Priority, () => ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.ConvertClassicalControl)));
             }
 
             if (this.Config.IsExecutable && !this.Config.SkipMonomorphization)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.Monomorphization);
+                steps.Add((rewriteStep.Priority, () => ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.Monomorphization)));
             }
 
             if (this.Config.GenerateFunctorSupport)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new FunctorGeneration(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.FunctorSupport);
+                steps.Add((rewriteStep.Priority, () => ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.FunctorSupport)));
             }
 
             if (!this.Config.SkipSyntaxTreeTrimming)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new ConjugationInlining(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.TreeTrimming);
+                steps.Add((rewriteStep.Priority, () => ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.TreeTrimming)));
             }
 
             if (this.Config.AttemptFullPreEvaluation)
             {
                 var rewriteStep = new RewriteSteps.LoadedStep(new FullPreEvaluation(), typeof(IRewriteStep), thisDllUri);
-                this.CompilationOutput = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.PreEvaluation);
+                steps.Add((rewriteStep.Priority, () => ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.PreEvaluation)));
             }
 
-            RaiseCompilationTaskEnd("OverallCompilation", "Build");
+            for (int i = 0; i < this.ExternalRewriteSteps.Length; i++)
+            {
+                var priority = this.ExternalRewriteSteps[i].Priority;
+                steps.Add((priority, () => ExecuteAsAtomicTransformation(this.ExternalRewriteSteps[i], ref this.CompilationStatus.LoadedRewriteSteps[i])));
+            }
 
-            // generating the compiled binary and dll
+            RaiseCompilationTaskStart("OverallCompilation", "RewriteSteps");
+            SortRewriteSteps(steps, t => t.Item1);
+            foreach (var (_, rewriteStep) in steps)
+            {
+                this.CompilationOutput = rewriteStep();
+            }
+
+            RaiseCompilationTaskEnd("OverallCompilation", "RewriteSteps");
+
+            // generating the compiled binary, dll, and docs
 
             RaiseCompilationTaskStart("OverallCompilation", "OutputGeneration");
             using (var ms = new MemoryStream())
@@ -515,8 +539,6 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
-            // executing the specified generation steps
-
             if (this.Config.DocumentationOutputFolder != null)
             {
                 RaiseCompilationTaskStart("OutputGeneration", "DocumentationGeneration");
@@ -529,17 +551,6 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             RaiseCompilationTaskEnd("OverallCompilation", "OutputGeneration");
-
-            // invoking rewrite steps in external dlls
-
-            RaiseCompilationTaskStart("OverallCompilation", "RewriteSteps");
-            for (int i = 0; i < this.ExternalRewriteSteps.Length; i++)
-            {
-                if (this.CompilationOutput == null) continue;
-                this.CompilationOutput = ExecuteAsAtomicTransformation(this.ExternalRewriteSteps[i], ref this.CompilationStatus.LoadedRewriteSteps[i]);
-            }
-
-            RaiseCompilationTaskEnd("OverallCompilation", "RewriteSteps");
             RaiseCompilationTaskEnd(null, "OverallCompilation");
         }
 
@@ -743,7 +754,8 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 try
                 {
-                    foreach (var diagnostic in rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty)
+                    var steps = rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty;
+                    foreach (var diagnostic in steps)
                     {
                         this.LogAndUpdate(ref status, RewriteSteps.LoadedStep.ConvertDiagnostic(diagnostic, GetDiagnosticsCode));
                     }
@@ -768,7 +780,7 @@ namespace Microsoft.Quantum.QsCompiler
                     return status;
                 }
 
-                var transformationFailed = rewriteStep.ImplementsTransformation && !rewriteStep.Transformation(compilation, out transformed);
+                var transformationFailed = rewriteStep.ImplementsTransformation && (!rewriteStep.Transformation(compilation, out transformed) || transformed == null);
                 var postconditionFailed = this.Config.EnableAdditionalChecks && rewriteStep.ImplementsPostconditionVerification && !rewriteStep.PostconditionVerification(transformed);
                 LogDiagnostics(ref status);
 

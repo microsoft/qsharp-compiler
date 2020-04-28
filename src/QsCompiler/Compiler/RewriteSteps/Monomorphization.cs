@@ -10,10 +10,14 @@ using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
+    /// <summary>
+    /// Replaces all type parametrized callables with concrete instantiations, dropping any unused callables. 
+    /// Rewrite step with priority 1000.
+    /// </summary>
     internal class Monomorphization : IRewriteStep
     {
         public string Name => "Monomorphization";
-        public int Priority => 10; // Not used for built-in transformations like this
+        public int Priority => RewriteStepPriorities.TypeParameterElimination; 
         public IDictionary<string, string> AssemblyConstants { get; }
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
