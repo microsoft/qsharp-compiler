@@ -41,8 +41,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             var globals = compilation.Namespaces.GlobalCallableResolutions();
 
-            var intrinsicCallableSet = globals
-                .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
+            var exemptCallableSet = globals
+                .Where(kvp => BuiltIn.RewriteStepDependencies.Contains(kvp.Key) || kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
                 .Select(kvp => kvp.Key)
                 .ToImmutableHashSet();
 
@@ -79,12 +79,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 currentResponse = ReplaceTypeParamImplementations.Apply(currentResponse);
 
                 // Rewrite calls
-                currentResponse = ReplaceTypeParamCalls.Apply(currentResponse, getConcreteIdentifier, intrinsicCallableSet);
+                currentResponse = ReplaceTypeParamCalls.Apply(currentResponse, getConcreteIdentifier, exemptCallableSet);
 
                 responses.Add(currentResponse);
             }
 
-            return ResolveGenerics.Apply(compilation, responses, intrinsicCallableSet);
+            return ResolveGenerics.Apply(compilation, responses, exemptCallableSet);
         }
 
         private static Identifier GetConcreteIdentifier(
@@ -162,9 +162,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         private class ResolveGenerics : SyntaxTreeTransformation<ResolveGenerics.TransformationState>
         {
-            public static QsCompilation Apply(QsCompilation compilation, List<Response> responses, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            public static QsCompilation Apply(QsCompilation compilation, List<Response> responses, ImmutableHashSet<QsQualifiedName> exemptCallableSet)
             {
-                var filter = new ResolveGenerics(responses.ToLookup(res => res.concreteCallable.FullName.Namespace, res => res.concreteCallable), intrinsicCallableSet);
+                var filter = new ResolveGenerics(responses.ToLookup(res => res.concreteCallable.FullName.Namespace, res => res.concreteCallable), exemptCallableSet);
 
                 return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
             }
@@ -172,12 +172,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             public class TransformationState
             {
                 public readonly ILookup<NonNullable<string>, QsCallable> NamespaceCallables;
-                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
+                public readonly ImmutableHashSet<QsQualifiedName> ExemptCallableSet;
 
-                public TransformationState(ILookup<NonNullable<string>, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+                public TransformationState(ILookup<NonNullable<string>, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> exemptCallableSet)
                 {
                     this.NamespaceCallables = namespaceCallables;
-                    this.IntrinsicCallableSet = intrinsicCallableSet;
+                    this.ExemptCallableSet = exemptCallableSet;
                 }
             }
 
@@ -185,8 +185,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
             /// </summary>
             /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            private ResolveGenerics(ILookup<NonNullable<string>, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
-                : base(new TransformationState(namespaceCallables, intrinsicCallableSet))
+            private ResolveGenerics(ILookup<NonNullable<string>, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> exemptCallableSet)
+                : base(new TransformationState(namespaceCallables, exemptCallableSet))
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -202,7 +202,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     if (elem is QsNamespaceElement.QsCallable call)
                     {
-                        return SharedState.IntrinsicCallableSet.Contains(call.Item.FullName);
+                        return SharedState.ExemptCallableSet.Contains(call.Item.FullName);
                     }
                     else
                     {
@@ -300,9 +300,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         private class ReplaceTypeParamCalls :
             SyntaxTreeTransformation<ReplaceTypeParamCalls.TransformationState>
         {
-            public static Response Apply(Response current, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            public static Response Apply(Response current, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> exemptCallableSet)
             {
-                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicCallableSet);
+                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, exemptCallableSet);
 
                 // Create a new response with the transformed callable
                 return new Response
@@ -317,17 +317,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 public readonly Concretion CurrentParamTypes = new Concretion();
                 public readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
-                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
+                public readonly ImmutableHashSet<QsQualifiedName> ExemptCallableSet;
 
-                public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+                public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> exemptCallableSet)
                 {
                     this.GetConcreteIdentifier = getConcreteIdentifier;
-                    this.IntrinsicCallableSet = intrinsicCallableSet;
+                    this.ExemptCallableSet = exemptCallableSet;
                 }
             }
 
-            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
-                : base(new TransformationState(getConcreteIdentifier, intrinsicCallableSet))
+            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> exemptCallableSet)
+                : base(new TransformationState(getConcreteIdentifier, exemptCallableSet))
             {
                 this.Expressions = new ExpressionTransformation(this);
                 this.ExpressionKinds = new ExpressionKindTransformation(this);
@@ -379,7 +379,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                             .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
                         // We want to skip over intrinsic callables. They will not be monomorphized.
-                        if (!SharedState.IntrinsicCallableSet.Contains(global.Item))
+                        if (!SharedState.ExemptCallableSet.Contains(global.Item))
                         {
                             // Create a new identifier
                             sym = SharedState.GetConcreteIdentifier(global, applicableParams);
