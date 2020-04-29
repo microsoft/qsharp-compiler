@@ -14,10 +14,20 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public static class RewriteStepPriorities
     {
+        /// Priority of the built-in transformation that replaces 
+        /// if-statements with the corresponding calls to built-in quantum operations if possible. 
         public const int ControlFlowSubstitutions = 1100;
+        /// Priority of the built-in transformation that replaces 
+        /// all type parametrized callables with concrete instantiations and drops any unused callables. 
         public const int TypeParameterElimination = 1000;
+        /// Priority of the built-in transformation that replaces 
+        /// all functor generation directives with the corresponding implementation.  
         public const int GenerationOfFunctorSupport = 600;
+        /// Priority of the built-in transformation that inlines all conjugations 
+        /// and thus eliminates that construct from the syntax tree.
         public const int InliningOfConjugations = 500;
+        /// Priority of the built-in transformation that 
+        /// evaluates classical computations as much as possible. 
         public const int EvaluationOfClassicalComputations = 100;
     }
 
