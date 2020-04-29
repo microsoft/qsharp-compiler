@@ -19,6 +19,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
     using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
+    /// <summary>
+    /// This transformation replaces callables with type parameters with concrete
+    /// instances of the same callables. The concrete values for the type parameters
+    /// are found from uses of the callables.
+    /// This transformation also removes all callables that are not used directly or
+    /// indirectly from any of the marked entry point.
+    /// Intrinsic callables are not monomorphized or removed from the compilation.
+    /// There are also some built-in callables that are also exempt from
+    /// being removed from non-use, as they are needed for later rewrite steps.
+    /// </summary>
     public static class Monomorphize
     {
         private struct Request
