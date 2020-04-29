@@ -53,6 +53,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
             return success;
         }
 
+        /// <summary>
+        /// Combines subsequent type parameter resolutions dictionaries into a single dictionary containing the resolution for all
+        /// the type parameters found.
+        /// 
+        /// The given resolutions are expected to be ordered such that dictionaries containing type parameters that take a
+        /// dependency on other type parameters in other dictionaries appear before those dictionaries they depend on.
+        /// I.e., dictionary A depends on dictionary B, so A should come before B. When using this method to resolve
+        /// the resolutions of a nested expression, this means that the innermost resolutions should come first, followed by
+        /// the next innermost, and so on until the outermost expression is given last.
+        /// 
+        /// Returns the constructed dictionary as out parameter. Returns true if the combination of the given resolutions is valid,
+        /// i.e. if there are no conflicting resolutions and type parameters are uniquely resolved to either a concrete type, a
+        /// type parameter belonging to a different callable, or themselves.
+        /// </summary>
         public static bool TryCombineTypeResolutions(out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutionDictionaries)
         {
             if (!resolutionDictionaries.Any())
