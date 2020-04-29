@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
         internal static bool VerifyCycle(CallGraphNode rootNode, params CallGraphEdge[] edges)
         {
             var parent = rootNode.CallableName;
-            var validResolution = TryCombineTypeResolutionsWithTarget(parent, out var combined, edges.Select(edge => edge.ParamResolutions).ToArray());
+            var validResolution = TryCombineTypeResolutionsForTarget(parent, out var combined, edges.Select(edge => edge.ParamResolutions).ToArray());
             var resolvedToConcrete = combined.Values.All(res => !(res.Resolution is ResolvedTypeKind.TypeParameter tp) || tp.Item.Origin.Equals(parent));
             return validResolution && resolvedToConcrete;
             //var isClosedCycle = validCycle && combined.Values.Any(res => res.Resolution is ResolvedTypeKind.TypeParameter tp && EqualsParent(tp.Item.Origin));
@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
         /// Throws an ArgumentNullException if the given target is null.
         /// NOTE: This routine prioritizes the verifications to ensure the correctness of the resolution over performance.
         /// </summary>
-        public static bool TryCombineTypeResolutionsWithTarget(QsQualifiedName target, out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutions)
+        public static bool TryCombineTypeResolutionsForTarget(QsQualifiedName target, out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutions)
         {
             if (target == null) throw new ArgumentNullException(nameof(target));
             var success = TryCombineTypeResolutions(out combined, resolutions);
@@ -77,6 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
                 var mayBeReplaced = combinedBuilder
                     .Where(kv => kv.Value.Resolution.IsTypeParameter)
                     .ToLookup(
+                        // ToDo: Check for composite types that contain type parameter types.
                         kv => AsTypeResolutionKey(((ResolvedTypeKind.TypeParameter)kv.Value.Resolution).Item),
                         entry => entry.Key);
 
@@ -114,6 +115,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
 
     /// <summary>
     /// Struct containing information that exists on edges in a call graph.
+    /// The ParamResolutions are expected to have all of their position information removed.
     /// </summary>
     public struct CallGraphEdge
     {
@@ -410,15 +412,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
             ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(tArgs.Item.Select(StripPositionInfo.Apply).ToImmutableArray())
             : tArgs;
 
-        private CallGraphEdge RemovePositionFromEdge(CallGraphEdge edge) =>
-            new CallGraphEdge() { ParamResolutions = edge.ParamResolutions.ToImmutableDictionary(kvp => kvp.Key,
-                kvp => StripPositionInfo.Apply(kvp.Value)) };
-
         private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
-            // Remove position info from edge
-            edge = RemovePositionFromEdge(edge);
-
             if (_Dependencies.TryGetValue(callerKey, out var deps))
             {
                 if (!deps.TryGetValue(calledKey, out var edges))
@@ -465,6 +460,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
             // Setting TypeArgs to Null because the type specialization is not implemented yet
             var callerKey = new CallGraphNode { CallableName = callerName, Kind = callerKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
             var calledKey = new CallGraphNode { CallableName = calledName, Kind = calledKind, TypeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null };
+
+            // Remove position info from type parameter resolutions
+            typeParamRes = typeParamRes.ToImmutableDictionary(kvp => kvp.Key,
+                kvp => StripPositionInfo.Apply(kvp.Value));
+
             var edge = new CallGraphEdge() { ParamResolutions = typeParamRes };
             RecordDependency(callerKey, calledKey, edge);
         }
@@ -491,7 +491,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
 
         private CallGraphEdge CombineEdges(CallGraphNode targetNode, params CallGraphEdge[] edges)
         {
-            if (TypeParamUtils.TryCombineTypeResolutionsWithTarget(targetNode.CallableName, out var combinedEdge, edges.Select(e => e.ParamResolutions).ToArray()))
+            if (TypeParamUtils.TryCombineTypeResolutionsForTarget(targetNode.CallableName, out var combinedEdge, edges.Select(e => e.ParamResolutions).ToArray()))
             {
                 return new CallGraphEdge() { ParamResolutions = combinedEdge };
             }

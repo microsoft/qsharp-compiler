@@ -100,7 +100,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         {
                             // We are dissolving the application of arguments here, so the call's type argument
                             // resolutions have to be moved to the 'identifier' sub expression.
-                            var combined = TypeParamUtils.TryCombineTypeResolutionsWithTarget(global.Item,
+                            var combined = TypeParamUtils.TryCombineTypeResolutionsForTarget(global.Item,
                                 out var combinedTypeArguments,
                                 newCallIdentifier.TypeParameterResolutions, callTypeArguments);
                             QsCompilerError.Verify(combined, "failed to combine type parameter resolution");
