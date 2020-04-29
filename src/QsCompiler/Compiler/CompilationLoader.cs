@@ -502,10 +502,12 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((rewriteStep.Priority, () => ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.PreEvaluation)));
             }
 
-            for (int i = 0; i < this.ExternalRewriteSteps.Length; i++)
+            for (int j = 0; j < this.ExternalRewriteSteps.Length; j++)
             {
-                var priority = this.ExternalRewriteSteps[i].Priority;
-                steps.Add((priority, () => ExecuteAsAtomicTransformation(this.ExternalRewriteSteps[i], ref this.CompilationStatus.LoadedRewriteSteps[i])));
+                var priority = this.ExternalRewriteSteps[j].Priority;
+                Func<QsCompilation> Execute(int index) => () => 
+                    ExecuteAsAtomicTransformation(this.ExternalRewriteSteps[index], ref this.CompilationStatus.LoadedRewriteSteps[index]);
+                steps.Add((priority, Execute(j)));
             }
 
             RaiseCompilationTaskStart("OverallCompilation", "RewriteSteps");
