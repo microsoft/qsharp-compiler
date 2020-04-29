@@ -8,10 +8,13 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
+    /// <summary>
+    /// Replaces all functor generation directives with the corresponding implementation.  
+    /// </summary>
     internal class FunctorGeneration : IRewriteStep
     {
         public string Name => "Functor Generation";
-        public int Priority => 10; // Not used for built-in transformations like this
+        public int Priority => RewriteStepPriorities.GenerationOfFunctorSupport;
         public IDictionary<string, string> AssemblyConstants { get; }
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 

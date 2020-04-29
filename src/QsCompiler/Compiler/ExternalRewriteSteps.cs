@@ -291,7 +291,7 @@ namespace Microsoft.Quantum.QsCompiler
                     assemblyConstants.TryAdd(AssemblyConstants.AssemblyName, config.ProjectNameWithoutExtension);
                 }
 
-                loadedSteps.Sort((fst, snd) => snd.Priority - fst.Priority);
+                CompilationLoader.SortRewriteSteps(loadedSteps, step => step.Priority);
                 rewriteSteps.AddRange(loadedSteps);
             }
             return rewriteSteps.ToImmutableArray();
