@@ -9,10 +9,11 @@ open System.Collections.Immutable
 open System.IO
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
+open Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 open Xunit
 open Xunit.Abstractions
 

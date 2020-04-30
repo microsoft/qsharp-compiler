@@ -12,7 +12,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 // ToDo: Review access modifiers
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
+namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 {
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
                     // and update their values with this resolution's value.
                     foreach (var keyInCombined in mayBeReplaced[typeParam])
                     {
-                        // Check that we are not doing an excessively constrictive resolution.
+                        // Check that we are not constricting a type parameter to another type parameter of the same callable.
                         success = success && !IsConstrictiveResolution(keyInCombined, paramRes);
                         combinedBuilder[keyInCombined] = paramRes;
                     }
@@ -112,7 +112,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphNS
                 // Add all resolutions to the current dictionary.
                 foreach (var (typeParam, paramRes) in resolutionDictionary)
                 {
-                    // Check that we are not doing an excessively constrictive resolution.
+                    // Check that we are not constricting a type parameter to another type parameter of the same callable.
                     success = success && !IsConstrictiveResolution(typeParam, paramRes);
                     // Check that there is no conflicting resolution already defined.
                     var conflictingResolutionExists = combinedBuilder.TryGetValue(typeParam, out var current)
