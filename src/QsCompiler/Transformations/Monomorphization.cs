@@ -52,7 +52,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var globals = compilation.Namespaces.GlobalCallableResolutions();
 
             var exemptCallableSet = globals
-                .Where(kvp => BuiltIn.RewriteStepDependencies.Contains(kvp.Key) || kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
+                .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
                 .Select(kvp => kvp.Key)
                 .ToImmutableHashSet();
 
@@ -210,14 +210,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
                 private bool NamespaceElementFilter(QsNamespaceElement elem)
                 {
-                    if (elem is QsNamespaceElement.QsCallable call)
-                    {
-                        return SharedState.ExemptCallableSet.Contains(call.Item.FullName);
-                    }
-                    else
-                    {
-                        return true;
-                    }
+                    return elem is QsNamespaceElement.QsCallable call
+                        ? BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName) || SharedState.ExemptCallableSet.Contains(call.Item.FullName)
+                        : true;
                 }
 
                 public override QsNamespace OnNamespace(QsNamespace ns)
@@ -352,7 +347,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     var range = this.OnRangeInformation(ex.Range);
                     var typeParamResolutions = this.OnTypeParamResolutions(ex.TypeParameterResolutions)
-                        .Select(kv => new Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>(kv.Key.Item1, kv.Key.Item2, kv.Value))
+                        .Select(kv => Tuple.Create(kv.Key.Item1, kv.Key.Item2, kv.Value))
                         .ToImmutableArray();
                     var exType = this.Types.OnType(ex.ResolvedType);
                     var inferredInfo = this.OnExpressionInformation(ex.InferredInformation);
@@ -367,12 +362,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 public override ImmutableConcretion OnTypeParamResolutions(ImmutableConcretion typeParams)
                 {
                     // Merge the type params into the current dictionary
-                    foreach (var kvp in typeParams)
+                   
+                    foreach (var kvp in typeParams.Where(kv => !SharedState.ExemptCallableSet.Contains(kv.Key.Item1)))
                     {
                         SharedState.CurrentParamTypes.Add(kvp.Key, kvp.Value);
                     }
 
-                    return ImmutableConcretion.Empty;
+                    return typeParams.Where(kv => SharedState.ExemptCallableSet.Contains(kv.Key.Item1)).ToImmutableDictionary();
                 }
             }
 

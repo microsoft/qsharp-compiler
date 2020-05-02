@@ -53,14 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
                 // Don't validate intrinsics
-                if (!SharedState.IntrinsicCallableSet.Contains(c.FullName))
-                {
-                    return base.OnCallableDeclaration(c);
-                }
-                else
-                {
-                    return c;
-                }
+                return SharedState.IntrinsicCallableSet.Contains(c.FullName) ? c : base.OnCallableDeclaration(c);
             }
 
             public override ResolvedSignature OnSignature(ResolvedSignature s)
@@ -94,10 +87,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
         {
             public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild) { }
 
-            public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp)
-            {
-                throw new Exception("Type Parameter types must be resolved");
-            }
+            public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp) =>
+                SharedState.IntrinsicCallableSet.Contains(tp.Origin) 
+                ? QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTypeParameter(tp)
+                : throw new Exception("Type Parameter types must be resolved");
         }
     }
 }
