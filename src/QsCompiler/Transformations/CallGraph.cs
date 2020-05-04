@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -131,22 +132,26 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// Contains the information that exists on edges in a call graph.
     /// The ParamResolutions are expected to have all of their position information removed.
     /// </summary>
-    public class CallGraphEdge
+    public class CallGraphEdge : IEquatable<CallGraphEdge>
     {
         public TypeParameterResolutions ParamResolutions;
 
         public override bool Equals(object obj)
         {
-            if (obj == null) return false;
-            return this.GetHashCode() == obj.GetHashCode();
+            return obj is CallGraphEdge && Equals((CallGraphEdge)obj);
         }
-        
+
+        public bool Equals(CallGraphEdge other)
+        {
+            return this.GetHashCode() == other.GetHashCode();
+        }
+
         public override int GetHashCode()
         {
             return ParamResolutions
                 .Aggregate(0, (totalHash, kvp) => totalHash ^ (kvp.Key.Item1, kvp.Key.Item2, kvp.Value).GetHashCode());
         
-                // The XOR is an effective way of combining hashes for this situation,
+                // The XOR is an effective way of combining hashes for this situation
                 // as it ignores order, which is desired, and the key-value pairs of
                 // the dictionary are always unique. This also avoids the problem of
                 // overflowing that using addition for combining has.
@@ -172,13 +177,28 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     }
 
     /// <summary>
-    /// Struct containing information that exists on nodes in a call graph.
+    /// Contains the information that exists on nodes in a call graph.
     /// </summary>
-    public struct CallGraphNode
+    public class CallGraphNode : IEquatable<CallGraphNode>
     {
         public QsQualifiedName CallableName;
         public QsSpecializationKind Kind;
         public QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
+
+        public override bool Equals(object obj)
+        {
+            return obj is CallGraphNode && Equals((CallGraphNode)obj);
+        }
+
+        public bool Equals(CallGraphNode other)
+        {
+            return (CallableName, Kind, TypeArgs).Equals((other.CallableName, other.Kind, other.TypeArgs));
+        }
+
+        public override int GetHashCode()
+        {
+            return (CallableName, Kind, TypeArgs).GetHashCode();
+        }
     }
 
     /// <summary>
