@@ -209,5 +209,5 @@ type BuiltIn = {
 
     static member IndexRange = {
         FullName = {Name = "IndexRange" |> NonNullable<string>.New; Namespace = BuiltIn.StandardArrayNamespace}
-        Kind = Function (TypeParameters = ImmutableArray.Empty)
+        Kind = Function (TypeParameters = ImmutableArray.Create("TElement" |> NonNullable<string>.New))
     }
