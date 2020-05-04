@@ -128,12 +128,47 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     }
 
     /// <summary>
-    /// Struct containing information that exists on edges in a call graph.
+    /// Contains the information that exists on edges in a call graph.
     /// The ParamResolutions are expected to have all of their position information removed.
     /// </summary>
-    public struct CallGraphEdge
+    public class CallGraphEdge
     {
         public TypeParameterResolutions ParamResolutions;
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null) return false;
+            return this.GetHashCode() == obj.GetHashCode();
+        }
+        
+        public override int GetHashCode()
+        {
+            return ParamResolutions
+                .Aggregate(0, (totalHash, kvp) => totalHash ^ (kvp.Key.Item1, kvp.Key.Item2, kvp.Value).GetHashCode());
+        
+                // The XOR is an effective way of combining hashes for this situation,
+                // as it ignores order, which is desired, and the key-value pairs of
+                // the dictionary are always unique. This also avoids the problem of
+                // overflowing that using addition for combining has.
+        }
+
+        /// <summary>
+        /// Creates a call graph edge that represents the combination of several edges that lead to a target node.
+        /// The edges should be ordered by their distance to the target node. So the first edge should point directly
+        /// to the target node, the next edge should point to the node that has the first edge, the third edge should
+        /// point to the node that has the second edge, and so on.
+        /// </summary>
+        public static CallGraphEdge CombineEdges(CallGraphNode targetNode, params CallGraphEdge[] edges)
+        {
+            if (TypeParamUtils.TryCombineTypeResolutionsForTarget(targetNode.CallableName, out var combinedEdge, edges.Select(e => e.ParamResolutions).ToArray()))
+            {
+                return new CallGraphEdge() { ParamResolutions = combinedEdge };
+            }
+            else
+            {
+                return new CallGraphEdge() { ParamResolutions = TypeParameterResolutions.Empty };
+            }
+        }
     }
 
     /// <summary>
@@ -148,17 +183,19 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
     /// <summary>
     /// Comparer class used to check for equality between call graph edges.
+    /// The order of type parameters will not matter for comparison and it is
+    /// expected that there will not be duplicates.
     /// Uses the Singleton pattern.
     /// </summary>
     public class CallGraphEdgeComparer : IEqualityComparer<CallGraphEdge>
     {
         public static CallGraphEdgeComparer Instance { get; } = new CallGraphEdgeComparer();
-
+    
         private CallGraphEdgeComparer() { }
-
+    
         public bool Equals(CallGraphEdge x, CallGraphEdge y) =>
             x.ParamResolutions.ToImmutableHashSet().SetEquals(y.ParamResolutions.ToImmutableHashSet());
-
+    
         public int GetHashCode(CallGraphEdge obj) =>
             obj.ParamResolutions.Aggregate(0, (hash, kvp) => hash ^ kvp.GetHashCode());
     }
@@ -503,18 +540,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(QsSpecialization callerSpec) =>
             GetDirectDependencies(new CallGraphNode { CallableName = callerSpec.Parent, Kind = callerSpec.Kind, TypeArgs = RemovePositionFromTypeArgs(callerSpec.TypeArguments) });
 
-        private CallGraphEdge CombineEdges(CallGraphNode targetNode, params CallGraphEdge[] edges)
-        {
-            if (TypeParamUtils.TryCombineTypeResolutionsForTarget(targetNode.CallableName, out var combinedEdge, edges.Select(e => e.ParamResolutions).ToArray()))
-            {
-                return new CallGraphEdge() { ParamResolutions = combinedEdge };
-            }
-            else
-            {
-                return new CallGraphEdge() { ParamResolutions = TypeParameterResolutions.Empty };
-            }
-        }
-
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(CallGraphNode callerSpec)
         {
             var accum = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
@@ -525,11 +550,11 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 {
                     foreach (var (dependent, edges) in next)
                     {
-                        var combinedEdges = edges.Select(e => CombineEdges(dependent, e, edgeFromRoot));
+                        var combinedEdges = edges.Select(e => CallGraphEdge.CombineEdges(dependent, e, edgeFromRoot));
 
                         if (accum.TryGetValue(dependent, out var existingEdges))
                         {
-                            combinedEdges = combinedEdges.Except(existingEdges, CallGraphEdgeComparer.Instance);
+                            combinedEdges = combinedEdges.Except(existingEdges);
                             accum[dependent] = existingEdges.AddRange(combinedEdges);
                         }
                         else
