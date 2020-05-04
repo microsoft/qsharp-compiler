@@ -57,13 +57,13 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Combines subsequent type parameter resolutions dictionaries into a single dictionary containing the resolution for all
         /// the type parameters found.
-        /// 
+        ///
         /// The given resolutions are expected to be ordered such that dictionaries containing type parameters that take a
         /// dependency on other type parameters in other dictionaries appear before those dictionaries they depend on.
         /// I.e., dictionary A depends on dictionary B, so A should come before B. When using this method to resolve
         /// the resolutions of a nested expression, this means that the innermost resolutions should come first, followed by
         /// the next innermost, and so on until the outermost expression is given last.
-        /// 
+        ///
         /// Returns the constructed dictionary as out parameter. Returns true if the combination of the given resolutions is valid,
         /// i.e. if there are no conflicting resolutions and type parameters are uniquely resolved to either a concrete type, a
         /// type parameter belonging to a different callable, or themselves.
@@ -150,7 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         {
             return ParamResolutions
                 .Aggregate(0, (totalHash, kvp) => totalHash ^ (kvp.Key.Item1, kvp.Key.Item2, kvp.Value).GetHashCode());
-        
+
                 // The XOR is an effective way of combining hashes for this situation
                 // as it ignores order, which is desired, and the key-value pairs of
                 // the dictionary are always unique. This also avoids the problem of
@@ -210,12 +210,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     public class CallGraphEdgeComparer : IEqualityComparer<CallGraphEdge>
     {
         public static CallGraphEdgeComparer Instance { get; } = new CallGraphEdgeComparer();
-    
+
         private CallGraphEdgeComparer() { }
-    
+
         public bool Equals(CallGraphEdge x, CallGraphEdge y) =>
             x.ParamResolutions.ToImmutableHashSet().SetEquals(y.ParamResolutions.ToImmutableHashSet());
-    
+
         public int GetHashCode(CallGraphEdge obj) =>
             obj.ParamResolutions.Aggregate(0, (hash, kvp) => hash ^ kvp.GetHashCode());
     }
