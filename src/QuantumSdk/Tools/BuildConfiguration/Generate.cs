@@ -36,21 +36,12 @@ namespace Microsoft.Quantum.Sdk.Tools
                 "diagnostic".Equals(options.Verbosity, StringComparison.InvariantCultureIgnoreCase) ||
                 "diag".Equals(options.Verbosity, StringComparison.InvariantCultureIgnoreCase);
 
-            static (string, int) ParseQscReference(string qscRef)
-            {
-                var pieces = qscRef.Trim().TrimStart('(').TrimEnd(')').Split(',');
-                var path = pieces.First().Trim();
-                return (path, Int32.TryParse(pieces.Skip(1).SingleOrDefault(), out var priority) ? priority : 0);
-            }
-
-            ILookup<bool, string> qscReferences;
+            IEnumerable<string> compatibleQscReferences;
+            IEnumerable<string> incompatibleQscReferences;
             try
             {
-                qscReferences = (options.QscReferences ?? Array.Empty<string>())
-                    .Select(ParseQscReference)
-                    .OrderByDescending(qscRef => qscRef.Item2)
-                    .Select(qscRef => qscRef.Item1)
-                    .ToLookup(qscRef => IncompatibleQscReferences.Contains(Path.GetFileName(qscRef)));
+                (compatibleQscReferences, incompatibleQscReferences) = 
+                    ParseQscReferences(options.QscReferences ?? Array.Empty<string>());
             }
             catch (Exception ex)
             {
@@ -61,16 +52,38 @@ namespace Microsoft.Quantum.Sdk.Tools
                 return ReturnCode.INVALID_ARGUMENTS;
             }
 
-            var incompatible = qscReferences[true];
-            foreach (var reference in incompatible)
+            if (verbose)
             {
-                Console.Error.WriteLine($"Ignored incompatible reference {reference}.");
+                foreach (var reference in incompatibleQscReferences)
+                {
+                    Console.Error.WriteLine($"Skipped incompatible QSC reference: {reference}");
+                }
             }
-            
-            var compatible = qscReferences[false];
-            return WriteConfigFile(options.OutputFile, compatible, verbose)
+            return WriteConfigFile(options.OutputFile, compatibleQscReferences, verbose)
                 ? ReturnCode.SUCCESS
                 : ReturnCode.IO_EXCEPTION;
+        }
+
+        /// <summary>
+        /// Parses the QSC reference strings in the format "(path, priority)" and partitions them into compatible and
+        /// incompatible references.
+        /// </summary>
+        /// <param name="qscReferences">The QSC reference strings to parse.</param>
+        /// <returns>A tuple of compatible and incompatible QSC references.</returns>
+        private static (IEnumerable<string>, IEnumerable<string>) ParseQscReferences(IEnumerable<string> qscReferences)
+        {
+            static (string, int) ParseQscReference(string qscRef)
+            {
+                var pieces = qscRef.Trim().TrimStart('(').TrimEnd(')').Split(',');
+                var path = pieces.First().Trim();
+                return (path, int.TryParse(pieces.Skip(1).SingleOrDefault(), out var priority) ? priority : 0);
+            }
+            var compatible = qscReferences
+                .Select(ParseQscReference)
+                .OrderByDescending(qscRef => qscRef.Item2)
+                .Select(qscRef => qscRef.Item1)
+                .ToLookup(qscRef => !IncompatibleQscReferences.Contains(Path.GetFileName(qscRef)));
+            return (compatible[true], compatible[false]);
         }
 
         /// <summary>
