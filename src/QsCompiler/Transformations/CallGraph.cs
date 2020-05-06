@@ -572,7 +572,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(CallGraphNode callerSpec)
         {
             if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
-            return _Dependencies.GetValueOrDefault(callerSpec, new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>());
+            return _Dependencies.GetValueOrDefault(callerSpec, null);
         }
 
         /// <summary>
@@ -604,6 +604,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(CallGraphNode callerSpec)
         {
             if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
+
+            if (!_Dependencies.ContainsKey(callerSpec)) return null;
 
             var accum = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
 
