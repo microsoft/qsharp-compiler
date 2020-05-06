@@ -157,3 +157,110 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 
 // Foo.A -> Int
 // Bar.B -> Int
+
+// =================================
+
+// Basic Entry Point
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    @ EntryPoint()
+    operation Main() : Unit {
+        Foo();
+        Bar();
+    }
+
+    operation Foo() : Unit { }
+
+    operation Bar() : Unit {
+        Baz();
+    }
+
+    operation Baz() : Unit { }
+}
+
+// =================================
+
+// Unrelated To Entry Point
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    @ EntryPoint()
+    operation Main() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit { }
+
+    operation Bar() : Unit {
+        Baz();
+    }
+
+    operation Baz() : Unit { }
+}
+
+// =================================
+
+// Separated From Entry Point By Specialization
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    @ EntryPoint()
+    operation Main() : Unit {
+        Adjoint Foo();
+    }
+
+    operation Foo() : Unit is Adj {
+        body(...) {
+            Bar();
+        }
+
+        adjoint(...) { }
+    }
+
+    operation Bar() : Unit { }
+}
+
+// =================================
+
+// Not Called With Entry Point
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    @ EntryPoint()
+    operation Main() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit { }
+
+    operation NotCalled() : Unit { }
+}
+
+// =================================
+
+// Not Called Without Entry Point
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    operation Main() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit { }
+
+    operation NotCalled() : Unit { }
+}
+
+// =================================
+
+// Unrelated Without Entry Point
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    operation Main() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit { }
+
+    operation Bar() : Unit {
+        Baz();
+    }
+
+    operation Baz() : Unit { }
+}

@@ -44,6 +44,10 @@ type CallGraphTests (output:ITestOutputHelper) =
     let getTempFile () = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let getManager uri content = CompilationUnitManager.InitializeFileManager(uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
 
+    // Adds Core to the compilation
+    do  let addOrUpdateSourceFile filePath = getManager (new Uri(filePath)) (File.ReadAllText filePath) |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
+        Path.Combine ("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
+
     let DecorateWithNamespace (ns : string) (input : string list list) =
         List.map (List.map (fun name -> { Namespace = NonNullable<_>.New ns; Name = NonNullable<_>.New name })) input
 
@@ -123,15 +127,30 @@ type CallGraphTests (output:ITestOutputHelper) =
         let isMatch = sameLength && expected |> List.forall (fun res1 -> given |> List.exists (fun res2 -> CheckResolutionMatch res1 res2))
         Assert.True(isMatch, "Given resolutions did not match the expected resolutions.")
 
-    let AssertExpectedDepencency name (given : Dictionary<_,ImmutableArray<_>>) expected =
-        let opName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+    let AssertExpectedDepencency nameFrom nameTo (given : Dictionary<_,ImmutableArray<_>>) expected =
+        let opName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New nameTo }
         let opNode = new CallGraphNode(opName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let expected = expected |> List.map (fun x -> x |> List.map (fun y -> (opName, fst y, snd y)) |> ResolutionFromParamName)
-        Assert.True(given.ContainsKey(opNode), sprintf "Expected Main to take dependency on %s." name)
+        Assert.True(given.ContainsKey(opNode), sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
         let edges = given.[opNode]
-        Assert.True(edges.Length = expected.Length, sprintf "Expected exactly %i edge(s) from Main to %s." expected.Length name);
+        Assert.True(edges.Length = expected.Length, sprintf "Expected exactly %i edge(s) from %s to %s." expected.Length nameFrom nameTo);
         let given = List.map (fun (x : CallGraphEdge) -> x.ParamResolutions) (Seq.toList edges)
         AssertExpectedResolutionList expected given
+
+    let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : CallGraph) =
+        let strToNode name =
+            let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+            CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        let dependencies = givenGraph.GetDirectDependencies (strToNode nameFrom)
+        for nameTo in nameToList do
+            let expectedNode = strToNode nameTo
+            Assert.True(dependencies.ContainsKey(expectedNode) && not dependencies.[expectedNode].IsEmpty,
+                sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
+
+    let AssertNotInGraph (givenGraph : CallGraph) name =
+        let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+        let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+        Assert.True(givenGraph.GetDirectDependencies(node) = null, sprintf "Expected %s to not be in the call graph." name)
 
     let CheckCombinedResolution (parent, expected : ImmutableDictionary<_,_>, [<ParamArray>] resolutions) =
         let mutable combined = ImmutableDictionary.Empty
@@ -453,7 +472,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "B", String)
             ]
         ]
-        |> AssertExpectedDepencency "Foo" dependencies
+        |> AssertExpectedDepencency "Main" "Foo" dependencies
 
         [
             [
@@ -463,14 +482,14 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "X", String)
             ]
         ]
-        |> AssertExpectedDepencency "Bar" dependencies
+        |> AssertExpectedDepencency "Main" "Bar" dependencies
 
         [
             [
                 (NonNullable<_>.New "Y", String)
             ]
         ]
-        |> AssertExpectedDepencency "Baz" dependencies
+        |> AssertExpectedDepencency "Main" "Baz" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -486,7 +505,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Foo" dependencies
+        |> AssertExpectedDepencency "Main" "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -502,7 +521,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Foo" dependencies
+        |> AssertExpectedDepencency "Main" "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -518,7 +537,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Foo" dependencies
+        |> AssertExpectedDepencency "Main" "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -534,7 +553,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Foo" dependencies
+        |> AssertExpectedDepencency "Main" "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -551,7 +570,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "B", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Foo" dependencies
+        |> AssertExpectedDepencency "Main" "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -569,7 +588,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "C", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Foo" dependencies
+        |> AssertExpectedDepencency "Main" "Foo" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -585,14 +604,14 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Foo" dependencies
+        |> AssertExpectedDepencency "Main" "Foo" dependencies
 
         [
             [
                 (NonNullable<_>.New "B", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Bar" dependencies
+        |> AssertExpectedDepencency "Main" "Bar" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -608,14 +627,14 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Foo" dependencies
+        |> AssertExpectedDepencency "Main" "Foo" dependencies
 
         [
             [
                 (NonNullable<_>.New "B", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Bar" dependencies
+        |> AssertExpectedDepencency "Main" "Bar" dependencies
 
     [<Fact>]
     [<Trait("Category","Get Dependencies")>]
@@ -631,14 +650,150 @@ type CallGraphTests (output:ITestOutputHelper) =
                 (NonNullable<_>.New "A", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Foo" dependencies
+        |> AssertExpectedDepencency "Main" "Foo" dependencies
 
         [
             [
                 (NonNullable<_>.New "B", Int)
             ]
         ]
-        |> AssertExpectedDepencency "Bar" dependencies
+        |> AssertExpectedDepencency "Main" "Bar" dependencies
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Basic Entry Point`` () =
+        let graph = CompileTypeParameterResolutionTest 11
+
+        [
+            "Main", [
+                "Foo"
+                "Bar"
+            ]
+            "Foo", [ ]
+            "Bar", [
+                "Baz"
+            ]
+            "Baz", [ ]
+        ]
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Unrelated To Entry Point`` () =
+        let graph = CompileTypeParameterResolutionTest 12
+
+        [
+            "Main", [
+                "Foo"
+            ]
+            "Foo", [ ]
+        ]
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> ignore
+
+        [
+            "Bar"
+            "Baz"
+        ]
+        |> List.map (AssertNotInGraph graph)
+        |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Separated From Entry Point By Specialization`` () =
+        let graph = CompileTypeParameterResolutionTest 13
+
+        let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph : CallGraph) =
+            let strToNode name =
+                let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
+                CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+            let dependencies = givenGraph.GetDirectDependencies (strToNode nameFrom)
+            for nameTo in nameToList do
+                let expectedNode = strToNode nameTo
+                Assert.True(dependencies.ContainsKey(expectedNode) && not dependencies.[expectedNode].IsEmpty,
+                    sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
+
+        // The generalized methods of asserting dependencies assumes Body nodes, but
+        // this relationship is between a Body and an Adjoint specializations, so we
+        // will check manually.
+        let mainNode =
+            CallGraphNode({ Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Main" },
+                QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+
+        let adjFooNode =
+            CallGraphNode({ Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Foo" },
+                QsSpecializationKind.QsAdjoint, QsNullable<ImmutableArray<ResolvedType>>.Null)
+
+        let mainDependencies = graph.GetDirectDependencies mainNode
+        Assert.True(mainDependencies.ContainsKey(adjFooNode) && not mainDependencies.[adjFooNode].IsEmpty,
+            sprintf "Expected %s to take dependency on %s." "Main" "Adjoint Foo" )
+
+        [
+            "Foo", [
+                "Bar"
+            ]
+        ]
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Not Called With Entry Point`` () =
+        let graph = CompileTypeParameterResolutionTest 14
+
+        [
+            "Main", [
+                "Foo"
+            ]
+            "Foo", [ ]
+        ]
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> ignore
+
+        [
+            "NotCalled"
+        ]
+        |> List.map (AssertNotInGraph graph)
+        |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Not Called Without Entry Point`` () =
+        let graph = CompileTypeParameterResolutionTest 15
+
+        [
+            "Main", [
+                "Foo"
+            ]
+            "Foo", [ ]
+        ]
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> ignore
+
+        [
+            "NotCalled"
+        ]
+        |> List.map (AssertNotInGraph graph)
+        |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Unrelated Without Entry Point`` () =
+        let graph = CompileTypeParameterResolutionTest 16
+
+        [
+            "Main", [
+                "Foo"
+            ]
+            "Foo", [ ]
+            "Bar", [
+                "Baz"
+            ]
+            "Baz", [ ]
+        ]
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> ignore
 
     [<Fact>]
     [<Trait("Category","Cycle Detection")>]
