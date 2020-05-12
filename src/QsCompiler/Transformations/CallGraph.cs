@@ -139,11 +139,16 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Constructor for CallGraphEdge objects.
+        /// Strips position info from given resolutions before assigning them to ParamResoluitons.
         /// Throws an ArgumentNullException if paramResolutions is null.
         /// </summary>
         public CallGraphEdge(TypeParameterResolutions paramResolutions)
         {
-            ParamResolutions = paramResolutions ?? throw new ArgumentNullException(nameof(paramResolutions));
+            if (paramResolutions == null) throw new ArgumentNullException(nameof(paramResolutions));
+
+            // Remove position info from type parameter resolutions
+            ParamResolutions = paramResolutions.ToImmutableDictionary(kvp => kvp.Key,
+                kvp => StripPositionInfo.Apply(kvp.Value));
         }
 
         public override bool Equals(object obj)
@@ -202,13 +207,16 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Constructor for CallGraphNode objects.
+        /// Strips position info from given type arguments before assigning them to TypeArgs.
         /// Throws an ArgumentNullException if callableName or kind is null.
         /// </summary>
         public CallGraphNode(QsQualifiedName callableName, QsSpecializationKind kind, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
         {
             CallableName = callableName ?? throw new ArgumentNullException(nameof(callableName));
             Kind = kind ?? throw new ArgumentNullException(nameof(kind));
-            TypeArgs = typeArgs;
+            TypeArgs = typeArgs.IsValue
+                ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs.Item.Select(StripPositionInfo.Apply).ToImmutableArray())
+                : typeArgs;
         }
 
         public override bool Equals(object obj)
@@ -487,11 +495,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         private readonly Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>> _Dependencies =
             new Dictionary<CallGraphNode, Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>>();
 
-        private QsNullable<ImmutableArray<ResolvedType>> RemovePositionFromTypeArgs(QsNullable<ImmutableArray<ResolvedType>> tArgs) =>
-            tArgs.IsValue
-            ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(tArgs.Item.Select(StripPositionInfo.Apply).ToImmutableArray())
-            : tArgs;
-
         private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
         {
             if (_Dependencies.TryGetValue(callerKey, out var deps))
@@ -551,10 +554,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             var callerKey = new CallGraphNode(callerName, callerKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
             var calledKey = new CallGraphNode(calledName, calledKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
 
-            // Remove position info from type parameter resolutions
-            typeParamRes = typeParamRes.ToImmutableDictionary(kvp => kvp.Key,
-                kvp => StripPositionInfo.Apply(kvp.Value));
-
             var edge = new CallGraphEdge(typeParamRes);
             RecordDependency(callerKey, calledKey, edge);
         }
@@ -588,7 +587,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetDirectDependencies(QsSpecialization callerSpec)
         {
             if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
-            return GetDirectDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, RemovePositionFromTypeArgs(callerSpec.TypeArguments)));
+            return GetDirectDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
         }
 
         /// <summary>
@@ -653,7 +652,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         public Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>> GetAllDependencies(QsSpecialization callerSpec)
         {
             if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
-            return GetAllDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, RemovePositionFromTypeArgs(callerSpec.TypeArguments)));
+            return GetAllDependencies(new CallGraphNode(callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments));
         }
 
         /// <summary>
