@@ -102,15 +102,13 @@
   <Target Name="QsharpCompile" 
           Condition="'$(DesignTimeBuild)' != 'true'"
           Inputs="@(QsharpCompile);@(QscCommandArgsFile)"
-          Outputs="$(QscBuildConfigOutputPath)qsc.done"
+          Outputs="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson"
           DependsOnTargets="PrepareQsharpCompile"
           BeforeTargets="PrepareCsharpCompileAfterCsharpGeneration">
     <PropertyGroup>
       <QscCommand>$(QscExe) build --format MsBuild $(_VerbosityFlag) --response-files @(QscCommandArgsFile)</QscCommand>
     </PropertyGroup>
-    <Delete Files="$(QscBuildConfigOutputPath)qsc.done" />
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 
-    <WriteLinesToFile File="$(QscBuildConfigOutputPath)qsc.done" Lines="Q# compiler finished." Overwrite="true"/>
   </Target>
 
   <!-- Configures the dll built by the C# compiler. This target needs to execute during the C# design time build to get accurate intellisense information for (non-generate) C# source files. -->
