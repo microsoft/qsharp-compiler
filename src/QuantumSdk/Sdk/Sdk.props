@@ -30,7 +30,6 @@
     <!-- Packages and libraries included for all execution targets. -->
     <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.10.2001.2831" />
     <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.10.2001.2831" />
-    <PackageReference Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'" Include="System.CommandLine" Version="2.0.0-beta1.20213.1" />
     <!-- Packages included for specific execution targets. -->
     <!-- TODO: UNCOMMENT THESE ONCE WE HAVE THE CORRESPONDING PACKAGES. -->
     <!--PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'OpenQASM'" Include="Microsoft.Quantum.Intrinsics.OpenQASM" Version="0.10.2001.2831" IsTargetPackage='true' />
