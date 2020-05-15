@@ -150,7 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 {
                     // Type arguments need to be resolved for the whole expression to be accurate
                     // ToDo: this needs adaption if we want to support type specializations
-                    var typeArgs = tArgs;
+                    var typeArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
 
                     TypeParamUtils.TryCombineTypeResolutionsForTarget(global.Item, out var typeParamRes, SharedState.TypeParameterResolutions.ToArray());
                     SharedState.TypeParameterResolutions = new List<TypeParameterResolutions>();
@@ -171,7 +171,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             kind = QsSpecializationKind.QsControlled;
                         }
 
-                        SharedState.Graph.AddDependency(SharedState.CurrentSpecialization, global.Item, kind, typeArgs, typeParamRes);
+                        SharedState.Graph.AddDependency(
+                            SharedState.CurrentSpecialization,
+                            global.Item, kind, typeArgs,
+                            typeParamRes);
                     }
                     else
                     {

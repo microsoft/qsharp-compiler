@@ -4,12 +4,12 @@
 namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
-open System.Collections.Generic
 open System.Collections.Immutable
 open System.IO
+open System.Linq
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.DependencyAnalysis;
+open Microsoft.Quantum.QsCompiler.DependencyAnalysis
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -127,13 +127,13 @@ type CallGraphTests (output:ITestOutputHelper) =
         let isMatch = sameLength && expected |> List.forall (fun res1 -> given |> List.exists (fun res2 -> CheckResolutionMatch res1 res2))
         Assert.True(isMatch, "Given resolutions did not match the expected resolutions.")
 
-    let AssertExpectedDepencency nameFrom nameTo (given : Dictionary<_,ImmutableArray<_>>) expected =
+    let AssertExpectedDepencency nameFrom nameTo (given : ILookup<_,_>)expected =
         let opName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New nameTo }
         let opNode = new CallGraphNode(opName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let expected = expected |> List.map (fun x -> x |> List.map (fun y -> (opName, fst y, snd y)) |> ResolutionFromParamName)
-        Assert.True(given.ContainsKey(opNode), sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
+        Assert.True(given.Contains(opNode), sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
         let edges = given.[opNode]
-        Assert.True(edges.Length = expected.Length, sprintf "Expected exactly %i edge(s) from %s to %s." expected.Length nameFrom nameTo);
+        Assert.True(edges.Count() = expected.Length, sprintf "Expected exactly %i edge(s) from %s to %s." expected.Length nameFrom nameTo)
         let given = List.map (fun (x : CallGraphEdge) -> x.ParamResolutions) (Seq.toList edges)
         AssertExpectedResolutionList expected given
 
@@ -144,13 +144,13 @@ type CallGraphTests (output:ITestOutputHelper) =
         let dependencies = givenGraph.GetDirectDependencies (strToNode nameFrom)
         for nameTo in nameToList do
             let expectedNode = strToNode nameTo
-            Assert.True(dependencies.ContainsKey(expectedNode) && not dependencies.[expectedNode].IsEmpty,
+            Assert.True(dependencies.Contains(expectedNode) && not (dependencies.[expectedNode].Any()),
                 sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
 
     let AssertNotInGraph (givenGraph : CallGraph) name =
         let nodeName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New name }
         let node = CallGraphNode(nodeName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
-        Assert.True(givenGraph.GetDirectDependencies(node) = null, sprintf "Expected %s to not be in the call graph." name)
+        Assert.False(givenGraph.ContainsNode(node), sprintf "Expected %s to not be in the call graph." name)
 
     let CheckCombinedResolution (parent, expected : ImmutableDictionary<_,_>, [<ParamArray>] resolutions) =
         let mutable combined = ImmutableDictionary.Empty
@@ -711,7 +711,7 @@ type CallGraphTests (output:ITestOutputHelper) =
             let dependencies = givenGraph.GetDirectDependencies (strToNode nameFrom)
             for nameTo in nameToList do
                 let expectedNode = strToNode nameTo
-                Assert.True(dependencies.ContainsKey(expectedNode) && not dependencies.[expectedNode].IsEmpty,
+                Assert.True(dependencies.Contains(expectedNode) && not (dependencies.[expectedNode].Any()),
                     sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
 
         // The generalized methods of asserting dependencies assumes Body nodes, but
@@ -726,7 +726,7 @@ type CallGraphTests (output:ITestOutputHelper) =
                 QsSpecializationKind.QsAdjoint, QsNullable<ImmutableArray<ResolvedType>>.Null)
 
         let mainDependencies = graph.GetDirectDependencies mainNode
-        Assert.True(mainDependencies.ContainsKey(adjFooNode) && not mainDependencies.[adjFooNode].IsEmpty,
+        Assert.True(mainDependencies.Contains(adjFooNode) && not (mainDependencies.[adjFooNode].Any()),
             sprintf "Expected %s to take dependency on %s." "Main" "Adjoint Foo" )
 
         [
