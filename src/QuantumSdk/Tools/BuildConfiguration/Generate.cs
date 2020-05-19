@@ -17,9 +17,10 @@ namespace Microsoft.Quantum.Sdk.Tools
         private static readonly IReadOnlyCollection<string> IncompatibleQscReferences = new[]
         {
             // TODO: This is to work around an assembly that is included with the C# generation package, but which
-            // shouldn't be loaded as a compiler reference. If the Quantum SDK allows packages to explicitly specify
-            // which assemblies should be loaded for rewrite steps, instead of loading all of the assemblies in the
-            // package, then this can be removed.
+            // can't be loaded as a compiler reference. If the SDK gains support for packages containing a combination
+            // of assemblies that can be loaded as rewrite steps and those that can't, this should be removed.
+            //
+            // See: https://github.com/microsoft/qsharp-compiler/issues/435
             "Microsoft.Quantum.CsharpGeneration.EntryPointDriver.dll"
         };
         
