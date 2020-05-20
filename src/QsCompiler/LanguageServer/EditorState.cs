@@ -118,10 +118,12 @@ namespace Microsoft.Quantum.QsLanguageServer
             var version = projectInstance.GetPropertyValue("QsharpLangVersion");
             var isExecutable = "QsharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQsharpOutputType"), StringComparison.InvariantCultureIgnoreCase);
             var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.InvariantCultureIgnoreCase);
+            var defaultSimulator = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();
 
             var telemetryMeas = new Dictionary<string, int>();
             telemetryMeas["sources"] = sourceFiles.Count();
             telemetryMeas["csharpfiles"] = csharpFiles.Count();
+            telemetryProps["defaultSimulator"] = defaultSimulator;
             this.SendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
             info = new ProjectInformation(version, outputPath, runtimeCapabilities, isExecutable, loadTestNames, sourceFiles, projectReferences, references);
             return true;
