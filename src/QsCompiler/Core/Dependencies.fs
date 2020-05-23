@@ -36,8 +36,7 @@ type BuiltIn = {
     /// These should be non-Generic callables only.
     static member RewriteStepDependencies =
         ImmutableHashSet.Create (
-            BuiltIn.RangeReverse.FullName,
-            BuiltIn.IndexRange.FullName
+            BuiltIn.RangeReverse.FullName
     )
 
     /// Returns true if the given attribute marks the corresponding declaration as entry point.
@@ -209,5 +208,5 @@ type BuiltIn = {
 
     static member IndexRange = {
         FullName = {Name = "IndexRange" |> NonNullable<string>.New; Namespace = BuiltIn.StandardArrayNamespace}
-        Kind = Function (TypeParameters = ImmutableArray.Empty)
+        Kind = Function (TypeParameters = ImmutableArray.Create("TElement" |> NonNullable<string>.New))
     }
