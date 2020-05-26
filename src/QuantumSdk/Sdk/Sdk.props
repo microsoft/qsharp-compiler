@@ -32,6 +32,9 @@
     <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.10.2001.2831" />
     <PackageReference Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'" Include="System.CommandLine" Version="2.0.0-beta1.20213.1" />
     <!-- Packages included for specific execution targets. -->
+    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor'" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.11.2005.2616-beta" />
+    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor'" Include="Microsoft.Quantum.Providers.IonQ" Version="0.11.2005.2616-beta" />
+    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor'" Include="Microsoft.Quantum.Providers.QCI" Version="0.11.2005.2616-beta" />
     <!-- TODO: UNCOMMENT THESE ONCE WE HAVE THE CORRESPONDING PACKAGES. -->
     <!--PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'OpenQASM'" Include="Microsoft.Quantum.Intrinsics.OpenQASM" Version="0.10.2001.2831" IsTargetPackage='true' />
     <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'ExtendedQASM'" Include="Microsoft.Quantum.Intrinsics.ExtendedQASM" Version="0.10.2001.2831" IsTargetPackage='true' /-->
