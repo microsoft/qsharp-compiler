@@ -40,11 +40,11 @@
     <Delete Files="@(FilesToRemove)" />
   </Target>  
 
-  <!-- Invokes the Q# command line compiler to build the project. -->
-  <Target Name="QsharpCompile" 
+  <!-- Creates the CommandArgsFile with all the parameters for the Q# compiler. -->
+  <Target Name="PrepareQsharpCompile" 
           Condition="'$(DesignTimeBuild)' != 'true'"
           DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQsharpCompile;_CopyFilesMarkedCopyLocal" 
-          BeforeTargets="PrepareCsharpCompileAfterCsharpGeneration">
+          BeforeTargets="QsharpCompile">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <MakeDir Condition="$(QsharpDocsGeneration)" Directories="$(QsharpDocsOutputPath)" />
@@ -83,11 +83,33 @@
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">--package-load-fallback-folders "@(ResolvedPackageLoadFallbackFolders,'" "')"</_QscPackageLoadFallbackFoldersFlag>
       <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandIsExecutableFlag) $(_QscCommandDocsFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandRuntimeFlag) $(_QscCommandTargetPackageFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
       <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
-      <QscCommand>$(QscExe) build --format MsBuild $(_VerbosityFlag) --response-files $(_QscCommandArgsFile)</QscCommand>
     </PropertyGroup>
-    <WriteLinesToFile File="$(_QscCommandArgsFile)" Lines="$(_QscCommandArgs)" Overwrite="true"/> <!-- we use a response file to avoid issues when the command gets long -->
+
+    <!-- Only write to the file if there are any changes; this enables incremental build. -->
+    <ReadLinesFromFile File="$(_QscCommandArgsFile)" >
+      <Output TaskParameter="Lines" ItemName="OldCommandArgs"/>
+    </ReadLinesFromFile>
+    <WriteLinesToFile Condition="'@(OldCommandArgs)' != '$(_QscCommandArgs.Trim())'"
+      File="$(_QscCommandArgsFile)" Lines="$(_QscCommandArgs)" Overwrite="true"/>
+    
+    <!-- Expose the file as build item. -->
+    <ItemGroup>
+      <QscCommandArgsFile Include="$(_QscCommandArgsFile)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Invokes the Q# command line compiler to build the project. -->
+  <Target Name="QsharpCompile" 
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          Inputs="@(QsharpCompile);@(QscCommandArgsFile)"
+          Outputs="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson"
+          DependsOnTargets="PrepareQsharpCompile"
+          BeforeTargets="PrepareCsharpCompileAfterCsharpGeneration">
+    <PropertyGroup>
+      <QscCommand>$(QscExe) build --format MsBuild $(_VerbosityFlag) --response-files @(QscCommandArgsFile)</QscCommand>
+    </PropertyGroup>
     <Exec Command="$(QscCommand)" IgnoreExitCode="false" /> 
-  </Target>   
+  </Target>
 
   <!-- Configures the dll built by the C# compiler. This target needs to execute during the C# design time build to get accurate intellisense information for (non-generate) C# source files. -->
   <Target Name="PrepareCsharpCompileAfterCsharpGeneration" DependsOnTargets="QsharpCompile" AfterTargets="QsharpCompile" BeforeTargets="BeforeCsharpCompile;BeforeBuild">
