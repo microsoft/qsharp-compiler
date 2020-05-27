@@ -115,6 +115,9 @@ Specifies the simulator to use by default for execution. Valid values are Quantu
 - `IncludeQsharpCorePackages`:     
 Specifies whether the packages providing the basic language support for Q# are referenced. This property is set to true by default. If set to false, the Sdk will not reference any Q# libraries. 
 
+- `IncludeProviderPackages`:
+Specifies whether the packages for specific hardware providers should be automatically included based on the specified `ExecutionTarget`. This property is set to true by default. If set to false, the Sdk will not automatically reference any provider packages.
+
 - `QscExe`:    
 The command to invoke the Q# compiler. The value set by default invokes the Q# compiler that is packaged as tool with the Sdk. The default value can be accessed via the `DefaultQscExe` property. 
 
