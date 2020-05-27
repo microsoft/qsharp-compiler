@@ -25,31 +25,31 @@
     <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
   </PropertyGroup>
 
-  <!-- Resolving the ExecutionTarget to either AlfredProcessor, BrunoProcessor, ClementineProcessor or Unspecified.-->
+  <!-- Resolving the ExecutionTarget to either HoneywellProcessor, IonQProcessor, QCIProcessor or Unspecified.-->
   <PropertyGroup>
-    <ResolvedQsharpExecutionTarget Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And '$(ExecutionTarget)' == 'Alfred'">AlfredProcessor</ResolvedQsharpExecutionTarget>
-    <ResolvedQsharpExecutionTarget Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And '$(ExecutionTarget)' == 'Bruno'">BrunoProcessor</ResolvedQsharpExecutionTarget>
-    <ResolvedQsharpExecutionTarget Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And '$(ExecutionTarget)' == 'Clementine'">ClementineProcessor</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('honeywell.'))">HoneywellProcessor</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('ionq.'))">IonQProcessor</ResolvedQsharpExecutionTarget>
+    <ResolvedQsharpExecutionTarget Condition="('$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('qci.'))">QCIProcessor</ResolvedQsharpExecutionTarget>
     <ResolvedQsharpExecutionTarget Condition="'$(ExecutionTarget)' == 'Any'">Unspecified</ResolvedQsharpExecutionTarget>
-    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'AlfredProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'BrunoProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'ClementineProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'Unspecified'"></ResolvedQsharpExecutionTarget>
-    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values are 'Alfred', 'Bruno', 'Clementine', or 'Any'.</ValidExecutionTargets>
+    <ResolvedQsharpExecutionTarget Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'Unspecified'"></ResolvedQsharpExecutionTarget>
+    <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values must match 'ionq.*', 'honeywell.*', 'qci.*', or 'Any'.</ValidExecutionTargets>
     <ValidExecutionTargets Condition="'$(ResolvedQsharpOutputType)' == 'QsharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
   </PropertyGroup>
 
   <!-- Resolving the QuantumIntrinsics to either OpenQASM, ExtendedQASM, or Default.-->
   <PropertyGroup>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'AlfredProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'BrunoProcessor'">ExtendedQASM</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'ClementineProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' != 'AlfredProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'BrunoProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'ClementineProcessor'">Default</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor'">ExtendedQASM</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor'">Default</ResolvedQuantumIntrinsics>
   </PropertyGroup>
 
   <!-- Resolving the RuntimeCapabilites to either QPRGen0, QPRGen1, or Unknown.-->
   <PropertyGroup>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' == 'AlfredProcessor'">QPRGen1</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' == 'BrunoProcessor'">QPRGen0</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' == 'ClementineProcessor'">QPRGen1</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' != 'AlfredProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'BrunoProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'ClementineProcessor'">Unknown</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor'">QPRGen1</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor'">QPRGen0</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor'">QPRGen1</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedQsharpExecutionTarget)' != 'HoneywellProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'IonQProcessor' And '$(ResolvedQsharpExecutionTarget)' != 'QCIProcessor'">Unknown</ResolvedRuntimeCapabilities>
   </PropertyGroup>
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
