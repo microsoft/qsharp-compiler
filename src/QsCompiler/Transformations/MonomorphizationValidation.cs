@@ -53,7 +53,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
                 // Don't validate intrinsics
-                return SharedState.IntrinsicCallableSet.Contains(c.FullName) ? c : base.OnCallableDeclaration(c);
+                if (SharedState.IntrinsicCallableSet.Contains(c.FullName))
+                { 
+                    return c; 
+                }
+                else
+                { 
+                    return base.OnCallableDeclaration(c);
+                } 
             }
 
             public override ResolvedSignature OnSignature(ResolvedSignature s)
