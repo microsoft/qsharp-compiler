@@ -12,7 +12,6 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 // setup for syntax tree transformations with internal state
 
 type SyntaxTreeTransformation<'T> private (state : 'T, options : TransformationOptions, _internal_ : string) =
-    let Node = if options.Rebuild then Fold else Walk
 
     let mutable _Types           = new TypeTransformation<'T>(TransformationOptions.Default, _internal_)
     let mutable _ExpressionKinds = new ExpressionKindTransformation<'T>(TransformationOptions.Default, _internal_)
@@ -53,9 +52,10 @@ type SyntaxTreeTransformation<'T> private (state : 'T, options : TransformationO
 
     /// Invokes the transformation for all namespaces in the given compilation.
     member this.Apply compilation = 
-        let namespaces = compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
-        QsCompilation.New |> Node.BuildOr compilation (namespaces, compilation.EntryPoints)
-
+        if options.Rebuild then
+            let namespaces = compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
+            QsCompilation.New (namespaces, compilation.EntryPoints)
+        else compilation.Namespaces |> Seq.iter (this.Namespaces.OnNamespace >> ignore); compilation
 
     member this.SharedState = state
 
@@ -271,7 +271,6 @@ and NamespaceTransformation<'T> internal (options, _internal_ : string) =
 // setup for syntax tree transformations without internal state
 
 type SyntaxTreeTransformation private (options : TransformationOptions, _internal_ : string) =
-    let Node = if options.Rebuild then Fold else Walk
 
     let mutable _Types           = new TypeTransformation(TransformationOptions.Default, _internal_)
     let mutable _ExpressionKinds = new ExpressionKindTransformation(TransformationOptions.Default, _internal_)
@@ -280,30 +279,42 @@ type SyntaxTreeTransformation private (options : TransformationOptions, _interna
     let mutable _Statements      = new StatementTransformation(TransformationOptions.Default, _internal_)
     let mutable _Namespaces      = new NamespaceTransformation(TransformationOptions.Default, _internal_)
 
+    /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
     member this.Types
         with get() = _Types
         and set value = _Types <- value
 
+    /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
     member this.ExpressionKinds
         with get() = _ExpressionKinds
         and set value = _ExpressionKinds <- value
 
+    /// Transformation invoked for all expressions encountered when traversing (parts of) the syntax tree.
     member this.Expressions
         with get() = _Expressions
         and set value = _Expressions <- value
 
+    /// Transformation invoked for all statement kinds encountered when traversing (parts of) the syntax tree.
     member this.StatementKinds
         with get() = _StatementKinds
         and set value = _StatementKinds <- value
 
+    /// Transformation invoked for all statements encountered when traversing (parts of) the syntax tree.
     member this.Statements
         with get() = _Statements
         and set value = _Statements <- value
 
+    /// Transformation invoked for all namespaces encountered when traversing (parts of) the syntax tree.
     member this.Namespaces
         with get() = _Namespaces
         and set value = _Namespaces <- value
 
+    /// Invokes the transformation for all namespaces in the given compilation.
+    member this.Apply compilation = 
+        if options.Rebuild then
+            let namespaces = compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
+            QsCompilation.New (namespaces, compilation.EntryPoints)
+        else compilation.Namespaces |> Seq.iter (this.Namespaces.OnNamespace >> ignore); compilation
 
     new (options : TransformationOptions) as this =
         SyntaxTreeTransformation(options, "_internal_") then

@@ -370,7 +370,6 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
 
     // nodes containing subexpressions or subtypes
 
-    /// If DisableRebuild is set to true, this method won't walk the types in the dictionary.
     abstract member OnTypeParamResolutions : ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType> -> ImmutableDictionary<(QsQualifiedName*NonNullable<string>), ResolvedType>
     default this.OnTypeParamResolutions typeParams =
         let asTypeParameter (key) = QsTypeParameter.New (fst key, snd key, Null)
@@ -379,8 +378,8 @@ and ExpressionTransformationBase internal (options : TransformationOptions, _int
             |> Seq.map (fun kv -> this.Types.OnTypeParameter (kv.Key |> asTypeParameter), kv.Value)
             |> Seq.choose (function | TypeParameter tp, value -> Some ((tp.Origin, tp.TypeName), this.Types.OnType value) | _ -> None)
             |> Seq.map (fun (key, value) -> new KeyValuePair<_,_>(key, value))
-        ImmutableDictionary.CreateRange |> Node.BuildOr typeParams filteredTypeParams
-
+        if options.Rebuild then ImmutableDictionary.CreateRange filteredTypeParams
+        else filteredTypeParams |> Seq.iter ignore; typeParams
 
     // transformation root called on each node
 
