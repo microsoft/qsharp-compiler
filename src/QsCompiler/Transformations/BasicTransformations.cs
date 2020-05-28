@@ -313,5 +313,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             return ex;
         }
     }
+
+
+    /// <summary>
+    /// Upon transformation, applies the specified action to each expression and subexpression.
+    /// The action to apply is specified upon construction, and will be applied before recurring into subexpressions.
+    /// The transformation merely walks expressions and rebuilding is disabled. 
+    /// </summary>
+    public class TypedExpressionWalker<T>
+    : ExpressionTransformation<T>
+    {
+        public TypedExpressionWalker(Action<TypedExpression> onExpression, SyntaxTreeTransformation<T> parent)
+        : base(parent, TransformationOptions.NoRebuild) =>
+            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
+
+        public TypedExpressionWalker(Action<TypedExpression> onExpression, T internalState = default)
+        : base(internalState, TransformationOptions.NoRebuild) =>
+            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
+
+        public readonly Action<TypedExpression> OnExpression;
+        public override TypedExpression OnTypedExpression(TypedExpression ex)
+        {
+            this.OnExpression(ex);
+            return base.OnTypedExpression(ex);
+        }
+    }
+
 }
 

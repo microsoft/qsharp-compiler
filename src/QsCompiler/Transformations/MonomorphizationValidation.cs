@@ -53,14 +53,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
                 // Don't validate intrinsics
-                if (!SharedState.IntrinsicCallableSet.Contains(c.FullName))
-                {
-                    return base.OnCallableDeclaration(c);
+                if (SharedState.IntrinsicCallableSet.Contains(c.FullName))
+                { 
+                    return c; 
                 }
                 else
-                {
-                    return c;
-                }
+                { 
+                    return base.OnCallableDeclaration(c);
+                } 
             }
 
             public override ResolvedSignature OnSignature(ResolvedSignature s)
@@ -94,10 +94,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
         {
             public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild) { }
 
-            public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp)
-            {
-                throw new Exception("Type Parameter types must be resolved");
-            }
+            // If an intrinsic callable is generic, then its type parameters can occur within expressions; 
+            // when generic intrinsics are called, the type of that call contains type parameter types. 
+            public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp) =>
+                SharedState.IntrinsicCallableSet.Contains(tp.Origin) 
+                ? QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTypeParameter(tp)
+                : throw new Exception("Type Parameter types must be resolved");
         }
     }
 }

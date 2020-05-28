@@ -31,3 +31,15 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
         Test3Main();
     }
 }
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.Monomorphization {
+    open Microsoft.Quantum.Arrays;
+
+    @ EntryPoint()
+    operation TestTypeParameterResolutions(qs : Int[]) : Unit {
+        let res = new Result[Length(qs)];
+        let idx = IndexRange(qs);
+    }
+}

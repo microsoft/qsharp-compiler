@@ -36,7 +36,8 @@ type BuiltIn = {
     /// These should be non-Generic callables only.
     static member RewriteStepDependencies =
         ImmutableHashSet.Create (
-            BuiltIn.RangeReverse.FullName
+            BuiltIn.RangeReverse.FullName,
+            BuiltIn.Length.FullName
     )
 
     /// Returns true if the given attribute marks the corresponding declaration as entry point.
