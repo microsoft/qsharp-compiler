@@ -14,6 +14,8 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
+open Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
@@ -94,7 +96,8 @@ type LinkingTests (output:ITestOutputHelper) =
         compilationManager.TryRemoveSourceFileAsync (fileId, false) |> ignore
         compilationManager.UpdateReferencesAsync (References ImmutableDictionary<_, _>.Empty) |> ignore
 
-        compilation.Diagnostics () |> Seq.exists (fun d -> d.IsError ()) |> Assert.False
+        let diagnostics = compilation.Diagnostics()
+        diagnostics |> Seq.exists (fun d -> d.IsError ()) |> Assert.False
         Assert.NotNull compilation.BuiltCompilation
 
         compilation
@@ -168,8 +171,10 @@ type LinkingTests (output:ITestOutputHelper) =
         Assert.Equal (0, afterCountOriginal)
         Assert.Equal (beforeCount, afterCount)
 
+
     [<Fact>]
-    member this.``Monomorphization`` () =
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Basic Implementation`` () =
 
         let filePath = Path.Combine ("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath
         let fileId = (new Uri(filePath))
@@ -181,6 +186,49 @@ type LinkingTests (output:ITestOutputHelper) =
             Signatures.SignatureCheck [Signatures.GenericsNs; Signatures.MonomorphizationNs] (fst testCase)
 
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
+
+
+    [<Fact>]
+    [<Trait("Category","Monomorphization")>]
+    member this.``Monomorphization Type Parameter Resolutions`` () =
+        let source = LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs" |> Seq.last
+        let compilation = this.CompileMonomorphization source
+
+        let callables = compilation.Namespaces |> GlobalCallableResolutions
+        Assert.Contains(BuiltIn.Length.FullName, callables.Keys)
+        Assert.Contains(BuiltIn.RangeReverse.FullName, callables.Keys)
+        Assert.DoesNotContain(BuiltIn.IndexRange.FullName, callables.Keys)
+
+        let isGlobalCallable tag = function 
+            | Identifier (GlobalCallable id, _) -> tag id
+            | _ -> false
+        let isConcretizationOf (expected : QsQualifiedName) (given : QsQualifiedName) = 
+            given.Namespace = expected.Namespace && 
+            given.Name.Value.Length > 34 && 
+            given.Name.Value.[0] = '_' &&
+            given.Name.Value.[33] = '_' &&
+            given.Name.Value.[34..] = expected.Name.Value
+
+        let mutable gotLength, gotIndexRange = false, false
+        let onExpr (ex : TypedExpression) = 
+            match ex.Expression with 
+            | CallLikeExpression (lhs, _) -> 
+                if lhs.Expression |> isGlobalCallable ((=)BuiltIn.Length.FullName) then
+                    gotLength <- true
+                    Assert.Equal(1, ex.TypeArguments.Length)
+                    let parent, _, resolution = ex.TypeArguments |> Seq.head
+                    Assert.Equal(BuiltIn.Length.FullName, parent)
+                    Assert.Equal(Int, resolution.Resolution)
+                elif lhs.Expression |> isGlobalCallable (isConcretizationOf BuiltIn.IndexRange.FullName) then
+                    gotIndexRange <- true
+                    Assert.Equal(0, ex.TypeParameterResolutions.Count)
+            | _ -> ()
+
+        let walker = new TypedExpressionWalker<unit>(new Action<_>(onExpr));
+        walker.Transformation.Apply compilation |> ignore
+        Assert.True(gotLength)
+        Assert.True(gotIndexRange)
+
 
     [<Fact>]
     [<Trait("Category","Intrinsic Resolution")>]

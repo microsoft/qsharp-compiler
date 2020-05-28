@@ -162,7 +162,6 @@ let ``options from response files`` () =
         [|
             "-i"
             ("TestCases","LinkingTests","Core.qs") |> Path.Combine
-            ("TestCases","LinkingTests","Diagnostics.qs") |> Path.Combine
         |]        
     File.WriteAllText(configFile, String.Join (" ", configArgs))
     let commandLineArgs = 

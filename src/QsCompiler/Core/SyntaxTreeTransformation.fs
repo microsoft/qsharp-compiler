@@ -3,10 +3,16 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
+
 
 // setup for syntax tree transformations with internal state
 
-type SyntaxTreeTransformation<'T> private (state : 'T, _internal_ : string) =
+type SyntaxTreeTransformation<'T> private (state : 'T, options : TransformationOptions, _internal_ : string) =
+    let Node = if options.Rebuild then Fold else Walk
 
     let mutable _Types           = new TypeTransformation<'T>(TransformationOptions.Default, _internal_)
     let mutable _ExpressionKinds = new ExpressionKindTransformation<'T>(TransformationOptions.Default, _internal_)
@@ -45,11 +51,16 @@ type SyntaxTreeTransformation<'T> private (state : 'T, _internal_ : string) =
         with get() = _Namespaces
         and set value = _Namespaces <- value
 
+    /// Invokes the transformation for all namespaces in the given compilation.
+    member this.Apply compilation = 
+        let namespaces = compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
+        QsCompilation.New |> Node.BuildOr compilation (namespaces, compilation.EntryPoints)
+
 
     member this.SharedState = state
 
     new (state : 'T, options : TransformationOptions) as this =
-        SyntaxTreeTransformation<'T>(state, "_internal_") then
+        SyntaxTreeTransformation<'T>(state, options, "_internal_") then
             this.Types           <- new TypeTransformation<'T>(this, options)
             this.ExpressionKinds <- new ExpressionKindTransformation<'T>(this, options)
             this.Expressions     <- new ExpressionTransformation<'T>(this, options)
@@ -259,7 +270,8 @@ and NamespaceTransformation<'T> internal (options, _internal_ : string) =
 
 // setup for syntax tree transformations without internal state
 
-type SyntaxTreeTransformation private (_internal_ : string) =
+type SyntaxTreeTransformation private (options : TransformationOptions, _internal_ : string) =
+    let Node = if options.Rebuild then Fold else Walk
 
     let mutable _Types           = new TypeTransformation(TransformationOptions.Default, _internal_)
     let mutable _ExpressionKinds = new ExpressionKindTransformation(TransformationOptions.Default, _internal_)
@@ -294,7 +306,7 @@ type SyntaxTreeTransformation private (_internal_ : string) =
 
 
     new (options : TransformationOptions) as this =
-        SyntaxTreeTransformation("_internal_") then
+        SyntaxTreeTransformation(options, "_internal_") then
             this.Types           <- new TypeTransformation(this, options)
             this.ExpressionKinds <- new ExpressionKindTransformation(this, options)
             this.Expressions     <- new ExpressionTransformation(this, options)

@@ -17,7 +17,7 @@ type LocalVerificationTests (output:ITestOutputHelper) =
     inherit CompilerTests(
         CompilerTests.Compile "TestCases" [
             "General.qs"; "LocalVerification.qs"; "Types.qs"; 
-            Path.Combine ("LinkingTests", "Core.qs"); Path.Combine ("LinkingTests", "Diagnostics.qs")
+            Path.Combine ("LinkingTests", "Core.qs");
         ] [], output)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
