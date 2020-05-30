@@ -44,8 +44,7 @@
     <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'" Include="Microsoft.Quantum.Simulators" Version="0.10.2005.2816-alpha" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CsharpGeneration)" Include="Microsoft.Quantum.Runtime.Core" Version="0.10.2005.2816-alpha" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'"
-                      Include="Microsoft.Quantum.EntryPointDriver"
-                      Version="0.10.2005.2816-alpha"
+                      Include="Microsoft.Quantum.EntryPointDriver" Version="0.10.2005.2816-alpha"
                       IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CsharpGeneration)" PrivateAssets="All"
       Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.2005.2816-alpha" IsImplicitlyDefined="true" 
