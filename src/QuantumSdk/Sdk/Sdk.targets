@@ -34,10 +34,10 @@
   <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
   <Target Name="QsharpClean" DependsOnTargets="Restore" BeforeTargets="Clean">
     <ItemGroup>
-      <FilesToRemove Include="$(GeneratedFilesOutputPath)**" />
-      <Compile Remove="$(FilesToRemove)**/*.g.cs" />
+      <_FilesToRemove Include="$(GeneratedFilesOutputPath)**" />
+      <Compile Remove="$(_FilesToRemove)**/*.g.cs" />
     </ItemGroup>
-    <Delete Files="@(FilesToRemove)" />
+    <Delete Files="@(_FilesToRemove)" />
   </Target>  
 
   <!-- Creates the CommandArgsFile with all the parameters for the Q# compiler. -->
@@ -106,10 +106,10 @@
           DependsOnTargets="PrepareQsharpCompile"
           BeforeTargets="PrepareCsharpCompileAfterCsharpGeneration">
     <ItemGroup>
-      <FilesToRemove Include="$(GeneratedFilesOutputPath)**/*.g.cs" />
-      <Compile Remove="$(FilesToRemove)**/*.g.cs" />
+      <_FilesToRemove Include="$(GeneratedFilesOutputPath)**/*.g.cs" />
+      <Compile Remove="$(_FilesToRemove)**/*.g.cs" />
     </ItemGroup>
-    <Delete Files="@(FilesToRemove)" />
+    <Delete Files="@(_FilesToRemove)" />
     <PropertyGroup>
       <QscCommand>$(QscExe) build --format MsBuild $(_VerbosityFlag) --response-files @(QscCommandArgsFile)</QscCommand>
     </PropertyGroup>
