@@ -275,11 +275,11 @@ let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsTy
     // comparison for any derived type).
     let argumentError = ErrorCode.ArgumentMismatchInBinaryOp, [toString lhsType; toString rhsType]
     let baseType = CommonBaseType addError argumentError context.Symbols.Parent (lhsType, lhsRange) (rhsType, rhsRange)
-    let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [toString baseType]
-    VerifyIsOneOf
-        (fun t -> t.supportsEqualityComparison context.Capabilities)
-        unsupportedError addError (baseType, rhsRange)
-    |> ignore
+    match baseType.Resolution with
+    | Result when context.Capabilities = RuntimeCapabilities.QPRGen0 ->
+        addError (ErrorCode.UnsupportedResultComparison, [context.Capabilities.ToString ()]) rhsRange
+    | BigInt | Bool | Double | Int | Pauli | Qubit | Result | String -> ()
+    | _ -> addError (ErrorCode.InvalidTypeInEqualityComparison, [toString baseType]) rhsRange
 
 /// Given a list of all item types and there corresponding ranges, verifies that a value array literal can be built from them. 
 /// Adds a MissingExprInArray error with the corresponding range using addError if one of the given types is missing. 

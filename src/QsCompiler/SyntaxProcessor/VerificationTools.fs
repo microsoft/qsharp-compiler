@@ -5,7 +5,6 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -74,15 +73,6 @@ type ResolvedType with
             | QsTypeKind.TypeParameter tp -> tp.Origin <> parent
             | _ -> false
         this.Exists condition
-
-    /// If the given type supports equality comparison within the capabilities of the runtime, 
-    /// returns the type of an equality comparison expression as Some (which is always Bool).
-    /// Returns None otherwise.
-    member this.supportsEqualityComparison capabilities =
-        match this.Resolution with
-        | Int | BigInt | Double | Bool | Qubit | String | Pauli -> Some (ResolvedType.New Bool)
-        | Result when capabilities <> RuntimeCapabilities.QPRGen0 -> Some (ResolvedType.New Bool)
-        | _ -> None
 
     /// If the given type supports arithmetic operations, 
     /// returns the type of an arithmetic expression as Some.
