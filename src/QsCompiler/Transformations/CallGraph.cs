@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
     /// <summary>
     /// Contains the information that exists on edges in a call graph.
-    /// The ParamResolutions are expected to be non-null and have all of their position information removed.
+    /// The ParamResolutions are non-null and have all of their position information removed.
     /// The order of the elements of the ParamResolutions will not matter for comparison/hashing.
     /// </summary>
     public class CallGraphEdge : IEquatable<CallGraphEdge>
@@ -580,7 +580,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Adds a dependency to the call graph using the caller's specialization and
         /// the called specialization's information. All parameters are expected to
         /// be non-null; the QsNullable parameter may take on their associated null value.
-        /// Throws ArgumentNullException.
+        /// Throws ArgumentNullException if any of the non-nullable arguments are null.
         /// </summary>
         public void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind,
             QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs, TypeParameterResolutions typeParamRes)
@@ -598,7 +598,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// caller's specialization and the called specialization. All parameters are
         /// expected to be non-null; the QsNullable parameters may take on their
         /// associated null value.
-        /// Throws ArgumentNullException.
+        /// Throws ArgumentNullException if any of the non-nullable arguments are null.
         /// </summary>
         public void AddDependency(
             QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
