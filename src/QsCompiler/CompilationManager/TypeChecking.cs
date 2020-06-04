@@ -1158,7 +1158,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var rootPosition = root.Fragment.GetRange().Start;
             Position AsAbsolutePosition(Tuple<int, int> statementPos) => rootPosition.Add(AsPosition(statementPos));
             diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(sourceFile.Value, msg.Item2, AsAbsolutePosition(msg.Item1))));
-            if (!(context.Symbols.ExpectedReturnType.Resolution.IsUnitType || context.Symbols.ExpectedReturnType.Resolution.IsInvalidType) && !allPathsReturn)
+            if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind.IsControlledAdjointDeclaration ? 2 : 1).Invoke(root.Fragment.Text);
                 var missingReturn = new QsCompilerDiagnostic(DiagnosticItem.NewError(ErrorCode.MissingReturnOrFailStatement), Enumerable.Empty<string>(), errRange);
@@ -1259,12 +1259,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                     QsGeneratorDirective GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
                     var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
-                    var symbolTracker =
-                        new SymbolTracker<Position>(compilation.GlobalSymbols, spec.SourceFile, spec.Parent);
-                    var context = new ResolutionContext<Position>(symbolTracker, compilation.RuntimeCapabilities);
+                    var context = CreateResolutionContext<Position>(
+                        compilation.GlobalSymbols, compilation.RuntimeCapabilities, spec);
                     implementation = BuildUserDefinedImplementation(
                         root, spec.SourceFile, arg, requiredFunctorSupport, context, diagnostics);
-                    QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
+                    QsCompilerError.Verify(context.Symbols.AllScopesClosed, "all scopes should be closed");
                 }
                 implementation = implementation ?? SpecializationImplementation.Intrinsic; 
                 return GetSpecialization(spec, signature, implementation, comments); 

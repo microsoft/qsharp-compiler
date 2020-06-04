@@ -11,6 +11,7 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
+open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SymbolTracker
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxGenerator
@@ -42,8 +43,23 @@ type private Variance =
 type ResolutionContext<'a> =
     { /// The symbol tracker for the parent callable.
       Symbols : SymbolTracker<'a>
+      /// True if the parent callable for the current scope is an operation.
+      IsInOperation : bool
+      /// The return type of the parent callable for the current scope.
+      ReturnType : ResolvedType
       /// The runtime capabilities for the compilation unit.
       Capabilities : RuntimeCapabilities }
+
+/// <summary>Creates a resolution context for the specialization.</summary>
+/// <exception cref="Exception">Thrown if the specialization's parent does not exist.</exception>
+let CreateResolutionContext (nsManager : NamespaceManager) capabilities (spec : SpecializationDeclarationHeader) =
+    match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
+    | Found declaration ->
+        { Symbols = SymbolTracker (nsManager, spec.SourceFile, spec.Parent)
+          IsInOperation = declaration.Kind = Operation
+          ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
+          Capabilities = capabilities }
+    | _ -> failwith "The specialization's parent does not exist."
 
 let private invalid = InvalidType |> ResolvedType.New
 let private ExprWithoutTypeArgs isMutable (ex, t, dep, range) = 
@@ -837,7 +853,7 @@ type QsExpression with
                 let localQDependency = if isPartialApplication then locQdepClassicalEx else true
                 let exInfo = InferredExpressionInformation.New (isMutable = false, quantumDep = localQDependency)
                 let typeParamResolutions, exType = (argT, resT) |> callTypeOrPartial (fun (i,o) -> QsTypeKind.Operation ((i,o), characteristics))
-                if not (symbols.WithinOperation || isPartialApplication) then method.RangeOrDefault |> addError (ErrorCode.OperationCallOutsideOfOperation, []); invalidEx
+                if not (context.IsInOperation || isPartialApplication) then method.RangeOrDefault |> addError (ErrorCode.OperationCallOutsideOfOperation, []); invalidEx
                 else TypedExpression.New (exprKind, typeParamResolutions, exType, exInfo, this.Range)
             | _ -> method.RangeOrDefault |> addError (ErrorCode.ExpectingCallableExpr, [resolvedMethod.ResolvedType |> toString]); invalidEx
 

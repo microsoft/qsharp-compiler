@@ -82,9 +82,8 @@ let NewFailStatement comments location context expr =
 /// and returns it along with an array of diagnostics generated during resolution and verification. 
 /// Errors due to the statement not satisfying the necessary conditions for the required auto-generation of specializations 
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics. 
-let NewReturnStatement comments (location : QsLocation) context expr =
-    let verifyIsReturnType =
-        VerifyAssignment context.Symbols.ExpectedReturnType context.Symbols.Parent ErrorCode.TypeMismatchInReturn
+let NewReturnStatement comments (location : QsLocation) (context : ResolutionContext<_>) expr =
+    let verifyIsReturnType = VerifyAssignment context.ReturnType context.Symbols.Parent ErrorCode.TypeMismatchInReturn
     let verifiedExpr, _, diagnostics = VerifyWith verifyIsReturnType context expr 
     let autoGenErrs =
         context.Symbols
