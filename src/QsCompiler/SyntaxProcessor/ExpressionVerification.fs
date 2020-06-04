@@ -25,20 +25,6 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 // utils for verifying types in expressions
 
-type private StripInferredInfoFromType () = 
-    inherit TypeTransformationBase()
-    default this.OnCallableInformation opInfo = 
-        let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
-        CallableInformation.New (characteristics, InferredCallableInformation.NoInformation)
-    override this.OnRangeInformation _ = QsRangeInfo.Null
-let private StripInferredInfoFromType = (new StripInferredInfoFromType()).OnType
-
-/// used for type matching arguments in call-like expressions
-type private Variance = 
-| Covariant
-| Contravariant
-| Invariant
-
 /// The context used for symbol resolution and type checking.
 type ResolutionContext<'a> =
     { /// The symbol tracker for the parent callable.
@@ -60,6 +46,20 @@ let CreateResolutionContext (nsManager : NamespaceManager) capabilities (spec : 
           ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
           Capabilities = capabilities }
     | _ -> failwith "The specialization's parent does not exist."
+
+type private StripInferredInfoFromType () = 
+    inherit TypeTransformationBase()
+    default this.OnCallableInformation opInfo = 
+        let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
+        CallableInformation.New (characteristics, InferredCallableInformation.NoInformation)
+    override this.OnRangeInformation _ = QsRangeInfo.Null
+let private StripInferredInfoFromType = (new StripInferredInfoFromType()).OnType
+
+/// used for type matching arguments in call-like expressions
+type private Variance = 
+| Covariant
+| Contravariant
+| Invariant
 
 let private invalid = InvalidType |> ResolvedType.New
 let private ExprWithoutTypeArgs isMutable (ex, t, dep, range) = 
