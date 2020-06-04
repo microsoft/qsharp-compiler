@@ -186,13 +186,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             
             if (onError == null) return;
-            var conflictingCallables = refs.Values
+            var conflictingCallables = this.Declarations.Values
                 .SelectMany(r => r.Callables)
                 .Where(c => Namespace.IsDeclarationAccessible(false, c.Modifiers.Access))
                 .GroupBy(c => c.QualifiedName)
                 .Where(g => g.Count() != 1)
                 .Select(g => (g.Key, String.Join(", ", g.Select(c => c.SourceFile.Value))));
-            var conflictingTypes = refs.Values
+            var conflictingTypes = this.Declarations.Values
                 .SelectMany(r => r.Types)
                 .Where(t => Namespace.IsDeclarationAccessible(false, t.Modifiers.Access))
                 .GroupBy(t => t.QualifiedName)
