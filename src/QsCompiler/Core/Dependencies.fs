@@ -57,7 +57,7 @@ type BuiltIn = {
 
     /// Returns true if the given attribute defines an alternative name that may be used when loading a type or callable for testing purposes.
     static member internal DefinesNameForTesting (att : QsDeclarationAttribute) = att.TypeId |> function
-        | Value tId -> tId.Namespace.Value = BuiltIn.EnableTestingViaName.FullName.Namespace.Value && tId.Name.Value = BuiltIn.Test.FullName.Name.Value
+        | Value tId -> tId.Namespace.Value = BuiltIn.EnableTestingViaName.FullName.Namespace.Value && tId.Name.Value = BuiltIn.EnableTestingViaName.FullName.Name.Value
         | Null -> false
 
 
