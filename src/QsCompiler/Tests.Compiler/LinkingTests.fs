@@ -22,11 +22,10 @@ open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
-open Xunit.Abstractions
 
 
-type LinkingTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"] [], output)
+type LinkingTests () =
+    inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests"), ["Core.qs"; "InvalidEntryPoints.qs"]))
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message), isExecutable = true)
 
@@ -78,7 +77,7 @@ type LinkingTests (output:ITestOutputHelper) =
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
         let built = compilationManager.Build()
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
-        let tests = new CompilerTests(built, output)
+        let tests = CompilerTests built
 
         for callable in built.Callables.Values |> Seq.filter inFile do
             tests.Verify (callable.FullName, diag)
