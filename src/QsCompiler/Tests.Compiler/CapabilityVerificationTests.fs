@@ -28,17 +28,30 @@ let private testName name =
     QsQualifiedName.New (NonNullable<_>.New "Microsoft.Quantum.Testing.CapabilityVerification",
                          NonNullable<_>.New name)
 
-/// The empty diagnostics list.
-let private success = List.empty<DiagnosticItem>
+/// Asserts that the tester allows the given test case.
+let private allows (tester : CompilerTests) name = tester.Verify (testName name, List.empty<DiagnosticItem>)
 
-[<Fact>]
-let ``Unknown supports result comparison in functions`` () =
-    unknown.Verify (testName "ResultAsBool", success)
+/// Asserts that the tester disallows the given test case.
+let private restricts (tester : CompilerTests) name =
+    tester.Verify (testName name, [Error ErrorCode.UnsupportedResultComparison])
 
-[<Fact>]
-let ``QPRGen0 does not support result comparison in functions`` () =
-    gen0.Verify (testName "ResultAsBool", [Error ErrorCode.UnsupportedResultComparison])
+/// The names of all test cases.
+let private all =
+    [ "ResultAsBool"
+      "ResultAsBoolOp"
+      "ResultAsBoolOpReturnIf"
+      "ResultAsBoolOpSetIf"
+      "EmptyIf"
+      "Reset" ]
 
-[<Fact (Skip = "TODO")>]
-let ``QPRGen1 does not support result comparison in functions`` () =
-    gen1.Verify (testName "ResultAsBool", [Error ErrorCode.UnsupportedResultComparison])
+
+let [<Fact>] ``Unknown allows all Result comparison`` () = List.iter (allows unknown) all
+let [<Fact>] ``QPRGen0 restricts all Result comparison`` () = List.iter (restricts gen0) all
+
+// [<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
+let [<Fact>] ``QPRGen1 restricts Result comparison in functions`` () = restricts gen1 "ResultAsBool"
+let [<Fact>] ``QPRGen1 restricts non-if Result comparison in operations`` () = restricts gen1 "ResultAsBoolOp"
+let [<Fact>] ``QPRGen1 restricts return from Result if`` () = restricts gen1 "ResultAsBoolOpReturnIf"
+let [<Fact>] ``QPRGen1 restricts mutable set from Result if`` () = restricts gen1 "ResultAsBoolOpSetIf"
+let [<Fact>] ``QPRGen1 allows empty Result if`` () = allows gen1 "EmptyIf"
+let [<Fact>] ``QPRGen1 allows operation call from Result if`` () = allows gen1 "Reset"
