@@ -38,22 +38,47 @@ let private restricts (tester : CompilerTests) name =
 /// The names of all test cases.
 let private all =
     [ "ResultAsBool"
+      "ResultAsBoolNeq"
       "ResultAsBoolOp"
+      "ResultAsBoolNeqOp"
       "ResultAsBoolOpReturnIf"
+      "ResultAsBoolNeqOpReturnIf"
       "ResultAsBoolOpSetIf"
+      "ResultAsBoolNeqOpSetIf"
       "EmptyIf"
-      "Reset" ]
-
+      "EmptyIfNeq"
+      "Reset"
+      "ResetNeq" ]
 
 let [<Fact>] ``Unknown allows all Result comparison`` () = List.iter (allows unknown) all
 let [<Fact>] ``QPRGen0 restricts all Result comparison`` () = List.iter (restricts gen0) all
 
-/// The reason for skipping tests for QPRGen1 restrictions.
-let [<Literal>] private gen1Todo = "QPRGen1 verification is not implemented yet"
+[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
+let ``QPRGen1 restricts Result comparison in functions`` () =
+    restricts gen1 "ResultAsBool"
+    restricts gen1 "ResultAsBoolNeq"
 
-let [<Fact(Skip = gen1Todo)>] ``QPRGen1 restricts Result comparison in functions`` () = restricts gen1 "ResultAsBool"
-let [<Fact(Skip = gen1Todo)>] ``QPRGen1 restricts non-if Result comparison in operations`` () = restricts gen1 "ResultAsBoolOp"
-let [<Fact(Skip = gen1Todo)>] ``QPRGen1 restricts return from Result if`` () = restricts gen1 "ResultAsBoolOpReturnIf"
-let [<Fact(Skip = gen1Todo)>] ``QPRGen1 restricts mutable set from Result if`` () = restricts gen1 "ResultAsBoolOpSetIf"
-let [<Fact>] ``QPRGen1 allows empty Result if`` () = allows gen1 "EmptyIf"
-let [<Fact>] ``QPRGen1 allows operation call from Result if`` () = allows gen1 "Reset"
+[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
+let ``QPRGen1 restricts non-if Result comparison in operations`` () =
+    restricts gen1 "ResultAsBoolOp"
+    restricts gen1 "ResultAsBoolNeqOp"
+
+[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
+let ``QPRGen1 restricts return from Result if`` () =
+    restricts gen1 "ResultAsBoolOpReturnIf"
+    restricts gen1 "ResultAsBoolNeqOpReturnIf"
+
+[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
+let ``QPRGen1 restricts mutable set from Result if`` () =
+    restricts gen1 "ResultAsBoolOpSetIf"
+    restricts gen1 "ResultAsBoolNeqOpSetIf"    
+
+[<Fact>]
+let ``QPRGen1 allows empty Result if`` () =
+    allows gen1 "EmptyIf"
+    allows gen1 "EmptyIfNeq"
+
+[<Fact>]
+let ``QPRGen1 allows operation call from Result if`` () =
+    allows gen1 "Reset"
+    allows gen1 "ResetNeq"
