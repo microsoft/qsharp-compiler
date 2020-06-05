@@ -28,11 +28,11 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
     }
 
     operation ResultAsBoolOpSetIf(result : Result) : Bool {
-        mutable bool = false;
+        mutable b = false;
         if (result == One) {
-            set bool = true;
+            set b = true;
         }
-        return bool;
+        return b;
     }
 
     operation EmptyIf(result : Result) : Unit {
