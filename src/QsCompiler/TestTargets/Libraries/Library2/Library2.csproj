@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="RecompileOnChange">
+<Project Sdk="Microsoft.NET.Sdk" InitialTargets="RecompileOnChange">
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
