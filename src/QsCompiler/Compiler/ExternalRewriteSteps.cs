@@ -248,7 +248,8 @@ namespace Microsoft.Quantum.QsCompiler
                     var sb = new System.Text.StringBuilder();
                     foreach (var exSub in ex.LoaderExceptions)
                     {
-                        sb.AppendLine(exSub.ToString());
+                        var msg = exSub.ToString();
+                        if (msg != null) sb.AppendLine(msg);
                         if (exSub is FileNotFoundException exFileNotFound && !string.IsNullOrEmpty(exFileNotFound.FusionLog))
                         {
                             sb.AppendLine("Fusion Log:");
