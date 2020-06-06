@@ -246,18 +246,15 @@ namespace Microsoft.Quantum.QsCompiler
                 catch (ReflectionTypeLoadException ex)
                 {
                     var sb = new System.Text.StringBuilder();
-                    foreach (Exception exSub in ex.LoaderExceptions)
+                    foreach (var exSub in ex.LoaderExceptions)
                     {
-                        sb.AppendLine(exSub.Message);
-                        if (exSub is FileNotFoundException exFileNotFound)
+                        sb.AppendLine(exSub.ToString());
+                        if (exSub is FileNotFoundException exFileNotFound && !string.IsNullOrEmpty(exFileNotFound.FusionLog))
                         {
-                            if (!string.IsNullOrEmpty(exFileNotFound.FusionLog))
-                            {
-                                sb.AppendLine("Fusion Log:");
-                                sb.AppendLine(exFileNotFound.FusionLog);
-                            }
+                            sb.AppendLine("Fusion Log:");
+                            sb.AppendLine(exFileNotFound.FusionLog);
+                            sb.AppendLine();
                         }
-                        sb.AppendLine();
                     }
 
                     onDiagnostic?.Invoke(LoadError(ErrorCode.TypeLoadExceptionInCompilerPlugin, target.LocalPath));
