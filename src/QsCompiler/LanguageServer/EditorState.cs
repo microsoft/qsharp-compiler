@@ -111,14 +111,19 @@ namespace Microsoft.Quantum.QsLanguageServer
                 : AssemblyConstants.RuntimeCapabilities.Unknown;
 
             var sourceFiles = GetItemsByType(projectInstance, "QsharpCompile");
+            var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
             var references = GetItemsByType(projectInstance, "Reference");
 
             var version = projectInstance.GetPropertyValue("QsharpLangVersion");
             var isExecutable = "QsharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQsharpOutputType"), StringComparison.InvariantCultureIgnoreCase);
             var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.InvariantCultureIgnoreCase);
+            var defaultSimulator = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();
 
-            var telemetryMeas = new Dictionary<string, int> { ["sources"] = sourceFiles.Count() };
+            var telemetryMeas = new Dictionary<string, int>();
+            telemetryMeas["sources"] = sourceFiles.Count();
+            telemetryMeas["csharpfiles"] = csharpFiles.Count();
+            telemetryProps["defaultSimulator"] = defaultSimulator;
             this.SendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
             info = new ProjectInformation(version, outputPath, runtimeCapabilities, isExecutable, loadTestNames, sourceFiles, projectReferences, references);
             return true;
@@ -200,7 +205,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     this.IgnoreEditorUpdatesFor(textDocument.Uri); 
                     this.OpenFiles.TryRemove(textDocument.Uri, out FileContentManager _);
                     if (!associatedWithProject) _ = manager.TryRemoveSourceFileAsync(textDocument.Uri);
-                    this.Publish(new PublishDiagnosticParams { Uri = textDocument.Uri, Diagnostics = new Diagnostic[0] });
+                    this.Publish(new PublishDiagnosticParams { Uri = textDocument.Uri, Diagnostics = Array.Empty<Diagnostic>() });
                     return;
                 }
 
@@ -282,7 +287,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 if (!removed) onError?.Invoke($"Attempting to close file '{textDocument.Uri.LocalPath}' that is not currently listed as open in the editor.", MessageType.Error);
                 #endif
                 if (!associatedWithProject) _ = manager.TryRemoveSourceFileAsync(textDocument.Uri);
-                this.Publish(new PublishDiagnosticParams { Uri = textDocument.Uri, Diagnostics = new Diagnostic[0] });
+                this.Publish(new PublishDiagnosticParams { Uri = textDocument.Uri, Diagnostics = Array.Empty<Diagnostic>() });
             });
             // When edits are made in a file, but those are discarded by closing the file and hitting "no, don't save",
             // no notification is sent for the now discarded changes;

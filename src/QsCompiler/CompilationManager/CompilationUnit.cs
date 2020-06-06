@@ -459,7 +459,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.SyncRoot.EnterWriteLock();
             try
             {
-                foreach (var c in updates ?? new QsCallable[0])
+                foreach (var c in updates ?? Array.Empty<QsCallable>())
                 {
                     if (c?.Specializations == null || c.Specializations.Contains(null))
                     { throw new ArgumentNullException(nameof(updates), "the given compiled callable or specialization is null"); }
@@ -631,7 +631,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             if (callables == null) throw new ArgumentNullException(nameof(callables));
             if (types == null) throw new ArgumentNullException(nameof(types));
-            var emptyLookup = new NonNullable<string>[0].ToLookup(ns => ns, _ => ImmutableArray<string>.Empty);
+            var emptyLookup = Array.Empty<NonNullable<string>>().ToLookup(ns => ns, _ => ImmutableArray<string>.Empty);
 
             static string QualifiedName(QsQualifiedName fullName) => $"{fullName.Namespace.Value}.{fullName.Name.Value}";
             static string ElementName(QsNamespaceElement e) =>
@@ -666,8 +666,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         $"{declaration.QualifiedName.Namespace.Value}.{declaration.QualifiedName.Name.Value} defined in '{declaration.SourceFile.Value}'");
                 }
 
+                var entryPoints = ImmutableArray.CreateBuilder<QsQualifiedName>();
                 foreach (var declaration in this.GlobalSymbols.DefinedCallables())
                 {
+                    if (declaration.Attributes.Any(BuiltIn.MarksEntryPoint))
+                    {
+                        entryPoints.Add(declaration.QualifiedName);
+                    }
+
                     var compilationExists = this.CompiledCallables.TryGetValue(declaration.QualifiedName, out QsCallable compiled);
                     if (!compilationExists) throw new InvalidOperationException($"missing compilation for callable " +
                         $"{declaration.QualifiedName.Namespace.Value}.{declaration.QualifiedName.Name.Value} defined in '{declaration.SourceFile.Value}'");
@@ -688,8 +694,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // having duplicate names in the syntax tree.
                 var (taggedCallables, taggedTypes) = TagImportedInternalNames(callables, types);
                 var tree = NewSyntaxTree(taggedCallables, taggedTypes, this.GlobalSymbols.Documentation());
-                var entryPoints = tree.Callables().Where(c => c.Attributes.Any(BuiltIn.MarksEntryPoint)).Select(c => c.FullName).ToImmutableArray();
-                return new QsCompilation(tree, entryPoints);
+                return new QsCompilation(tree, entryPoints.ToImmutable());
             }
             finally { this.SyncRoot.ExitReadLock(); }
         }

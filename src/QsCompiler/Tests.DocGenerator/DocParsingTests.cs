@@ -319,7 +319,7 @@ output:
             var phaseEstArgTuple = ResolvedType.New(QsType.NewTupleType(phaseEstArgs));
             var phaseEstOp = ResolvedType.New(QsType.NewOperation(new SigTypeTuple(phaseEstArgTuple, doubleType), noInfo));
 
-            var typeParams = new QsLocalSymbol[] { }.ToImmutableArray();
+            var typeParams = Array.Empty<QsLocalSymbol>().ToImmutableArray();
             var argTypes = new ResolvedType[] { qubitToUnitOp, qubitToUnitOp, qubitToUnitOpAC, phaseEstOp, qubitArrayType }.ToImmutableArray();
             var argTupleType = ResolvedType.New(QsType.NewTupleType(argTypes));
             var signature = new ResolvedSignature(typeParams, argTupleType, doubleType, noInfo);
@@ -332,7 +332,7 @@ output:
                             .ConvertAll(arg => QsTuple<ArgDeclType>.NewQsTupleItem(arg))
                             .ToImmutableArray();
             var argTuple = QsTuple<ArgDeclType>.NewQsTuple(args);
-            var specs = new QsSpecialization[] { }.ToImmutableArray();
+            var specs = Array.Empty<QsSpecialization>().ToImmutableArray();
 
             var qsCallable = new QsCallable(QsCallableKind.Operation,
                                             MakeFullName("AdiabaticStateEnergyUnitary"),

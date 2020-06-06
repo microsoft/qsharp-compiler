@@ -236,16 +236,17 @@ type ErrorCode =
     | UserDefinedTypeInEntryPointSignature = 6233
     | InnerTupleInEntryPointArgument = 6234
     | ArrayOfArrayInEntryPointArgument = 6235
-    | MultipleEntryPoints = 6236
-    | MissingEntryPoint = 6237
-    | InvalidEntryPointSpecialization = 6238
-    | DuplicateEntryPointArgumentName = 6239
-    | EntryPointInLibrary = 6240
-    | InvalidTestAttributePlacement = 6241
-    | InvalidExecutionTargetForTest = 6242
-    | ExpectingFullNameAsAttributeArgument = 6243
-    | AttributeInvalidOnSpecialization = 6244
-    | AttributeInvalidOnCallable = 6245
+    | OtherEntryPointExists = 6236
+    | MultipleEntryPoints = 6237
+    | MissingEntryPoint = 6238
+    | InvalidEntryPointSpecialization = 6239
+    | DuplicateEntryPointArgumentName = 6240
+    | EntryPointInLibrary = 6241
+    | InvalidTestAttributePlacement = 6242
+    | InvalidExecutionTargetForTest = 6243
+    | ExpectingFullNameAsAttributeArgument = 6244
+    | AttributeInvalidOnSpecialization = 6245
+    | AttributeInvalidOnCallable = 6246
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -612,7 +613,8 @@ type DiagnosticItem =
             | ErrorCode.UserDefinedTypeInEntryPointSignature      -> "Invalid entry point. Values of user defined type may not be used as arguments or return values to entry points."
             | ErrorCode.InnerTupleInEntryPointArgument            -> "Anonymous tuple items or arrays of tuples are not supported in entry point arguments. All items need to be named."
             | ErrorCode.ArrayOfArrayInEntryPointArgument          -> "Multi-dimensional arrays are not supported in entry point arguments."
-            | ErrorCode.MultipleEntryPoints                       -> "Invalid entry point. An entry point {0} already exists in {1}."
+            | ErrorCode.OtherEntryPointExists                     -> "Invalid entry point. An entry point {0} already exists in {1}."
+            | ErrorCode.MultipleEntryPoints                       -> "The project contains more than one entry point."
             | ErrorCode.MissingEntryPoint                         -> "Missing entry point. Execution on a quantum processor requires that a Q# entry point is defined using the @EntryPoint() attribute. Any C# driver code should be defined in a separate project."
             | ErrorCode.InvalidEntryPointSpecialization           -> "Entry points cannot have any other specializations besides the default body."
             | ErrorCode.DuplicateEntryPointArgumentName           -> "Invalid name for entry point argument. A similar argument name is already in use."

@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             var success = true;
             parsed = new Dictionary<string, string>();
-            foreach (var keyValue in this.AdditionalAssemblyProperties ?? new string[0])
+            foreach (var keyValue in this.AdditionalAssemblyProperties ?? Array.Empty<string>())
             {
                 var pieces = keyValue?.Split(":");
                 var valid = pieces != null && pieces.Length == 2;
@@ -159,8 +159,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             this.Verbosity = overwriteNonDefaultValues || this.Verbosity == DefaultOptions.Verbosity ? updates.Verbosity : this.Verbosity;
             this.OutputFormat = overwriteNonDefaultValues || this.OutputFormat == DefaultOptions.OutputFormat ? updates.OutputFormat : this.OutputFormat;
-            this.NoWarn = (this.NoWarn ?? new int[0]).Concat(updates.NoWarn ?? new int[0]);
-            this.References = (this.References ?? new string[0]).Concat(updates.References ?? new string[0]);
+            this.NoWarn = (this.NoWarn ?? Array.Empty<int>()).Concat(updates.NoWarn ?? Array.Empty<int>());
+            this.References = (this.References ?? Array.Empty<string>()).Concat(updates.References ?? Array.Empty<string>());
         }
 
 

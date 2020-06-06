@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 
@@ -684,33 +685,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
                 base.OnSpecializationDeclaration(spec.WithParent(State.GetNewName));
-        }
-    }
-
-
-    // general purpose helpers
-
-    /// <summary>
-    /// Upon transformation, applies the specified action to each expression and subexpression.
-    /// The action to apply is specified upon construction, and will be applied before recurring into subexpressions.
-    /// The transformation merely walks expressions and rebuilding is disabled. 
-    /// </summary>
-    public class TypedExpressionWalker<T> 
-    : ExpressionTransformation<T>
-    {
-        public TypedExpressionWalker(Action<TypedExpression> onExpression, SyntaxTreeTransformation<T> parent)
-        : base(parent, TransformationOptions.NoRebuild) =>
-            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
-
-        public TypedExpressionWalker(Action<TypedExpression> onExpression, T internalState = default)
-        : base(internalState, TransformationOptions.NoRebuild) =>
-            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
-
-        public readonly Action<TypedExpression> OnExpression;
-        public override TypedExpression OnTypedExpression(TypedExpression ex)
-        {
-            this.OnExpression(ex);
-            return base.OnTypedExpression(ex);
         }
     }
 }

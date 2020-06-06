@@ -941,19 +941,18 @@ and NamespaceManager
                     errs.Add (decl.Position, signature.Characteristics.Range.ValueOr decl.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointSpecialization, []))
 
             // validate entry point argument and return type
-            let validateArgAndReturnTypes isArg (qsType : QsType) =
-                let rec IsArray = function 
-                    | ArrayType _ -> true
-                    | TupleType (ts : ImmutableArray<QsType>) when ts.Length = 1 -> IsArray ts.[0].Type
-                    | _ -> false                            
-                qsType.ExtractAll (fun t -> t.Type |> function // ExtractAll recurs on all subtypes (e.g. callable in- and output types as well)
+            let rec validateArgAndReturnTypes (isArg, inArray) (t : QsType) =
+                match t.Type with 
                 | Qubit -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.QubitTypeInEntryPointSignature, [])) |> Seq.singleton
+                | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPointSignature, [])) |> Seq.singleton
                 | QsTypeKind.Operation _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
                 | QsTypeKind.Function _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.CallableTypeInEntryPointSignature, [])) |> Seq.singleton
-                | UserDefinedType _ -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.UserDefinedTypeInEntryPointSignature, [])) |> Seq.singleton
                 | TupleType ts when ts.Length > 1 && isArg -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InnerTupleInEntryPointArgument, [])) |> Seq.singleton
-                | ArrayType bt when isArg && bt.Type |> IsArray -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.ArrayOfArrayInEntryPointArgument, [])) |> Seq.singleton
-                | _ -> Seq.empty)
+                | TupleType ts -> ts |> Seq.collect (validateArgAndReturnTypes (isArg, inArray))
+                | ArrayType _ when isArg && inArray -> (decl.Position, t.Range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.ArrayOfArrayInEntryPointArgument, [])) |> Seq.singleton
+                | ArrayType bt -> validateArgAndReturnTypes (isArg, true) bt
+                | _ -> Seq.empty
+            let validateArgAndReturnTypes isArg = validateArgAndReturnTypes (isArg, false)
             let inErrs = signature.Argument.Items.Select snd |> Seq.collect (validateArgAndReturnTypes true)
             let outErrs = signature.ReturnType |> validateArgAndReturnTypes false 
             let signatureErrs = inErrs.Concat outErrs
@@ -991,7 +990,7 @@ and NamespaceManager
                 | None -> isExecutable, errs
                 | Some (epName, epSource) ->
                     let msgArgs = [sprintf "%s.%s" epName.Namespace.Value epName.Name.Value; epSource.Value]
-                    errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.MultipleEntryPoints, msgArgs))
+                    errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.OtherEntryPointExists, msgArgs))
                     false, errs
         | _ -> 
             errs.Add (offset, range |> orDefault |> QsCompilerDiagnostic.Error (ErrorCode.InvalidEntryPointPlacement, [])) 

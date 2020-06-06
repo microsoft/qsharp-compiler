@@ -234,6 +234,6 @@ type NamespaceTransformationBase internal (options : TransformationOptions, _int
         let name = ns.Name
         let doc = ns.Documentation.AsEnumerable().SelectMany(fun entry -> 
             entry |> Seq.map (fun doc -> entry.Key, this.OnDocumentation doc)).ToLookup(fst, snd)
-        let elements = ns.Elements |> Seq.map this.OnNamespaceElement |> ImmutableArray.CreateRange
-        QsNamespace.New |> Node.BuildOr ns (name, elements, doc)
-
+        let elements = ns.Elements |> Seq.map this.OnNamespaceElement
+        if options.Rebuild then QsNamespace.New (name, elements |> ImmutableArray.CreateRange, doc)
+        else elements |> Seq.iter ignore; ns

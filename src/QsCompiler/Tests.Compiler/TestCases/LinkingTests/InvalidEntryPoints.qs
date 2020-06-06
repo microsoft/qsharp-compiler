@@ -226,7 +226,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
     operation InvalidEntryPoint38(arg1 : (Pauli, Result)[], arg2 : Double) : Unit {}
 
 
-    // no arrays of arrays in entry point arguments
+    // array item type validation in entry point arguments
 
     @ EntryPoint()
     operation InvalidEntryPoint39(arg : Int[][]) : Unit {}
@@ -236,5 +236,4 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
     @ EntryPoint()
     operation InvalidEntryPoint41(a : Int[], (b : Int[][], c : Double)) : Unit {}
-
 }

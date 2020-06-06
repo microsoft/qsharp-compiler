@@ -32,6 +32,14 @@ type BuiltIn = {
     /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create (BuiltIn.CoreNamespace)
 
+    /// Returns the set of callables that rewrite steps take dependencies on.
+    /// These should be non-Generic callables only.
+    static member RewriteStepDependencies =
+        ImmutableHashSet.Create (
+            BuiltIn.RangeReverse.FullName,
+            BuiltIn.Length.FullName
+    )
+
     /// Returns true if the given attribute marks the corresponding declaration as entry point.
     static member MarksEntryPoint (att : QsDeclarationAttribute) = att.TypeId |> function
         | Value tId -> tId.Namespace.Value = BuiltIn.EntryPoint.FullName.Namespace.Value && tId.Name.Value = BuiltIn.EntryPoint.FullName.Name.Value
@@ -201,5 +209,5 @@ type BuiltIn = {
 
     static member IndexRange = {
         FullName = {Name = "IndexRange" |> NonNullable<string>.New; Namespace = BuiltIn.StandardArrayNamespace}
-        Kind = Function (TypeParameters = ImmutableArray.Empty)
+        Kind = Function (TypeParameters = ImmutableArray.Create("TElement" |> NonNullable<string>.New))
     }

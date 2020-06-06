@@ -9,6 +9,38 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler
 {
+    /// <summary>
+    /// Lists the priorities for built-in rewrite steps. 
+    /// </summary>
+    public static class RewriteStepPriorities
+    {
+        /// <summary>
+        /// Priority of the built-in transformation that replaces 
+        /// if-statements with the corresponding calls to built-in quantum operations if possible. 
+        /// </summary>
+        public const int ControlFlowSubstitutions = 1100;
+        /// <summary>
+        /// Priority of the built-in transformation that replaces 
+        /// all type parametrized callables with concrete instantiations and drops any unused callables. 
+        /// </summary>
+        public const int TypeParameterElimination = 1000;
+        /// <summary>
+        /// Priority of the built-in transformation that replaces 
+        /// all functor generation directives with the corresponding implementation.  
+        /// </summary>
+        public const int GenerationOfFunctorSupport = 600;
+        /// <summary>
+        /// Priority of the built-in transformation that inlines all conjugations 
+        /// and thus eliminates that construct from the syntax tree.
+        /// </summary>
+        public const int InliningOfConjugations = 500;
+        /// <summary>
+        /// Priority of the built-in transformation that 
+        /// evaluates classical computations as much as possible. 
+        /// </summary>
+        public const int EvaluationOfClassicalComputations = 100;
+    }
+
     public interface IRewriteStep
     {
         public enum Stage 
