@@ -4,6 +4,7 @@
   <PropertyGroup>
     <AssemblyName>Simulation</AssemblyName>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
