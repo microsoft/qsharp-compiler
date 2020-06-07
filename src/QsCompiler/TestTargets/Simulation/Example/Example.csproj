@@ -1,9 +1,10 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.10.2002.2708-beta">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.11.2006.411-beta">
 
   <PropertyGroup>
     <QscVerbosity>Detailed</QscVerbosity>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <ExposeReferencesViaTestNames>true</ExposeReferencesViaTestNames>
     <IncludeQsharpCorePackages>false</IncludeQsharpCorePackages>
     <CsharpGeneration>false</CsharpGeneration> <!--we provide our own C# generation for the sake of also generating C# for all references-->
     <NoWarn>0219</NoWarn> <!-- suppress C# warning for unused variables -->
@@ -36,6 +37,7 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="../../Libraries/Library1/Library1.csproj" />
+    <ProjectReference Include="../../Libraries/Library2/Library2.csproj" />
   </ItemGroup>
 
   <Target Name="BeforeCsharpCompile">

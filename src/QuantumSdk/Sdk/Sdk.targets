@@ -101,7 +101,7 @@
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QsharpCompile" 
           Condition="'$(DesignTimeBuild)' != 'true'"
-          Inputs="@(QscCommandArgsFile)"
+          Inputs="@(QsharpCompile);@(ReferencePath);@(QscCommandArgsFile)"
           Outputs="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson"
           DependsOnTargets="PrepareQsharpCompile"
           BeforeTargets="PrepareCsharpCompileAfterCsharpGeneration">
