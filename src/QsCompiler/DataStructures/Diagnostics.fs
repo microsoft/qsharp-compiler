@@ -280,14 +280,15 @@ type ErrorCode =
     | InvalidProjectOutputPath = 7013
     | SourceFilesMissing = 7014
     | UnknownCompilerPlugin = 7015
-    | CouldNotLoadCompilerPlugin = 7016
-    | CouldNotInstantiateRewriteStep = 7017
-    | CouldNotFindTargetPackage = 7018
-    | CouldNotFindTargetPackageAssembly = 7019
-    | InvalidTargetPackageAssemblyPath = 7020
-    | FailedToLoadTargetPackageAssembly = 7021
-    | UnexpectedCompilerException = 7022
-    | InvalidCommandLineArgsInResponseFiles = 7023
+    | TypeLoadExceptionInCompilerPlugin = 7016
+    | CouldNotLoadCompilerPlugin = 7017
+    | CouldNotInstantiateRewriteStep = 7018
+    | CouldNotFindTargetPackage = 7019
+    | CouldNotFindTargetPackageAssembly = 7020
+    | InvalidTargetPackageAssemblyPath = 7021
+    | FailedToLoadTargetPackageAssembly = 7022
+    | UnexpectedCompilerException = 7023
+    | InvalidCommandLineArgsInResponseFiles = 7024
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
@@ -657,6 +658,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidProjectOutputPath                  -> "Invalid project output path for project \"{0}\"."
             | ErrorCode.SourceFilesMissing                        -> "No source files have been specified."
             | ErrorCode.UnknownCompilerPlugin                     -> "Could not find the .NET Core library \"{0}\" specifying transformations to perform as part of the compilation process."
+            | ErrorCode.TypeLoadExceptionInCompilerPlugin         -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. Unable to load one or more of the requested types."
             | ErrorCode.CouldNotLoadCompilerPlugin                -> "Unable to load the file \"{0}\" specifying transformations to perform as part of the compilation process. The file needs to be a suitable .NET Core library."
             | ErrorCode.CouldNotInstantiateRewriteStep            -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor."
             | ErrorCode.CouldNotFindTargetPackage                 -> "Could not find the directory \"{0}\" containing target specific information."

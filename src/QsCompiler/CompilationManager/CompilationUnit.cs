@@ -115,13 +115,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var rename = new RenameReferences(renaming);
             var types = headers.Types
                 .Select(type => 
-                    renaming.ContainsKey(type.QualifiedName) && type.Location.IsValue // TODO: we should instead fully support auto-generated attributes
+                    renaming.TryGetValue(type.QualifiedName, out var newName) && !type.QualifiedName.Equals(newName) && type.Location.IsValue // TODO: we should instead fully support auto-generated attributes
                     ? type.AddAttribute(Renamed(type.QualifiedName, type.Location.Item.Offset))
                     : type)
                 .Select(rename.OnTypeDeclarationHeader);
             var callables = headers.Callables
                 .Select(callable => 
-                    renaming.ContainsKey(callable.QualifiedName) && callable.Location.IsValue // TODO: we should instead fully support auto-generated attributes
+                    renaming.TryGetValue(callable.QualifiedName, out var newName) && !callable.QualifiedName.Equals(newName) && callable.Location.IsValue // TODO: we should instead fully support auto-generated attributes
                     ? callable.AddAttribute(Renamed(callable.QualifiedName, callable.Location.Item.Offset))
                     : callable)
                 .Select(rename.OnCallableDeclarationHeader);
@@ -186,13 +186,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             
             if (onError == null) return;
-            var conflictingCallables = refs.Values
+            var conflictingCallables = this.Declarations.Values
                 .SelectMany(r => r.Callables)
                 .Where(c => Namespace.IsDeclarationAccessible(false, c.Modifiers.Access))
                 .GroupBy(c => c.QualifiedName)
                 .Where(g => g.Count() != 1)
                 .Select(g => (g.Key, String.Join(", ", g.Select(c => c.SourceFile.Value))));
-            var conflictingTypes = refs.Values
+            var conflictingTypes = this.Declarations.Values
                 .SelectMany(r => r.Types)
                 .Where(t => Namespace.IsDeclarationAccessible(false, t.Modifiers.Access))
                 .GroupBy(t => t.QualifiedName)
