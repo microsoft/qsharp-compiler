@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
         private class ConvertConditions : SyntaxTreeTransformation<ConvertConditions.TransformationState>
         {
-            public static QsCompilation Apply(QsCompilation compilation)
+            public new static QsCompilation Apply(QsCompilation compilation)
             {
                 var filter = new ConvertConditions(compilation);
 
