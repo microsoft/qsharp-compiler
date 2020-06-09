@@ -139,7 +139,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Constructor for CallGraphEdge objects.
-        /// Strips position info from given resolutions before assigning them to ParamResoluitons.
+        /// Strips position info from given resolutions before assigning them to ParamResoluitons
+        /// to ensure that the same type parameters will have the same hash.
         /// Throws an ArgumentNullException if paramResolutions is null.
         /// </summary>
         public CallGraphEdge(TypeParameterResolutions paramResolutions)

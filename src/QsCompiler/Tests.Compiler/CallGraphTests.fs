@@ -288,6 +288,29 @@ type CallGraphTests (output:ITestOutputHelper) =
 
         AssertCombinedResolution(Foo, expected, given)
 
+    [<Fact(Skip="Need to rework resolution algorithm.")>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Multi-Stage Resolution of Multiple Resolutions to Type Parameter`` () = 
+
+        let given = [|
+            ResolutionFromParam [
+                (FooA, BarA |> TypeParameter)
+            ]
+            ResolutionFromParam [
+                (BarA, BazA |> TypeParameter)
+                (FooB, BarA |> TypeParameter)
+            ]
+            ResolutionFromParam [
+                (BazA, Int)
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (FooA, Int)
+            (FooB, Int)
+        ]
+
+        AssertCombinedResolution(Foo, expected, given)
+
     [<Fact>]
     [<Trait("Category","Type Resolution")>]
     member this.``Redundant Resolution to Concrete`` () =
@@ -434,6 +457,27 @@ type CallGraphTests (output:ITestOutputHelper) =
         |]
         let expected = ResolutionFromParam [
             (FooA, FooB |> TypeParameter)
+        ]
+
+        AssertCombinedResolutionFailure(Foo, expected, given)
+
+    [<Fact>]
+    [<Trait("Category","Type resolution")>]
+    member this.``Inner Cycle Constrains Type Parameter`` () = 
+
+        let given = [|
+            ResolutionFromParam [
+                (FooA, BarA |> TypeParameter)
+            ]
+            ResolutionFromParam [
+                (BarA, BazA |> TypeParameter)
+            ]
+            ResolutionFromParam [
+                (BazA, BarC |> TypeParameter) // TODO: for performance reasons it would be nice to detect this case as well and error here
+            ]
+        |]
+        let expected = ResolutionFromParam [
+            (FooA, BarC |> TypeParameter)
         ]
 
         AssertCombinedResolutionFailure(Foo, expected, given)
