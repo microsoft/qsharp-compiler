@@ -46,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Throws an ArgumentNullException if the given target is null.
         /// NOTE: This routine prioritizes the verifications to ensure the correctness of the resolution over performance.
         /// </summary>
-        public static bool TryCombineTypeResolutionsForTarget(QsQualifiedName target, out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutions)
+        internal static bool TryCombineTypeResolutionsForTarget(QsQualifiedName target, out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutions)
         {
             if (target == null) throw new ArgumentNullException(nameof(target));
             var success = TryCombineTypeResolutions(out combined, resolutions);
@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// i.e. if there are no conflicting resolutions and type parameters are uniquely resolved to either a concrete type, a
         /// type parameter belonging to a different callable, or themselves.
         /// </summary>
-        public static bool TryCombineTypeResolutions(out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutionDictionaries)
+        internal static bool TryCombineTypeResolutions(out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutionDictionaries)
         {
             if (!resolutionDictionaries.Any())
             {
