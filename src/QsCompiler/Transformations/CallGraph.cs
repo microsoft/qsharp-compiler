@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -133,7 +134,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// The ParamResolutions are expected to be non-null and have all of their position information removed.
     /// The order of the elements of the ParamResolutions will not matter for comparison/hashing.
     /// </summary>
-    public class CallGraphEdge : IEquatable<CallGraphEdge>
+    public class CallGraphEdge
     {
         public TypeParameterResolutions ParamResolutions;
 
@@ -152,25 +153,35 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 kvp => StripPositionInfo.Apply(kvp.Value));
         }
 
-        public override bool Equals(object obj)
+        /// <summary>
+        /// Determines if the object is the same as the given edge, ignoring the
+        /// ordering of key-value pairs in the type parameter dictionaries.
+        /// </summary>
+        public bool Equals(CallGraphEdge edge)
         {
-            return obj is CallGraphEdge && Equals((CallGraphEdge)obj);
+            return this.ParamResolutions.OrderBy(kvp => kvp.Key).SequenceEqual(edge.ParamResolutions.OrderBy(kvp => kvp.Key));
         }
 
-        public bool Equals(CallGraphEdge other)
+        /// <summary>
+        /// Inserts the edge into the given array of edges if the edge is not already in the array.
+        /// Ignores order of key-value pairs in the type parameter dictionaries.
+        /// </summary>
+        public ImmutableArray<CallGraphEdge> InsertEdge(ImmutableArray<CallGraphEdge> edges)
         {
-            return this.ParamResolutions.ToImmutableHashSet().SetEquals(other.ParamResolutions.ToImmutableHashSet());
-        }
+            var ordered = this.ParamResolutions.OrderBy(kvp => kvp.Key).ToList();
 
-        public override int GetHashCode()
-        {
-            return ParamResolutions
-                .Aggregate(0, (totalHash, kvp) => totalHash ^ (kvp.Key.Item1, kvp.Key.Item2, kvp.Value).GetHashCode());
-
-                // The XOR is an effective way of combining hashes for this situation
-                // as it ignores order, which is desired, and the key-value pairs of
-                // the dictionary are always unique. This also avoids the problem of
-                // overflowing that using addition for combining has.
+            if (edges == null || edges.Length == 0)
+            {
+                return ImmutableArray.Create(this);
+            }
+            else if (edges.Any(e => ordered.SequenceEqual(e.ParamResolutions.OrderBy(kvp => kvp.Key))))
+            {
+                return edges;
+            }
+            else
+            {
+                return edges.Add(this);
+            }
         }
 
         /// <summary>
@@ -504,9 +515,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 {
                     deps[calledKey] = ImmutableArray.Create(edge);
                 }
-                else if (!edges.Contains(edge))
+                else
                 {
-                    deps[calledKey] = edges.Add(edge);
+                    deps[calledKey] = edge.InsertEdge(edges);
                 }
             }
             else
@@ -619,7 +630,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
                         if (accum.TryGetValue(dependent, out var existingEdges))
                         {
-                            combinedEdges = combinedEdges.Except(existingEdges);
+                            combinedEdges = combinedEdges.Where(edge => !existingEdges.Any(existing => edge.Equals(existing)));
                             accum[dependent] = existingEdges.AddRange(combinedEdges);
                         }
                         else
