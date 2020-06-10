@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
@@ -95,11 +96,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         // This relies on anything having type parameters must be a global callable.
                         if (newCallIdentifier.Expression is ExpressionKind.Identifier id
                             && id.Item1 is Identifier.GlobalCallable global
-                            && (callTypeArguments.Any()))
+                            && callTypeArguments.Any())
                         {
                             // We are dissolving the application of arguments here, so the call's type argument
                             // resolutions have to be moved to the 'identifier' sub expression.
-                            var combined = CallGraph.TryCombineTypeResolutions(global.Item,
+                            var combined = TypeParamUtils.TryCombineTypeResolutionsForTarget(global.Item,
                                 out var combinedTypeArguments,
                                 newCallIdentifier.TypeParameterResolutions, callTypeArguments);
                             QsCompilerError.Verify(combined, "failed to combine type parameter resolution");

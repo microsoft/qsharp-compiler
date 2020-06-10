@@ -11,7 +11,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
-    
+
 let private _BaseTypes =
     [|
         "Unit", UnitType
@@ -22,7 +22,7 @@ let private _BaseTypes =
         "Qubit", Qubit
         "Qubit[]", ResolvedType.New Qubit |> ArrayType
     |]
-    
+
 let private _MakeTypeMap udts =
     Array.concat
         [
@@ -86,7 +86,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
     let makeArgsString (args : ResolvedType) =
         match args.Resolution with
         | QsTypeKind.UnitType -> "()"
-        | _ -> args |> SyntaxTreeToQsharp.Default.ToCode 
+        | _ -> args |> SyntaxTreeToQsharp.Default.ToCode
 
     let removeAt i lst =
         Seq.append
@@ -115,6 +115,7 @@ let public IntrinsicResolutionNs = "Microsoft.Quantum.Testing.IntrinsicResolutio
 let public ClassicalControlNs = "Microsoft.Quantum.Testing.ClassicalControl"
 let public InternalRenamingNs = "Microsoft.Quantum.Testing.InternalRenaming"
 let public CycleDetectionNS = "Microsoft.Quantum.Testing.CycleDetection"
+let public TypeParameterResolutionNS = "Microsoft.Quantum.Testing.TypeParameterResolution"
 
 /// Expected callable signatures to be found when running Monomorphization tests
 let public MonomorphizationSignatures =
