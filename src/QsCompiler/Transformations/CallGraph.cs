@@ -131,7 +131,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
     /// <summary>
     /// Contains the information that exists on edges in a call graph.
-    /// The ParamResolutions are expected to be non-null and have all of their position information removed.
+    /// The ParamResolutions are non-null and have all of their position information removed.
     /// The order of the elements of the ParamResolutions will not matter for comparison/hashing.
     /// </summary>
     public class CallGraphEdge
