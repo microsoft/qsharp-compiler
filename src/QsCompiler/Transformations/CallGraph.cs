@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -46,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Throws an ArgumentNullException if the given target is null.
         /// NOTE: This routine prioritizes the verifications to ensure the correctness of the resolution over performance.
         /// </summary>
-        public static bool TryCombineTypeResolutionsForTarget(QsQualifiedName target, out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutions)
+        internal static bool TryCombineTypeResolutionsForTarget(QsQualifiedName target, out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutions)
         {
             if (target == null) throw new ArgumentNullException(nameof(target));
             var success = TryCombineTypeResolutions(out combined, resolutions);
@@ -68,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// i.e. if there are no conflicting resolutions and type parameters are uniquely resolved to either a concrete type, a
         /// type parameter belonging to a different callable, or themselves.
         /// </summary>
-        public static bool TryCombineTypeResolutions(out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutionDictionaries)
+        internal static bool TryCombineTypeResolutions(out TypeParameterResolutions combined, params TypeParameterResolutions[] resolutionDictionaries)
         {
             if (!resolutionDictionaries.Any())
             {
@@ -133,13 +134,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// The ParamResolutions are non-null and have all of their position information removed.
     /// The order of the elements of the ParamResolutions will not matter for comparison/hashing.
     /// </summary>
-    public class CallGraphEdge : IEquatable<CallGraphEdge>
+    public class CallGraphEdge
     {
         public readonly TypeParameterResolutions ParamResolutions;
 
         /// <summary>
         /// Constructor for CallGraphEdge objects.
-        /// Strips position info from given resolutions before assigning them to ParamResoluitons.
+        /// Strips position info from given resolutions before assigning them to ParamResoluitons
+        /// to ensure that the same type parameters will have the same hash.
         /// Throws an ArgumentNullException if paramResolutions is null.
         /// </summary>
         public CallGraphEdge(TypeParameterResolutions paramResolutions)
@@ -163,25 +165,35 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             ParamResolutions = edge.ParamResolutions;
         }
 
-        public override bool Equals(object obj)
+        /// <summary>
+        /// Determines if the object is the same as the given edge, ignoring the
+        /// ordering of key-value pairs in the type parameter dictionaries.
+        /// </summary>
+        public bool Equals(CallGraphEdge edge)
         {
-            return obj is CallGraphEdge && Equals((CallGraphEdge)obj);
+            return this.ParamResolutions.OrderBy(kvp => kvp.Key).SequenceEqual(edge.ParamResolutions.OrderBy(kvp => kvp.Key));
         }
 
-        public bool Equals(CallGraphEdge other)
+        /// <summary>
+        /// Inserts the edge into the given array of edges if the edge is not already in the array.
+        /// Ignores order of key-value pairs in the type parameter dictionaries.
+        /// </summary>
+        public ImmutableArray<CallGraphEdge> InsertEdge(ImmutableArray<CallGraphEdge> edges)
         {
-            return this.ParamResolutions.ToImmutableHashSet().SetEquals(other.ParamResolutions.ToImmutableHashSet());
-        }
+            var ordered = this.ParamResolutions.OrderBy(kvp => kvp.Key).ToList();
 
-        public override int GetHashCode()
-        {
-            return ParamResolutions
-                .Aggregate(0, (totalHash, kvp) => totalHash ^ (kvp.Key.Item1, kvp.Key.Item2, kvp.Value).GetHashCode());
-
-                // The XOR is an effective way of combining hashes for this situation
-                // as it ignores order, which is desired, and the key-value pairs of
-                // the dictionary are always unique. This also avoids the problem of
-                // overflowing that using addition for combining has.
+            if (edges == null || edges.Length == 0)
+            {
+                return ImmutableArray.Create(this);
+            }
+            else if (edges.Any(e => ordered.SequenceEqual(e.ParamResolutions.OrderBy(kvp => kvp.Key))))
+            {
+                return edges;
+            }
+            else
+            {
+                return edges.Add(this);
+            }
         }
 
         /// <summary>
@@ -557,9 +569,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 {
                     deps[calledKey] = ImmutableArray.Create(edge);
                 }
-                else if (!edges.Contains(edge))
+                else
                 {
-                    deps[calledKey] = edges.Add(edge);
+                    deps[calledKey] = edge.InsertEdge(edges);
                 }
             }
             else
@@ -586,7 +598,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs, TypeParameterResolutions typeParamRes)
         {
             if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
-        
+
             AddDependency(
                 callerSpec.Parent, callerSpec.Kind, callerSpec.TypeArguments,
                 calledName, calledKind, calledTypeArgs,
@@ -608,7 +620,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             // Setting TypeArgs to Null because the type specialization is not implemented yet
             var callerKey = new CallGraphNode(callerName, callerKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
             var calledKey = new CallGraphNode(calledName, calledKind, QsNullable<ImmutableArray<ResolvedType>>.Null);
-        
+
             var edge = new CallGraphEdge(typeParamRes);
             RecordDependency(callerKey, calledKey, edge);
         }
@@ -683,7 +695,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
                         if (accum.TryGetValue(dependent, out var existingEdges))
                         {
-                            combinedEdges = combinedEdges.Except(existingEdges);
+                            combinedEdges = combinedEdges.Where(edge => !existingEdges.Any(existing => edge.Equals(existing)));
                             accum[dependent] = existingEdges.AddRange(combinedEdges);
                         }
                         else
