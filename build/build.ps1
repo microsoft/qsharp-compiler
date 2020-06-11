@@ -107,7 +107,6 @@ if ($Env:ENABLE_VSIX -ne "false") {
     Build-VS
 } else {
     Write-Host "##vso[task.logissue type=warning;]VSIX building skipped due to ENABLE_VSIX variable."
-    return
 }
 
 if (-not $all_ok) {

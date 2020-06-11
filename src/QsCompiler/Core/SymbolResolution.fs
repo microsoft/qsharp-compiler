@@ -214,18 +214,28 @@ module SymbolResolution =
         let getRedirect (att : QsDeclarationAttribute) = if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
         StringArgument (getRedirect, fun ex -> ex.Expression) attributes |> Seq.tryHead |> QsNullable<_>.FromOption
 
+    /// Converts the given string to a QsQualifiedName. 
+    /// Returs the qualified name as some if the conversion succeeds, and None otherwise. 
+    let private TryAsQualifiedName fullName = 
+        let matchQualifiedName = SyntaxGenerator.FullyQualifiedName.Match fullName
+        let asQualifiedName (str : string) = 
+            let pieces = str.Split '.'
+            {Namespace = String.Join('.', pieces.Take(pieces.Length-1)) |> NonNullable<string>.New; Name = pieces.Last() |> NonNullable<string>.New}
+        if matchQualifiedName.Success then Some (matchQualifiedName.Value |> asQualifiedName) else None
+
     /// Checks whether the given attributes define an alternative name that may be used when loading a type or callable for testing purposes.
     /// Returns the qualified name to use as Value if such a name is defined, or Null otherwise.
     /// If several attributes define such a name the returned Value is based on the first such attribute.
     let TryGetTestName attributes = 
         let getTestName (att : QsDeclarationAttribute) = if att |> BuiltIn.DefinesNameForTesting then Some att.Argument else None
-        let qualifiedName testName = 
-            let matchQualifiedName = SyntaxGenerator.FullyQualifiedName.Match testName
-            let asQualifiedName (str : string) = 
-                let pieces = str.Split '.'
-                {Namespace = String.Join('.', pieces.Take(pieces.Length-1)) |> NonNullable<string>.New; Name = pieces.Last() |> NonNullable<string>.New}
-            if matchQualifiedName.Success then Some (matchQualifiedName.Value |> asQualifiedName) else None
-        StringArgument (getTestName, fun ex -> ex.Expression) attributes |> Seq.tryHead |> Option.bind qualifiedName |> QsNullable<_>.FromOption
+        StringArgument (getTestName, fun ex -> ex.Expression) attributes |> Seq.tryHead |> Option.bind TryAsQualifiedName |> QsNullable<_>.FromOption
+
+    /// Checks whether the given attributes indicate that the type or callable has been loaded via an alternative name for testing purposes.
+    /// Returns the original qualified name as Value if this is the case, and Null otherwise.
+    /// The returned Value is based on the first attribute that indicates the original name.
+    let TryGetOriginalName attributes = 
+        let loadedViaTestName (att : QsDeclarationAttribute) = if att |> BuiltIn.DefinesLoadedViaTestNameInsteadOf then Some att.Argument else None
+        StringArgument (loadedViaTestName, fun ex -> ex.Expression) attributes |> Seq.tryHead |> Option.bind TryAsQualifiedName |> QsNullable<_>.FromOption
 
     /// Checks whether the given attributes indicate that the corresponding declaration contains a unit test.
     /// Returns a sequence of strings defining all execution targets on which the test should be run. Invalid execution targets are set to null.

@@ -70,4 +70,12 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
     operation ConjugationsInControlledAdjoint () : Unit {
         Controlled Adjoint SpecGenForConjugations(new Qubit[0], ());
     }
+
+
+    // tests for loading via test names
+
+    operation LogViaTestName () : Unit {
+        Library2.Log(0, "nothing");
+    }
+
 }

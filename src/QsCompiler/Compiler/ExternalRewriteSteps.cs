@@ -243,6 +243,24 @@ namespace Microsoft.Quantum.QsCompiler
                     onDiagnostic?.Invoke(LoadError(ErrorCode.FileIsNotAnAssembly, target.LocalPath));
                     onException?.Invoke(ex);
                 }
+                catch (ReflectionTypeLoadException ex)
+                {
+                    var sb = new System.Text.StringBuilder();
+                    foreach (var exSub in ex.LoaderExceptions)
+                    {
+                        var msg = exSub.ToString();
+                        if (msg != null) sb.AppendLine(msg);
+                        if (exSub is FileNotFoundException exFileNotFound && !string.IsNullOrEmpty(exFileNotFound.FusionLog))
+                        {
+                            sb.AppendLine("Fusion Log:");
+                            sb.AppendLine(exFileNotFound.FusionLog);
+                            sb.AppendLine();
+                        }
+                    }
+
+                    onDiagnostic?.Invoke(LoadError(ErrorCode.TypeLoadExceptionInCompilerPlugin, target.LocalPath));
+                    onException?.Invoke(new TypeLoadException(sb.ToString(), ex.InnerException));
+                }
                 catch (Exception ex)
                 {
                     onDiagnostic?.Invoke(LoadError(ErrorCode.CouldNotLoadCompilerPlugin, target.LocalPath));
