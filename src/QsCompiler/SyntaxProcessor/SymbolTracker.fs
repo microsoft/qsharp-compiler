@@ -295,7 +295,10 @@ type ResolutionContext<'a> =
     /// <summary>
     /// Creates a resolution context for the specialization.
     /// </summary>
-    /// <exception cref="Exception">Thrown if the specialization's parent does not exist.</exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown if the given namespace manager does not contain all resolutions or if the specialization's parent does
+    /// not exist in the given namespace manager.
+    /// </exception>
     static member Create (nsManager : NamespaceManager) capabilities (spec : SpecializationDeclarationHeader) =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
         | Found declaration ->
@@ -303,4 +306,4 @@ type ResolutionContext<'a> =
               IsInOperation = declaration.Kind = Operation
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
               Capabilities = capabilities }
-        | _ -> failwith "The specialization's parent does not exist."
+        | _ -> raise <| ArgumentException "The specialization's parent does not exist."
