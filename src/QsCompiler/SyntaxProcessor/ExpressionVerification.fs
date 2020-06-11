@@ -35,17 +35,20 @@ type ResolutionContext<'a> =
       ReturnType : ResolvedType
       /// The runtime capabilities for the compilation unit.
       Capabilities : RuntimeCapabilities }
+    with
 
-/// <summary>Creates a resolution context for the specialization.</summary>
-/// <exception cref="Exception">Thrown if the specialization's parent does not exist.</exception>
-let CreateResolutionContext (nsManager : NamespaceManager) capabilities (spec : SpecializationDeclarationHeader) =
-    match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
-    | Found declaration ->
-        { Symbols = SymbolTracker (nsManager, spec.SourceFile, spec.Parent)
-          IsInOperation = declaration.Kind = Operation
-          ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
-          Capabilities = capabilities }
-    | _ -> failwith "The specialization's parent does not exist."
+    /// <summary>
+    /// Creates a resolution context for the specialization.
+    /// </summary>
+    /// <exception cref="Exception">Thrown if the specialization's parent does not exist.</exception>
+    static member Create (nsManager : NamespaceManager) capabilities (spec : SpecializationDeclarationHeader) =
+        match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
+        | Found declaration ->
+            { Symbols = SymbolTracker<'a> (nsManager, spec.SourceFile, spec.Parent)
+              IsInOperation = declaration.Kind = Operation
+              ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
+              Capabilities = capabilities }
+        | _ -> failwith "The specialization's parent does not exist."
 
 type private StripInferredInfoFromType () = 
     inherit TypeTransformationBase()

@@ -1256,7 +1256,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                     QsGeneratorDirective GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
                     var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
-                    var context = CreateResolutionContext<Position>(
+                    var context = ResolutionContext<Position>.Create(
                         compilation.GlobalSymbols, compilation.RuntimeCapabilities, spec);
                     implementation = BuildUserDefinedImplementation(
                         root, spec.SourceFile, arg, requiredFunctorSupport, context, diagnostics);
