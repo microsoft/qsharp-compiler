@@ -294,6 +294,10 @@ type ResolutionContext<'a> =
 
     /// <summary>
     /// Creates a resolution context for the specialization.
+    ///
+    /// The symbol tracker in the context does not make a copy of the given namespace manager. Instead, it throws an
+    /// <see cref="InvalidOperationException"/> if the namespace manager has been modified (i.e. the version number of
+    /// the namespace manager has changed).
     /// </summary>
     /// <exception cref="ArgumentException">
     /// Thrown if the given namespace manager does not contain all resolutions or if the specialization's parent does
