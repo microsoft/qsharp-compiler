@@ -74,12 +74,12 @@ type ResolvedType with
             | _ -> false
         this.Exists condition
 
-    /// If the given type supports equality comparison, 	
-    /// returns the type of an equality comparison expression as Some (which is always Bool).	
+    /// If the given type supports equality comparison, 
+    /// returns the type of an equality comparison expression as Some (which is always Bool).
     /// Returns None otherwise.
-    member this.supportsEqualityComparison =
+    member this.supportsEqualityComparison = 
         match this.Resolution with
-        | Int | BigInt | Double | Bool | Qubit | String | Result | Pauli -> Some (Bool |> ResolvedType.New) // excludes Range 	
+        | Int | BigInt | Double | Bool | Qubit | String | Result | Pauli -> Some (Bool |> ResolvedType.New) // excludes Range 
         | _ -> None
 
     /// If the given type supports arithmetic operations, 
