@@ -254,8 +254,9 @@ let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsTy
     match baseType.Resolution with
     | Result when context.Capabilities = RuntimeCapabilities.QPRGen0 ->
         addError (ErrorCode.UnsupportedResultComparison, [context.Capabilities.ToString ()]) rhsRange
-    | BigInt | Bool | Double | Int | Pauli | Qubit | Result | String -> ()
-    | _ -> addError (ErrorCode.InvalidTypeInEqualityComparison, [toString baseType]) rhsRange
+    | _ ->
+        let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [toString baseType]
+        VerifyIsOneOf (fun t -> t.supportsEqualityComparison) unsupportedError addError (baseType, rhsRange) |> ignore
 
 /// Given a list of all item types and there corresponding ranges, verifies that a value array literal can be built from them. 
 /// Adds a MissingExprInArray error with the corresponding range using addError if one of the given types is missing. 
