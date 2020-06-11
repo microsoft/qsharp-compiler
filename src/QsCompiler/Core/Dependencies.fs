@@ -5,6 +5,7 @@ namespace Microsoft.Quantum.QsCompiler
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
@@ -57,7 +58,12 @@ type BuiltIn = {
 
     /// Returns true if the given attribute defines an alternative name that may be used when loading a type or callable for testing purposes.
     static member internal DefinesNameForTesting (att : QsDeclarationAttribute) = att.TypeId |> function
-        | Value tId -> tId.Namespace.Value = BuiltIn.EnableTestingViaName.FullName.Namespace.Value && tId.Name.Value = BuiltIn.Test.FullName.Name.Value
+        | Value tId -> tId.Namespace.Value = BuiltIn.EnableTestingViaName.FullName.Namespace.Value && tId.Name.Value = BuiltIn.EnableTestingViaName.FullName.Name.Value
+        | Null -> false
+
+    /// Returns true if the given attribute indicates that the type or callable has been loaded via an alternative name for testing purposes.
+    static member internal DefinesLoadedViaTestNameInsteadOf (att : QsDeclarationAttribute) = att.TypeId |> function
+        | Value tId -> tId.Namespace.Value = GeneratedAttributes.Namespace && tId.Name.Value = GeneratedAttributes.LoadedViaTestNameInsteadOf
         | Null -> false
 
 
