@@ -10,13 +10,11 @@ using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
-using Microsoft.Quantum.QsCompiler.SymbolTracker;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using static Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {

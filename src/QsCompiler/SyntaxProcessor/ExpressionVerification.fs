@@ -11,8 +11,6 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
-open Microsoft.Quantum.QsCompiler.SymbolManagement
-open Microsoft.Quantum.QsCompiler.SymbolTracker
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxGenerator
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
@@ -24,31 +22,6 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 
 // utils for verifying types in expressions
-
-/// The context used for symbol resolution and type checking.
-type ResolutionContext<'a> =
-    { /// The symbol tracker for the parent callable.
-      Symbols : SymbolTracker<'a>
-      /// True if the parent callable for the current scope is an operation.
-      IsInOperation : bool
-      /// The return type of the parent callable for the current scope.
-      ReturnType : ResolvedType
-      /// The runtime capabilities for the compilation unit.
-      Capabilities : RuntimeCapabilities }
-    with
-
-    /// <summary>
-    /// Creates a resolution context for the specialization.
-    /// </summary>
-    /// <exception cref="Exception">Thrown if the specialization's parent does not exist.</exception>
-    static member Create (nsManager : NamespaceManager) capabilities (spec : SpecializationDeclarationHeader) =
-        match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
-        | Found declaration ->
-            { Symbols = SymbolTracker<'a> (nsManager, spec.SourceFile, spec.Parent)
-              IsInOperation = declaration.Kind = Operation
-              ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
-              Capabilities = capabilities }
-        | _ -> failwith "The specialization's parent does not exist."
 
 type private StripInferredInfoFromType () = 
     inherit TypeTransformationBase()
