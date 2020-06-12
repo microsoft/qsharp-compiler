@@ -277,7 +277,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a sequence of suggestions on how deprecated syntax can be updated based on the generated diagnostics,
         /// and given the file for which those diagnostics were generated.
-        /// Returns an empty enumerable if any of the given arguments is null. 
+        /// Returns an empty enumerable if any of the given arguments is null.
         /// </summary>
         internal static IEnumerable<(string, WorkspaceEdit)> SuggestionsForDeprecatedSyntax
             (this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
