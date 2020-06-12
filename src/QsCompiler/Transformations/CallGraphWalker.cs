@@ -44,14 +44,42 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     if (!walker.SharedState.Callables.TryGetValue(currentRequest.CallableName, out var decl))
                         throw new ArgumentException($"Couldn't find definition for callable {currentRequest.CallableName}", nameof(currentRequest));
 
-                    // FIXME: FIND THE RIGHT SPECIALIZATION BUNDLE
-                    var relevantSpecs = decl.Specializations
-                        .Where(s => s.Kind == currentRequest.Kind && s.TypeArguments.IsNull);
-                    if (relevantSpecs.Count() != 1)
-                        throw new ArgumentException($"Could not identify a suitable {currentRequest.Kind} specialization for {currentRequest.CallableName}"); 
-                    
-                    foreach (var spec in relevantSpecs)
+                    var relevantSpecs = decl.Specializations.Where(s => s.Kind == currentRequest.Kind);
+                    var typeArgsId = SpecializationBundleProperties.BundleId(currentRequest.TypeArgs);
+
+                    if (typeArgsId.IsNull)
                     {
+                        if (decl.Signature.TypeParameters.Any()) // this would indicate an invalid syntax tree
+                            throw new ArgumentException($"The types in the given compilation have not been properly resolved");
+
+                        if (relevantSpecs.Count() != 1)
+                            throw new ArgumentException($"Missing specialization {currentRequest.Kind} for {currentRequest.CallableName}");
+
+                        walker.Namespaces.OnSpecializationImplementation(relevantSpecs.Single().Implementation);
+                    }
+                    else
+                    {
+                        // Finds the correct type specialization for the type arguments of the currentRequest.
+                        // The assumption is that upon resolution, these type arguments have been cast to 
+                        // the type of any explicitly defined ones in the closest matching specialization.
+                        var specArgMatches = relevantSpecs.Select(spec =>
+                        {
+                            if (spec.TypeArguments.IsNull) return (0, spec);
+                            if (spec.TypeArguments.Item.Count() != typeArgsId.Item.Count())
+                                throw new ArgumentException($"Incorrect number of type arguments in request for {currentRequest.CallableName}");
+
+                            var specTypeArgs = spec.TypeArguments.Item.Select(StripPositionInfo.Apply).ToImmutableArray();
+                            var mismatch = specTypeArgs.Where((tArg, idx) => !tArg.Resolution.IsMissingType && !tArg.Resolution.Equals(typeArgsId.Item[idx])).Any();
+                            if (mismatch) return (-1, spec);
+
+                            var matches = specTypeArgs.Where((tArg, idx) => !tArg.Resolution.IsMissingType && tArg.Resolution.Equals(typeArgsId.Item[idx])).Count();
+                            return (matches, spec);
+                        });
+
+                        var (match, spec) = specArgMatches.OrderBy(match => match.Item1).Append((-1, null)).First();
+                        if (match < 0 || spec == null)
+                            throw new ArgumentException($"Could not find a suitable {currentRequest.Kind} specialization for {currentRequest.CallableName}");
+
                         walker.Namespaces.OnSpecializationImplementation(spec.Implementation);
                     }
                 }
