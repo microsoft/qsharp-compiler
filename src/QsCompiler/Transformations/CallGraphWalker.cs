@@ -12,8 +12,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
-// ToDo: Review access modifiers
-
 namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
@@ -105,11 +103,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         private class BuildGraph : SyntaxTreeTransformation<TransformationState>
         {
             public BuildGraph(ImmutableDictionary<QsQualifiedName, QsCallable> callables, IEnumerable<CallGraphNode> entryPoints = null) 
-            : base(new TransformationState(callables, entryPoints))
+            : base(new TransformationState(callables, entryPoints), TransformationOptions.NoRebuild)
             {
                 this.Namespaces = new NamespaceTransformation(this);
-                this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
-                this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
                 this.Expressions = new ExpressionTransformation(this);
                 this.ExpressionKinds = new ExpressionKindTransformation(this);
                 this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -154,6 +150,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             internal bool HasAdjointDependency = false;
             internal bool HasControlledDependency = false;
 
+            internal readonly CallGraph Graph;
+            private readonly bool EnableFullConcretization;
+            internal readonly Stack<CallGraphNode> RequestStack;
+            internal readonly HashSet<CallGraphNode> ResolvedCallableSet;
+            internal readonly ImmutableDictionary<QsQualifiedName, QsCallable> Callables;
+
             internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions;
             internal TypeParameterResolutions CallerTypeParameterResolutions;
 
@@ -174,16 +176,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 }
             }
 
-            internal readonly CallGraph Graph;
-            internal readonly bool IsLimitedToEntryPoints;
-            internal readonly Stack<CallGraphNode> RequestStack; 
-            internal readonly HashSet<CallGraphNode> ResolvedCallableSet;
-            internal readonly ImmutableDictionary<QsQualifiedName, QsCallable> Callables;
+            internal TransformationState(ImmutableDictionary<QsQualifiedName, QsCallable> callables,
+                IEnumerable<CallGraphNode> entryPoints = null, IEnumerable<CallGraphNode> resolved = null)
+            {
+                this.Callables = callables ?? throw new ArgumentNullException(nameof(callables));
+                this.RequestStack = new Stack<CallGraphNode>(entryPoints ?? Array.Empty<CallGraphNode>());
+                this.ResolvedCallableSet = new HashSet<CallGraphNode>(resolved ?? Array.Empty<CallGraphNode>());
 
+                this.EnableFullConcretization = this.RequestStack.Any();
+                this.TypeParameterResolutions = new List<TypeParameterResolutions>();
+                this.CallerTypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>.Empty;
+                this.Graph = new CallGraph();
+            }
+
+            // methods to update the call graph
+
+            /// <summary>
+            /// Adds an edge from the current caller to the called node to the call graph. 
+            /// If full concretization is enables, adds the called node to the request stack if necessary.
+            /// Throws an ArgumentNullException if the current caller or any of the given arguments is null. 
+            /// </summary>
             private void PushEdge(CallGraphNode called, TypeParameterResolutions typeParamRes)
             {
                 this.Graph.AddDependency(this.CurrentCaller, called, typeParamRes);
-                if (this.IsLimitedToEntryPoints
+                if (this.EnableFullConcretization
                     && !this.RequestStack.Contains(called)
                     && !this.ResolvedCallableSet.Contains(called))
                 {
@@ -193,6 +209,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 }
             }
 
+            /// <summary>
+            /// Adds an edge from the current caller to a specialization of the callable with the given name to the call graph. 
+            /// Clears the list of TypeParameterResolutions in the process. The called specialization is determined based on the
+            /// current transformation state. If full concretization is enables, adds the called node to the request stack if necessary.
+            /// Throws an ArgumentNullException if the given name is null. 
+            /// May throw an ArgumentException if no callable with the given name exists in the dictionary of callables.
+            /// </summary>
             internal void BuildEdge(QsQualifiedName called)
             {
                 TypeParamUtils.TryCombineTypeResolutionsForTarget(
@@ -201,7 +224,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 TypeParameterResolutions = new List<TypeParameterResolutions>();
 
                 var typeArgsCalled = QsNullable<ImmutableArray<ResolvedType>>.Null;
-                if (this.IsLimitedToEntryPoints)
+                if (this.EnableFullConcretization)
                 {
                     if (!Callables.TryGetValue(called, out var decl))
                         throw new ArgumentException($"Couldn't find definition for callable {called}");
@@ -242,19 +265,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     PushEdge(new CallGraphNode(called, QsSpecializationKind.QsControlledAdjoint, typeArgsCalled), typeParamRes);
                 }
             }
-
-            internal TransformationState(ImmutableDictionary<QsQualifiedName, QsCallable> callables,
-                IEnumerable<CallGraphNode> entryPoints = null, IEnumerable<CallGraphNode> resolved = null)
-            {
-                this.Callables = callables ?? throw new ArgumentNullException(nameof(callables));
-                this.RequestStack = new Stack<CallGraphNode>(entryPoints ?? Array.Empty<CallGraphNode>());
-                this.ResolvedCallableSet = new HashSet<CallGraphNode>(resolved ?? Array.Empty<CallGraphNode>());
-
-                this.IsLimitedToEntryPoints = this.RequestStack.Any();
-                this.TypeParameterResolutions = new List<TypeParameterResolutions>();
-                this.CallerTypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>.Empty;
-                this.Graph = new CallGraph();
-            }
         }
 
         private class NamespaceTransformation : NamespaceTransformation<TransformationState>
@@ -263,9 +273,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec)
             {
-                if (spec.TypeArguments.IsValue && spec.Signature.TypeParameters.Length != spec.TypeArguments.Item.Length)
-                    throw new ArgumentException($"The number of type arguments for the {spec.Parent} does not match the number of type parameters.");
-
+                if (spec == null) throw new ArgumentNullException(nameof(spec));
                 var typeParamNames = GetTypeParameterNames(spec.Signature);
                 var node = new CallGraphNode(spec.Parent, spec.Kind, spec.TypeArguments);
                 SharedState.SetCurrentCaller(node, typeParamNames);
@@ -304,18 +312,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             public override ExpressionKind OnAdjointApplication(TypedExpression ex)
             {
                 SharedState.HasAdjointDependency = !SharedState.HasAdjointDependency;
-                var result = base.OnAdjointApplication(ex);
+                base.OnAdjointApplication(ex);
                 SharedState.HasAdjointDependency = !SharedState.HasAdjointDependency;
-                return result;
+                return ExpressionKind.InvalidExpr;
             }
 
             public override ExpressionKind OnControlledApplication(TypedExpression ex)
             {
                 var contextControlled = SharedState.HasControlledDependency;
                 SharedState.HasControlledDependency = true;
-                var result = base.OnControlledApplication(ex);
+                base.OnControlledApplication(ex);
                 SharedState.HasControlledDependency = contextControlled;
-                return result;
+                return ExpressionKind.InvalidExpr;
             }
 
             public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
