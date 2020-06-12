@@ -127,7 +127,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         let isMatch = sameLength && expected |> List.forall (fun res1 -> given |> List.exists (fun res2 -> CheckResolutionMatch res1 res2))
         Assert.True(isMatch, "Given resolutions did not match the expected resolutions.")
 
-    let AssertExpectedDepencency nameFrom nameTo (given : ILookup<_,_>)expected =
+    let AssertExpectedDepencency nameFrom nameTo (given : ILookup<_,_>) expected =
         let opName = { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New nameTo }
         let opNode = new CallGraphNode(opName, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
         let expected = expected |> List.map (fun x -> x |> List.map (fun y -> (opName, fst y, snd y)) |> ResolutionFromParamName)

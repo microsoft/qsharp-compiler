@@ -2,11 +2,9 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -155,13 +153,12 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
 
         /// <summary>
         /// Copy constructor for CallGraphEdge objects.
-        /// Throws ArgumentNullException if edge is null or its ParamResolutions field is null
+        /// Throws ArgumentNullException if edge is null.
         /// </summary>
         public CallGraphEdge(CallGraphEdge edge)
         {
-            if (edge == null || edge.ParamResolutions == null) throw new ArgumentNullException(nameof(edge));
+            if (edge == null) throw new ArgumentNullException(nameof(edge));
 
-            // Remove position info from type parameter resolutions
             ParamResolutions = edge.ParamResolutions;
         }
 
@@ -225,10 +222,9 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// </summary>
     public class CallGraphNode : IEquatable<CallGraphNode>
     {
-        // Outside of the Initialize method, these should be treated as read-only
-        public QsQualifiedName CallableName { get; private set; }
-        public QsSpecializationKind Kind { get; private set; }
-        public QsNullable<ImmutableArray<ResolvedType>> TypeArgs { get; private set; }
+        public readonly QsQualifiedName CallableName;
+        public readonly QsSpecializationKind Kind;
+        public readonly QsNullable<ImmutableArray<ResolvedType>> TypeArgs;
 
         /// <summary>
         /// Constructor for CallGraphNode objects.
@@ -236,30 +232,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Throws an ArgumentNullException if callableName or kind is null.
         /// </summary>
         public CallGraphNode(QsQualifiedName callableName, QsSpecializationKind kind, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
-            => Initialize(callableName, kind, typeArgs);
-
-        /// <summary>
-        /// Constructor for CallGraphNode objects.
-        /// Strips position info from given type arguments before assigning them to TypeArgs.
-        /// Throws an ArgumentNullException if specialization is null.
-        /// </summary>
-        public CallGraphNode(QsSpecialization specialization)
-        {
-            if (specialization == null) throw new ArgumentNullException(nameof(specialization));
-            Initialize(specialization.Parent, specialization.Kind, specialization.TypeArguments);
-        }
-
-        /// <summary>
-        /// Copy constructor for CallGraphNode objects.
-        /// Throws an ArgumentNullException if node is null.
-        /// </summary>
-        public CallGraphNode(CallGraphNode node)
-        {
-            if (node == null) throw new ArgumentNullException(nameof(node));
-            Initialize(node.CallableName, node.Kind, node.TypeArgs);
-        }
-
-        private void Initialize(QsQualifiedName callableName, QsSpecializationKind kind, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
         {
             CallableName = callableName ?? throw new ArgumentNullException(nameof(callableName));
             Kind = kind ?? throw new ArgumentNullException(nameof(kind));
@@ -267,6 +239,29 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(typeArgs.Item.Select(StripPositionInfo.Apply).ToImmutableArray())
                 : typeArgs;
         }
+
+        /// <summary>
+        /// Constructor for CallGraphNode objects.
+        /// Strips position info from given type arguments before assigning them to TypeArgs.
+        /// Throws an ArgumentNullException if specialization is null.
+        /// </summary>
+        public CallGraphNode(QsSpecialization specialization) : this(
+            specialization == null ? throw new ArgumentNullException(nameof(specialization)) :
+            specialization.Parent,
+            specialization.Kind,
+            specialization.TypeArguments)
+        { }
+
+        /// <summary>
+        /// Copy constructor for CallGraphNode objects.
+        /// Throws an ArgumentNullException if node is null.
+        /// </summary>
+        public CallGraphNode(CallGraphNode node) : this(
+            node == null ? throw new ArgumentNullException(nameof(node)) :
+            node.CallableName,
+            node.Kind,
+            node.TypeArgs)
+        { }
 
         public override bool Equals(object obj)
         {
@@ -547,14 +542,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Represents an empty dependency for a node.
         /// </summary>
-        private readonly ILookup<CallGraphNode, CallGraphEdge> _EmptyDependency =
+        private static readonly ILookup<CallGraphNode, CallGraphEdge> _EmptyDependency =
             ImmutableArray<KeyValuePair<CallGraphNode, CallGraphEdge>>.Empty
             .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
 
         /// <summary>
         /// A collection of the nodes in the call graph.
         /// </summary>
-        public ICollection<CallGraphNode> Nodes => _Dependencies.Keys.ToImmutableHashSet();
+        public ImmutableHashSet<CallGraphNode> Nodes => _Dependencies.Keys.ToImmutableHashSet();
 
         /// <summary>
         /// The number of nodes in the call graph.
