@@ -134,7 +134,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             internal readonly HashSet<CallGraphNode> ResolvedCallableSet;
             internal readonly ImmutableDictionary<QsQualifiedName, QsCallable> Callables;
 
-            internal void PushEdge(CallGraphNode called, TypeParameterResolutions typeParamRes)
+            private void PushEdge(CallGraphNode called, TypeParameterResolutions typeParamRes)
             {
                 this.Graph.AddDependency(this.CurrentCaller, called, typeParamRes);
                 if (this.IsLimitedToEntryPoints
@@ -144,6 +144,56 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     // If we are not processing all elements, then we need to keep track of what elements
                     // have been processed, and which elements still need to be processed.
                     this.RequestStack.Push(called);
+                }
+            }
+
+            internal void BuildEdge(QsQualifiedName called)
+            {
+                TypeParamUtils.TryCombineTypeResolutionsForTarget(
+                    called, out var typeParamRes,
+                    TypeParameterResolutions.Append(CallerTypeParameterResolutions).ToArray());
+                TypeParameterResolutions = new List<TypeParameterResolutions>();
+
+                var typeArgsCalled = QsNullable<ImmutableArray<ResolvedType>>.Null;
+                if (this.IsLimitedToEntryPoints)
+                {
+                    if (!Callables.TryGetValue(called, out var decl))
+                        throw new ArgumentException($"Couldn't find definition for callable {called}");
+
+                    var resTypeArgsCalled = ConcreteTypeArguments(decl, typeParamRes);
+                    typeArgsCalled = resTypeArgsCalled.Length != 0
+                        ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(resTypeArgsCalled.ToImmutableArray())
+                        : QsNullable<ImmutableArray<ResolvedType>>.Null;
+                }
+
+                if (IsInCall)
+                {
+                    var kind = QsSpecializationKind.QsBody;
+                    if (HasAdjointDependency && HasControlledDependency)
+                    {
+                        kind = QsSpecializationKind.QsControlledAdjoint;
+                    }
+                    else if (HasAdjointDependency)
+                    {
+                        kind = QsSpecializationKind.QsAdjoint;
+                    }
+                    else if (HasControlledDependency)
+                    {
+                        kind = QsSpecializationKind.QsControlled;
+                    }
+
+                    PushEdge(new CallGraphNode(called, kind, typeArgsCalled), typeParamRes);
+                }
+                else
+                {
+                    // The callable is being used in a non-call context, such as being
+                    // assigned to a variable or passed as an argument to another callable,
+                    // which means it could get a functor applied at some later time.
+                    // We're conservative and add all 4 possible kinds.
+                    PushEdge(new CallGraphNode(called, QsSpecializationKind.QsBody, typeArgsCalled), typeParamRes);
+                    PushEdge(new CallGraphNode(called, QsSpecializationKind.QsControlled, typeArgsCalled), typeParamRes);
+                    PushEdge(new CallGraphNode(called, QsSpecializationKind.QsAdjoint, typeArgsCalled), typeParamRes);
+                    PushEdge(new CallGraphNode(called, QsSpecializationKind.QsControlledAdjoint, typeArgsCalled), typeParamRes);
                 }
             }
 
@@ -231,54 +281,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
             {
-                // FIXME: SET TYPE ARGS TO NULL IF WE ARE RESOLVING A LIBRARY
-
                 if (sym is Identifier.GlobalCallable called)
                 {
-                    TypeParamUtils.TryCombineTypeResolutionsForTarget(
-                        called.Item, out var typeParamRes, 
-                        SharedState.TypeParameterResolutions.Append(SharedState.CallerTypeParameterResolutions).ToArray());
-                    SharedState.TypeParameterResolutions = new List<TypeParameterResolutions>();
-
-                    if (!SharedState.Callables.TryGetValue(called.Item, out var decl))
-                        throw new ArgumentException($"Couldn't find definition for callable {called.Item}");
-
-                    var resTypeArgsCalled = ConcreteTypeArguments(decl, typeParamRes);
-                    var typeArgsCalled = resTypeArgsCalled.Length != 0
-                        ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(resTypeArgsCalled.ToImmutableArray())
-                        : QsNullable<ImmutableArray<ResolvedType>>.Null;
-
-                    if (SharedState.IsInCall)
-                    {
-                        var kind = QsSpecializationKind.QsBody;
-                        if (SharedState.HasAdjointDependency && SharedState.HasControlledDependency)
-                        {
-                            kind = QsSpecializationKind.QsControlledAdjoint;
-                        }
-                        else if (SharedState.HasAdjointDependency)
-                        {
-                            kind = QsSpecializationKind.QsAdjoint;
-                        }
-                        else if (SharedState.HasControlledDependency)
-                        {
-                            kind = QsSpecializationKind.QsControlled;
-                        }
-
-                        SharedState.PushEdge(new CallGraphNode(called.Item, kind, typeArgsCalled), typeParamRes);
-                    }
-                    else
-                    {
-                        // The callable is being used in a non-call context, such as being
-                        // assigned to a variable or passed as an argument to another callable,
-                        // which means it could get a functor applied at some later time.
-                        // We're conservative and add all 4 possible kinds.
-                        SharedState.PushEdge(new CallGraphNode(called.Item, QsSpecializationKind.QsBody, typeArgsCalled), typeParamRes);
-                        SharedState.PushEdge(new CallGraphNode(called.Item, QsSpecializationKind.QsControlled, typeArgsCalled), typeParamRes);
-                        SharedState.PushEdge(new CallGraphNode(called.Item, QsSpecializationKind.QsAdjoint, typeArgsCalled), typeParamRes);
-                        SharedState.PushEdge(new CallGraphNode(called.Item, QsSpecializationKind.QsControlledAdjoint, typeArgsCalled), typeParamRes);
-                    }
+                    SharedState.BuildEdge(called.Item);
                 }
-
                 return ExpressionKind.InvalidExpr;
             }
         }
