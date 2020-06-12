@@ -755,8 +755,8 @@ type CallGraphTests (output:ITestOutputHelper) =
             let dependencies = givenGraph.GetDirectDependencies (strToNode nameFrom)
             for nameTo in nameToList do
                 let expectedNode = strToNode nameTo
-                Assert.True(dependencies.Contains(expectedNode) && dependencies.[expectedNode].Any(),
-                    sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
+                Assert.False(dependencies.Contains(expectedNode) && dependencies.[expectedNode].Any(),
+                    sprintf "Expected %s not to depend on %s." nameFrom nameTo)
 
         // The generalized methods of asserting dependencies assumes Body nodes, but
         // this relationship is between a Body and an Adjoint specializations, so we
