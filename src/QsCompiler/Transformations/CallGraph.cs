@@ -547,8 +547,20 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public int Count => _Dependencies.Count;
 
-        private void RecordDependency(CallGraphNode callerKey, CallGraphNode calledKey, CallGraphEdge edge)
+        /// <summary>
+        /// Adds a dependency to the call graph.
+        /// The given information about the type arguments for the called callable 
+        /// needs to be consistent with the given type parameter resolutions and the type arguments of the caller.
+        /// Throws ArgumentNullException if any of the arguments are null.
+        /// </summary>
+        internal void AddDependency( // Kept internal due to the consistency requirement for the arguments!
+            CallGraphNode callerKey, CallGraphNode calledKey,
+            TypeParameterResolutions typeParamRes)
         {
+            if (callerKey == null) throw new ArgumentNullException(nameof(callerKey));
+            if (calledKey == null) throw new ArgumentNullException(nameof(calledKey));
+            var edge = new CallGraphEdge(typeParamRes);
+
             if (_Dependencies.TryGetValue(callerKey, out var deps))
             {
                 if (!deps.TryGetValue(calledKey, out var edges))
@@ -572,27 +584,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             {
                 _Dependencies[calledKey] = new Dictionary<CallGraphNode, ImmutableArray<CallGraphEdge>>();
             }
-        }
-
-        /// <summary>
-        /// Adds a dependency to the call graph using the relevant information from the
-        /// caller's specialization and the called specialization. All parameters are
-        /// expected to be non-null; the QsNullable parameters may take on their
-        /// associated null value.
-        /// The given information about the type arguments for the called callable 
-        /// needs to be consistent with the given type parameter resolutions and the type arguments of the caller.
-        /// Throws ArgumentNullException if any of the non-nullable arguments are null.
-        /// </summary>
-        internal void AddDependency( // Kept internal due to the consistency requirement for the arguments!
-            QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
-            QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
-            TypeParameterResolutions typeParamRes)
-        {
-            var callerKey = new CallGraphNode(callerName, callerKind, callerTypeArgs);
-            var calledKey = new CallGraphNode(calledName, calledKind, calledTypeArgs);
-
-            var edge = new CallGraphEdge(typeParamRes);
-            RecordDependency(callerKey, calledKey, edge);
         }
 
         /// <summary>

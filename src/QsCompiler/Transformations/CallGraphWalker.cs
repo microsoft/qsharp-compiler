@@ -28,30 +28,37 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         public static CallGraph Apply(QsCompilation compilation)
         {
             var globals = compilation.Namespaces.GlobalCallableResolutions();
-            var walker = new BuildGraph(globals);
+            var entryPointNodes = compilation.EntryPoints.Select(name =>
+                new CallGraphNode(name, QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null));
+            var walker = new BuildGraph(globals, entryPoints: entryPointNodes); 
 
             if (compilation.EntryPoints.Any())
             {
-                walker.SharedState.IsLimitedToEntryPoints = true;
-                walker.SharedState.RequestStack = new Stack<QsQualifiedName>(compilation.EntryPoints);
-                walker.SharedState.ResolvedCallableSet = new HashSet<QsQualifiedName>();
-                while (walker.SharedState.RequestStack.Any())
+                while (walker.SharedState.RequestStack.TryPop(out var currentRequest))
                 {
-                    var currentRequest = walker.SharedState.RequestStack.Pop();
-
-                    // If there is a call to an unknown callable, throw exception
-                    if (!globals.TryGetValue(currentRequest, out QsCallable currentCallable))
-                        throw new ArgumentException($"Couldn't find definition for callable: {currentRequest}");
-
                     // The current request must be added before it is processed to prevent
                     // self-references from duplicating on the stack.
                     walker.SharedState.ResolvedCallableSet.Add(currentRequest);
 
-                    walker.Namespaces.OnCallableDeclaration(currentCallable);
+                    walker.SharedState.CurrentCaller = currentRequest;
+                    if (!walker.SharedState.Callables.TryGetValue(currentRequest.CallableName, out var decl))
+                        throw new ArgumentException($"Couldn't find definition for callable {currentRequest.CallableName}", nameof(currentRequest));
+
+                    // FIXME: FIND THE RIGHT SPECIALIZATION BUNDLE
+                    var relevantSpecs = decl.Specializations
+                        .Where(s => s.Kind == currentRequest.Kind && s.TypeArguments.IsNull);
+                    if (relevantSpecs.Count() != 1)
+                        throw new ArgumentException($"Could not identify a suitable {currentRequest.Kind} specialization for {currentRequest.CallableName}"); 
+                    
+                    foreach (var spec in relevantSpecs)
+                    {
+                        walker.Namespaces.OnSpecializationImplementation(spec.Implementation);
+                    }
                 }
             }
             else
             {
+                // ToDo: can be replaced by walker.Apply(compilation) once master is merged in
                 foreach (var ns in compilation.Namespaces)
                 {
                     walker.Namespaces.OnNamespace(ns);
@@ -63,8 +70,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         private class BuildGraph : SyntaxTreeTransformation<TransformationState>
         {
-            public BuildGraph(ImmutableDictionary<QsQualifiedName, QsCallable> callables) 
-            : base(new TransformationState(callables))
+            public BuildGraph(ImmutableDictionary<QsQualifiedName, QsCallable> callables, IEnumerable<CallGraphNode> entryPoints = null) 
+            : base(new TransformationState(callables, entryPoints))
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
@@ -75,66 +82,104 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             }
         }
 
+        /// <summary>
+        /// Gets the type parameter names for the given callable. 
+        /// Throws an ArgumentException if any of its type parameter names is invalid. 
+        /// </summary>
+        private static ImmutableArray<NonNullable<string>> GetTypeParameterNames(QsQualifiedName callable, ResolvedSignature signature)
+        {
+            var typeParams = signature.TypeParameters.Select(p =>
+                p is QsLocalSymbol.ValidName name ? name.Item
+                : throw new ArgumentException($"invalid type parameter name for callable {callable}"));
+            return typeParams.ToImmutableArray();
+        }
+
+        /// <summary>
+        /// Returns the type arguments for the given callable according to the given type parameter resolutions.
+        /// Throws an ArgumentException if any of its type parameter names is invalid or
+        /// if the resolution is missing for any of the type parameters of the callable. 
+        /// </summary>
+        private static ImmutableArray<ResolvedType> ConcreteTypeArguments(QsCallable callable, TypeParameterResolutions typeParamRes)
+        {
+            var typeArgs = GetTypeParameterNames(callable.FullName, callable.Signature).Select(p =>
+                typeParamRes.TryGetValue(Tuple.Create(callable.FullName, p), out var res) ? res
+                : throw new ArgumentException($"unresolved type parameter {p.Value} for {callable.FullName}"));
+            return typeArgs.ToImmutableArray();
+
+        }
+
         private class TransformationState
         {
             internal bool IsInCall = false;
             internal bool HasAdjointDependency = false;
             internal bool HasControlledDependency = false;
-            internal QsQualifiedName CurrentCaller;
-            internal QsSpecializationKind CallerKind;
-            internal QsNullable<ImmutableArray<ResolvedType>> CallerTypeArguments;
-            internal CallGraph Graph = new CallGraph();
-            internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions = new List<TypeParameterResolutions>();
-            
-            internal bool IsLimitedToEntryPoints = false;
-            internal Stack<CallGraphNode> RequestStack = null; 
-            internal HashSet<CallGraphNode> ResolvedCallableSet = null;
+
+            internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions;
+            internal TypeParameterResolutions CallerTypeParameterResolutions;
+
+            private CallGraphNode _CurrentCaller;
+            internal CallGraphNode CurrentCaller
+            {
+                get => _CurrentCaller;
+                set
+                { 
+                    this.CallerTypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>.Empty;
+                    _CurrentCaller = value;
+                }
+            }
+
+            internal readonly CallGraph Graph;
+            internal readonly bool IsLimitedToEntryPoints;
+            internal readonly Stack<CallGraphNode> RequestStack; 
+            internal readonly HashSet<CallGraphNode> ResolvedCallableSet;
             internal readonly ImmutableDictionary<QsQualifiedName, QsCallable> Callables;
 
-            internal TransformationState(ImmutableDictionary<QsQualifiedName, QsCallable> callables) =>
+            internal void PushEdge(CallGraphNode called, TypeParameterResolutions typeParamRes)
+            {
+                this.Graph.AddDependency(this.CurrentCaller, called, typeParamRes);
+                if (this.IsLimitedToEntryPoints
+                    && !this.RequestStack.Contains(called)
+                    && !this.ResolvedCallableSet.Contains(called))
+                {
+                    // If we are not processing all elements, then we need to keep track of what elements
+                    // have been processed, and which elements still need to be processed.
+                    this.RequestStack.Push(called);
+                }
+            }
+
+            internal TransformationState(ImmutableDictionary<QsQualifiedName, QsCallable> callables,
+                IEnumerable<CallGraphNode> entryPoints = null, IEnumerable<CallGraphNode> resolved = null)
+            {
                 this.Callables = callables ?? throw new ArgumentNullException(nameof(callables));
+                this.RequestStack = new Stack<CallGraphNode>(entryPoints ?? Array.Empty<CallGraphNode>());
+                this.ResolvedCallableSet = new HashSet<CallGraphNode>(resolved ?? Array.Empty<CallGraphNode>());
+
+                this.IsLimitedToEntryPoints = this.RequestStack.Any();
+                this.TypeParameterResolutions = new List<TypeParameterResolutions>();
+                this.CallerTypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>.Empty;
+                this.Graph = new CallGraph();
+            }
         }
 
         private class NamespaceTransformation : NamespaceTransformation<TransformationState>
         {
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild) { }
 
-            public override QsCallable OnCallableDeclaration(QsCallable callable)
-            {
-                if (callable == null) throw new ArgumentNullException(nameof(callable));
-                if (callable.Specializations.Any(s => s.TypeArguments.IsValue))
-                {
-                    // This exception can be removed once the todo below has been implemented.  
-                    throw new NotSupportedException("type specializations are not supported by the call graph walker");
-                }
-
-                SharedState.CurrentCaller = callable.FullName;
-                var relevantBundle = callable.WithSpecializations(specs =>
-                    // Todo: We need to find the closest match of all the specializations, and filter all functor specializations for those. 
-                    specs.Where(s => s.TypeArguments.IsNull).ToImmutableArray()
-                );
-                return base.OnCallableDeclaration(relevantBundle);
-            }
-
             public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec)
             {
-                if (spec == null) throw new ArgumentNullException(nameof(spec));
-                SharedState.CallerKind = spec.Kind;
-                if (SharedState.CallerTypeArguments.IsNull)
-                {
-                    SharedState.CallerTypeArguments = spec.TypeArguments;
-                }
-                else if (spec.TypeArguments.IsValue)
-                {
-                    var callerArgs = spec.TypeArguments.Item.Select((type, idx) =>
-                        type.Resolution.IsMissingType ? SharedState.CallerTypeArguments.Item[idx] : type);
-                    SharedState.CallerTypeArguments = QsNullable<ImmutableArray<ResolvedType>>.NewValue(callerArgs.ToImmutableArray());
+                if (spec.TypeArguments.IsValue && spec.Signature.TypeParameters.Length != spec.TypeArguments.Item.Length)
+                    throw new ArgumentException($"The number of type arguments for the {spec.Parent} does not match the number of type parameters.");
 
-                    // This exception can be removed once the todo below has been implemented.  
-                    // Todo: check if the spec type args are compatible with the ones set for the caller, 
-                    // and throw an ArgumentException if they are not. 
-                    throw new NotSupportedException("type specializations are not supported by the call graph walker");
+                SharedState.CurrentCaller = new CallGraphNode(spec.Parent, spec.Kind, spec.TypeArguments);
+                if (spec.TypeArguments.IsValue)
+                {
+                    var typeParamNames = GetTypeParameterNames(spec.Parent, spec.Signature);
+                    SharedState.CallerTypeParameterResolutions = spec.TypeArguments.Item
+                        .Where(res => !res.Resolution.IsMissingType)
+                        .Select((res, idx) => (Tuple.Create(spec.Parent, typeParamNames[idx]), res))
+                        .ToImmutableDictionary(kv => kv.Item1, kv => kv.Item2);
                 }
+
                 return base.OnSpecializationDeclaration(spec);
             }
         }
@@ -184,48 +229,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 return result;
             }
 
-            /// <summary>
-            /// Gets the type parameter names for the given callable. 
-            /// Throws an ArgumentException if the ShareState does not contain a callable with the given name, 
-            /// or if any of its type parameter names is invalid. 
-            /// </summary>
-            private ImmutableArray<NonNullable<string>> GetTypeParameterNames(QsQualifiedName callable)
-            {
-                if (!SharedState.Callables.TryGetValue(callable, out var decl))
-                    throw new ArgumentException($"Couldn't find definition for callable {callable}");
-
-                var typeParams = decl.Signature.TypeParameters.Select(p =>
-                    p is QsLocalSymbol.ValidName name ? name.Item
-                    : throw new ArgumentException($"invalid type parameter name for callable {callable}"));
-
-                return typeParams.ToImmutableArray();
-            }
-
-            /// <summary>
-            /// Returns the type arguments for the given callable according to the given type parameter resolutions.
-            /// Throws an ArgumentException if the resolution is missing for any of the type parameters of the callable. 
-            /// </summary>
-            private ImmutableArray<ResolvedType> ConcreteTypeArguments(QsQualifiedName callable, TypeParameterResolutions typeParamRes)
-            {
-                var typeArgs = GetTypeParameterNames(callable).Select(p =>
-                    typeParamRes.TryGetValue(Tuple.Create(callable, p), out var res) ? res
-                    // FIXME: SET TO NULL IF THERE ARE RESOLUTIONS THAT ARE NOT FULLY CONCRETE
-                    : throw new ArgumentException($"unresolved type parameter {p.Value} for {callable}"));
-
-                return typeArgs.ToImmutableArray();
-
-            }
-
             public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
             {
+                // FIXME: SET TYPE ARGS TO NULL IF WE ARE RESOLVING A LIBRARY
+
                 if (sym is Identifier.GlobalCallable called)
                 {
                     TypeParamUtils.TryCombineTypeResolutionsForTarget(
                         called.Item, out var typeParamRes, 
-                        SharedState.TypeParameterResolutions.Append(SharedState.CallerTypeArguments).ToArray());
+                        SharedState.TypeParameterResolutions.Append(SharedState.CallerTypeParameterResolutions).ToArray());
                     SharedState.TypeParameterResolutions = new List<TypeParameterResolutions>();
 
-                    var resTypeArgsCalled = ConcreteTypeArguments(called.Item, typeParamRes);
+                    if (!SharedState.Callables.TryGetValue(called.Item, out var decl))
+                        throw new ArgumentException($"Couldn't find definition for callable {called.Item}");
+
+                    var resTypeArgsCalled = ConcreteTypeArguments(decl, typeParamRes);
                     var typeArgsCalled = resTypeArgsCalled.Length != 0
                         ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(resTypeArgsCalled.ToImmutableArray())
                         : QsNullable<ImmutableArray<ResolvedType>>.Null;
@@ -246,10 +264,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             kind = QsSpecializationKind.QsControlled;
                         }
 
-                        SharedState.Graph.AddDependency(
-                            SharedState.CurrentCaller, SharedState.CallerKind, SharedState.CallerTypeArguments,
-                            called.Item, kind, typeArgsCalled,
-                            typeParamRes);
+                        SharedState.PushEdge(new CallGraphNode(called.Item, kind, typeArgsCalled), typeParamRes);
                     }
                     else
                     {
@@ -257,29 +272,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         // assigned to a variable or passed as an argument to another callable,
                         // which means it could get a functor applied at some later time.
                         // We're conservative and add all 4 possible kinds.
-                        SharedState.Graph.AddDependency(
-                            SharedState.CurrentCaller, SharedState.CallerKind, SharedState.CallerTypeArguments, 
-                            called.Item, QsSpecializationKind.QsBody, typeArgsCalled, typeParamRes);
-                        SharedState.Graph.AddDependency(
-                            SharedState.CurrentCaller, SharedState.CallerKind, SharedState.CallerTypeArguments, 
-                            called.Item, QsSpecializationKind.QsControlled, typeArgsCalled, typeParamRes);
-                        SharedState.Graph.AddDependency(
-                            SharedState.CurrentCaller, SharedState.CallerKind, SharedState.CallerTypeArguments, 
-                            called.Item, QsSpecializationKind.QsAdjoint, typeArgsCalled, typeParamRes);
-                        SharedState.Graph.AddDependency(
-                            SharedState.CurrentCaller, SharedState.CallerKind, SharedState.CallerTypeArguments, 
-                            called.Item, QsSpecializationKind.QsControlledAdjoint, typeArgsCalled, typeParamRes);
-                    }
-
-                    // If we are not processing all elements, then we need to keep track of what elements
-                    // have been processed, and which elements still need to be processed.
-                    var callerKey = new CallGraphNode(SharedState.CurrentCaller, SharedState.CallerKind, SharedState.CallerTypeArguments);
-                    var calledKey = new CallGraphNode(called.Item, NULL, typeArgsCalled);
-                    if (SharedState.IsLimitedToEntryPoints
-                        && !SharedState.RequestStack.Contains(calledKey)
-                        && !SharedState.ResolvedCallableSet.Contains(calledKey))
-                    {
-                        SharedState.RequestStack.Push(calledKey); 
+                        SharedState.PushEdge(new CallGraphNode(called.Item, QsSpecializationKind.QsBody, typeArgsCalled), typeParamRes);
+                        SharedState.PushEdge(new CallGraphNode(called.Item, QsSpecializationKind.QsControlled, typeArgsCalled), typeParamRes);
+                        SharedState.PushEdge(new CallGraphNode(called.Item, QsSpecializationKind.QsAdjoint, typeArgsCalled), typeParamRes);
+                        SharedState.PushEdge(new CallGraphNode(called.Item, QsSpecializationKind.QsControlledAdjoint, typeArgsCalled), typeParamRes);
                     }
                 }
 
