@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             return (matches, spec);
                         });
 
-                        var matches = specArgMatches.OrderBy(match => match.Item1).Append((-1, null));
+                        var matches = specArgMatches.OrderByDescending(match => match.Item1).Append((-1, null));
                         if (matches.First().Item1 < 0)
                             throw new ArgumentException($"Could not find a suitable {currentRequest.Kind} specialization for {currentRequest.CallableName}");
 
