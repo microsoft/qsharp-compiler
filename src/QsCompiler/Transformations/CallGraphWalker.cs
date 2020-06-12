@@ -36,11 +36,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 while (walker.SharedState.RequestStack.TryPop(out var currentRequest))
                 {
-                    // The current request must be added before it is processed to prevent
-                    // self-references from duplicating on the stack.
-                    walker.SharedState.ResolvedCallableSet.Add(currentRequest);
-
-                    walker.SharedState.CurrentCaller = currentRequest;
                     if (!walker.SharedState.Callables.TryGetValue(currentRequest.CallableName, out var decl))
                         throw new ArgumentException($"Couldn't find definition for callable {currentRequest.CallableName}", nameof(currentRequest));
 
@@ -54,8 +49,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
                         if (relevantSpecs.Count() != 1)
                             throw new ArgumentException($"Missing specialization {currentRequest.Kind} for {currentRequest.CallableName}");
-
-                        walker.Namespaces.OnSpecializationImplementation(relevantSpecs.Single().Implementation);
                     }
                     else
                     {
@@ -76,12 +69,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                             return (matches, spec);
                         });
 
-                        var (match, spec) = specArgMatches.OrderBy(match => match.Item1).Append((-1, null)).First();
-                        if (match < 0 || spec == null)
+                        var matches = specArgMatches.OrderBy(match => match.Item1).Append((-1, null));
+                        if (matches.First().Item1 < 0)
                             throw new ArgumentException($"Could not find a suitable {currentRequest.Kind} specialization for {currentRequest.CallableName}");
 
-                        walker.Namespaces.OnSpecializationImplementation(spec.Implementation);
+                        relevantSpecs = matches.Select(match => match.spec);
                     }
+
+                    // The current request must be added before it is processed to prevent
+                    // self-references from duplicating on the stack.
+                    walker.SharedState.ResolvedCallableSet.Add(currentRequest);
+
+                    var spec = relevantSpecs.First();
+                    var typeParamNames = GetTypeParameterNames(spec.Parent, spec.Signature);
+                    walker.SharedState.SetCurrentCaller(currentRequest, typeParamNames);
+                    walker.Namespaces.OnSpecializationImplementation(spec.Implementation);
                 }
             }
             else
@@ -145,14 +147,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions;
             internal TypeParameterResolutions CallerTypeParameterResolutions;
 
-            private CallGraphNode _CurrentCaller;
-            internal CallGraphNode CurrentCaller
+            internal CallGraphNode CurrentCaller { get; private set; }
+            internal void SetCurrentCaller(CallGraphNode value, ImmutableArray<NonNullable<string>> typeParamNames)
             {
-                get => _CurrentCaller;
-                set
-                { 
-                    this.CallerTypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>.Empty;
-                    _CurrentCaller = value;
+                CurrentCaller = value;
+                this.CallerTypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>.Empty;
+                if (value.TypeArgs.IsValue)
+                {
+                    this.CallerTypeParameterResolutions = value.TypeArgs.Item
+                        .Where(res => !res.Resolution.IsMissingType)
+                        .Select((res, idx) => (Tuple.Create(value.CallableName, typeParamNames[idx]), res))
+                        .ToImmutableDictionary(kv => kv.Item1, kv => kv.Item2);
                 }
             }
 
@@ -248,16 +253,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 if (spec.TypeArguments.IsValue && spec.Signature.TypeParameters.Length != spec.TypeArguments.Item.Length)
                     throw new ArgumentException($"The number of type arguments for the {spec.Parent} does not match the number of type parameters.");
 
-                SharedState.CurrentCaller = new CallGraphNode(spec.Parent, spec.Kind, spec.TypeArguments);
-                if (spec.TypeArguments.IsValue)
-                {
-                    var typeParamNames = GetTypeParameterNames(spec.Parent, spec.Signature);
-                    SharedState.CallerTypeParameterResolutions = spec.TypeArguments.Item
-                        .Where(res => !res.Resolution.IsMissingType)
-                        .Select((res, idx) => (Tuple.Create(spec.Parent, typeParamNames[idx]), res))
-                        .ToImmutableDictionary(kv => kv.Item1, kv => kv.Item2);
-                }
-
+                var typeParamNames = GetTypeParameterNames(spec.Parent, spec.Signature);
+                var node = new CallGraphNode(spec.Parent, spec.Kind, spec.TypeArguments);
+                SharedState.SetCurrentCaller(node, typeParamNames);
                 return base.OnSpecializationDeclaration(spec);
             }
         }
