@@ -116,6 +116,7 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsRange)) warnO
         | QsSymbolKind.Symbol name -> tryBuildDeclaration (name, sym.RangeOrDefault) (exType, rhsRange) |> function
             | Some decl, errs -> VariableName name, [|decl|], errs
             | None, errs -> VariableName name, [||], errs
+        | QsSymbolKind.SymbolTuple syms when syms.Length = 1 -> GetBindings (syms.[0], exType)
         | QsSymbolKind.SymbolTuple syms -> exType |> function 
             | Tuple ts when syms.Length = ts.Length ->
                 let (symItems, declarations, errs) = Seq.zip syms ts |> Seq.map GetBindings |> Seq.toList |> List.unzip3
@@ -266,12 +267,12 @@ let NewConjugation (outer : QsPositionedBlock, inner : QsPositionedBlock) =
         | Value loc -> loc
     let usedInOuter = 
         let accumulate = new AccumulateIdentifiers()
-        accumulate.Transform outer.Body |> ignore
-        accumulate.UsedLocalVariables
+        accumulate.Statements.OnScope outer.Body |> ignore
+        accumulate.SharedState.UsedLocalVariables
     let updatedInInner = 
         let accumulate = new AccumulateIdentifiers()
-        accumulate.Transform inner.Body |> ignore
-        accumulate.ReassignedVariables
+        accumulate.Statements.OnScope inner.Body |> ignore
+        accumulate.SharedState.ReassignedVariables
     let updateErrs = 
         updatedInInner |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key) |> Seq.collect id
         |> Seq.map (fun loc -> (loc.Offset, loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.InvalidReassignmentInApplyBlock, []))) |> Seq.toArray

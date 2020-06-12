@@ -13,7 +13,7 @@ open Xunit.Abstractions
 
 
 type TypeCheckingTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "TypeChecking.qs"; "Types.qs"], output)
+    inherit CompilerTests(CompilerTests.Compile "TestCases" ["General.qs"; "TypeChecking.qs"; "Types.qs"] [], output)
 
     member private this.Expect name (diag : IEnumerable<DiagnosticItem>) = 
         let ns = "Microsoft.Quantum.Testing.TypeChecking" |> NonNullable<_>.New
@@ -50,21 +50,22 @@ type TypeCheckingTests (output:ITestOutputHelper) =
         this.Expect "CommonBaseType7"  []
         this.Expect "CommonBaseType8"  [Error ErrorCode.TypeMismatchInReturn]
         this.Expect "CommonBaseType9"  []
-        this.Expect "CommonBaseType10" [Error ErrorCode.TypeMismatchInReturn]
-        this.Expect "CommonBaseType11" [Error ErrorCode.ArgumentMismatchInBinaryOp; Error ErrorCode.ArgumentMismatchInBinaryOp]
-        this.Expect "CommonBaseType12" []
+        this.Expect "CommonBaseType10" []
+        this.Expect "CommonBaseType11" [Error ErrorCode.TypeMismatchInReturn]
+        this.Expect "CommonBaseType12" [Error ErrorCode.ArgumentMismatchInBinaryOp; Error ErrorCode.ArgumentMismatchInBinaryOp]
         this.Expect "CommonBaseType13" []
-        this.Expect "CommonBaseType14" [Error ErrorCode.TypeMismatchInReturn]
-        this.Expect "CommonBaseType15" [Error ErrorCode.MultipleTypesInArray]
-        this.Expect "CommonBaseType16" []
+        this.Expect "CommonBaseType14" []
+        this.Expect "CommonBaseType15" [Error ErrorCode.TypeMismatchInReturn]
+        this.Expect "CommonBaseType16" [Error ErrorCode.MultipleTypesInArray]
         this.Expect "CommonBaseType17" []
-        this.Expect "CommonBaseType18" [Warning WarningCode.TypeParameterNotResolvedByArgument; Warning WarningCode.TypeParameterNotResolvedByArgument; Warning WarningCode.ReturnTypeNotResolvedByArgument]
-        this.Expect "CommonBaseType19" [Error ErrorCode.MultipleTypesInArray]
-        this.Expect "CommonBaseType20" []
+        this.Expect "CommonBaseType18" []
+        this.Expect "CommonBaseType19" [Warning WarningCode.TypeParameterNotResolvedByArgument; Warning WarningCode.TypeParameterNotResolvedByArgument; Warning WarningCode.ReturnTypeNotResolvedByArgument]
+        this.Expect "CommonBaseType20" [Error ErrorCode.MultipleTypesInArray]
         this.Expect "CommonBaseType21" []
         this.Expect "CommonBaseType22" []
         this.Expect "CommonBaseType23" []
-        this.Expect "CommonBaseType24" [Error ErrorCode.MultipleTypesInArray]
+        this.Expect "CommonBaseType24" []
+        this.Expect "CommonBaseType25" [Error ErrorCode.MultipleTypesInArray]
 
 
     [<Fact>]

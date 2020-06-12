@@ -5,43 +5,41 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization;
-using Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationValidation;
+using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
 
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
+    /// <summary>
+    /// Replaces all type parametrized callables with concrete instantiations, dropping any unused callables.
+    /// </summary>
     internal class Monomorphization : IRewriteStep
     {
-        public string Name { get; }
-        public int Priority { get; }
+        public string Name => "Monomorphization";
+        public int Priority => RewriteStepPriorities.TypeParameterElimination;
         public IDictionary<string, string> AssemblyConstants { get; }
+        public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => null;
 
-        public bool ImplementsTransformation { get; }
-        public bool ImplementsPreconditionVerification { get; }
-        public bool ImplementsPostconditionVerification { get; }
+        public bool ImplementsPreconditionVerification => true;
+        public bool ImplementsTransformation => true;
+        public bool ImplementsPostconditionVerification => true;
 
         public Monomorphization()
         {
-            Name = "Monomorphization";
-            Priority = 10; // Not used for built-in transformations like this
             AssemblyConstants = new Dictionary<string, string>();
-            ImplementsTransformation = true;
-            ImplementsPreconditionVerification = true;
-            ImplementsPostconditionVerification = true;
         }
+
+        public bool PreconditionVerification(QsCompilation compilation) => compilation.EntryPoints.Any();
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = MonomorphizationTransformation.Apply(compilation);
+            transformed = Monomorphize.Apply(compilation);
             return true;
         }
 
-        public bool PreconditionVerification(QsCompilation compilation) =>
-            compilation != null && compilation.EntryPoints.Any();
-
         public bool PostconditionVerification(QsCompilation compilation)
         {
-            try { MonomorphizationValidationTransformation.Apply(compilation); }
+            try { ValidateMonomorphization.Apply(compilation); }
             catch { return false; }
             return true;
         }

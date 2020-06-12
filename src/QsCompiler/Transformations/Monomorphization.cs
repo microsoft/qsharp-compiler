@@ -9,6 +9,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
@@ -17,10 +19,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*ImmutableConcretion*/ ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>, Identifier>;
     using ImmutableConcretion = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
-    public static class MonomorphizationTransformation
+    /// <summary>
+    /// This transformation replaces callables with type parameters with concrete
+    /// instances of the same callables. The concrete values for the type parameters
+    /// are found from uses of the callables.
+    /// This transformation also removes all callables that are not used directly or
+    /// indirectly from any of the marked entry point.
+    /// Intrinsic callables are not monomorphized or removed from the compilation.
+    /// There are also some built-in callables that are also exempt from
+    /// being removed from non-use, as they are needed for later rewrite steps.
+    /// </summary>
+    public static class Monomorphize
     {
-        public static QsCompilation Apply(QsCompilation compilation) => ResolveGenericsSyntax.Apply(compilation);
-
         private struct Request
         {
             public QsQualifiedName originalName;
@@ -35,154 +45,191 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             public QsCallable concreteCallable;
         }
 
-        #region ResolveGenerics
-
-        private class ResolveGenericsSyntax :
-            SyntaxTreeTransformation<NoScopeTransformations>
+        public static QsCompilation Apply(QsCompilation compilation)
         {
-            ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> NamespaceCallables;
+            if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
 
-            public static QsCompilation Apply(QsCompilation compilation)
-            {
-                if (compilation == null || compilation.Namespaces.Contains(null)) throw new ArgumentNullException(nameof(compilation));
+            var globals = compilation.Namespaces.GlobalCallableResolutions();
 
-                var globals = compilation.Namespaces.GlobalCallableResolutions();
+            var intrinsicCallableSet = globals
+                .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
+                .Select(kvp => kvp.Key)
+                .ToImmutableHashSet();
 
-                var entryPoints = compilation.EntryPoints
-                    .Select(call => new Request
-                    {
-                        originalName = call,
-                        typeResolutions = ImmutableConcretion.Empty,
-                        concreteName = call
-                    });
-
-                var requests = new Stack<Request>(entryPoints);
-                var responses = new List<Response>();
-
-                while (requests.Any())
+            var entryPoints = compilation.EntryPoints
+                .Select(call => new Request
                 {
-                    Request currentRequest = requests.Pop();
+                    originalName = call,
+                    typeResolutions = ImmutableConcretion.Empty,
+                    concreteName = call
+                });
 
-                    // If there is a call to an unknown callable, throw exception
-                    if (!globals.TryGetValue(currentRequest.originalName, out QsCallable originalGlobal))
-                        throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName.Namespace.Value + "." + currentRequest.originalName.Name.Value}");
+            var requests = new Stack<Request>(entryPoints);
+            var responses = new List<Response>();
 
-                    var currentResponse = new Response
-                    {
-                        originalName = currentRequest.originalName,
-                        typeResolutions = currentRequest.typeResolutions,
-                        concreteCallable = originalGlobal.WithFullName(name => currentRequest.concreteName)
-                    };
+            while (requests.Any())
+            {
+                Request currentRequest = requests.Pop();
 
-                    GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
-                        GetConcreteIdentifier(currentResponse, requests, responses, globalCallable, types);
+                // If there is a call to an unknown callable, throw exception
+                if (!globals.TryGetValue(currentRequest.originalName, out QsCallable originalGlobal))
+                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest.originalName}");
 
-                    // Rewrite implementation
-                    currentResponse = ReplaceTypeParamImplementationsSyntax.Apply(currentResponse);
+                var currentResponse = new Response
+                {
+                    originalName = currentRequest.originalName,
+                    typeResolutions = currentRequest.typeResolutions,
+                    concreteCallable = originalGlobal.WithFullName(name => currentRequest.concreteName)
+                };
 
-                    // Rewrite calls
-                    currentResponse = ReplaceTypeParamCallsSyntax.Apply(currentResponse, getConcreteIdentifier);
+                GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
+                    GetConcreteIdentifier(currentResponse, requests, responses, globalCallable, types);
 
-                    responses.Add(currentResponse);
+                // Rewrite implementation
+                currentResponse = ReplaceTypeParamImplementations.Apply(currentResponse);
+
+                // Rewrite calls
+                currentResponse = ReplaceTypeParamCalls.Apply(currentResponse, getConcreteIdentifier, intrinsicCallableSet);
+
+                responses.Add(currentResponse);
+            }
+
+            return ResolveGenerics.Apply(compilation, responses, intrinsicCallableSet);
+        }
+
+        private static Identifier GetConcreteIdentifier(
+                Response currentResponse,
+                Stack<Request> requests,
+                List<Response> responses,
+                Identifier.GlobalCallable globalCallable,
+                ImmutableConcretion types)
+        {
+            QsQualifiedName concreteName = globalCallable.Item;
+
+            var typesHashSet = ImmutableHashSet<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>>.Empty;
+            if (types != null && !types.IsEmpty)
+            {
+                typesHashSet = types.ToImmutableHashSet();
+            }
+
+            string name = null;
+
+            // Check for recursive call
+            if (currentResponse.originalName.Equals(globalCallable.Item) &&
+                typesHashSet.SetEquals(currentResponse.typeResolutions))
+            {
+                name = currentResponse.concreteCallable.FullName.Name.Value;
+            }
+
+            // Search requests for identifier
+            if (name == null)
+            {
+                name = requests
+                    .Where(req =>
+                        req.originalName.Equals(globalCallable.Item) &&
+                        typesHashSet.SetEquals(req.typeResolutions))
+                    .Select(req => req.concreteName.Name.Value)
+                    .FirstOrDefault();
+            }
+
+            // Search responses for identifier
+            if (name == null)
+            {
+                name = responses
+                    .Where(res =>
+                        res.originalName.Equals(globalCallable.Item) &&
+                        typesHashSet.SetEquals(res.typeResolutions))
+                    .Select(res => res.concreteCallable.FullName.Name.Value)
+                    .FirstOrDefault();
+            }
+
+            // If identifier can't be found, make a new request
+            if (name == null)
+            {
+                // If this is not a generic, do not change the name
+                if (!typesHashSet.IsEmpty)
+                {
+                    // Create new name
+                    concreteName = UniqueVariableNames.PrependGuid(globalCallable.Item);
                 }
 
-                var filter = new ResolveGenericsSyntax(responses
-                    .GroupBy(res => res.concreteCallable.FullName.Namespace)
-                    .ToImmutableDictionary(group => group.Key, group => group.Select(res => res.concreteCallable)));
-                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Transform(ns)).ToImmutableArray(), compilation.EntryPoints);
+                requests.Push(new Request()
+                {
+                    originalName = globalCallable.Item,
+                    typeResolutions = types,
+                    concreteName = concreteName
+                });
+            }
+            else // If the identifier was found, update with the name
+            {
+                concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name));
+            }
+
+            return Identifier.NewGlobalCallable(concreteName);
+        }
+
+        #region ResolveGenerics
+
+        private class ResolveGenerics : SyntaxTreeTransformation<ResolveGenerics.TransformationState>
+        {
+            public static QsCompilation Apply(QsCompilation compilation, List<Response> responses, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            {
+                var filter = new ResolveGenerics(responses.ToLookup(res => res.concreteCallable.FullName.Namespace, res => res.concreteCallable), intrinsicCallableSet);
+
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
+            }
+
+            public class TransformationState
+            {
+                public readonly ILookup<NonNullable<string>, QsCallable> NamespaceCallables;
+                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
+
+                public TransformationState(ILookup<NonNullable<string>, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+                {
+                    this.NamespaceCallables = namespaceCallables;
+                    this.IntrinsicCallableSet = intrinsicCallableSet;
+                }
             }
 
             /// <summary>
             /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
             /// </summary>
             /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            public ResolveGenericsSyntax(ImmutableDictionary<NonNullable<string>, IEnumerable<QsCallable>> namespaceCallables) : base(new NoScopeTransformations())
+            private ResolveGenerics(ILookup<NonNullable<string>, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+                : base(new TransformationState(namespaceCallables, intrinsicCallableSet))
             {
-                NamespaceCallables = namespaceCallables;
+                this.Namespaces = new NamespaceTransformation(this);
+                this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
             }
 
-            public override QsNamespace Transform(QsNamespace ns)
+            private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                NamespaceCallables.TryGetValue(ns.Name, out IEnumerable<QsCallable> concretesInNs);
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
 
-                // Removes unused or generic callables from the namespace
-                // Adds in the used concrete callables
-                return ns.WithElements(elems => elems
-                    .Where(elem => elem is QsNamespaceElement.QsCustomType)
-                    .Concat(concretesInNs?.Select(call => QsNamespaceElement.NewQsCallable(call)) ?? Enumerable.Empty<QsNamespaceElement>())
-                    .ToImmutableArray());
-            }
-
-            private static Identifier GetConcreteIdentifier(
-                Response currentResponse,
-                Stack<Request> requests,
-                List<Response> responses,
-                Identifier.GlobalCallable globalCallable,
-                ImmutableConcretion types)
-            {
-                QsQualifiedName concreteName = globalCallable.Item;
-
-                var typesHashSet = ImmutableHashSet<KeyValuePair<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>>.Empty;
-                if (types != null && !types.IsEmpty)
+                private bool NamespaceElementFilter(QsNamespaceElement elem)
                 {
-                    typesHashSet = types.ToImmutableHashSet();
-                }
-
-                string name = null;
-
-                // Check for recursive call
-                if (currentResponse.originalName.Equals(globalCallable.Item) &&
-                    typesHashSet.SetEquals(currentResponse.typeResolutions))
-                {
-                    name = currentResponse.concreteCallable.FullName.Name.Value;
-                }
-
-                // Search requests for identifier
-                if (name == null)
-                {
-                    name = requests
-                        .Where(req =>
-                            req.originalName.Equals(globalCallable.Item) &&
-                            typesHashSet.SetEquals(req.typeResolutions))
-                        .Select(req => req.concreteName.Name.Value)
-                        .FirstOrDefault();
-                }
-
-                // Search responses for identifier
-                if (name == null)
-                {
-                    name = responses
-                        .Where(res =>
-                            res.originalName.Equals(globalCallable.Item) &&
-                            typesHashSet.SetEquals(res.typeResolutions))
-                        .Select(res => res.concreteCallable.FullName.Name.Value)
-                        .FirstOrDefault();
-                }
-
-                // If identifier can't be found, make a new request
-                if (name == null)
-                {
-                    // If this is not a generic, do not change the name
-                    if (!typesHashSet.IsEmpty)
+                    if (elem is QsNamespaceElement.QsCallable call)
                     {
-                        // Create new name
-                        name = "_" + Guid.NewGuid().ToString("N") + "_" + globalCallable.Item.Name.Value;
-                        concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name));
+
+                        return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName) || SharedState.IntrinsicCallableSet.Contains(call.Item.FullName);
                     }
-
-                    requests.Push(new Request()
+                    else
                     {
-                        originalName = globalCallable.Item,
-                        typeResolutions = types,
-                        concreteName = concreteName
-                    });
-                }
-                else // If the identifier was found, update with the name
-                {
-                    concreteName = new QsQualifiedName(globalCallable.Item.Namespace, NonNullable<string>.New(name));
+                        return true;
+                    }
                 }
 
-                return Identifier.NewGlobalCallable(concreteName);
+                public override QsNamespace OnNamespace(QsNamespace ns)
+                {
+                    // Removes unused or generic callables from the namespace
+                    // Adds in the used concrete callables
+                    return ns.WithElements(elems => elems
+                        .Where(NamespaceElementFilter)
+                        .Concat(SharedState.NamespaceCallables[ns.Name].Select(QsNamespaceElement.NewQsCallable))
+                        .ToImmutableArray());
+                }
             }
         }
 
@@ -190,63 +237,70 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         #region RewriteImplementations
 
-        private class ReplaceTypeParamImplementationsSyntax :
-            SyntaxTreeTransformation<ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>>
+        private class ReplaceTypeParamImplementations :
+            SyntaxTreeTransformation<ReplaceTypeParamImplementations.TransformationState>
         {
             public static Response Apply(Response current)
             {
                 // Nothing to change if the current callable is already concrete
                 if (current.typeResolutions == ImmutableConcretion.Empty) return current;
 
-                var filter = new ReplaceTypeParamImplementationsSyntax(current.typeResolutions);
+                var filter = new ReplaceTypeParamImplementations(current.typeResolutions);
 
                 // Create a new response with the transformed callable
                 return new Response
                 {
                     originalName = current.originalName,
                     typeResolutions = current.typeResolutions,
-                    concreteCallable = filter.onCallableImplementation(current.concreteCallable)
+                    concreteCallable = filter.Namespaces.OnCallableDeclaration(current.concreteCallable)
                 };
             }
 
-            public ReplaceTypeParamImplementationsSyntax(ImmutableConcretion typeParams) : base(
-                new ScopeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>(
-                    new ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>(
-                        ex => new ExpressionKindTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>(ex as ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>),
-                        ex => new ReplaceTypeParamImplementationsExpressionType(typeParams, ex as ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>)
-                        )))
-            { }
-
-            public override ResolvedSignature onSignature(ResolvedSignature s)
+            public class TransformationState
             {
-                // Remove the type parameters from the signature
-                s = new ResolvedSignature(
-                    ImmutableArray<QsLocalSymbol>.Empty,
-                    s.ArgumentType,
-                    s.ReturnType,
-                    s.Information
-                    );
-                return base.onSignature(s);
-            }
-        }
+                public readonly ImmutableConcretion TypeParams;
 
-        private class ReplaceTypeParamImplementationsExpressionType :
-                ExpressionTypeTransformation<ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType>>
-        {
-            ImmutableConcretion TypeParams;
-
-            public ReplaceTypeParamImplementationsExpressionType(ImmutableConcretion typeParams, ExpressionTransformation<Core.ExpressionKindTransformation, ReplaceTypeParamImplementationsExpressionType> expr) : base(expr)
-            {
-                TypeParams = typeParams;
-            }
-
-            public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
-            {
-                if (TypeParams.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
+                public TransformationState(ImmutableConcretion typeParams)
                 {
-                    return typeParam.Resolution;
+                    this.TypeParams = typeParams;
                 }
-                return QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTypeParameter(tp);
+            }
+
+            private ReplaceTypeParamImplementations(ImmutableConcretion typeParams) : base(new TransformationState(typeParams))
+            {
+                this.Namespaces = new NamespaceTransformation(this);
+                this.Types = new TypeTransformation(this);
+            }
+
+            private class NamespaceTransformation : NamespaceTransformation<TransformationState>
+            {
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+                public override ResolvedSignature OnSignature(ResolvedSignature s)
+                {
+                    // Remove the type parameters from the signature
+                    s = new ResolvedSignature(
+                        ImmutableArray<QsLocalSymbol>.Empty,
+                        s.ArgumentType,
+                        s.ReturnType,
+                        s.Information
+                        );
+                    return base.OnSignature(s);
+                }
+            }
+
+            private class TypeTransformation : TypeTransformation<TransformationState>
+            {
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+                public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp)
+                {
+                    if (SharedState.TypeParams.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
+                    {
+                        return typeParam.Resolution;
+                    }
+                    return QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTypeParameter(tp);
+                }
             }
         }
 
@@ -254,123 +308,123 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         #region RewriteCalls
 
-        private class ReplaceTypeParamCallsSyntax :
-            SyntaxTreeTransformation<ScopeTransformation<ReplaceTypeParamCallsExpression>>
+        private class ReplaceTypeParamCalls :
+            SyntaxTreeTransformation<ReplaceTypeParamCalls.TransformationState>
         {
-            public static Response Apply(Response current, GetConcreteIdentifierFunc getConcreteIdentifier)
+            public static Response Apply(Response current, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
             {
-                var filter = new ReplaceTypeParamCallsSyntax(new ScopeTransformation<ReplaceTypeParamCallsExpression>(
-                    new ReplaceTypeParamCallsExpression(new Concretion(), getConcreteIdentifier)));
+                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicCallableSet);
 
                 // Create a new response with the transformed callable
                 return new Response
                 {
                     originalName = current.originalName,
                     typeResolutions = current.typeResolutions,
-                    concreteCallable = filter.onCallableImplementation(current.concreteCallable)
+                    concreteCallable = filter.Namespaces.OnCallableDeclaration(current.concreteCallable)
                 };
             }
 
-            public ReplaceTypeParamCallsSyntax(ScopeTransformation<ReplaceTypeParamCallsExpression> scope) : base(scope) { }
-
-        }
-
-        private class ReplaceTypeParamCallsExpression :
-            ExpressionTransformation<ReplaceTypeParamCallsExpressionKind, ReplaceTypeParamCallsExpressionType>
-        {
-            private readonly Concretion CurrentParamTypes;
-
-            public ReplaceTypeParamCallsExpression(Concretion currentParamTypes, GetConcreteIdentifierFunc getConcreteIdentifier) :
-                base(ex => new ReplaceTypeParamCallsExpressionKind(ex as ReplaceTypeParamCallsExpression, currentParamTypes, getConcreteIdentifier),
-                    ex => new ReplaceTypeParamCallsExpressionType(ex as ReplaceTypeParamCallsExpression, currentParamTypes))
+            public class TransformationState
             {
-                CurrentParamTypes = currentParamTypes;
-            }
+                public readonly Concretion CurrentParamTypes = new Concretion();
+                public readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
+                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
 
-            public override TypedExpression Transform(TypedExpression ex)
-            {
-                var range = this.onRangeInformation(ex.Range);
-                var typeParamResolutions = this.onTypeParamResolutions(ex.TypeParameterResolutions)
-                    .Select(kv => new Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>(kv.Key.Item1, kv.Key.Item2, kv.Value))
-                    .ToImmutableArray();
-                var exType = this.Type.Transform(ex.ResolvedType);
-                var inferredInfo = this.onExpressionInformation(ex.InferredInformation);
-                // Change the order so that Kind is transformed last.
-                // This matters because the onTypeParamResolutions method builds up type param mappings in
-                // the CurrentParamTypes dictionary that are then used, and removed from the
-                // dictionary, in the next global callable identifier found under the Kind transformations.
-                var kind = this.Kind.Transform(ex.Expression);
-                return new TypedExpression(kind, typeParamResolutions, exType, inferredInfo, range);
-            }
-
-            public override ImmutableConcretion onTypeParamResolutions(ImmutableConcretion typeParams)
-            {
-                // Merge the type params into the current dictionary
-                foreach (var kvp in typeParams)
+                public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
                 {
-                    CurrentParamTypes.Add(kvp.Key, kvp.Value);
+                    this.GetConcreteIdentifier = getConcreteIdentifier;
+                    this.IntrinsicCallableSet = intrinsicCallableSet;
+                }
+            }
+
+            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+                : base(new TransformationState(getConcreteIdentifier, intrinsicCallableSet))
+            {
+                this.Expressions = new ExpressionTransformation(this);
+                this.ExpressionKinds = new ExpressionKindTransformation(this);
+                this.Types = new TypeTransformation(this);
+            }
+
+            private class ExpressionTransformation : ExpressionTransformation<TransformationState>
+            {
+                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+                public override TypedExpression OnTypedExpression(TypedExpression ex)
+                {
+                    var range = this.OnRangeInformation(ex.Range);
+                    var typeParamResolutions = this.OnTypeParamResolutions(ex.TypeParameterResolutions)
+                        .Select(kv => Tuple.Create(kv.Key.Item1, kv.Key.Item2, kv.Value))
+                        .ToImmutableArray();
+                    var exType = this.Types.OnType(ex.ResolvedType);
+                    var inferredInfo = this.OnExpressionInformation(ex.InferredInformation);
+                    // Change the order so that Kind is transformed last.
+                    // This matters because the onTypeParamResolutions method builds up type param mappings in
+                    // the CurrentParamTypes dictionary that are then used, and removed from the
+                    // dictionary, in the next global callable identifier found under the Kind transformations.
+                    var kind = this.ExpressionKinds.OnExpressionKind(ex.Expression);
+                    return new TypedExpression(kind, typeParamResolutions, exType, inferredInfo, range);
                 }
 
-                return ImmutableConcretion.Empty;
-            }
-        }
-
-        private class ReplaceTypeParamCallsExpressionKind : ExpressionKindTransformation<ReplaceTypeParamCallsExpression>
-        {
-            private readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
-            private Concretion CurrentParamTypes;
-
-            public ReplaceTypeParamCallsExpressionKind(ReplaceTypeParamCallsExpression expr,
-                Concretion currentParamTypes,
-                GetConcreteIdentifierFunc getConcreteIdentifier) : base(expr)
-            {
-                GetConcreteIdentifier = getConcreteIdentifier;
-                CurrentParamTypes = currentParamTypes;
-            }
-
-            public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> onIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
-            {
-                if (sym is Identifier.GlobalCallable global)
+                public override ImmutableConcretion OnTypeParamResolutions(ImmutableConcretion typeParams)
                 {
-                    ImmutableConcretion applicableParams = CurrentParamTypes
-                        .Where(kvp => kvp.Key.Item1.Equals(global.Item))
-                        .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                    // Create a new identifier
-                    sym = GetConcreteIdentifier(global, applicableParams);
-                    tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
-
-                    // Remove Type Params used from the CurrentParamTypes
-                    foreach (var key in applicableParams.Keys)
+                    // Merge the type params into the current dictionary
+                   
+                    foreach (var kvp in typeParams.Where(kv => !SharedState.IntrinsicCallableSet.Contains(kv.Key.Item1)))
                     {
-                        CurrentParamTypes.Remove(key);
+                        SharedState.CurrentParamTypes.Add(kvp.Key, kvp.Value);
                     }
+
+                    return typeParams.Where(kv => SharedState.IntrinsicCallableSet.Contains(kv.Key.Item1)).ToImmutableDictionary();
                 }
-                else if (sym is Identifier.LocalVariable && tArgs.IsValue && tArgs.Item.Any())
-                {
-                    throw new ArgumentException($"Local variables cannot have type arguments.");
-                }
-
-                return base.onIdentifier(sym, tArgs);
-            }
-        }
-
-        private class ReplaceTypeParamCallsExpressionType : ExpressionTypeTransformation<ReplaceTypeParamCallsExpression>
-        {
-            private Concretion CurrentParamTypes;
-
-            public ReplaceTypeParamCallsExpressionType(ReplaceTypeParamCallsExpression expr, Concretion currentParamTypes) : base(expr)
-            {
-                CurrentParamTypes = currentParamTypes;
             }
 
-            public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> onTypeParameter(QsTypeParameter tp)
+            private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
             {
-                if (CurrentParamTypes.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
+                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+                public override QsExpressionKind<TypedExpression, Identifier, ResolvedType> OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
                 {
-                    return typeParam.Resolution;
+                    if (sym is Identifier.GlobalCallable global)
+                    {
+                        ImmutableConcretion applicableParams = SharedState.CurrentParamTypes
+                            .Where(kvp => kvp.Key.Item1.Equals(global.Item))
+                            .ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                        // We want to skip over intrinsic callables. They will not be monomorphized.
+                        if (!SharedState.IntrinsicCallableSet.Contains(global.Item))
+                        {
+                            // Create a new identifier
+                            sym = SharedState.GetConcreteIdentifier(global, applicableParams);
+                            tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
+                        }
+
+                        // Remove Type Params used from the CurrentParamTypes
+                        foreach (var key in applicableParams.Keys)
+                        {
+                            SharedState.CurrentParamTypes.Remove(key);
+                        }
+                    }
+                    else if (sym is Identifier.LocalVariable && tArgs.IsValue && tArgs.Item.Any())
+                    {
+                        throw new ArgumentException($"Local variables cannot have type arguments.");
+                    }
+
+                    return base.OnIdentifier(sym, tArgs);
                 }
-                return QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTypeParameter(tp);
+            }
+
+            private class TypeTransformation : TypeTransformation<TransformationState>
+            {
+                public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent) : base(parent) { }
+
+                public override QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> OnTypeParameter(QsTypeParameter tp)
+                {
+                    if (SharedState.CurrentParamTypes.TryGetValue(Tuple.Create(tp.Origin, tp.TypeName), out var typeParam))
+                    {
+                        return typeParam.Resolution;
+                    }
+                    return QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>.NewTypeParameter(tp);
+                }
             }
         }
 

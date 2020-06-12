@@ -1,0 +1,66 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Work around issues in MSBuild versions prior to 16.0. -->
+  <PropertyGroup>
+    <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
+      $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
+    </MSBuildAllProjects>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../DefaultItems/DefaultItems.props"/>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
+  <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.props"/>
+
+  <!-- We want to keep this here as fallback to mitigate issues when loading qsc references. -->
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+
+  <!-- The following item groups indeed needs to live in this file to ensure 
+  that they evaluated before the modifications in the project file are applied. -->
+
+  <!-- Q# source files included by default. -->
+  <ItemGroup>
+    <QsharpCompile Include="**/*.qs" Exclude="obj/**" />
+  </ItemGroup>
+
+  <!-- Q# package references included by default. -->
+  <ItemGroup>
+    <!-- Packages and libraries included for all execution targets. -->
+    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.10.2005.2816-alpha" />
+    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.10.2005.2816-alpha" />
+    <!-- Packages included for specific execution targets. -->
+    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'HoneywellProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.11.2005.2616-beta" />
+    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.11.2005.2616-beta" />
+    <PackageReference Condition="'$(ResolvedQsharpExecutionTarget)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.11.2005.2616-beta" />
+    <!-- TODO: UNCOMMENT THESE ONCE WE HAVE THE CORRESPONDING PACKAGES. -->
+    <!--PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'OpenQASM'" Include="Microsoft.Quantum.Intrinsics.OpenQASM" Version="0.10.2001.2831" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'ExtendedQASM'" Include="Microsoft.Quantum.Intrinsics.ExtendedQASM" Version="0.10.2001.2831" IsTargetPackage='true' /-->
+  </ItemGroup>
+
+  <!-- Packages for execution on the simulation framework. -->
+  <ItemGroup>
+    <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'" Include="Microsoft.Quantum.Simulators" Version="0.10.2005.2816-alpha" IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(CsharpGeneration)" Include="Microsoft.Quantum.Runtime.Core" Version="0.10.2005.2816-alpha" IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'"
+                      Include="Microsoft.Quantum.EntryPointDriver" Version="0.10.2005.2816-alpha"
+                      IsImplicitlyDefined="true" />
+    <PackageReference Condition="$(CsharpGeneration)" PrivateAssets="All"
+      Include="Microsoft.Quantum.CsharpGeneration" Version="0.10.2005.2816-alpha" IsImplicitlyDefined="true" 
+      IsQscReference ="true" ExecutionTarget="Any" Priority="-1" />
+  </ItemGroup>
+
+
+  <!-- The following targets indeed need to live in this file since they are specifically defined 
+  to be executed at a certain stage in the build and thus serve as handles that a project may redefine. -->
+
+  <!-- Empty target that can be redefined to run tasks just before QsharpCompile. -->
+  <Target Name="BeforeQsharpCompile">
+  </Target>  
+
+  <!-- Empty target that can be redefined to run tasks just before CsharpCompile. -->
+  <Target Name="BeforeCsharpCompile">
+  </Target>  
+
+</Project>

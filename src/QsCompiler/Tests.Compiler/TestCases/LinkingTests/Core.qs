@@ -17,6 +17,14 @@ namespace Microsoft.Quantum.Core {
     function Default<'T>() : 'T {
         return (new 'T[1])[0];
     }
+
+    function Length<'T>(arr : 'T[]) : Int {
+        body intrinsic;
+    }
+
+    function RangeReverse(r : Range) : Range {
+        body intrinsic;
+    }
 }
 
 namespace Microsoft.Quantum.Diagnostics {
@@ -25,3 +33,12 @@ namespace Microsoft.Quantum.Diagnostics {
     @ Attribute()
     newtype Test = String;
 }
+
+namespace Microsoft.Quantum.Arrays {
+
+    // needs to be available for testing
+    function IndexRange<'TElement>(arr : 'TElement[]) : Range {
+        return 0 .. Length(arr) - 1;
+    }
+}
+

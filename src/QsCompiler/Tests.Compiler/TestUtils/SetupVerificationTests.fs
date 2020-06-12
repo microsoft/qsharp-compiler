@@ -10,6 +10,7 @@ open System.IO
 open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
+open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.VisualStudio.LanguageServer.Protocol
@@ -32,10 +33,10 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation, output:ITe
             let attributes = c.Kind |> function 
                 | TypeConstructor -> types.[c.FullName].Attributes
                 | _ -> c.Attributes
-            if attributes.Length = 0 then c.Location.Offset 
+            if attributes.Length = 0 then (c.Location.ValueOrApply (fun _ -> failwith "missing position information")).Offset
             else attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
         [for file in compilation.SourceFiles do
-            let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile.Value = file.Value)
+            let containedCallables = callables.Where(fun kv -> kv.Value.SourceFile.Value = file.Value && kv.Value.Location <> Null)
             let locations = containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart) |> Seq.sortBy snd |> Seq.toArray
             let mutable containedDiagnostics = compilation.Diagnostics file |> Seq.sortBy (fun d -> DiagnosticTools.AsTuple d.Range.Start)
             
@@ -89,13 +90,13 @@ type CompilerTests (compilation : CompilationUnitManager.Compilation, output:ITe
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
 
-    static member Compile srcFolder files = 
+    static member Compile srcFolder files references =
         let compileFiles (files : IEnumerable<_>) =
             let mgr = new CompilationUnitManager(fun ex -> failwith ex.Message)
-            files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText) 
+            files.ToImmutableDictionary(Path.GetFullPath >> Uri, File.ReadAllText)
             |> CompilationUnitManager.InitializeFileManagers
-            |> mgr.AddOrUpdateSourceFilesAsync 
+            |> mgr.AddOrUpdateSourceFilesAsync
             |> ignore
-            mgr.Build() 
-        files |> Seq.map (fun file -> Path.Combine (srcFolder, file)) |> compileFiles 
-
+            mgr.UpdateReferencesAsync(new References(ProjectManager.LoadReferencedAssemblies(references))) |> ignore
+            mgr.Build()
+        files |> Seq.map (fun file -> Path.Combine (srcFolder, file)) |> compileFiles

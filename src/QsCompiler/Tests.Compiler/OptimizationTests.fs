@@ -7,7 +7,7 @@ open System
 open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.Optimizations
+open Microsoft.Quantum.QsCompiler.Experimental
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 
@@ -26,9 +26,7 @@ let private buildCompilation code =
 let private optimize code =
     let mutable compilation = buildCompilation code
     compilation <- PreEvaluation.All compilation
-    let toQs = SyntaxTreeToQs()
-    compilation.Namespaces |> Seq.iter (toQs.Transform >> ignore)
-    toQs.Output
+    String.Join(Environment.NewLine, compilation.Namespaces |> Seq.map SyntaxTreeToQsharp.Default.ToCode)
 
 /// Helper function that saves the compiler output as a test case (in the bin directory)
 let private createTestCase path =

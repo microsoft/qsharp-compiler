@@ -7,254 +7,337 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 {
-    // syntax tree transformations
-
-    public class GetSourceFiles :
-        SyntaxTreeTransformation<NoScopeTransformations>
+    public class GetSourceFiles 
+    : SyntaxTreeTransformation<GetSourceFiles.TransformationState>
     {
+        public class TransformationState
+        {
+            internal readonly HashSet<NonNullable<string>> SourceFiles =
+                new HashSet<NonNullable<string>>();
+        }
+
+
+        private GetSourceFiles()
+        : base(new TransformationState(), TransformationOptions.NoRebuild)
+        {
+            this.Namespaces = new NamespaceTransformation(this);
+            this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+        }
+
+        // static methods for convenience
+
         /// <summary>
         /// Returns a hash set containing all source files in the given namespaces.
-        /// Throws an ArgumentNullException if the given sequence or any of the given namespaces is null. 
+        /// Throws an ArgumentNullException if the given sequence or any of the given namespaces is null.
         /// </summary>
         public static ImmutableHashSet<NonNullable<string>> Apply(IEnumerable<QsNamespace> namespaces)
         {
             if (namespaces == null || namespaces.Contains(null)) throw new ArgumentNullException(nameof(namespaces));
             var filter = new GetSourceFiles();
-            foreach(var ns in namespaces) filter.Transform(ns);
-            return filter.SourceFiles.ToImmutableHashSet();
+            foreach (var ns in namespaces) filter.Namespaces.OnNamespace(ns);
+            return filter.SharedState.SourceFiles.ToImmutableHashSet();
         }
 
         /// <summary>
         /// Returns a hash set containing all source files in the given namespace(s).
-        /// Throws an ArgumentNullException if any of the given namespaces is null. 
+        /// Throws an ArgumentNullException if any of the given namespaces is null.
         /// </summary>
-        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) => 
+        public static ImmutableHashSet<NonNullable<string>> Apply(params QsNamespace[] namespaces) =>
             Apply((IEnumerable<QsNamespace>)namespaces);
 
-        private readonly HashSet<NonNullable<string>> SourceFiles;
-        private GetSourceFiles() :
-            base(new NoScopeTransformations()) =>
-            this.SourceFiles = new HashSet<NonNullable<string>>();
 
-        public override QsSpecialization onSpecializationImplementation(QsSpecialization spec) // short cut to avoid further evaluation
-        {
-            this.onSourceFile(spec.SourceFile);
-            return spec;
-        }
+        // helper classes
 
-        public override NonNullable<string> onSourceFile(NonNullable<string> f)
+        private class NamespaceTransformation 
+        : NamespaceTransformation<TransformationState>
         {
-            this.SourceFiles.Add(f);
-            return base.onSourceFile(f);
+
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+            : base(parent, TransformationOptions.NoRebuild) { }
+
+            public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) // short cut to avoid further evaluation
+            {
+                this.OnSourceFile(spec.SourceFile);
+                return spec;
+            }
+
+            public override NonNullable<string> OnSourceFile(NonNullable<string> f)
+            {
+                this.SharedState.SourceFiles.Add(f);
+                return base.OnSourceFile(f);
+            }
         }
     }
 
+
     /// <summary>
     /// Calling Transform on a syntax tree returns a new tree that only contains the type and callable declarations
-    /// that are defined in the source file with the identifier given upon initialization. 
-    /// The transformation also ensures that the elements in each namespace are ordered according to 
-    /// the location at which they are defined in the file. 
+    /// that are defined in the source file with the identifier given upon initialization.
+    /// The transformation also ensures that the elements in each namespace are ordered according to
+    /// the location at which they are defined in the file. Auto-generated declarations will be ordered alphabetically.
     /// </summary>
-    public class FilterBySourceFile :
-        SyntaxTreeTransformation<NoScopeTransformations>
+    public class FilterBySourceFile 
+    : SyntaxTreeTransformation<FilterBySourceFile.TransformationState>
     {
+        public class TransformationState
+        {
+            internal readonly Func<NonNullable<string>, bool> Predicate;
+            internal readonly List<(int?, QsNamespaceElement)> Elements =
+                new List<(int?, QsNamespaceElement)>();
+
+            public TransformationState(Func<NonNullable<string>, bool> predicate) =>
+                this.Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+        }
+
+
+        public FilterBySourceFile(Func<NonNullable<string>, bool> predicate) 
+        : base(new TransformationState(predicate))
+        {
+            this.Namespaces = new NamespaceTransformation(this);
+            this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+        }
+
+        // static methods for convenience
+
         public static QsNamespace Apply(QsNamespace ns, Func<NonNullable<string>, bool> predicate)
         {
             if (ns == null) throw new ArgumentNullException(nameof(ns));
             var filter = new FilterBySourceFile(predicate);
-            return filter.Transform(ns); 
+            return filter.Namespaces.OnNamespace(ns);
         }
 
         public static QsNamespace Apply(QsNamespace ns, params NonNullable<string>[] fileIds)
         {
             var sourcesToKeep = fileIds.Select(f => f.Value).ToImmutableHashSet();
-            return FilterBySourceFile.Apply(ns, s => sourcesToKeep.Contains(s.Value));
+            return Apply(ns, s => sourcesToKeep.Contains(s.Value));
         }
 
-        private readonly List<(int, QsNamespaceElement)> Elements;
-        private readonly Func<NonNullable<string>, bool> Predicate;
 
-        public FilterBySourceFile(Func<NonNullable<string>, bool> predicate) :
-            base(new NoScopeTransformations())
+        // helper classes
+
+        public class NamespaceTransformation 
+        : NamespaceTransformation<TransformationState>
         {
-            this.Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
-            this.Elements = new List<(int, QsNamespaceElement)>();
-        }
+            public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+            : base(parent) { }
 
-        private QsCallable AddCallableIfInSource(QsCallable c)
-        {
-            if (Predicate(c.SourceFile))
-            { Elements.Add((c.Location.Offset.Item1, QsNamespaceElement.NewQsCallable(c))); }
-            return c;
-        }
+            // TODO: these overrides needs to be adapted once we support external specializations
 
-        private QsCustomType AddTypeIfInSource(QsCustomType t)
-        {
-            if (Predicate(t.SourceFile))
-            { Elements.Add((t.Location.Offset.Item1, QsNamespaceElement.NewQsCustomType(t))); }
-            return t;
-        }
+            public override QsCustomType OnTypeDeclaration(QsCustomType t)
+            {
+                if (this.SharedState.Predicate(t.SourceFile))
+                { this.SharedState.Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCustomType(t))); }
+                return t;
+            }
 
-        // TODO: these transformations needs to be adapted once we support external specializations
-        public override QsCustomType onType(QsCustomType t) => AddTypeIfInSource(t);
-        public override QsCallable onCallableImplementation(QsCallable c) => AddCallableIfInSource(c);
+            public override QsCallable OnCallableDeclaration(QsCallable c)
+            {
+                if (this.SharedState.Predicate(c.SourceFile))
+                { this.SharedState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Item1 : (int?)null, QsNamespaceElement.NewQsCallable(c))); }
+                return c;
+            }
 
-        public override QsNamespace Transform(QsNamespace ns)
-        {
-            this.Elements.Clear();
-            base.Transform(ns);
-            this.Elements.Sort((x, y) => x.Item1 - y.Item1);
-            return new QsNamespace(ns.Name, this.Elements.Select(e => e.Item2).ToImmutableArray(), ns.Documentation);
+            public override QsNamespace OnNamespace(QsNamespace ns)
+            {
+                static int SortComparison((int?, QsNamespaceElement) x, (int?, QsNamespaceElement) y)
+                {
+                    if (x.Item1.HasValue && y.Item1.HasValue) return Comparer<int>.Default.Compare(x.Item1.Value, y.Item1.Value);
+                    if (!x.Item1.HasValue && !y.Item1.HasValue) return Comparer<string>.Default.Compare(x.Item2.GetFullName().ToString(), y.Item2.GetFullName().ToString());
+                    return x.Item1.HasValue ? -1 : 1;
+                }
+                this.SharedState.Elements.Clear();
+                base.OnNamespace(ns);
+                this.SharedState.Elements.Sort(SortComparison);
+                return new QsNamespace(ns.Name, this.SharedState.Elements.Select(e => e.Item2).ToImmutableArray(), ns.Documentation);
+            }
         }
     }
 
 
-    // scope transformations
-
     /// <summary>
-    /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion. 
-    /// Calling Transform will build a new Scope that contains only the statements for which the fold of a given condition 
-    /// over all contained expressions evaluates to true. 
-    /// If evaluateOnSubexpressions is set to true, the fold is evaluated on all subexpressions as well. 
+    /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion.
+    /// Calling Transform will build a new Scope that contains only the statements for which the fold of a given condition
+    /// over all contained expressions evaluates to true.
+    /// If evaluateOnSubexpressions is set to true, the fold is evaluated on all subexpressions as well.
     /// </summary>
-    public class SelectByFoldingOverExpressions<K> :
-        ScopeTransformation<K, FoldOverExpressions<bool>>
-        where K : Core.StatementKindTransformation
+    public class SelectByFoldingOverExpressions 
+    : SyntaxTreeTransformation<SelectByFoldingOverExpressions.TransformationState>
     {
-        protected readonly Func<TypedExpression, bool> Condition;
-        protected readonly Func<bool, bool, bool> Fold;
-        private readonly bool Seed;
-
-        protected SelectByFoldingOverExpressions<K> SubSelector;
-        protected virtual SelectByFoldingOverExpressions<K> GetSubSelector() =>
-            new SelectByFoldingOverExpressions<K>(this.Condition, this.Fold, this.Seed, this._Expression.recur, null);
-
-        public bool SatisfiesCondition => this._Expression.Result;
-
-        public SelectByFoldingOverExpressions(
-            Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool evaluateOnSubexpressions = true,
-            Func<ScopeTransformation<K, FoldOverExpressions<bool>>, K> statementKind = null) :
-            base(statementKind, new FoldOverExpressions<bool>((ex, current) => fold(condition(ex), current), seed, recur: evaluateOnSubexpressions))
+        public class TransformationState 
+        : FoldOverExpressions<TransformationState, bool>.IFoldingState
         {
-            this.Condition = condition ?? throw new ArgumentNullException(nameof(condition));
-            this.Fold = fold ?? throw new ArgumentNullException(nameof(condition));
-            this.Seed = seed;
-        }
+            public bool Recur { get; }
+            public readonly bool Seed;
 
-        protected new Core.StatementKindTransformation _StatementKind => base.StatementKind; 
-        public override Core.StatementKindTransformation StatementKind
-        {
-            get
+            internal readonly Func<TypedExpression, bool> Condition;
+            internal readonly Func<bool, bool, bool> ConstructFold;
+
+            public bool Fold(TypedExpression ex, bool current) =>
+                this.ConstructFold(this.Condition(ex), current);
+
+            public bool FoldResult { get; set; }
+            public bool SatisfiesCondition => this.FoldResult;
+
+            public TransformationState(Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool recur = true)
             {
-                this.SubSelector = GetSubSelector();
-                return this.SubSelector._StatementKind; // don't spawn the next one
+                this.Recur = recur;
+                this.Seed = seed;
+                this.FoldResult = seed;
+                this.Condition = condition ?? throw new ArgumentNullException(nameof(condition));
+                this.ConstructFold = fold ?? throw new ArgumentNullException(nameof(fold));
             }
         }
 
-        public override QsStatement onStatement(QsStatement stm)
+
+        public SelectByFoldingOverExpressions(Func<TypedExpression, bool> condition, Func<bool, bool, bool> fold, bool seed, bool evaluateOnSubexpressions = true)
+        : base(new TransformationState(condition, fold, seed, evaluateOnSubexpressions))
         {
-            stm = base.onStatement(stm);
-            this._Expression.Result = this.Fold(this._Expression.Result, this.SubSelector._Expression.Result);
-            return stm;
+            this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            this.Expressions = new FoldOverExpressions<TransformationState, bool>(this);
+            this.Statements = new StatementTransformation<SelectByFoldingOverExpressions>(
+                state => new SelectByFoldingOverExpressions(state.Condition, state.ConstructFold, state.Seed, state.Recur),
+                this);
         }
 
-        public override QsScope Transform(QsScope scope)
+
+        // helper classes
+
+        public class StatementTransformation<P> 
+        : Core.StatementTransformation<TransformationState> where P : SelectByFoldingOverExpressions
         {
-            var statements = new List<QsStatement>();
-            foreach (var statement in scope.Statements)
+            protected P SubSelector;
+            protected readonly Func<TransformationState, P> CreateSelector;
+
+            /// <summary>
+            /// The given function for creating a new subselector is expected to initialize a new internal state with the same configurations as the one given upon construction.
+            /// Upon initialization, the FoldResult of the internal state should be set to the specified seed rather than the FoldResult of the given constructor argument.
+            /// </summary>
+            public StatementTransformation(Func<TransformationState, P> createSelector, SyntaxTreeTransformation<TransformationState> parent)
+            : base(parent) =>
+                this.CreateSelector = createSelector ?? throw new ArgumentNullException(nameof(createSelector));
+
+            public override QsStatement OnStatement(QsStatement stm)
             {
-                // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement, 
-                // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
-                var transformed = this.onStatement(statement);
-                if (this.SubSelector.SatisfiesCondition) statements.Add(transformed);
+                this.SubSelector = this.CreateSelector(this.SharedState);
+                var loc = this.SubSelector.Statements.OnLocation(stm.Location);
+                var stmKind = this.SubSelector.StatementKinds.OnStatementKind(stm.Statement);
+                var varDecl = this.SubSelector.Statements.OnLocalDeclarations(stm.SymbolDeclarations);
+                this.SharedState.FoldResult = this.SharedState.ConstructFold(
+                    this.SharedState.FoldResult, this.SubSelector.SharedState.FoldResult);
+                return new QsStatement(stmKind, varDecl, loc, stm.Comments);
             }
-            return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
+
+            public override QsScope OnScope(QsScope scope)
+            {
+                var statements = new List<QsStatement>();
+                foreach (var statement in scope.Statements)
+                {
+                    // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement,
+                    // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
+                    var transformed = this.OnStatement(statement);
+                    if (this.SubSelector.SharedState.SatisfiesCondition) statements.Add(transformed);
+                }
+                return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
+            }
         }
     }
 
-    /// <summary>
-    /// Class that allows to transform scopes by keeping only statements that contain certain expressions. 
-    /// Calling Transform will build a new Scope that contains only the statements 
-    /// which contain an expression or subexpression (only if evaluateOnSubexpressions is set to true) 
-    /// that satisfies the condition given on initialization. 
-    /// </summary>
-    public class SelectByAnyContainedExpression<K> :
-        SelectByFoldingOverExpressions<K>
-        where K : Core.StatementKindTransformation
-    {
-        private readonly Func<SelectByFoldingOverExpressions<K>, K> GetStatementKind;
-        protected override SelectByFoldingOverExpressions<K> GetSubSelector() =>
-            new SelectByAnyContainedExpression<K>(this.Condition, this._Expression.recur, this.GetStatementKind);
 
-        public SelectByAnyContainedExpression(
-            Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true,
-            Func<SelectByFoldingOverExpressions<K>, K> statementKind = null) :
-                base(condition, (a, b) => a || b, false, evaluateOnSubexpressions, s => statementKind(s as SelectByFoldingOverExpressions<K>)) =>
-                this.GetStatementKind = statementKind;
+    /// <summary>
+    /// Class that allows to transform scopes by keeping only statements that contain certain expressions.
+    /// Calling Transform will build a new Scope that contains only the statements
+    /// which contain an expression or subexpression (only if evaluateOnSubexpressions is set to true)
+    /// that satisfies the condition given on initialization.
+    /// </summary>
+    public class SelectByAnyContainedExpression 
+    : SelectByFoldingOverExpressions
+    {
+        public SelectByAnyContainedExpression(Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true)
+        : base(condition, (a, b) => a || b, false, evaluateOnSubexpressions) { }
     }
 
     /// <summary>
-    /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion. 
-    /// Calling Transform will build a new Scope that contains only the statements 
+    /// Class that allows to transform scopes by keeping only statements whose expressions satisfy a certain criterion.
+    /// Calling Transform will build a new Scope that contains only the statements
     /// for which all contained expressions or subexpressions satisfy the condition given on initialization.
     /// Note that subexpressions will only be verified if evaluateOnSubexpressions is set to true (default value).
     /// </summary>
-    public class SelectByAllContainedExpressions<K> :
-        SelectByFoldingOverExpressions<K>
-        where K : Core.StatementKindTransformation
+    public class SelectByAllContainedExpressions 
+    : SelectByFoldingOverExpressions
     {
-        private readonly Func<SelectByFoldingOverExpressions<K>, K> GetStatementKind;
-        protected override SelectByFoldingOverExpressions<K> GetSubSelector() =>
-            new SelectByAllContainedExpressions<K>(this.Condition, this._Expression.recur, this.GetStatementKind);
-
-        public SelectByAllContainedExpressions(
-            Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true,
-            Func<SelectByFoldingOverExpressions<K>, K> statementKind = null) :
-                base(condition, (a, b) => a && b, true, evaluateOnSubexpressions, s => statementKind(s as SelectByFoldingOverExpressions<K>)) =>
-                this.GetStatementKind = statementKind;
+        public SelectByAllContainedExpressions(Func<TypedExpression, bool> condition, bool evaluateOnSubexpressions = true)
+        : base(condition, (a, b) => a && b, true, evaluateOnSubexpressions) { }
     }
 
 
-    // expression transformations
-
     /// <summary>
-    /// Class that evaluates a fold on Transform. 
-    /// If recur is set to true on initialization (default value), 
+    /// Class that evaluates a fold on upon transforming an expression.
+    /// If recur is set to true in the internal state of the transformation,
     /// the fold function given on initialization is applied to all subexpressions as well as the expression itself -
-    /// i.e. the fold it take starting on inner expressions (from the inside out). 
-    /// Otherwise the set Action is only applied to the expression itself. 
-    /// The result of the fold is accessible via the Result property. 
+    /// i.e. the fold it take starting on inner expressions (from the inside out).
+    /// Otherwise the specified folder is only applied to the expression itself.
+    /// The result of the fold is accessible via the FoldResult property in the internal state of the transformation.
+    /// The transformation itself merely walks expressions and rebuilding is disabled. 
     /// </summary>
-    public class FoldOverExpressions<T> :
-        ExpressionTransformation<ExpressionKindTransformation<FoldOverExpressions<T>>>
+    public class FoldOverExpressions<T, S> 
+    : ExpressionTransformation<T> where T : FoldOverExpressions<T,S>.IFoldingState
     {
-        private static readonly Func<
-            ExpressionTransformation<ExpressionKindTransformation<FoldOverExpressions<T>>, Core.ExpressionTypeTransformation>, 
-            ExpressionKindTransformation<FoldOverExpressions<T>>> InitializeKind =
-            e => new ExpressionKindTransformation<FoldOverExpressions<T>>(e as FoldOverExpressions<T>);
-
-        internal readonly bool recur;
-        public readonly Func<TypedExpression, T, T> Fold; 
-        public T Result { get; set; }
-
-        public FoldOverExpressions(Func<TypedExpression, T, T> fold, T seed, bool recur = true) :
-            base(recur ? InitializeKind : null) // we need to enable expression kind transformations in order to walk subexpressions
+        public interface IFoldingState
         {
-            this.Fold = fold ?? throw new ArgumentNullException(nameof(fold));
-            this.Result = seed;
-            this.recur = recur;
+            public bool Recur { get; }
+            public S Fold(TypedExpression ex, S current);
+            public S FoldResult { get; set; }
         }
 
-        public override TypedExpression Transform(TypedExpression ex)
+
+        public FoldOverExpressions(SyntaxTreeTransformation<T> parent) 
+        : base(parent, TransformationOptions.NoRebuild) { }
+
+        public FoldOverExpressions(T state) 
+        : base(state)  { }
+
+
+        public override TypedExpression OnTypedExpression(TypedExpression ex)
         {
-            ex = recur ? base.Transform(ex) : ex;
-            this.Result = Fold(ex, this.Result);
+            ex = this.SharedState.Recur ? base.OnTypedExpression(ex) : ex;
+            this.SharedState.FoldResult = this.SharedState.Fold(ex, this.SharedState.FoldResult);
             return ex;
         }
     }
+
+
+    /// <summary>
+    /// Upon transformation, applies the specified action to each expression and subexpression.
+    /// The action to apply is specified upon construction, and will be applied before recurring into subexpressions.
+    /// The transformation merely walks expressions and rebuilding is disabled. 
+    /// </summary>
+    public class TypedExpressionWalker<T>
+    : ExpressionTransformation<T>
+    {
+        public TypedExpressionWalker(Action<TypedExpression> onExpression, SyntaxTreeTransformation<T> parent)
+        : base(parent, TransformationOptions.NoRebuild) =>
+            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
+
+        public TypedExpressionWalker(Action<TypedExpression> onExpression, T internalState = default)
+        : base(internalState, TransformationOptions.NoRebuild) =>
+            this.OnExpression = onExpression ?? throw new ArgumentNullException(nameof(onExpression));
+
+        public readonly Action<TypedExpression> OnExpression;
+        public override TypedExpression OnTypedExpression(TypedExpression ex)
+        {
+            this.OnExpression(ex);
+            return base.OnTypedExpression(ex);
+        }
+    }
+
 }
 

@@ -39,7 +39,7 @@ let ``valid snippet`` () =
     [|
         "-s" 
         "let a = 0;" 
-        "-v"
+        "-v n"
     |] 
     |> testSnippet ReturnCode.SUCCESS
 
@@ -57,7 +57,8 @@ let ``one valid file`` () =
     [|
         "-i"
         ("TestCases","General.qs") |> Path.Combine
-        "-v"
+        "--verbosity" 
+        "Diagnostic"
     |]
     |> testInput ReturnCode.SUCCESS
     
@@ -152,6 +153,30 @@ let ``diagnose outputs`` () =
         |]        
     let result = Program.Main args
     Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
+
+
+[<Fact>]
+let ``options from response files`` () = 
+    let configFile = ("TestCases", "qsc-config.txt") |> Path.Combine
+    let configArgs = 
+        [|
+            "-i"
+            ("TestCases","LinkingTests","Core.qs") |> Path.Combine
+        |]        
+    File.WriteAllText(configFile, String.Join (" ", configArgs))
+    let commandLineArgs = 
+        [|
+            "build"
+            "-v"
+            "Detailed"
+            "--format"
+            "MsBuild"
+            "--response-files"
+            configFile
+        |]        
+
+    let result = Program.Main commandLineArgs
+    Assert.Equal(ReturnCode.SUCCESS, result)
 
 
 [<Fact>]

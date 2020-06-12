@@ -67,7 +67,9 @@ type QsQualifiedName = {
     /// the declared name of the namespace element
     Name : NonNullable<string>
 }
-    with override this.ToString () = this.Namespace.Value + "." + this.Name.Value
+    with 
+    override this.ToString () = 
+        sprintf "%s.%s" this.Namespace.Value this.Name.Value
 
 
 type SymbolTuple =
@@ -362,6 +364,17 @@ type TypedExpression = {
     member this.TypeParameterResolutions = 
         this.TypeArguments.ToImmutableDictionary((fun (origin, name, _) -> origin, name), (fun (_,_,t) -> t))
 
+    /// Returns true if the expression is a call-like expression, and the arguments contain a missing expression.
+    /// Returns false otherwise.
+    static member public IsPartialApplication kind =
+        let rec containsMissing ex = 
+            match ex.Expression with
+            | MissingExpr -> true
+            | ValueTuple items -> items |> Seq.exists containsMissing
+            | _ -> false
+        match kind with
+        | CallLikeExpression (_, args) -> args |> containsMissing
+        | _ -> false
 
 
 /// Fully resolved Q# initializer expression.
@@ -551,6 +564,7 @@ and QsStatementKind =
 | QsRepeatStatement      of QsRepeatStatement
 | QsConjugation          of QsConjugation
 | QsQubitScope           of QsQubitScope // includes both using and borrowing scopes
+| EmptyStatement 
 
 
 and QsStatement = {
@@ -631,7 +645,8 @@ type QsSpecialization = {
     /// Contains the location information for the declared specialization.
     /// The position offset represents the position in the source file where the specialization is declared,
     /// and the range contains the range of the corresponding specialization header.
-    Location : QsLocation
+    /// For auto-generated specializations, the location is set to the location of the parent callable declaration. 
+    Location : QsNullable<QsLocation>
     /// contains the type arguments for which the implementation is specialized
     TypeArguments : QsNullable<ImmutableArray<ResolvedType>>
     /// full resolved signature of the specialization - i.e. signature including functor arguments after resolving all type specializations
@@ -646,6 +661,7 @@ type QsSpecialization = {
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithImplementation impl = {this with Implementation = impl}
+    member this.WithParent (getName : Func<_,_>) = {this with Parent = getName.Invoke(this.Parent)}
 
 
 /// describes a Q# function, operation, or type constructor
@@ -656,12 +672,15 @@ type QsCallable = {
     FullName : QsQualifiedName
     /// contains all attributes associated with the callable
     Attributes : ImmutableArray<QsDeclarationAttribute>
+    /// Represents the Q# keywords attached to the declaration that modify its behavior.
+    Modifiers : Modifiers
     /// identifier for the file the callable is declared in
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared callable.
     /// The position offset represents the position in the source file where the callable is declared,
     /// and the range contains the range occupied by its name relative to that position.
-    Location : QsLocation
+    /// The location is Null for auto-generated callable constructed e.g. when lifting code blocks or lambdas to a global scope.
+    Location : QsNullable<QsLocation>
     /// full resolved signature of the callable
     Signature : ResolvedSignature
     /// the argument tuple containing the names of the argument tuple items
@@ -698,12 +717,15 @@ type QsCustomType = {
     FullName : QsQualifiedName
     /// contains all attributes associated with the type
     Attributes : ImmutableArray<QsDeclarationAttribute>
+    /// Represents the Q# keywords attached to the declaration that modify its behavior.
+    Modifiers : Modifiers
     /// identifier for the file the type is declared in
     SourceFile : NonNullable<string>
     /// Contains the location information for the declared type.
     /// The position offset represents the position in the source file where the type is declared,
     /// and the range contains the range occupied by the type name relative to that position.
-    Location : QsLocation
+    /// The location is Null for auto-generated types defined by the compiler.
+    Location : QsNullable<QsLocation>
     /// Contains the underlying Q# type.
     /// Note that a user defined type is *not* considered to be a subtype of its underlying type,
     /// but rather its own, entirely distinct type,
@@ -718,6 +740,7 @@ type QsCustomType = {
 }
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
+    member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
 
 
 /// Describes a valid Q# namespace element.
@@ -728,6 +751,8 @@ type QsNamespaceElement =
 | QsCallable of QsCallable
 /// denotes a Q# user defined type
 | QsCustomType of QsCustomType
+
+    with
     member this.GetFullName () =
         match this with
         | QsCallable call -> call.FullName
@@ -761,8 +786,3 @@ type QsCompilation = {
     /// In the case of a library the array is empty.
     EntryPoints : ImmutableArray<QsQualifiedName>
 }
-
-
-
-
-

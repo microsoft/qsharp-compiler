@@ -111,13 +111,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the HeaderItems corresponding to all type declarations with a valid name in the given file, or null if the given file is null. 
         /// </summary>
-        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<QsTuple<Tuple<QsSymbol, QsType>>>)> GetTypeDeclarationHeaderItems
+        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<Modifiers, QsTuple<Tuple<QsSymbol, QsType>>>>)> GetTypeDeclarationHeaderItems
             (this FileContentManager file) => file.GetHeaderItems(file?.TypeDeclarationTokens(), frag => frag.Kind.DeclaredType(), null);
 
         /// <summary>
         /// Returns the HeaderItems corresponding to all callable declarations with a valid name in the given file, or null if the given file is null.
         /// </summary>
-        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, CallableSignature>>)> GetCallableDeclarationHeaderItems
+        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, Modifiers, CallableSignature>>)> GetCallableDeclarationHeaderItems
             (this FileContentManager file) => file.GetHeaderItems(file?.CallableDeclarationTokens(), frag => frag.Kind.DeclaredCallable(), null);
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The function returns Null if the Kind of the given fragment is null.
         /// </summary>
         private static QsNullable<Tuple<QsSymbol, (QsSpecializationKind, QsSpecializationGenerator, Tuple<QsPositionInfo, QsPositionInfo>)>> SpecializationDeclaration
-            (HeaderEntry<Tuple<QsCallableKind, CallableSignature>> parent, CodeFragment fragment)
+            (HeaderEntry<Tuple<QsCallableKind, Modifiers, CallableSignature>> parent, CodeFragment fragment)
         {
             var specDecl = fragment.Kind?.DeclaredSpecialization();
             var Null = QsNullable<Tuple<QsSymbol, (QsSpecializationKind, QsSpecializationGenerator, Tuple<QsPositionInfo, QsPositionInfo>)>>.Null;
@@ -222,11 +222,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // add documenting comments to the namespace declarations
                 foreach (var header in namespaceHeaders)
-                { distinctNamespaces[header.Item2.SymbolName].AddDocumenation(file.FileName, header.Item2.Documentation); }
+                { distinctNamespaces[header.Item2.SymbolName].AddDocumentation(file.FileName, header.Item2.Documentation); }
 
                 // add all type declarations
                 var typesToCompile = AddItems(file.GetTypeDeclarationHeaderItems(),
-                    (pos, name, decl, att, doc) => (ContainingParent(pos, namespaces)).TryAddType(file.FileName, Location(pos, name.Item2), name, decl, att, doc),
+                    (pos, name, decl, att, doc) => (ContainingParent(pos, namespaces)).TryAddType(file.FileName, Location(pos, name.Item2), name, decl.Item2, att, decl.Item1, doc),
                     file.FileName.Value, diagnostics);
 
                 var tokensToCompile = new List<(QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>))>();
@@ -238,7 +238,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // add all callable declarations
                 var callablesToCompile = AddItems(file.GetCallableDeclarationHeaderItems(),
-                    (pos, name, decl, att, doc) => (ContainingParent(pos, namespaces)).TryAddCallableDeclaration(file.FileName, Location(pos, name.Item2), name, decl, att, doc),
+                    (pos, name, decl, att, doc) => (ContainingParent(pos, namespaces)).TryAddCallableDeclaration(file.FileName, Location(pos, name.Item2), name, Tuple.Create(decl.Item1, decl.Item3), att, decl.Item2, doc),
                     file.FileName.Value, diagnostics);
 
                 // add all callable specilizations -> TOOD: needs to be adapted for specializations outside the declaration body (not yet supported)
@@ -271,7 +271,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Throws an ArgumentNullException if either the given namespace or diagnostics are null.
         /// </summary>
         private static List<CodeFragment.TokenIndex> AddSpecializationsToNamespace(FileContentManager file, Namespace ns,
-            (CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, CallableSignature>>) parent, List<Diagnostic> diagnostics)
+            (CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, Modifiers, CallableSignature>>) parent, List<Diagnostic> diagnostics)
         {
             if (ns == null) throw new ArgumentNullException(nameof(ns));
             if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
@@ -1226,7 +1226,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             QsSpecialization GetSpecialization(SpecializationDeclarationHeader spec, ResolvedSignature signature, 
                 SpecializationImplementation implementation, QsComments comments = null) =>
-                new QsSpecialization(spec.Kind, spec.Parent, spec.Attributes, spec.SourceFile, null, 
+                new QsSpecialization(spec.Kind, spec.Parent, spec.Attributes, spec.SourceFile, QsNullable<QsLocation>.Null, 
                 spec.TypeArguments, SyntaxGenerator.WithoutRangeInfo(signature), implementation, spec.Documentation, comments ?? QsComments.Empty);
 
             QsSpecialization BuildSpecialization(QsSpecializationKind kind, ResolvedSignature signature, QsSpecializationGeneratorKind<QsSymbol> gen, FragmentTree.TreeNode root,
@@ -1265,7 +1265,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (cancellationToken.IsCancellationRequested) return null;
                 bool InvalidCharacteristicsOrSupportedFunctors(params QsFunctor[] functors) =>
                     parentCharacteristics.AreInvalid || !functors.Any(f => !supportedFunctors.Contains(f));
-                if (!definedSpecs.Values.Any(d => DiagnosticTools.AsPosition(d.Item2.Position) == root.Fragment.GetRange().Start)) return null; // only process specializations that are valid
+                if (!definedSpecs.Values.Any(d => d.Item2.Position is DeclarationHeader.Offset.Defined pos && DiagnosticTools.AsPosition(pos.Item) == root.Fragment.GetRange().Start)) return null; // only process specializations that are valid
 
                 if (FileHeader.IsCallableDeclaration(root.Fragment)) // no specializations have been defined -> one default body
                 {
@@ -1346,19 +1346,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // check that the declarations for the types and callables to be built from the given FragmentTrees exist in the given CompilationUnit
                 var typeRoots = roots.Where(root => root.Value.Item2.Specializations == null);
                 var typeDeclarations = typeRoots.ToImmutableDictionary(
-                    root => root.Key, root =>
+                    root => root.Key,
+                    root =>
                     {
-                        var info = compilation.GlobalSymbols.TryGetType(root.Key, root.Value.Item2.Namespace, root.Value.Item2.Source);
-                        if (info.IsNull) throw new ArgumentException("type to build is no longer present in the given NamespaceManager");
-                        return info.Item;
+                        var result = compilation.GlobalSymbols.TryGetType(root.Key, root.Value.Item2.Namespace, root.Value.Item2.Source);
+                        return result is ResolutionResult<TypeDeclarationHeader>.Found type
+                            ? type.Item
+                            : throw new ArgumentException("type to build is no longer present in the given NamespaceManager");
                     });
                 var callableRoots = roots.Where(root => root.Value.Item2.Specializations != null);
                 var callableDeclarations = callableRoots.ToImmutableDictionary(
-                    root => root.Key, root => 
+                    root => root.Key,
+                    root =>
                     {
-                        var info = compilation.GlobalSymbols.TryGetCallable(root.Key, root.Value.Item2.Namespace, root.Value.Item2.Source);
-                        if (info.IsNull) throw new ArgumentException("callable to build is no longer present in the given NamespaceManager");
-                        return info.Item;
+                        var result = compilation.GlobalSymbols.TryGetCallable(root.Key, root.Value.Item2.Namespace, root.Value.Item2.Source);
+                        return result is ResolutionResult<CallableDeclarationHeader>.Found callable
+                            ? callable.Item
+                            : throw new ArgumentException("callable to build is no longer present in the given NamespaceManager");
                     });
 
                 (QsQualifiedName, ImmutableArray<QsSpecialization>) GetSpecializations
@@ -1381,20 +1385,41 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     symbolTracker.BeginScope();
                     foreach (var decl in declaredVariables)
                     {
+                        var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
+                        QsCompilerError.Verify(offset != null, "missing position information for built callable");
                         var msgs = symbolTracker.TryAddVariableDeclartion(decl).Item2
-                            .Select(msg => Diagnostics.Generate(info.SourceFile.Value, msg, DiagnosticTools.AsPosition(info.Position)));
+                            .Select(msg => Diagnostics.Generate(info.SourceFile.Value, msg, DiagnosticTools.AsPosition(offset)));
                         diagnostics.AddRange(msgs);
                     }
                     symbolTracker.EndScope();
                     QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
-                    return new QsCallable(info.Kind, parent, info.Attributes, info.SourceFile, null, 
-                        info.Signature, info.ArgumentTuple, specs, info.Documentation, roots[parent].Item1);
+                    return new QsCallable(
+                        info.Kind,
+                        parent,
+                        info.Attributes,
+                        info.Modifiers,
+                        info.SourceFile,
+                        QsNullable<QsLocation>.Null, 
+                        info.Signature,
+                        info.ArgumentTuple,
+                        specs,
+                        info.Documentation,
+                        roots[parent].Item1
+                    );
                 }
 
                 var callables = callableRoots.Select(GetSpecializations).Select(GetCallable).ToImmutableArray();
                 var types = typeDeclarations.Select(decl => new QsCustomType(
-                    decl.Key, decl.Value.Attributes, decl.Value.SourceFile, new QsLocation(decl.Value.Position, decl.Value.SymbolRange), 
-                    decl.Value.Type, decl.Value.TypeItems, decl.Value.Documentation, roots[decl.Key].Item1)).ToImmutableArray();
+                    decl.Key,
+                    decl.Value.Attributes,
+                    decl.Value.Modifiers,
+                    decl.Value.SourceFile,
+                    decl.Value.Location,
+                    decl.Value.Type,
+                    decl.Value.TypeItems,
+                    decl.Value.Documentation,
+                    roots[decl.Key].Item1
+                )).ToImmutableArray();
 
                 if (cancellationToken.IsCancellationRequested) return null;
                 compilation.UpdateCallables(callables);

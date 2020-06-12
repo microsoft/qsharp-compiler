@@ -2,7 +2,7 @@
   <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <IsPackable>false</IsPackable>
     <AssemblyName>Tests.Microsoft.Quantum.QsCompiler</AssemblyName>
     <OutputType>Library</OutputType>
@@ -35,10 +35,16 @@
     <None Include="TestCases\LinkingTests\EntryPointSpecializations.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\LinkingTests\EntryPointDiagnostics.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LinkingTests\Monomorphization.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LinkingTests\IntrinsicResolution.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\InternalRenaming.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">
@@ -120,6 +126,12 @@
     <None Include="TestCases\FunctorGeneration.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\AccessModifiers.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\ClassicalControl.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Compile Include="..\..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
@@ -131,11 +143,13 @@
     <Compile Include="TransformationTests.fs" />
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="LinkingTests.fs" />
+    <Compile Include="ClassicalControlTests.fs" />
     <Compile Include="RegexTests.fs" />
     <Compile Include="SerializationTests.fs" />
     <Compile Include="CommandLineTests.fs" />
     <Compile Include="SymbolManagementTests.fs" />
     <Compile Include="OptimizationTests.fs" />
+    <Compile Include="AccessModifierTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -157,14 +171,15 @@
 
   <ItemGroup>
     <PackageReference Update="System.ValueTuple" Version="4.4.0" />
-    <PackageReference Update="FSharp.Core" Version="4.7.0" />    
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
   </ItemGroup>
 
-  <Target Name="PrepareExecutionTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
+  <Target Name="PrepareReferenceTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
     <PropertyGroup>
-      <ExecutionTarget>"$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.0\Example.dll"</ExecutionTarget>
+      <ExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.1\Example.dll</ExecutionTarget>
+      <LibraryTarget>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\netcoreapp3.1\Library1.dll</LibraryTarget>
     </PropertyGroup>
-    <WriteLinesToFile File="$(OutputPath)ExecutionTarget.txt" Lines="$(ExecutionTarget)" Overwrite="true" />
+    <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt" Lines="$(ExecutionTarget); $(LibraryTarget)" Overwrite="true" />
   </Target>
 
 </Project>

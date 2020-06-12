@@ -16,7 +16,7 @@
     <RootNamespace>Microsoft.Quantum.VisualStudio</RootNamespace>
     <AssemblyName>Microsoft.Quantum.VisualStudio.Extension</AssemblyName>
     <TargetVsixContainerName>Microsoft.Quantum.Development.Kit-$(AssemblyVersion).vsix</TargetVsixContainerName>
-    <LanguageServerPath>..\..\QsCompiler\LanguageServer\bin\$(Configuration)\netcoreapp3.0\publish\</LanguageServerPath>
+    <LanguageServerPath>..\..\QsCompiler\LanguageServer\bin\$(Configuration)\netcoreapp3.1\publish\</LanguageServerPath>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <GeneratePkgDefFile>false</GeneratePkgDefFile>
     <UseCodebase>true</UseCodebase>
@@ -151,6 +151,6 @@
       <RemoveFiles Include="$(LanguageServerPath)**" />
     </ItemGroup>
     <Delete Files="@(RemoveFiles)" />
-    <Exec Command="dotnet publish $(ProjectDir)..\..\QsCompiler\LanguageServer\LanguageServer.csproj --self-contained true /p:PublishSingleFile=true --runtime win10-x64 -c $(ConfigurationName) -o $(ProjectDir)$(LanguageServerPath)" />
+    <Exec Command="dotnet publish $(ProjectDir)..\..\QsCompiler\LanguageServer\LanguageServer.csproj --self-contained true --runtime win10-x64 -c $(ConfigurationName) -o $(ProjectDir)$(LanguageServerPath)" />
   </Target>
 </Project>

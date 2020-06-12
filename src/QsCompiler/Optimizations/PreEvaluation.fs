@@ -1,20 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.Optimizations
+namespace Microsoft.Quantum.QsCompiler.Experimental
 
+open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.Experimental
+open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
-open Microsoft.Quantum.QsCompiler.Optimizations.Tools
-open Microsoft.Quantum.QsCompiler.Optimizations.VariableRenaming
-open Microsoft.Quantum.QsCompiler.Optimizations.VariableRemoving
-open Microsoft.Quantum.QsCompiler.Optimizations.StatementRemoving
-open Microsoft.Quantum.QsCompiler.Optimizations.ConstantPropagation
-open Microsoft.Quantum.QsCompiler.Optimizations.LoopUnrolling
-open Microsoft.Quantum.QsCompiler.Optimizations.CallableInlining
-open Microsoft.Quantum.QsCompiler.Optimizations.StatementReordering
-open Microsoft.Quantum.QsCompiler.Optimizations.PureCircuitFinding
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
@@ -28,36 +22,36 @@ type PreEvaluation =
     /// function that takes as input such a dictionary of callables.
     ///
     /// Disclaimer: This is an experimental feature.
-    static member Script (script : ImmutableDictionary<QsQualifiedName, QsCallable> -> OptimizingTransformation list) (arg : QsCompilation) =
+    static member WithScript (script : Func<ImmutableDictionary<QsQualifiedName, QsCallable>, TransformationBase seq>) (arg : QsCompilation) =
 
         // TODO: this should actually only evaluate everything for each entry point
         let rec evaluate (tree : _ list) = 
             let mutable tree = tree
-            tree <- List.map (StripAllKnownSymbols().Transform) tree
-            tree <- List.map (VariableRenamer().Transform) tree
+            tree <- List.map (StripAllKnownSymbols().Namespaces.OnNamespace) tree
+            tree <- List.map (VariableRenaming().Namespaces.OnNamespace) tree
 
             let callables = GlobalCallableResolutions tree // needs to be constructed in every iteration
-            let optimizers = script callables
-            for opt in optimizers do tree <- List.map opt.Transform tree
-            if optimizers |> List.exists (fun opt -> opt.checkChanged()) then evaluate tree 
+            let optimizers = script.Invoke callables |> Seq.toList
+            for opt in optimizers do tree <- List.map opt.Namespaces.OnNamespace tree
+            if optimizers |> List.exists (fun opt -> opt.CheckChanged()) then evaluate tree 
             else tree
 
         let namespaces = arg.Namespaces |> Seq.map StripPositionInfo.Apply |> List.ofSeq |> evaluate
         QsCompilation.New (namespaces.ToImmutableArray(), arg.EntryPoints)
 
     /// Default sequence of optimizing transformations
-    static member private DefaultScript removeFunctions maxSize callables : OptimizingTransformation list =
-        [
-            VariableRemover()
-            StatementRemover(removeFunctions)
-            ConstantPropagator(callables)
-            LoopUnroller(callables, maxSize)
-            CallableInliner(callables)
-            StatementReorderer()
+    static member DefaultScript removeFunctions maxSize : Func<_, TransformationBase seq> = 
+        new Func<_,_> (fun callables -> seq {
+            VariableRemoval()
+            StatementRemoval(removeFunctions)
+            ConstantPropagation(callables)
+            LoopUnrolling(callables, maxSize)
+            CallableInlining(callables)
+            StatementGrouping()
             PureCircuitFinder(callables)
-        ]
+        })
 
     /// Attempts to pre-evaluate the given sequence of namespaces
     /// as much as possible with a default optimization script
     static member All (arg : QsCompilation) =
-        PreEvaluation.Script (PreEvaluation.DefaultScript false 40) arg
+        PreEvaluation.WithScript (PreEvaluation.DefaultScript false 40) arg

@@ -1,0 +1,45 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Work around issues in MSBuild versions prior to 16.0. -->
+  <PropertyGroup>
+    <MSBuildAllProjects Condition=" '$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0' ">
+      $(MSBuildAllProjects);$(MSBuildThisFileFullPath)
+    </MSBuildAllProjects>
+  </PropertyGroup>
+
+  <!-- general build properties -->
+  <PropertyGroup>
+    <!-- Q# sdk version -->
+    <QuantumSdkVersion>#NUGET_VERSION#</QuantumSdkVersion>
+    <!-- Q# language version -->
+    <QsharpLangVersion>#MAJOR_VERSION#.#MINOR_VERSION#</QsharpLangVersion>
+    <!-- C# language version for the Driver (if applicable)-->
+    <LangVersion>latest</LangVersion>
+    <!-- cpu platform target -->
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <!-- verified configurable properties -->
+  <PropertyGroup>
+    <DefaultOutputType>Library</DefaultOutputType>
+    <OutputType>$(DefaultOutputType)</OutputType>
+    <DefaultExecutionTarget>Any</DefaultExecutionTarget>
+    <ExecutionTarget>$(DefaultExecutionTarget)</ExecutionTarget>
+  </PropertyGroup>
+
+  <!-- unverified configurable properties -->
+  <PropertyGroup> 
+    <QscVerbosity>Normal</QscVerbosity>
+    <CsharpGeneration>true</CsharpGeneration> <!-- at some point we may want to make False the default -->
+    <IncludeQsharpCorePackages>true</IncludeQsharpCorePackages> 
+    <IncludeProviderPackages>true</IncludeProviderPackages> 
+    <QsharpDocsGeneration>false</QsharpDocsGeneration>
+    <ExposeReferencesViaTestNames>false</ExposeReferencesViaTestNames> <!-- IMPORTANT: If the name of this property is changed, the property name in the language server needs to be adapted! -->
+    <DefaultQscBuildConfigExe>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Sdk.BuildConfiguration.dll"</DefaultQscBuildConfigExe> 
+    <QscBuildConfigExe>$(DefaultQscBuildConfigExe)</QscBuildConfigExe> 
+    <DefaultQscExe>dotnet "$(MSBuildThisFileDirectory)../tools/qsc/qsc.dll"</DefaultQscExe> 
+    <QscExe>$(DefaultQscExe)</QscExe> 
+  </PropertyGroup>
+
+</Project>
+ 

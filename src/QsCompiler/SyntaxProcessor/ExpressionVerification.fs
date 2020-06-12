@@ -24,12 +24,12 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 // utils for verifying types in expressions
 
 type private StripInferredInfoFromType () = 
-    inherit ExpressionTypeTransformation(true)
-    default this.onCallableInformation opInfo = 
-        let characteristics = this.onCharacteristicsExpression opInfo.Characteristics
+    inherit TypeTransformationBase()
+    default this.OnCallableInformation opInfo = 
+        let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         CallableInformation.New (characteristics, InferredCallableInformation.NoInformation)
-    override this.onRangeInformation _ = QsRangeInfo.Null
-let private StripInferredInfoFromType = (new StripInferredInfoFromType()).Transform
+    override this.OnRangeInformation _ = QsRangeInfo.Null
+let private StripInferredInfoFromType = (new StripInferredInfoFromType()).OnType
 
 /// used for type matching arguments in call-like expressions
 type private Variance = 
@@ -50,7 +50,7 @@ let private missingFunctors (target : ImmutableHashSet<_>, given) =
 
 /// Return the string representation for a ResolveType. 
 /// User defined types are represented by their full name. 
-let internal toString = (new ExpressionTypeToQs(new ExpressionToQs())).Apply
+let internal toString (t : ResolvedType) = SyntaxTreeToQsharp.Default.ToCode t 
 
 /// Given two resolve types, determines and returns a common base type if such a type exists, 
 /// or pushes adds a suitable error using addError and returns invalid type if a common base type does not exist.
@@ -83,7 +83,7 @@ let private CommonBaseType addError mismatchErr parent (lhsType : ResolvedType, 
             | Covariant -> CallableInformation.Common [s1; s2]
             | Contravariant -> // no information can ever be inferred in this case, since contravariance only occurs within the type signatures of passed callables
                 CallableInformation.New (Union (s1.Characteristics, s2.Characteristics) |> ResolvedCharacteristics.New, InferredCallableInformation.NoInformation)
-            | Invariant when s1.Characteristics.AreInvalid || s2.Characteristics.AreInvalid || s1.Characteristics = s2.Characteristics -> 
+            | Invariant when s1.Characteristics.AreInvalid || s2.Characteristics.AreInvalid || s1.Characteristics.GetProperties().SetEquals (s2.Characteristics.GetProperties()) -> 
                 let characteristics = if s1.Characteristics.AreInvalid then s2.Characteristics else s1.Characteristics
                 let inferred = InferredCallableInformation.Common [s1.InferredInformation; s2.InferredInformation]
                 CallableInformation.New (characteristics, inferred)
@@ -381,11 +381,11 @@ let private VerifyIdentifier addDiagnostic (symbols : SymbolTracker<_>) (sym, tA
 
 /// Verifies whether an expression of the given argument type can be used as argument to a method (function, operation, or setter)
 /// that expects an argument of the given target type. The given target type may contain a missing type (valid for a setter). 
-/// Accumulates and returns an array with error codes for the cases where this is not the case, and returns an empyt array otherwise. 
+/// Accumulates and returns an array with error codes for the cases where this is not the case, and returns an empty array otherwise. 
 /// Note that MissingTypes in the argument type should not occur aside from possibly as array base type of the expression.
 /// A missing type in the given argument type will cause a verification failure in QsCompilerError.
 /// For each type parameter in the target type, calls addTypeParameterResolution with a tuple of the type parameter and the type that is substituted for it.  
-/// IMPORTANT: The consistent (i.e. non-ambiguous and non-contraining) resolution of type parameters is *not* verified by this routine 
+/// IMPORTANT: The consistent (i.e. non-ambiguous and non-constraining) resolution of type parameters is *not* verified by this routine 
 /// and needs to be verified in a separate step!
 let internal TypeMatchArgument addTypeParameterResolution targetType argType =  
     let givenAndExpectedType = [argType |> toString; targetType |> toString]

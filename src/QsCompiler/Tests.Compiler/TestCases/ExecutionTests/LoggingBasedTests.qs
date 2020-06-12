@@ -33,10 +33,12 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
             ULog("V1");
 
             within {
+                let dummy = 0;
                 ULog("U3");
                 ULog("V3");
             }
             apply {
+                let dummy = 0;
                 ULog("Core3");
             }
         }
@@ -68,4 +70,12 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
     operation ConjugationsInControlledAdjoint () : Unit {
         Controlled Adjoint SpecGenForConjugations(new Qubit[0], ());
     }
+
+
+    // tests for loading via test names
+
+    operation LogViaTestName () : Unit {
+        Library2.Log(0, "nothing");
+    }
+
 }

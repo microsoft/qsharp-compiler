@@ -73,7 +73,8 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsExpressionStatement _ 
             | QsStatementKind.QsFailStatement _ 
             | QsStatementKind.QsValueUpdate _ 
-            | QsStatementKind.QsVariableDeclaration _ -> ()
+            | QsStatementKind.QsVariableDeclaration _ 
+            | QsStatementKind.EmptyStatement -> ()
 
     // returns true if all paths in the given scope contain a terminating (i.e. return or fail) statement
     let rec checkTermination (scope : QsScope) = 
@@ -98,7 +99,8 @@ let AllPathsReturnValueOrFail body =
             | QsStatementKind.QsExpressionStatement _ 
             | QsStatementKind.QsFailStatement _ 
             | QsStatementKind.QsValueUpdate _ 
-            | QsStatementKind.QsVariableDeclaration _ -> true
+            | QsStatementKind.QsVariableDeclaration _ 
+            | QsStatementKind.EmptyStatement -> true
 
         let returnOrFailAndAfter = Seq.toList <| scope.Statements.SkipWhile isNonTerminatingStatement
         if returnOrFailAndAfter.Length <> 0 then 
@@ -121,8 +123,11 @@ let AllPathsReturnValueOrFail body =
 /// verifies that the defined types do not have circular dependencies.  
 /// Ignores any usage of a user defined type that is not listed in the given array of types. 
 /// Returns a lookup that contains the generated diagnostics and their positions for each file.
+/// Throws an ArgumentException if the location for a generated diagnostic cannot be determined. 
 let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHeader>) = 
-    let diagnostics = new List<(_ * NonNullable<string>)*_>()
+    let diagnostics = new List<((int * int) * NonNullable<string>)*_>()
+    let getLocation (header: TypeDeclarationHeader) = 
+        header.Location.ValueOrApply (fun _ -> ArgumentException "The given type header contains no location information." |> raise)
 
     // for each defined type build a list of all user defined types it contains, and one with all types it is contained in (convenient for sorting later)
     let containedTypes = List.init definitions.Length (fun _ -> List<int>())
@@ -139,7 +144,7 @@ let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHead
                 if typeIndex <> parent then 
                     if not (containedTypes.[parent].Contains typeIndex) then containedTypes.[parent].Add typeIndex 
                     if not (containedIn.[typeIndex].Contains parent) then containedIn.[typeIndex].Add parent
-                else (source, header.SymbolRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeCannotContainItself, [])) |> diagnostics.Add 
+                else (source, (getLocation header).Range |> QsCompilerDiagnostic.Error (ErrorCode.TypeCannotContainItself, [])) |> diagnostics.Add 
                 []
 
     let getTypes location (vtype : ResolvedType) (rootIndex : int option) = 
@@ -148,19 +153,20 @@ let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHead
         | QsTypeKind.Function (it, ot) 
         | QsTypeKind.Operation ((it,ot), _) -> [it; ot]
         | QsTypeKind.TupleType vtypeList -> vtypeList |> Seq.toList
-        | QsTypeKind.UserDefinedType udt -> updateContainedReferences rootIndex (location, QsQualifiedName.New(udt.Namespace, udt.Name))
+        | QsTypeKind.UserDefinedType udt ->
+            updateContainedReferences rootIndex (location, QsQualifiedName.New(udt.Namespace, udt.Name))
         | _ -> [] 
 
     let walk_udts () = // builds up containedTypes and containedIn
         definitions |> Seq.iteri (fun typeIndex header ->
             let queue = Queue()
             let parent = 
-                (header.QualifiedName.Namespace, header.QualifiedName.Name, header.SymbolRange |> Value) 
+                (header.QualifiedName.Namespace, header.QualifiedName.Name, header.Location |> QsNullable<_>.Map (fun loc -> loc.Range)) 
                 |> UserDefinedType.New |> UserDefinedType |> ResolvedType.New
-            for entry in getTypes (header.Position, header.SourceFile) parent None do queue.Enqueue entry
+            for entry in getTypes ((getLocation header).Offset, header.SourceFile) parent None do queue.Enqueue entry
             let rec search () =
                 if queue.Count <> 0 then 
-                    let ctypes = getTypes (header.Position, header.SourceFile) (queue.Dequeue()) (Some typeIndex)
+                    let ctypes = getTypes ((getLocation header).Offset, header.SourceFile) (queue.Dequeue()) (Some typeIndex)
                     for entry in ctypes do queue.Enqueue entry 
                     search ()
             search())
@@ -183,7 +189,8 @@ let CheckDefinedTypesForCycles (definitions : ImmutableArray<TypeDeclarationHead
     if remaining.Length <> 0 then 
         for (udtIndex, _) in remaining do
             let udt = definitions.[udtIndex]
-            ((udt.Position, udt.SourceFile), udt.SymbolRange |> QsCompilerDiagnostic.Error (ErrorCode.TypeIsPartOfCyclicDeclaration, [])) |> diagnostics.Add        
+            let loc = getLocation udt
+            ((loc.Offset, udt.SourceFile), loc.Range |> QsCompilerDiagnostic.Error (ErrorCode.TypeIsPartOfCyclicDeclaration, [])) |> diagnostics.Add        
     let positionAndDiagnostic ((pos, _), msg) = pos, msg 
     diagnostics.ToLookup(fst >> snd, positionAndDiagnostic)
 
