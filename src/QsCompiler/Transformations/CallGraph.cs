@@ -152,18 +152,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         }
 
         /// <summary>
-        /// Copy constructor for CallGraphEdge objects.
-        /// Throws ArgumentNullException if edge is null or its ParamResolutions field is null
-        /// </summary>
-        public CallGraphEdge(CallGraphEdge edge)
-        {
-            if (edge == null || edge.ParamResolutions == null) throw new ArgumentNullException(nameof(edge));
-
-            // Remove position info from type parameter resolutions
-            ParamResolutions = edge.ParamResolutions;
-        }
-
-        /// <summary>
         /// Determines if the object is the same as the given edge, ignoring the
         /// ordering of key-value pairs in the type parameter dictionaries.
         /// </summary>
