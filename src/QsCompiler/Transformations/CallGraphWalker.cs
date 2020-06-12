@@ -20,11 +20,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>;
 
     /// <summary>
-    /// This transformation walks through the compilation without changing it, building up a call graph as it does.
-    /// This call graph is then returned to the user.
+    /// Static class used to build a call graph. 
     /// </summary>
     public static class BuildCallGraph
     {
+        /// <summary>
+        /// Walks through the compilation without changing it, building up a call graph as it does.
+        /// Returns the built call graph.
+        /// May throw an ArgumentExeception or an ArgumentNullException if the given compilation contains invalid or inconsistent items. 
+        /// </summary>
         public static CallGraph Apply(QsCompilation compilation)
         {
             var globals = compilation.Namespaces.GlobalCallableResolutions();
@@ -81,7 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     walker.SharedState.ResolvedCallableSet.Add(currentRequest);
 
                     var spec = relevantSpecs.First();
-                    var typeParamNames = GetTypeParameterNames(spec.Parent, spec.Signature);
+                    var typeParamNames = GetTypeParameterNames(spec.Signature);
                     walker.SharedState.SetCurrentCaller(currentRequest, typeParamNames);
                     walker.Namespaces.OnSpecializationImplementation(spec.Implementation);
                 }
@@ -114,28 +118,34 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
         /// <summary>
         /// Gets the type parameter names for the given callable. 
+        /// Throws an ArgumentNullExeception if the given signature is null. 
         /// Throws an ArgumentException if any of its type parameter names is invalid. 
         /// </summary>
-        private static ImmutableArray<NonNullable<string>> GetTypeParameterNames(QsQualifiedName callable, ResolvedSignature signature)
+        private static ImmutableArray<NonNullable<string>> GetTypeParameterNames(ResolvedSignature signature)
         {
+            if (signature == null) throw new ArgumentNullException(nameof(signature));
+
             var typeParams = signature.TypeParameters.Select(p =>
                 p is QsLocalSymbol.ValidName name ? name.Item
-                : throw new ArgumentException($"invalid type parameter name for callable {callable}"));
+                : throw new ArgumentException($"invalid type parameter name"));
             return typeParams.ToImmutableArray();
         }
 
         /// <summary>
         /// Returns the type arguments for the given callable according to the given type parameter resolutions.
+        /// Throws an ArgumentNullExeception if any of the given arguments is null. 
         /// Throws an ArgumentException if any of its type parameter names is invalid or
         /// if the resolution is missing for any of the type parameters of the callable. 
         /// </summary>
-        private static ImmutableArray<ResolvedType> ConcreteTypeArguments(QsCallable callable, TypeParameterResolutions typeParamRes)
+        private static ImmutableArray<ResolvedType> ConcreteTypeArguments(QsQualifiedName callable, ResolvedSignature signature, TypeParameterResolutions typeParamRes)
         {
-            var typeArgs = GetTypeParameterNames(callable.FullName, callable.Signature).Select(p =>
-                typeParamRes.TryGetValue(Tuple.Create(callable.FullName, p), out var res) ? res
-                : throw new ArgumentException($"unresolved type parameter {p.Value} for {callable.FullName}"));
-            return typeArgs.ToImmutableArray();
+            if (callable == null) throw new ArgumentNullException(nameof(callable));
+            if (typeParamRes == null) throw new ArgumentNullException(nameof(typeParamRes));
 
+            var typeArgs = GetTypeParameterNames(signature).Select(p =>
+                typeParamRes.TryGetValue(Tuple.Create(callable, p), out var res) ? res
+                : throw new ArgumentException($"unresolved type parameter {p.Value} for {callable}"));
+            return typeArgs.ToImmutableArray();
         }
 
         private class TransformationState
@@ -152,8 +162,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 CurrentCaller = value;
                 this.CallerTypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, NonNullable<string>>, ResolvedType>.Empty;
-                if (value.TypeArgs.IsValue)
+                if (value != null && value.TypeArgs.IsValue)
                 {
+                    if (value.TypeArgs.Item.Length != typeParamNames.Length)
+                        throw new ArgumentException("The number of type parameter names does not match the number or type arguments");
+
                     this.CallerTypeParameterResolutions = value.TypeArgs.Item
                         .Where(res => !res.Resolution.IsMissingType)
                         .Select((res, idx) => (Tuple.Create(value.CallableName, typeParamNames[idx]), res))
@@ -193,7 +206,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     if (!Callables.TryGetValue(called, out var decl))
                         throw new ArgumentException($"Couldn't find definition for callable {called}");
 
-                    var resTypeArgsCalled = ConcreteTypeArguments(decl, typeParamRes);
+                    var resTypeArgsCalled = ConcreteTypeArguments(decl.FullName, decl.Signature, typeParamRes);
                     typeArgsCalled = resTypeArgsCalled.Length != 0
                         ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(resTypeArgsCalled.ToImmutableArray())
                         : QsNullable<ImmutableArray<ResolvedType>>.Null;
@@ -253,7 +266,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 if (spec.TypeArguments.IsValue && spec.Signature.TypeParameters.Length != spec.TypeArguments.Item.Length)
                     throw new ArgumentException($"The number of type arguments for the {spec.Parent} does not match the number of type parameters.");
 
-                var typeParamNames = GetTypeParameterNames(spec.Parent, spec.Signature);
+                var typeParamNames = GetTypeParameterNames(spec.Signature);
                 var node = new CallGraphNode(spec.Parent, spec.Kind, spec.TypeArguments);
                 SharedState.SetCurrentCaller(node, typeParamNames);
                 return base.OnSpecializationDeclaration(spec);
