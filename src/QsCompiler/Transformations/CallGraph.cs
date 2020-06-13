@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// <summary>
         /// Constructor for CallGraphEdge objects.
         /// Strips position info from given resolutions before assigning them to ParamResoluitons
-        /// to ensure that the same type parameters will have the same hash.
+        /// to ensure that the same type parameters will compare as equal.
         /// Throws an ArgumentNullException if paramResolutions is null.
         /// </summary>
         public CallGraphEdge(TypeParameterResolutions paramResolutions)
@@ -200,7 +200,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// point to the node that has the second edge, and so on.
         /// Throws an ArgumentNullException if any of the arguments is null.
         /// </summary>
-        public static CallGraphEdge CombineEdges(CallGraphNode targetNode, params CallGraphEdge[] edges)
+        public static CallGraphEdge CombinePathIntoSingleEdge(CallGraphNode targetNode, params CallGraphEdge[] edges)
         {
             if (targetNode == null) throw new ArgumentNullException(nameof(targetNode));
             if (edges == null || edges.Any(e => e == null)) throw new ArgumentNullException(nameof(edges));
@@ -686,7 +686,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 {
                     foreach (var (dependent, edges) in next)
                     {
-                        var combinedEdges = edges.Select(e => CallGraphEdge.CombineEdges(dependent, e, edgeFromRoot));
+                        var combinedEdges = edges.Select(e => CallGraphEdge.CombinePathIntoSingleEdge(dependent, e, edgeFromRoot));
 
                         if (accum.TryGetValue(dependent, out var existingEdges))
                         {
