@@ -660,7 +660,7 @@ type QsSpecialization = {
 }
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
-    member this.AddAttributes att = {this with Attributes = this.Attributes.AddRange att}
+    member this.AddAttributes (att : _ seq) = {this with Attributes = this.Attributes.AddRange att}
     member this.WithImplementation impl = {this with Implementation = impl}
     member this.WithParent (getName : Func<_,_>) = {this with Parent = getName.Invoke(this.Parent)}
 
@@ -700,7 +700,7 @@ type QsCallable = {
 }
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
-    member this.AddAttributes att = {this with Attributes = this.Attributes.AddRange att}
+    member this.AddAttributes (att : _ seq) = {this with Attributes = this.Attributes.AddRange att}
     member this.WithSpecializations (getSpecs : Func<_,_>) = {this with Specializations = getSpecs.Invoke(this.Specializations)}
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
 
@@ -742,7 +742,7 @@ type QsCustomType = {
 }
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
-    member this.AddAttributes att = {this with Attributes = this.Attributes.AddRange att}
+    member this.AddAttributes (att : _ seq) = {this with Attributes = this.Attributes.AddRange att}
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
 
 
