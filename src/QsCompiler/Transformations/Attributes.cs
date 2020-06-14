@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         : base(attributes)
         {
             if (attributes == null || attributes.Any(entry => entry.Item1 == null)) throw new ArgumentNullException(nameof(attributes));
-            this.AttributesToAdd = attributes.ToImmutableArray();
+            this.AttributesToAdd = attributes.Select(entry => (entry.Item1, entry.Item2 ?? (_ => true))).ToImmutableArray();
 
             this.Namespaces = new NamespaceTransformation(this);
             this.Statements = new Core.StatementTransformation<AttributeSelection>(this, Core.TransformationOptions.Disabled);
@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
             public override QsCallable OnCallableDeclaration(QsCallable c) =>
                 c.AddAttributes(SharedState
-                    .Where(entry => entry.Item2?.Invoke(c) ?? true)
+                    .Where(entry => entry.Item2(c))
                     .Select(entry => entry.Item1));
         }
     }
