@@ -22,15 +22,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         private static AttributeId BuildId(QsQualifiedName name) =>
             AttributeId.NewValue(new UserDefinedType(name.Namespace, name.Name, QsRangeInfo.Null));
 
-        public static QsDeclarationAttribute BuildAttribute(QsQualifiedName name, TypedExpression arg) =>
-            new QsDeclarationAttribute(BuildId(name), arg, null, QsComments.Empty); // FIXME: should not be null!
-
-        public static TypedExpression StringArgument(string target) =>
-            SyntaxGenerator.StringLiteral(NonNullable<string>.New(target), ImmutableArray<TypedExpression>.Empty);
-
-        public static QsCompilation AddToCallables(QsCompilation compilation, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
-                new Attributes(attributes).Apply(compilation);
-
         private Attributes(params (QsDeclarationAttribute, CallablePredicate)[] attributes)
         : base(attributes)
         {
@@ -39,9 +30,32 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
             this.Namespaces = new NamespaceTransformation(this);
             this.Statements = new Core.StatementTransformation<AttributeSelection>(this, Core.TransformationOptions.Disabled);
+            this.StatementKinds = new Core.StatementKindTransformation<AttributeSelection>(this, Core.TransformationOptions.Disabled);
             this.Expressions = new Core.ExpressionTransformation<AttributeSelection>(this, Core.TransformationOptions.Disabled);
+            this.ExpressionKinds = new Core.ExpressionKindTransformation<AttributeSelection>(this, Core.TransformationOptions.Disabled);
             this.Types = new Core.TypeTransformation<AttributeSelection>(this, Core.TransformationOptions.Disabled);
         }
+
+
+        // public static methods
+
+        public static QsDeclarationAttribute BuildAttribute(QsQualifiedName name, TypedExpression arg) =>
+            new QsDeclarationAttribute(BuildId(name), arg, null, QsComments.Empty); // FIXME: should not be null!
+
+        public static TypedExpression StringArgument(string target) =>
+            SyntaxGenerator.StringLiteral(NonNullable<string>.New(target), ImmutableArray<TypedExpression>.Empty);
+
+        public static QsCompilation AddToCallables(QsCompilation compilation, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
+            new Attributes(attributes).Apply(compilation);
+
+        public static QsNamespace AddToCallables(QsNamespace ns, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
+            new Attributes(attributes).Namespaces.OnNamespace(ns);
+
+        public static QsNamespace AddToCallables(QsNamespace ns, params QsDeclarationAttribute[] attributes) =>
+            new Attributes(attributes.Select(att => (att, (CallablePredicate)null)).ToArray()).Namespaces.OnNamespace(ns);
+
+
+        // helper classes
 
         private class NamespaceTransformation
         : Core.NamespaceTransformation<AttributeSelection>
@@ -56,5 +70,4 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     .Select(entry => entry.Item1));
         }
     }
-
 }
