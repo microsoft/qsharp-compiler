@@ -75,13 +75,13 @@ let NewFailStatement comments location context expr =
     verifiedExpr |> QsFailStatement |> asStatement comments location LocalDeclarations.Empty, Array.concat [diagnostics; autoGenErrs]
 
 /// Resolves and verifies the given Q# expression using the resolution context.
-/// Verifies that the type of the resolved expression is indeed compatible with the expected return type associated with the symbol tracker.
+/// Verifies that the type of the resolved expression is indeed compatible with the expected return type of the parent callable.
 /// Uses VerifyAssignment to verify that this is indeed the case.
 /// Builds the corresponding Q# return-statement at the given location, 
 /// and returns it along with an array of diagnostics generated during resolution and verification. 
 /// Errors due to the statement not satisfying the necessary conditions for the required auto-generation of specializations 
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics. 
-let NewReturnStatement comments (location : QsLocation) (context : ResolutionContext<_>) expr =
+let NewReturnStatement comments (location : QsLocation) (context : ScopeContext<_>) expr =
     let verifyIsReturnType = VerifyAssignment context.ReturnType context.Symbols.Parent ErrorCode.TypeMismatchInReturn
     let verifiedExpr, _, diagnostics = VerifyWith verifyIsReturnType context expr 
     let autoGenErrs =

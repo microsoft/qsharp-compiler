@@ -280,8 +280,8 @@ type SymbolTracker<'P>(globals : NamespaceManager, sourceFile, parent : QsQualif
                 | [itemDecl] -> itemDecl.Type |> StripPositionInfo.Apply
                 | _ -> addError (ErrorCode.UnknownItemName, [udt.Name.Value; name.Value]); InvalidType |> ResolvedType.New
 
-/// The context used for symbol resolution and type checking.
-type ResolutionContext<'a> =
+/// The context used for symbol resolution and type checking within the scope of a callable.
+type ScopeContext<'a> =
     { /// The symbol tracker for the parent callable.
       Symbols : SymbolTracker<'a>
       /// True if the parent callable for the current scope is an operation.
@@ -293,7 +293,7 @@ type ResolutionContext<'a> =
     with
 
     /// <summary>
-    /// Creates a resolution context for the specialization.
+    /// Creates a scope context for the specialization.
     ///
     /// The symbol tracker in the context does not make a copy of the given namespace manager. Instead, it throws an
     /// <see cref="InvalidOperationException"/> if the namespace manager has been modified (i.e. the version number of
@@ -310,4 +310,4 @@ type ResolutionContext<'a> =
               IsInOperation = declaration.Kind = Operation
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
               Capabilities = capabilities }
-        | _ -> raise <| ArgumentException "The specialization's parent does not exist."
+        | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."
