@@ -264,3 +264,50 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
 
     operation Baz() : Unit { }
 }
+
+// =================================
+
+// Entry Point No Descendants
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    @ EntryPoint()
+    operation Main() : Unit { }
+
+    operation Foo() : Unit {
+        Bar();
+    }
+
+    operation Bar() : Unit { }
+}
+
+// =================================
+
+// Calls Entry Point From Entry Point
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    @ EntryPoint()
+    operation Main() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit {
+        Main();
+    }
+}
+
+// =================================
+
+// Entry Point Ancestor And Descendant
+namespace Microsoft.Quantum.Testing.TypeParameterResolution {
+
+    @ EntryPoint()
+    operation Main() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit { }
+    
+    operation Bar() : Unit {
+        Main();
+    }
+}

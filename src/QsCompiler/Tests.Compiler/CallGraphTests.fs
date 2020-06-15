@@ -840,6 +840,49 @@ type CallGraphTests (output:ITestOutputHelper) =
         |> ignore
 
     [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Entry Point No Descendants`` () =
+        let graph = CompileTypeParameterResolutionTest 17
+        Assert.True(graph.Count = 0, "Expected call graph to be empty.")
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Calls Entry Point From Entry Point`` () =
+        let graph = CompileTypeParameterResolutionTest 18
+
+        [
+            "Main", [
+                "Foo"
+            ]
+            "Foo", [
+                "Main"
+            ]
+        ]
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> ignore
+
+    [<Fact>]
+    [<Trait("Category","Populate Call Graph")>]
+    member this.``Entry Point Ancestor And Descendant`` () =
+        let graph = CompileTypeParameterResolutionTest 19
+
+        [
+            "Main", [
+                "Foo"
+            ]
+            "Foo", [ ]
+        ]
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> ignore
+        
+        let BarNode =
+            CallGraphNode(
+                { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Bar" },
+                QsSpecializationKind.QsBody, QsNullable<ImmutableArray<ResolvedType>>.Null)
+
+        Assert.False(graph.ContainsNode(BarNode), "Expected call graph to not include Bar.")
+
+    [<Fact>]
     [<Trait("Category","Cycle Detection")>]
     member this.``No Cycles`` () =
         let cycles = CompileCycleDetectionTest 1
