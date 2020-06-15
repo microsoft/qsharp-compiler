@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         // public static methods
 
         public static QsDeclarationAttribute BuildAttribute(QsQualifiedName name, TypedExpression arg) =>
-            new QsDeclarationAttribute(BuildId(name), arg, null, QsComments.Empty); // FIXME: should not be null!
+            new QsDeclarationAttribute(BuildId(name), arg, null, QsComments.Empty);
 
         public static TypedExpression StringArgument(string target) =>
             SyntaxGenerator.StringLiteral(NonNullable<string>.New(target), ImmutableArray<TypedExpression>.Empty);
