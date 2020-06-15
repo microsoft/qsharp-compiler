@@ -146,6 +146,7 @@ let ``basic transformation`` () =
 let ``attaching attributes to callables`` () = 
     let WithinNamespace nsName (c : QsNamespaceElement) = c.GetFullName().Namespace.Value = nsName
     let attGenNs = "Microsoft.Quantum.Testing.AttributeGeneration"
+    let predicate = QsCallable >> WithinNamespace attGenNs
     let sources = [
         Path.Combine(Path.GetFullPath ".", "TestCases", "LinkingTests", "Core.qs")
         Path.Combine(Path.GetFullPath ".", "TestCases", "AttributeGeneration.qs")
@@ -157,23 +158,32 @@ let ``attaching attributes to callables`` () =
     let checkType (customType : QsCustomType) = 
         if customType |> QsCustomType |> WithinNamespace attGenNs then Assert.Empty customType.Attributes;
         customType
-    let checkCallable limitedToNs (callable : QsCallable) = 
+    let checkCallable limitedToNs nrAtts (callable : QsCallable) = 
         if limitedToNs = null || callable |> QsCallable |> WithinNamespace limitedToNs then 
-            Assert.Equal(1, callable.Attributes.Length)
-            Assert.Equal(testAttribute, callable.Attributes.Single())
+            Assert.Equal(nrAtts, callable.Attributes.Length)
+            for att in callable.Attributes do
+                Assert.Equal(testAttribute, att)
         else Assert.Empty callable.Attributes
         callable
 
-    let transformed = Attributes.AddToCallables(compilation, testAttribute, QsCallable >> WithinNamespace attGenNs)
-    let checker = new CheckDeclarations(checkType, checkCallable attGenNs, checkSpec)
+    let transformed = Attributes.AddToCallables(compilation, testAttribute, predicate)
+    let checker = new CheckDeclarations(checkType, checkCallable attGenNs 1, checkSpec)
     checker.Apply transformed |> ignore
 
     let transformed = Attributes.AddToCallables(compilation, testAttribute, null)
-    let checker = new CheckDeclarations(checkType, checkCallable null, checkSpec)
+    let checker = new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
     checker.Apply transformed |> ignore
 
     let transformed = Attributes.AddToCallables(compilation, testAttribute)
-    let checker = new CheckDeclarations(checkType, checkCallable null, checkSpec)
+    let checker = new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
+    checker.Apply transformed |> ignore
+
+    let transformed = Attributes.AddToCallables(compilation, struct (testAttribute, new Func<_,_>(predicate)), struct(testAttribute, new Func<_,_>(predicate)))
+    let checker = new CheckDeclarations(checkType, checkCallable attGenNs 2, checkSpec)
+    checker.Apply transformed |> ignore
+    
+    let transformed = Attributes.AddToCallables(compilation, testAttribute, testAttribute)
+    let checker = new CheckDeclarations(checkType, checkCallable null 2, checkSpec)
     checker.Apply transformed |> ignore
     
 

@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         private static AttributeId BuildId(QsQualifiedName name) =>
             AttributeId.NewValue(new UserDefinedType(name.Namespace, name.Name, QsRangeInfo.Null));
 
-        private Attributes(params (QsDeclarationAttribute, CallablePredicate)[] attributes)
+        private Attributes(IEnumerable<(QsDeclarationAttribute, CallablePredicate)> attributes)
         : base(attributes?.Select(entry => (entry.Item1, entry.Item2 ?? (_ => true))).ToImmutableArray())
         {
             if (attributes == null || attributes.Any(entry => entry.Item1 == null)) throw new ArgumentNullException(nameof(attributes));
@@ -42,19 +42,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             SyntaxGenerator.StringLiteral(NonNullable<string>.New(target), ImmutableArray<TypedExpression>.Empty);
 
         public static QsCompilation AddToCallables(QsCompilation compilation, QsDeclarationAttribute attribute, CallablePredicate predicate = null) =>
-            new Attributes((attribute, predicate)).Apply(compilation);
+            new Attributes(new[] { (attribute, predicate) }).Apply(compilation);
 
         public static QsCompilation AddToCallables(QsCompilation compilation, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
             new Attributes(attributes).Apply(compilation);
 
+        public static QsCompilation AddToCallables(QsCompilation compilation, params QsDeclarationAttribute[] attributes) =>
+            new Attributes(attributes.Select(att => (att, (CallablePredicate)null))).Apply(compilation);
+
         public static QsNamespace AddToCallables(QsNamespace ns, QsDeclarationAttribute attribute, CallablePredicate predicate = null) =>
-            new Attributes((attribute, predicate)).Namespaces.OnNamespace(ns);
+            new Attributes(new[] { (attribute, predicate) }).Namespaces.OnNamespace(ns);
 
         public static QsNamespace AddToCallables(QsNamespace ns, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
             new Attributes(attributes).Namespaces.OnNamespace(ns);
 
         public static QsNamespace AddToCallables(QsNamespace ns, params QsDeclarationAttribute[] attributes) =>
-            new Attributes(attributes.Select(att => (att, (CallablePredicate)null)).ToArray()).Namespaces.OnNamespace(ns);
+            new Attributes(attributes.Select(att => (att, (CallablePredicate)null))).Namespaces.OnNamespace(ns);
 
 
         // helper classes
