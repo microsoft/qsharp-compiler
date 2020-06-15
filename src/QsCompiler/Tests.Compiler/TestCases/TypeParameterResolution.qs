@@ -306,7 +306,7 @@ namespace Microsoft.Quantum.Testing.TypeParameterResolution {
     }
 
     operation Foo() : Unit { }
-    
+
     operation Bar() : Unit {
         Main();
     }

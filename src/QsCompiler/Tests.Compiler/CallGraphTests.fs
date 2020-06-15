@@ -309,7 +309,7 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     [<Fact(Skip="Need to rework resolution algorithm.")>]
     [<Trait("Category","Type resolution")>]
-    member this.``Multi-Stage Resolution of Multiple Resolutions to Type Parameter`` () = 
+    member this.``Multi-Stage Resolution of Multiple Resolutions to Type Parameter`` () =
 
         let given = [|
             ResolutionFromParam [
@@ -482,7 +482,7 @@ type CallGraphTests (output:ITestOutputHelper) =
 
     [<Fact>]
     [<Trait("Category","Type resolution")>]
-    member this.``Inner Cycle Constrains Type Parameter`` () = 
+    member this.``Inner Cycle Constrains Type Parameter`` () =
 
         let given = [|
             ResolutionFromParam [
@@ -874,7 +874,7 @@ type CallGraphTests (output:ITestOutputHelper) =
         ]
         |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
-        
+
         let BarNode =
             CallGraphNode(
                 { Namespace = NonNullable<_>.New Signatures.TypeParameterResolutionNS; Name = NonNullable<_>.New "Bar" },
