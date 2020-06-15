@@ -168,7 +168,14 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public bool Equals(CallGraphEdge edge)
         {
-            return this.ParamResolutions.OrderBy(kvp => kvp.Key).SequenceEqual(edge.ParamResolutions.OrderBy(kvp => kvp.Key));
+            if (this.ParamResolutions == edge.ParamResolutions)
+            {
+                return true;
+            }
+            else
+            {
+                return this.ParamResolutions.OrderBy(kvp => kvp.Key).SequenceEqual(edge.ParamResolutions.OrderBy(kvp => kvp.Key));
+            }
         }
 
         /// <summary>
