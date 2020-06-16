@@ -596,7 +596,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// be non-null; the QsNullable parameter may take on their associated null value.
         /// Throws ArgumentNullException if any of the non-nullable arguments are null.
         /// </summary>
-        public void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind,
+        internal void AddDependency(QsSpecialization callerSpec, QsQualifiedName calledName, QsSpecializationKind calledKind,
             QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs, TypeParameterResolutions typeParamRes)
         {
             if (callerSpec == null) throw new ArgumentNullException(nameof(callerSpec));
@@ -614,7 +614,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// associated null value.
         /// Throws ArgumentNullException if any of the non-nullable arguments are null.
         /// </summary>
-        public void AddDependency(
+        internal void AddDependency(
             QsQualifiedName callerName, QsSpecializationKind callerKind, QsNullable<ImmutableArray<ResolvedType>> callerTypeArgs,
             QsQualifiedName calledName, QsSpecializationKind calledKind, QsNullable<ImmutableArray<ResolvedType>> calledTypeArgs,
             TypeParameterResolutions typeParamRes)
