@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly string OutputPath;
         public readonly AssemblyConstants.RuntimeCapabilities RuntimeCapabilities;
         public readonly bool IsExecutable;
-        public readonly string ExecutionTarget;
+        public readonly NonNullable<string> ExecutionTarget;
         public readonly bool ExposeReferencesViaTestNames;
 
         public ProjectProperties(
@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string outputPath,
             AssemblyConstants.RuntimeCapabilities runtimeCapabilities,
             bool isExecutable,
-            string executionTarget,
+            NonNullable<string> executionTarget,
             bool loadTestNames)
         {
             this.Version = version ?? "";
@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 outputPath, 
                 runtimeCapabilities,
                 false,
-                null,
+                NonNullable<string>.New("Unspecified"),
                 false,
                 Enumerable.Empty<string>(),
                 Enumerable.Empty<string>(),
@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string outputPath,
             AssemblyConstants.RuntimeCapabilities runtimeCapabilities,
             bool isExecutable,
-            string executionTarget,
+            NonNullable<string> executionTarget,
             bool loadTestNames,
             IEnumerable<string> sourceFiles,
             IEnumerable<string> projectReferences,

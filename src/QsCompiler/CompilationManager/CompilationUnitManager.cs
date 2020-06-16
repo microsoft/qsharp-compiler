@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool syntaxCheckOnly = false,
             AssemblyConstants.RuntimeCapabilities capabilities = AssemblyConstants.RuntimeCapabilities.Unknown,
             bool isExecutable = false,
-            string executionTarget = null)
+            NonNullable<string> executionTarget = default)
         {
             this.EnableVerification = !syntaxCheckOnly;
             this.CompilationUnit = new CompilationUnit(capabilities, isExecutable, executionTarget);

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
@@ -105,7 +106,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var targetFile = projectInstance.GetPropertyValue("TargetFileName");
             var outputPath = Path.Combine(projectInstance.Directory, outputDir, targetFile);
 
-            var executionTarget = projectInstance.GetProperty("ResolvedQsharpExecutionTarget")?.EvaluatedValue;
+            var executionTarget = projectInstance.GetPropertyValue("ResolvedQsharpExecutionTarget");
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
             var runtimeCapabilities = Enum.TryParse(resRuntimeCapability, out AssemblyConstants.RuntimeCapabilities capability) 
                 ? capability 
@@ -131,7 +132,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 outputPath,
                 runtimeCapabilities,
                 isExecutable,
-                executionTarget,
+                NonNullable<string>.New(string.IsNullOrWhiteSpace(executionTarget) ? "Unspecified" : executionTarget),
                 loadTestNames,
                 sourceFiles,
                 projectReferences,

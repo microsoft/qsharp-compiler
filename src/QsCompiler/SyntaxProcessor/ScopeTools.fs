@@ -291,7 +291,7 @@ type ScopeContext<'a> =
       /// The runtime capabilities for the compilation unit.
       Capabilities : RuntimeCapabilities
       /// The name of the execution target for the compilation unit.
-      ExecutionTarget : QsNullable<string> }
+      ExecutionTarget : NonNullable<string> }
     with
 
     /// <summary>

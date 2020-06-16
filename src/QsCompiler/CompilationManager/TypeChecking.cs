@@ -1257,7 +1257,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var context = ScopeContext<Position>.Create(
                         compilation.GlobalSymbols,
                         compilation.RuntimeCapabilities,
-                        QsNullable.FromReference(compilation.ExecutionTarget),
+                        compilation.ExecutionTarget,
                         spec);
                     implementation = BuildUserDefinedImplementation(
                         root, spec.SourceFile, arg, requiredFunctorSupport, context, diagnostics);

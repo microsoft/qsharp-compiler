@@ -229,7 +229,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         internal readonly RuntimeCapabilities RuntimeCapabilities;
         internal readonly bool IsExecutable;
-        internal readonly string ExecutionTarget;
+        internal readonly NonNullable<string> ExecutionTarget;
 
         public void Dispose()
         { this.SyncRoot.Dispose(); }
@@ -242,7 +242,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal CompilationUnit(
             RuntimeCapabilities capabilities,
             bool isExecutable,
-            string executionTarget,
+            NonNullable<string> executionTarget,
             References externals = null,
             IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
         {
