@@ -167,6 +167,7 @@ type ErrorCode =
     | ExpectingCallableExpr = 5021
     | UnknownIdentifier = 5022
     | UnsupportedResultComparison = 5023
+    | ResultComparisonOutsideIf = 5024
 
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
@@ -544,11 +545,14 @@ type DiagnosticItem =
             | ErrorCode.ExpectingIterableExpr                     -> "The type {0} does not support iteration. Expecting an expression of array type or of type Range."
             | ErrorCode.ExpectingCallableExpr                     -> "The type of the expression must be a function or operation type. The given expression is of type {0}." 
             | ErrorCode.UnknownIdentifier                         -> "No identifier with the name \"{0}\" exists."
+            // TODO: When the names of the runtime capabilities are finalized, they can be included in the result
+            // comparison error messages.
             | ErrorCode.UnsupportedResultComparison               ->
-                // TODO: When the names of the runtime capabilities are finalized, they can be included in the error
-                // message.
                 "The execution target {0} does not support comparing measurement results. " +
                 "Choose an execution target with additional capabilities or avoid result comparisons."
+            | ErrorCode.ResultComparisonOutsideIf                 ->
+                "The execution target {0} supports comparing measurement results only as part of the condition of an if- or elif-statement. " +
+                "Choose an execution target with additional capabilities or avoid result comparisons outside of if-conditions."
 
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
