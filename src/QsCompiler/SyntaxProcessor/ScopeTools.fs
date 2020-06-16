@@ -289,7 +289,9 @@ type ScopeContext<'a> =
       /// The return type of the parent callable for the current scope.
       ReturnType : ResolvedType
       /// The runtime capabilities for the compilation unit.
-      Capabilities : RuntimeCapabilities }
+      Capabilities : RuntimeCapabilities
+      /// The name of the execution target for the compilation unit.
+      ExecutionTarget : QsNullable<string> }
     with
 
     /// <summary>
@@ -303,11 +305,15 @@ type ScopeContext<'a> =
     /// Thrown if the given namespace manager does not contain all resolutions or if the specialization's parent does
     /// not exist in the given namespace manager.
     /// </exception>
-    static member Create (nsManager : NamespaceManager) capabilities (spec : SpecializationDeclarationHeader) =
+    static member Create (nsManager : NamespaceManager)
+                         capabilities
+                         executionTarget
+                         (spec : SpecializationDeclarationHeader) =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, spec.SourceFile) with
         | Found declaration ->
             { Symbols = SymbolTracker<'a> (nsManager, spec.SourceFile, spec.Parent)
               IsInOperation = declaration.Kind = Operation
               ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
-              Capabilities = capabilities }
+              Capabilities = capabilities
+              ExecutionTarget = executionTarget }
         | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."

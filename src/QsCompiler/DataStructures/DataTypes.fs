@@ -53,6 +53,14 @@ type QsNullable<'T> = // to avoid having to include the F# core in the C# part o
         | Some v -> Value v
         | None -> Null
 
+/// Factories for <see cref="QsNullable"/>.
+module QsNullable =
+    /// Creates a <see cref="QsNullable"/> from a nullable reference type.
+    let FromReference reference =
+        match reference with
+        | null -> Null
+        | value -> Value value
+
 
 [<Struct>]
 type NonNullable<'T> = private Item of 'T with
@@ -116,6 +124,3 @@ type IReaderWriterLock =
     abstract member ExitReadLock : unit -> unit
     abstract member EnterWriteLock : unit -> unit
     abstract member ExitWriteLock : unit -> unit
-
-
-

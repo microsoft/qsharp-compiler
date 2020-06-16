@@ -441,7 +441,11 @@ namespace Microsoft.Quantum.QsCompiler
             RaiseCompilationTaskStart("OverallCompilation", "Build");
             this.CompilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
-            var compilationManager = new CompilationUnitManager(this.OnCompilerException, capabilities: this.Config.RuntimeCapabilities, isExecutable: this.Config.IsExecutable); 
+            var compilationManager = new CompilationUnitManager(
+                this.OnCompilerException,
+                capabilities: this.Config.RuntimeCapabilities,
+                isExecutable: this.Config.IsExecutable,
+                executionTarget: this.Config.AssemblyConstants.GetValueOrDefault(ExecutionTarget));
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);
             this.VerifiedCompilation = compilationManager.Build();

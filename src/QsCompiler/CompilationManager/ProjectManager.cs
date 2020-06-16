@@ -23,17 +23,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly string OutputPath;
         public readonly AssemblyConstants.RuntimeCapabilities RuntimeCapabilities;
         public readonly bool IsExecutable;
+        public readonly string ExecutionTarget;
         public readonly bool ExposeReferencesViaTestNames;
 
-        internal static ProjectProperties Default =>
-            new ProjectProperties("Latest", "", AssemblyConstants.RuntimeCapabilities.Unknown, false, false);
-
-        public ProjectProperties(string version, string outputPath, AssemblyConstants.RuntimeCapabilities runtimeCapabilities, bool isExecutable, bool loadTestNames)
+        public ProjectProperties(
+            string version,
+            string outputPath,
+            AssemblyConstants.RuntimeCapabilities runtimeCapabilities,
+            bool isExecutable,
+            string executionTarget,
+            bool loadTestNames)
         {
             this.Version = version ?? "";
             this.OutputPath = outputPath ?? throw new ArgumentNullException(nameof(outputPath));
             this.RuntimeCapabilities = runtimeCapabilities;
             this.IsExecutable = isExecutable;
+            this.ExecutionTarget = executionTarget;
             this.ExposeReferencesViaTestNames = loadTestNames;
         }
     }
@@ -47,13 +52,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public readonly ImmutableArray<string> ProjectReferences;
         public readonly ImmutableArray<string> References;
 
-        internal static ProjectInformation Empty(string version, string outputPath, AssemblyConstants.RuntimeCapabilities runtimeCapabilities) =>
-            new ProjectInformation(version, outputPath, runtimeCapabilities, false, false, Enumerable.Empty<string>(), Enumerable.Empty<string>(), Enumerable.Empty<string>());
+        internal static ProjectInformation Empty(
+                string version,
+                string outputPath,
+                AssemblyConstants.RuntimeCapabilities runtimeCapabilities) =>
+            new ProjectInformation(
+                version, 
+                outputPath, 
+                runtimeCapabilities,
+                false,
+                null,
+                false,
+                Enumerable.Empty<string>(),
+                Enumerable.Empty<string>(),
+                Enumerable.Empty<string>());
 
-        public ProjectInformation(string version, string outputPath, AssemblyConstants.RuntimeCapabilities runtimeCapabilities, bool isExecutable, bool loadTestNames,
-            IEnumerable<string> sourceFiles, IEnumerable<string> projectReferences, IEnumerable<string> references)
+        public ProjectInformation(
+            string version,
+            string outputPath,
+            AssemblyConstants.RuntimeCapabilities runtimeCapabilities,
+            bool isExecutable,
+            string executionTarget,
+            bool loadTestNames,
+            IEnumerable<string> sourceFiles,
+            IEnumerable<string> projectReferences,
+            IEnumerable<string> references)
         {
-            this.Properties = new ProjectProperties(version, outputPath, runtimeCapabilities, isExecutable, loadTestNames);
+            this.Properties = new ProjectProperties(
+                version, outputPath, runtimeCapabilities, isExecutable, executionTarget, loadTestNames);
             this.SourceFiles = sourceFiles?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(sourceFiles));
             this.ProjectReferences = projectReferences?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(projectReferences));
             this.References = references?.ToImmutableArray() ?? throw new ArgumentNullException(nameof(references));
@@ -146,8 +172,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // but we don't do any semantic verification, and we don't publish diagnostics for them. 
                 this.Processing = new ProcessingQueue(onException);
                 this.Manager = new CompilationUnitManager(
-                    onException, ignore ? null : publishDiagnostics, syntaxCheckOnly: ignore,
-                    this.Properties.RuntimeCapabilities, this.Properties.IsExecutable); 
+                    onException,
+                    ignore ? null : publishDiagnostics,
+                    syntaxCheckOnly: ignore,
+                    this.Properties.RuntimeCapabilities,
+                    this.Properties.IsExecutable,
+                    this.Properties.ExecutionTarget);
                 this.Log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
 
                 this.LoadedSourceFiles = ImmutableHashSet<Uri>.Empty;

@@ -105,6 +105,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var targetFile = projectInstance.GetPropertyValue("TargetFileName");
             var outputPath = Path.Combine(projectInstance.Directory, outputDir, targetFile);
 
+            var executionTarget = projectInstance.GetProperty("ResolvedQsharpExecutionTarget")?.EvaluatedValue;
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
             var runtimeCapabilities = Enum.TryParse(resRuntimeCapability, out AssemblyConstants.RuntimeCapabilities capability) 
                 ? capability 
@@ -125,7 +126,16 @@ namespace Microsoft.Quantum.QsLanguageServer
             telemetryMeas["csharpfiles"] = csharpFiles.Count();
             telemetryProps["defaultSimulator"] = defaultSimulator;
             this.SendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
-            info = new ProjectInformation(version, outputPath, runtimeCapabilities, isExecutable, loadTestNames, sourceFiles, projectReferences, references);
+            info = new ProjectInformation(
+                version,
+                outputPath,
+                runtimeCapabilities,
+                isExecutable,
+                executionTarget,
+                loadTestNames,
+                sourceFiles,
+                projectReferences,
+                references);
             return true;
         }
 
