@@ -92,11 +92,13 @@ namespace Microsoft.Quantum.QsCompiler
             public static Diagnostic Create(VS.Diagnostic d = null, Stage stage = Stage.Unknown) => 
                 d == null ? new Diagnostic() : new Diagnostic
                 {
-                    Severity = 
-                        d.Severity == VS.DiagnosticSeverity.Error ? DiagnosticSeverity.Error :
-                        d.Severity == VS.DiagnosticSeverity.Warning ? DiagnosticSeverity.Warning :
-                        d.Severity == VS.DiagnosticSeverity.Information ? DiagnosticSeverity.Info :
-                        DiagnosticSeverity.Hidden,
+                    Severity = d.Severity switch
+                    {
+                        VS.DiagnosticSeverity.Error => DiagnosticSeverity.Error,
+                        VS.DiagnosticSeverity.Warning => DiagnosticSeverity.Warning,
+                        VS.DiagnosticSeverity.Information => DiagnosticSeverity.Info,
+                        _ => DiagnosticSeverity.Hidden
+                    },
                     Message = d.Message,
                     Source = d.Source,
                     Stage = stage,
