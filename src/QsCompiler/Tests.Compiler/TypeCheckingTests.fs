@@ -68,6 +68,50 @@ type TypeCheckingTests () =
 
 
     [<Fact>]
+    member this.``Equality comparison`` () =
+        this.Expect "UnitEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "UnitInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "IntEquality" []
+        this.Expect "IntInequality" []
+        this.Expect "BigIntEquality" []
+        this.Expect "BigIntInequality" []
+        this.Expect "DoubleEquality" []
+        this.Expect "DoubleInequality" []
+        this.Expect "BoolEquality" []
+        this.Expect "BoolInequality" []
+        this.Expect "StringEquality" []
+        this.Expect "StringInequality" []
+        this.Expect "QubitEquality" []
+        this.Expect "QubitInequality" []
+        this.Expect "ResultEquality" []
+        this.Expect "ResultInequality" []
+        this.Expect "PauliEquality" []
+        this.Expect "PauliInequality" []
+        this.Expect "RangeEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "RangeInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "ArrayEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "ArrayInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "TupleEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "TupleInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "UDTEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "UDTInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "GenericEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "GenericInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "OperationEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "OperationInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "FunctionEquality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "FunctionInequality" [Error ErrorCode.InvalidTypeInEqualityComparison]
+        this.Expect "InvalidTypeEquality" [ Error ErrorCode.InvalidUseOfReservedKeyword
+                                            Error ErrorCode.InvalidUseOfReservedKeyword ]
+        this.Expect "InvalidTypeInequality" [ Error ErrorCode.InvalidUseOfReservedKeyword
+                                              Error ErrorCode.InvalidUseOfReservedKeyword ]
+        this.Expect "NoCommonBaseEquality" [ Error ErrorCode.ArgumentMismatchInBinaryOp
+                                             Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "NoCommonBaseInequality" [ Error ErrorCode.ArgumentMismatchInBinaryOp
+                                               Error ErrorCode.ArgumentMismatchInBinaryOp ]
+
+
+    [<Fact>]
     member this.``Argument matching`` () = 
         this.Expect "MatchArgument1"  []
         this.Expect "MatchArgument2"  []
@@ -193,7 +237,3 @@ type TypeCheckingTests () =
         this.Expect "ArrayType18" []
         this.Expect "ArrayType19" []
         this.Expect "ArrayType20" []
-
-
-
-
