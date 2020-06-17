@@ -78,7 +78,7 @@
   <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQsharpCompile">
     <ItemGroup>
       <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
-      <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'Pkg$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" /> 
+      <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" /> 
       <_ResolvedTargetPackageReferences Include="$(%(_TargetPackageReferencePathProperty.Identity))" /> 
     </ItemGroup>
     <Error Condition="@(_ResolvedTargetPackageReferences->Count()) &gt; 1" Text="More than one target package was defined. The defined target package needs to be unique." />
@@ -111,7 +111,7 @@
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
-      <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
+      <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
     </ItemGroup>
     <!-- add the assembly paths for all relevant qsc references and their priorities to ResolvedQscReferences -->
     <ItemGroup>
