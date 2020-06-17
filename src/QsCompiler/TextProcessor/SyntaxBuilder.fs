@@ -335,7 +335,10 @@ let internal symbolNameLike errCode =
         let isReserved = name.StartsWith "__" && name.EndsWith "__" || InternalUse.CsKeywords.Contains name
         let isCsKeyword = SyntaxFacts.IsKeywordKind (SyntaxFacts.GetKeywordKind name)
         let moreThanUnderscores = name.TrimStart('_').Length <> 0
+        let isValidStart = name.Chars 0 |> isValidIdentifierStart
+        let isValidPart = name |> Seq.forall( isValidIdentifierPart )
         if isCsKeyword || isReserved then buildError (preturn range) ErrorCode.InvalidUseOfReservedKeyword >>% None
+        else if not isValidStart || not isValidPart then buildError (preturn range) ErrorCode.InvalidCharacterInIdentifier >>% None
         else if moreThanUnderscores then preturn name |>> Some
         else buildError (preturn range) errCode >>% None
     let invalid = 

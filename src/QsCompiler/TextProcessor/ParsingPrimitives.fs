@@ -38,6 +38,25 @@ let internal isSymbolStart c = isAsciiLetter c || c = '_'
 /// returns true if the given char is a valid symbol continuation - i.e. if it is an ascii letter, a digit, or an underscore
 let internal isSymbolContinuation c = isAsciiLetter c || isDigit c || c = '_'
 
+/// returns true if the given char is a valid start symbol for an identifier: Underscore or a Unicode character of classes Lu, Ll, Lt, Lm, Lo, Nl.
+/// https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/lexical-structure#identifiers
+let internal isValidIdentifierStart c =
+    c = '_' ||
+    System.Char.IsLetter(c) || // Covers Lu, Ll, Lt, Lm, Lo
+    System.Char.GetUnicodeCategory(c) = System.Globalization.UnicodeCategory.LetterNumber // Nl
+
+/// returns true if the given char is a valid part symbol for an identifier: Unicode character of classes Lu, Ll, Lt, Lm, Lo, Nl; Nd; Pc; Mn, Mc; Cf.
+/// https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/lexical-structure#identifiers
+let internal isValidIdentifierPart c =
+    System.Char.IsLetter(c) || // Covers Lu, Ll, Lt, Lm, Lo
+    List.contains (System.Char.GetUnicodeCategory c) [
+        System.Globalization.UnicodeCategory.LetterNumber; // Nl
+        System.Globalization.UnicodeCategory.DecimalDigitNumber; // Nd
+        System.Globalization.UnicodeCategory.ConnectorPunctuation; // Pc (includes underscore)
+        System.Globalization.UnicodeCategory.NonSpacingMark; // Mn
+        System.Globalization.UnicodeCategory.SpacingCombiningMark; // Mc
+        System.Globalization.UnicodeCategory.Format] // Cf
+        
 /// Gets the char stream position before and after applying the given parser, 
 /// and returns the result of the given parser as well as a tuple of the two positions.
 /// If the given parser fails, returns to the initial char stream state an reports a non-fatal error.

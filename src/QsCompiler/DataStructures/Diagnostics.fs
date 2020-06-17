@@ -49,6 +49,7 @@ type ErrorCode =
     | InvalidUseOfReservedKeyword = 3033
     | ExcessContinuation = 3034
     | NonCallExprAsStatement = 3035
+    | InvalidCharacterInIdentifier = 3036
 
     | InvalidExpression = 3101
     | MissingExpression = 3102
@@ -427,6 +428,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidUseOfReservedKeyword               -> "The symbol is reserved for internal use only."
             | ErrorCode.ExcessContinuation                        -> "Unexpected code fragment."
             | ErrorCode.NonCallExprAsStatement                    -> "An expression used as a statement must be a call expression."
+            | ErrorCode.InvalidCharacterInIdentifier              -> "Invalid character in identifier."
                                                             
             | ErrorCode.InvalidExpression                         -> "Syntax error in expression."
             | ErrorCode.MissingExpression                         -> "Expecting expression."
