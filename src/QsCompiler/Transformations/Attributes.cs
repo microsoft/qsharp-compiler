@@ -19,25 +19,48 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     public static class Attributes
     {
         private static AttributeId BuildId(QsQualifiedName name) =>
-            AttributeId.NewValue(new UserDefinedType(name.Namespace, name.Name, QsRangeInfo.Null));
+            name != null
+            ? AttributeId.NewValue(new UserDefinedType(name.Namespace, name.Name, QsRangeInfo.Null))
+            : AttributeId.Null;
 
         // public static methods
 
+        /// <summary>
+        /// Returns a Q# attribute with the given name and argument that can be attached to a declaration. 
+        /// The attribute id is set to Null if the given name is null. 
+        /// The attribute argument is set to an invalid expression if the given argument is null.
+        /// </summary>
         public static QsDeclarationAttribute BuildAttribute(QsQualifiedName name, TypedExpression arg) =>
-            new QsDeclarationAttribute(BuildId(name), arg, null, QsComments.Empty);
+            new QsDeclarationAttribute(BuildId(name), arg ?? SyntaxGenerator.InvalidExpression, null, QsComments.Empty);
 
-        public static TypedExpression StringArgument(string target) =>
-            SyntaxGenerator.StringLiteral(NonNullable<string>.New(target), ImmutableArray<TypedExpression>.Empty);
+        /// <summary>
+        /// Builds a string literal with the given content that can be used as argument to a Q# attribute.
+        /// The value of the string literal is set to the empty string if the given content is null.
+        /// </summary>
+        public static TypedExpression StringArgument(string content) =>
+            SyntaxGenerator.StringLiteral(NonNullable<string>.New(content ?? ""), ImmutableArray<TypedExpression>.Empty);
 
+        /// <summary>
+        /// 
+        /// </summary>
         public static QsCompilation AddToCallables(QsCompilation compilation, QsDeclarationAttribute attribute, CallablePredicate predicate = null) =>
             new AddAttributes(new[] { (attribute, predicate) }).Apply(compilation);
 
+        /// <summary>
+        /// 
+        /// </summary>
         public static QsCompilation AddToCallables(QsCompilation compilation, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
             new AddAttributes(attributes).Apply(compilation);
 
+        /// <summary>
+        /// 
+        /// </summary>
         public static QsCompilation AddToCallables(QsCompilation compilation, params QsDeclarationAttribute[] attributes) =>
             new AddAttributes(attributes.Select(att => (att, (CallablePredicate)null))).Apply(compilation);
 
+        /// <summary>
+        /// 
+        /// </summary>
         public static QsNamespace AddToCallables(QsNamespace ns, QsDeclarationAttribute attribute, CallablePredicate predicate = null) =>
             new AddAttributes(new[] { (attribute, predicate) }).Namespaces.OnNamespace(ns);
 
