@@ -89,7 +89,7 @@
     <PropertyGroup>
       <ResolvedTargetPackage Condition="@(_ResolvedTargetPackageReferences->Count()) == 1">%(_ResolvedTargetPackageReferences.Identity)</ResolvedTargetPackage> 
     </PropertyGroup>
-    <Error Condition="$(ResolvedTargetPackage.EndsWith('.dll')) == 'false'" Text="Invalid target package. The target package is expected to specify the dll containing the decompositions to load." />
+    <Error Condition="$(ResolvedTargetPackage) != '' And $(ResolvedTargetPackage.EndsWith('.dll')) == 'false'" Text="Invalid target package. The target package is expected to specify the dll containing the decompositions to load." />
     <Message 
       Condition="'$(ResolvedTargetPackage)' != '' And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
       Text="Resolved target package: $(ResolvedTargetPackage)" 
