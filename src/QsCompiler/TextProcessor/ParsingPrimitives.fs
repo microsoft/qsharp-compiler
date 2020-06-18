@@ -32,22 +32,16 @@ let private buildQsExpression kind (range : Position * Position) = (kind, range)
 let private buildQsSymbol     kind (range : Position * Position) = (kind, range) |> QsSymbol.New
 let private buildQsType       kind (range : Position * Position) = (kind, range) |> QsType.New
 
-/// returns true if the given char is a valid symbol start - i.e. if it is an ascii letter or an underscore
-let internal isSymbolStart c = isAsciiLetter c || c = '_'
-
-/// returns true if the given char is a valid symbol continuation - i.e. if it is an ascii letter, a digit, or an underscore
-let internal isSymbolContinuation c = isAsciiLetter c || isDigit c || c = '_'
-
 /// returns true if the given char is a valid start symbol for an identifier: Underscore or a Unicode character of classes Lu, Ll, Lt, Lm, Lo, Nl.
 /// https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/lexical-structure#identifiers
-let internal isValidIdentifierStart c =
+let internal isSymbolStart c =
     c = '_' ||
     System.Char.IsLetter(c) || // Covers Lu, Ll, Lt, Lm, Lo
     System.Char.GetUnicodeCategory(c) = System.Globalization.UnicodeCategory.LetterNumber // Nl
 
 /// returns true if the given char is a valid part symbol for an identifier: Unicode character of classes Lu, Ll, Lt, Lm, Lo, Nl; Nd; Pc; Mn, Mc; Cf.
 /// https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/lexical-structure#identifiers
-let internal isValidIdentifierPart c =
+let internal isSymbolContinuation c =
     System.Char.IsLetter(c) || // Covers Lu, Ll, Lt, Lm, Lo
     List.contains (System.Char.GetUnicodeCategory c) [
         System.Globalization.UnicodeCategory.LetterNumber; // Nl
