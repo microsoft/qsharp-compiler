@@ -135,6 +135,10 @@ let ``Symbol name tests`` () =
         ("_",                   false,   "",               []);
         ("__",                  false,   "",               []);
         ("__a",                 true,    "__a",            []);
+        ("функция",             true,    "функция",        []); // Russian word 'function'
+        ("λ",                   true,    "λ",              []); // Greek small letter Lambda
+        ("ℵ",                   true,    "ℵ",              []); // Hebrew capital letter Aleph
+        ("𝑓",                   false,   "",               []); // Mathematical Italic Small F - not supported
     ]
     |> List.iter (testOne parser)
 
