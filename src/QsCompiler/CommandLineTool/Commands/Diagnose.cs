@@ -218,7 +218,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var loadOptions = new CompilationLoader.Configuration
             {
                 AssemblyConstants = assemblyConstants,
-                TargetSpecificDecompositions = options.TargetSpecificDecompositions,
+                TargetPackageAssemblies = options.TargetSpecificDecompositions,
                 RuntimeCapabilities = options.RuntimeCapabilites,
                 SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
                 GenerateFunctorSupport = true,

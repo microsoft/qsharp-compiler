@@ -159,7 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 ProjectName = options.ProjectName,
                 AssemblyConstants = assemblyConstants,
-                TargetSpecificDecompositions = options.TargetSpecificDecompositions,
+                TargetPackageAssemblies = options.TargetSpecificDecompositions,
                 RuntimeCapabilities = options.RuntimeCapabilites,
                 SkipMonomorphization = options.RuntimeCapabilites == RuntimeCapabilities.Unknown,
                 GenerateFunctorSupport = true,

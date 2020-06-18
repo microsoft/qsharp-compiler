@@ -285,8 +285,9 @@ type ErrorCode =
     | CouldNotInstantiateRewriteStep = 7018
     | InvalidPathToTargetSpecificDecompositions = 7019
     | FailedToLoadTargetSpecificDecompositions = 7020
-    | UnexpectedCompilerException = 7021
-    | InvalidCommandLineArgsInResponseFiles = 7022
+    | ConflictsInTargetSpecificDecompositions = 7021
+    | UnexpectedCompilerException = 7022
+    | InvalidCommandLineArgsInResponseFiles = 7023
 
     | FunctorGenerationFailed = 7101
     | TreeTrimmingFailed = 7102
@@ -661,6 +662,7 @@ type DiagnosticItem =
             | ErrorCode.CouldNotInstantiateRewriteStep            -> "Could not instantiate the type {0} in \"{1}\" specifying a rewrite step. The type may not have a parameterless constructor."
             | ErrorCode.InvalidPathToTargetSpecificDecompositions -> "Could not find the file \"{0}\" that specifies target specific implementations."
             | ErrorCode.FailedToLoadTargetSpecificDecompositions  -> "Unable to load target specific implementations from \"{0}\"." 
+            | ErrorCode.ConflictsInTargetSpecificDecompositions   -> "The specified assemblies containing target specific decompositions contain conflicting declarations."
             | ErrorCode.UnexpectedCompilerException               -> "The compiler threw an exception."
             | ErrorCode.InvalidCommandLineArgsInResponseFiles     -> "Invalid command line arguments in response file(s)."
                                                                   

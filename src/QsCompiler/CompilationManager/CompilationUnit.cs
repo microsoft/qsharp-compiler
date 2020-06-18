@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     ?? ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)>.Empty;
             }
 
-            internal Headers(NonNullable<string> source, IEnumerable<QsNamespace> syntaxTree) : this (
+            public Headers(NonNullable<string> source, IEnumerable<QsNamespace> syntaxTree) : this (
                 source.Value, 
                 syntaxTree.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
                 syntaxTree.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), s.Implementation)), 
@@ -692,7 +692,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var types = this.CompiledTypes.Values.Concat(this.GlobalSymbols.ImportedTypes().Select(this.GetImportedType));
                 // Rename imported internal declarations by tagging them with their source file to avoid potentially
                 // having duplicate names in the syntax tree.
-                var (taggedCallables, taggedTypes) = TagImportedInternalNames(callables, types);
+                var (taggedCallables, taggedTypes) = RenameInternalDeclarations(callables, types, source => Externals.Declarations.ContainsKey(source));
                 var tree = NewSyntaxTree(taggedCallables, taggedTypes, this.GlobalSymbols.Documentation());
                 return new QsCompilation(tree, entryPoints.ToImmutable());
             }
@@ -794,22 +794,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Tags the names of imported internal callables and types with a unique identifier based on the path to their
-        /// assembly, so that they do not conflict with callables and types defined locally. Renames all references to
-        /// the tagged declarations found in the given callables and types.
+        /// Tags the names of internal callables and types that are from a source that satisfies 
+        /// the given predicate with a unique identifier based on the path to their source, 
+        /// so that they do not conflict with public callables and types. 
+        /// If no predicate is specified or the given predicate is null, tags all types and callables.
+        /// Renames all usages to the tagged names.
         /// </summary>
-        /// <param name="callables">The callables to rename and update references in.</param>
-        /// <param name="types">The types to rename and update references in.</param>
-        /// <returns>The tagged callables and types with references renamed everywhere.</returns>
-        private (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
-            TagImportedInternalNames(IEnumerable<QsCallable> callables, IEnumerable<QsCustomType> types)
+        /// <param name="callables">The callables to rename and update if they are internal.</param>
+        /// <param name="types">The types to rename and update if they are internal.</param>
+        /// <param name="predicate">If specified, only types and callables from a source for which 
+        /// this function returns true are renamed.</param>
+        /// <returns>The renamed and updated callables and types.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the given callables or types are null.</exception>
+        public static (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
+            RenameInternalDeclarations(IEnumerable<QsCallable> callables, IEnumerable<QsCustomType> types, 
+            Func<NonNullable<string>, bool> predicate = null)
         {
+            if (callables == null) throw new ArgumentNullException(nameof(callables));
+            if (types == null) throw new ArgumentNullException(nameof(types));
+            predicate ??= (_ => true);
+
             // Assign a unique ID to each reference.
             var ids =
                 callables.Select(callable => callable.SourceFile.Value)
                 .Concat(types.Select(type => type.SourceFile.Value))
                 .Distinct()
-                .Where(source => Externals.Declarations.ContainsKey(NonNullable<string>.New(source)))
+                .Where(source => predicate(NonNullable<string>.New(source)))
                 .Select((source, index) => (source, index))
                 .ToImmutableDictionary(item => item.source, item => item.index);
 
@@ -818,7 +828,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 group
                 .Where(item =>
                     !Namespace.IsDeclarationAccessible(false, item.access) &&
-                    Externals.Declarations.ContainsKey(NonNullable<string>.New(item.source)))
+                    predicate(NonNullable<string>.New(item.source)))
                 .ToImmutableDictionary(item => item.name,
                                        item => ReferenceDecorator.Decorate(item.name, ids[item.source]));
 
@@ -833,9 +843,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     group => new RenameReferences(GetMappingForSourceGroup(group)));
 
             var taggedCallables = callables.Select(
-                callable => transformations[callable.SourceFile.Value].Namespaces.OnCallableDeclaration(callable));
+                callable => transformations[callable.SourceFile.Value].Namespaces.OnCallableDeclaration(callable))
+                .ToImmutableArray();
             var taggedTypes = types.Select(
-                type => transformations[type.SourceFile.Value].Namespaces.OnTypeDeclaration(type));
+                type => transformations[type.SourceFile.Value].Namespaces.OnTypeDeclaration(type))
+                .ToImmutableArray();
             return (taggedCallables, taggedTypes);
         }
     }

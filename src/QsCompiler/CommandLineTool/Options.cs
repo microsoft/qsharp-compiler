@@ -39,8 +39,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public IEnumerable<string> Plugins { get; set; }
 
         [Option("target-specific-decompositions", Required = false, SetName = CODE_MODE,
-        HelpText = "[Experimental feature] Path to the .NET Core dll containing target specific implementations.")]
-        public string TargetSpecificDecompositions { get; set; }
+        HelpText = "[Experimental feature] Path to the .NET Core dll(s) containing target specific implementations.")]
+        public IEnumerable<string> TargetSpecificDecompositions { get; set; }
 
         [Option("load-test-names", Required = false, Default = false, SetName = CODE_MODE,
         HelpText = "Specifies whether public types and callables declared in referenced assemblies are exposed via their test name defined by the corresponding attribute.")]
