@@ -87,6 +87,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             new AddAttributes(attributes.Select(att => (att, (CallablePredicate)null))).Namespaces.OnNamespace(ns);
 
 
+        // private transformation class(es)
+
         /// <summary>
         /// Transformation to add attributes to an existing compilation.
         /// </summary>
