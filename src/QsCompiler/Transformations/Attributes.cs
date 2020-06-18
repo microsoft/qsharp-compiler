@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// <summary>
     /// Contains tools for building and adding attributes to an existing Q# compilation. 
     /// </summary>
-    public static class Attributes
+    public static class AttributeUtils
     {
         private static AttributeId BuildId(QsQualifiedName name) =>
             name != null
@@ -41,32 +41,48 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             SyntaxGenerator.StringLiteral(NonNullable<string>.New(content ?? ""), ImmutableArray<TypedExpression>.Empty);
 
         /// <summary>
-        /// 
+        /// Adds the given attribute to all callables in the given compilation that satisfy the given predicate 
+        /// - if the predicate is specified and not null.
+        /// Throws an ArgumentNullException if the given attribute or compilation is null.
         /// </summary>
         public static QsCompilation AddToCallables(QsCompilation compilation, QsDeclarationAttribute attribute, CallablePredicate predicate = null) =>
             new AddAttributes(new[] { (attribute, predicate) }).Apply(compilation);
 
         /// <summary>
-        /// 
+        /// Adds the given attribute(s) to all callables in the given compilation that satisfy the given predicate 
+        /// - if the predicate is specified and not null.
+        /// Throws an ArgumentNullException if one of the given attributes or the compilation is null.
         /// </summary>
         public static QsCompilation AddToCallables(QsCompilation compilation, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
             new AddAttributes(attributes).Apply(compilation);
 
         /// <summary>
-        /// 
+        /// Adds the given attribute(s) to all callables in the given compilation.
+        /// Throws an ArgumentNullException if one of the given attributes or the compilation is null.
         /// </summary>
         public static QsCompilation AddToCallables(QsCompilation compilation, params QsDeclarationAttribute[] attributes) =>
             new AddAttributes(attributes.Select(att => (att, (CallablePredicate)null))).Apply(compilation);
 
         /// <summary>
-        /// 
+        /// Adds the given attribute to all callables in the given namespace that satisfy the given predicate 
+        /// - if the predicate is specified and not null.
+        /// Throws an ArgumentNullException if the given attribute or namespace is null.
         /// </summary>
         public static QsNamespace AddToCallables(QsNamespace ns, QsDeclarationAttribute attribute, CallablePredicate predicate = null) =>
             new AddAttributes(new[] { (attribute, predicate) }).Namespaces.OnNamespace(ns);
 
+        /// <summary>
+        /// Adds the given attribute(s) to all callables in the given namespace that satisfy the given predicate 
+        /// - if the predicate is specified and not null.
+        /// Throws an ArgumentNullException if one of the given attributes or the namespace is null.
+        /// </summary>
         public static QsNamespace AddToCallables(QsNamespace ns, params (QsDeclarationAttribute, CallablePredicate)[] attributes) =>
             new AddAttributes(attributes).Namespaces.OnNamespace(ns);
 
+        /// <summary>
+        /// Adds the given attribute(s) to all callables in the given namespace.
+        /// Throws an ArgumentNullException if one of the given attributes or the namespace is null.
+        /// </summary>
         public static QsNamespace AddToCallables(QsNamespace ns, params QsDeclarationAttribute[] attributes) =>
             new AddAttributes(attributes.Select(att => (att, (CallablePredicate)null))).Namespaces.OnNamespace(ns);
 
