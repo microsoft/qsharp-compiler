@@ -74,11 +74,11 @@
   </PropertyGroup>
 
 
-  <!-- Computes the ResolvedTargetPackage property. Generates a build error if more than one target package has been specified. -->
+  <!-- Computes the ResolvedTargetSpecificDecompositions property. Generates a build error if more than one target package has been specified. -->
   <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQsharpCompile">
     <ItemGroup>
       <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
-      <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" /> 
+      <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'QscRef_$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" /> 
       <_ResolvedTargetPackageReferences Include="$(%(_TargetPackageReferencePathProperty.Identity))" /> 
     </ItemGroup>
     <Error Condition="@(_ResolvedTargetPackageReferences->Count()) &gt; 1" Text="More than one target package was defined. The defined target package needs to be unique." />
@@ -87,14 +87,14 @@
       Text="Resolved target package: %(_ResolvedTargetPackageReferences.Identity)" 
       Importance="High" /> 
     <PropertyGroup>
-      <ResolvedTargetPackage Condition="@(_ResolvedTargetPackageReferences->Count()) == 1">%(_ResolvedTargetPackageReferences.Identity)</ResolvedTargetPackage> 
+      <ResolvedTargetSpecificDecompositions Condition="@(_ResolvedTargetPackageReferences->Count()) == 1">%(_ResolvedTargetPackageReferences.Identity)</ResolvedTargetSpecificDecompositions> 
     </PropertyGroup>
     <Error 
-      Condition="($(ResolvedTargetPackage) == '' And @(_TargetPackageReference->Count()) &gt; 0) Or ($(ResolvedTargetPackage) != '' And $(ResolvedTargetPackage.EndsWith('.dll')) == 'false')" 
+      Condition="($(ResolvedTargetSpecificDecompositions) == '' And @(_TargetPackageReference->Count()) &gt; 0) Or ($(ResolvedTargetSpecificDecompositions) != '' And $(ResolvedTargetSpecificDecompositions.EndsWith('.dll')) == 'false')" 
       Text="Invalid target package. The target package is expected to specify the dll containing the decompositions to load." />
     <Message 
-      Condition="'$(ResolvedTargetPackage)' != '' And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
-      Text="Resolved target package: $(ResolvedTargetPackage)" 
+      Condition="'$(ResolvedTargetSpecificDecompositions)' != '' And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
+      Text="Resolved target package: $(ResolvedTargetSpecificDecompositions)" 
       Importance="High" /> 
   </Target>  
 
