@@ -113,7 +113,7 @@
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
-      <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
+      <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'QscRef_$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
     </ItemGroup>
     <!-- add the assembly paths for all relevant qsc references and their priorities to ResolvedQscReferences -->
     <ItemGroup>
