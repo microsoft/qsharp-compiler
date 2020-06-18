@@ -205,6 +205,46 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 onError?.Invoke(ErrorCode.ConflictInReferences, diagArgs);
             }
         }
+
+        /// <summary>
+        /// Combines the syntax trees loaded from different source assemblies and combines them into a single syntax tree.
+        /// The first item in the given arguments is expected to contain the id of the source from which the syntax tree was loaded, 
+        /// and the second item is expected to contain the loaded syntax tree. 
+        /// The source file of a declaration in the combined tree will be set to the specified source from which it was loaded, 
+        /// and internal declaration as well as their usages will be renamed to avoid conflicts. 
+        /// Generates suitable error messages when the given syntax trees contain conflicting declarations, and invokes 
+        /// onError with them, if onError is specified and not null. 
+        /// Returns true if the given syntax trees do not contain any conflicting declarations and were successfully combined.
+        /// Returns false and an empty array of namespaces as out parameter otherwise. 
+        /// </summary>
+        /// <param name="loaded"></param>
+        public static bool CombineSyntaxTrees(out ImmutableArray<QsNamespace> combined, 
+            Action<ErrorCode, string[]> onError = null,
+            params (NonNullable<string>, ImmutableArray<QsNamespace>)[] loaded)
+
+        {
+            combined = ImmutableArray<QsNamespace>.Empty;
+            if (loaded == null) return false;
+
+            var headers = loaded.ToImmutableDictionary(
+                entry => entry.Item1,
+                entry => new Headers(entry.Item1, entry.Item2)); // TODO: avoid building headers that are not needed
+
+            var conflictErrs = new List<(ErrorCode, string[])>();
+            var references = new References(headers, onError: (errCode, args) => conflictErrs.Add((errCode, args)));
+            if (conflictErrs.Any())
+            {
+                foreach (var (errCode, args) in conflictErrs) onError?.Invoke(errCode, args); 
+                return false;
+            }
+
+            var (callables, types) = CompilationUnit.RenameInternalDeclarations(
+                loaded.SelectMany(loaded => loaded.Item2.Callables()),
+                loaded.SelectMany(loaded => loaded.Item2.Types()));
+
+            combined = CompilationUnit.NewSyntaxTree(callables, types);
+            return true;
+        }
     }
 
 
@@ -806,7 +846,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// this function returns true are renamed.</param>
         /// <returns>The renamed and updated callables and types.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the given callables or types are null.</exception>
-        public static (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
+        internal static (IEnumerable<QsCallable>, IEnumerable<QsCustomType>)
             RenameInternalDeclarations(IEnumerable<QsCallable> callables, IEnumerable<QsCustomType> types, 
             Func<NonNullable<string>, bool> predicate = null)
         {

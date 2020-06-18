@@ -469,7 +469,7 @@ namespace Microsoft.Quantum.QsCompiler
             if (this.Config.LoadTargetSpecificDecompositions)
             {
                 RaiseCompilationTaskStart("Build", "ReplaceTargetSpecificImplementations");
-                this.ReplaceTargetSpecificImplementations(this.Config.TargetPackageAssemblies, thisDllUri, out this.CompilationOutput);
+                this.CompilationOutput = this.ReplaceTargetSpecificImplementations(this.Config.TargetPackageAssemblies, thisDllUri);
                 RaiseCompilationTaskEnd("Build", "ReplaceTargetSpecificImplementations");
             }
 
@@ -708,60 +708,44 @@ namespace Microsoft.Quantum.QsCompiler
         /// Attempts to load the target package assemblies with the given paths, logging diagnostics 
         /// when a path is null or invalid, or loading fails. Logs suitable diagnostics if the loaded dlls
         /// contains conflicting declarations. Updates the compilation status accordingly.
-        /// Executes the transformation to replace target specific implementations as atomic rewrite step,
-        /// returning the transformed compilation as out parameter.
-        /// Sets the out parameter to the unmodified CompilationOutput if the replacement fails.
+        /// Executes the transformation to replace target specific implementations as atomic rewrite step.
+        /// Returns the transformed compilation if all assemblies have been successfully loaded and combined.
+        /// Returns the unmodified CompilationOutput otherwise.
         /// Throws an ArgumentNullException if the given sequence of paths is null.
         /// </summary>
-        private void ReplaceTargetSpecificImplementations(IEnumerable<string> paths, Uri rewriteStepOrigin, out QsCompilation loaded)
+        private QsCompilation ReplaceTargetSpecificImplementations(IEnumerable<string> paths, Uri rewriteStepOrigin)
         {
-            // TODO: split out a general purpose routine for combining several references into one syntax tree
-
             if (paths == null) throw new ArgumentNullException(nameof(paths));
-            loaded = this.CompilationOutput;
+
+            void LogError(ErrorCode errCode, string[] args) => this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, errCode, args);
+            void LogException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ex);
 
             (NonNullable<string>, ImmutableArray<QsNamespace>)? LoadReferences(string path)
             {
                 try
                 {
                     var targetDll = Path.GetFullPath(path);
-                    var loadSucceeded = AssemblyLoader.LoadReferencedAssembly(
-                        targetDll,
-                        out var loaded,
-                        ex => this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ex));
+                    var loadSucceeded = AssemblyLoader.LoadReferencedAssembly(targetDll, out var loaded, LogException);
                     if (loadSucceeded) return (NonNullable<string>.New(path), loaded.Namespaces);
-                    this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ErrorCode.FailedToLoadTargetSpecificDecompositions, new[] { targetDll });
+                    LogError(ErrorCode.FailedToLoadTargetSpecificDecompositions, new[] { targetDll });
                     return null;
                 }
                 catch (Exception ex)
                 {
-                    this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ErrorCode.InvalidPathToTargetSpecificDecompositions, new[] { path });
-                    this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ex);
+                    LogError(ErrorCode.InvalidPathToTargetSpecificDecompositions, new[] { path });
+                    LogException(ex);
                     return null;
                 }
 
             }
 
-            var natives = paths.Select(LoadReferences).Where(loaded => loaded.HasValue).Select(loaded => loaded.Value).ToImmutableArray();
-            var headers = natives.ToImmutableDictionary(
-                entry => entry.Item1, 
-                entry => new References.Headers(entry.Item1, entry.Item2)); // TODO: avoid building headers that are not needed
+            var natives = paths.Select(LoadReferences).Where(loaded => loaded.HasValue).Select(loaded => loaded.Value).ToArray();
+            var combinedSuccessfully = References.CombineSyntaxTrees(out var replacements, onError: LogError, natives);
+            if (!combinedSuccessfully) LogError(ErrorCode.ConflictsInTargetSpecificDecompositions, Array.Empty<string>());
 
-            var conflictErrs = new List<(ErrorCode, string[])>();
-            var references = new References(headers, onError: (errCode, args) => conflictErrs.Add((errCode, args)));
-            if (conflictErrs.Any())
-            {
-                foreach (var (errCode, args) in conflictErrs) this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, errCode, args);
-                this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ErrorCode.ConflictsInTargetSpecificDecompositions, Array.Empty<string>());
-                return;
-            }
-
-            var (callables, types) = CompilationUnit.RenameInternalDeclarations(
-                natives.SelectMany(loaded => loaded.Item2.Callables()),
-                natives.SelectMany(loaded => loaded.Item2.Types()));
-            var targetSpecificDecompositions = new QsCompilation(CompilationUnit.NewSyntaxTree(callables, types), ImmutableArray<QsQualifiedName>.Empty);
+            var targetSpecificDecompositions = new QsCompilation(replacements, ImmutableArray<QsQualifiedName>.Empty);
             var rewriteStep = new RewriteSteps.LoadedStep(new IntrinsicResolution(targetSpecificDecompositions), typeof(IRewriteStep), rewriteStepOrigin);
-            loaded = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.TargetSpecificReplacements);
+            return ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.TargetSpecificReplacements);
         }
 
         /// <summary>
