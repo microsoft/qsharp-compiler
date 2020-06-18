@@ -329,7 +329,11 @@ let internal buildTupleItem validSingle bundle errCode missingCode fallback cont
 /// In order to guarantee correct whitespace management, the name needs to be parsed as a term.
 let internal symbolNameLike errCode = 
     let identifier = 
-        let id = IdentifierOptions(isAsciiIdStart = isSymbolStart, isAsciiIdContinue = isSymbolContinuation) |> identifier
+        let id = IdentifierOptions(
+                     isAsciiIdStart = isSymbolStart,
+                     isAsciiIdContinue = isSymbolContinuation,
+                     preCheckStart = isSymbolStart,
+                     preCheckContinue = isSymbolContinuation) |> identifier
         getPosition .>>. id .>>. getPosition |>> fun ((p1, name), p2) -> name, (p1,p2)
     let whenValid (name : string, range) = 
         let isReserved = name.StartsWith "__" && name.EndsWith "__" || InternalUse.CsKeywords.Contains name
