@@ -2,7 +2,7 @@
 <package  xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>    
     <id>CustomExtension.Package</id>
-    <version>0.11.2006.1831-beta</version>
+    <version>0.11.2006.1905-beta</version>
     <title></title>
     <authors>Microsoft</authors>
     <owners></owners>
@@ -12,7 +12,7 @@
     <copyright></copyright>
     <tags></tags>
     <dependencies>
-      <dependency id="Microsoft.Quantum.Compiler" version="0.11.2006.1831-beta" />
+      <dependency id="Microsoft.Quantum.Compiler" version="0.11.2006.1905-beta" />
     </dependencies>
     <summary></summary>
   </metadata>
