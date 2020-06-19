@@ -549,7 +549,7 @@ type DiagnosticItem =
                 // TODO: When the names of the runtime capabilities are finalized, they can be included in the error
                 // message.
                 "The execution target {0} does not support comparing measurement results. " +
-                "Choose an execution target with additional capabilities or use a controlled operation instead."
+                "Choose an execution target with additional capabilities or avoid result comparisons."
 
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
