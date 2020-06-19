@@ -79,7 +79,8 @@
     <ItemGroup>
       <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
       <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'QscRef_$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" /> 
-      <ResolvedTargetSpecificDecompositions Include="$(%(_TargetPackageReferencePathProperty.Identity).Split(`;`))" /> 
+      <_ResolvedTargetPackageReference Include="$(%(_TargetPackageReferencePathProperty.Identity))" /> 
+      <ResolvedTargetSpecificDecompositions Include="@(_ResolvedTargetPackageReference->Split(`;`))" /> 
     </ItemGroup>
     <Error Condition="@(_TargetPackageReference->Count()) &gt; 1" Text="More than one target package was defined. The defined target package needs to be unique." />
     <Error 
@@ -111,9 +112,9 @@
     <!-- add the assembly paths for all relevant qsc references and their priorities to ResolvedQscReferences -->
     <ItemGroup>
       <_ResolvedQscReferences Include="%(_RelevantQscProjectReference.Identity)" Priority="%(_RelevantQscProjectReference.Priority)" />
-      <_ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity).Split(`;`))" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
+      <_ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
       <_InvalidQscReferences Include="@(_ResolvedQscReferences)" Condition="'%(_ResolvedQscReferences.Identity)' == ''" />
-      <ResolvedQscReferences Include="@(_ResolvedQscReferences)" Condition="'%(_ResolvedQscReferences.Identity)' != ''" />
+      <ResolvedQscReferences Include="@(_ResolvedQscReferences->Split(`;`))" Condition="'%(_ResolvedQscReferences.Identity)' != ''" />
       <ResolvedQscReferencesAndPriorities Include="(%(ResolvedQscReferences.Identity), %(ResolvedQscReferences.Priority))" /> 
     </ItemGroup>
     <Warning Condition="@(_InvalidQscReferences->Count()) &gt; 0" Text="One or more qsc reference(s) could not be identified correctly due to a lack of the expected handles." />
