@@ -135,6 +135,13 @@ let ``Symbol name tests`` () =
         ("_",                   false,   "",               []);
         ("__",                  false,   "",               []);
         ("__a",                 true,    "__a",            []);
+        ("функция25",           true,    "функция25",      []); // Russian word 'function' followed by '25'
+        ("λ",                   true,    "λ",              []); // Greek small letter Lambda
+        ("ℵ",                   true,    "ℵ",              []); // Hebrew capital letter Aleph
+        ("𝑓",                   false,   "",               []); // Mathematical Italic Small F - not supported
+        ("Q#",                  true,    "Q",              []); // 'Q' followed by '#' - only identifier 'Q' is parsed
+        ("notЁ",                true,    "notЁ",           []); // operation 'not' followed by Cyrillic 'Ё' - OK for identifier
+        ("isЖ",                 true,    "isЖ",            []); // reserved word 'is' followed by Cyrillic 'Ж' - OK for identifier
     ]
     |> List.iter (testOne parser)
 
