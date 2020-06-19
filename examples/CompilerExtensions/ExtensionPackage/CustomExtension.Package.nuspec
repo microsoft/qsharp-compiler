@@ -1,0 +1,23 @@
+﻿<?xml version="1.0"?>
+<package  xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>    
+    <id>CustomExtension.Package</id>
+    <version>0.11.2006.1831-beta</version>
+    <title></title>
+    <authors>Microsoft</authors>
+    <owners></owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Example for a Q# compiler extension.</description>
+    <releaseNotes></releaseNotes>
+    <copyright></copyright>
+    <tags></tags>
+    <dependencies>
+      <dependency id="Microsoft.Quantum.Compiler" version="0.11.2006.1831-beta" />
+    </dependencies>
+    <summary></summary>
+  </metadata>
+  <files>
+    <file src="CompilerExtension.props" target="build\CustomExtension.Package.props" />
+    <file src="bin\$Configuration$\**\*.dll" exclude="bin\$Configuration$\**\CustomExtension.Package.dll" target="lib" />
+  </files>
+</package>
