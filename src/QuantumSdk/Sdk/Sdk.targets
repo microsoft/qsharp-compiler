@@ -75,7 +75,7 @@
       <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
       <_QscCommandRuntimeFlag>--runtime $(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag> 
-      <_QscCommandTargetDecompositionsFlag Condition="'$(ResolvedTargetSpecificDecompositions)' != ''">--target-specific-decompositions "$(ResolvedTargetSpecificDecompositions)"</_QscCommandTargetDecompositionsFlag>
+      <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions) &gt; 0">--target-specific-decompositions "@(ResolvedTargetSpecificDecompositions,'" "')"</_QscCommandTargetDecompositionsFlag>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">--load-test-names</_QscCommandTestNamesFlag>
       <_QscCommandPredefinedAssemblyProperties>ResolvedExecutionTarget:$(ResolvedQsharpExecutionTarget) ResolvedQsharpOutputType:$(ResolvedQsharpOutputType)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(DefaultSimulator) != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>

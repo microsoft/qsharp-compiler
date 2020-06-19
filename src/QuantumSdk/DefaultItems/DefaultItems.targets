@@ -79,22 +79,15 @@
     <ItemGroup>
       <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
       <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'QscRef_$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" /> 
-      <_ResolvedTargetPackageReferences Include="$(%(_TargetPackageReferencePathProperty.Identity))" /> 
+      <ResolvedTargetSpecificDecompositions Include="$(%(_TargetPackageReferencePathProperty.Identity).Split(`;`))" /> 
     </ItemGroup>
     <Error Condition="@(_TargetPackageReference->Count()) &gt; 1" Text="More than one target package was defined. The defined target package needs to be unique." />
-    <Message 
-      Condition="@(_ResolvedTargetPackageReferences->Count()) &gt; 1 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
-      Text="Resolved target package: %(_ResolvedTargetPackageReferences.Identity)" 
-      Importance="High" /> 
-    <PropertyGroup>
-      <ResolvedTargetSpecificDecompositions Condition="@(_ResolvedTargetPackageReferences->Count()) == 1">%(_ResolvedTargetPackageReferences.Identity)</ResolvedTargetSpecificDecompositions> 
-    </PropertyGroup>
     <Error 
-      Condition="($(ResolvedTargetSpecificDecompositions) == '' And @(_TargetPackageReference->Count()) &gt; 0) Or ($(ResolvedTargetSpecificDecompositions) != '' And $(ResolvedTargetSpecificDecompositions.EndsWith('.dll')) == 'false')" 
+      Condition="@(ResolvedTargetSpecificDecompositions->Count()) == 0 And @(_TargetPackageReference->Count()) &gt; 0" 
       Text="Invalid target package. The target package is expected to specify the dll containing the decompositions to load." />
     <Message 
-      Condition="'$(ResolvedTargetSpecificDecompositions)' != '' And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
-      Text="Resolved target package: $(ResolvedTargetSpecificDecompositions)" 
+      Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
+      Text="Resolved target package assembly: @(ResolvedTargetSpecificDecompositions)" 
       Importance="High" /> 
   </Target>  
 
@@ -118,7 +111,7 @@
     <!-- add the assembly paths for all relevant qsc references and their priorities to ResolvedQscReferences -->
     <ItemGroup>
       <_ResolvedQscReferences Include="%(_RelevantQscProjectReference.Identity)" Priority="%(_RelevantQscProjectReference.Priority)" />
-      <_ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
+      <_ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity).Split(`;`))" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
       <_InvalidQscReferences Include="@(_ResolvedQscReferences)" Condition="'%(_ResolvedQscReferences.Identity)' == ''" />
       <ResolvedQscReferences Include="@(_ResolvedQscReferences)" Condition="'%(_ResolvedQscReferences.Identity)' != ''" />
       <ResolvedQscReferencesAndPriorities Include="(%(ResolvedQscReferences.Identity), %(ResolvedQscReferences.Priority))" /> 
