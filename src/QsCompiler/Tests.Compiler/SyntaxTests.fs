@@ -41,12 +41,12 @@ let ``String parser tests`` () =
     testChar 0 '\t' "\"\\t\""
     testChar 0 '\r' "\"\\r\""
     testChar 0 '\n' "\"\\n\""
-    // testChar 0 '\"' "\"\\\"\""
+    testChar 0 '\"' "\"\\\"\""
     // testChar 0 '\\' "\"\\\\\""
     testChar 3 '\t' "$\"{0}\\t\""
     testChar 3 '\r' "$\"{0}\\r\"" 
     testChar 3 '\n' "$\"{0}\\n\""
-    // testChar 3 '\"' "$\"{0}\\\"\""
+    testChar 3 '\"' "$\"{0}\\\"\""
     // testChar 3 '\\' "$\"{0}\\\\\""
     testChar 3 '{' "$\"{0}\\{\""
 
@@ -214,8 +214,8 @@ let ``Expression literal tests`` () =
         ("-1.0e-2",               true,    toExpr (NEG (toExpr (DoubleLiteral 0.01))),                            []);
         ("\"\"",                  true,    toExpr (StringLiteral (NonNullable<string>.New "", noExprs)),          []);
         ("\"hello\"",             true,    toExpr (StringLiteral (NonNullable<string>.New "hello", noExprs)),     []);
-        //("\"hello\\\\\"",         true,    toExpr (StringLiteral (NonNullable<string>.New "hello\\", noExprs)),   []);
-        //("\"\\\"hello\\\\\"\"",   true,    toExpr (StringLiteral (NonNullable<string>.New "\"hello\"", noExprs)), []);
+        // ("\"hello\\\\\"",         true,    toExpr (StringLiteral (NonNullable<string>.New "hello\\", noExprs)),   []);
+        ("\"\\\"hello\\\"\"",     true,    toExpr (StringLiteral (NonNullable<string>.New "\"hello\"", noExprs)), []);
         ("\"hello\\n\"",          true,    toExpr (StringLiteral (NonNullable<string>.New "hello\n", noExprs)),   []);
         ("\"hello\\r\\n\"",       true,    toExpr (StringLiteral (NonNullable<string>.New "hello\r\n", noExprs)), []);
         ("\"hello\\t\"",          true,    toExpr (StringLiteral (NonNullable<string>.New "hello\t", noExprs)),   []);

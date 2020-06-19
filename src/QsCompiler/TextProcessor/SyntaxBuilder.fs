@@ -182,7 +182,7 @@ let internal getStringContent interpolArg =
     let startDelimiter = pstring "\""
     let endDelimiter = notPrecededBySlash >>. startDelimiter
     let interpolatedString = 
-        let interpolCharSnippet = manySatisfy (fun c-> c<> '\\' && c <> '"' && c <> '{')
+        let interpolCharSnippet = manySatisfy (fun c-> c <> '\\' && c <> '"' && c <> '{')
         let escapedChar = pstring "\\" >>. (anyOf "\\\"nrt{" |>> function // Also supports escapting '{'
                                                         | 'n' -> "\n"
                                                         | 'r' -> "\r"
