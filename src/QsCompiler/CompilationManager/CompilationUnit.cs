@@ -131,6 +131,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return new Headers(source, callables, specializations, types);
         }
 
+        /// <summary>
+        /// Checks whether the given sequence of elements contains multiple items with the same qualified name. 
+        /// Returns a sequence of two strings, with the first one containing the name of the duplication, 
+        /// and the second one listing all sources in which it occurs. 
+        /// Returns null if the given sequence of elements is null. 
+        /// </summary>
+        private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(IEnumerable<(QsQualifiedName name, NonNullable<string> source, AccessModifier access)> elements) =>
+            elements?.Where(e => Namespace.IsDeclarationAccessible(false, e.access))
+                     .GroupBy(e => e.name)
+                     .Where(g => g.Count() != 1)
+                     .Select(g => (g.Key, String.Join(", ", g.Select(e => e.source.Value))))
+                     .Select(c => ($"{c.Key.Namespace.Value}.{c.Key.Name.Value}", c.Item2));
 
         /// <summary>
         /// Dictionary that maps the id of a referenced assembly (given by its location on disk) to the headers defined in that assembly.
@@ -186,23 +198,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             
             if (onError == null) return;
-            var conflictingCallables = this.Declarations.Values
-                .SelectMany(r => r.Callables)
-                .Where(c => Namespace.IsDeclarationAccessible(false, c.Modifiers.Access))
-                .GroupBy(c => c.QualifiedName)
-                .Where(g => g.Count() != 1)
-                .Select(g => (g.Key, String.Join(", ", g.Select(c => c.SourceFile.Value))));
-            var conflictingTypes = this.Declarations.Values
-                .SelectMany(r => r.Types)
-                .Where(t => Namespace.IsDeclarationAccessible(false, t.Modifiers.Access))
-                .GroupBy(t => t.QualifiedName)
-                .Where(g => g.Count() != 1)
-                .Select(g => (g.Key, String.Join(", ", g.Select(c => c.SourceFile.Value))));
+            var conflicting = new List<(string, string)>();
+            var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.SourceFile, c.Modifiers.Access));
+            var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.SourceFile, t.Modifiers.Access));
+            conflicting.AddRange(GenerateDiagnosticsForConflicts(callables));
+            conflicting.AddRange(GenerateDiagnosticsForConflicts(types));
 
-            foreach (var (name, conflicts) in conflictingCallables.Concat(conflictingTypes).Distinct())
+            foreach (var (name, conflicts) in conflicting.Distinct())
             {
-                var diagArgs = new[] { $"{name.Namespace.Value}.{name.Name.Value}", conflicts };
-                onError?.Invoke(ErrorCode.ConflictInReferences, diagArgs);
+                onError?.Invoke(ErrorCode.ConflictInReferences, new[] { name, conflicts});
             }
         }
 
@@ -217,7 +221,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns true if the given syntax trees do not contain any conflicting declarations and were successfully combined.
         /// Returns false and an empty array of namespaces as out parameter otherwise. 
         /// </summary>
-        /// <param name="loaded"></param>
         public static bool CombineSyntaxTrees(out ImmutableArray<QsNamespace> combined, 
             Action<ErrorCode, string[]> onError = null,
             params (NonNullable<string>, ImmutableArray<QsNamespace>)[] loaded)
@@ -226,25 +229,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             combined = ImmutableArray<QsNamespace>.Empty;
             if (loaded == null) return false;
 
-            var headers = loaded.ToImmutableDictionary(
-                entry => entry.Item1,
-                entry => new Headers(entry.Item1, entry.Item2)); // TODO: avoid building headers that are not needed
-
-            var conflictErrs = new List<(ErrorCode, string[])>();
-            var references = new References(headers, onError: (errCode, args) => conflictErrs.Add((errCode, args)));
-            if (conflictErrs.Any())
-            {
-                foreach (var (errCode, args) in conflictErrs) onError?.Invoke(errCode, args); 
-                return false;
-            }
-
             var (callables, types) = CompilationUnit.RenameInternalDeclarations(
-                loaded.SelectMany(loaded => loaded.Item2.Callables().Select(c => 
+                loaded.SelectMany(loaded => loaded.Item2.Callables().Select(c =>
                     c.WithSourceFile(loaded.Item1)
                     .WithSpecializations(specs => specs.Select(s => s.WithSourceFile(loaded.Item1)).ToImmutableArray()))),
-                loaded.SelectMany(loaded => loaded.Item2.Types().Select(t => 
+                loaded.SelectMany(loaded => loaded.Item2.Types().Select(t =>
                     t.WithSourceFile(loaded.Item1))));
 
+            var conflicting = new List<(string, string)>();
+            var callableElems = callables.Select(c => (c.FullName, c.SourceFile, c.Modifiers.Access));
+            var typeElems = types.Select(t => (t.FullName, t.SourceFile, t.Modifiers.Access));
+            conflicting.AddRange(GenerateDiagnosticsForConflicts(callableElems));
+            conflicting.AddRange(GenerateDiagnosticsForConflicts(typeElems));
+            foreach (var (name, conflicts) in conflicting.Distinct())
+            {
+                onError?.Invoke(ErrorCode.ConflictInReferences, new[] { name, conflicts });
+            }
+
+            if (conflicting.Any()) return false;
             combined = CompilationUnit.NewSyntaxTree(callables, types);
             return true;
         }
