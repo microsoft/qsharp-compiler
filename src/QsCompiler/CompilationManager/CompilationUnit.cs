@@ -224,7 +224,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static bool CombineSyntaxTrees(out ImmutableArray<QsNamespace> combined, 
             Action<ErrorCode, string[]> onError = null,
             params (NonNullable<string>, ImmutableArray<QsNamespace>)[] loaded)
-
         {
             combined = ImmutableArray<QsNamespace>.Empty;
             if (loaded == null) return false;

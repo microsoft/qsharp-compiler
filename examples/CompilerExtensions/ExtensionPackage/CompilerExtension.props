@@ -3,7 +3,8 @@
 
   <PropertyGroup>
     <QscRef_CustomExtension_Package>
-      $(MSBuildThisFileDirectory)/../lib/netstandard2.1/CustomExtension.dll
+      $(MSBuildThisFileDirectory)/../lib/netstandard2.1/CustomExtension.dll;
+      $(MSBuildThisFileDirectory)/../lib/netstandard2.1/CustomExtension.Package.dll
     </QscRef_CustomExtension_Package>
   </PropertyGroup>
 

@@ -117,7 +117,7 @@
       <ResolvedQscReferences Include="@(_ResolvedQscReferences->Split(`;`))" Condition="'%(_ResolvedQscReferences.Identity)' != ''" />
       <ResolvedQscReferencesAndPriorities Include="(%(ResolvedQscReferences.Identity), %(ResolvedQscReferences.Priority))" /> 
     </ItemGroup>
-    <Warning Condition="@(_InvalidQscReferences->Count()) &gt; 0" Text="One or more qsc reference(s) could not be identified correctly due to a lack of the expected handles." />
+    <Warning Condition="@(_InvalidQscReferences->Count()) &gt; 0" Text="One or more qsc reference(s) could not be identified correctly due to a lack of the expected properties." />
     <Message 
       Condition="@(ResolvedQscReferences->Count()) &gt; 0 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
       Text="Resolved qsc reference: %(ResolvedQscReferences.Identity) (priority %(ResolvedQscReferences.Priority))" 
