@@ -239,8 +239,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var (callables, types) = CompilationUnit.RenameInternalDeclarations(
-                loaded.SelectMany(loaded => loaded.Item2.Callables()),
-                loaded.SelectMany(loaded => loaded.Item2.Types()));
+                loaded.SelectMany(loaded => loaded.Item2.Callables().Select(c => 
+                    c.WithSourceFile(loaded.Item1)
+                    .WithSpecializations(specs => specs.Select(s => s.WithSourceFile(loaded.Item1)).ToImmutableArray()))),
+                loaded.SelectMany(loaded => loaded.Item2.Types().Select(t => 
+                    t.WithSourceFile(loaded.Item1))));
 
             combined = CompilationUnit.NewSyntaxTree(callables, types);
             return true;

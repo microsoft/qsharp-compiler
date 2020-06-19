@@ -662,6 +662,7 @@ type QsSpecialization = {
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithImplementation impl = {this with Implementation = impl}
     member this.WithParent (getName : Func<_,_>) = {this with Parent = getName.Invoke(this.Parent)}
+    member this.WithSourceFile file = {this with SourceFile = file}
 
 
 /// describes a Q# function, operation, or type constructor
@@ -701,6 +702,7 @@ type QsCallable = {
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithSpecializations (getSpecs : Func<_,_>) = {this with Specializations = getSpecs.Invoke(this.Specializations)}
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
+    member this.WithSourceFile file = {this with SourceFile = file}
 
 
 /// used to represent the named and anonymous items in a user defined type
@@ -741,6 +743,7 @@ type QsCustomType = {
     with
     member this.AddAttribute att = {this with Attributes = this.Attributes.Add att}
     member this.WithFullName (getName : Func<_,_>) = {this with FullName = getName.Invoke(this.FullName)}
+    member this.WithSourceFile file = {this with SourceFile = file}
 
 
 /// Describes a valid Q# namespace element.
