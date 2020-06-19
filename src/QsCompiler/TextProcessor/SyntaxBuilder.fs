@@ -182,8 +182,13 @@ let internal getStringContent interpolArg =
     let startDelimiter = pstring "\""
     let endDelimiter = notPrecededBySlash >>. startDelimiter
     let interpolatedString = 
-        let contentDelimiter = endDelimiter <|> (notPrecededBySlash >>. lCurly)
-        let nonInterpol = manyChars (notFollowedBy contentDelimiter >>. anyChar)
+        let interpolCharSnippet = manySatisfy (fun c-> c<> '\\' && c <> '"' && c <> '{')
+        let escapedChar = pstring "\\" >>. (anyOf "\\\"nrt{" |>> function // Also supports escapting '{'
+                                                        | 'n' -> "\n"
+                                                        | 'r' -> "\r"
+                                                        | 't' -> "\t"
+                                                        | c   -> string c)
+        let nonInterpol = (stringsSepBy interpolCharSnippet escapedChar)
         let interpol = (lCurly, rCurly) |> bracketDefinedContent interpolArg 
         let content = nonInterpol .>>. many (interpol .>>. nonInterpol)
         pchar '$' >>. startDelimiter >>. content .>> endDelimiter |>> fun (h, items) -> 
@@ -191,7 +196,13 @@ let internal getStringContent interpolArg =
             items |> List.map snd |> List.iteri (fun i part -> str <- sprintf "%s{%i}%s" str i part)
             str, items |> List.map fst
     let nonInterpolatedString = 
-        let content = manyChars (notFollowedBy endDelimiter >>. anyChar)
+        let normalCharSnippet = manySatisfy (fun c -> c <> '\\' && c <> '"')
+        let escapedChar = pstring "\\" >>. (anyOf "\\\"nrt" |>> function
+                                                        | 'n' -> "\n"
+                                                        | 'r' -> "\r"
+                                                        | 't' -> "\t"
+                                                        | c   -> string c)
+        let content = (stringsSepBy normalCharSnippet escapedChar)
         startDelimiter >>. content .>> endDelimiter |>> fun str -> (str, [])
     attempt interpolatedString <|> attempt nonInterpolatedString
 
