@@ -32,23 +32,26 @@ let ``String parser tests`` () =
     |> List.iter (fun s -> Assert.True(simpleParseString (stringLiteral .>> eof) s, "Failed to parse string " + s))
 
     // testing whether tabs etc in strings are processed correctly
+    // Note: the below strings use triple-quote syntax where the
+    // beginning delimiter is """ and the ending delimiter is """,
+    // with everything in between treated as a verbatim string.
     let testChar offset char string = 
         match parse_string_diags_res rawString string with 
         | true, _, Some parsed -> 
             Assert.Equal(offset + 1, parsed.Length)
             Assert.Equal(char, parsed.[offset])
         | _ -> Assert.True(false, "failed to parse")
-    testChar 0 '\t' @"""\t"""
-    testChar 0 '\r' @"""\r"""
-    testChar 0 '\n' @"""\n"""
-    testChar 0 '\"' @"""\"""""
-    // testChar 0 '\\' @"""\\"""
-    testChar 3 '\t' @"$""{0}\t"""
-    testChar 3 '\r' @"$""{0}\r""" 
-    testChar 3 '\n' @"$""{0}\n"""
-    testChar 3 '\"' @"$""{0}\"""""
-    // testChar 3 '\\' @"$""{0}\\"""
-    testChar 3 '{' @"$""{0}\{"""
+    testChar 0 '\t' "\"\\t\""
+    testChar 0 '\r' "\"\\r\""
+    testChar 0 '\n' "\"\\n\""
+    testChar 0 '\"' "\"\\\"\""
+    // testChar 0 '\\' "\"\\\\\""
+    testChar 3 '\t' "$\"{0}\\t\""
+    testChar 3 '\r' "$\"{0}\\r\"" 
+    testChar 3 '\n' "$\"{0}\\n\""
+    testChar 3 '\"' "$\"{0}\\\"\""
+    // testChar 3 '\\' "$\"{0}\\\\\""
+    testChar 3 '{' "$\"{0}\\{\""
 
 
 [<Fact>]
