@@ -44,11 +44,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     ?? ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)>.Empty;
             }
 
-            internal Headers(NonNullable<string> source, IEnumerable<QsNamespace> syntaxTree) : this (
+            /// <summary>
+            /// Initializes a set of reference headers based on the given syntax tree loaded from the specified source. 
+            /// The source is expected to be the path to the dll from which the syntax has been loaded. 
+            /// Returns an empty set of headers if the given syntax tree is null. 
+            /// </summary>
+            public Headers(NonNullable<string> source, IEnumerable<QsNamespace> syntaxTree) : this (
                 source.Value, 
-                syntaxTree.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
-                syntaxTree.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), s.Implementation)), 
-                syntaxTree.Types().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(TypeDeclarationHeader.New))
+                syntaxTree?.Callables().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(CallableDeclarationHeader.New),
+                syntaxTree?.Specializations().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(s => (SpecializationDeclarationHeader.New(s), s.Implementation)), 
+                syntaxTree?.Types().Where(c => c.SourceFile.Value.EndsWith(".qs")).Select(TypeDeclarationHeader.New))
             { }
 
             internal Headers(NonNullable<string> source, IEnumerable<(string, string)> attributes) : this(
