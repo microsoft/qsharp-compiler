@@ -32,9 +32,6 @@ let ``String parser tests`` () =
     |> List.iter (fun s -> Assert.True(simpleParseString (stringLiteral .>> eof) s, "Failed to parse string " + s))
 
     // testing whether tabs etc in strings are processed correctly
-    // Note: the below strings use triple-quote syntax where the
-    // beginning delimiter is """ and the ending delimiter is """,
-    // with everything in between treated as a verbatim string.
     let testChar offset char string = 
         match parse_string_diags_res rawString string with 
         | true, _, Some parsed -> 
