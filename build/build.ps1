@@ -17,10 +17,15 @@ function Build-One {
     );
 
     Write-Host "##[info]Building $project ..."
+    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+    }  else {
+        $args = @();
+    }
     dotnet build (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
-        /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+        @args `
         /property:Version=$Env:ASSEMBLY_VERSION
 
     if  ($LastExitCode -ne 0) {
@@ -70,9 +75,14 @@ function Build-VS() {
             
             if (Get-Command msbuild -ErrorAction SilentlyContinue) {
                 Try {
+                    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+                        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+                    }  else {
+                        $args = @();
+                    }
                     msbuild VisualStudioExtension.sln `
                         /property:Configuration=$Env:BUILD_CONFIGURATION `
-                        /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+                        @args `
                         /property:AssemblyVersion=$Env:ASSEMBLY_VERSION
     
                     if ($LastExitCode -ne 0) {
