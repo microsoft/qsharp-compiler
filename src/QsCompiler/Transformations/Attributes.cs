@@ -41,6 +41,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             SyntaxGenerator.StringLiteral(NonNullable<string>.New(content ?? ""), ImmutableArray<TypedExpression>.Empty);
 
         /// <summary>
+        /// Builds an attribute argument with the given string valued tuple items. 
+        /// If a given string is null, the value of the corresponding item is set to the empty string. 
+        /// If no items are given, a suitable argument of type unit is returned. 
+        /// </summary>
+        public static TypedExpression StringArguments(params string[] items) =>
+            items == null || items.Length == 0 ? SyntaxGenerator.UnitValue :
+            items.Length == 1 ? StringArgument(items.Single()) : 
+            SyntaxGenerator.TupleLiteral(items.Select(StringArgument));
+
+        /// <summary>
         /// Adds the given attribute to all callables in the given compilation that satisfy the given predicate 
         /// - if the predicate is specified and not null.
         /// Throws an ArgumentNullException if the given attribute or compilation is null.
