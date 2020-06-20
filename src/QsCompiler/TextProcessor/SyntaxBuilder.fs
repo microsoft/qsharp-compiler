@@ -179,8 +179,7 @@ let internal curlyBrackets core = ((lCurly, rCurly) |> bracketDefinedContent cor
 /// IMPORTANT: Parses *precicely* the string literal and does *not* handle whitespace! 
 let internal getStringContent interpolArg = 
     let notPrecededBySlash = previousCharSatisfiesNot (fun c -> c.Equals '\\')
-    let startDelimiter = pstring "\""
-    let endDelimiter = notPrecededBySlash >>. startDelimiter
+    let delimiter = pstring "\""
     let interpolatedString = 
         let interpolCharSnippet = manySatisfy (fun c-> c <> '\\' && c <> '"' && c <> '{')
         let escapedChar = pstring "\\" >>. (anyOf "\\\"nrt{" |>> function // Also supports escapting '{'
@@ -191,7 +190,7 @@ let internal getStringContent interpolArg =
         let nonInterpol = (stringsSepBy interpolCharSnippet escapedChar)
         let interpol = (lCurly, rCurly) |> bracketDefinedContent interpolArg 
         let content = nonInterpol .>>. many (interpol .>>. nonInterpol)
-        pchar '$' >>. startDelimiter >>. content .>> endDelimiter |>> fun (h, items) -> 
+        (between (pchar '$' >>. delimiter) delimiter content) |>> fun (h, items) -> 
             let mutable str = h 
             items |> List.map snd |> List.iteri (fun i part -> str <- sprintf "%s{%i}%s" str i part)
             str, items |> List.map fst
@@ -203,7 +202,7 @@ let internal getStringContent interpolArg =
                                                         | 't' -> "\t"
                                                         | c   -> string c)
         let content = (stringsSepBy normalCharSnippet escapedChar)
-        startDelimiter >>. content .>> endDelimiter |>> fun str -> (str, [])
+        (between delimiter delimiter content) |>> fun str -> (str, [])
     attempt interpolatedString <|> attempt nonInterpolatedString
 
 do stringContentImpl := getStringContent (manyChars anyChar) >>% ()
