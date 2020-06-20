@@ -7,6 +7,7 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.IO
+open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -102,6 +103,11 @@ type LinkingTests (output:ITestOutputHelper) =
 
         compilation
 
+    member private this.BuildReference (source : NonNullable<string>) = 
+        let comp = this.BuildContent (source.Value |> File.ReadAllText)
+        Assert.Empty (comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = DiagnosticSeverity.Error))
+        struct (source, comp.BuiltCompilation.Namespaces)
+
     member private this.CompileMonomorphization input =
 
         let compilationDataStructures = this.BuildContent input
@@ -164,7 +170,9 @@ type LinkingTests (output:ITestOutputHelper) =
         let beforeCount = countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [renamed; notRenamed])
         let afterCountOriginal = countAll referenceCompilation.BuiltCompilation.Namespaces renamed
 
-        let newNames = renamed |> Seq.map (fun name -> CompilationUnit.ReferenceDecorator.Decorate (name, 0))
+        let decorator = new NameDecorator("QsRef");
+        let refId = references.Declarations.Single().Key.Value.GetHashCode()
+        let newNames = renamed |> Seq.map (fun name -> decorator.Decorate (name, refId))
         let afterCount = countAll referenceCompilation.BuiltCompilation.Namespaces (Seq.concat [newNames; notRenamed])
 
         Assert.NotEqual (0, beforeCount)
@@ -464,9 +472,66 @@ type LinkingTests (output:ITestOutputHelper) =
         let referenceCompilation = this.BuildContent ("", references)
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
 
-        for i in 0 .. references.Declarations.Count - 1 do
-            let name =
-                CompilationUnit.ReferenceDecorator.Decorate (qualifiedName Signatures.InternalRenamingNs "Foo", i)
+        let decorator = new NameDecorator("QsRef")
+        for header in references.Declarations do
+            let name = decorator.Decorate (qualifiedName Signatures.InternalRenamingNs "Foo", header.Key.Value.GetHashCode())
             let specializations = callables.[name].Specializations
             Assert.Equal (4, specializations.Length)
             Assert.True (specializations |> Seq.forall (fun s -> s.SourceFile = callables.[name].SourceFile))
+
+
+    [<Fact>]
+    member this.``...`` () = 
+        // TODO: add tests for conflicting declarations
+        ()
+
+
+    [<Fact>]
+    member this.``Combine existing syntax trees to a valid reference`` () = 
+        let source1 = NonNullable<string>.New ""
+        let source2 = NonNullable<string>.New ""
+        let declInSource1 : Set<QsQualifiedName> = new Set<_>([])
+        let declInSource2 : Set<QsQualifiedName> = new Set<_>([])
+
+        let mutable combined = ImmutableArray<QsNamespace>.Empty
+        let onError _ _ = Assert.False(true, "diagnostics generated upon combining syntax trees")
+        let tree1 = this.BuildReference source1
+        let tree2 = this.BuildReference source2
+        let success = References.CombineSyntaxTrees(&combined, new Action<_,_>(onError), tree1, tree2)
+        Assert.True(success)
+
+        let decorator = new NameDecorator("QsRef")
+        let undecorate assertUndecorated (fullName : QsQualifiedName, source : NonNullable<string>) = 
+            let name = decorator.Undecorate fullName.Name.Value
+            if assertUndecorated then Assert.NotNull name 
+            if name <> null then 
+                Assert.Equal<string>(decorator.Decorate(name, source.Value.GetHashCode()), fullName.Name.Value)
+                {Namespace = fullName.Namespace; Name = name |> NonNullable<string>.New}
+            else fullName
+
+        /// Verifies that internal names have been decorated appropriately, 
+        /// and that the correct source is set. 
+        let AssertSource (fullName : QsQualifiedName, source, modifier : _ option) = 
+            let name = 
+                if modifier.IsNone then undecorate false (fullName, source) 
+                elif modifier.Value = Internal then undecorate true (fullName, source)
+                else fullName
+            if declInSource1.Contains name then Assert.Equal(source1, source)
+            elif declInSource2.Contains name then Assert.Equal(source2, source)
+            else Assert.True(false, "wrong source")
+
+        let onTypeDecl (tDecl : QsCustomType) = 
+            AssertSource (tDecl.FullName, tDecl.SourceFile, Some tDecl.Modifiers.Access)
+            tDecl
+
+        let onCallableDecl (cDecl : QsCallable) = 
+            AssertSource (cDecl.FullName, cDecl.SourceFile, Some cDecl.Modifiers.Access)
+            cDecl
+        
+        let onSpecDecl (sDecl : QsSpecialization) = 
+            AssertSource (sDecl.Parent, sDecl.SourceFile, None)
+            sDecl
+        
+        let checker = new CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)
+        checker.Apply({EntryPoints = ImmutableArray<QsQualifiedName>.Empty; Namespaces = combined}) |> ignore
+

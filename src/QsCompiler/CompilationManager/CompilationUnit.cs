@@ -265,8 +265,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// </summary>
     public class CompilationUnit : IReaderWriterLock, IDisposable
     {
-        internal static readonly NameDecorator ReferenceDecorator = new NameDecorator("QsReference");
-
         internal References Externals { get; private set; }
         internal NamespaceManager GlobalSymbols { get; private set; }
 
@@ -864,13 +862,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             predicate ??= (_ => true);
 
             // Assign a unique ID to each reference.
+
+            var decorator = new NameDecorator($"QsRef");
             var ids =
                 callables.Select(callable => callable.SourceFile.Value)
                 .Concat(types.Select(type => type.SourceFile.Value))
                 .Distinct()
                 .Where(source => predicate(NonNullable<string>.New(source)))
-                .Select((source, index) => (source, index))
-                .ToImmutableDictionary(item => item.source, item => item.index);
+                .ToImmutableDictionary(source => source, source => source.GetHashCode()); // we need an id here that is unique and can be reconstructed knowing only the source name
 
             ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
                 IGrouping<string, (QsQualifiedName name, string source, AccessModifier access)> group) =>
@@ -879,7 +878,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     !Namespace.IsDeclarationAccessible(false, item.access) &&
                     predicate(NonNullable<string>.New(item.source)))
                 .ToImmutableDictionary(item => item.name,
-                                       item => ReferenceDecorator.Decorate(item.name, ids[item.source]));
+                                       item => decorator.Decorate(item.name, ids[item.source]));
+
+            // rename all internal declarations and their usages
 
             var transformations =
                 callables.Select(callable =>
