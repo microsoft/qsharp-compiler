@@ -147,7 +147,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             id = NonNullable<string>.New("");
             if (uri == null || !uri.IsFile || !uri.IsAbsoluteUri) return false;
-            id = NonNullable<string>.New(uri.AbsolutePath);
+            id = NonNullable<string>.New(uri.IsUnc ? uri.LocalPath : uri.AbsolutePath);
             return true;
         }
 

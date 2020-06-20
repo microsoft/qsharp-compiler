@@ -17,10 +17,15 @@ function Publish-One {
     );
 
     Write-Host "##[info]Publishing $project ..."
+    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+    }  else {
+        $args = @();
+    }
     dotnet publish (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
-        /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+        @args `
         /property:Version=$Env:ASSEMBLY_VERSION
 
     if  ($LastExitCode -ne 0) {
@@ -112,6 +117,11 @@ function Pack-SelfContained() {
         New-Item -ItemType Directory -Path $ArchiveDir -Force -ErrorAction SilentlyContinue;
 
         try {
+            if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
+                $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+            }  else {
+                $args = @();
+            }
             $ArchivePath = Join-Path $ArchiveDir "$BaseName-$DotNetRuntimeID-$Env:ASSEMBLY_VERSION.zip";
             dotnet publish (Join-Path $PSScriptRoot $Project) `
                 -c $Env:BUILD_CONFIGURATION `
@@ -119,7 +129,7 @@ function Pack-SelfContained() {
                 --self-contained `
                 --runtime $DotNetRuntimeID `
                 --output $TargetDir `
-                /property:DefineConstants=$Env:ASSEMBLY_CONSTANTS `
+                @args `
                 /property:Version=$Env:ASSEMBLY_VERSION
             Write-Host "##[info]Writing self-contained deployment to $ArchivePath..."
             Compress-Archive `
