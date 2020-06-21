@@ -27,6 +27,9 @@
     <None Include="TestCases\LinkingTests\Generics.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\LinkingTests\ReferenceLinking.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LinkingTests\ValidEntryPoints.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
