@@ -12,8 +12,8 @@ namespace Microsoft.Quantum.Testing.Linking {
 
 namespace Microsoft.Quantum.Testing.Linking {
 
-    newtype BigEndian = Qubit[];
-    operation Foo () : Unit {}
-    function Bar() : Unit {}
+    internal newtype BigEndian = Qubit[];
+    internal operation Foo () : Unit {}
+    internal function Bar() : Unit {}
 }
 

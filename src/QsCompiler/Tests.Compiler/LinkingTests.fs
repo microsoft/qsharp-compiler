@@ -508,21 +508,20 @@ type LinkingTests (output:ITestOutputHelper) =
     [<Fact>]
     member this.``Combining existing syntax trees to a valid reference`` () = 
 
-        let checkValidCombination (sources : ((NonNullable<string> * string) * Set<_>) seq) = 
+        let checkValidCombination (sources : ImmutableDictionary<NonNullable<string>, (string * Set<_>)>) = 
             let mutable combined = ImmutableArray<QsNamespace>.Empty
-            let trees = sources |> Seq.map (fst >> this.BuildReference) |> Seq.toArray
+            let trees = sources |> Seq.map (fun kv -> this.BuildReference (kv.Key, fst kv.Value)) |> Seq.toArray
             let onError _ _ = Assert.False(true, "diagnostics generated upon combining syntax trees")
             let success = References.CombineSyntaxTrees(&combined, new Action<_,_>(onError), trees)
-            Assert.True(success)
+            Assert.True(success, "failed to combine syntax trees")
 
             let decorator = new NameDecorator("QsRef")
-            let undecorate assertUndecorated (fullName : QsQualifiedName, source : NonNullable<string>) = 
+            let undecorate (assertUndecorated : bool) (fullName : QsQualifiedName, source : NonNullable<string>) = 
                 let name = decorator.Undecorate fullName.Name.Value
-                if assertUndecorated then Assert.NotNull name 
                 if name <> null then 
                     Assert.Equal<string>(decorator.Decorate(name, source.Value.GetHashCode()), fullName.Name.Value)
                     {Namespace = fullName.Namespace; Name = name |> NonNullable<string>.New}
-                else fullName
+                else Assert.False(assertUndecorated, sprintf "name %s is not decorated" (fullName.ToString())); fullName
 
             /// Verifies that internal names have been decorated appropriately, 
             /// and that the correct source is set. 
@@ -531,9 +530,9 @@ type LinkingTests (output:ITestOutputHelper) =
                     if modifier.IsNone then undecorate false (fullName, source) 
                     elif modifier.Value = Internal then undecorate true (fullName, source)
                     else fullName
-                match sources |> Seq.tryFind (fun (_, decls) -> decls.Contains name) with 
-                | Some (declSource, _) -> Assert.Equal(fst declSource, source)
-                | None -> Assert.True(false, "wrong source")
+                match sources.TryGetValue source with 
+                | true, (_, decls) -> Assert.True(decls.Contains name)
+                | false, _ -> Assert.True(false, "wrong source")
 
             let onTypeDecl (tDecl : QsCustomType) = 
                 AssertSource (tDecl.FullName, tDecl.SourceFile, Some tDecl.Modifiers.Access)
@@ -549,11 +548,20 @@ type LinkingTests (output:ITestOutputHelper) =
 
         let source =  sprintf "Reference%i.dll" >> NonNullable<string>.New
         let chunks = LinkingTests.ReadAndChunkSourceFile "ReferenceLinking.qs"
+        let fullName (ns, name) = {Namespace = NonNullable<string>.New ns; Name = NonNullable<string>.New name}
+        let buildDict (args : _ seq) = args.ToImmutableDictionary(fst, snd)
 
-        let declInSource1 : Set<QsQualifiedName> = new Set<_>([])
-        let declInSource2 : Set<QsQualifiedName> = new Set<_>([])
-
-        checkValidCombination [
-            ((source 1, ""), declInSource1)
-            ((source 2, ""), declInSource2)
-        ]
+        let declInSource1 = new Set<_>([
+            ("Microsoft.Quantum.Testing.Linking", "BigEndian") |> fullName
+            ("Microsoft.Quantum.Testing.Linking", "Foo")       |> fullName
+            ("Microsoft.Quantum.Testing.Linking", "Bar")       |> fullName
+        ])
+        let declInSource2 = new Set<_>([
+            ("Microsoft.Quantum.Testing.Linking", "BigEndian") |> fullName
+            ("Microsoft.Quantum.Testing.Linking", "Foo")       |> fullName
+            ("Microsoft.Quantum.Testing.Linking", "Bar")       |> fullName        
+        ])
+        checkValidCombination (buildDict [
+            (source 1, (chunks.[0], declInSource1))
+            (source 2, (chunks.[1], declInSource2))
+        ])
