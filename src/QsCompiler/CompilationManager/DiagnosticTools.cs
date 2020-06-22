@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the line and character of the given position as tuple without verifying them.
         /// Throws an ArgumentNullException if the given position is null.
         /// </summary>
-        internal static Tuple<int, int> AsTuple(Position position) => 
+        public static Tuple<int, int> AsTuple(Position position) => 
             position != null 
             ? new Tuple<int, int>(position.Line, position.Character)
             : throw new ArgumentNullException(nameof(position));
@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns a Position with the line and character given as tuple (inverse function for AsTuple).
         /// Throws an ArgumentNullException if the given tuple is null.
         /// </summary>
-        internal static Position AsPosition(Tuple<int, int> position) =>
+        public static Position AsPosition(Tuple<int, int> position) =>
             position != null
             ? new Position(position.Item1, position.Item2)
             : throw new ArgumentNullException(nameof(position));
