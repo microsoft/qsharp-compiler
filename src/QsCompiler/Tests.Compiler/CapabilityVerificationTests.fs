@@ -45,6 +45,10 @@ let private all =
       "ResultAsBoolNeqOpReturnIf"
       "ResultAsBoolOpSetIf"
       "ResultAsBoolNeqOpSetIf"
+      "ResultAsBoolOpElseSet"
+      "ElifSet"
+      "ElifElifSet"
+      "ElifElseSet"
       "EmptyIf"
       "EmptyIfNeq"
       "Reset"
@@ -53,25 +57,35 @@ let private all =
 let [<Fact>] ``Unknown allows all Result comparison`` () = List.iter (allows unknown) all
 let [<Fact>] ``QPRGen0 restricts all Result comparison`` () = List.iter (restricts gen0) all
 
-[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
+[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
 let ``QPRGen1 restricts Result comparison in functions`` () =
     restricts gen1 "ResultAsBool"
     restricts gen1 "ResultAsBoolNeq"
 
-[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
+[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
 let ``QPRGen1 restricts non-if Result comparison in operations`` () =
     restricts gen1 "ResultAsBoolOp"
     restricts gen1 "ResultAsBoolNeqOp"
 
-[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
+[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
 let ``QPRGen1 restricts return from Result if`` () =
     restricts gen1 "ResultAsBoolOpReturnIf"
     restricts gen1 "ResultAsBoolNeqOpReturnIf"
 
-[<Fact(Skip = "QPRGen1 verification is not implemented yet")>]
+[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
 let ``QPRGen1 restricts mutable set from Result if`` () =
     restricts gen1 "ResultAsBoolOpSetIf"
-    restricts gen1 "ResultAsBoolNeqOpSetIf"    
+    restricts gen1 "ResultAsBoolNeqOpSetIf"
+
+[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
+let ``QPRGen1 restricts mutable set from Result elif`` () =
+    restricts gen1 "ElifSet"
+    restricts gen1 "ElifElifSet"
+
+[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
+let ``QPRGen1 restricts mutable set from Result else`` () =
+    restricts gen1 "ResultAsBoolOpElseSet"
+    restricts gen1 "ElifElseSet"
 
 [<Fact>]
 let ``QPRGen1 allows empty Result if`` () =

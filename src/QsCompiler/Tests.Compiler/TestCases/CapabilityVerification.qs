@@ -11,6 +11,8 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
         body intrinsic;
     }
 
+    internal operation NoOp() : Unit { }
+
     function ResultAsBool(result : Result) : Bool {
         return result == Zero ? false | true;
     }
@@ -54,6 +56,52 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
     operation ResultAsBoolNeqOpSetIf(result : Result) : Bool {
         mutable b = false;
         if (result != Zero) {
+            set b = true;
+        }
+        return b;
+    }
+
+    operation ResultAsBoolOpElseSet(result : Result) : Bool {
+        mutable b = false;
+        if (result == Zero) {
+            NoOp();
+        } else {
+            set b = true;
+        }
+        return b;
+    }
+
+    operation ElifSet(result : Result, flag : Bool) : Bool {
+        mutable b = false;
+        if (flag) {
+            set b = true;
+        } elif (result != Zero) {
+            set b = true;
+        }
+        return b;
+    }
+
+    operation ElifElifSet(result : Result, flag : Bool) : Bool {
+        mutable b = false;
+        if (flag) {
+            set b = true;
+        } elif (flag) {
+            set b = true;
+        } elif (result != Zero) {
+            set b = true;
+        } else {
+            NoOp();
+        }
+        return b;
+    }
+
+    operation ElifElseSet(result : Result, flag : Bool) : Bool {
+        mutable b = false;
+        if (flag) {
+            set b = true;
+        } elif (result == Zero) {
+            NoOp();
+        } else {
             set b = true;
         }
         return b;
