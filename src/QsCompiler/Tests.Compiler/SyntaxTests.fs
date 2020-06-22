@@ -38,12 +38,17 @@ let ``String parser tests`` () =
             Assert.Equal(offset + 1, parsed.Length)
             Assert.Equal(char, parsed.[offset])
         | _ -> Assert.True(false, "failed to parse")
-    testChar 0 '\t' "\"\t\""
-    testChar 0 '\n' "\"\r\"" // carriage returns will get replace by \n
-    testChar 0 '\n' "\"\n\""
-    testChar 3 '\t' "$\"{0}\t\""
-    testChar 3 '\n' "$\"{0}\r\"" 
-    testChar 3 '\n' "$\"{0}\n\""
+    testChar 0 '\t' "\"\\t\""
+    testChar 0 '\r' "\"\\r\""
+    testChar 0 '\n' "\"\\n\""
+    testChar 0 '\"' "\"\\\"\""
+    testChar 0 '\\' "\"\\\\\""
+    testChar 3 '\t' "$\"{0}\\t\""
+    testChar 3 '\r' "$\"{0}\\r\"" 
+    testChar 3 '\n' "$\"{0}\\n\""
+    testChar 3 '\"' "$\"{0}\\\"\""
+    testChar 3 '\\' "$\"{0}\\\\\""
+    testChar 3 '{' "$\"{0}\\{\""
 
 
 [<Fact>]
@@ -135,6 +140,13 @@ let ``Symbol name tests`` () =
         ("_",                   false,   "",               []);
         ("__",                  false,   "",               []);
         ("__a",                 true,    "__a",            []);
+        ("функция25",           true,    "функция25",      []); // Russian word 'function' followed by '25'
+        ("λ",                   true,    "λ",              []); // Greek small letter Lambda
+        ("ℵ",                   true,    "ℵ",              []); // Hebrew capital letter Aleph
+        ("𝑓",                   false,   "",               []); // Mathematical Italic Small F - not supported
+        ("Q#",                  true,    "Q",              []); // 'Q' followed by '#' - only identifier 'Q' is parsed
+        ("notЁ",                true,    "notЁ",           []); // operation 'not' followed by Cyrillic 'Ё' - OK for identifier
+        ("isЖ",                 true,    "isЖ",            []); // reserved word 'is' followed by Cyrillic 'Ж' - OK for identifier
     ]
     |> List.iter (testOne parser)
 
@@ -202,6 +214,11 @@ let ``Expression literal tests`` () =
         ("-1.0e-2",               true,    toExpr (NEG (toExpr (DoubleLiteral 0.01))),                            []);
         ("\"\"",                  true,    toExpr (StringLiteral (NonNullable<string>.New "", noExprs)),          []);
         ("\"hello\"",             true,    toExpr (StringLiteral (NonNullable<string>.New "hello", noExprs)),     []);
+        ("\"hello\\\\\"",         true,    toExpr (StringLiteral (NonNullable<string>.New "hello\\", noExprs)),   []);
+        ("\"\\\"hello\\\"\"",     true,    toExpr (StringLiteral (NonNullable<string>.New "\"hello\"", noExprs)), []);
+        ("\"hello\\n\"",          true,    toExpr (StringLiteral (NonNullable<string>.New "hello\n", noExprs)),   []);
+        ("\"hello\\r\\n\"",       true,    toExpr (StringLiteral (NonNullable<string>.New "hello\r\n", noExprs)), []);
+        ("\"hello\\t\"",          true,    toExpr (StringLiteral (NonNullable<string>.New "hello\t", noExprs)),   []);
         ("One",                   true,    toExpr (ResultLiteral One),                                            []);
         ("Zero",                  true,    toExpr (ResultLiteral Zero),                                           []);
         ("PauliI",                true,    toExpr (PauliLiteral PauliI),                                          []);
