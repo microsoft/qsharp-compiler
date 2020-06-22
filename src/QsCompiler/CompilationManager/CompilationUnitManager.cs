@@ -141,14 +141,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routines related to tracking the source files
 
         /// <summary>
-        /// Returns the string with the file ID associated with the given URI used throughout the compilation.
+        /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI. 
         /// </summary>
-        public static bool TryGetFileId(Uri uri, out NonNullable<string> id)
+        /// <exception cref="ArgumentException">Thrown if the URI is not an absolute URI or not a file URI.</exception>
+        public static NonNullable<string> GetFileId(Uri uri) => 
+            TryGetFileId(uri, out var fileId)
+                ? fileId
+                : throw new ArgumentException("The URI is not an absolute file URI.", nameof(uri));
+
+        /// <summary>
+        /// Converts a URI into the file ID used during compilation if the URI is an absolute file URI. 
+        /// </summary>
+        /// <returns>True if converting the URI to a file ID succeeded.</returns>
+        [Obsolete("Use GetFileId instead after ensuring that the URI is an absolute file URI.")]
+        public static bool TryGetFileId(Uri uri, out NonNullable<string> fileId)
         {
-            id = NonNullable<string>.New("");
-            if (uri == null || !uri.IsFile || !uri.IsAbsoluteUri) return false;
-            id = NonNullable<string>.New(uri.LocalPath);
-            return true;
+            if (uri.IsFile && uri.IsAbsoluteUri)
+            {
+                fileId = NonNullable<string>.New(uri.LocalPath);
+                return true;
+            }
+            else
+            {
+                fileId = default;
+                return false;
+            }
         }
 
         /// <summary>
