@@ -478,7 +478,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
 
     [<Fact>]
-    member this.``Combining existing syntax trees with conflicts`` () = 
+    member this.``Combine conflicting syntax trees`` () = 
 
         let checkInvalidCombination (conflicts : ImmutableDictionary<_,_>) (sources : (NonNullable<string> * string) seq) = 
             let mutable combined = ImmutableArray<QsNamespace>.Empty
@@ -488,7 +488,7 @@ type LinkingTests (output:ITestOutputHelper) =
                 Assert.True(conflicts.ContainsKey(args.[0]))
                 Assert.Equal(conflicts.[args.[0]], args.[1])
             let success = References.CombineSyntaxTrees(&combined, new Action<_,_>(onError), trees)
-            Assert.False(success)
+            Assert.False(success, "combined conflicting syntax trees")
 
         let source =  sprintf "Reference%i.dll" >> NonNullable<string>.New
         let chunks = LinkingTests.ReadAndChunkSourceFile "ReferenceLinking.qs"
@@ -504,9 +504,30 @@ type LinkingTests (output:ITestOutputHelper) =
             (source 2, chunks.[0]); 
         ]
 
+        let expectedErrs = buildDict [
+            ("Microsoft.Quantum.Testing.Linking.BigEndian", "Reference1.dll, Reference2.dll")
+        ] 
+        checkInvalidCombination expectedErrs [
+            (source 1, chunks.[0]); 
+            (source 2, chunks.[2]); 
+        ]
+        checkInvalidCombination expectedErrs [
+            (source 1, chunks.[0]); 
+            (source 2, chunks.[3]); 
+        ]
+        checkInvalidCombination expectedErrs [
+            (source 1, chunks.[2]); 
+            (source 2, chunks.[3]); 
+            (source 3, chunks.[4]); 
+        ]
+        checkInvalidCombination expectedErrs [
+            (source 1, chunks.[3]); 
+            (source 2, chunks.[5]); 
+        ]
+
 
     [<Fact>]
-    member this.``Combining existing syntax trees to a valid reference`` () = 
+    member this.``Combine syntax trees to a valid reference`` () = 
 
         let checkValidCombination (sources : ImmutableDictionary<NonNullable<string>, (string * Set<_>)>) = 
             let mutable combined = ImmutableArray<QsNamespace>.Empty
@@ -556,12 +577,29 @@ type LinkingTests (output:ITestOutputHelper) =
             ("Microsoft.Quantum.Testing.Linking", "Foo")       |> fullName
             ("Microsoft.Quantum.Testing.Linking", "Bar")       |> fullName
         ])
+        checkValidCombination (buildDict [
+            (source 1, (chunks.[0], declInSource1))
+            (source 2, (chunks.[1], declInSource1))
+        ])
+        checkValidCombination (buildDict [
+            (source 1, (chunks.[1], declInSource1))
+            (source 2, (chunks.[1], declInSource1))
+        ])
+        checkValidCombination (buildDict [
+            (source 1, (chunks.[2], declInSource1))
+            (source 2, (chunks.[4], declInSource1))
+        ])
+        checkValidCombination (buildDict [
+            (source 1, (chunks.[3], declInSource1))
+            (source 2, (chunks.[4], declInSource1))
+        ])
+
         let declInSource2 = new Set<_>([
-            ("Microsoft.Quantum.Testing.Linking", "BigEndian") |> fullName
-            ("Microsoft.Quantum.Testing.Linking", "Foo")       |> fullName
-            ("Microsoft.Quantum.Testing.Linking", "Bar")       |> fullName        
+            ("Microsoft.Quantum.Testing.Linking.Core", "BigEndian") |> fullName
+            ("Microsoft.Quantum.Testing.Linking.Core", "Foo")       |> fullName
+            ("Microsoft.Quantum.Testing.Linking.Core", "Bar")       |> fullName
         ])
         checkValidCombination (buildDict [
             (source 1, (chunks.[0], declInSource1))
-            (source 2, (chunks.[1], declInSource2))
+            (source 2, (chunks.[6], declInSource2))
         ])
