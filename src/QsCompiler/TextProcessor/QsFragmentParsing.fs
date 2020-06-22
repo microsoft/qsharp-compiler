@@ -205,7 +205,7 @@ let private namespaceDeclaration =
     buildFragment namespaceDeclHeader.parse (expectedNamespaceName eof) invalid (fun _ -> NamespaceDeclaration) eof
 
 /// Uses buildFragment to parse a Q# DeclarationAttribute as QsFragment.
-let private attributeDeclaration = 
+let private attributeAnnotation = 
     let invalid = DeclarationAttribute (invalidSymbol, unknownExpr)
     let attributeId = multiSegmentSymbol ErrorCode.InvalidIdentifierName |>> asQualifiedSymbol 
     let expectedArgs = 
@@ -500,6 +500,6 @@ let private expressionStatement =
 let internal codeFragment =
     let validFragment = 
         choice (fragments |> List.map snd)
-        <|> attributeDeclaration
+        <|> attributeAnnotation
         <|> expressionStatement // the expressionStatement needs to be last
     attempt validFragment <|> buildInvalidFragment (preturn ())
