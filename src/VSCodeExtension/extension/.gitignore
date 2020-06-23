@@ -1,0 +1,11 @@
+out
+bin
+node_modules
+.vscode-test/
+*.vsix
+
+# Generated or copied files
+NOTICE.txt
+package.json
+package-lock.json
+syntaxes/qsharp.tmLanguage.json
