@@ -167,7 +167,7 @@ type ErrorCode =
     | ExpectingCallableExpr = 5021
     | UnknownIdentifier = 5022
     | UnsupportedResultComparison = 5023
-    | ResultComparisonOutsideIf = 5024
+    | ResultComparisonNotInOperationIf = 5024
 
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
@@ -550,9 +550,10 @@ type DiagnosticItem =
             | ErrorCode.UnsupportedResultComparison               ->
                 "The execution target {0} does not support comparing measurement results. " +
                 "Choose an execution target with additional capabilities or avoid result comparisons."
-            | ErrorCode.ResultComparisonOutsideIf                 ->
-                "The execution target {0} supports comparing measurement results only as part of the condition of an if- or elif-statement. " +
-                "Choose an execution target with additional capabilities or avoid result comparisons outside of if-conditions."
+            | ErrorCode.ResultComparisonNotInOperationIf          ->
+                "The execution target {0} supports comparing measurement results only as part of the condition of an " +
+                "if- or elif-statement in an operation. " +
+                "Choose an execution target with additional capabilities or avoid unsupported result comparisons."
 
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."

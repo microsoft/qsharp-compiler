@@ -31,9 +31,8 @@ let private testName name =
 /// Asserts that the tester allows the given test case.
 let private allows (tester : CompilerTests) name = tester.Verify (testName name, List.empty<DiagnosticItem>)
 
-/// Asserts that the tester disallows the given test case.
-let private restricts (tester : CompilerTests) name =
-    tester.Verify (testName name, [Error ErrorCode.UnsupportedResultComparison])
+/// Asserts that the tester does not allow the given test case.
+let private restricts (tester : CompilerTests) errorCode name = tester.Verify (testName name, [Error errorCode])
 
 /// The names of all test cases.
 let private all =
@@ -51,46 +50,56 @@ let private all =
       "ElifElseSet"
       "EmptyIf"
       "EmptyIfNeq"
+      "EmptyIfOp"
+      "EmptyIfNeqOp"
       "Reset"
       "ResetNeq" ]
 
 let [<Fact>] ``Unknown allows all Result comparison`` () = List.iter (allows unknown) all
-let [<Fact>] ``QPRGen0 restricts all Result comparison`` () = List.iter (restricts gen0) all
+
+[<Fact>]
+let ``QPRGen0 restricts all Result comparison`` () =
+    List.iter (restricts gen0 ErrorCode.UnsupportedResultComparison) all
 
 [<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
 let ``QPRGen1 restricts Result comparison in functions`` () =
-    restricts gen1 "ResultAsBool"
-    restricts gen1 "ResultAsBoolNeq"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBool"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeq"
 
 [<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
 let ``QPRGen1 restricts non-if Result comparison in operations`` () =
-    restricts gen1 "ResultAsBoolOp"
-    restricts gen1 "ResultAsBoolNeqOp"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOp"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeqOp"
 
 [<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
 let ``QPRGen1 restricts return from Result if`` () =
-    restricts gen1 "ResultAsBoolOpReturnIf"
-    restricts gen1 "ResultAsBoolNeqOpReturnIf"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOpReturnIf"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeqOpReturnIf"
 
 [<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
 let ``QPRGen1 restricts mutable set from Result if`` () =
-    restricts gen1 "ResultAsBoolOpSetIf"
-    restricts gen1 "ResultAsBoolNeqOpSetIf"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOpSetIf"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeqOpSetIf"
 
 [<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
 let ``QPRGen1 restricts mutable set from Result elif`` () =
-    restricts gen1 "ElifSet"
-    restricts gen1 "ElifElifSet"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ElifSet"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ElifElifSet"
 
 [<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
 let ``QPRGen1 restricts mutable set from Result else`` () =
-    restricts gen1 "ResultAsBoolOpElseSet"
-    restricts gen1 "ElifElseSet"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOpElseSet"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ElifElseSet"
 
 [<Fact>]
-let ``QPRGen1 allows empty Result if`` () =
-    allows gen1 "EmptyIf"
-    allows gen1 "EmptyIfNeq"
+let ``QPRGen1 restricts empty Result if function`` () =
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "EmptyIf"
+    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "EmptyIfNeq"
+
+[<Fact>]
+let ``QPRGen1 allows empty Result if operation`` () =
+    allows gen1 "EmptyIfOp"
+    allows gen1 "EmptyIfNeqOp"
 
 [<Fact>]
 let ``QPRGen1 allows operation call from Result if`` () =

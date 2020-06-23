@@ -254,8 +254,9 @@ let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsTy
     match baseType.Resolution with
     | Result when context.Capabilities = RuntimeCapabilities.QPRGen0 ->
         addError (ErrorCode.UnsupportedResultComparison, [context.ExecutionTarget.Value]) rhsRange
-    | Result when context.Capabilities = RuntimeCapabilities.QPRGen1 && not context.IsInIfCondition ->
-        addError (ErrorCode.ResultComparisonOutsideIf, [context.ExecutionTarget.Value]) rhsRange
+    | Result when context.Capabilities = RuntimeCapabilities.QPRGen1 &&
+                  not (context.IsInOperation && context.IsInIfCondition) ->
+        addError (ErrorCode.ResultComparisonNotInOperationIf, [context.ExecutionTarget.Value]) rhsRange
     | _ ->
         let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [toString baseType]
         VerifyIsOneOf (fun t -> t.supportsEqualityComparison) unsupportedError addError (baseType, rhsRange) |> ignore

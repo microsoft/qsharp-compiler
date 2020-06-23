@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
     function ResultAsBool(result : Result) : Bool {
         return result == Zero ? false | true;
     }
-    
+
     function ResultAsBoolNeq(result : Result) : Bool {
         return result != One ? false | true;
     }
@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
             return true;
         }
     }
-    
+
     operation ResultAsBoolNeqOpReturnIf(result : Result) : Bool {
         if (result != One) {
             return false;
@@ -52,7 +52,7 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
         }
         return b;
     }
-    
+
     operation ResultAsBoolNeqOpSetIf(result : Result) : Bool {
         mutable b = false;
         if (result != Zero) {
@@ -107,11 +107,19 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
         return b;
     }
 
-    operation EmptyIf(result : Result) : Unit {
+    function EmptyIf(result : Result) : Unit {
         if (result == Zero) { }
     }
 
-    operation EmptyIfNeq(result : Result) : Unit {
+    function EmptyIfNeq(result : Result) : Unit {
+        if (result != Zero) { }
+    }
+
+    operation EmptyIfOp(result : Result) : Unit {
+        if (result == Zero) { }
+    }
+
+    operation EmptyIfNeqOp(result : Result) : Unit {
         if (result != Zero) { }
     }
 
