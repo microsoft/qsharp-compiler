@@ -18,12 +18,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, NonNullable<string>, ResolvedType>>;
 
     /// <summary>
-    /// This transformation works in two passes.
-    /// 1st Pass: Lift the contents of conditional statements into separate operations, where possible.
-    /// 2nd Pass: On the way down the tree, reshape conditional statements to replace Elif's and
-    /// top level OR and AND conditions with equivalent nested if-else statements. One the way back up
-    /// the tree, convert conditional statements into interface calls, where possible.
-    /// This relies on anything having type parameters must be a global callable.
+    /// This transformation works in three passes.
+    /// 1st Pass: Reshape conditional statements to replace Elif's and top level OR and AND conditions
+    /// with equivalent nested if-else statements.
+    /// 2st Pass: Lift the contents of conditional statements into separate operations, where possible.
+    /// 3nd Pass: Convert conditional statements into interface calls, where possible.
+    /// This relies on global callables being the only things that having type parameters.
     /// </summary>
     public static class ReplaceClassicalControl
     {
