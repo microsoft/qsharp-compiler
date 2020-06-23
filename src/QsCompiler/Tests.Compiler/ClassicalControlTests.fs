@@ -84,7 +84,7 @@ type ClassicalControlTests () =
     let MakeApplicationRegex (opName : QsQualifiedName) =
         let call = sprintf @"(%s\.)?%s" <| Regex.Escape opName.Namespace.Value <| Regex.Escape opName.Name.Value
         let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?"  // Does not support nested type args
-        let args = @"\(?\s*(.*[^\s])?\s*\)?"
+        let args = @"\(?\s*([\w\s,\.]*)?\s*\)?"
 
         sprintf @"\(%s\s*%s,\s*%s\)" <| call <| typeArgs <| args
 
@@ -157,6 +157,9 @@ type ClassicalControlTests () =
         |> GlobalCallableResolutions
         |> Seq.find (fun x -> x.Key.Name.Value = name)
         |> (fun x -> x.Value)
+
+    let ApplyIfElseTest2 compilation =
+        ()
 
     let ApplyIfElseTest compilation =
 
@@ -293,44 +296,86 @@ type ClassicalControlTests () =
     [<Fact>]
     [<Trait("Category","If Structure Reshape")>]
     member this.``If Elif`` () =
-        let (_, args) = CompileClassicalControlTest 10 |> ApplyIfElseTest
+        let result  = CompileClassicalControlTest 10
 
         let ifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
         let elifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
         let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp3"}
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x |> GetBodyFromCallable)
+
+        let lines = original |> GetLinesFromSpecialization
+        Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[1]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
-        let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp BuiltIn.ApplyIfElseR.FullName
-        Assert.True(success, errorMsg)
-        IsApplyIfElseArgsMatch subArgs "r" elseOp elifOp // elif and else are swapped because second condition is against One
+        IsApplyIfElseArgsMatch args "r" ifOp generated.Parent
+        |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
+
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(1 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[0]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
+
+        IsApplyIfElseArgsMatch args "r" elseOp elifOp // elif and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
     [<Fact>]
     [<Trait("Category","If Structure Reshape")>]
     member this.``And Condition`` () =
-        let (_, args) = CompileClassicalControlTest 11 |> ApplyIfElseTest
+        let result  = CompileClassicalControlTest 11
 
         let ifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
         let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x |> GetBodyFromCallable)
+
+        let lines = original |> GetLinesFromSpecialization
+        Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[1]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
-        let (success, _, subArgs, _, _) = IsApplyIfElseArgsMatch args "r" BuiltIn.ApplyIfElseR.FullName elseOp
-        Assert.True(success, errorMsg)
-        IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
+        IsApplyIfElseArgsMatch args "r" generated.Parent elseOp
+        |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
+
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(1 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[0]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
+
+        IsApplyIfElseArgsMatch args "r" elseOp ifOp // elif and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
     [<Fact>]
     [<Trait("Category","If Structure Reshape")>]
     member this.``Or Condition`` () =
-        let (_, args) = CompileClassicalControlTest 12 |> ApplyIfElseTest
+        let result  = CompileClassicalControlTest 12
 
         let ifOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp1"}
         let elseOp = {Namespace = NonNullable<_>.New "SubOps"; Name = NonNullable<_>.New "SubOp2"}
+        let original = GetCallableWithName result Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
+        let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNs "_Foo"
+                        |> (fun x -> Assert.True(1 = Seq.length x); Seq.item 0 x |> GetBodyFromCallable)
+
+        let lines = original |> GetLinesFromSpecialization
+        Assert.True(2 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[1]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         let errorMsg = "ApplyIfElse did not have the correct arguments"
-        let (success, _, _, _, subArgs) = IsApplyIfElseArgsMatch args "r" ifOp BuiltIn.ApplyIfElseR.FullName
-        Assert.True(success, errorMsg)
-        IsApplyIfElseArgsMatch subArgs "r" elseOp ifOp // if and else are swapped because second condition is against One
+        IsApplyIfElseArgsMatch args "r" ifOp generated.Parent
+        |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
+
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(1 = Seq.length lines, sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
+        let (success, _, args) = CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace.Value BuiltIn.ApplyIfElseR.FullName.Name.Value lines.[0]
+        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
+
+        IsApplyIfElseArgsMatch args "r" elseOp ifOp // elif and else are swapped because second condition is against One
         |> (fun (x, _, _, _, _) -> Assert.True(x, errorMsg))
 
     [<Fact>]
