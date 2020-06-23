@@ -15,7 +15,7 @@
     "yeoman-generator"
   ],
   "devDependencies": {
-    "typescript": "^2.6.1",
+    "typescript": "^3.9.5",
     "tslint": "^5.8.0",
     "@types/node": "^9.6.5",
     "@types/yeoman-generator": "^3.1.4",

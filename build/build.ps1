@@ -42,18 +42,15 @@ function Build-VSCode() {
     Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Try {
+            # Use Lerna to bootstrap dependencies between packages,
+            # and to install external packages.
+            npx lerna bootstrap
 
-            #Build Yeoman templates
-            Push-Location ('src/generator-qsharp')
+            # Install common devdependencies hoisted to the Lerna root.
             npm install
-            npm run compile
-            Pop-Location
-            if  ($LastExitCode -ne 0) {
-                Write-Host "Yeoman templates failed to build, attempting to continue building VS Code Extension"
-            }
 
-            npm install
-            npm run compile
+            # Compile all npm packages in the VS Code extension.
+            npx lerna run compile
     
             if  ($LastExitCode -ne 0) {
                 throw

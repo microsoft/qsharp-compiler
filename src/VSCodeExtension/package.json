@@ -1,0 +1,8 @@
+{
+  "name": "root",
+  "private": true,
+  "devDependencies": {
+    "typescript": "^3.9.5",
+    "lerna": "^3.22.1"
+  }
+}
