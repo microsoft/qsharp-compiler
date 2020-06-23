@@ -10,6 +10,9 @@ import { IPackageInfo } from './packageInfo';
 import * as semver from 'semver';
 import { promisify } from 'util';
 
+import * as yeoman from 'yeoman-environment';
+import * as QSharpGenerator from 'generator-qsharp';
+
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
     context.subscriptions.push(
         vscode.commands.registerCommand(
@@ -85,7 +88,11 @@ function createNewProjectAtUri(dotNetSdk: DotnetInfo, projectType: string, uri: 
     );
 }
 
-export function createNewProject(dotNetSdk: DotnetInfo) {    
+export function createNewProject(dotNetSdk: DotnetInfo) {
+    // TODO: finish switching over to Yeoman.
+    let env = yeoman.createEnv();
+    env.registerStub(QSharpGenerator, 'qsharp:app');
+
     const projectTypes: {[key: string]: string} = {
         "Standalone console application": "console",
         "Quantum library": "classlib",
