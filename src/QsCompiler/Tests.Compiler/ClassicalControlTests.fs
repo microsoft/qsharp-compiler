@@ -158,9 +158,6 @@ type ClassicalControlTests () =
         |> Seq.find (fun x -> x.Key.Name.Value = name)
         |> (fun x -> x.Value)
 
-    let ApplyIfElseTest2 compilation =
-        ()
-
     let ApplyIfElseTest compilation =
 
         let original = GetCallableWithName compilation Signatures.ClassicalControlNs "Foo" |> GetBodyFromCallable
