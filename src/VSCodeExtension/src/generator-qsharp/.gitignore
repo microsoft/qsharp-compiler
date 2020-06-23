@@ -1,0 +1,5 @@
+node_modules
+coverage
+app/templates/application/Application.csproj.txt
+app/templates/library/library.csproj.txt
+app/templates/test/test.csproj.txt
