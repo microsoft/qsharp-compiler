@@ -61,32 +61,32 @@ let [<Fact>] ``Unknown allows all Result comparison`` () = List.iter (allows unk
 let ``QPRGen0 restricts all Result comparison`` () =
     List.iter (restricts gen0 ErrorCode.UnsupportedResultComparison) all
 
-[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
+[<Fact>]
 let ``QPRGen1 restricts Result comparison in functions`` () =
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBool"
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeq"
 
-[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
+[<Fact>]
 let ``QPRGen1 restricts non-if Result comparison in operations`` () =
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOp"
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeqOp"
 
-[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
+[<Fact>]
 let ``QPRGen1 restricts return from Result if`` () =
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOpReturnIf"
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeqOpReturnIf"
 
-[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
+[<Fact>]
 let ``QPRGen1 restricts mutable set from Result if`` () =
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOpSetIf"
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeqOpSetIf"
 
-[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
+[<Fact>]
 let ``QPRGen1 restricts mutable set from Result elif`` () =
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ElifSet"
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ElifElifSet"
 
-[<Fact (Skip = "QPRGen1 verification is not implemented yet")>]
+[<Fact>]
 let ``QPRGen1 restricts mutable set from Result else`` () =
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOpElseSet"
     restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ElifElseSet"
