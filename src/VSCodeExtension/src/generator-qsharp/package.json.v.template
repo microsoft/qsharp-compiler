@@ -14,10 +14,9 @@
     "qsharp",
     "yeoman-generator"
   ],
-  "scripts": {
-    "compile": "tsc -p ./",
-  },
   "devDependencies": {
+    "@types/yeoman-generator": "^3.1.4",
+    "@types/yosay": "0.0.29",
     "yeoman-test": "^1.7.0",
     "yeoman-assert": "^3.1.0",
     "coveralls": "^3.0.7",
@@ -73,6 +72,7 @@
     ]
   },
   "scripts": {
+    "compile": "tsc -p ./",
     "pretest": "eslint .",
     "test": "jest"
   },
