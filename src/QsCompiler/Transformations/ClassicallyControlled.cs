@@ -29,9 +29,177 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
     {
         public static QsCompilation Apply(QsCompilation compilation)
         {
+            compilation = RestructureConditions.Apply(compilation);
             compilation = LiftConditionBlocks.Apply(compilation);
-
             return ConvertConditions.Apply(compilation);
+        }
+
+        private class RestructureConditions : SyntaxTreeTransformation
+        {
+            public new static QsCompilation Apply(QsCompilation compilation)
+            {
+                var filter = new RestructureConditions();
+
+                return new QsCompilation(compilation.Namespaces.Select(ns => filter.Namespaces.OnNamespace(ns)).ToImmutableArray(), compilation.EntryPoints);
+            }
+
+            private RestructureConditions() : base()
+            {
+                this.Namespaces = new NamespaceTransformation(this);
+                this.Statements = new StatementTransformation(this);
+                this.Expressions = new ExpressionTransformation(this, TransformationOptions.Disabled);
+                this.Types = new TypeTransformation(this, TransformationOptions.Disabled);
+            }
+
+            private class NamespaceTransformation : Core.NamespaceTransformation
+            {
+                public NamespaceTransformation(SyntaxTreeTransformation parent) : base(parent) { }
+
+                public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being considered
+            }
+
+            private class StatementTransformation : Core.StatementTransformation
+            {
+                public StatementTransformation(SyntaxTreeTransformation parent) : base(parent) { }
+
+                #region Condition Reshaping Logic
+
+                /// <summary>
+                /// Converts if-elif-else structures to nested if-else structures.
+                /// </summary>
+                private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement conditionStatment)
+                {
+                    if (conditionStatment.ConditionalBlocks.Length < 2) return (false, conditionStatment);
+
+                    var subCondition = new QsConditionalStatement(conditionStatment.ConditionalBlocks.RemoveAt(0), conditionStatment.Default);
+                    var secondConditionBlock = conditionStatment.ConditionalBlocks[1].Item2;
+                    var subIfStatment = new QsStatement(
+                        QsStatementKind.NewQsConditionalStatement(subCondition),
+                        LocalDeclarations.Empty,
+                        secondConditionBlock.Location,
+                        secondConditionBlock.Comments);
+                    var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
+                        new QsScope(ImmutableArray.Create(subIfStatment), secondConditionBlock.Body.KnownSymbols),
+                        secondConditionBlock.Location,
+                        QsComments.Empty));
+
+                    return (true, new QsConditionalStatement(ImmutableArray.Create(conditionStatment.ConditionalBlocks[0]), newDefault));
+                }
+
+                /// <summary>
+                /// Converts conditional statements whose top-most condition is an OR.
+                /// Creates a nested structure without the top-most OR.
+                /// </summary>
+                private (bool, QsConditionalStatement) ProcessOR(QsConditionalStatement conditionStatment)
+                {
+                    // This method expects elif blocks to have been abstracted out
+                    if (conditionStatment.ConditionalBlocks.Length != 1) return (false, conditionStatment);
+
+                    var (condition, block) = conditionStatment.ConditionalBlocks[0];
+
+                    if (condition.Expression is ExpressionKind.OR orCondition)
+                    {
+                        var subCondition = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCondition.Item2, block)), conditionStatment.Default);
+                        var subIfStatment = new QsStatement(
+                            QsStatementKind.NewQsConditionalStatement(subCondition),
+                            LocalDeclarations.Empty,
+                            block.Location,
+                            QsComments.Empty);
+                        var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
+                            new QsScope(ImmutableArray.Create(subIfStatment), block.Body.KnownSymbols),
+                            block.Location,
+                            QsComments.Empty));
+
+                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCondition.Item1, block)), newDefault));
+                    }
+                    else
+                    {
+                        return (false, conditionStatment);
+                    }
+                }
+
+                /// <summary>
+                /// Converts conditional statements whose top-most condition is an AND.
+                /// Creates a nested structure without the top-most AND.
+                /// </summary>
+                private (bool, QsConditionalStatement) ProcessAND(QsConditionalStatement conditionStatment)
+                {
+                    // This method expects elif blocks to have been abstracted out
+                    if (conditionStatment.ConditionalBlocks.Length != 1) return (false, conditionStatment);
+
+                    var (condition, block) = conditionStatment.ConditionalBlocks[0];
+
+                    if (condition.Expression is ExpressionKind.AND andCondition)
+                    {
+                        var subCondition = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCondition.Item2, block)), conditionStatment.Default);
+                        var subIfStatment = new QsStatement(
+                            QsStatementKind.NewQsConditionalStatement(subCondition),
+                            LocalDeclarations.Empty,
+                            block.Location,
+                            QsComments.Empty);
+                        var newBlock = new QsPositionedBlock(
+                            new QsScope(ImmutableArray.Create(subIfStatment), block.Body.KnownSymbols),
+                            block.Location,
+                            QsComments.Empty);
+
+                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCondition.Item1, newBlock)), conditionStatment.Default));
+                    }
+                    else
+                    {
+                        return (false, conditionStatment);
+                    }
+                }
+
+                /// <summary>
+                /// Converts conditional statements to nested structures so they do not
+                /// have elif blocks or top-most OR or AND conditions.
+                /// </summary>
+                private QsStatement ReshapeConditional(QsStatement statement)
+                {
+                    if (statement.Statement is QsStatementKind.QsConditionalStatement condition)
+                    {
+                        var stm = condition.Item;
+                        (_, stm) = ProcessElif(stm);
+                        bool wasOrProcessed, wasAndProcessed;
+                        do
+                        {
+                            (wasOrProcessed, stm) = ProcessOR(stm);
+                            (wasAndProcessed, stm) = ProcessAND(stm);
+                        } while (wasOrProcessed || wasAndProcessed);
+
+                        return new QsStatement(
+                            QsStatementKind.NewQsConditionalStatement(stm),
+                            statement.SymbolDeclarations,
+                            statement.Location,
+                            statement.Comments);
+                    }
+                    return statement;
+                }
+
+                #endregion
+
+                public override QsScope OnScope(QsScope scope)
+                {
+                    var parentSymbols = this.OnLocalDeclarations(scope.KnownSymbols);
+                    var statements = new List<QsStatement>();
+
+                    foreach (var statement in scope.Statements)
+                    {
+                        if (statement.Statement is QsStatementKind.QsConditionalStatement)
+                        {
+                            var stm = ReshapeConditional(statement);
+                            stm = this.OnStatement(stm);
+                            statements.Add(stm);
+                        }
+                        else
+                        {
+                            statements.Add(this.OnStatement(statement));
+                        }
+                    }
+
+                    return new QsScope(statements.ToImmutableArray(), parentSymbols);
+                }
+            }
         }
 
         private class ConvertConditions : SyntaxTreeTransformation<ConvertConditions.TransformationState>
@@ -614,122 +782,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                 #endregion
 
-                #region Condition Reshaping Logic
-
-                /// <summary>
-                /// Converts if-elif-else structures to nested if-else structures.
-                /// </summary>
-                private (bool, QsConditionalStatement) ProcessElif(QsConditionalStatement conditionStatment)
-                {
-                    if (conditionStatment.ConditionalBlocks.Length < 2) return (false, conditionStatment);
-
-                    var subCondition = new QsConditionalStatement(conditionStatment.ConditionalBlocks.RemoveAt(0), conditionStatment.Default);
-                    var secondConditionBlock = conditionStatment.ConditionalBlocks[1].Item2;
-                    var subIfStatment = new QsStatement(
-                        QsStatementKind.NewQsConditionalStatement(subCondition),
-                        LocalDeclarations.Empty,
-                        secondConditionBlock.Location,
-                        secondConditionBlock.Comments);
-                    var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
-                        new QsScope(ImmutableArray.Create(subIfStatment), secondConditionBlock.Body.KnownSymbols),
-                        secondConditionBlock.Location,
-                        QsComments.Empty));
-
-                    return (true, new QsConditionalStatement(ImmutableArray.Create(conditionStatment.ConditionalBlocks[0]), newDefault));
-                }
-
-                /// <summary>
-                /// Converts conditional statements whose top-most condition is an OR.
-                /// Creates a nested structure without the top-most OR.
-                /// </summary>
-                private (bool, QsConditionalStatement) ProcessOR(QsConditionalStatement conditionStatment)
-                {
-                    // This method expects elif blocks to have been abstracted out
-                    if (conditionStatment.ConditionalBlocks.Length != 1) return (false, conditionStatment);
-
-                    var (condition, block) = conditionStatment.ConditionalBlocks[0];
-
-                    if (condition.Expression is ExpressionKind.OR orCondition)
-                    {
-                        var subCondition = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCondition.Item2, block)), conditionStatment.Default);
-                        var subIfStatment = new QsStatement(
-                            QsStatementKind.NewQsConditionalStatement(subCondition),
-                            LocalDeclarations.Empty,
-                            block.Location,
-                            QsComments.Empty);
-                        var newDefault = QsNullable<QsPositionedBlock>.NewValue(new QsPositionedBlock(
-                            new QsScope(ImmutableArray.Create(subIfStatment), block.Body.KnownSymbols),
-                            block.Location,
-                            QsComments.Empty));
-
-                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(orCondition.Item1, block)), newDefault));
-                    }
-                    else
-                    {
-                        return (false, conditionStatment);
-                    }
-                }
-
-                /// <summary>
-                /// Converts conditional statements whose top-most condition is an AND.
-                /// Creates a nested structure without the top-most AND.
-                /// </summary>
-                private (bool, QsConditionalStatement) ProcessAND(QsConditionalStatement conditionStatment)
-                {
-                    // This method expects elif blocks to have been abstracted out
-                    if (conditionStatment.ConditionalBlocks.Length != 1) return (false, conditionStatment);
-
-                    var (condition, block) = conditionStatment.ConditionalBlocks[0];
-
-                    if (condition.Expression is ExpressionKind.AND andCondition)
-                    {
-                        var subCondition = new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCondition.Item2, block)), conditionStatment.Default);
-                        var subIfStatment = new QsStatement(
-                            QsStatementKind.NewQsConditionalStatement(subCondition),
-                            LocalDeclarations.Empty,
-                            block.Location,
-                            QsComments.Empty);
-                        var newBlock = new QsPositionedBlock(
-                            new QsScope(ImmutableArray.Create(subIfStatment), block.Body.KnownSymbols),
-                            block.Location,
-                            QsComments.Empty);
-
-                        return (true, new QsConditionalStatement(ImmutableArray.Create(Tuple.Create(andCondition.Item1, newBlock)), conditionStatment.Default));
-                    }
-                    else
-                    {
-                        return (false, conditionStatment);
-                    }
-                }
-
-                /// <summary>
-                /// Converts conditional statements to nested structures so they do not
-                /// have elif blocks or top-most OR or AND conditions.
-                /// </summary>
-                private QsStatement ReshapeConditional(QsStatement statement)
-                {
-                    if (statement.Statement is QsStatementKind.QsConditionalStatement condition)
-                    {
-                        var stm = condition.Item;
-                        (_, stm) = ProcessElif(stm);
-                        bool wasOrProcessed, wasAndProcessed;
-                        do
-                        {
-                            (wasOrProcessed, stm) = ProcessOR(stm);
-                            (wasAndProcessed, stm) = ProcessAND(stm);
-                        } while (wasOrProcessed || wasAndProcessed);
-
-                        return new QsStatement(
-                            QsStatementKind.NewQsConditionalStatement(stm),
-                            statement.SymbolDeclarations,
-                            statement.Location,
-                            statement.Comments);
-                    }
-                    return statement;
-                }
-
-                #endregion
-
                 public override QsScope OnScope(QsScope scope)
                 {
                     var parentSymbols = this.OnLocalDeclarations(scope.KnownSymbols);
@@ -739,10 +791,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     {
                         if (statement.Statement is QsStatementKind.QsConditionalStatement)
                         {
-                            var stm = ReshapeConditional(statement);
-                            stm = this.OnStatement(stm);
+                            var stm = this.OnStatement(statement);
                             stm = ConvertConditionalToControlCall(stm);
-
                             statements.Add(stm);
                         }
                         else
