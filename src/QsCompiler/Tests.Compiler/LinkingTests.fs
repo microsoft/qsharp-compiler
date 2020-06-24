@@ -225,7 +225,7 @@ type LinkingTests (output:ITestOutputHelper) =
             | _ -> ()
 
         let walker = new TypedExpressionWalker<unit>(new Action<_>(onExpr));
-        walker.Transformation.Apply compilation |> ignore
+        walker.Transformation.OnCompilation compilation |> ignore
         Assert.True(gotLength)
         Assert.True(gotIndexRange)
 
