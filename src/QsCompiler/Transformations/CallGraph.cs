@@ -132,7 +132,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// The ParamResolutions are non-null and have all of their position information removed.
     /// The order of the elements of the ParamResolutions will not matter for comparison/hashing.
     /// </summary>
-    public class CallGraphEdge
+    public sealed class CallGraphEdge
     {
         public readonly TypeParameterResolutions ParamResolutions;
 
@@ -149,17 +149,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             // Remove position info from type parameter resolutions
             ParamResolutions = paramResolutions.ToImmutableDictionary(kvp => kvp.Key,
                 kvp => StripPositionInfo.Apply(kvp.Value));
-        }
-
-        /// <summary>
-        /// Copy constructor for CallGraphEdge objects.
-        /// Throws ArgumentNullException if edge is null.
-        /// </summary>
-        public CallGraphEdge(CallGraphEdge edge)
-        {
-            if (edge == null) throw new ArgumentNullException(nameof(edge));
-
-            ParamResolutions = edge.ParamResolutions;
         }
 
         /// <summary>
@@ -227,7 +216,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// Contains the information that exists on nodes in a call graph.
     /// The CallableName and Kind are expected to be non-null.
     /// </summary>
-    public class CallGraphNode : IEquatable<CallGraphNode>
+    public sealed class CallGraphNode : IEquatable<CallGraphNode>
     {
         public readonly QsQualifiedName CallableName;
         public readonly QsSpecializationKind Kind;
@@ -257,17 +246,6 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             specialization.Parent,
             specialization.Kind,
             specialization.TypeArguments)
-        { }
-
-        /// <summary>
-        /// Copy constructor for CallGraphNode objects.
-        /// Throws an ArgumentNullException if node is null.
-        /// </summary>
-        public CallGraphNode(CallGraphNode node) : this(
-            node == null ? throw new ArgumentNullException(nameof(node)) :
-            node.CallableName,
-            node.Kind,
-            node.TypeArgs)
         { }
 
         public override bool Equals(object obj)
