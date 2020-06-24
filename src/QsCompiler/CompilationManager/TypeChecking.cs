@@ -771,7 +771,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     proceed = nodes.MoveNext();
                 }
 
-                statement = Statements.NewIfStatement(ifBlock, elifBlocks, elseBlock);
+                var (ifStatement, ifDiagnostics) = Statements.NewIfStatement(
+                    context, ifBlock.ToValueTuple(), elifBlocks, elseBlock);
+                statement = ifStatement;
+                diagnostics.AddRange(ifDiagnostics.Select(diagnostic => Diagnostics.Generate(
+                    context.Symbols.SourceFile.Value, diagnostic, nodes.Current.GetRootPosition())));
                 return true;
             }
             (statement, proceed) = (null, true);

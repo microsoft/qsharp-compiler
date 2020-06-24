@@ -9,12 +9,14 @@ open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
@@ -250,15 +252,71 @@ let NewConditionalBlock comments location context (qsExpr : QsExpression) =
     let block body = condition, QsPositionedBlock.New comments (Value location) body
     new BlockStatement<_>(block), Array.concat [errs; autoGenErrs]
 
-/// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses, 
+let private isResultComparison ({ Expression = expr } : TypedExpression) =
+    // TODO: Technically, it should be the common base type of LHS and RHS.
+    let bothResult lhs rhs =
+        match lhs.ResolvedType.Resolution, rhs.ResolvedType.Resolution with
+        | Result, Result -> true
+        | _ -> false
+    match expr with
+    | EQ (lhs, rhs) -> bothResult lhs rhs
+    | NEQ (lhs, rhs) -> bothResult lhs rhs
+    | _ -> false
+
+let private isReturnStatement { Statement = statement } =
+    match statement with
+    | QsReturnStatement -> true
+    | _ -> false
+
+let private verifyResultConditionalBlocks (blocks : (TypedExpression * QsPositionedBlock) seq) =
+    let returnDiagnostics (block : QsPositionedBlock) =
+        FindStatements.Apply (Func<_, _> isReturnStatement, block.Body)
+        |> Seq.map (fun statement ->
+            QsCompilerDiagnostic.Error
+                (ErrorCode.ReturnInResultConditionedBlock, [])
+                (statement.Location
+                 |> QsNullable<_>.Map (fun location -> location.Range)
+                 |> (fun nullable -> nullable.ValueOr QsCompilerDiagnostic.DefaultRange)))
+
+    let setDiagnostics (block : QsPositionedBlock) =
+        UpdatedOutsideVariables.Apply block.Body
+        |> Seq.map (fun variable ->
+            QsCompilerDiagnostic.Error
+                (ErrorCode.SetInResultConditionedBlock, [])
+                (variable.Range.ValueOr QsCompilerDiagnostic.DefaultRange))
+
+    ((false, Seq.empty), blocks)
+    ||> Seq.fold (fun (foundResultEq, diagnostics) (condition, block) ->
+        let newFoundResultEq = foundResultEq || FindExpressions.Contains (Func<_, _> isResultComparison, condition)
+        let newDiagnostics =
+            if newFoundResultEq
+            then Seq.concat [returnDiagnostics block; setDiagnostics block; diagnostics]
+            else diagnostics
+        (newFoundResultEq, newDiagnostics))
+    |> snd
+
+/// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses,
 /// as well as optionally a positioned block of Q# statements and its location for the else-clause, builds and returns the complete if-statement.  
 /// Throws an ArgumentException if the given if-block contains no location information. 
-let NewIfStatement (ifBlock : TypedExpression * QsPositionedBlock, elifBlocks, elseBlock : QsNullable<QsPositionedBlock>) = 
-    let location = (snd ifBlock).Location |> function 
+let NewIfStatement context (ifBlock : struct (TypedExpression * QsPositionedBlock)) elifBlocks elseBlock =
+    let location =
+        match (ifBlock.ToTuple() |> snd).Location with
         | Null -> ArgumentException "no location is set for the given if-block" |> raise
         | Value loc -> loc 
-    let condBlocks = seq { yield ifBlock; yield! elifBlocks; }
-    QsConditionalStatement.New (condBlocks, elseBlock) |> QsConditionalStatement |> asStatement QsComments.Empty location LocalDeclarations.Empty
+    let condBlocks = Seq.append (ifBlock.ToTuple() |> Seq.singleton) elifBlocks
+    let allBlocks =
+        match elseBlock with
+        | Value block -> Seq.append condBlocks (Seq.singleton (SyntaxGenerator.BoolLiteral true, block))
+        | Null -> condBlocks
+    let diagnostics =
+        if context.Capabilities = RuntimeCapabilities.QPRGen1
+        then verifyResultConditionalBlocks allBlocks
+        else Seq.empty
+    let statement =
+        QsConditionalStatement.New (condBlocks, elseBlock)
+        |> QsConditionalStatement
+        |> asStatement QsComments.Empty location LocalDeclarations.Empty
+    statement, diagnostics
 
 /// Given a positioned block of Q# statements for the repeat-block of a Q# RUS-statement, a typed expression containing the success condition, 
 /// as well as a positioned block of Q# statements for the fixup-block, builds the complete RUS-statement at the given location and returns it.
