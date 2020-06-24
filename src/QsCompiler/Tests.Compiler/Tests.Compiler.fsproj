@@ -20,10 +20,14 @@
     <Compile Include="TestUtils\TestUtils.fs" />
     <Compile Include="TestUtils\SetupVerificationTests.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
+    <Compile Include="TestUtils\Transformations.fs" />
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LinkingTests\Generics.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\LinkingTests\ReferenceLinking.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LinkingTests\ValidEntryPoints.qs">
