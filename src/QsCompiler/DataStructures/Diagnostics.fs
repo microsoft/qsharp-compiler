@@ -168,6 +168,8 @@ type ErrorCode =
     | UnknownIdentifier = 5022
     | UnsupportedResultComparison = 5023
     | ResultComparisonNotInOperationIf = 5024
+    | ReturnInResultConditionedBlock = 5025
+    | SetInResultConditionedBlock = 5026
 
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
@@ -554,6 +556,8 @@ type DiagnosticItem =
                 "The execution target {0} supports comparing measurement results only as part of the condition of an " +
                 "if- or elif-statement in an operation. " +
                 "Choose an execution target with additional capabilities or avoid unsupported result comparisons."
+            | ErrorCode.ReturnInResultConditionedBlock            -> raise <| NotImplementedException()
+            | ErrorCode.SetInResultConditionedBlock               -> raise <| NotImplementedException()
 
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."

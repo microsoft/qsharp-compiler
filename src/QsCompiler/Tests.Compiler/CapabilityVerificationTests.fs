@@ -73,23 +73,23 @@ let ``QPRGen1 restricts non-if Result comparison in operations`` () =
 
 [<Fact>]
 let ``QPRGen1 restricts return from Result if`` () =
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOpReturnIf"
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeqOpReturnIf"
+    restricts gen1 ErrorCode.ReturnInResultConditionedBlock "ResultAsBoolOpReturnIf"
+    restricts gen1 ErrorCode.ReturnInResultConditionedBlock "ResultAsBoolNeqOpReturnIf"
 
 [<Fact>]
 let ``QPRGen1 restricts mutable set from Result if`` () =
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOpSetIf"
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeqOpSetIf"
+    restricts gen1 ErrorCode.SetInResultConditionedBlock "ResultAsBoolOpSetIf"
+    restricts gen1 ErrorCode.SetInResultConditionedBlock "ResultAsBoolNeqOpSetIf"
 
 [<Fact>]
 let ``QPRGen1 restricts mutable set from Result elif`` () =
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ElifSet"
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ElifElifSet"
+    restricts gen1 ErrorCode.SetInResultConditionedBlock "ElifSet"
+    restricts gen1 ErrorCode.SetInResultConditionedBlock "ElifElifSet"
 
 [<Fact>]
 let ``QPRGen1 restricts mutable set from Result else`` () =
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOpElseSet"
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ElifElseSet"
+    restricts gen1 ErrorCode.SetInResultConditionedBlock "ResultAsBoolOpElseSet"
+    restricts gen1 ErrorCode.SetInResultConditionedBlock "ElifElseSet"
 
 [<Fact>]
 let ``QPRGen1 restricts empty Result if function`` () =
