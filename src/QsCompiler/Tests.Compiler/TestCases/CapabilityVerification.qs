@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
     operation ResultAsBoolOp(result : Result) : Bool {
         return result == Zero ? false | true;
     }
-    
+
     function ResultAsBoolNeqOp(result : Result) : Bool {
         return result != One ? false | true;
     }
