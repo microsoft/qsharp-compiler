@@ -35,12 +35,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public int TrimLevel { get; set; }
 
         [Option("load", Required = false, SetName = CODE_MODE,
-        HelpText = "[Experimental feature] Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
+        HelpText = "Path to the .NET Core dll(s) defining additional transformations to include in the compilation process.")]
         public IEnumerable<string> Plugins { get; set; }
 
-        [Option("target-package", Required = false, SetName = CODE_MODE,
-        HelpText = "Path to the NuGet package containing target specific information and implementations.")]
-        public string TargetPackage { get; set; }
+        [Option("target-specific-decompositions", Required = false, SetName = CODE_MODE,
+        HelpText = "[Experimental feature] Path to the .NET Core dll(s) containing target specific implementations.")]
+        public IEnumerable<string> TargetSpecificDecompositions { get; set; }
 
         [Option("load-test-names", Required = false, Default = false, SetName = CODE_MODE,
         HelpText = "Specifies whether public types and callables declared in referenced assemblies are exposed via their test name defined by the corresponding attribute.")]
@@ -73,33 +73,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 success = valid && parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"')) && success;
             }
             return success;
-        }
-
-        /// <summary>
-        /// Returns null if TargetPackage is null or empty, and 
-        /// returns the path to the assembly containing target specific implementations otherwise.
-        /// If a logger is specified, logs suitable diagnostics if a TargetPackages is not null or empty,
-        /// but no path to the target package assembly could be determined. 
-        /// This may be the case if no directory at the TargetPackage location exists, or if its files can't be accessed, 
-        /// or more than one dll matches the pattern by which the target package assembly is identified.
-        /// </summary>
-        public string GetTargetPackageAssemblyPath(ILogger logger = null)
-        {
-            if (String.IsNullOrEmpty(this.TargetPackage)) return null;
-            try
-            {
-                // Disclaimer: we may revise that in the future.
-                var targetPackageAssembly = Directory.GetFiles(this.TargetPackage, "*Intrinsics.dll", SearchOption.AllDirectories).SingleOrDefault();
-                if (targetPackageAssembly != null) return targetPackageAssembly;
-            }
-            catch (Exception ex)
-            {
-                if (Directory.Exists(this.TargetPackage)) logger?.Log(ex);
-                else logger?.Log(ErrorCode.CouldNotFindTargetPackage, new[] { this.TargetPackage });
-            }
-
-            logger?.Log(ErrorCode.CouldNotFindTargetPackageAssembly, new[] { this.TargetPackage });
-            return null;
         }
     }
 
