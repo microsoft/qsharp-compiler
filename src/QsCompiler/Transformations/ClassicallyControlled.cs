@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
     /// with equivalent nested if-else statements.
     /// 2st Pass: Lift the contents of conditional statements into separate operations, where possible.
     /// 3nd Pass: Convert conditional statements into interface calls, where possible.
-    /// This relies on global callables being the only things that having type parameters.
+    /// This relies on global callables being the only things that have type parameters.
     /// </summary>
     public static class ReplaceClassicalControl
     {
@@ -287,7 +287,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         var idTypeArguments = call.Item1.TypeArguments;
                         var combinedTypeArguments = GetCombinedTypeResolution(callTypeArguments, idTypeArguments);
 
-                        // This relies on anything having type parameters must be a global callable.
+                        // This relies on global callables being the only things that have type parameters.
                         var newCallIdentifier = call.Item1;
                         if (combinedTypeArguments.Any()
                             && newCallIdentifier.Expression is ExpressionKind.Identifier id
