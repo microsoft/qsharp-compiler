@@ -383,7 +383,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public NameDecorator(string label)
         {
             this.label = label;
-            pattern = new Regex($"^__{Regex.Escape(label)}[0-9]*__(?<{original}>.*)__$");
+            pattern = new Regex($"^__{Regex.Escape(label)}_?[0-9]*__(?<{original}>.*)__$");
         }
 
         /// <summary>
@@ -392,7 +392,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         /// <param name="name">The name to decorate.</param>
         /// <param name="number">The number to use along with the label to decorate the name.</param>
         /// <returns>The decorated name.</returns>
-        public string Decorate(string name, int number) => $"__{label}{number}__{name}__";
+        public string Decorate(string name, int number) => 
+            $"__{label}{(number < -0 ? "_" : "")}{Math.Abs(number)}__{name}__";
 
         /// <summary>
         /// Decorates the name of the qualified name with the label of this name decorator and the given number.

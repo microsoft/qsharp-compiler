@@ -172,11 +172,11 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             public IReadOnlyDictionary<string, string> AssemblyConstants;
             /// <summary>
-            /// Path to the assembly that contains a syntax tree with target specific implementations for certain functions and operations.
-            /// The functions and operations defined in that assembly replace the ones declared within the compilation unit.
-            /// If no path is specified here or the specified path is null then this compilation step is omitted.
+            /// Paths to the assemblies that contains a syntax tree with target specific implementations for certain functions and operations.
+            /// The functions and operations defined in these assemblies replace the ones declared within the compilation unit.
+            /// If no paths are specified here or the sequence is null then this compilation step is omitted.
             /// </summary>
-            public string TargetPackageAssembly;
+            public IEnumerable<string> TargetPackageAssemblies;
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated.
@@ -190,6 +190,12 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal bool ConvertClassicalControl =>
                 RuntimeCapabilities == RuntimeCapabilities.QPRGen1;
+
+            /// <summary>
+            /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
+            /// </summary>
+            internal bool LoadTargetSpecificDecompositions =>
+                TargetPackageAssemblies != null && TargetPackageAssemblies.Any();
 
             /// <summary>
             /// If the ProjectName does not have an ending "proj", appends a .qsproj ending to the project name.
@@ -244,7 +250,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 WasSuccessful(true, this.Validation) &&
                 WasSuccessful(true, this.PluginLoading) &&
-                WasSuccessful(!String.IsNullOrWhiteSpace(options.TargetPackageAssembly), this.TargetSpecificReplacements) &&
+                WasSuccessful(options.LoadTargetSpecificDecompositions, this.TargetSpecificReplacements) &&
                 WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
@@ -441,7 +447,7 @@ namespace Microsoft.Quantum.QsCompiler
             RaiseCompilationTaskStart("OverallCompilation", "Build");
             this.CompilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
-            var executionTarget = this.Config.AssemblyConstants.GetValueOrDefault(ExecutionTarget);
+            var executionTarget = this.Config.AssemblyConstants?.GetValueOrDefault(ExecutionTarget);
             var compilationManager = new CompilationUnitManager(
                 this.OnCompilerException,
                 capabilities: this.Config.RuntimeCapabilities,
@@ -467,10 +473,10 @@ namespace Microsoft.Quantum.QsCompiler
             if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
             { thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs")); }
 
-            if (!String.IsNullOrWhiteSpace(this.Config.TargetPackageAssembly))
+            if (this.Config.LoadTargetSpecificDecompositions)
             {
                 RaiseCompilationTaskStart("Build", "ReplaceTargetSpecificImplementations");
-                this.ReplaceTargetSpecificImplementations(thisDllUri, out this.CompilationOutput);
+                this.CompilationOutput = this.ReplaceTargetSpecificImplementations(this.Config.TargetPackageAssemblies, thisDllUri, references.Declarations.Count);
                 RaiseCompilationTaskEnd("Build", "ReplaceTargetSpecificImplementations");
             }
 
@@ -706,42 +712,47 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Attempts to load the target package assembly specified in the configuration,
-        /// logging diagnostics when the loading fails or the corresponding configuration is not specified.
-        /// Updates the compilation status accordingly.
-        /// Executes the transformation to replace target specific implementations as atomic rewrite step,
-        /// returning the transformed compilation as out parameter.
-        /// Sets the out parameter to the unmodified CompilationOutput if the replacement fails.
-        /// Returns a boolean value indicating whether the returned compilation has been modified.
+        /// Attempts to load the target package assemblies with the given paths, logging diagnostics 
+        /// when a path is null or invalid, or loading fails. Logs suitable diagnostics if the loaded dlls
+        /// contains conflicting declarations. Updates the compilation status accordingly.
+        /// Executes the transformation to replace target specific implementations as atomic rewrite step.
+        /// Returns the transformed compilation if all assemblies have been successfully loaded and combined.
+        /// Returns the unmodified CompilationOutput otherwise.
+        /// Throws an ArgumentNullException if the given sequence of paths is null.
         /// </summary>
-        private bool ReplaceTargetSpecificImplementations(Uri rewriteStepOrigin, out QsCompilation transformed)
+        private QsCompilation ReplaceTargetSpecificImplementations(IEnumerable<string> paths, Uri rewriteStepOrigin, int nrReferences)
         {
-            try
-            {
-                var targetDll = Path.GetFullPath(this.Config.TargetPackageAssembly);
-                var loaded = AssemblyLoader.LoadReferencedAssembly(
-                    targetDll,
-                    out var targetIntrinsics,
-                    ex => this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ex));
+            if (paths == null) throw new ArgumentNullException(nameof(paths));
 
-                if (loaded)
-                {
-                    var rewriteStep = new RewriteSteps.LoadedStep(new IntrinsicResolution(targetIntrinsics), typeof(IRewriteStep), rewriteStepOrigin);
-                    transformed = ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.TargetSpecificReplacements);
-                    return true;
-                }
-                else
-                {
-                    this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ErrorCode.FailedToLoadTargetPackageAssembly, new[] { targetDll });
-                }
-            }
-            catch (Exception ex)
+            void LogError(ErrorCode errCode, string[] args) => this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, errCode, args);
+            void LogException(Exception ex) => this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ex);
+
+            (NonNullable<string>, ImmutableArray<QsNamespace>)? LoadReferences(string path)
             {
-                this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ErrorCode.InvalidTargetPackageAssemblyPath, new[] { this.Config.TargetPackageAssembly });
-                this.LogAndUpdate(ref this.CompilationStatus.TargetSpecificReplacements, ex);
+                try
+                {
+                    var targetDll = Path.GetFullPath(path);
+                    var loadSucceeded = AssemblyLoader.LoadReferencedAssembly(targetDll, out var loaded, LogException);
+                    if (loadSucceeded) return (NonNullable<string>.New(path), loaded.Namespaces);
+                    LogError(ErrorCode.FailedToLoadTargetSpecificDecompositions, new[] { targetDll });
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    LogError(ErrorCode.InvalidPathToTargetSpecificDecompositions, new[] { path });
+                    LogException(ex);
+                    return null;
+                }
+
             }
-            transformed = this.CompilationOutput;
-            return false;
+
+            var natives = paths.Select(LoadReferences).Where(loaded => loaded.HasValue).Select(loaded => loaded.Value).ToArray();
+            var combinedSuccessfully = References.CombineSyntaxTrees(out var replacements, additionalAssemblies: nrReferences, onError: LogError, natives);
+            if (!combinedSuccessfully) LogError(ErrorCode.ConflictsInTargetSpecificDecompositions, Array.Empty<string>());
+
+            var targetSpecificDecompositions = new QsCompilation(replacements, ImmutableArray<QsQualifiedName>.Empty);
+            var rewriteStep = new RewriteSteps.LoadedStep(new IntrinsicResolution(targetSpecificDecompositions), typeof(IRewriteStep), rewriteStepOrigin);
+            return ExecuteAsAtomicTransformation(rewriteStep, ref this.CompilationStatus.TargetSpecificReplacements);
         }
 
         /// <summary>
