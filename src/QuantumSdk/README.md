@@ -12,7 +12,7 @@ The Sdk includes all \*.qs files within the project directory as well as the Q# 
 
 To use the Quantum Sdk simply list the NuGet package as Sdk at the top of your project file: 
 ```
-<Project Sdk="Microsoft.Quantum.Sdk/0.10.1912.1803-alpha">
+<Project Sdk="Microsoft.Quantum.Sdk/0.11.2006.2118-alpha">
     ...
 </Project>
 ```
