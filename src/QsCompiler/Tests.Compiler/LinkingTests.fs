@@ -166,8 +166,7 @@ type LinkingTests (output:ITestOutputHelper) =
         let afterCountOriginal = countAll referenceCompilation.BuiltCompilation.Namespaces renamed
 
         let decorator = new NameDecorator("QsRef");
-        let refId = references.Declarations.Single().Key.Value.GetHashCode()
-        let newNames = renamed |> Seq.map (fun name -> decorator.Decorate (name, refId))
+        let newNames = renamed |> Seq.map (fun name -> decorator.Decorate (name, 0))
         let afterCount = countAll referenceCompilation.BuiltCompilation.Namespaces (Seq.concat [newNames; notRenamed])
 
         Assert.NotEqual (0, beforeCount)
@@ -470,8 +469,8 @@ type LinkingTests (output:ITestOutputHelper) =
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
 
         let decorator = new NameDecorator("QsRef")
-        for header in references.Declarations do
-            let name = decorator.Decorate (qualifiedName Signatures.InternalRenamingNs "Foo", header.Key.Value.GetHashCode())
+        for idx = 0 to references.Declarations.Count - 1 do
+            let name = decorator.Decorate (qualifiedName Signatures.InternalRenamingNs "Foo", idx)
             let specializations = callables.[name].Specializations
             Assert.Equal (4, specializations.Length)
             Assert.True (specializations |> Seq.forall (fun s -> s.SourceFile = callables.[name].SourceFile))
@@ -487,7 +486,7 @@ type LinkingTests (output:ITestOutputHelper) =
                 Assert.Equal(2, args.Length)
                 Assert.True(conflicts.ContainsKey(args.[0]))
                 Assert.Equal(conflicts.[args.[0]], args.[1])
-            let success = References.CombineSyntaxTrees(&combined, new Action<_,_>(onError), trees)
+            let success = References.CombineSyntaxTrees(&combined, 0, new Action<_,_>(onError), trees)
             Assert.False(success, "combined conflicting syntax trees")
 
         let source =  sprintf "Reference%i.dll" >> NonNullable<string>.New
@@ -532,27 +531,30 @@ type LinkingTests (output:ITestOutputHelper) =
         let checkValidCombination (sources : ImmutableDictionary<NonNullable<string>, (string * Set<_>)>) = 
             let mutable combined = ImmutableArray<QsNamespace>.Empty
             let trees = sources |> Seq.map (fun kv -> this.BuildReference (kv.Key, fst kv.Value)) |> Seq.toArray
+            let sourceIndex = (trees |> Seq.mapi (fun i (struct (x, _)) -> (x, i))).ToImmutableDictionary(fst, snd)
             let onError _ _ = Assert.False(true, "diagnostics generated upon combining syntax trees")
-            let success = References.CombineSyntaxTrees(&combined, new Action<_,_>(onError), trees)
+            let success = References.CombineSyntaxTrees(&combined, 0, new Action<_,_>(onError), trees)
             Assert.True(success, "failed to combine syntax trees")
 
             let decorator = new NameDecorator("QsRef")
-            let undecorate (assertUndecorated : bool) (fullName : QsQualifiedName, source : NonNullable<string>) = 
+            let undecorate (assertUndecorated : bool) (fullName : QsQualifiedName, srcIdx, source : NonNullable<string>) = 
                 let name = decorator.Undecorate fullName.Name.Value
                 if name <> null then 
-                    Assert.Equal<string>(decorator.Decorate(name, source.Value.GetHashCode()), fullName.Name.Value)
+                    Assert.Equal<string>(decorator.Decorate(name, srcIdx), fullName.Name.Value)
                     {Namespace = fullName.Namespace; Name = name |> NonNullable<string>.New}
                 else Assert.False(assertUndecorated, sprintf "name %s is not decorated" (fullName.ToString())); fullName
 
             /// Verifies that internal names have been decorated appropriately, 
             /// and that the correct source is set. 
             let AssertSource (fullName : QsQualifiedName, source, modifier : _ option) = 
-                let name = 
-                    if modifier.IsNone then undecorate false (fullName, source) 
-                    elif modifier.Value = Internal then undecorate true (fullName, source)
-                    else fullName
                 match sources.TryGetValue source with 
-                | true, (_, decls) -> Assert.True(decls.Contains name)
+                | true, (_, decls) -> 
+                    let idx = sourceIndex.[source]
+                    let name = 
+                        if modifier.IsNone then undecorate false (fullName, idx, source) 
+                        elif modifier.Value = Internal then undecorate true (fullName, idx, source)
+                        else fullName
+                    Assert.True(decls.Contains name)
                 | false, _ -> Assert.True(false, "wrong source")
 
             let onTypeDecl (tDecl : QsCustomType) = 

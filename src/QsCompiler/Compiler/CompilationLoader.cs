@@ -469,7 +469,7 @@ namespace Microsoft.Quantum.QsCompiler
             if (this.Config.LoadTargetSpecificDecompositions)
             {
                 RaiseCompilationTaskStart("Build", "ReplaceTargetSpecificImplementations");
-                this.CompilationOutput = this.ReplaceTargetSpecificImplementations(this.Config.TargetPackageAssemblies, thisDllUri);
+                this.CompilationOutput = this.ReplaceTargetSpecificImplementations(this.Config.TargetPackageAssemblies, thisDllUri, references.Declarations.Count);
                 RaiseCompilationTaskEnd("Build", "ReplaceTargetSpecificImplementations");
             }
 
@@ -713,7 +713,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Returns the unmodified CompilationOutput otherwise.
         /// Throws an ArgumentNullException if the given sequence of paths is null.
         /// </summary>
-        private QsCompilation ReplaceTargetSpecificImplementations(IEnumerable<string> paths, Uri rewriteStepOrigin)
+        private QsCompilation ReplaceTargetSpecificImplementations(IEnumerable<string> paths, Uri rewriteStepOrigin, int nrReferences)
         {
             if (paths == null) throw new ArgumentNullException(nameof(paths));
 
@@ -740,7 +740,7 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             var natives = paths.Select(LoadReferences).Where(loaded => loaded.HasValue).Select(loaded => loaded.Value).ToArray();
-            var combinedSuccessfully = References.CombineSyntaxTrees(out var replacements, onError: LogError, natives);
+            var combinedSuccessfully = References.CombineSyntaxTrees(out var replacements, additionalAssemblies: nrReferences, onError: LogError, natives);
             if (!combinedSuccessfully) LogError(ErrorCode.ConflictsInTargetSpecificDecompositions, Array.Empty<string>());
 
             var targetSpecificDecompositions = new QsCompilation(replacements, ImmutableArray<QsQualifiedName>.Empty);
