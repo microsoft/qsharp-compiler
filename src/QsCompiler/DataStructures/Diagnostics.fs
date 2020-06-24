@@ -556,8 +556,8 @@ type DiagnosticItem =
                 "The execution target {0} supports comparing measurement results only as part of the condition of an " +
                 "if- or elif-statement in an operation. " +
                 "Choose an execution target with additional capabilities or avoid unsupported result comparisons."
-            | ErrorCode.ReturnInResultConditionedBlock            -> "TODO"
-            | ErrorCode.SetInResultConditionedBlock               -> "TODO"
+            | ErrorCode.ReturnInResultConditionedBlock            -> "TODO: ReturnInResultConditionedBlock"
+            | ErrorCode.SetInResultConditionedBlock               -> "TODO: SetInResultConditionedBlock"
 
             | ErrorCode.CallableRedefinition                      -> "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor        -> "Invalid callable declaration. A type constructor with the name \"{0}\" already exists."
