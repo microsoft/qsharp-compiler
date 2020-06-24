@@ -30,6 +30,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             ? ApplyWithEntryPoints(compilation)
             : ApplyWithoutEntryPoints(compilation);
 
+        /// <summary>
+        /// Runs the transformation on the a compilation with entry points. This will trim
+        /// the resulting call graph to only include those callables that are related
+        /// to an entry point.
+        /// </summary>
         private static CallGraph ApplyWithEntryPoints(QsCompilation compilation)
         {
             var walker = new BuildGraph();
@@ -56,6 +61,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             return walker.SharedState.Graph;
         }
 
+        /// <summary>
+        /// Runs the transformation on the a compilation without any entry points. This
+        /// will produce a call graph that contains all relationships amongst all callables
+        /// in the compilation.
+        /// </summary>
         private static CallGraph ApplyWithoutEntryPoints(QsCompilation compilation)
         {
             var walker = new BuildGraph();
@@ -90,7 +100,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             internal QsSpecialization CurrentSpecialization;
             internal CallGraph Graph = new CallGraph();
             internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions = new List<TypeParameterResolutions>();
- 
+
             internal bool IsLimitedToEntryPoints = false;
             internal Stack<QsQualifiedName> RequestStack = null;
             internal HashSet<QsQualifiedName> ResolvedCallableSet = null;
