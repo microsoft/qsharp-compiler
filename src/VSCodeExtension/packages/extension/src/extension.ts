@@ -11,8 +11,6 @@ import { getPackageInfo } from './packageInfo';
 import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp } from './commands';
 import { LanguageServer } from './languageServer';
 
-import * as qsharpGenerator from 'generator-qsharp';
-
 /**
  * Returns the root folder for the current workspace.
  */

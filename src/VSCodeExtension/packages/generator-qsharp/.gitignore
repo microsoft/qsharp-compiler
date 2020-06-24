@@ -9,3 +9,4 @@ out/
 
 # Ignore v.templated files.
 package.json
+package-lock.json
