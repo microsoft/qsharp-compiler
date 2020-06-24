@@ -90,7 +90,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             internal QsSpecialization CurrentSpecialization;
             internal CallGraph Graph = new CallGraph();
             internal IEnumerable<TypeParameterResolutions> TypeParameterResolutions = new List<TypeParameterResolutions>();
-            
+ 
             internal bool IsLimitedToEntryPoints = false;
             internal Stack<QsQualifiedName> RequestStack = null;
             internal HashSet<QsQualifiedName> ResolvedCallableSet = null;
