@@ -25,37 +25,45 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     /// </summary>
     public static class BuildCallGraph
     {
-        public static CallGraph Apply(QsCompilation compilation)
+        public static CallGraph Apply(QsCompilation compilation) =>
+            compilation.EntryPoints.Any()
+            ? ApplyWithEntryPoints(compilation)
+            : ApplyWithoutEntryPoints(compilation);
+
+        private static CallGraph ApplyWithEntryPoints(QsCompilation compilation)
         {
             var walker = new BuildGraph();
 
-            if (compilation.EntryPoints.Any())
+            walker.SharedState.IsLimitedToEntryPoints = true;
+            walker.SharedState.RequestStack = new Stack<QsQualifiedName>(compilation.EntryPoints);
+            walker.SharedState.ResolvedCallableSet = new HashSet<QsQualifiedName>();
+            var globals = compilation.Namespaces.GlobalCallableResolutions();
+            while (walker.SharedState.RequestStack.Any())
             {
-                walker.SharedState.IsLimitedToEntryPoints = true;
-                walker.SharedState.RequestStack = new Stack<QsQualifiedName>(compilation.EntryPoints);
-                walker.SharedState.ResolvedCallableSet = new HashSet<QsQualifiedName>();
-                var globals = compilation.Namespaces.GlobalCallableResolutions();
-                while (walker.SharedState.RequestStack.Any())
-                {
-                    var currentRequest = walker.SharedState.RequestStack.Pop();
+                var currentRequest = walker.SharedState.RequestStack.Pop();
 
-                    // If there is a call to an unknown callable, throw exception
-                    if (!globals.TryGetValue(currentRequest, out QsCallable currentCallable))
-                        throw new ArgumentException($"Couldn't find definition for callable: {currentRequest}");
+                // If there is a call to an unknown callable, throw exception
+                if (!globals.TryGetValue(currentRequest, out QsCallable currentCallable))
+                    throw new ArgumentException($"Couldn't find definition for callable: {currentRequest}");
 
-                    // The current request must be added before it is processed to prevent
-                    // self-references from duplicating on the stack.
-                    walker.SharedState.ResolvedCallableSet.Add(currentRequest);
+                // The current request must be added before it is processed to prevent
+                // self-references from duplicating on the stack.
+                walker.SharedState.ResolvedCallableSet.Add(currentRequest);
 
-                    walker.Namespaces.OnCallableDeclaration(currentCallable);
-                }
+                walker.Namespaces.OnCallableDeclaration(currentCallable);
             }
-            else
+
+            return walker.SharedState.Graph;
+        }
+
+        private static CallGraph ApplyWithoutEntryPoints(QsCompilation compilation)
+        {
+            var walker = new BuildGraph();
+
+            // ToDo: This can be simplified once the OnCompilation method is merged in
+            foreach (var ns in compilation.Namespaces)
             {
-                foreach (var ns in compilation.Namespaces)
-                {
-                    walker.Namespaces.OnNamespace(ns);
-                }
+                walker.Namespaces.OnNamespace(ns);
             }
 
             return walker.SharedState.Graph;
