@@ -742,6 +742,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             if (nodes.Current.Fragment.Kind is QsFragmentKind.IfClause ifCond)
             {
+                // TODO: This isn't the right way...
+                var startOffset = nodes.Current.GetRootPosition();
+
                 // if block
                 var buildClause = BuildStatement(nodes.Current,
                     (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, ifCond.Item),
@@ -775,7 +778,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     context, ifBlock.ToValueTuple(), elifBlocks, elseBlock);
                 statement = ifStatement;
                 diagnostics.AddRange(ifDiagnostics.Select(diagnostic => Diagnostics.Generate(
-                    context.Symbols.SourceFile.Value, diagnostic, nodes.Current.GetRootPosition())));
+                    context.Symbols.SourceFile.Value, diagnostic, startOffset)));
                 return true;
             }
             (statement, proceed) = (null, true);

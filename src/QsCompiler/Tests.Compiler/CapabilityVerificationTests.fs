@@ -32,7 +32,7 @@ let private testName name =
 let private allows (tester : CompilerTests) name = tester.Verify (testName name, List.empty<DiagnosticItem>)
 
 /// Asserts that the tester does not allow the given test case.
-let private restricts (tester : CompilerTests) errorCode name = tester.Verify (testName name, [Error errorCode])
+let private restricts (tester : CompilerTests) errorCodes name = tester.Verify (testName name, Seq.map Error errorCodes)
 
 /// The names of all test cases.
 let private all =
@@ -59,49 +59,58 @@ let [<Fact>] ``Unknown allows all Result comparison`` () = List.iter (allows unk
 
 [<Fact>]
 let ``QPRGen0 restricts all Result comparison`` () =
-    List.iter (restricts gen0 ErrorCode.UnsupportedResultComparison) all
+    List.iter (restricts gen0 [ErrorCode.UnsupportedResultComparison]) all
 
 [<Fact>]
 let ``QPRGen1 restricts Result comparison in functions`` () =
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBool"
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeq"
+    [ "ResultAsBool"
+      "ResultAsBoolNeq" ]
+    |> List.iter (restricts gen1 [ErrorCode.ResultComparisonNotInOperationIf])
 
 [<Fact>]
 let ``QPRGen1 restricts non-if Result comparison in operations`` () =
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolOp"
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "ResultAsBoolNeqOp"
+    [ "ResultAsBoolOp"
+      "ResultAsBoolNeqOp" ]
+    |> List.iter (restricts gen1 [ErrorCode.ResultComparisonNotInOperationIf])
 
 [<Fact>]
 let ``QPRGen1 restricts return from Result if`` () =
-    restricts gen1 ErrorCode.ReturnInResultConditionedBlock "ResultAsBoolOpReturnIf"
-    restricts gen1 ErrorCode.ReturnInResultConditionedBlock "ResultAsBoolNeqOpReturnIf"
+    [ "ResultAsBoolOpReturnIf"
+      "ResultAsBoolNeqOpReturnIf" ]
+    |> List.iter (restricts gen1 <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
 
 [<Fact>]
 let ``QPRGen1 restricts mutable set from Result if`` () =
-    restricts gen1 ErrorCode.SetInResultConditionedBlock "ResultAsBoolOpSetIf"
-    restricts gen1 ErrorCode.SetInResultConditionedBlock "ResultAsBoolNeqOpSetIf"
+    [ "ResultAsBoolOpSetIf"
+      "ResultAsBoolNeqOpSetIf" ]
+    |> List.iter (restricts gen1 [ErrorCode.SetInResultConditionedBlock])
 
 [<Fact>]
 let ``QPRGen1 restricts mutable set from Result elif`` () =
-    restricts gen1 ErrorCode.SetInResultConditionedBlock "ElifSet"
-    restricts gen1 ErrorCode.SetInResultConditionedBlock "ElifElifSet"
+    [ "ElifSet"
+      "ElifElifSet" ]
+    |> List.iter (restricts gen1 [ErrorCode.SetInResultConditionedBlock])
 
 [<Fact>]
 let ``QPRGen1 restricts mutable set from Result else`` () =
-    restricts gen1 ErrorCode.SetInResultConditionedBlock "ResultAsBoolOpElseSet"
-    restricts gen1 ErrorCode.SetInResultConditionedBlock "ElifElseSet"
+    [ "ResultAsBoolOpElseSet"
+      "ElifElseSet" ]
+    |> List.iter (restricts gen1 [ErrorCode.SetInResultConditionedBlock])
 
 [<Fact>]
 let ``QPRGen1 restricts empty Result if function`` () =
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "EmptyIf"
-    restricts gen1 ErrorCode.ResultComparisonNotInOperationIf "EmptyIfNeq"
+    [ "EmptyIf"
+      "EmptyIfNeq" ]
+    |> List.iter (restricts gen1 [ErrorCode.ResultComparisonNotInOperationIf])
 
 [<Fact>]
 let ``QPRGen1 allows empty Result if operation`` () =
-    allows gen1 "EmptyIfOp"
-    allows gen1 "EmptyIfNeqOp"
+    [ "EmptyIfOp"
+      "EmptyIfNeqOp" ]
+    |> List.iter (allows gen1)
 
 [<Fact>]
 let ``QPRGen1 allows operation call from Result if`` () =
-    allows gen1 "Reset"
-    allows gen1 "ResetNeq"
+    [ "Reset"
+      "ResetNeq" ]
+    |> List.iter (allows gen1)
