@@ -9,7 +9,10 @@
   
   <!-- We want access to the full path of packages as determined by msbuild to filter and reorder various package references. -->
   <ItemDefinitionGroup>
-    <PackageReference IsQscReference ="false" IsTargetPackage="false" GeneratePathProperty="true" />
+    <!-- Instead of using GeneratePathProperty="true" for each package reference, 
+    we force packages containing compiler extensions or target-specific decompositions to include a .props file that defines this property,
+    or users to explicitly specify it for that reference. -->
+    <PackageReference IsQscReference ="false" IsTargetPackage="false" /> 
     <ProjectReference IsQscReference ="false" IsTargetPackage="false" />
   </ItemDefinitionGroup>
   
@@ -71,29 +74,26 @@
   </PropertyGroup>
 
 
-  <!-- Computes the ResolvedTargetPackage property. Generates a build error if more than one target package has been specified. -->
-  <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences;Restore" BeforeTargets="BeforeQsharpCompile">
+  <!-- Computes the ResolvedTargetSpecificDecompositions property. Generates a build error if more than one target package has been specified. -->
+  <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQsharpCompile">
     <ItemGroup>
       <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
-      <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'Pkg$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" /> 
-      <_ResolvedTargetPackageReferences Include="$(%(_TargetPackageReferencePathProperty.Identity))" /> 
+      <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'QscRef_$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" /> 
+      <_ResolvedTargetPackageReference Include="$(%(_TargetPackageReferencePathProperty.Identity))" /> 
+      <ResolvedTargetSpecificDecompositions Include="@(_ResolvedTargetPackageReference->Split(`;`))" /> 
     </ItemGroup>
-    <Error Condition="@(_ResolvedTargetPackageReferences->Count()) &gt; 1" Text="More than one target package was defined. The defined target package needs to be unique." />
+    <Error Condition="@(_TargetPackageReference->Count()) &gt; 1" Text="More than one target package was defined. The defined target package needs to be unique." />
+    <Error 
+      Condition="@(ResolvedTargetSpecificDecompositions->Count()) == 0 And @(_TargetPackageReference->Count()) &gt; 0" 
+      Text="Invalid target package. The target package is expected to specify the dll containing the decompositions to load." />
     <Message 
-      Condition="@(_ResolvedTargetPackageReferences->Count()) &gt; 1 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
-      Text="Resolved target package: %(_ResolvedTargetPackageReferences.Identity)" 
-      Importance="High" /> 
-    <PropertyGroup>
-      <ResolvedTargetPackage Condition="@(_ResolvedTargetPackageReferences->Count()) == 1">%(_ResolvedTargetPackageReferences.Identity)</ResolvedTargetPackage> 
-    </PropertyGroup>
-    <Message 
-      Condition="'$(ResolvedTargetPackage)' != '' And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
-      Text="Resolved target package: $(ResolvedTargetPackage)" 
+      Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
+      Text="Resolved target package assembly: @(ResolvedTargetSpecificDecompositions)" 
       Importance="High" /> 
   </Target>  
 
   <!-- Computes ResolvedQscReferences, ResolvedQscReferencesAndPriorities, QscProjectReference and QscPackageReference. -->
-  <Target Name="ResolveQscReferences" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences;Restore" BeforeTargets="BeforeQsharpCompile">
+  <Target Name="ResolveQscReferences" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQsharpCompile">
     <!-- get the assembly path for all relevant project references which are passed as qsc references -->
     <ItemGroup>
       <QscProjectReference Include="@(_ResolvedProjectReferencePaths)" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsQscReference)" />
@@ -107,14 +107,17 @@
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget',''))" /> 
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','Any'))" /> 
       <_RelevantQscPackageReference Include="@(QscPackageReference->WithMetadataValue('ExecutionTarget','$(ExecutionTarget)'))" /> 
-      <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'Pkg$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
+      <_RelevantQscPackageReferencePathProperty Include="@(_RelevantQscPackageReference->'QscRef_$([System.String]::Copy('%(_RelevantQscPackageReference.Identity)').Replace('.','_'))')" /> 
     </ItemGroup>
     <!-- add the assembly paths for all relevant qsc references and their priorities to ResolvedQscReferences -->
     <ItemGroup>
-      <ResolvedQscReferences Include="%(_RelevantQscProjectReference.Identity)" Priority="%(_RelevantQscProjectReference.Priority)" />
-      <ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))/lib/**/*.dll" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
+      <_ResolvedQscReferences Include="%(_RelevantQscProjectReference.Identity)" Priority="%(_RelevantQscProjectReference.Priority)" />
+      <_ResolvedQscReferences Include="$(%(_RelevantQscPackageReferencePathProperty.Identity))" Priority="%(_RelevantQscPackageReferencePathProperty.Priority)" /> 
+      <_InvalidQscReferences Include="@(_ResolvedQscReferences)" Condition="'%(_ResolvedQscReferences.Identity)' == ''" />
+      <ResolvedQscReferences Include="@(_ResolvedQscReferences->Split(`;`))" Condition="'%(_ResolvedQscReferences.Identity)' != ''" />
       <ResolvedQscReferencesAndPriorities Include="(%(ResolvedQscReferences.Identity), %(ResolvedQscReferences.Priority))" /> 
     </ItemGroup>
+    <Warning Condition="@(_InvalidQscReferences->Count()) &gt; 0" Text="One or more qsc reference(s) could not be identified correctly due to a lack of the expected properties." />
     <Message 
       Condition="@(ResolvedQscReferences->Count()) &gt; 0 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
       Text="Resolved qsc reference: %(ResolvedQscReferences.Identity) (priority %(ResolvedQscReferences.Priority))" 

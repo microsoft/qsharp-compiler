@@ -11,7 +11,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
-    
+
 let private _BaseTypes =
     [|
         "Unit", UnitType
@@ -22,7 +22,7 @@ let private _BaseTypes =
         "Qubit", Qubit
         "Qubit[]", ResolvedType.New Qubit |> ArrayType
     |]
-    
+
 let private _MakeTypeMap udts =
     Array.concat
         [
@@ -86,7 +86,7 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
     let makeArgsString (args : ResolvedType) =
         match args.Resolution with
         | QsTypeKind.UnitType -> "()"
-        | _ -> args |> SyntaxTreeToQsharp.Default.ToCode 
+        | _ -> args |> SyntaxTreeToQsharp.Default.ToCode
 
     let removeAt i lst =
         Seq.append
@@ -253,12 +253,15 @@ let public ClassicalControlSignatures =
         |])
         (_DefaultTypes, [| // If Elif
             ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // And Condition
             ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // Or Condition
             ClassicalControlNs, "Foo", [||], "Unit"
+            ClassicalControlNs, "_Foo", [|"Result"|], "Unit"
         |])
         (_DefaultTypes, [| // Don't Lift Functions
             ClassicalControlNs, "Foo", [||], "Unit"
