@@ -27,7 +27,7 @@ open Xunit.Abstractions
 
 
 type LinkingTests (output:ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests" )) ["Core.qs"; "InvalidEntryPoints.qs"] [], output)
+    inherit CompilerTests(CompilerTests.Compile (Path.Combine ("TestCases", "LinkingTests"), ["Core.qs"; "InvalidEntryPoints.qs"]))
 
     let compilationManager = new CompilationUnitManager(new Action<Exception> (fun ex -> failwith ex.Message), isExecutable = true)
 
@@ -80,7 +80,7 @@ type LinkingTests (output:ITestOutputHelper) =
 
     member private this.CompileAndVerify (manager : CompilationUnitManager) input (diag : DiagnosticItem seq) =
         let source, built = manager |> this.BuildWithSource input
-        let tests = new CompilerTests(built, output)
+        let tests = new CompilerTests(built)
 
         let inFile (c : QsCallable) = c.SourceFile = source
         for callable in built.Callables.Values |> Seq.filter inFile do

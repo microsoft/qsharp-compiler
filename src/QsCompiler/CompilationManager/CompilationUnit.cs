@@ -280,6 +280,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         internal readonly RuntimeCapabilities RuntimeCapabilities;
         internal readonly bool IsExecutable;
+        internal readonly NonNullable<string> ExecutionTarget;
 
         public void Dispose()
         { this.SyncRoot.Dispose(); }
@@ -289,8 +290,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// with the given sequence of locks registered as dependent locks if the sequence is not null.
         /// Throws an ArgumentNullException if any of the given locks is.
         /// </summary>
-        internal CompilationUnit(RuntimeCapabilities capabilities, bool isExecutable,
-            References externals = null, IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
+        internal CompilationUnit(
+            RuntimeCapabilities capabilities,
+            bool isExecutable,
+            NonNullable<string> executionTarget,
+            References externals = null,
+            IEnumerable<ReaderWriterLockSlim> dependentLocks = null)
         {
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.DependentLocks = dependentLocks == null
@@ -300,6 +305,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             this.RuntimeCapabilities = capabilities;
             this.IsExecutable = isExecutable;
+            this.ExecutionTarget = executionTarget;
 
             this.CompiledCallables = new Dictionary<QsQualifiedName, QsCallable>();
             this.CompiledTypes = new Dictionary<QsQualifiedName, QsCustomType>();
