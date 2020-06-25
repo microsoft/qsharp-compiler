@@ -3,12 +3,12 @@
 
 using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-
+using Microsoft.Quantum.QsCompiler.Transformations;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
-    /// Inlines all conjugations, eliminating that construct from the syntax tree.  
+    /// Inlines all conjugations, eliminating that construct from the syntax tree.
     /// </summary>
     internal class ConjugationInlining : IRewriteStep
     {

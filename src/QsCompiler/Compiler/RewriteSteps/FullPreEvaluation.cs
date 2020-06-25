@@ -3,12 +3,12 @@
 
 using System.Collections.Generic;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-
+using Microsoft.Quantum.QsCompiler.Transformations;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     /// <summary>
-    /// Evaluates classical computations as much as possible.   
+    /// Evaluates classical computations as much as possible.
     /// </summary>
     internal class FullPreEvaluation : IRewriteStep
     {

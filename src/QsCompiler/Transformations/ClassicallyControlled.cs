@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 
@@ -272,25 +273,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         && !TypedExpression.IsPartialApplication(expr.Item.Expression)
                         && call.Item1.Expression is ExpressionKind.Identifier)
                     {
-                        // We are dissolving the application of arguments here, so the call's type argument
-                        // resolutions have to be moved to the 'identifier' sub expression.
-
-                        var callTypeArguments = expr.Item.TypeArguments;
-                        var idTypeArguments = call.Item1.TypeArguments;
-                        var combinedTypeArguments = GetCombinedTypeResolution(callTypeArguments, idTypeArguments);
-
-                        // This relies on global callables being the only things that have type parameters.
                         var newCallIdentifier = call.Item1;
-                        if (combinedTypeArguments.Any()
-                            && newCallIdentifier.Expression is ExpressionKind.Identifier id
-                            && id.Item1 is Identifier.GlobalCallable global)
+                        var callTypeArguments = expr.Item.TypeParameterResolutions;
+
+                        // This relies on anything having type parameters must be a global callable.
+                        if (newCallIdentifier.Expression is ExpressionKind.Identifier id
+                            && id.Item1 is Identifier.GlobalCallable global
+                            && callTypeArguments.Any())
                         {
+                            // We are dissolving the application of arguments here, so the call's type argument
+                            // resolutions have to be moved to the 'identifier' sub expression.
+                            var combined = TypeParamUtils.TryCombineTypeResolutionsForTarget(global.Item,
+                                out var combinedTypeArguments,
+                                newCallIdentifier.TypeParameterResolutions, callTypeArguments);
+                            QsCompilerError.Verify(combined, "failed to combine type parameter resolution");
+
                             var globalCallable = SharedState.Compilation.Namespaces
                                 .Where(ns => ns.Name.Equals(global.Item.Namespace))
                                 .Callables()
                                 .FirstOrDefault(c => c.FullName.Name.Equals(global.Item.Name));
 
-                            QsCompilerError.Verify(globalCallable != null, $"Could not find the global reference {global.Item.Namespace.Value + "." + global.Item.Name.Value}");
+                            QsCompilerError.Verify(globalCallable != null, $"Could not find the global reference {global.Item}.");
 
                             var callableTypeParameters = globalCallable.Signature.TypeParameters
                                 .Select(x => x as QsLocalSymbol.ValidName);
@@ -302,8 +305,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                     id.Item1,
                                     QsNullable<ImmutableArray<ResolvedType>>.NewValue(
                                         callableTypeParameters
-                                        .Select(x => combinedTypeArguments.First(y => y.Item2.Equals(x.Item)).Item3).ToImmutableArray())),
-                                combinedTypeArguments,
+                                        .Select(x => combinedTypeArguments[Tuple.Create(global.Item, x.Item)]).ToImmutableArray())),
+                                TypedExpression.AsTypeArguments(combinedTypeArguments),
                                 call.Item1.ResolvedType,
                                 call.Item1.InferredInformation,
                                 call.Item1.Range);
@@ -482,7 +485,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     // Takes a single TypedExpression of type Result and puts in into a
                     // value array expression with the given expression as its only item.
-                    TypedExpression BoxResultInArray(TypedExpression expression) =>
+                    static TypedExpression BoxResultInArray(TypedExpression expression) =>
                         new TypedExpression(
                             ExpressionKind.NewValueArray(ImmutableArray.Create(expression)),
                             TypeArgsResolution.Empty,
@@ -711,7 +714,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     }
                     else if (expression.Expression is ExpressionKind.NEQ neq)
                     {
-                        QsResult FlipResult(QsResult result) => result.IsZero ? QsResult.One : QsResult.Zero;
+                        static QsResult FlipResult(QsResult result) => result.IsZero ? QsResult.One : QsResult.Zero;
 
                         if (neq.Item1.Expression is ExpressionKind.ResultLiteral literal1)
                         {
