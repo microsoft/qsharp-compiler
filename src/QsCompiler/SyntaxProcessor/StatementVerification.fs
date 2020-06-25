@@ -285,7 +285,13 @@ let private verifyResultConditionalBlocks (blocks : (TypedExpression * QsPositio
             QsCompilerDiagnostic.Error
                 (ErrorCode.ReturnInResultConditionedBlock, [])
                 (statement.Location
-                 |> QsNullable<_>.Map (fun location -> location.Range)
+                 |> QsNullable<_>.Map (fun location ->
+                     let a, b = location.Range
+                     let newA = { a with Line = a.Line + fst location.Offset
+                                         Column = a.Column + snd location.Offset }
+                     let newB = { b with Line = b.Line + fst location.Offset
+                                         Column = b.Column + snd location.Offset }
+                     newA, newB)
                  |> (fun nullable -> nullable.ValueOr QsCompilerDiagnostic.DefaultRange)))
 
     let reassignments (block : QsPositionedBlock) =
