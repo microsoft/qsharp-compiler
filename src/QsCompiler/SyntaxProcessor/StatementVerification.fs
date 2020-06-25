@@ -17,10 +17,24 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
+open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 
 // some utils for type checking statements
+
+/// Returns all statements matching the statement kind predicate.
+let private findStatements predicate statements =
+    let mutable matches = []
+    let transformation =
+        { new StatementTransformation(TransformationOptions.NoRebuild) with
+            override this.OnStatement statement =
+                if predicate statement.Statement then
+                    matches <- statement :: matches
+                base.OnStatement statement
+        }
+    Seq.iter (transformation.OnStatement >> ignore) statements
+    matches
 
 /// Given a verification function that takes an error logging function as well as an expression type and its range, 
 /// first resolves the given expression, and then verifies its resolved type with the verification function. 
@@ -263,14 +277,10 @@ let private isResultComparison ({ Expression = expr } : TypedExpression) =
     | NEQ (lhs, rhs) -> bothResult lhs rhs
     | _ -> false
 
-let private isReturnStatement { Statement = statement } =
-    match statement with
-    | QsReturnStatement -> true
-    | _ -> false
-
 let private verifyResultConditionalBlocks (blocks : (TypedExpression * QsPositionedBlock) seq) =
-    let returnDiagnostics (block : QsPositionedBlock) =
-        FindStatements.Apply (Func<_, _> isReturnStatement, block.Body)
+    let returns (block : QsPositionedBlock) =
+        block.Body.Statements
+        |> findStatements (function | QsReturnStatement -> true | _ -> false)
         |> Seq.map (fun statement ->
             QsCompilerDiagnostic.Error
                 (ErrorCode.ReturnInResultConditionedBlock, [])
@@ -278,7 +288,7 @@ let private verifyResultConditionalBlocks (blocks : (TypedExpression * QsPositio
                  |> QsNullable<_>.Map (fun location -> location.Range)
                  |> (fun nullable -> nullable.ValueOr QsCompilerDiagnostic.DefaultRange)))
 
-    let setDiagnostics (block : QsPositionedBlock) =
+    let reassignments (block : QsPositionedBlock) =
         UpdatedOutsideVariables.Apply block.Body
         |> Seq.map (fun variable ->
             QsCompilerDiagnostic.Error
@@ -290,7 +300,7 @@ let private verifyResultConditionalBlocks (blocks : (TypedExpression * QsPositio
         let newFoundResultEq = foundResultEq || FindExpressions.Contains (Func<_, _> isResultComparison, condition)
         let newDiagnostics =
             if newFoundResultEq
-            then Seq.concat [returnDiagnostics block; setDiagnostics block; diagnostics]
+            then Seq.concat [returns block; reassignments block; diagnostics]
             else diagnostics
         (newFoundResultEq, newDiagnostics))
     |> snd

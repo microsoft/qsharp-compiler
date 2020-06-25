@@ -49,41 +49,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         }
     }
 
-    public static class FindStatements
-    {
-        public static IList<QsStatement> Apply(Func<QsStatement, bool> predicate, QsScope scope)
-        {
-            var transformation = new Transformation(new State(predicate));
-            transformation.OnScope(scope);
-            return transformation.SharedState.Statements;
-        }
-
-        private sealed class State
-        {
-            internal Func<QsStatement, bool> Predicate { get; }
-
-            internal IList<QsStatement> Statements { get; } = new List<QsStatement>();
-
-            internal State(Func<QsStatement, bool> predicate) => Predicate = predicate;
-        }
-
-        private sealed class Transformation : StatementTransformation<State>
-        {
-            internal Transformation(State state) : base(state, TransformationOptions.NoRebuild)
-            {
-            }
-
-            public override QsStatement OnStatement(QsStatement statement)
-            {
-                if (SharedState.Predicate(statement))
-                {
-                    SharedState.Statements.Add(statement);
-                }
-                return base.OnStatement(statement);
-            }
-        }
-    }
-
     public static class UpdatedOutsideVariables
     {
         public static List<TypedExpression> Apply(QsScope scope)
