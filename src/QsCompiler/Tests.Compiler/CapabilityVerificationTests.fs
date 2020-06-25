@@ -76,6 +76,7 @@ let ``QPRGen1 restricts non-if Result comparison in operations`` () =
 [<Fact>]
 let ``QPRGen1 restricts return from Result if`` () =
     [ "ResultAsBoolOpReturnIf"
+      "ResultAsBoolOpReturnIfNested"
       "ResultAsBoolNeqOpReturnIf" ]
     |> List.iter (restricts gen1 <| Seq.replicate 2 ErrorCode.ReturnInResultConditionedBlock)
 

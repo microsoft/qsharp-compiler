@@ -45,6 +45,24 @@ namespace Microsoft.Quantum.Testing.CapabilityVerification {
         }
     }
 
+    operation ResultAsBoolOpReturnIfNested(result : Result) : Bool {
+        if (result == Zero) {
+            let x = 5;
+            if (x == 5) {
+                return false;
+            } else {
+                fail "error";
+            }
+        } else {
+            let x = 7;
+            if (x == 7) {
+                return true;
+            } else {
+                fail "error";
+            }
+        }
+    }
+
     operation ResultAsBoolOpSetIf(result : Result) : Bool {
         mutable b = false;
         if (result == One) {
