@@ -707,7 +707,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private QsCompilation ExecuteAsAtomicTransformation(RewriteSteps.LoadedStep rewriteStep, ref Status status)
         {
-            status = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out var transformed);
+            QsCompilation transformed = null;
+            if (this.CompilationStatus.Validation != Status.Succeeded) status = Status.NotRun;
+            else status = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out transformed);
             return status == Status.Succeeded ? transformed : this.CompilationOutput;
         }
 
